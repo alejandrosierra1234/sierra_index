@@ -399,6 +399,35 @@
     .news-placeholder { padding:2.5rem; text-align:center; font-size:0.82rem; color:var(--text-3); }
     @keyframes spin { to { transform:rotate(360deg); } }
 
+    /* ── PRODUCT DETAIL VIEW ── */
+    #view-detail { display:none; }
+    .detail-wrap { max-width:960px; margin:0 auto; padding-bottom:3rem; }
+    .detail-back { margin-bottom:1.75rem; }
+    .detail-back-btn {
+      display:inline-flex; align-items:center; gap:0.4rem;
+      background:none; border:none; cursor:pointer; font-family:inherit;
+      font-size:0.82rem; font-weight:500; color:var(--text-2);
+      padding:0.3rem 0.5rem; border-radius:7px; transition:all 0.12s;
+    }
+    .detail-back-btn:hover { background:var(--surface2); color:var(--text); }
+    .detail-hero { display:grid; grid-template-columns:1fr 1fr; gap:2.5rem; margin-bottom:2.5rem; align-items:start; }
+    .detail-gallery-area { position:sticky; top:1rem; }
+    .detail-info { display:flex; flex-direction:column; gap:0; }
+    .detail-eyebrow { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:0.5rem; }
+    .detail-name { font-size:1.6rem; font-weight:700; letter-spacing:-0.025em; line-height:1.15; margin-bottom:0.3rem; }
+    .detail-lot { font-size:0.78rem; color:var(--text-3); margin-bottom:1.5rem; }
+    .detail-desc { font-size:0.86rem; color:var(--text-2); line-height:1.65; margin-bottom:1.5rem; }
+    .detail-section { margin-bottom:1.5rem; }
+    .detail-section-lbl { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-3); margin-bottom:0.65rem; }
+    .detail-actions { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:1.75rem; padding-top:1.5rem; border-top:1px solid var(--border); }
+    .detail-comments-section { border-top:1px solid var(--border); padding-top:1.5rem; }
+    .detail-comments-lbl { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-3); margin-bottom:1rem; }
+    @media (max-width:767px) {
+      .detail-hero { grid-template-columns:1fr; gap:1.5rem; }
+      .detail-gallery-area { position:static; }
+      .detail-name { font-size:1.3rem; }
+    }
+
     /* ── RESPONSIVE / MOBILE ── */
     @media (max-width: 767px) {
       /* Stable full-height layout */
@@ -650,6 +679,7 @@
         <div class="pg" id="pg"></div>
       </div>
       <div id="view-dashboard"></div>
+      <div id="view-detail" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -1037,6 +1067,7 @@ function leaveView() {
   dashCharts = {}
   commodityData = {}
   document.getElementById('view-dashboard').style.display = 'none'
+  document.getElementById('view-detail').style.display = 'none'
   document.getElementById('view-products').style.display = 'flex'
 }
 
@@ -1054,21 +1085,80 @@ function setDiv(d, el) {
   loadProducts()
 }
 
-/* ── FICHA ── */
-function openFicha(p) {
+/* ── PRODUCT DETAIL (full page) ── */
+function openFicha(p) { showProductDetail(p) }   // backward compat
+
+function showProductDetail(p) {
   selected = p
   const c = DIV_CLR[p.division] || '#aaa'
   const code = p.code || p.id.slice(0,6).toUpperCase()
-  const eyebrow = document.getElementById('f-eyebrow')
-  eyebrow.style.color = c
-  eyebrow.textContent = `${DIV_LBL[p.division]} · ${code}${p.lot ? ' · LOT ' + p.lot : ''}`
-  document.getElementById('f-name').textContent = p.name
-  document.getElementById('ficha-body').innerHTML = fichaBody(p)
   const isEditor = profile?.role === 'editor'
-  document.getElementById('ficha-edit-btn').style.display = isEditor ? 'inline-flex' : 'none'
-  document.getElementById('ficha-del-btn').style.display = isEditor ? 'inline-flex' : 'none'
-  document.getElementById('m-ficha').classList.add('open')
+  const backLabel = division === 'all' ? 'All products' : `${DIV_LBL[division]} Division`
+
+  // Hide other views
+  document.getElementById('view-dashboard').style.display = 'none'
+  document.getElementById('view-products').style.display = 'none'
+  const vd = document.getElementById('view-detail')
+  vd.style.display = 'block'
+  document.getElementById('tb-section').textContent = p.name
+
+  // Build gallery HTML
+  const imgs = (p.image_urls && p.image_urls.length) ? p.image_urls
+               : (p.image_url ? [p.image_url] : [])
+  let galleryHtml = ''
+  if (imgs.length) {
+    const thumbs = imgs.length > 1
+      ? `<div class="ficha-thumbs" style="margin-top:0.5rem">${imgs.map((u,i) =>
+          `<div class="ficha-thumb${i===0?' active':''}" onclick="switchFichaImg(this,'${u}')"><img src="${u}"/></div>`).join('')}</div>` : ''
+    galleryHtml = `<div class="ficha-gallery-hero" id="ficha-hero">
+      <img id="ficha-hero-img" src="${imgs[0]}" alt="${p.name}"/>
+      <button class="img-dl-btn" onclick="downloadImg('${imgs[0]}','${esc(p.name)}')">↓ Download</button>
+    </div>${thumbs}`
+  } else {
+    galleryHtml = `<div class="ficha-img ficha-img-empty" style="background:${c}0d;border-radius:12px">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="${c}" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="1.5" stroke="${c}" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="${c}" stroke-width="1.2" stroke-linecap="round"/></svg>
+      ${isEditor ? `<button class="btn btn-ghost btn-sm" style="margin-top:0.75rem" onclick="openEdit(selected)">Add image</button>` : `<span style="font-size:0.72rem;color:var(--text-3);margin-top:0.5rem">No image yet</span>`}
+    </div>`
+  }
+
+  // Build specs HTML
+  const specsHtml = fichaBody(p).replace(/<div class="ficha-gallery[\s\S]*?<\/div>\s*<\/div>\s*(<\/div>)?/, '').replace(/<div class="ficha-img[\s\S]*?<\/div>/, '')
+
+  vd.innerHTML = `<div class="detail-wrap">
+    <div class="detail-back">
+      <button class="detail-back-btn" onclick="backToProducts()">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        ${backLabel}
+      </button>
+    </div>
+    <div class="detail-hero">
+      <div class="detail-gallery-area">${galleryHtml}</div>
+      <div class="detail-info">
+        <div class="detail-eyebrow" style="color:${c}">${DIV_LBL[p.division]} · ${code}${p.lot ? ' · LOT ' + p.lot : ''}</div>
+        <div class="detail-name">${p.name}</div>
+        ${p.description ? `<div class="detail-desc">${p.description}</div>` : ''}
+        <div>${specsHtml}</div>
+        <div class="detail-actions">
+          <button class="btn btn-primary" onclick="openReq()">Request sample</button>
+          <button class="btn btn-ghost" onclick="openLabel()">View label</button>
+          ${isEditor ? `<button class="btn btn-ghost" onclick="openEdit(selected)">Edit</button>` : ''}
+          ${isEditor ? `<button class="btn btn-ghost" style="color:#c0392b;border-color:rgba(192,57,43,0.25)" onclick="confirmDelete(selected)">Delete</button>` : ''}
+        </div>
+      </div>
+    </div>
+    <div class="detail-comments-section">
+      <div class="detail-comments-lbl">Comments</div>
+      <div id="ficha-comments-inner"></div>
+    </div>
+  </div>`
+
   loadFichaComments(p.id)
+}
+
+function backToProducts() {
+  document.getElementById('view-detail').style.display = 'none'
+  document.getElementById('view-products').style.display = 'flex'
+  document.getElementById('tb-section').textContent = document.getElementById('sec-title').textContent
 }
 
 function fichaBody(p) {
@@ -1096,7 +1186,7 @@ function fichaBody(p) {
   } else {
     html += `<div class="ficha-img ficha-img-empty" style="background:${fc}0d">
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="${fc}" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="1.5" stroke="${fc}" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="${fc}" stroke-width="1.2" stroke-linecap="round"/></svg>
-      ${profile?.role === 'editor' ? `<button class="btn btn-ghost btn-sm" style="margin-top:0.75rem" onclick="closeModal('m-ficha');openEdit(selected)">Add image</button>` : `<span style="font-size:0.72rem;color:var(--text-3);margin-top:0.5rem">No image yet</span>`}
+      ${profile?.role === 'editor' ? `<button class="btn btn-ghost btn-sm" style="margin-top:0.75rem" onclick="openEdit(selected)">Add image</button>` : `<span style="font-size:0.72rem;color:var(--text-3);margin-top:0.5rem">No image yet</span>`}
     </div>`
   }
 
@@ -1301,7 +1391,8 @@ async function loadFichaComments(productId) {
     .select('*, profiles(full_name)')
     .eq('product_id', productId)
     .order('created_at', { ascending: true })
-  const el = document.getElementById('ficha-comments')
+  // Works in both old modal (#ficha-comments) and new detail view (#ficha-comments-inner)
+  const el = document.getElementById('ficha-comments-inner') || document.getElementById('ficha-comments')
   if (!el) return
   if (error) { el.innerHTML = ''; return }
   const items = (data || []).map(c => {
@@ -1317,14 +1408,11 @@ async function loadFichaComments(productId) {
       <div class="comment-text">${esc(c.comment)}</div>
     </div>`
   }).join('')
-  el.innerHTML = `<div class="ficha-sec">
-    <div class="ficha-lbl">Comments (${data?.length || 0})</div>
-    ${items ? `<div class="comment-list">${items}</div>` : `<p style="font-size:0.8rem;color:var(--text-3);margin-bottom:0.75rem">No comments yet.</p>`}
+  el.innerHTML = `${items ? `<div class="comment-list">${items}</div>` : `<p style="font-size:0.8rem;color:var(--text-3);margin-bottom:0.75rem">No comments yet.</p>`}
     <div class="comment-form">
       <input type="text" id="comment-input" placeholder="Add a comment…" onkeydown="if(event.key==='Enter')submitComment('${productId}')" />
       <button class="btn btn-primary btn-sm" onclick="submitComment('${productId}')">Post</button>
-    </div>
-  </div>`
+    </div>`
 }
 
 async function submitComment(productId) {
@@ -1768,7 +1856,8 @@ function openEdit(p) {
   }
   renderEditImgGrid()
   document.getElementById('np-img').value = ''
-  closeModal('m-ficha')
+  // Close detail view if open so edit modal has full z-index
+  document.getElementById('view-detail').style.display = 'none'
   document.getElementById('m-add').classList.add('open')
 }
 
@@ -1777,9 +1866,10 @@ async function confirmDelete(p) {
   if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return
   const { error } = await sb.from('products').delete().eq('id', p.id)
   if (error) { toast('Error deleting product'); return }
-  closeModal('m-ficha')
+  document.getElementById('view-detail').style.display = 'none'
   toast('Product deleted')
   loadProducts()
+  leaveView()
 }
 
 function renderEditImgGrid() {
@@ -1901,7 +1991,15 @@ async function saveProduct() {
   }
 
   if (error) { toast('DB error: ' + error.message); return }
-  closeModal('m-add'); toast(editingProductId ? 'Product updated' : 'Product saved'); loadProducts()
+  const wasEditing = !!editingProductId
+  closeModal('m-add')
+  toast(wasEditing ? 'Product updated' : 'Product saved')
+  await loadProducts()
+  // If came from detail view, refresh the detail with updated data
+  if (wasEditing && selected && selected.id === editingProductId) {
+    const updated = allProducts.find(x => x.id === editingProductId)
+    if (updated) showProductDetail(updated)
+  }
 }
 
 /* ── DASHBOARD ── */
@@ -2320,7 +2418,21 @@ async function showAccessLogs() {
     .order('created_at', { ascending: false })
     .limit(200)
 
-  if (error) { pg.innerHTML = `<div class="empty"><p>Error: ${error.message}</p></div>`; return }
+  if (error) {
+    const needsSetup = error.code === 'PGRST200' || error.message?.includes('schema cache') || error.message?.includes('relation') || error.message?.includes('does not exist')
+    pg.innerHTML = needsSetup
+      ? `<div class="empty" style="padding:3rem 1rem">
+          <div style="font-size:2rem;margin-bottom:1rem">⚙️</div>
+          <p style="font-weight:600;margin-bottom:0.5rem">Table not set up yet</p>
+          <p style="font-size:0.78rem;line-height:1.6;max-width:380px;margin:0 auto">
+            Run <code style="background:var(--surface2);padding:0.1rem 0.4rem;border-radius:4px;font-size:0.75rem">update8.sql</code>
+            in your <strong>Supabase SQL Editor</strong> to create the access logs table.
+            Once created, every login will be tracked automatically.
+          </p>
+        </div>`
+      : `<div class="empty"><p>Error: ${error.message}</p></div>`
+    return
+  }
   if (!data.length) { pg.innerHTML = '<div class="empty"><p>No access records yet.</p></div>'; return }
 
   // Group by user for stats
