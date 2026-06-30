@@ -3,154 +3,996 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mi Sitio Web</title>
+  <title>Sierra Index</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --accent: #4f6ef7;
+      --accent-hover: #6b84ff;
+      --text: #e8eaf6;
+      --text-muted: #8b90b0;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --fiber: #a78bfa;
+      --yarn: #34d399;
+      --fabric: #60a5fa;
+      --chemicals: #fb923c;
+      --garment: #f472b6;
     }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f0f4f8;
-      color: #333;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
     }
 
-    header {
-      background: #1a202c;
-      color: white;
-      padding: 1.5rem 2rem;
+    /* ── AUTH ── */
+    #auth-screen {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: radial-gradient(ellipse at 50% 0%, #1e2a5e 0%, var(--bg) 70%);
     }
 
-    header h1 {
+    .auth-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem;
+      width: 380px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    }
+
+    .auth-logo {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .auth-logo .logo-mark {
+      width: 56px;
+      height: 56px;
+      background: var(--accent);
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       font-size: 1.5rem;
-      letter-spacing: 1px;
-    }
-
-    nav a {
-      color: #cbd5e0;
-      text-decoration: none;
-      margin-left: 1.5rem;
-      font-size: 0.95rem;
-      transition: color 0.2s;
-    }
-
-    nav a:hover {
-      color: white;
-    }
-
-    .hero {
-      background: linear-gradient(135deg, #2b6cb0, #4299e1);
-      color: white;
-      text-align: center;
-      padding: 5rem 2rem;
-    }
-
-    .hero h2 {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-    }
-
-    .hero p {
-      font-size: 1.1rem;
-      max-width: 600px;
-      margin: 0 auto 2rem;
-      opacity: 0.9;
-    }
-
-    .hero a {
-      background: white;
-      color: #2b6cb0;
-      padding: 0.75rem 2rem;
-      border-radius: 4px;
-      text-decoration: none;
-      font-weight: 600;
-      transition: opacity 0.2s;
-    }
-
-    .hero a:hover {
-      opacity: 0.85;
-    }
-
-    .cards {
-      display: flex;
-      gap: 1.5rem;
-      padding: 3rem 2rem;
-      max-width: 1000px;
-      margin: 0 auto;
-      flex-wrap: wrap;
-    }
-
-    .card {
-      background: white;
-      border-radius: 8px;
-      padding: 2rem;
-      flex: 1;
-      min-width: 220px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-
-    .card h3 {
-      font-size: 1.1rem;
+      font-weight: 800;
       margin-bottom: 0.75rem;
-      color: #2b6cb0;
     }
 
-    .card p {
+    .auth-logo h1 { font-size: 1.4rem; font-weight: 700; }
+    .auth-logo p { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem; }
+
+    .form-group { margin-bottom: 1.1rem; }
+    .form-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .form-group input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+      color: var(--text);
       font-size: 0.95rem;
-      line-height: 1.6;
-      color: #555;
+      outline: none;
+      transition: border-color 0.2s;
     }
 
-    footer {
-      background: #1a202c;
-      color: #a0aec0;
-      text-align: center;
+    .form-group input:focus { border-color: var(--accent); }
+
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-sm { width: auto; padding: 0.45rem 1rem; font-size: 0.8rem; }
+    .btn-danger { background: var(--danger); color: white; }
+
+    .auth-error {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      font-size: 0.85rem;
+      color: #fca5a5;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    /* ── APP LAYOUT ── */
+    #app { display: none; height: 100vh; flex-direction: column; }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .topbar-left { display: flex; align-items: center; gap: 1rem; }
+    .topbar-logo { font-size: 1.1rem; font-weight: 800; color: var(--accent); letter-spacing: 0.05em; }
+    .topbar-divider { width: 1px; height: 20px; background: var(--border); }
+    .topbar-title { font-size: 0.9rem; color: var(--text-muted); }
+
+    .topbar-right { display: flex; align-items: center; gap: 1rem; }
+
+    .user-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 0.3rem 0.75rem 0.3rem 0.4rem;
+      font-size: 0.82rem;
+    }
+
+    .user-avatar {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; font-weight: 700;
+    }
+
+    .role-badge {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .role-editor { background: rgba(79,110,247,0.2); color: var(--accent); }
+    .role-vendedor { background: rgba(34,197,94,0.2); color: var(--success); }
+
+    .logout-btn {
+      background: none; border: none; color: var(--text-muted);
+      cursor: pointer; font-size: 0.82rem; padding: 0.3rem 0.5rem;
+      border-radius: 6px;
+    }
+    .logout-btn:hover { color: var(--text); background: var(--surface2); }
+
+    /* ── MAIN AREA ── */
+    .main { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 200px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 1rem 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      flex-shrink: 0;
+    }
+
+    .sidebar-label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      padding: 0.5rem 0.5rem 0.25rem;
+      margin-top: 0.5rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.55rem 0.75rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      transition: all 0.15s;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: rgba(79,110,247,0.15); color: var(--accent); font-weight: 600; }
+
+    .nav-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── CONTENT ── */
+    .content {
+      flex: 1;
+      overflow-y: auto;
       padding: 1.5rem;
+    }
+
+    .content-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+
+    .content-header h2 { font-size: 1.2rem; font-weight: 700; }
+    .content-header p { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem; }
+
+    /* ── PRODUCT GRID ── */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+
+    .product-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .product-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .product-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.75rem; }
+
+    .product-code {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+
+    .product-name { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .product-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem; }
+
+    .product-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+    .tag {
+      font-size: 0.72rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      background: var(--surface2);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .product-actions { display: flex; gap: 0.5rem; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 560px;
+      max-width: 95vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    }
+
+    .modal-header {
+      padding: 1.5rem 1.5rem 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .modal-header h3 { font-size: 1.1rem; font-weight: 700; }
+    .modal-close {
+      background: none; border: none; color: var(--text-muted);
+      cursor: pointer; font-size: 1.2rem; line-height: 1;
+      padding: 0.2rem;
+    }
+    .modal-close:hover { color: var(--text); }
+
+    .modal-body { padding: 1.25rem 1.5rem 1.5rem; }
+
+    .ficha-section { margin-bottom: 1.25rem; }
+    .ficha-section h4 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.6rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .spec-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .spec-item {
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 0.6rem 0.75rem;
+    }
+
+    .spec-label { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.2rem; }
+    .spec-value { font-size: 0.9rem; font-weight: 600; }
+
+    .request-form .form-group { margin-bottom: 0.9rem; }
+    .request-form textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+      color: var(--text);
+      font-size: 0.9rem;
+      resize: vertical;
+      min-height: 80px;
+      outline: none;
+      font-family: inherit;
+    }
+    .request-form textarea:focus { border-color: var(--accent); }
+
+    .modal-footer {
+      padding: 0 1.5rem 1.5rem;
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+
+    /* ── REQUESTS TABLE ── */
+    .requests-table {
+      width: 100%;
+      border-collapse: collapse;
       font-size: 0.85rem;
     }
+
+    .requests-table th {
+      text-align: left;
+      padding: 0.6rem 1rem;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .requests-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .status-badge {
+      font-size: 0.72rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    .status-pending { background: rgba(245,158,11,0.2); color: var(--warning); }
+    .status-approved { background: rgba(34,197,94,0.2); color: var(--success); }
+    .status-shipped { background: rgba(79,110,247,0.2); color: var(--accent); }
+    .status-rejected { background: rgba(239,68,68,0.2); color: var(--danger); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-muted);
+    }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .empty-state p { font-size: 0.9rem; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 1.25rem;
+      font-size: 0.88rem;
+      z-index: 999;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s;
+      max-width: 320px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { border-color: var(--success); color: var(--success); }
+    #toast.error { border-color: var(--danger); color: #fca5a5; }
+
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.4rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── ADD PRODUCT FORM ── */
+    .add-product-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.9rem;
+    }
+    .add-product-grid .full { grid-column: 1 / -1; }
+    .add-product-grid select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .add-product-grid select:focus { border-color: var(--accent); }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>MiSitio</h1>
-    <nav>
-      <a href="#">Inicio</a>
-      <a href="#">Servicios</a>
-      <a href="#">Nosotros</a>
-      <a href="#">Contacto</a>
-    </nav>
-  </header>
-
-  <section class="hero">
-    <h2>Bienvenido a mi sitio web</h2>
-    <p>Un espacio donde encontrarás información, servicios y recursos para ayudarte a crecer.</p>
-    <a href="#">Comenzar ahora</a>
-  </section>
-
-  <section class="cards">
-    <div class="card">
-      <h3>Diseño</h3>
-      <p>Creamos experiencias visuales atractivas y funcionales para tu marca.</p>
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="logo-mark">S</div>
+      <h1>Sierra Index</h1>
+      <p>Portal de productos y muestras</p>
     </div>
-    <div class="card">
-      <h3>Desarrollo</h3>
-      <p>Construimos sitios y aplicaciones web modernas, rápidas y seguras.</p>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="form-group">
+      <label>Correo electrónico</label>
+      <input type="email" id="login-email" placeholder="usuario@sierra.com" />
     </div>
-    <div class="card">
-      <h3>Soporte</h3>
-      <p>Estamos disponibles para ayudarte en cada etapa de tu proyecto.</p>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input type="password" id="login-password" placeholder="••••••••" />
     </div>
-  </section>
+    <button class="btn btn-primary" id="login-btn" onclick="login()">Ingresar</button>
+  </div>
+</div>
 
-  <footer>
-    <p>&copy; 2026 MiSitio. Todos los derechos reservados.</p>
-  </footer>
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">SIERRA</span>
+      <div class="topbar-divider"></div>
+      <span class="topbar-title">Index de Productos</span>
+    </div>
+    <div class="topbar-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <span id="user-name">–</span>
+        <span class="role-badge" id="role-badge">–</span>
+      </div>
+      <button class="logout-btn" onclick="logout()">Salir</button>
+    </div>
+  </div>
 
+  <div class="main">
+    <div class="sidebar">
+      <span class="sidebar-label">Divisiones</span>
+      <button class="nav-item active" onclick="setDivision('all', this)">
+        <span class="nav-dot" style="background:#8b90b0"></span> Todas
+      </button>
+      <button class="nav-item" onclick="setDivision('fiber', this)">
+        <span class="nav-dot" style="background:var(--fiber)"></span> Fiber
+      </button>
+      <button class="nav-item" onclick="setDivision('yarn', this)">
+        <span class="nav-dot" style="background:var(--yarn)"></span> Yarn
+      </button>
+      <button class="nav-item" onclick="setDivision('fabric', this)">
+        <span class="nav-dot" style="background:var(--fabric)"></span> Fabric
+      </button>
+      <button class="nav-item" onclick="setDivision('chemicals', this)">
+        <span class="nav-dot" style="background:var(--chemicals)"></span> Chemicals
+      </button>
+      <button class="nav-item" onclick="setDivision('garment', this)">
+        <span class="nav-dot" style="background:var(--garment)"></span> Garment
+      </button>
+
+      <span class="sidebar-label">Mis actividades</span>
+      <button class="nav-item" id="nav-requests" onclick="showRequests()">
+        <span class="nav-dot" style="background:var(--warning)"></span> Mis solicitudes
+      </button>
+    </div>
+
+    <div class="content" id="content">
+      <div class="content-header">
+        <div>
+          <h2 id="section-title">Todos los productos</h2>
+          <p id="section-sub">Consulta fichas técnicas y solicita muestras</p>
+        </div>
+        <button class="btn btn-primary btn-sm" id="add-product-btn" onclick="openAddProduct()" style="display:none">
+          + Nuevo producto
+        </button>
+      </div>
+      <div class="product-grid" id="product-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: FICHA TÉCNICA -->
+<div class="modal-overlay" id="ficha-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="product-code" id="modal-code"></div>
+        <h3 id="modal-name"></h3>
+      </div>
+      <button class="modal-close" onclick="closeModal('ficha-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="ficha-section">
+        <h4>Descripción</h4>
+        <p style="font-size:0.88rem;line-height:1.6;color:var(--text-muted)" id="modal-desc"></p>
+      </div>
+      <div class="ficha-section">
+        <h4>Especificaciones técnicas</h4>
+        <div class="spec-grid" id="modal-specs"></div>
+      </div>
+      <div class="ficha-section">
+        <h4>Etiquetas</h4>
+        <div class="product-tags" id="modal-tags"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('ficha-modal')">Cerrar</button>
+      <button class="btn btn-primary btn-sm" id="request-btn" onclick="openRequest()">Solicitar muestra</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: SOLICITAR MUESTRA -->
+<div class="modal-overlay" id="request-modal">
+  <div class="modal" style="width:440px">
+    <div class="modal-header">
+      <h3>Solicitar muestra</h3>
+      <button class="modal-close" onclick="closeModal('request-modal')">✕</button>
+    </div>
+    <div class="modal-body request-form">
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem">Producto: <strong id="req-product-name" style="color:var(--text)"></strong></p>
+      <div class="form-group">
+        <label>Cantidad / unidad</label>
+        <input type="text" id="req-quantity" placeholder="Ej: 500g, 2 rollos, 1m²" />
+      </div>
+      <div class="form-group">
+        <label>Notas adicionales</label>
+        <textarea id="req-notes" placeholder="Cliente destino, uso, fecha requerida..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('request-modal')">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="submitRequest()">Enviar solicitud</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NUEVO PRODUCTO (editor only) -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal" style="width:600px">
+    <div class="modal-header">
+      <h3>Nuevo producto</h3>
+      <button class="modal-close" onclick="closeModal('add-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="add-product-grid">
+        <div class="form-group">
+          <label>Nombre del producto</label>
+          <input type="text" id="np-name" placeholder="Ej: Fibra Merino 18mic" />
+        </div>
+        <div class="form-group">
+          <label>División</label>
+          <select id="np-division">
+            <option value="fiber">Fiber</option>
+            <option value="yarn">Yarn</option>
+            <option value="fabric">Fabric</option>
+            <option value="chemicals">Chemicals</option>
+            <option value="garment">Garment</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Descripción</label>
+          <input type="text" id="np-desc" placeholder="Descripción breve del producto" />
+        </div>
+        <div class="form-group full">
+          <label>Etiquetas (separadas por coma)</label>
+          <input type="text" id="np-tags" placeholder="Ej: merino, fino, natural" />
+        </div>
+        <div class="form-group">
+          <label>Especificación 1 — Nombre</label>
+          <input type="text" id="np-s1k" placeholder="Ej: Micronaje" />
+        </div>
+        <div class="form-group">
+          <label>Especificación 1 — Valor</label>
+          <input type="text" id="np-s1v" placeholder="Ej: 18.5 mic" />
+        </div>
+        <div class="form-group">
+          <label>Especificación 2 — Nombre</label>
+          <input type="text" id="np-s2k" placeholder="Ej: Origen" />
+        </div>
+        <div class="form-group">
+          <label>Especificación 2 — Valor</label>
+          <input type="text" id="np-s2v" placeholder="Ej: Australia" />
+        </div>
+        <div class="form-group">
+          <label>Especificación 3 — Nombre</label>
+          <input type="text" id="np-s3k" placeholder="Ej: Composición" />
+        </div>
+        <div class="form-group">
+          <label>Especificación 3 — Valor</label>
+          <input type="text" id="np-s3v" placeholder="Ej: 100% Lana" />
+        </div>
+        <div class="form-group">
+          <label>Especificación 4 — Nombre</label>
+          <input type="text" id="np-s4k" placeholder="Ej: Presentación" />
+        </div>
+        <div class="form-group">
+          <label>Especificación 4 — Valor</label>
+          <input type="text" id="np-s4v" placeholder="Ej: Fardos de 200kg" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('add-modal')">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="saveProduct()">Guardar producto</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+  const SUPABASE_URL = 'https://vhyddogeemohtqijohry.supabase.co'
+  const SUPABASE_KEY = 'sb_publishable_9g8UJRbV3NxOlmQgPxjDqg_Xw6hFB0f'
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+
+  const DIVISION_COLORS = {
+    fiber: 'var(--fiber)', yarn: 'var(--yarn)', fabric: 'var(--fabric)',
+    chemicals: 'var(--chemicals)', garment: 'var(--garment)'
+  }
+
+  let currentUser = null
+  let currentProfile = null
+  let currentDivision = 'all'
+  let selectedProduct = null
+
+  // ── INIT ──
+  window.addEventListener('DOMContentLoaded', async () => {
+    const { data: { session } } = await sb.auth.getSession()
+    if (session) await enterApp(session.user)
+  })
+
+  // ── AUTH ──
+  async function login() {
+    const email = document.getElementById('login-email').value.trim()
+    const password = document.getElementById('login-password').value
+    const btn = document.getElementById('login-btn')
+    const errEl = document.getElementById('auth-error')
+    errEl.style.display = 'none'
+
+    if (!email || !password) { showAuthError('Completa todos los campos.'); return }
+
+    btn.innerHTML = '<span class="spinner"></span> Ingresando...'
+    btn.disabled = true
+
+    const { data, error } = await sb.auth.signInWithPassword({ email, password })
+
+    if (error) {
+      showAuthError('Credenciales incorrectas. Verifica tu correo y contraseña.')
+      btn.innerHTML = 'Ingresar'
+      btn.disabled = false
+      return
+    }
+
+    await enterApp(data.user)
+  }
+
+  async function enterApp(user) {
+    currentUser = user
+    const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single()
+    currentProfile = profile
+
+    const initials = (profile?.full_name || user.email).split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
+    document.getElementById('user-avatar').textContent = initials
+    document.getElementById('user-name').textContent = profile?.full_name || user.email.split('@')[0]
+
+    const badge = document.getElementById('role-badge')
+    badge.textContent = profile?.role || 'vendedor'
+    badge.className = 'role-badge ' + (profile?.role === 'editor' ? 'role-editor' : 'role-vendedor')
+
+    if (profile?.role === 'editor') {
+      document.getElementById('add-product-btn').style.display = 'flex'
+    }
+
+    document.getElementById('auth-screen').style.display = 'none'
+    document.getElementById('app').style.display = 'flex'
+
+    loadProducts()
+  }
+
+  async function logout() {
+    await sb.auth.signOut()
+    currentUser = null; currentProfile = null
+    document.getElementById('auth-screen').style.display = 'flex'
+    document.getElementById('app').style.display = 'none'
+    document.getElementById('login-password').value = ''
+  }
+
+  function showAuthError(msg) {
+    const el = document.getElementById('auth-error')
+    el.textContent = msg
+    el.style.display = 'block'
+  }
+
+  document.getElementById('login-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login()
+  })
+
+  // ── PRODUCTS ──
+  async function loadProducts() {
+    document.getElementById('product-grid').innerHTML = '<p style="color:var(--text-muted);font-size:0.88rem">Cargando...</p>'
+
+    let query = sb.from('products').select('*').order('created_at', { ascending: false })
+    if (currentDivision !== 'all') query = query.eq('division', currentDivision)
+
+    const { data, error } = await query
+    if (error) { showToast('Error al cargar productos', 'error'); return }
+
+    renderProducts(data || [])
+  }
+
+  function renderProducts(products) {
+    const grid = document.getElementById('product-grid')
+    if (!products.length) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+        <div class="icon">📦</div>
+        <p>No hay productos en esta división aún.</p>
+      </div>`
+      return
+    }
+
+    grid.innerHTML = products.map(p => {
+      const color = DIVISION_COLORS[p.division] || '#8b90b0'
+      const tags = (p.tags || []).slice(0,3).map(t => `<span class="tag">${t}</span>`).join('')
+      return `
+        <div class="product-card" onclick="openFicha(${JSON.stringify(p).replace(/"/g,'&quot;')})">
+          <div class="product-card-header">
+            <span class="product-code" style="color:${color}">${p.division.toUpperCase()} · ${p.code || p.id.slice(0,6).toUpperCase()}</span>
+          </div>
+          <div class="product-name">${p.name}</div>
+          <div class="product-desc">${p.description || ''}</div>
+          <div class="product-tags">${tags}</div>
+          <div class="product-actions">
+            <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openFicha(${JSON.stringify(p).replace(/"/g,'&quot;')})">Ver ficha</button>
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openFichaAndRequest(${JSON.stringify(p).replace(/"/g,'&quot;')})">Solicitar</button>
+          </div>
+        </div>`
+    }).join('')
+  }
+
+  function setDivision(div, el) {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+    el.classList.add('active')
+    currentDivision = div
+    const titles = { all: 'Todos los productos', fiber: 'División Fiber', yarn: 'División Yarn', fabric: 'División Fabric', chemicals: 'División Chemicals', garment: 'División Garment' }
+    document.getElementById('section-title').textContent = titles[div]
+    document.getElementById('section-sub').textContent = 'Consulta fichas técnicas y solicita muestras'
+    loadProducts()
+  }
+
+  // ── FICHA MODAL ──
+  function openFicha(product) {
+    selectedProduct = product
+    const color = DIVISION_COLORS[product.division] || '#8b90b0'
+    document.getElementById('modal-code').innerHTML = `<span style="color:${color}">${product.division.toUpperCase()}</span> · ${product.code || product.id.slice(0,6).toUpperCase()}`
+    document.getElementById('modal-name').textContent = product.name
+    document.getElementById('modal-desc').textContent = product.description || 'Sin descripción.'
+
+    const specs = product.specs || {}
+    document.getElementById('modal-specs').innerHTML = Object.entries(specs).map(([k,v]) => `
+      <div class="spec-item">
+        <div class="spec-label">${k}</div>
+        <div class="spec-value">${v}</div>
+      </div>`).join('') || '<p style="color:var(--text-muted);font-size:0.85rem">Sin especificaciones.</p>'
+
+    document.getElementById('modal-tags').innerHTML = (product.tags || []).map(t => `<span class="tag">${t}</span>`).join('')
+
+    document.getElementById('ficha-modal').classList.add('open')
+  }
+
+  function openFichaAndRequest(product) {
+    openFicha(product)
+    setTimeout(() => openRequest(), 100)
+  }
+
+  // ── REQUEST MODAL ──
+  function openRequest() {
+    if (!selectedProduct) return
+    document.getElementById('req-product-name').textContent = selectedProduct.name
+    document.getElementById('req-quantity').value = ''
+    document.getElementById('req-notes').value = ''
+    document.getElementById('ficha-modal').classList.remove('open')
+    document.getElementById('request-modal').classList.add('open')
+  }
+
+  async function submitRequest() {
+    const quantity = document.getElementById('req-quantity').value.trim()
+    const notes = document.getElementById('req-notes').value.trim()
+
+    if (!quantity) { showToast('Indica la cantidad requerida', 'error'); return }
+
+    const { error } = await sb.from('sample_requests').insert({
+      product_id: selectedProduct.id,
+      requested_by: currentUser.id,
+      quantity,
+      notes,
+      status: 'pending'
+    })
+
+    if (error) { showToast('Error al enviar solicitud', 'error'); return }
+
+    closeModal('request-modal')
+    showToast('Solicitud enviada correctamente', 'success')
+  }
+
+  // ── MIS SOLICITUDES ──
+  async function showRequests() {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+    document.getElementById('nav-requests').classList.add('active')
+    document.getElementById('section-title').textContent = 'Mis solicitudes'
+    document.getElementById('section-sub').textContent = 'Historial de muestras solicitadas'
+    document.getElementById('add-product-btn').style.display = 'none'
+
+    const grid = document.getElementById('product-grid')
+    grid.innerHTML = '<p style="color:var(--text-muted);font-size:0.88rem">Cargando...</p>'
+    grid.style.display = 'block'
+
+    const { data, error } = await sb
+      .from('sample_requests')
+      .select('*, products(name, division, code)')
+      .eq('requested_by', currentUser.id)
+      .order('created_at', { ascending: false })
+
+    if (error) { showToast('Error al cargar solicitudes', 'error'); return }
+
+    if (!data.length) {
+      grid.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>No tienes solicitudes aún.</p></div>`
+      return
+    }
+
+    const statusLabel = { pending: 'Pendiente', approved: 'Aprobada', shipped: 'Enviada', rejected: 'Rechazada' }
+
+    grid.innerHTML = `
+      <table class="requests-table">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>División</th>
+            <th>Cantidad</th>
+            <th>Notas</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map(r => `
+            <tr>
+              <td style="font-weight:600">${r.products?.name || '–'}</td>
+              <td><span style="color:${DIVISION_COLORS[r.products?.division]};font-size:0.78rem;text-transform:uppercase;font-weight:700">${r.products?.division || '–'}</span></td>
+              <td>${r.quantity}</td>
+              <td style="color:var(--text-muted);max-width:180px">${r.notes || '–'}</td>
+              <td><span class="status-badge status-${r.status}">${statusLabel[r.status]}</span></td>
+              <td style="color:var(--text-muted)">${new Date(r.created_at).toLocaleDateString('es-MX')}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`
+
+    if (currentProfile?.role === 'editor') {
+      document.getElementById('add-product-btn').style.display = 'flex'
+    }
+  }
+
+  // ── ADD PRODUCT ──
+  function openAddProduct() {
+    ['np-name','np-desc','np-tags','np-s1k','np-s1v','np-s2k','np-s2v','np-s3k','np-s3v','np-s4k','np-s4v'].forEach(id => {
+      document.getElementById(id).value = ''
+    })
+    document.getElementById('add-modal').classList.add('open')
+  }
+
+  async function saveProduct() {
+    const name = document.getElementById('np-name').value.trim()
+    const division = document.getElementById('np-division').value
+    const description = document.getElementById('np-desc').value.trim()
+    const tags = document.getElementById('np-tags').value.split(',').map(t => t.trim()).filter(Boolean)
+
+    if (!name) { showToast('El nombre es obligatorio', 'error'); return }
+
+    const specs = {}
+    ;[[1],[2],[3],[4]].forEach(([i]) => {
+      const k = document.getElementById(`np-s${i}k`).value.trim()
+      const v = document.getElementById(`np-s${i}v`).value.trim()
+      if (k && v) specs[k] = v
+    })
+
+    const { error } = await sb.from('products').insert({
+      name, division, description, tags, specs,
+      created_by: currentUser.id
+    })
+
+    if (error) { showToast('Error al guardar producto', 'error'); return }
+
+    closeModal('add-modal')
+    showToast('Producto agregado', 'success')
+    loadProducts()
+  }
+
+  // ── UTILS ──
+  function closeModal(id) { document.getElementById(id).classList.remove('open') }
+
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open') })
+  })
+
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast')
+    t.textContent = msg
+    t.className = `show ${type}`
+    setTimeout(() => { t.className = '' }, 3000)
+  }
+</script>
 </body>
 </html>
