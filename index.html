@@ -628,6 +628,7 @@
       <span class="s-label" style="margin-top:0.5rem">My activity</span>
       <button class="nav-item" id="nav-req" onclick="showRequests()"><span class="n-icon" style="color:#ffc529"><svg viewBox="0 0 20 20" fill="none"><path d="M4 5h12M4 10h8M4 15h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>My requests</button>
       <button class="nav-item" id="nav-all-req" onclick="showAllRequests()" style="display:none"><span class="n-icon" style="color:#ff7824"><svg viewBox="0 0 20 20" fill="none"><path d="M4 5h12M4 10h12M4 15h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>All requests</button>
+      <button class="nav-item" id="nav-logs" onclick="showAccessLogs()" style="display:none"><span class="n-icon" style="color:#c0392b"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M10 6v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>Access logs</button>
     </div>
 
     <div class="content" id="content">
@@ -926,6 +927,7 @@ async function enterApp(user) {
   if (p?.role === 'editor') {
     document.getElementById('add-btn').style.display = 'flex'
     document.getElementById('nav-all-req').style.display = 'flex'
+    document.getElementById('nav-logs').style.display = 'flex'
   }
   // Inject division icons into sidebar
   Object.entries(DIV_ICON).forEach(([key, svg]) => {
@@ -934,6 +936,7 @@ async function enterApp(user) {
   })
   document.getElementById('auth-screen').style.display = 'none'
   document.getElementById('app').style.display = 'flex'
+  logAccess()
   showDashboard()
 }
 
@@ -2267,6 +2270,127 @@ function dashTimeAgo(date) {
   const m = Math.floor(s / 60); if (m < 60) return `${m}m ago`
   const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`
   return `${Math.floor(h / 24)}d ago`
+}
+
+/* ── ACCESS LOG ── */
+async function logAccess() {
+  try {
+    // Try two free geo-IP APIs — silent fail if both timeout
+    let geo = null
+    for (const url of ['https://ipapi.co/json/', 'https://ip-api.com/json/?fields=status,query,country,countryCode,regionName,city,org,lat,lon']) {
+      try {
+        const r = await fetch(url, { signal: AbortSignal.timeout(6000) })
+        if (r.ok) { geo = await r.json(); break }
+      } catch {}
+    }
+    if (!geo) return
+    // Normalize both APIs to same fields
+    const isIpApi = 'query' in geo
+    await sb.from('login_logs').insert({
+      user_id:      me.id,
+      email:        me.email,
+      ip:           isIpApi ? geo.query      : geo.ip,
+      country:      isIpApi ? geo.country    : (geo.country_name || geo.country),
+      country_code: isIpApi ? geo.countryCode: geo.country_code,
+      city:         isIpApi ? geo.city       : geo.city,
+      region:       isIpApi ? geo.regionName : geo.region,
+      org:          isIpApi ? geo.org        : geo.org,
+      latitude:     isIpApi ? geo.lat        : geo.latitude,
+      longitude:    isIpApi ? geo.lon        : geo.longitude,
+      user_agent:   navigator.userAgent,
+    })
+  } catch {}
+}
+
+async function showAccessLogs() {
+  leaveView()
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+  document.getElementById('nav-logs').classList.add('active')
+  document.getElementById('tb-section').textContent = 'Access Logs'
+  document.getElementById('product-controls').style.display = 'none'
+  document.getElementById('sec-title').textContent = 'Access Logs'
+  document.getElementById('sec-sub').textContent = 'Login history — visible only to editors'
+
+  const pg = document.getElementById('pg')
+  pg.style.display = 'block'
+  pg.innerHTML = '<div class="empty"><div class="empty-icon">⌛</div><p>Loading…</p></div>'
+
+  const { data, error } = await sb.from('login_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(200)
+
+  if (error) { pg.innerHTML = `<div class="empty"><p>Error: ${error.message}</p></div>`; return }
+  if (!data.length) { pg.innerHTML = '<div class="empty"><p>No access records yet.</p></div>'; return }
+
+  // Group by user for stats
+  const byUser = {}
+  data.forEach(r => { byUser[r.email] = (byUser[r.email] || 0) + 1 })
+
+  const flagEmoji = cc => cc ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 0x1F1E6 - 65 + c.charCodeAt(0))) : '🌐'
+
+  const parseUA = ua => {
+    if (!ua) return '—'
+    if (ua.includes('Mobile') || ua.includes('Android') || ua.includes('iPhone')) {
+      if (ua.includes('iPhone'))  return '📱 iPhone'
+      if (ua.includes('Android')) return '📱 Android'
+      return '📱 Mobile'
+    }
+    if (ua.includes('Macintosh')) return '💻 Mac'
+    if (ua.includes('Windows'))   return '🖥 Windows'
+    if (ua.includes('Linux'))     return '🐧 Linux'
+    return '🖥 Desktop'
+  }
+
+  pg.innerHTML = `
+  <div style="overflow-x:auto">
+    <table class="data-table" style="min-width:700px">
+      <thead>
+        <tr>
+          <th>Date / Time</th>
+          <th>User</th>
+          <th>IP Address</th>
+          <th>Location</th>
+          <th>ISP / Org</th>
+          <th>Device</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(r => {
+          const dt = new Date(r.created_at)
+          const dateStr = dt.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
+          const timeStr = dt.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', hour12:true })
+          const flag = flagEmoji(r.country_code)
+          const loc = [r.city, r.region, r.country].filter(Boolean).join(', ')
+          const org = r.org ? r.org.replace(/^AS\d+\s*/,'') : '—'
+          const device = parseUA(r.user_agent)
+          const initials = (r.email||'?')[0].toUpperCase()
+          return `<tr>
+            <td style="white-space:nowrap">
+              <div style="font-weight:500;font-size:0.82rem">${dateStr}</div>
+              <div style="font-size:0.72rem;color:var(--text-3)">${timeStr}</div>
+            </td>
+            <td>
+              <div style="display:flex;align-items:center;gap:0.5rem">
+                <div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:0.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${initials}</div>
+                <div>
+                  <div style="font-size:0.78rem;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.email||'—'}</div>
+                  <div style="font-size:0.65rem;color:var(--text-3)">${byUser[r.email]||1} visit${byUser[r.email]>1?'s':''}</div>
+                </div>
+              </div>
+            </td>
+            <td style="font-family:monospace;font-size:0.8rem;white-space:nowrap">${r.ip||'—'}</td>
+            <td>
+              <div style="font-size:0.82rem">${flag} ${r.city||''}${r.city&&r.country?', ':''}${r.country||'Unknown'}</div>
+              ${r.region && r.region !== r.city ? `<div style="font-size:0.68rem;color:var(--text-3)">${r.region}</div>` : ''}
+            </td>
+            <td style="font-size:0.78rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.org||''}">${org}</td>
+            <td style="font-size:0.8rem">${device}</td>
+          </tr>`
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`
 }
 
 /* ── PROFILE ── */
