@@ -47,32 +47,42 @@
     /* ── AUTH ── */
     #auth-screen {
       display:flex; flex-direction:column; align-items:center; justify-content:center;
-      height:100vh; background:var(--bg); gap:0;
+      height:100vh; background:var(--bg);
     }
-    .auth-box { width:320px; display:flex; flex-direction:column; align-items:stretch; }
-    .auth-wordmark { text-align:center; margin-bottom:2.75rem; }
-    .auth-wordmark .sub {
-      font-size:0.7rem; color:var(--text-3); margin-top:0.9rem;
-      text-transform:uppercase; letter-spacing:0.18em; font-weight:500;
-    }
-    .sierra-logo-auth svg { height:52px; width:auto; display:block; margin:0 auto; }
+    .auth-box { width:340px; display:flex; flex-direction:column; align-items:stretch; }
+
+    /* Mark — just the Sierra icon, large */
+    .auth-mark { text-align:center; margin-bottom:1.5rem; }
+    .auth-mark svg { height:72px; width:auto; display:block; margin:0 auto; }
+
+    /* Wordmark below mark */
+    .auth-wordmark { text-align:center; margin-bottom:2.25rem; }
+    .auth-wordmark .brand { font-size:1.55rem; font-weight:700; letter-spacing:-0.03em; color:var(--text); line-height:1; }
+    .auth-wordmark .sub { font-size:0.72rem; color:var(--text-3); margin-top:0.4rem; letter-spacing:0.12em; text-transform:uppercase; font-weight:400; }
+
+    /* Topbar logo (unchanged) */
     .sierra-logo-top svg { height:20px; width:auto; display:block; }
-    [data-theme="dark"] .sierra-logo-auth .cls-2,
-    [data-theme="dark"] .sierra-logo-top .cls-2 { fill: #f0f0f2; }
-    /* No card — fields float directly on background */
+    [data-theme="dark"] .auth-mark .lc2 { fill:#f0f0f2; }
+    [data-theme="dark"] .sierra-logo-top .cls-2 { fill:#f0f0f2; }
+
+    /* Card — no border, no background */
     .auth-card { background:none; border:none; box-shadow:none; padding:0; }
     .auth-card h2 { display:none; }
-    /* Auth inputs: slightly larger and more open */
+    .auth-card .fg { margin-bottom:0.55rem; }
+    .auth-card .fg label { display:none; }
     .auth-card .fg input {
       background:var(--surface); border:1px solid var(--border);
-      border-radius:11px; padding:0.8rem 1rem; font-size:0.9rem;
-      box-shadow:0 1px 2px rgba(0,0,0,0.04);
+      border-radius:12px; padding:0.85rem 1rem; font-size:0.92rem;
+      box-shadow:0 1px 3px rgba(0,0,0,0.05);
+      transition:border-color 0.15s;
     }
-    .auth-card .fg { margin-bottom:0.6rem; }
-    .auth-card .fg label { display:none; }
-    .auth-card .btn-primary { margin-top:0.6rem; padding:0.8rem; font-size:0.9rem; border-radius:11px; }
-    .auth-footer { text-align:center; margin-top:2rem; font-size:0.68rem; color:var(--text-3); letter-spacing:0.02em; }
-    .auth-err { background:rgba(220,53,69,0.07); border:1px solid rgba(220,53,69,0.15); border-radius:10px; padding:0.6rem 0.9rem; font-size:0.8rem; color:#c0392b; margin-bottom:0.8rem; display:none; }
+    .auth-card .fg input:focus { border-color:var(--text-2); box-shadow:none; }
+    .auth-card .btn-primary {
+      margin-top:0.65rem; padding:0.85rem; font-size:0.92rem;
+      border-radius:12px; font-weight:600; letter-spacing:0.01em;
+    }
+    .auth-footer { text-align:center; margin-top:2.5rem; font-size:0.65rem; color:var(--text-3); letter-spacing:0.04em; }
+    .auth-err { background:rgba(220,53,69,0.07); border:1px solid rgba(220,53,69,0.15); border-radius:10px; padding:0.6rem 0.9rem; font-size:0.8rem; color:#c0392b; margin-bottom:0.75rem; display:none; }
     [data-theme="dark"] .auth-err { color:#fca5a5; background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.2); }
 
     /* ── FORMS ── */
@@ -270,6 +280,26 @@
     hr.div { border:none; border-top:1px solid var(--border); margin:1rem 0; }
 
     /* ── IMG UPLOAD ── */
+    /* ── IMAGE GALLERY (ficha) ── */
+    .ficha-gallery { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1rem; }
+    .ficha-gallery-hero { width:100%; height:200px; border-radius:10px; overflow:hidden; background:var(--surface2); cursor:zoom-in; position:relative; }
+    .ficha-gallery-hero img { width:100%; height:100%; object-fit:cover; transition:transform 0.2s; }
+    .ficha-gallery-hero:hover img { transform:scale(1.02); }
+    .ficha-gallery-hero .img-dl-btn { position:absolute; bottom:0.6rem; right:0.6rem; background:rgba(0,0,0,0.45); color:#fff; border:none; border-radius:7px; padding:0.3rem 0.65rem; font-size:0.72rem; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:0.3rem; backdrop-filter:blur(6px); opacity:0; transition:opacity 0.15s; }
+    .ficha-gallery-hero:hover .img-dl-btn { opacity:1; }
+    .ficha-thumbs { display:flex; gap:0.4rem; overflow-x:auto; padding-bottom:2px; }
+    .ficha-thumbs::-webkit-scrollbar { height:3px; }
+    .ficha-thumbs::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+    .ficha-thumb { width:56px; height:56px; border-radius:7px; overflow:hidden; cursor:pointer; flex-shrink:0; border:2px solid transparent; transition:border-color 0.12s; }
+    .ficha-thumb.active { border-color:var(--accent); }
+    .ficha-thumb img { width:100%; height:100%; object-fit:cover; }
+
+    /* ── IMAGE GRID (edit form) ── */
+    .img-edit-grid { display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.65rem; }
+    .img-edit-thumb { position:relative; width:72px; height:72px; border-radius:8px; overflow:hidden; flex-shrink:0; }
+    .img-edit-thumb img { width:100%; height:100%; object-fit:cover; }
+    .img-edit-rm { position:absolute; top:3px; right:3px; width:18px; height:18px; background:rgba(0,0,0,0.55); color:#fff; border:none; border-radius:50%; font-size:0.6rem; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
+
     .img-upload-area {
       border:2px dashed var(--border); border-radius:10px; padding:1.5rem; text-align:center;
       cursor:pointer; transition:border-color 0.15s; position:relative; overflow:hidden;
@@ -380,9 +410,13 @@
 <!-- ══ AUTH ══ -->
 <div id="auth-screen">
   <div class="auth-box">
+    <!-- Sierra mark only (icon, no wordmark) -->
+    <div class="auth-mark">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 411 354"><path fill="#59a29e" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>
+    </div>
     <div class="auth-wordmark">
-      <div class="sierra-logo-auth"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1715 353.13"><defs><style>.cls-1{fill:#59a29e}.cls-2{fill:#141512}</style></defs><path class="cls-2" d="M570.98,144.81c-47.7-6.81-61.33-13.63-61.33-34.07,0-13.63,10.22-23.85,40.88-23.85,37.48,0,47.7,10.22,47.7,30.66l3.41,3.41h40.88l3.41-3.41c0-40.88-27.26-71.55-91.99-71.55s-91.99,30.66-91.99,64.73c0,47.7,37.48,64.73,85.17,71.55,47.7,6.81,61.33,13.63,61.33,37.48,0,20.44-17.03,30.66-47.7,30.66-40.88,0-54.51-13.63-54.51-37.48l-3.41-3.41h-40.88l-3.41,3.41c0,44.29,30.66,78.36,98.8,78.36,71.55,0,98.8-34.07,98.8-71.55,0-47.7-37.48-68.14-85.17-74.95Z"/><polygon class="cls-2" points="700.44 49.41 697.03 52.82 697.03 284.49 700.44 287.9 741.32 287.9 744.73 284.49 744.73 52.82 741.32 49.41 700.44 49.41"/><polygon class="cls-2" points="802.64 49.41 799.23 52.82 799.23 284.49 802.64 287.9 962.76 287.9 966.17 284.49 966.17 250.42 962.76 247.02 850.33 247.02 846.93 243.61 846.93 189.1 850.33 185.69 955.95 185.69 959.36 182.29 959.36 148.22 955.95 144.81 850.33 144.81 846.93 141.4 846.93 93.7 850.33 90.3 962.76 90.3 966.17 86.89 966.17 52.82 962.76 49.41 802.64 49.41"/><path class="cls-2" d="M1211.46,120.96c0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41,68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14ZM1129.7,151.62h-64.73l-3.41-3.41v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66Z"/><path class="cls-2" d="M1344.33,195.91l68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14,0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41ZM1300.04,148.22v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66h-64.73l-3.41-3.41Z"/><path class="cls-2" d="M1678.2,284.49v-34.07l-78.36-197.6-3.41-3.41h-44.29l-3.41,3.41-78.36,197.6v34.07l3.41,3.41h30.66l3.41-3.41,17.04-44.29,6.81-3.41h85.17l6.81,3.41,17.03,44.29,3.41,3.41h30.66l3.41-3.41ZM1603.25,195.91h-57.92l-3.41-3.41,30.66-81.77h3.41l30.66,81.77-3.41,3.41Z"/><path class="cls-1" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/><path class="cls-2" d="M1641.41,49.41h27.71v5.17h-10.94v30.29h-5.82v-30.29h-10.94v-5.17Z"/><path class="cls-2" d="M1677.57,49.41h7.55l11.35,27.91,11.14-27.91h7.4v35.46h-5.62v-26.09l-10.64,26.09h-4.91l-10.64-26.09v26.09h-5.62v-35.46Z"/></svg></div>
-      <div class="sub">Product Index</div>
+      <div class="brand">Sierra Index</div>
+      <div class="sub">Product catalog</div>
     </div>
     <div class="auth-card">
       <h2>Sign in</h2>
@@ -558,12 +592,12 @@
       <div id="div-fields"></div>
 
       <hr class="div" />
-      <div class="fg"><label>Product image</label>
+      <div class="fg"><label>Product images</label>
+        <div class="img-edit-grid" id="img-edit-grid"></div>
         <div class="img-upload-area" id="img-area">
-          <input type="file" id="np-img" accept="image/*" onchange="previewImg(this)" />
+          <input type="file" id="np-img" accept="image/*" multiple onchange="previewImgs(this)" />
           <div class="up-icon">↑</div>
-          <p>Click to upload image</p>
-          <img class="img-preview" id="img-prev" src="" />
+          <p id="img-area-label">Click to add images</p>
         </div>
       </div>
     </div>
@@ -627,7 +661,7 @@ const DIV_ICON = {
 }
 
 let me = null, profile = null, division = 'all', selected = null
-let editingProductId = null, editingImageUrl = null
+let editingProductId = null, editingImageUrls = [], pendingImgFiles = []
 let allProducts = [], searchQuery = '', selectMode = false, selectedProducts = []
 
 /* ── THEME ── */
@@ -752,8 +786,9 @@ function cardHTML(p) {
   const desc = specs.Composition || specs.composition || p.description || ''
   const tags = (p.tags || []).slice(0,3).map(t => `<span class="tag">${t}</span>`).join('')
 
-  const imgEl = p.image_url
-    ? `<div class="card-img"><img src="${p.image_url}" alt="${p.name}" loading="lazy" /></div>`
+  const thumb = (p.image_urls && p.image_urls[0]) || p.image_url || null
+  const imgEl = thumb
+    ? `<div class="card-img"><img src="${thumb}" alt="${p.name}" loading="lazy" /></div>`
     : `<div class="card-img-placeholder" style="background:${c}18"><svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="${c}" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="1.5" stroke="${c}" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="${c}" stroke-width="1.2" stroke-linecap="round"/></svg></div>`
 
   const isSelected = selectedProducts.some(s => s.id === p.id)
@@ -816,10 +851,22 @@ function fichaBody(p) {
 
   let html = ''
 
-  // Image
+  // Images — use image_urls array, fall back to legacy image_url
   const fc = DIV_CLR[p.division] || '#aaa'
-  if (p.image_url) {
-    html += `<div class="ficha-img"><img src="${p.image_url}" alt="${p.name}" /></div>`
+  const imgs = (p.image_urls && p.image_urls.length) ? p.image_urls
+               : (p.image_url ? [p.image_url] : [])
+  if (imgs.length) {
+    const thumbs = imgs.length > 1
+      ? `<div class="ficha-thumbs">${imgs.map((u, i) =>
+          `<div class="ficha-thumb${i===0?' active':''}" onclick="switchFichaImg(this,'${u}')" >
+            <img src="${u}" /></div>`).join('')}</div>` : ''
+    html += `<div class="ficha-gallery">
+      <div class="ficha-gallery-hero" id="ficha-hero">
+        <img id="ficha-hero-img" src="${imgs[0]}" alt="${p.name}" />
+        <button class="img-dl-btn" onclick="downloadImg('${imgs[0]}','${esc(p.name)}')">↓ Download</button>
+      </div>
+      ${thumbs}
+    </div>`
   } else {
     html += `<div class="ficha-img ficha-img-empty" style="background:${fc}0d">
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="${fc}" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="1.5" stroke="${fc}" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="${fc}" stroke-width="1.2" stroke-linecap="round"/></svg>
@@ -1449,20 +1496,23 @@ function renderFormFields() {
 
 function openAdd() {
   editingProductId = null
-  editingImageUrl = null
+  editingImageUrls = []; pendingImgFiles = []
   document.getElementById('add-modal-title').textContent = 'New product'
   ;['np-name','np-code','np-lot','np-country'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
   document.getElementById('np-country').value = 'Honduras'
   document.getElementById('np-div').value = division !== 'all' ? division : 'fabric'
   renderFormFields()
-  document.getElementById('img-prev').style.display = 'none'
+  editingImageUrls = []; pendingImgFiles = []
+  renderEditImgGrid()
   document.getElementById('np-img').value = ''
   document.getElementById('m-add').classList.add('open')
 }
 
 function openEdit(p) {
   editingProductId = p.id
-  editingImageUrl = p.image_url || null
+  editingImageUrls = (p.image_urls && p.image_urls.length) ? [...p.image_urls]
+                     : (p.image_url ? [p.image_url] : [])
+  pendingImgFiles = []
   document.getElementById('add-modal-title').textContent = 'Edit product'
   document.getElementById('np-name').value = p.name || ''
   document.getElementById('np-code').value = p.code || ''
@@ -1488,9 +1538,7 @@ function openEdit(p) {
     })
     const gtagsEl = document.getElementById('g-tags'); if (gtagsEl) gtagsEl.value = (p.tags || []).join(', ')
   }
-  const prev = document.getElementById('img-prev')
-  if (editingImageUrl) { prev.src = editingImageUrl; prev.style.display = 'block' }
-  else { prev.style.display = 'none' }
+  renderEditImgGrid()
   document.getElementById('np-img').value = ''
   closeModal('m-ficha')
   document.getElementById('m-add').classList.add('open')
@@ -1506,16 +1554,65 @@ async function confirmDelete(p) {
   loadProducts()
 }
 
-function previewImg(input) {
-  const file = input.files[0]
-  if (!file) return
-  const reader = new FileReader()
-  reader.onload = e => {
-    const prev = document.getElementById('img-prev')
-    prev.src = e.target.result
-    prev.style.display = 'block'
+function renderEditImgGrid() {
+  const grid = document.getElementById('img-edit-grid')
+  if (!grid) return
+  const saved = editingImageUrls.map((u, i) =>
+    `<div class="img-edit-thumb">
+      <img src="${u}" />
+      <button class="img-edit-rm" onclick="removeEditImg(${i})" title="Remove">✕</button>
+    </div>`).join('')
+  const pending = pendingImgFiles.map((f, i) => {
+    const url = URL.createObjectURL(f)
+    return `<div class="img-edit-thumb" id="pending-${i}">
+      <img src="${url}" />
+      <button class="img-edit-rm" onclick="removePendingImg(${i})" title="Remove">✕</button>
+    </div>`
+  }).join('')
+  grid.innerHTML = saved + pending
+  const total = editingImageUrls.length + pendingImgFiles.length
+  const lbl = document.getElementById('img-area-label')
+  if (lbl) lbl.textContent = total ? 'Add more images' : 'Click to add images'
+}
+
+function removeEditImg(i) {
+  editingImageUrls.splice(i, 1)
+  renderEditImgGrid()
+}
+
+function removePendingImg(i) {
+  pendingImgFiles.splice(i, 1)
+  renderEditImgGrid()
+}
+
+function previewImgs(input) {
+  pendingImgFiles = [...pendingImgFiles, ...Array.from(input.files)]
+  input.value = ''
+  renderEditImgGrid()
+}
+
+function switchFichaImg(thumbEl, url) {
+  document.querySelectorAll('.ficha-thumb').forEach(t => t.classList.remove('active'))
+  thumbEl.classList.add('active')
+  const hero = document.getElementById('ficha-hero-img')
+  const dlBtn = document.querySelector('.img-dl-btn')
+  if (hero) hero.src = url
+  if (dlBtn) dlBtn.onclick = () => downloadImg(url, selected?.name || 'image')
+}
+
+async function downloadImg(url, name) {
+  try {
+    const res = await fetch(url)
+    const blob = await res.blob()
+    const ext = blob.type.split('/')[1] || 'jpg'
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `${name}.${ext}`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  } catch {
+    window.open(url, '_blank')
   }
-  reader.readAsDataURL(file)
 }
 
 async function saveProduct() {
@@ -1545,26 +1642,27 @@ async function saveProduct() {
     tags = (document.getElementById('g-tags')?.value || '').split(',').map(t => t.trim()).filter(Boolean)
   }
 
-  // Upload image
-  let image_url = editingImageUrl
-  const imgFile = document.getElementById('np-img').files[0]
-  if (imgFile) {
-    const ext = imgFile.name.split('.').pop()
-    const path = `${me.id}/${Date.now()}.${ext}`
-    const { error: upErr } = await sb.storage.from('product-images').upload(path, imgFile, {
-      contentType: imgFile.type, upsert: false
+  // Upload new images
+  const newUrls = []
+  for (const file of pendingImgFiles) {
+    const ext = file.name.split('.').pop()
+    const path = `${me.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const { error: upErr } = await sb.storage.from('product-images').upload(path, file, {
+      contentType: file.type, upsert: false
     })
     if (upErr) { toast('Upload error: ' + upErr.message); return }
     const { data: urlData } = sb.storage.from('product-images').getPublicUrl(path)
-    image_url = urlData.publicUrl
+    newUrls.push(urlData.publicUrl)
   }
+  const image_urls = [...editingImageUrls, ...newUrls]
+  const image_url = image_urls[0] || null
 
   const payload = {
     name, division: div,
     code: document.getElementById('np-code').value.trim() || null,
     lot: document.getElementById('np-lot').value.trim() || null,
     country: document.getElementById('np-country').value.trim() || 'Honduras',
-    description, specs, tags, image_url
+    description, specs, tags, image_url, image_urls
   }
 
   let error
