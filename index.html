@@ -1880,9 +1880,9 @@ const COMMODITY_CFG = [
 ]
 
 const NEWS_SOURCES_CFG = [
-  { name: 'Fashion United',   url: 'https://fashionunited.com/news/rss.xml',     color: '#0fa89c' },
   { name: 'Textile World',    url: 'https://www.textileworld.com/feed/',          color: '#9e00cb' },
   { name: 'Sourcing Journal', url: 'https://sourcingjournal.com/feed/',           color: '#ff7824' },
+  { name: 'Apparel Insider',  url: 'https://apparelinsider.com/feed/',            color: '#0fa89c' },
   { name: 'WWD',              url: 'https://wwd.com/feed/',                       color: '#e74c3c' },
 ]
 
@@ -2057,17 +2057,50 @@ async function loadDashNews(idx, tabEl) {
   const list = document.getElementById('dash-news-list')
   if (!list) return
   list.innerHTML = '<div class="news-placeholder">Loading...</div>'
+
+  // Fetch RSS directly via CORS proxy — no rss2json dependency
+  const proxies = [
+    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  ]
+
+  let xml = null
+  for (const mkProxy of proxies) {
+    try {
+      const res = await fetch(mkProxy(src.url), { signal: AbortSignal.timeout(10000) })
+      if (!res.ok) continue
+      const body = await res.json().catch(() => null)
+      // allorigins wraps in { contents }, corsproxy returns text via .text()
+      if (body?.contents) { xml = body.contents; break }
+      // fallback: try as plain text response
+      const text = body ? JSON.stringify(body) : await res.text()
+      if (text?.includes('<item') || text?.includes('<entry')) { xml = text; break }
+    } catch { continue }
+  }
+
+  if (!xml) {
+    list.innerHTML = '<div class="news-placeholder">Feed unavailable. Try another source.</div>'
+    return
+  }
+
   try {
-    const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(src.url)}&count=10`
-    const res = await fetch(api, { signal: AbortSignal.timeout(10000) })
-    const data = await res.json()
-    if (!data.items?.length) { list.innerHTML = '<div class="news-placeholder">No articles available right now.</div>'; return }
-    list.innerHTML = data.items.map(item => {
-      const ago = dashTimeAgo(new Date(item.pubDate))
-      const title = (item.title || '').replace(/[<>]/g, c => c === '<' ? '&lt;' : '&gt;')
-      const thumb = item.thumbnail || item.enclosure?.link || ''
+    const doc = new DOMParser().parseFromString(xml, 'text/xml')
+    const nodes = [...doc.querySelectorAll('item, entry')]
+    if (!nodes.length) { list.innerHTML = '<div class="news-placeholder">No articles found.</div>'; return }
+
+    const getText = (el, ...tags) => { for (const t of tags) { const v = el.querySelector(t)?.textContent?.trim(); if (v) return v } return '' }
+    const getAttr = (el, tag, attr) => el.querySelector(tag)?.getAttribute(attr) || ''
+
+    list.innerHTML = nodes.slice(0, 8).map(item => {
+      const title = getText(item, 'title').replace(/[<>]/g, c => c === '<' ? '&lt;' : '&gt;').replace(/\s+/g, ' ')
+      const link  = getText(item, 'link') || getAttr(item, 'link[href]', 'href') || getAttr(item, 'link', 'href')
+      const pub   = getText(item, 'pubDate', 'published', 'updated', 'dc\\:date')
+      const thumb = getAttr(item, 'enclosure[type^="image"]', 'url') ||
+                    getAttr(item, 'media\\:thumbnail', 'url') ||
+                    getAttr(item, 'media\\:content[medium="image"]', 'url') || ''
+      const ago   = dashTimeAgo(new Date(pub))
       const thumbHtml = thumb ? `<img class="news-thumb" src="${thumb}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''
-      return `<a class="news-item" href="${item.link}" target="_blank" rel="noopener noreferrer">
+      return `<a class="news-item" href="${link}" target="_blank" rel="noopener noreferrer">
         <div class="news-dot" style="background:${src.color}"></div>
         <div class="news-body">
           <div class="news-headline">${title}</div>
@@ -2075,8 +2108,8 @@ async function loadDashNews(idx, tabEl) {
         </div>${thumbHtml}
       </a>`
     }).join('')
-  } catch (e) {
-    list.innerHTML = `<div class="news-placeholder">Couldn't load feed. Check your connection.</div>`
+  } catch {
+    list.innerHTML = '<div class="news-placeholder">Couldn\'t parse feed.</div>'
   }
 }
 
