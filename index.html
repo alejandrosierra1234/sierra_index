@@ -218,40 +218,26 @@
       padding: 6mm;
       width: 62mm;
       box-sizing: border-box;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
+      border-radius: 3px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      zoom: 1.6;
     }
-
-    .lbl-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:3mm; }
-    .lbl-brand { font-size:16pt; font-weight:900; letter-spacing:-0.02em; line-height:1; }
-    .lbl-brand span { font-size:7pt; vertical-align:super; font-weight:400; }
-    .lbl-mfg { font-size:5.5pt; font-weight:700; text-align:right; line-height:1.4; text-transform:uppercase; }
-
-    .lbl-meta { display:flex; gap:6mm; margin-bottom:2mm; }
-    .lbl-meta-block { }
-    .lbl-meta-block .mk { font-size:5.5pt; font-weight:700; text-transform:uppercase; color:#000; }
-    .lbl-meta-block .mv { font-size:8pt; font-weight:700; }
-
-    .lbl-rule { border:none; border-top:2.5px solid #000; margin:2.5mm 0; }
-    .lbl-rule-thin { border:none; border-top:0.75px solid #ccc; margin:2mm 0; }
-
-    .lbl-name { font-size:13pt; font-weight:900; text-transform:uppercase; letter-spacing:-0.01em; line-height:1.1; margin:1.5mm 0; }
-
-    .lbl-field { margin-bottom:1.5mm; }
-    .lbl-field .fk { font-size:5.5pt; font-weight:700; text-transform:uppercase; color:#000; }
-    .lbl-field .fv { font-size:8pt; font-weight:700; line-height:1.3; }
-
-    .lbl-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:2mm; margin:2mm 0; }
-    .lbl-grid-item .gk { font-size:5.5pt; font-weight:700; text-transform:uppercase; }
-    .lbl-grid-item .gv { font-size:9pt; font-weight:900; }
-
-    .lbl-yarn-row { display:flex; gap:3mm; padding:1.5mm 0; border-bottom:0.5px solid #ccc; }
-    .lbl-yarn-row:last-child { border-bottom:none; }
-    .lbl-yarn-lbl { font-size:5.5pt; font-weight:700; text-transform:uppercase; min-width:14mm; }
-    .lbl-yarn-val { font-size:7pt; font-weight:700; line-height:1.3; }
-
-    .lbl-comments .ck { font-size:5.5pt; font-weight:700; text-transform:uppercase; margin-bottom:0.5mm; }
-    .lbl-comments .cv { font-size:7pt; font-weight:700; }
+    /* Firefox fallback (zoom not supported) */
+    @supports not (zoom: 1) {
+      .label-preview-scaler {
+        width: calc(62mm * 1.6);
+        height: calc(62mm * 1.6 * 1.5);
+        overflow: hidden;
+        position: relative;
+      }
+      #label-preview {
+        position: absolute;
+        top: 0; left: 0;
+        transform: scale(1.6);
+        transform-origin: top left;
+        zoom: unset;
+      }
+    }
 
     /* ── LABEL MODAL ── */
     .label-modal-wrap { display:flex; gap:1.5rem; align-items:flex-start; }
@@ -274,14 +260,7 @@
     /* Preview panel */
     .label-preview-panel { flex:1; display:flex; flex-direction:column; align-items:center; gap:0.75rem; }
     .label-preview-panel .preview-hint { font-size:0.72rem; color:var(--text-3); }
-    #label-preview {
-      font-family: Arial, Helvetica, sans-serif;
-      color: #000; background: #fff;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-      border-radius: 3px;
-      zoom: 1.6;
-      transform-origin: top center;
-    }
+    .label-preview-scaler { display:inline-block; }
 
     /* ════════════════════════════
        PRINT STYLES — QL-800 62mm
@@ -347,6 +326,7 @@
       <button class="nav-item" onclick="setDiv('garment',this)"><span class="n-dot" style="background:#16cdbe"></span>Garment</button>
       <span class="s-label" style="margin-top:0.5rem">My activity</span>
       <button class="nav-item" id="nav-req" onclick="showRequests()"><span class="n-dot" style="background:#ffc529"></span>My requests</button>
+      <button class="nav-item" id="nav-all-req" onclick="showAllRequests()" style="display:none"><span class="n-dot" style="background:#ff7824"></span>All requests</button>
     </div>
 
     <div class="content" id="content">
@@ -375,6 +355,8 @@
     <div class="modal-body" id="ficha-body"></div>
     <div class="modal-ftr">
       <button class="btn btn-ghost btn-sm" onclick="closeModal('m-ficha')">Close</button>
+      <button class="btn btn-ghost btn-sm" id="ficha-del-btn" onclick="confirmDelete(selected)" style="display:none;color:#c0392b;border-color:rgba(192,57,43,0.25)">Delete</button>
+      <button class="btn btn-ghost btn-sm" id="ficha-edit-btn" onclick="openEdit(selected)" style="display:none">Edit</button>
       <button class="btn btn-ghost btn-sm" onclick="openLabel()">View label</button>
       <button class="btn btn-primary btn-sm" onclick="openReq()">Request sample</button>
     </div>
@@ -400,7 +382,9 @@
         </div>
         <!-- LIVE PREVIEW -->
         <div class="label-preview-panel">
-          <div id="label-preview"></div>
+          <div class="label-preview-scaler">
+            <div id="label-preview"></div>
+          </div>
           <span class="preview-hint">Preview at 1.6× scale · prints at 62mm</span>
         </div>
       </div>
@@ -440,7 +424,7 @@
     <div class="modal-hdr">
       <div>
         <div class="modal-eyebrow" style="color:var(--accent)">Editor</div>
-        <div class="modal-title">New product</div>
+        <div class="modal-title" id="add-modal-title">New product</div>
       </div>
       <button class="btn-icon" onclick="closeModal('m-add')">✕</button>
     </div>
@@ -497,6 +481,7 @@ const DIV_CLR = { fiber:'#9e00cb', yarn:'#3ed600', fabric:'#009fff', chemicals:'
 const DIV_LBL = { fiber:'Fiber', yarn:'Yarn', fabric:'Fabric', chemicals:'Chemicals', garment:'Garment' }
 
 let me = null, profile = null, division = 'all', selected = null
+let editingProductId = null, editingImageUrl = null
 
 /* ── THEME ── */
 const initTheme = localStorage.getItem('sierra-theme') || 'light'
@@ -544,7 +529,10 @@ async function enterApp(user) {
   document.getElementById('u-av').textContent = initials
   document.getElementById('u-nm').textContent = name
   document.getElementById('u-role').textContent = p?.role === 'editor' ? 'Editor' : 'Vendor'
-  if (p?.role === 'editor') document.getElementById('add-btn').style.display = 'flex'
+  if (p?.role === 'editor') {
+    document.getElementById('add-btn').style.display = 'flex'
+    document.getElementById('nav-all-req').style.display = 'flex'
+  }
   document.getElementById('auth-screen').style.display = 'none'
   document.getElementById('app').style.display = 'flex'
   loadProducts()
@@ -603,6 +591,7 @@ function cardHTML(p) {
       <div class="tags">${tags}</div>
       <div class="card-actions" onclick="event.stopPropagation()">
         <button class="btn btn-ghost btn-sm" onclick="openFicha(dec('${ep}'))">View sheet</button>
+        <button class="btn btn-ghost btn-sm" onclick="quickLabel(dec('${ep}'))">Label</button>
         <button class="btn btn-primary btn-sm" onclick="quickReq(dec('${ep}'))">Request</button>
       </div>
     </div>
@@ -634,6 +623,9 @@ function openFicha(p) {
   eyebrow.textContent = `${DIV_LBL[p.division]} · ${code}${p.lot ? ' · LOT ' + p.lot : ''}`
   document.getElementById('f-name').textContent = p.name
   document.getElementById('ficha-body').innerHTML = fichaBody(p)
+  const isEditor = profile?.role === 'editor'
+  document.getElementById('ficha-edit-btn').style.display = isEditor ? 'inline-flex' : 'none'
+  document.getElementById('ficha-del-btn').style.display = isEditor ? 'inline-flex' : 'none'
   document.getElementById('m-ficha').classList.add('open')
 }
 
@@ -768,6 +760,8 @@ function openLabel() {
   updateLabelPreview()
   document.getElementById('m-label').classList.add('open')
 }
+
+function quickLabel(p) { selected = p; openLabel() }
 
 function renderFieldToggles() {
   // Group fields
@@ -959,6 +953,56 @@ async function showRequests() {
   </table>`
 }
 
+/* ── ALL REQUESTS (editor) ── */
+async function showAllRequests() {
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+  document.getElementById('nav-all-req').classList.add('active')
+  document.getElementById('sec-title').textContent = 'All requests'
+  document.getElementById('sec-sub').textContent = 'Manage sample requests from all collaborators'
+  document.getElementById('tb-section').textContent = 'All requests'
+  if (profile?.role === 'editor') document.getElementById('add-btn').style.display = 'flex'
+
+  const pg = document.getElementById('pg')
+  pg.style.display = 'block'; pg.innerHTML = ''
+
+  const { data, error } = await sb.from('sample_requests')
+    .select('*, products(name,division,code), profiles(full_name,email)')
+    .order('created_at', { ascending: false })
+
+  if (error) { toast('Error loading requests — make sure the editor RLS policy is applied'); return }
+  if (!data?.length) {
+    pg.innerHTML = `<div class="empty"><div class="empty-icon">◻</div><p>No requests yet.</p></div>`
+    return
+  }
+
+  const statusLabel = { pending:'Pending', approved:'Approved', shipped:'Shipped', rejected:'Rejected' }
+  pg.innerHTML = `<table class="data-table">
+    <thead><tr><th>Product</th><th>Requested by</th><th>Qty</th><th>Notes</th><th>Status</th><th>Date</th></tr></thead>
+    <tbody>${data.map(r => {
+      const c = DIV_CLR[r.products?.division] || '#aaa'
+      return `<tr>
+        <td style="font-weight:500">${r.products?.name || '–'}<br><span style="color:${c};font-size:0.65rem;font-weight:700;text-transform:uppercase">${r.products?.division||''}</span></td>
+        <td style="font-size:0.8rem;color:var(--text-2)">${r.profiles?.full_name || r.profiles?.email || '–'}</td>
+        <td style="color:var(--text-2)">${r.quantity}</td>
+        <td style="color:var(--text-2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.notes || '–'}</td>
+        <td>
+          <select class="badge badge-${r.status}" onchange="updateReqStatus('${r.id}', this.value, this)" style="border:none;cursor:pointer;font-family:inherit;background:transparent;font-weight:600;font-size:0.66rem">
+            ${['pending','approved','shipped','rejected'].map(s => `<option value="${s}" ${s===r.status?'selected':''}>${statusLabel[s]}</option>`).join('')}
+          </select>
+        </td>
+        <td style="color:var(--text-3)">${new Date(r.created_at).toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'})}</td>
+      </tr>`
+    }).join('')}</tbody>
+  </table>`
+}
+
+async function updateReqStatus(id, status, el) {
+  const { error } = await sb.from('sample_requests').update({ status }).eq('id', id)
+  if (error) { toast('Error updating status'); return }
+  el.className = `badge badge-${status}`
+  toast('Status updated')
+}
+
 /* ── ADD PRODUCT ── */
 const FABRIC_FIELDS = `
   <div class="two-col">
@@ -996,13 +1040,62 @@ function renderFormFields() {
 }
 
 function openAdd() {
-  ['np-name','np-code','np-lot','np-country'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
+  editingProductId = null
+  editingImageUrl = null
+  document.getElementById('add-modal-title').textContent = 'New product'
+  ;['np-name','np-code','np-lot','np-country'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
   document.getElementById('np-country').value = 'Honduras'
   document.getElementById('np-div').value = division !== 'all' ? division : 'fabric'
   renderFormFields()
   document.getElementById('img-prev').style.display = 'none'
   document.getElementById('np-img').value = ''
   document.getElementById('m-add').classList.add('open')
+}
+
+function openEdit(p) {
+  editingProductId = p.id
+  editingImageUrl = p.image_url || null
+  document.getElementById('add-modal-title').textContent = 'Edit product'
+  document.getElementById('np-name').value = p.name || ''
+  document.getElementById('np-code').value = p.code || ''
+  document.getElementById('np-lot').value = p.lot || ''
+  document.getElementById('np-country').value = p.country || 'Honduras'
+  document.getElementById('np-div').value = p.division
+  renderFormFields()
+  const s = p.specs || {}
+  if (p.division === 'fabric') {
+    const fm = { 'f-composition': s.Composition, 'f-color': s.Color, 'f-dyed': s['Dyed Method'],
+                  'f-width': s.Width, 'f-gsm': s.GSM, 'f-dia': s.DIA, 'f-gauge': s.Gauge,
+                  'f-yarn1': s['Yarn 01'], 'f-yarn2': s['Yarn 02'], 'f-yarn3': s['Yarn 03'],
+                  'f-comments': s.Comments }
+    Object.entries(fm).forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.value = val || '' })
+    const ftagsEl = document.getElementById('f-tags'); if (ftagsEl) ftagsEl.value = (p.tags || []).join(', ')
+  } else {
+    document.getElementById('g-desc').value = p.description || ''
+    const entries = Object.entries(s)
+    ;[1,2,3,4].forEach(i => {
+      const [k, v] = entries[i-1] || ['', '']
+      const kEl = document.getElementById(`g-s${i}k`); const vEl = document.getElementById(`g-s${i}v`)
+      if (kEl) kEl.value = k; if (vEl) vEl.value = v
+    })
+    const gtagsEl = document.getElementById('g-tags'); if (gtagsEl) gtagsEl.value = (p.tags || []).join(', ')
+  }
+  const prev = document.getElementById('img-prev')
+  if (editingImageUrl) { prev.src = editingImageUrl; prev.style.display = 'block' }
+  else { prev.style.display = 'none' }
+  document.getElementById('np-img').value = ''
+  closeModal('m-ficha')
+  document.getElementById('m-add').classList.add('open')
+}
+
+async function confirmDelete(p) {
+  if (!p) return
+  if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return
+  const { error } = await sb.from('products').delete().eq('id', p.id)
+  if (error) { toast('Error deleting product'); return }
+  closeModal('m-ficha')
+  toast('Product deleted')
+  loadProducts()
 }
 
 function previewImg(input) {
@@ -1045,7 +1138,7 @@ async function saveProduct() {
   }
 
   // Upload image
-  let image_url = null
+  let image_url = editingImageUrl
   const imgFile = document.getElementById('np-img').files[0]
   if (imgFile) {
     const ext = imgFile.name.split('.').pop()
@@ -1056,16 +1149,23 @@ async function saveProduct() {
     image_url = urlData.publicUrl
   }
 
-  const { error } = await sb.from('products').insert({
+  const payload = {
     name, division: div,
     code: document.getElementById('np-code').value.trim() || null,
     lot: document.getElementById('np-lot').value.trim() || null,
     country: document.getElementById('np-country').value.trim() || 'Honduras',
-    description, specs, tags, image_url, created_by: me.id
-  })
+    description, specs, tags, image_url
+  }
+
+  let error
+  if (editingProductId) {
+    ;({ error } = await sb.from('products').update(payload).eq('id', editingProductId))
+  } else {
+    ;({ error } = await sb.from('products').insert({ ...payload, created_by: me.id }))
+  }
 
   if (error) { toast('Error saving product'); return }
-  closeModal('m-add'); toast('Product saved'); loadProducts()
+  closeModal('m-add'); toast(editingProductId ? 'Product updated' : 'Product saved'); loadProducts()
 }
 
 /* ── UTILS ── */
