@@ -355,22 +355,32 @@
     .clock-ampm { font-size:0.9rem; font-weight:400; }
     .clock-tz { font-size:0.67rem; color:var(--text-2); margin-top:0.3rem; }
 
-    /* Market prices — Stocks-app list style, not big cards */
-    .market-list { background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
-    .market-row { display:grid; grid-template-columns:1fr 140px 110px; align-items:center; gap:1.5rem; padding:1rem 1.25rem; border-bottom:1px solid var(--border); }
+    /* Market prices — Apple Stocks split layout */
+    .market-panel { display:grid; grid-template-columns:240px 1fr; background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; min-height:280px; }
+    .market-list-col { border-right:1px solid var(--border); overflow-y:auto; }
+    .market-row { display:flex; align-items:center; gap:0.65rem; padding:0.8rem 0.9rem; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.12s; }
     .market-row:last-child { border-bottom:none; }
     .market-row:hover { background:var(--surface2); }
-    .market-info { min-width:0; }
-    .market-name { font-size:0.92rem; font-weight:600; display:flex; align-items:center; gap:0.5rem; }
+    .market-row.active { background:var(--accent-light); }
     .market-bullet { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-    .market-symbol { font-size:0.68rem; color:var(--text-3); margin-top:0.15rem; }
-    .market-chart-cell { height:44px; position:relative; }
-    .market-right { text-align:right; }
-    .market-price { font-size:1.15rem; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-0.02em; }
-    .market-chg { display:inline-flex; align-items:center; gap:0.15rem; font-size:0.72rem; font-weight:600; padding:0.12rem 0.4rem; border-radius:5px; margin-top:0.25rem; }
-    .market-chg.up { color:#1a8a5c; background:rgba(26,138,92,0.1); }
-    .market-chg.dn { color:#c0392b; background:rgba(192,57,43,0.1); }
-    .market-na { font-size:0.72rem; color:var(--text-3); text-align:right; margin-top:0.2rem; }
+    .market-row-info { flex:1; min-width:0; }
+    .market-row-name { font-size:0.85rem; font-weight:600; display:flex; align-items:center; gap:0.4rem; }
+    .market-row-sub { font-size:0.62rem; color:var(--text-3); margin-top:0.1rem; }
+    .market-row-spark { width:56px; height:30px; flex-shrink:0; }
+    .market-row-price { text-align:right; flex-shrink:0; min-width:64px; }
+    .market-row-pval { font-size:0.9rem; font-weight:600; font-variant-numeric:tabular-nums; }
+    .market-row-chg { font-size:0.62rem; font-weight:600; padding:0.1rem 0.32rem; border-radius:4px; margin-top:0.12rem; display:inline-block; }
+    .market-row-chg.up { color:#1a8a5c; background:rgba(26,138,92,0.1); }
+    .market-row-chg.dn { color:#c0392b; background:rgba(192,57,43,0.1); }
+    /* Detail panel */
+    .market-detail-col { padding:1.4rem 1.5rem; display:flex; flex-direction:column; }
+    .market-detail-name { font-size:1.4rem; font-weight:700; letter-spacing:-0.025em; }
+    .market-detail-sub { font-size:0.7rem; color:var(--text-3); margin-top:0.15rem; }
+    .market-detail-price { font-size:2.4rem; font-weight:700; letter-spacing:-0.04em; font-variant-numeric:tabular-nums; margin-top:0.85rem; line-height:1; }
+    .market-detail-chg { font-size:0.9rem; font-weight:600; margin-top:0.25rem; }
+    .market-detail-chg.up { color:#1a8a5c; }
+    .market-detail-chg.dn { color:#c0392b; }
+    .market-detail-chart { flex:1; min-height:140px; margin-top:1.1rem; position:relative; }
 
     /* News */
     .news-tabs { display:flex; gap:0.4rem; margin-bottom:0.8rem; flex-wrap:wrap; }
@@ -431,9 +441,11 @@
       .clocks-row { grid-template-columns: repeat(2, 1fr); }
       .clock-time { font-size: 1.5rem; }
 
-      /* Market list: hide chart on mobile */
-      .market-row { grid-template-columns: 1fr auto; gap: 0.75rem; }
-      .market-chart-cell { display: none; }
+      /* Market panel: stack on mobile */
+      .market-panel { grid-template-columns: 1fr; }
+      .market-list-col { border-right: none; border-bottom: 1px solid var(--border); }
+      .market-detail-col { min-height: 200px; }
+      .market-row-spark { display: none; }
 
       /* News */
       .news-thumb { display: none; }
@@ -994,6 +1006,7 @@ function leaveView() {
   if (clockInterval) { clearInterval(clockInterval); clockInterval = null }
   Object.values(dashCharts).forEach(c => { try { c.destroy() } catch {} })
   dashCharts = {}
+  commodityData = {}
   document.getElementById('view-dashboard').style.display = 'none'
   document.getElementById('view-products').style.display = 'flex'
 }
@@ -1865,6 +1878,8 @@ async function saveProduct() {
 /* ── DASHBOARD ── */
 let clockInterval = null
 let dashCharts = {}
+let selectedCommodityId = 'cotton'
+let commodityData = {}
 
 const CLOCK_ZONES = [
   { city: 'Honduras',    tz: 'America/Tegucigalpa' },
@@ -1880,10 +1895,10 @@ const COMMODITY_CFG = [
 ]
 
 const NEWS_SOURCES_CFG = [
-  { name: 'Textile World',    url: 'https://www.textileworld.com/feed/',          color: '#9e00cb' },
-  { name: 'Sourcing Journal', url: 'https://sourcingjournal.com/feed/',           color: '#ff7824' },
-  { name: 'Apparel Insider',  url: 'https://apparelinsider.com/feed/',            color: '#0fa89c' },
-  { name: 'WWD',              url: 'https://wwd.com/feed/',                       color: '#e74c3c' },
+  { name: 'Textile World',   url: 'https://www.textileworld.com/feed/',    color: '#9e00cb' },
+  { name: 'Fashion United',  url: 'https://fashionunited.com/rss.xml',     color: '#ff7824' },
+  { name: 'Apparel Insider', url: 'https://apparelinsider.com/feed/',      color: '#0fa89c' },
+  { name: 'WWD',             url: 'https://wwd.com/feed/',                 color: '#e74c3c' },
 ]
 
 function showDashboard() {
@@ -1924,25 +1939,29 @@ function showDashboard() {
     <div class="clocks-row" id="dash-clocks"></div>
   </div>
 
-  <!-- Market prices — Stocks-app list -->
+  <!-- Market prices — Apple Stocks split layout -->
   <div class="dash-section">
     <div class="dash-section-hdr">
       <div class="dash-section-label">Market Prices · 30 Days</div>
       <div class="dash-section-meta" id="market-updated"></div>
     </div>
-    <div class="market-list">
-      ${COMMODITY_CFG.map(c => `
-      <div class="market-row">
-        <div class="market-info">
-          <div class="market-name"><span class="market-bullet" style="background:${c.color}"></span>${c.name}</div>
-          <div class="market-symbol">${c.symbol || '—'} · ${c.exchange}</div>
-        </div>
-        <div class="market-chart-cell">${c.symbol ? `<canvas id="cchart-${c.id}"></canvas>` : ''}</div>
-        <div class="market-right">
-          <div class="market-price" id="cprice-${c.id}">${c.symbol ? '—' : 'N/A'}</div>
-          <div id="cchg-${c.id}">${c.symbol ? '' : '<span class="market-na">No public data</span>'}</div>
-        </div>
-      </div>`).join('')}
+    <div class="market-panel">
+      <div class="market-list-col">
+        ${COMMODITY_CFG.map(c => `
+        <div class="market-row${c.id === 'cotton' ? ' active' : ''}" data-id="${c.id}" onclick="selectCommodity('${c.id}')">
+          <span class="market-bullet" style="background:${c.color}"></span>
+          <div class="market-row-info">
+            <div class="market-row-name">${c.name}</div>
+            <div class="market-row-sub">${c.symbol || '—'} · ${c.exchange}</div>
+          </div>
+          <div class="market-row-spark">${c.symbol ? `<canvas id="cchart-${c.id}"></canvas>` : ''}</div>
+          <div class="market-row-price">
+            <div class="market-row-pval" id="cprice-${c.id}">${c.symbol ? '—' : '—'}</div>
+            <div id="cchg-${c.id}"></div>
+          </div>
+        </div>`).join('')}
+      </div>
+      <div class="market-detail-col" id="market-detail"></div>
     </div>
   </div>
 
@@ -1958,8 +1977,11 @@ function showDashboard() {
   </div>
 </div>`
 
+  selectedCommodityId = 'cotton'
+  commodityData = {}
   tickClocks()
   clockInterval = setInterval(tickClocks, 10000)
+  renderMarketDetail('cotton')
   COMMODITY_CFG.filter(c => c.symbol).forEach(fetchCommodity)
   loadDashNews(0, document.querySelector('#dash-news-tabs .news-tab.active'))
 }
@@ -1992,6 +2014,79 @@ function tickClocks() {
   }).join('')
 }
 
+function selectCommodity(id) {
+  selectedCommodityId = id
+  document.querySelectorAll('.market-row').forEach(r => r.classList.remove('active'))
+  const row = document.querySelector(`.market-row[data-id="${id}"]`)
+  if (row) row.classList.add('active')
+  renderMarketDetail(id)
+}
+
+function renderMarketDetail(id) {
+  const cfg = COMMODITY_CFG.find(c => c.id === id)
+  const data = commodityData[id]
+  const detail = document.getElementById('market-detail')
+  if (!detail || !cfg) return
+
+  if (!cfg.symbol) {
+    detail.innerHTML = `
+      <div class="market-detail-name">${cfg.name}</div>
+      <div class="market-detail-sub">${cfg.exchange}</div>
+      <div style="margin-top:1.75rem;flex:1;display:flex;flex-direction:column;justify-content:center">
+        <div style="font-size:2.2rem;font-weight:700;color:var(--text-3);letter-spacing:-0.03em">—</div>
+        <div style="font-size:0.78rem;color:var(--text-3);margin-top:0.65rem;line-height:1.6">No live price available via free API.<br>Reference: <a href="https://www.pciwood.com/polyester-prices" target="_blank" style="color:var(--accent);text-decoration:none">PCI Wood Mackenzie</a> · CCFEI · SHFE</div>
+      </div>`
+    return
+  }
+
+  if (!data) {
+    detail.innerHTML = `
+      <div class="market-detail-name">${cfg.name}</div>
+      <div class="market-detail-sub">${cfg.exchange} · ${cfg.symbol} · ${cfg.unit}</div>
+      <div style="margin-top:1.5rem;font-size:0.82rem;color:var(--text-3)">Loading…</div>`
+    return
+  }
+
+  const dir = data.chg >= 0 ? 'up' : 'dn'
+  const arrow = data.chg >= 0 ? '▲' : '▼'
+  const sign = data.chg >= 0 ? '+' : ''
+  const chgStr = `${arrow} ${sign}${data.chg.toFixed(2)} (${sign}${data.pct.toFixed(2)}%)`
+
+  detail.innerHTML = `
+    <div>
+      <div class="market-detail-name">${cfg.name}</div>
+      <div class="market-detail-sub">${cfg.exchange} · ${cfg.symbol} · ${cfg.unit}</div>
+    </div>
+    <div style="margin-top:0.9rem">
+      <div class="market-detail-price">${data.price.toFixed(2)}</div>
+      <div class="market-detail-chg ${dir}">${chgStr} · 30 days</div>
+    </div>
+    <div class="market-detail-chart"><canvas id="chart-detail"></canvas></div>`
+
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById('chart-detail')
+    if (!canvas || !data.closes) return
+    if (dashCharts['detail']) { try { dashCharts['detail'].destroy() } catch {} dashCharts['detail'] = null }
+    const ctx = canvas.getContext('2d')
+    const col = data.chg >= 0 ? '#1a8a5c' : '#c0392b'
+    const grad = ctx.createLinearGradient(0, 0, 0, 140)
+    grad.addColorStop(0, col + '38'); grad.addColorStop(1, col + '00')
+    dashCharts['detail'] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.closes.map((_,i) => i),
+        datasets: [{ data: data.closes, borderColor: col, borderWidth: 2,
+          backgroundColor: grad, fill: true, tension: 0.4, pointRadius: 0 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: { x: { display: false }, y: { display: false, grace: '5%' } }
+      }
+    })
+  })
+}
+
 async function fetchCommodity(cfg) {
   const yf = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(cfg.symbol)}?interval=1d&range=1mo`
   const proxies = [
@@ -2017,37 +2112,44 @@ async function fetchCommodity(cfg) {
   const prev = meta.chartPreviousClose || meta.previousClose || closes[closes.length - 2] || price
   const chg = price - prev, pct = (chg / prev) * 100
 
+  // Store data for detail panel
+  commodityData[cfg.id] = { closes, price, chg, pct }
+
+  // Update list row
   const priceEl = document.getElementById(`cprice-${cfg.id}`)
   const chgEl = document.getElementById(`cchg-${cfg.id}`)
-  if (!priceEl) return
-
-  priceEl.textContent = price.toFixed(2)
-  const dir = chg >= 0 ? 'up' : 'dn', arrow = chg >= 0 ? '↑' : '↓'
-  chgEl.innerHTML = `<span class="market-chg ${dir}">${arrow} ${Math.abs(pct).toFixed(2)}%</span>`
+  if (priceEl) priceEl.textContent = price.toFixed(2)
+  if (chgEl) {
+    const dir = chg >= 0 ? 'up' : 'dn', arrow = chg >= 0 ? '↑' : '↓'
+    chgEl.innerHTML = `<span class="market-row-chg ${dir}">${arrow} ${Math.abs(pct).toFixed(2)}%</span>`
+  }
 
   // Show last updated time
   const upd = document.getElementById('market-updated')
   if (upd) upd.textContent = `Updated ${new Date().toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' })}`
 
-  const canvas = document.getElementById(`cchart-${cfg.id}`)
-  if (!canvas) return
-  if (dashCharts[cfg.id]) dashCharts[cfg.id].destroy()
-  const ctx = canvas.getContext('2d')
-  const grad = ctx.createLinearGradient(0, 0, 0, 44)
-  grad.addColorStop(0, cfg.color + '45'); grad.addColorStop(1, cfg.color + '00')
-  dashCharts[cfg.id] = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: closes.map((_,i) => i),
-      datasets: [{ data: closes, borderColor: cfg.color, borderWidth: 1.5,
-        backgroundColor: grad, fill: true, tension: 0.3, pointRadius: 0 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, animation: { duration: 500 },
-      plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      scales: { x: { display: false }, y: { display: false } }
-    }
-  })
+  // Draw sparkline in list row
+  const spark = document.getElementById(`cchart-${cfg.id}`)
+  if (spark) {
+    if (dashCharts[cfg.id]) { try { dashCharts[cfg.id].destroy() } catch {} }
+    const sCtx = spark.getContext('2d')
+    dashCharts[cfg.id] = new Chart(sCtx, {
+      type: 'line',
+      data: {
+        labels: closes.map((_,i) => i),
+        datasets: [{ data: closes, borderColor: cfg.color, borderWidth: 1.5,
+          fill: false, tension: 0.3, pointRadius: 0 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: { x: { display: false }, y: { display: false } }
+      }
+    })
+  }
+
+  // If this commodity is currently selected, refresh the detail panel
+  if (cfg.id === selectedCommodityId) renderMarketDetail(cfg.id)
 }
 
 async function loadDashNews(idx, tabEl) {
@@ -2058,7 +2160,7 @@ async function loadDashNews(idx, tabEl) {
   if (!list) return
   list.innerHTML = '<div class="news-placeholder">Loading...</div>'
 
-  // Fetch RSS directly via CORS proxy — no rss2json dependency
+  // Fetch RSS via CORS proxy using text() — avoids double-consume bug
   const proxies = [
     u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
     u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
@@ -2067,14 +2169,15 @@ async function loadDashNews(idx, tabEl) {
   let xml = null
   for (const mkProxy of proxies) {
     try {
-      const res = await fetch(mkProxy(src.url), { signal: AbortSignal.timeout(10000) })
+      const res = await fetch(mkProxy(src.url), { signal: AbortSignal.timeout(12000) })
       if (!res.ok) continue
-      const body = await res.json().catch(() => null)
-      // allorigins wraps in { contents }, corsproxy returns text via .text()
-      if (body?.contents) { xml = body.contents; break }
-      // fallback: try as plain text response
-      const text = body ? JSON.stringify(body) : await res.text()
-      if (text?.includes('<item') || text?.includes('<entry')) { xml = text; break }
+      const text = await res.text()
+      // allorigins wraps response in JSON: { contents: "..." }
+      if (text.trimStart().startsWith('{')) {
+        try { const j = JSON.parse(text); if (j?.contents) { xml = j.contents; break } } catch {}
+      }
+      // corsproxy returns raw XML directly
+      if (text.includes('<item') || text.includes('<entry') || text.includes('<?xml')) { xml = text; break }
     } catch { continue }
   }
 
