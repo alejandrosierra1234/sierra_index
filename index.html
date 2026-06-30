@@ -200,12 +200,12 @@
     /* ── PRODUCT GRID ── */
     .pg { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:1rem; }
 
-    .card { background:var(--surface); border:1px solid var(--border); border-radius:13px; overflow:hidden; cursor:pointer; transition:box-shadow 0.2s, transform 0.2s, border-color 0.2s; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:13px; cursor:pointer; transition:box-shadow 0.2s, transform 0.2s, border-color 0.2s; }
     .card:hover { box-shadow:var(--shadow-hover); transform:translateY(-2px); border-color:transparent; }
 
-    .card-img { width:100%; height:140px; object-fit:cover; background:var(--surface2); display:flex; align-items:center; justify-content:center; }
+    .card-img { width:100%; height:140px; object-fit:cover; background:var(--surface2); display:flex; align-items:center; justify-content:center; overflow:hidden; border-radius:12px 12px 0 0; }
     .card-img img { width:100%; height:100%; object-fit:cover; }
-    .card-img-placeholder { width:100%; height:140px; display:flex; align-items:center; justify-content:center; }
+    .card-img-placeholder { width:100%; height:140px; display:flex; align-items:center; justify-content:center; border-radius:12px 12px 0 0; overflow:hidden; }
     .card-body { padding:1rem 1rem 0.85rem; }
     .card-div { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:0.45rem; }
     .card-name { font-size:0.92rem; font-weight:600; color:var(--text); margin-bottom:0.3rem; letter-spacing:-0.01em; }
@@ -345,15 +345,14 @@
     .dash-section-label { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-3); }
     .dash-section-meta { font-size:0.68rem; color:var(--text-3); }
 
-    /* World clocks — 4 equal cards */
+    /* World clocks — Apple-style digital */
     .clocks-row { display:grid; grid-template-columns:repeat(4,1fr); gap:0.65rem; }
-    .clock-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1rem 1.1rem; }
+    .clock-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1rem 1.1rem 0.9rem; }
     .clock-card.night { background:var(--surface2); }
-    .clock-city { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.3rem; display:flex; align-items:center; gap:0.35rem; }
-    .clock-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
-    .clock-time { font-size:1.85rem; font-weight:400; letter-spacing:-0.03em; font-variant-numeric:tabular-nums; line-height:1.1; }
-    .clock-ampm { font-size:0.9rem; font-weight:400; }
-    .clock-tz { font-size:0.67rem; color:var(--text-2); margin-top:0.3rem; }
+    .clock-city { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text); margin-bottom:0.55rem; }
+    .clock-time { font-size:1.85rem; font-weight:400; letter-spacing:-0.03em; font-variant-numeric:tabular-nums; line-height:1; }
+    .clock-ampm { font-size:0.95rem; font-weight:400; }
+    .clock-meta { font-size:0.67rem; color:var(--text-3); margin-top:0.45rem; font-weight:500; letter-spacing:0.01em; }
 
     /* Market prices — Apple Stocks split layout */
     .market-panel { display:grid; grid-template-columns:240px 1fr; background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; min-height:280px; }
@@ -363,6 +362,8 @@
     .market-row:hover { background:var(--surface2); }
     .market-row.active { background:var(--accent-light); }
     .market-bullet { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .market-row-icon { width:28px; height:28px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .market-row-icon svg { width:22px; height:22px; }
     .market-row-info { flex:1; min-width:0; }
     .market-row-name { font-size:0.85rem; font-weight:600; display:flex; align-items:center; gap:0.4rem; }
     .market-row-sub { font-size:0.62rem; color:var(--text-3); margin-top:0.1rem; }
@@ -400,66 +401,91 @@
 
     /* ── RESPONSIVE / MOBILE ── */
     @media (max-width: 767px) {
-      /* Allow the page to scroll on mobile */
+      /* Stable full-height layout */
       body { height: 100dvh; overflow: hidden; }
       #app { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-      .main { flex: 1; overflow: hidden; min-height: 0; }
-      .content { overflow-y: auto; padding: 1rem 1rem calc(72px + env(safe-area-inset-bottom)); }
-
-      /* Sidebar → bottom tab bar */
-      .sidebar {
-        position: fixed; bottom: 0; left: 0; right: 0;
-        width: 100%; height: auto;
-        flex-direction: row;
-        padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom));
-        border-right: none; border-top: 1px solid var(--border);
-        overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
-        z-index: 200;
-        background: rgba(245,245,247,0.92);
-        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-        gap: 0.2rem; border-radius: 0;
+      .main { flex: 1; overflow: hidden; min-height: 0; display: flex; flex-direction: column; }
+      .content {
+        flex: 1; overflow-y: auto; overflow-x: hidden;
+        padding: 1.1rem 0.9rem calc(68px + env(safe-area-inset-bottom));
+        -webkit-overflow-scrolling: touch;
       }
-      [data-theme="dark"] .sidebar { background: rgba(26,26,26,0.92); }
+
+      /* Sidebar → fixed bottom tab bar */
+      .sidebar {
+        position: fixed; bottom: 0; left: 0; right: 0; width: 100%; height: auto;
+        flex-direction: row; flex-shrink: 0;
+        padding: 0.3rem 0.35rem calc(0.3rem + env(safe-area-inset-bottom));
+        border-right: none; border-top: 1px solid var(--border);
+        background: rgba(245,245,247,0.94);
+        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        gap: 0.15rem; border-radius: 0; z-index: 200; overflow: hidden;
+      }
+      [data-theme="dark"] .sidebar { background: rgba(20,20,20,0.94); }
       .sidebar .s-label { display: none; }
       .nav-item {
-        flex-direction: column; flex: 1; min-width: 52px; max-width: 72px;
-        padding: 0.35rem 0.2rem; font-size: 0.56rem; gap: 0.12rem;
-        text-align: center; border-radius: 10px; white-space: nowrap;
-        overflow: hidden; text-overflow: ellipsis;
+        flex-direction: column; flex: 1; min-width: 0; max-width: none;
+        padding: 0.3rem 0.15rem; font-size: 0.52rem; gap: 0.1rem;
+        text-align: center; border-radius: 8px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
-      .n-icon { width: 18px; height: 18px; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
+      .n-icon { width: 18px; height: 18px; margin: 0 auto; }
 
-      /* Topbar: hide text, keep logo + avatar */
-      .topbar { padding: 0 1rem; }
+      /* Topbar */
+      .topbar { padding: 0 0.9rem; }
       .u-name, .u-role, .u-dot, .logout-btn { display: none; }
       .sep, .section-label { display: none; }
       .sierra-logo-top svg { height: 17px; }
 
-      /* Dashboard: stack vertically */
-      .dash-header { flex-direction: column; gap: 0.25rem; margin-bottom: 1.5rem; }
+      /* Dashboard */
+      .dash-wrap { gap: 0; }
+      .dash-header { flex-direction: column; gap: 0.2rem; margin-bottom: 1.25rem; }
       .dash-hero-time { display: none; }
-      .clocks-row { grid-template-columns: repeat(2, 1fr); }
+      .dash-greeting { font-size: 1.35rem; }
+      .dash-section { margin-bottom: 1.5rem; }
+
+      /* Clocks: 2×2 */
+      .clocks-row { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+      .clock-card { padding: 0.75rem 0.85rem; }
       .clock-time { font-size: 1.5rem; }
 
-      /* Market panel: stack on mobile */
-      .market-panel { grid-template-columns: 1fr; }
+      /* Market panel: list on top, detail below */
+      .market-panel { grid-template-columns: 1fr; min-height: unset; }
       .market-list-col { border-right: none; border-bottom: 1px solid var(--border); }
-      .market-detail-col { min-height: 200px; }
+      .market-detail-col { min-height: 180px; padding: 1rem 1.1rem; }
       .market-row-spark { display: none; }
+      .market-row-icon { width: 22px; height: 22px; }
+      .market-row-icon svg { width: 18px; height: 18px; }
+      .market-detail-price { font-size: 1.8rem; }
+
+      /* Product grid: fit narrow screens */
+      .pg { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; }
+      .card-actions { flex-wrap: wrap; gap: 0.35rem; }
+      .card-actions .btn { flex: 1; min-width: 0; font-size: 0.75rem; padding: 0.5rem 0.5rem; text-align: center; }
+      .card-img { height: 110px; }
+
+      /* Content header */
+      .content-hdr { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+      .content-hdr-r { width: 100%; justify-content: space-between; }
+      #search-input { width: 100%; }
 
       /* News */
+      .news-tabs { gap: 0.3rem; }
+      .news-tab { font-size: 0.68rem; padding: 0.22rem 0.55rem; }
       .news-thumb { display: none; }
 
       /* Modals: sheet from bottom */
       .overlay { align-items: flex-end; padding: 0; }
-      .modal { border-radius: 20px 20px 0 0; max-height: 92dvh; margin: 0; width: 100%; }
+      .modal { border-radius: 20px 20px 0 0; max-height: 92dvh; margin: 0; width: 100%; max-width: 100%; }
       .label-modal-wrap { flex-direction: column; }
       .label-fields-panel { width: 100%; }
+      .two-col { grid-template-columns: 1fr; }
+      .two-col .full { grid-column: 1; }
     }
 
-    @media (max-width: 480px) {
-      .clocks-row { grid-template-columns: repeat(2, 1fr); }
-      .clock-card { padding: 0.75rem 0.85rem; }
+    @media (max-width: 400px) {
+      .clocks-row { grid-template-columns: 1fr 1fr; }
+      .pg { grid-template-columns: 1fr; }
     }
 
     /* ══════════════════════════════════════
@@ -1889,9 +1915,10 @@ const CLOCK_ZONES = [
 ]
 
 const COMMODITY_CFG = [
-  { id: 'cotton',    symbol: 'CT=F', name: 'Cotton No. 2',  unit: '¢/lb',  color: '#9e00cb', exchange: 'ICE Futures' },
-  { id: 'crude',     symbol: 'CL=F', name: 'Crude Oil WTI', unit: '$/bbl', color: '#ff7824', exchange: 'NYMEX' },
-  { id: 'polyester', symbol: null,   name: 'Polyester (PTA)', unit: 'CNY/T', color: '#009fff', exchange: 'SHFE' },
+  { id: 'cotton', symbol: 'CT=F', name: 'Cotton No. 2',  unit: '¢/lb',  color: '#9e00cb', exchange: 'ICE Futures',
+    icon: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="7" r="2.8"/><circle cx="5.5" cy="12" r="2.3"/><circle cx="14.5" cy="12" r="2.3"/><path d="M10 9.8V16M7.5 14.1V16M12.5 14.1V16"/></svg>` },
+  { id: 'crude',  symbol: 'CL=F', name: 'Crude Oil WTI', unit: '$/bbl', color: '#ff7824', exchange: 'NYMEX',
+    icon: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5L14.5 10c0 2.5-2 5-4.5 5s-4.5-2.5-4.5-5L10 3.5Z"/><path d="M8 13.5C8 13.5 9 15 10 15" stroke-width="1.2" opacity=".55"/></svg>` },
 ]
 
 const NEWS_SOURCES_CFG = [
@@ -1949,14 +1976,14 @@ function showDashboard() {
       <div class="market-list-col">
         ${COMMODITY_CFG.map(c => `
         <div class="market-row${c.id === 'cotton' ? ' active' : ''}" data-id="${c.id}" onclick="selectCommodity('${c.id}')">
-          <span class="market-bullet" style="background:${c.color}"></span>
+          <div class="market-row-icon" style="color:${c.color}">${c.icon || ''}</div>
           <div class="market-row-info">
             <div class="market-row-name">${c.name}</div>
-            <div class="market-row-sub">${c.symbol || '—'} · ${c.exchange}</div>
+            <div class="market-row-sub">${c.symbol} · ${c.exchange}</div>
           </div>
-          <div class="market-row-spark">${c.symbol ? `<canvas id="cchart-${c.id}"></canvas>` : ''}</div>
+          <div class="market-row-spark"><canvas id="cchart-${c.id}"></canvas></div>
           <div class="market-row-price">
-            <div class="market-row-pval" id="cprice-${c.id}">${c.symbol ? '—' : '—'}</div>
+            <div class="market-row-pval" id="cprice-${c.id}">—</div>
             <div id="cchg-${c.id}"></div>
           </div>
         </div>`).join('')}
@@ -1990,26 +2017,38 @@ function clockTimeParts(tz) {
   const now = new Date()
   const parts = new Intl.DateTimeFormat('en-US', { timeZone:tz, hour:'numeric', minute:'2-digit', hour12:true }).formatToParts(now)
   const get = t => parts.find(p => p.type === t)?.value || ''
-  const tzAbbr = new Intl.DateTimeFormat('en-US', { timeZone:tz, timeZoneName:'short' }).formatToParts(now).find(p => p.type==='timeZoneName')?.value || ''
   const h24 = parseInt(new Intl.DateTimeFormat('en-US', { timeZone:tz, hour:'numeric', hour12:false }).format(now))
-  return { h:get('hour'), m:get('minute'), ampm:get('dayPeriod'), tz:tzAbbr, isNight: h24 < 7 || h24 >= 21 }
+  return { h:get('hour'), m:get('minute'), ampm:get('dayPeriod'), isNight: h24 < 7 || h24 >= 21 }
+}
+
+function getOffsetHours(tz, now) {
+  const s = new Intl.DateTimeFormat('en-US', { timeZone:tz, timeZoneName:'shortOffset', hour:'numeric', hour12:false }).formatToParts(now).find(p => p.type==='timeZoneName')?.value || 'GMT+0'
+  const m = s.match(/GMT([+-])(\d+)(?::(\d+))?/)
+  if (!m) return 0
+  return (m[1]==='+' ? 1 : -1) * (parseInt(m[2]) + parseInt(m[3]||'0')/60)
 }
 
 function tickClocks() {
   const heroEl = document.getElementById('hero-time')
+  const now = new Date()
   if (heroEl) {
     const p = clockTimeParts('America/Tegucigalpa')
-    heroEl.textContent = `${p.h}:${p.m} ${p.ampm} · ${p.tz}`
+    heroEl.textContent = `${p.h}:${p.m} ${p.ampm} · Honduras`
   }
   const wrap = document.getElementById('dash-clocks')
   if (!wrap) return
-  wrap.innerHTML = CLOCK_ZONES.map(z => {
+  const hnDate = now.toLocaleDateString('en-CA', { timeZone:'America/Tegucigalpa' })
+  const hnOff  = getOffsetHours('America/Tegucigalpa', now)
+  wrap.innerHTML = CLOCK_ZONES.map((z, i) => {
     const p = clockTimeParts(z.tz)
-    const dotColor = p.isNight ? 'var(--text-3)' : '#ffc529'
+    const tzDate = now.toLocaleDateString('en-CA', { timeZone: z.tz })
+    const dayLabel = tzDate > hnDate ? 'Tomorrow' : tzDate < hnDate ? 'Yesterday' : 'Today'
+    const diff = getOffsetHours(z.tz, now) - hnOff
+    const offLabel = i === 0 ? '' : (diff > 0 ? ` · +${diff}HRS` : diff < 0 ? ` · ${diff}HRS` : '')
     return `<div class="clock-card${p.isNight?' night':''}">
-      <div class="clock-city"><span class="clock-dot" style="background:${dotColor}"></span>${z.city}</div>
+      <div class="clock-city">${z.city}</div>
       <div class="clock-time">${p.h}:${p.m}<span class="clock-ampm"> ${p.ampm}</span></div>
-      <div class="clock-tz">${p.tz}</div>
+      <div class="clock-meta">${dayLabel}${offLabel}</div>
     </div>`
   }).join('')
 }
@@ -2053,9 +2092,14 @@ function renderMarketDetail(id) {
   const chgStr = `${arrow} ${sign}${data.chg.toFixed(2)} (${sign}${data.pct.toFixed(2)}%)`
 
   detail.innerHTML = `
-    <div>
-      <div class="market-detail-name">${cfg.name}</div>
-      <div class="market-detail-sub">${cfg.exchange} · ${cfg.symbol} · ${cfg.unit}</div>
+    <div style="display:flex;align-items:center;gap:0.75rem">
+      <div style="width:36px;height:36px;background:${cfg.color}18;border-radius:10px;display:flex;align-items:center;justify-content:center;color:${cfg.color};flex-shrink:0">
+        <svg viewBox="0 0 20 20" style="width:22px;height:22px">${cfg.icon?.match(/<svg[^>]*>([\s\S]*)<\/svg>/)?.[1]||''}</svg>
+      </div>
+      <div>
+        <div class="market-detail-name">${cfg.name}</div>
+        <div class="market-detail-sub">${cfg.exchange} · ${cfg.symbol} · ${cfg.unit}</div>
+      </div>
     </div>
     <div style="margin-top:0.9rem">
       <div class="market-detail-price">${data.price.toFixed(2)}</div>
