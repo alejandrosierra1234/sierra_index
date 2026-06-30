@@ -51,18 +51,14 @@
     }
     .auth-box { width:340px; display:flex; flex-direction:column; align-items:stretch; }
 
-    /* Mark — just the Sierra icon, large */
-    .auth-mark { text-align:center; margin-bottom:1.5rem; }
-    .auth-mark svg { height:72px; width:auto; display:block; margin:0 auto; }
+    /* Auth logo — full SIERRA wordmark + icon */
+    .auth-wordmark { text-align:center; margin-bottom:2.5rem; }
+    .auth-wordmark .sierra-logo-auth svg { height:48px; width:auto; display:block; margin:0 auto; }
+    .auth-wordmark .sub { font-size:0.68rem; color:var(--text-3); margin-top:0.85rem; letter-spacing:0.18em; text-transform:uppercase; font-weight:500; }
+    [data-theme="dark"] .sierra-logo-auth .cls-2 { fill:#f0f0f2; }
 
-    /* Wordmark below mark */
-    .auth-wordmark { text-align:center; margin-bottom:2.25rem; }
-    .auth-wordmark .brand { font-size:1.55rem; font-weight:700; letter-spacing:-0.03em; color:var(--text); line-height:1; }
-    .auth-wordmark .sub { font-size:0.72rem; color:var(--text-3); margin-top:0.4rem; letter-spacing:0.12em; text-transform:uppercase; font-weight:400; }
-
-    /* Topbar logo (unchanged) */
+    /* Topbar logo */
     .sierra-logo-top svg { height:20px; width:auto; display:block; }
-    [data-theme="dark"] .auth-mark .lc2 { fill:#f0f0f2; }
     [data-theme="dark"] .sierra-logo-top .cls-2 { fill:#f0f0f2; }
 
     /* Card — no border, no background */
@@ -134,7 +130,18 @@
     .theme-btn { width:30px; height:30px; border-radius:7px; background:none; border:1px solid var(--border); cursor:pointer; color:var(--text-2); display:flex; align-items:center; justify-content:center; font-size:0.85rem; transition:all 0.15s; }
     .theme-btn:hover { background:var(--surface2); color:var(--text); }
     .user-pill { display:flex; align-items:center; gap:0.45rem; background:var(--surface2); border:1px solid var(--border); border-radius:20px; padding:0.22rem 0.7rem 0.22rem 0.3rem; }
-    .u-avatar { width:20px; height:20px; border-radius:50%; background:var(--text-2); color:var(--bg); font-size:0.62rem; font-weight:700; display:flex; align-items:center; justify-content:center; }
+    .u-avatar { width:28px; height:28px; border-radius:50%; background:var(--text-2); color:var(--bg); font-size:0.62rem; font-weight:700; display:flex; align-items:center; justify-content:center; overflow:hidden; cursor:pointer; flex-shrink:0; }
+    .u-avatar img { width:100%; height:100%; object-fit:cover; }
+    .u-avatar:hover { opacity:0.85; }
+    /* Profile modal */
+    .profile-avatar-wrap { display:flex; flex-direction:column; align-items:center; gap:0.75rem; margin-bottom:1.5rem; }
+    .profile-avatar-lg { width:72px; height:72px; border-radius:50%; background:var(--text-2); color:var(--bg); font-size:1.4rem; font-weight:700; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; cursor:pointer; }
+    .profile-avatar-lg img { width:100%; height:100%; object-fit:cover; }
+    .profile-avatar-lg .av-overlay { position:absolute; inset:0; background:rgba(0,0,0,0.38); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.15s; font-size:0.7rem; color:#fff; }
+    .profile-avatar-lg:hover .av-overlay { opacity:1; }
+    .profile-section-title { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin:1.25rem 0 0.65rem; padding-bottom:0.4rem; border-bottom:1px solid var(--border); }
+    .auth-link { background:none; border:none; color:var(--accent); font-size:0.82rem; font-family:inherit; cursor:pointer; padding:0; text-align:left; }
+    .auth-link:hover { text-decoration:underline; }
     .u-name { font-size:0.78rem; font-weight:500; }
     .u-role { font-size:0.68rem; color:var(--text-3); }
     .u-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); }
@@ -410,13 +417,9 @@
 <!-- ══ AUTH ══ -->
 <div id="auth-screen">
   <div class="auth-box">
-    <!-- Sierra mark only (icon, no wordmark) -->
-    <div class="auth-mark">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 411 354"><path fill="#59a29e" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>
-    </div>
     <div class="auth-wordmark">
-      <div class="brand">Sierra Index</div>
-      <div class="sub">Product catalog</div>
+      <div class="sierra-logo-auth"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1715 353.13"><defs><style>.cls-1{fill:#59a29e}.cls-2{fill:#141512}</style></defs><path class="cls-2" d="M570.98,144.81c-47.7-6.81-61.33-13.63-61.33-34.07,0-13.63,10.22-23.85,40.88-23.85,37.48,0,47.7,10.22,47.7,30.66l3.41,3.41h40.88l3.41-3.41c0-40.88-27.26-71.55-91.99-71.55s-91.99,30.66-91.99,64.73c0,47.7,37.48,64.73,85.17,71.55,47.7,6.81,61.33,13.63,61.33,37.48,0,20.44-17.03,30.66-47.7,30.66-40.88,0-54.51-13.63-54.51-37.48l-3.41-3.41h-40.88l-3.41,3.41c0,44.29,30.66,78.36,98.8,78.36,71.55,0,98.8-34.07,98.8-71.55,0-47.7-37.48-68.14-85.17-74.95Z"/><polygon class="cls-2" points="700.44 49.41 697.03 52.82 697.03 284.49 700.44 287.9 741.32 287.9 744.73 284.49 744.73 52.82 741.32 49.41 700.44 49.41"/><polygon class="cls-2" points="802.64 49.41 799.23 52.82 799.23 284.49 802.64 287.9 962.76 287.9 966.17 284.49 966.17 250.42 962.76 247.02 850.33 247.02 846.93 243.61 846.93 189.1 850.33 185.69 955.95 185.69 959.36 182.29 959.36 148.22 955.95 144.81 850.33 144.81 846.93 141.4 846.93 93.7 850.33 90.3 962.76 90.3 966.17 86.89 966.17 52.82 962.76 49.41 802.64 49.41"/><path class="cls-2" d="M1211.46,120.96c0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41,68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14ZM1129.7,151.62h-64.73l-3.41-3.41v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66Z"/><path class="cls-2" d="M1344.33,195.91l68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14,0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41ZM1300.04,148.22v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66h-64.73l-3.41-3.41Z"/><path class="cls-2" d="M1678.2,284.49v-34.07l-78.36-197.6-3.41-3.41h-44.29l-3.41,3.41-78.36,197.6v34.07l3.41,3.41h30.66l3.41-3.41,17.04-44.29,6.81-3.41h85.17l6.81,3.41,17.03,44.29,3.41,3.41h30.66l3.41-3.41ZM1603.25,195.91h-57.92l-3.41-3.41,30.66-81.77h3.41l30.66,81.77-3.41,3.41Z"/><path class="cls-1" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/><path class="cls-2" d="M1641.41,49.41h27.71v5.17h-10.94v30.29h-5.82v-30.29h-10.94v-5.17Z"/><path class="cls-2" d="M1677.57,49.41h7.55l11.35,27.91,11.14-27.91h7.4v35.46h-5.62v-26.09l-10.64,26.09h-4.91l-10.64-26.09v26.09h-5.62v-35.46Z"/></svg></div>
+      <div class="sub">PRODUCT INDEX</div>
     </div>
     <div class="auth-card">
       <h2>Sign in</h2>
@@ -424,6 +427,9 @@
       <div class="fg"><label>Email</label><input type="email" id="l-email" placeholder="Email" autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('l-pass').focus()" /></div>
       <div class="fg"><label>Password</label><input type="password" id="l-pass" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()" /></div>
       <button class="btn btn-primary btn-full" id="l-btn" onclick="login()">Sign in</button>
+      <div style="text-align:center;margin-top:0.9rem;">
+        <button class="auth-link" onclick="showForgotPassword()">Forgot password?</button>
+      </div>
     </div>
     <div class="auth-footer">Sierra Textiles · Product Index</div>
   </div>
@@ -440,7 +446,7 @@
     <div class="topbar-r">
       <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">☾</button>
       <div class="user-pill">
-        <div class="u-avatar" id="u-av">–</div>
+        <div class="u-avatar" id="u-av" onclick="openProfile()">–</div>
         <span class="u-name" id="u-nm">–</span>
         <div class="u-dot" id="u-dot"></div>
         <span class="u-role" id="u-role">–</span>
@@ -641,6 +647,44 @@
 <div id="print-root"></div>
 
 <!-- TOAST -->
+<!-- ══ PROFILE MODAL ══ -->
+<div class="overlay" id="m-profile">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-hdr">
+      <div class="modal-eyebrow">Account</div>
+      <h3 class="modal-title">My Profile</h3>
+      <button class="modal-close" onclick="closeModal('m-profile')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="profile-avatar-wrap">
+        <div class="profile-avatar-lg" id="prof-av-lg" onclick="document.getElementById('prof-av-inp').click()">
+          <img id="prof-av-img" src="" style="display:none;width:100%;height:100%;object-fit:cover;" />
+          <span id="prof-av-init">–</span>
+          <div class="av-overlay">Change photo</div>
+        </div>
+        <input type="file" id="prof-av-inp" accept="image/*" style="display:none" onchange="previewAvatar(this)" />
+        <div style="font-size:0.75rem;color:var(--text-2);font-weight:500" id="prof-email-display"></div>
+      </div>
+
+      <div class="profile-section-title">Display Name</div>
+      <div class="fg"><input type="text" id="prof-name" placeholder="Your name" /></div>
+
+      <div style="display:flex;gap:0.5rem;margin-top:0.25rem">
+        <button class="btn btn-primary" onclick="saveProfile()" style="flex:1">Save changes</button>
+      </div>
+
+      <div class="profile-section-title" style="margin-top:1.5rem">Change Password</div>
+      <div class="fg"><input type="password" id="prof-pw1" placeholder="New password" autocomplete="new-password" /></div>
+      <div class="fg"><input type="password" id="prof-pw2" placeholder="Confirm new password" autocomplete="new-password" /></div>
+      <button class="btn btn-ghost btn-full" onclick="changePassword()" style="margin-top:0.25rem">Update password</button>
+
+      <div style="text-align:center;margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border)">
+        <button class="btn btn-ghost btn-full" onclick="logout()" style="color:var(--text-2)">Sign out</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -707,7 +751,12 @@ async function enterApp(user) {
   profile = p
   const name = p?.full_name || user.email.split('@')[0]
   const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
-  document.getElementById('u-av').textContent = initials
+  const uav = document.getElementById('u-av')
+  if (p?.avatar_url) {
+    uav.innerHTML = `<img src="${p.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+  } else {
+    uav.textContent = initials
+  }
   document.getElementById('u-nm').textContent = name
   document.getElementById('u-role').textContent = p?.role === 'editor' ? 'Editor' : 'Vendor'
   if (p?.role === 'editor') {
@@ -1674,6 +1723,93 @@ async function saveProduct() {
 
   if (error) { toast('DB error: ' + error.message); return }
   closeModal('m-add'); toast(editingProductId ? 'Product updated' : 'Product saved'); loadProducts()
+}
+
+/* ── PROFILE ── */
+let pendingAvatarFile = null
+
+function openProfile() {
+  const name = profile?.full_name || me?.email?.split('@')[0] || ''
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || '–'
+  document.getElementById('prof-name').value = name
+  document.getElementById('prof-email-display').textContent = me?.email || ''
+  document.getElementById('prof-av-init').textContent = initials
+  document.getElementById('prof-pw1').value = ''
+  document.getElementById('prof-pw2').value = ''
+  pendingAvatarFile = null
+  const img = document.getElementById('prof-av-img')
+  if (profile?.avatar_url) {
+    img.src = profile.avatar_url; img.style.display = 'block'
+    document.getElementById('prof-av-init').style.display = 'none'
+  } else {
+    img.style.display = 'none'
+    document.getElementById('prof-av-init').style.display = 'block'
+  }
+  document.getElementById('m-profile').classList.add('open')
+}
+
+function previewAvatar(input) {
+  const file = input.files[0]; if (!file) return
+  pendingAvatarFile = file
+  const img = document.getElementById('prof-av-img')
+  img.src = URL.createObjectURL(file); img.style.display = 'block'
+  document.getElementById('prof-av-init').style.display = 'none'
+}
+
+async function saveProfile() {
+  const name = document.getElementById('prof-name').value.trim()
+  let avatar_url = profile?.avatar_url || null
+
+  if (pendingAvatarFile) {
+    const ext = pendingAvatarFile.name.split('.').pop()
+    const path = `avatars/${me.id}/avatar.${ext}`
+    const { error: upErr } = await sb.storage.from('product-images').upload(path, pendingAvatarFile, { upsert: true, contentType: pendingAvatarFile.type })
+    if (upErr) { toast('Avatar upload error: ' + upErr.message); return }
+    const { data: urlData } = sb.storage.from('product-images').getPublicUrl(path)
+    avatar_url = urlData.publicUrl + '?t=' + Date.now()
+  }
+
+  const { error } = await sb.from('profiles').update({ full_name: name, avatar_url }).eq('id', me.id)
+  if (error) { toast('Save error: ' + error.message); return }
+
+  profile = { ...profile, full_name: name, avatar_url }
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
+  document.getElementById('u-nm').textContent = name
+  const uav = document.getElementById('u-av')
+  if (avatar_url) {
+    uav.innerHTML = `<img src="${avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+  } else {
+    uav.textContent = initials
+  }
+  pendingAvatarFile = null
+  toast('Profile saved')
+  closeModal('m-profile')
+}
+
+async function changePassword() {
+  const pw1 = document.getElementById('prof-pw1').value
+  const pw2 = document.getElementById('prof-pw2').value
+  if (!pw1) { toast('Enter a new password'); return }
+  if (pw1 !== pw2) { toast('Passwords do not match'); return }
+  if (pw1.length < 6) { toast('Password must be at least 6 characters'); return }
+  const { error } = await sb.auth.updateUser({ password: pw1 })
+  if (error) { toast('Error: ' + error.message); return }
+  document.getElementById('prof-pw1').value = ''
+  document.getElementById('prof-pw2').value = ''
+  toast('Password updated')
+}
+
+async function showForgotPassword() {
+  const email = document.getElementById('l-email').value.trim()
+  if (!email) { showErr('Enter your email first, then click Forgot password.'); return }
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.href
+  })
+  if (error) { showErr('Error: ' + error.message); return }
+  const e = document.getElementById('auth-err')
+  e.style.color = 'var(--accent)'; e.style.background = 'var(--accent-light)'
+  e.style.borderColor = 'rgba(15,168,156,0.2)'
+  e.textContent = 'Check your email for a reset link.'; e.style.display = 'block'
 }
 
 /* ── UTILS ── */
