@@ -6,6 +6,12 @@
   <title>Sierra Index</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    /* ── FONTS ── */
+    @font-face { font-family:"Replica"; src:url("Replica Light.otf") format("opentype"); font-weight:300; font-display:swap; }
+    @font-face { font-family:"Replica"; src:url("Replica Regular.otf") format("opentype"); font-weight:400; font-display:swap; }
+    @font-face { font-family:"Replica"; src:url("Replica Bold.otf") format("opentype"); font-weight:700; font-display:swap; }
+    @font-face { font-family:"Replica Pro"; src:url("ReplicaProRegular.otf") format("opentype"); font-weight:400; font-display:swap; }
+
     /* ── TOKENS ── */
     :root {
       --accent: #16cdbe;
@@ -31,7 +37,7 @@
 
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+      font-family: "Replica", -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
       background: var(--bg); color: var(--text);
       height: 100vh; overflow: hidden;
       -webkit-font-smoothing: antialiased;
@@ -213,34 +219,48 @@
     @keyframes spin { to { transform:rotate(360deg); } }
 
     /* ══════════════════════════════════════
-       LABEL — print target
+       LABEL — content classes (used in preview AND print-root)
     ══════════════════════════════════════ */
-    #label-preview {
-      font-family: Arial, Helvetica, sans-serif;
+    .lbl {
+      width: 62mm;
+      padding: 3.4mm 5mm;
+      display: flex;
+      flex-direction: column;
+      font-family: "Replica", "Helvetica Neue", Helvetica, Arial, sans-serif;
       color: #000;
       background: #fff;
-      padding: 6mm;
-      width: 62mm;
+      gap: 1.6mm;
       box-sizing: border-box;
-      border-radius: 3px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-      zoom: 1.6;
     }
-    /* Firefox fallback (zoom not supported) */
+    .lbl-hdr { display:flex; align-items:center; justify-content:space-between; gap:2mm; }
+    .lbl-logo svg { height:6.4mm; width:auto; display:block; flex-shrink:0; }
+    .lbl-origin { flex-shrink:0; font-size:1.55mm; font-weight:700; text-transform:uppercase; letter-spacing:0.02em; line-height:1.3; color:#000; text-align:right; }
+    .lbl-divider { height:0.6mm; background:#000; width:100%; flex-shrink:0; }
+    .lbl-thin { height:0.25mm; background:#000; width:100%; opacity:0.55; flex-shrink:0; }
+    .lbl-title { font-size:4.6mm; font-weight:700; text-transform:uppercase; color:#000; line-height:0.98; overflow-wrap:break-word; padding:1mm 0; }
+    .lbl-block { display:flex; flex-direction:column; gap:0.2mm; min-width:0; }
+    .lbl-key { font-size:2.5mm; font-weight:700; text-transform:uppercase; color:#000; }
+    .lbl-val { font-size:3.1mm; font-weight:600; color:#000; line-height:1.05; overflow-wrap:break-word; }
+    .lbl-grid { display:grid; gap:3mm; }
+    .lbl-grid.c2 { grid-template-columns:1fr 1fr; }
+    .lbl-grid.c3 { grid-template-columns:1fr 1fr 1fr; }
+    .lbl-grid.c4 { grid-template-columns:1fr 1fr 1fr 1fr; }
+    .lbl-yarn { display:flex; gap:3mm; }
+    .lbl-yarn-tag { font-size:2.5mm; font-weight:700; text-transform:uppercase; color:#000; width:12mm; flex-shrink:0; padding-top:0.3mm; }
+    .lbl-yarn-val { font-size:3.1mm; font-weight:600; color:#000; line-height:1.05; overflow-wrap:break-word; }
+    .lbl-comments .lbl-val { font-size:2.8mm; }
+
+    /* ── LABEL PREVIEW WRAPPER ── */
+    #label-preview {
+      zoom: 1.6;
+      display: inline-block;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+      border-radius: 3px;
+    }
+    /* Firefox: zoom not supported, use transform instead */
     @supports not (zoom: 1) {
-      .label-preview-scaler {
-        width: calc(62mm * 1.6);
-        height: calc(62mm * 1.6 * 1.5);
-        overflow: hidden;
-        position: relative;
-      }
-      #label-preview {
-        position: absolute;
-        top: 0; left: 0;
-        transform: scale(1.6);
-        transform-origin: top left;
-        zoom: unset;
-      }
+      #label-preview { zoom: unset; transform: scale(1.6); transform-origin: top center; }
+      .label-preview-scaler { width: 160mm; display: flex; justify-content: center; padding-bottom: 60%; overflow: hidden; }
     }
 
     /* ── LABEL MODAL ── */
@@ -274,7 +294,8 @@
       body > * { display:none !important; }
       #print-root { display:block !important; }
       @page { size:62mm auto; margin:0; }
-      #print-root { padding:4mm; font-family:Arial,Helvetica,sans-serif; }
+      /* Reset any preview zoom so label prints at actual size */
+      #print-root #label-preview { zoom:unset; transform:none; box-shadow:none; }
     }
 
     #print-root { display:none; }
@@ -706,17 +727,16 @@ function fichaBody(p) {
 }
 
 /* ── LABEL FIELD STATE ── */
-// Each key maps to { label, value, enabled }
 let labelFieldState = []
 
-const FABRIC_FIELD_GROUPS = [
-  { group: 'Header', fields: ['Mill Article', 'LOT', 'Manufactured In'] },
-  { group: 'Identity', fields: ['Product Name'] },
-  { group: 'Material', fields: ['Composition'] },
+const LABEL_FIELD_GROUPS = [
+  { group: 'Header',      fields: ['Mill Article', 'LOT', 'Manufactured In'] },
+  { group: 'Identity',    fields: ['Product Name'] },
+  { group: 'Material',    fields: ['Composition'] },
   { group: 'Color & Dye', fields: ['Color', 'Dyed Method'] },
-  { group: 'Dimensions', fields: ['Width', 'GSM', 'DIA', 'Gauge'] },
-  { group: 'Yarns', fields: ['Yarn 01', 'Yarn 02', 'Yarn 03'] },
-  { group: 'Notes', fields: ['Comments'] },
+  { group: 'Dimensions',  fields: ['Width', 'GSM', 'DIA', 'Gauge'] },
+  { group: 'Yarns',       fields: ['Yarn 01', 'Yarn 02', 'Yarn 03'] },
+  { group: 'Notes',       fields: ['Comments'] },
 ]
 
 function buildLabelFieldState(p) {
@@ -738,7 +758,6 @@ function buildLabelFieldState(p) {
     'Yarn 03':         specs['Yarn 03'] || null,
     'Comments':        specs.Comments || null,
   }
-  // For non-fabric divisions, also include generic specs
   if (p.division !== 'fabric') {
     Object.entries(specs).forEach(([k, v]) => {
       if (v && !(k in allValues)) allValues[k] = v
@@ -750,9 +769,7 @@ function buildLabelFieldState(p) {
 }
 
 function fieldGroup(key) {
-  for (const g of FABRIC_FIELD_GROUPS) {
-    if (g.fields.includes(key)) return g.group
-  }
+  for (const g of LABEL_FIELD_GROUPS) if (g.fields.includes(key)) return g.group
   return 'Other'
 }
 
@@ -768,123 +785,125 @@ function openLabel() {
 function quickLabel(p) { selected = p; openLabel() }
 
 function renderFieldToggles() {
-  // Group fields
   const groups = {}
   labelFieldState.forEach(f => {
     const g = fieldGroup(f.key)
     if (!groups[g]) groups[g] = []
     groups[g].push(f)
   })
-
   let html = ''
   Object.entries(groups).forEach(([g, fields]) => {
     html += `<div class="field-group"><div class="field-group-label">${g}</div>`
     fields.forEach(f => {
       const id = `lf-${f.key.replace(/\s/g,'-')}`
-      html += `
-        <label class="field-toggle">
-          <span class="toggle-name">${f.key}</span>
-          <span class="toggle-switch">
-            <input type="checkbox" id="${id}" ${f.enabled ? 'checked' : ''} onchange="toggleLabelField('${f.key}', this.checked)" />
-            <span class="toggle-track"></span>
-            <span class="toggle-thumb"></span>
-          </span>
-        </label>`
+      html += `<label class="field-toggle">
+        <span class="toggle-name">${f.key}</span>
+        <span class="toggle-switch">
+          <input type="checkbox" id="${id}" ${f.enabled ? 'checked' : ''} onchange="toggleLabelField('${f.key}', this.checked)" />
+          <span class="toggle-track"></span>
+          <span class="toggle-thumb"></span>
+        </span>
+      </label>`
     })
-    html += `</div>`
+    html += '</div>'
   })
   document.getElementById('label-field-toggles').innerHTML = html
 }
 
 function toggleLabelField(key, enabled) {
-  const field = labelFieldState.find(f => f.key === key)
-  if (field) { field.enabled = enabled; updateLabelPreview() }
+  const f = labelFieldState.find(f => f.key === key)
+  if (f) { f.enabled = enabled; updateLabelPreview() }
 }
 
 function updateLabelPreview() {
   document.getElementById('label-preview').innerHTML = renderLabel(selected, labelFieldState)
 }
 
+/* ── LABEL RENDERER ── */
+// Inline SVG so it renders in print-root too (no external image load needed)
+const LBL_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1715 353.13"><defs><style>.lc1{fill:#59a29e}.lc2{fill:#141512}</style></defs><path class="lc2" d="M570.98,144.81c-47.7-6.81-61.33-13.63-61.33-34.07,0-13.63,10.22-23.85,40.88-23.85,37.48,0,47.7,10.22,47.7,30.66l3.41,3.41h40.88l3.41-3.41c0-40.88-27.26-71.55-91.99-71.55s-91.99,30.66-91.99,64.73c0,47.7,37.48,64.73,85.17,71.55,47.7,6.81,61.33,13.63,61.33,37.48,0,20.44-17.03,30.66-47.7,30.66-40.88,0-54.51-13.63-54.51-37.48l-3.41-3.41h-40.88l-3.41,3.41c0,44.29,30.66,78.36,98.8,78.36,71.55,0,98.8-34.07,98.8-71.55,0-47.7-37.48-68.14-85.17-74.95Z"/><polygon class="lc2" points="700.44 49.41 697.03 52.82 697.03 284.49 700.44 287.9 741.32 287.9 744.73 284.49 744.73 52.82 741.32 49.41 700.44 49.41"/><polygon class="lc2" points="802.64 49.41 799.23 52.82 799.23 284.49 802.64 287.9 962.76 287.9 966.17 284.49 966.17 250.42 962.76 247.02 850.33 247.02 846.93 243.61 846.93 189.1 850.33 185.69 955.95 185.69 959.36 182.29 959.36 148.22 955.95 144.81 850.33 144.81 846.93 141.4 846.93 93.7 850.33 90.3 962.76 90.3 966.17 86.89 966.17 52.82 962.76 49.41 802.64 49.41"/><path class="lc2" d="M1211.46,120.96c0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41,68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14ZM1129.7,151.62h-64.73l-3.41-3.41v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66Z"/><path class="lc2" d="M1344.33,195.91l68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14,0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41ZM1300.04,148.22v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66h-64.73l-3.41-3.41Z"/><path class="lc2" d="M1678.2,284.49v-34.07l-78.36-197.6-3.41-3.41h-44.29l-3.41,3.41-78.36,197.6v34.07l3.41,3.41h30.66l3.41-3.41,17.04-44.29,6.81-3.41h85.17l6.81,3.41,17.03,44.29,3.41,3.41h30.66l3.41-3.41ZM1603.25,195.91h-57.92l-3.41-3.41,30.66-81.77h3.41l30.66,81.77-3.41,3.41Z"/><path class="lc1" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>`
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+}
+
+function lblBlock(key, val) {
+  return `<div class="lbl-block"><span class="lbl-key">${esc(key)}</span><span class="lbl-val">${esc(String(val))}</span></div>`
+}
+
 function renderLabel(p, fields) {
   const F = {}
-  fields.forEach(f => { F[f.key] = f.enabled ? f.value : null })
+  fields.forEach(f => { if (f.enabled) F[f.key] = f.value })
 
-  const hasAnyMeta = F['Mill Article'] || F['LOT']
-  const hasMeasures = F['Width'] || F['GSM'] || F['DIA'] || F['Gauge']
-  const yarns = ['Yarn 01','Yarn 02','Yarn 03'].map(k => F[k]).filter(Boolean)
+  const sections = []
+  let rowCount = 0
+  let skipDivider = false
 
-  return `<div style="font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;padding:6mm;width:62mm;box-sizing:border-box;">
+  function pushRow(html) {
+    if (rowCount > 0 && !skipDivider) sections.push('<div class="lbl-thin"></div>')
+    skipDivider = false
+    sections.push(html)
+    rowCount++
+  }
 
-    <!-- Header -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3mm">
-      <img src="SIERRA_Primary_Blue02.svg" style="height:9mm;width:auto" alt="Sierra" />
-      ${F['Manufactured In'] ? `<div style="font-size:5.5pt;font-weight:700;text-align:right;text-transform:uppercase;line-height:1.5">MANUFACTURED<br>IN ${F['Manufactured In'].toUpperCase()}</div>` : ''}
-    </div>
+  // Header: logo + country
+  sections.push(`<div class="lbl-hdr">
+    <div class="lbl-logo">${LBL_LOGO_SVG}</div>
+    ${F['Manufactured In'] ? `<span class="lbl-origin">MANUFACTURED<br>IN ${esc(F['Manufactured In']).toUpperCase()}</span>` : ''}
+  </div>`)
 
-    <!-- Mill Article + LOT -->
-    ${hasAnyMeta ? `<div style="display:flex;gap:6mm;margin-bottom:2mm">
-      ${F['Mill Article'] ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Mill Article</div><div style="font-size:8pt;font-weight:700">${F['Mill Article']}</div></div>` : ''}
-      ${F['LOT'] ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">LOT</div><div style="font-size:8pt;font-weight:700">${F['LOT']}</div></div>` : ''}
-    </div>` : ''}
+  // Mill Article + LOT in 2-col grid
+  const idParts = []
+  if (F['Mill Article']) idParts.push(lblBlock('Mill Article', F['Mill Article']))
+  if (F['LOT'])          idParts.push(lblBlock('LOT', F['LOT']))
+  if (idParts.length === 1) pushRow(`<div class="lbl-grid c2">${idParts[0]}<div></div></div>`)
+  else if (idParts.length === 2) pushRow(`<div class="lbl-grid c2">${idParts.join('')}</div>`)
 
-    <!-- Product Name -->
-    <hr style="border:none;border-top:2.5px solid #000;margin:2mm 0" />
-    ${F['Product Name'] ? `<div style="font-size:13pt;font-weight:900;text-transform:uppercase;letter-spacing:-0.01em;line-height:1.1;margin:1.5mm 0">${F['Product Name']}</div>` : ''}
-    <hr style="border:none;border-top:2.5px solid #000;margin:2mm 0" />
+  // Product Name with thick dividers — headline of the label
+  if (F['Product Name']) {
+    sections.push('<div class="lbl-divider"></div>')
+    sections.push(`<div class="lbl-title">${esc(F['Product Name'])}</div>`)
+    sections.push('<div class="lbl-divider"></div>')
+    rowCount++; skipDivider = true
+  }
 
-    <!-- Composition -->
-    ${F['Composition'] ? `
-    <div style="margin-bottom:2mm">
-      <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Composition</div>
-      <div style="font-size:8pt;font-weight:700;line-height:1.3">${F['Composition']}</div>
-    </div>
-    <hr style="border:none;border-top:0.75px solid #ccc;margin:1.5mm 0" />` : ''}
+  // Composition — full width
+  if (F['Composition']) pushRow(lblBlock('Composition', F['Composition']))
 
-    <!-- Color + Dyed Method -->
-    ${(F['Color'] || F['Dyed Method']) ? `
-    <div style="display:flex;gap:4mm;margin-bottom:1.5mm">
-      ${F['Color'] ? `<div style="flex:1"><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Color</div><div style="font-size:8pt;font-weight:700">${F['Color']}</div></div>` : ''}
-      ${F['Dyed Method'] ? `<div style="flex:1"><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Dyed Method</div><div style="font-size:8pt;font-weight:700;line-height:1.3">${F['Dyed Method']}</div></div>` : ''}
-    </div>
-    <hr style="border:none;border-top:0.75px solid #ccc;margin:1.5mm 0" />` : ''}
+  // Color / Dyed Method — only active cells, max 2-col
+  const colorPairs = []
+  if (F['Color'])       colorPairs.push(lblBlock('Color', F['Color']))
+  if (F['Dyed Method']) colorPairs.push(lblBlock('Dyed Method', F['Dyed Method']))
+  if (colorPairs.length === 1) pushRow(`<div class="lbl-grid c2">${colorPairs[0]}<div></div></div>`)
+  else if (colorPairs.length === 2) pushRow(`<div class="lbl-grid c2">${colorPairs.join('')}</div>`)
 
-    <!-- Width / GSM / DIA / Gauge -->
-    ${hasMeasures ? `
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.5mm;margin:1.5mm 0">
-      ${F['Width'] ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Width</div><div style="font-size:9pt;font-weight:900">${F['Width']}</div></div>` : '<div></div>'}
-      ${F['GSM'] ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">GSM</div><div style="font-size:9pt;font-weight:900">${F['GSM']}</div></div>` : '<div></div>'}
-      ${F['DIA'] ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">DIA</div><div style="font-size:9pt;font-weight:900">${F['DIA']}</div></div>` : '<div></div>'}
-      ${F['Gauge'] ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Gauge</div><div style="font-size:9pt;font-weight:900">${F['Gauge']}</div></div>` : '<div></div>'}
-    </div>
-    <hr style="border:none;border-top:0.75px solid #ccc;margin:1.5mm 0" />` : ''}
+  // Dimensions — smart grid: only fields with values fill columns
+  const dims = ['Width','GSM','DIA','Gauge'].filter(k => F[k]).map(k => lblBlock(k, F[k]))
+  if (dims.length > 0) {
+    const n = dims.length
+    const col = n <= 2 ? 'c2' : n === 3 ? 'c3' : 'c4'
+    const filler = n === 1 ? '<div></div>' : ''
+    pushRow(`<div class="lbl-grid ${col}">${dims.join('')}${filler}</div>`)
+  }
 
-    <!-- Yarns -->
-    ${yarns.map((y, i) => {
-      const key = ['Yarn 01','Yarn 02','Yarn 03'][i]
-      return `<div style="display:flex;gap:3mm;padding:1.5mm 0;border-bottom:0.5px solid #ccc">
-        <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase;min-width:14mm">${key}</div>
-        <div style="font-size:7pt;font-weight:700;line-height:1.3">${y}</div>
-      </div>`
-    }).join('')}
+  // Yarns
+  ;['Yarn 01','Yarn 02','Yarn 03'].forEach(k => {
+    if (F[k]) pushRow(`<div class="lbl-yarn"><span class="lbl-yarn-tag">${esc(k)}</span><span class="lbl-yarn-val">${esc(F[k])}</span></div>`)
+  })
 
-    <!-- Comments -->
-    ${F['Comments'] ? `
-    <div style="margin-top:2mm">
-      <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase;margin-bottom:0.5mm">Comments</div>
-      <div style="font-size:7pt;font-weight:700">${F['Comments']}</div>
-    </div>` : ''}
+  // Comments
+  if (F['Comments']) pushRow(`<div class="lbl-block lbl-comments"><span class="lbl-key">Comments</span><span class="lbl-val">${esc(F['Comments'])}</span></div>`)
 
-  </div>`
+  return `<div class="lbl">${sections.join('')}</div>`
 }
 
 function printLabel() {
-  // Use the same field state as the current preview
   const html = renderLabel(selected, labelFieldState)
   const pr = document.getElementById('print-root')
   pr.innerHTML = html
   pr.style.display = 'block'
   window.print()
-  setTimeout(() => { pr.style.display = 'none' }, 1200)
+  setTimeout(() => { pr.style.display = 'none' }, 1500)
 }
 
 function downloadPDF() {
