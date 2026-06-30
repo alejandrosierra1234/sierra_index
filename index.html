@@ -253,9 +253,35 @@
     .lbl-comments .ck { font-size:5.5pt; font-weight:700; text-transform:uppercase; margin-bottom:0.5mm; }
     .lbl-comments .cv { font-size:7pt; font-weight:700; }
 
-    /* ── LABEL MODAL WRAPPER ── */
-    .label-modal-body { display:flex; flex-direction:column; align-items:center; gap:1rem; }
-    .label-modal-actions { display:flex; gap:0.6rem; }
+    /* ── LABEL MODAL ── */
+    .label-modal-wrap { display:flex; gap:1.5rem; align-items:flex-start; }
+
+    /* Field toggles panel */
+    .label-fields-panel { width:200px; flex-shrink:0; }
+    .label-fields-panel h4 { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.75rem; }
+    .field-group { margin-bottom:1rem; }
+    .field-group-label { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.4rem; padding-bottom:0.3rem; border-bottom:1px solid var(--border); }
+    .field-toggle { display:flex; align-items:center; justify-content:space-between; padding:0.32rem 0; cursor:pointer; }
+    .field-toggle:hover .toggle-name { color:var(--text); }
+    .toggle-name { font-size:0.78rem; color:var(--text-2); user-select:none; }
+    .toggle-switch { position:relative; width:28px; height:16px; flex-shrink:0; }
+    .toggle-switch input { opacity:0; width:0; height:0; position:absolute; }
+    .toggle-track { position:absolute; inset:0; background:var(--border); border-radius:8px; transition:background 0.2s; }
+    .toggle-thumb { position:absolute; top:2px; left:2px; width:12px; height:12px; background:#fff; border-radius:50%; transition:transform 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
+    .toggle-switch input:checked ~ .toggle-track { background:var(--accent); }
+    .toggle-switch input:checked ~ .toggle-thumb { transform:translateX(12px); }
+
+    /* Preview panel */
+    .label-preview-panel { flex:1; display:flex; flex-direction:column; align-items:center; gap:0.75rem; }
+    .label-preview-panel .preview-hint { font-size:0.72rem; color:var(--text-3); }
+    #label-preview {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #000; background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      border-radius: 3px;
+      zoom: 1.6;
+      transform-origin: top center;
+    }
 
     /* ════════════════════════════
        PRINT STYLES — QL-800 62mm
@@ -344,11 +370,11 @@
         <div class="modal-eyebrow" id="f-eyebrow"></div>
         <div class="modal-title" id="f-name"></div>
       </div>
-      <button class="btn-icon" onclick="close('m-ficha')">✕</button>
+      <button class="btn-icon" onclick="closeModal('m-ficha')">✕</button>
     </div>
     <div class="modal-body" id="ficha-body"></div>
     <div class="modal-ftr">
-      <button class="btn btn-ghost btn-sm" onclick="close('m-ficha')">Close</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('m-ficha')">Close</button>
       <button class="btn btn-ghost btn-sm" onclick="openLabel()">View label</button>
       <button class="btn btn-primary btn-sm" onclick="openReq()">Request sample</button>
     </div>
@@ -357,23 +383,32 @@
 
 <!-- ══ MODAL: LABEL ══ -->
 <div class="overlay" id="m-label">
-  <div class="modal" style="width:auto;min-width:320px;max-width:95vw">
+  <div class="modal" style="width:780px">
     <div class="modal-hdr">
       <div>
         <div class="modal-eyebrow" style="color:var(--accent)">Technical Label</div>
         <div class="modal-title" id="lbl-title"></div>
       </div>
-      <button class="btn-icon" onclick="close('m-label')">✕</button>
+      <button class="btn-icon" onclick="closeModal('m-label')">✕</button>
     </div>
-    <div class="modal-body label-modal-body">
-      <div id="label-preview"></div>
-      <div class="label-modal-actions">
-        <button class="btn btn-ghost btn-sm" onclick="printLabel()">🖨 Print (QL-800)</button>
-        <button class="btn btn-primary btn-sm" onclick="downloadPDF()">↓ Download PDF</button>
+    <div class="modal-body">
+      <div class="label-modal-wrap">
+        <!-- FIELD TOGGLES -->
+        <div class="label-fields-panel">
+          <h4>Fields to print</h4>
+          <div id="label-field-toggles"></div>
+        </div>
+        <!-- LIVE PREVIEW -->
+        <div class="label-preview-panel">
+          <div id="label-preview"></div>
+          <span class="preview-hint">Preview at 1.6× scale · prints at 62mm</span>
+        </div>
       </div>
     </div>
     <div class="modal-ftr">
-      <button class="btn btn-ghost btn-sm" onclick="close('m-label')">Close</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('m-label')">Close</button>
+      <button class="btn btn-ghost btn-sm" onclick="printLabel()">🖨 Print (QL-800)</button>
+      <button class="btn btn-primary btn-sm" onclick="downloadPDF()">↓ Download PDF</button>
     </div>
   </div>
 </div>
@@ -386,14 +421,14 @@
         <div class="modal-eyebrow" style="color:var(--accent)">Sample Request</div>
         <div class="modal-title" id="r-name"></div>
       </div>
-      <button class="btn-icon" onclick="close('m-req')">✕</button>
+      <button class="btn-icon" onclick="closeModal('m-req')">✕</button>
     </div>
     <div class="modal-body">
       <div class="fg"><label>Quantity / unit</label><input type="text" id="r-qty" placeholder="e.g. 500g, 2 rolls, 1 meter" /></div>
       <div class="fg"><label>Notes</label><textarea id="r-notes" placeholder="Target customer, end use, required date…"></textarea></div>
     </div>
     <div class="modal-ftr">
-      <button class="btn btn-ghost btn-sm" onclick="close('m-req')">Cancel</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('m-req')">Cancel</button>
       <button class="btn btn-primary btn-sm" onclick="submitReq()">Send request</button>
     </div>
   </div>
@@ -407,7 +442,7 @@
         <div class="modal-eyebrow" style="color:var(--accent)">Editor</div>
         <div class="modal-title">New product</div>
       </div>
-      <button class="btn-icon" onclick="close('m-add')">✕</button>
+      <button class="btn-icon" onclick="closeModal('m-add')">✕</button>
     </div>
     <div class="modal-body">
       <!-- Common -->
@@ -441,7 +476,7 @@
       </div>
     </div>
     <div class="modal-ftr">
-      <button class="btn btn-ghost btn-sm" onclick="close('m-add')">Cancel</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('m-add')">Cancel</button>
       <button class="btn btn-primary btn-sm" onclick="saveProduct()">Save product</button>
     </div>
   </div>
@@ -674,90 +709,190 @@ function fichaBody(p) {
   return html
 }
 
-/* ── LABEL ── */
+/* ── LABEL FIELD STATE ── */
+// Each key maps to { label, value, enabled }
+let labelFieldState = []
+
+const FABRIC_FIELD_GROUPS = [
+  { group: 'Header', fields: ['Mill Article', 'LOT', 'Manufactured In'] },
+  { group: 'Identity', fields: ['Product Name'] },
+  { group: 'Material', fields: ['Composition'] },
+  { group: 'Color & Dye', fields: ['Color', 'Dyed Method'] },
+  { group: 'Dimensions', fields: ['Width', 'GSM', 'DIA', 'Gauge'] },
+  { group: 'Yarns', fields: ['Yarn 01', 'Yarn 02', 'Yarn 03'] },
+  { group: 'Notes', fields: ['Comments'] },
+]
+
+function buildLabelFieldState(p) {
+  const specs = p.specs || {}
+  const allValues = {
+    'Mill Article':    p.code || null,
+    'LOT':             p.lot || null,
+    'Manufactured In': p.country || 'Honduras',
+    'Product Name':    p.name,
+    'Composition':     specs.Composition || null,
+    'Color':           specs.Color || null,
+    'Dyed Method':     specs['Dyed Method'] || null,
+    'Width':           specs.Width || null,
+    'GSM':             specs.GSM || null,
+    'DIA':             specs.DIA || null,
+    'Gauge':           specs.Gauge || null,
+    'Yarn 01':         specs['Yarn 01'] || null,
+    'Yarn 02':         specs['Yarn 02'] || null,
+    'Yarn 03':         specs['Yarn 03'] || null,
+    'Comments':        specs.Comments || null,
+  }
+  // For non-fabric divisions, also include generic specs
+  if (p.division !== 'fabric') {
+    Object.entries(specs).forEach(([k, v]) => {
+      if (v && !(k in allValues)) allValues[k] = v
+    })
+  }
+  labelFieldState = Object.entries(allValues)
+    .filter(([, v]) => v !== null && v !== '')
+    .map(([key, value]) => ({ key, value, enabled: true }))
+}
+
+function fieldGroup(key) {
+  for (const g of FABRIC_FIELD_GROUPS) {
+    if (g.fields.includes(key)) return g.group
+  }
+  return 'Other'
+}
+
 function openLabel() {
   if (!selected) return
-  const p = selected
-  document.getElementById('lbl-title').textContent = p.name
-  document.getElementById('label-preview').innerHTML = renderLabel(p)
+  buildLabelFieldState(selected)
+  document.getElementById('lbl-title').textContent = selected.name
+  renderFieldToggles()
+  updateLabelPreview()
   document.getElementById('m-label').classList.add('open')
 }
 
-function renderLabel(p) {
-  const specs = p.specs || {}
-  const country = p.country || 'Honduras'
-  const yarns = [specs['Yarn 01'], specs['Yarn 02'], specs['Yarn 03']].filter(Boolean)
+function renderFieldToggles() {
+  // Group fields
+  const groups = {}
+  labelFieldState.forEach(f => {
+    const g = fieldGroup(f.key)
+    if (!groups[g]) groups[g] = []
+    groups[g].push(f)
+  })
 
-  return `
-    <div style="font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;padding:6mm;width:62mm;box-sizing:border-box;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3mm">
-        <div style="font-size:16pt;font-weight:900;letter-spacing:-0.02em;line-height:1">
-          ◈ SIERRA<sup style="font-size:7pt;font-weight:400">™</sup>
-        </div>
-        <div style="font-size:5.5pt;font-weight:700;text-align:right;text-transform:uppercase;line-height:1.5">MANUFACTURED<br>IN ${country.toUpperCase()}</div>
-      </div>
+  let html = ''
+  Object.entries(groups).forEach(([g, fields]) => {
+    html += `<div class="field-group"><div class="field-group-label">${g}</div>`
+    fields.forEach(f => {
+      const id = `lf-${f.key.replace(/\s/g,'-')}`
+      html += `
+        <label class="field-toggle">
+          <span class="toggle-name">${f.key}</span>
+          <span class="toggle-switch">
+            <input type="checkbox" id="${id}" ${f.enabled ? 'checked' : ''} onchange="toggleLabelField('${f.key}', this.checked)" />
+            <span class="toggle-track"></span>
+            <span class="toggle-thumb"></span>
+          </span>
+        </label>`
+    })
+    html += `</div>`
+  })
+  document.getElementById('label-field-toggles').innerHTML = html
+}
 
-      <div style="display:flex;gap:6mm;margin-bottom:2mm">
-        <div>
-          <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Mill Article</div>
-          <div style="font-size:8pt;font-weight:700">${p.code || '–'}</div>
-        </div>
-        ${p.lot ? `<div>
-          <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">LOT</div>
-          <div style="font-size:8pt;font-weight:700">${p.lot}</div>
-        </div>` : ''}
-      </div>
+function toggleLabelField(key, enabled) {
+  const field = labelFieldState.find(f => f.key === key)
+  if (field) { field.enabled = enabled; updateLabelPreview() }
+}
 
-      <hr style="border:none;border-top:2.5px solid #000;margin:2mm 0" />
-      <div style="font-size:13pt;font-weight:900;text-transform:uppercase;letter-spacing:-0.01em;line-height:1.1;margin:1.5mm 0">${p.name}</div>
-      <hr style="border:none;border-top:2.5px solid #000;margin:2mm 0" />
+function updateLabelPreview() {
+  document.getElementById('label-preview').innerHTML = renderLabel(selected, labelFieldState)
+}
 
-      ${specs.Composition ? `
-      <div style="margin-bottom:2mm">
-        <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Composition</div>
-        <div style="font-size:8pt;font-weight:700;line-height:1.3">${specs.Composition}</div>
-      </div>
-      <hr style="border:none;border-top:0.75px solid #ccc;margin:1.5mm 0" />` : ''}
+function renderLabel(p, fields) {
+  const F = {}
+  fields.forEach(f => { F[f.key] = f.enabled ? f.value : null })
 
-      ${(specs.Color || specs['Dyed Method']) ? `
-      <div style="display:flex;gap:4mm;margin-bottom:1.5mm">
-        ${specs.Color ? `<div style="flex:1"><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Color</div><div style="font-size:8pt;font-weight:700">${specs.Color}</div></div>` : ''}
-        ${specs['Dyed Method'] ? `<div style="flex:1"><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Dyed Method</div><div style="font-size:8pt;font-weight:700;line-height:1.3">${specs['Dyed Method']}</div></div>` : ''}
-      </div>
-      <hr style="border:none;border-top:0.75px solid #ccc;margin:1.5mm 0" />` : ''}
+  const hasAnyMeta = F['Mill Article'] || F['LOT']
+  const hasMeasures = F['Width'] || F['GSM'] || F['DIA'] || F['Gauge']
+  const yarns = ['Yarn 01','Yarn 02','Yarn 03'].map(k => F[k]).filter(Boolean)
 
-      ${(specs.Width || specs.GSM || specs.DIA || specs.Gauge) ? `
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.5mm;margin:1.5mm 0">
-        ${specs.Width ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Width</div><div style="font-size:9pt;font-weight:900">${specs.Width}</div></div>` : '<div></div>'}
-        ${specs.GSM ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">GSM</div><div style="font-size:9pt;font-weight:900">${specs.GSM}</div></div>` : '<div></div>'}
-        ${specs.DIA ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">DIA</div><div style="font-size:9pt;font-weight:900">${specs.DIA}</div></div>` : '<div></div>'}
-        ${specs.Gauge ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Gauge</div><div style="font-size:9pt;font-weight:900">${specs.Gauge}</div></div>` : '<div></div>'}
-      </div>
-      <hr style="border:none;border-top:0.75px solid #ccc;margin:1.5mm 0" />` : ''}
+  return `<div style="font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;padding:6mm;width:62mm;box-sizing:border-box;">
 
-      ${yarns.map((y, i) => `
-      <div style="display:flex;gap:3mm;padding:1.5mm 0;border-bottom:0.5px solid #ccc">
-        <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase;min-width:14mm">Yarn ${String(i+1).padStart(2,'0')}</div>
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3mm">
+      <div style="font-size:16pt;font-weight:900;letter-spacing:-0.02em;line-height:1">◈ SIERRA<sup style="font-size:7pt;font-weight:400">™</sup></div>
+      ${F['Manufactured In'] ? `<div style="font-size:5.5pt;font-weight:700;text-align:right;text-transform:uppercase;line-height:1.5">MANUFACTURED<br>IN ${F['Manufactured In'].toUpperCase()}</div>` : ''}
+    </div>
+
+    <!-- Mill Article + LOT -->
+    ${hasAnyMeta ? `<div style="display:flex;gap:6mm;margin-bottom:2mm">
+      ${F['Mill Article'] ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Mill Article</div><div style="font-size:8pt;font-weight:700">${F['Mill Article']}</div></div>` : ''}
+      ${F['LOT'] ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">LOT</div><div style="font-size:8pt;font-weight:700">${F['LOT']}</div></div>` : ''}
+    </div>` : ''}
+
+    <!-- Product Name -->
+    <hr style="border:none;border-top:2.5px solid #000;margin:2mm 0" />
+    ${F['Product Name'] ? `<div style="font-size:13pt;font-weight:900;text-transform:uppercase;letter-spacing:-0.01em;line-height:1.1;margin:1.5mm 0">${F['Product Name']}</div>` : ''}
+    <hr style="border:none;border-top:2.5px solid #000;margin:2mm 0" />
+
+    <!-- Composition -->
+    ${F['Composition'] ? `
+    <div style="margin-bottom:2mm">
+      <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Composition</div>
+      <div style="font-size:8pt;font-weight:700;line-height:1.3">${F['Composition']}</div>
+    </div>
+    <hr style="border:none;border-top:0.75px solid #ccc;margin:1.5mm 0" />` : ''}
+
+    <!-- Color + Dyed Method -->
+    ${(F['Color'] || F['Dyed Method']) ? `
+    <div style="display:flex;gap:4mm;margin-bottom:1.5mm">
+      ${F['Color'] ? `<div style="flex:1"><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Color</div><div style="font-size:8pt;font-weight:700">${F['Color']}</div></div>` : ''}
+      ${F['Dyed Method'] ? `<div style="flex:1"><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Dyed Method</div><div style="font-size:8pt;font-weight:700;line-height:1.3">${F['Dyed Method']}</div></div>` : ''}
+    </div>
+    <hr style="border:none;border-top:0.75px solid #ccc;margin:1.5mm 0" />` : ''}
+
+    <!-- Width / GSM / DIA / Gauge -->
+    ${hasMeasures ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1.5mm;margin:1.5mm 0">
+      ${F['Width'] ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Width</div><div style="font-size:9pt;font-weight:900">${F['Width']}</div></div>` : '<div></div>'}
+      ${F['GSM'] ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">GSM</div><div style="font-size:9pt;font-weight:900">${F['GSM']}</div></div>` : '<div></div>'}
+      ${F['DIA'] ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">DIA</div><div style="font-size:9pt;font-weight:900">${F['DIA']}</div></div>` : '<div></div>'}
+      ${F['Gauge'] ? `<div><div style="font-size:5.5pt;font-weight:700;text-transform:uppercase">Gauge</div><div style="font-size:9pt;font-weight:900">${F['Gauge']}</div></div>` : '<div></div>'}
+    </div>
+    <hr style="border:none;border-top:0.75px solid #ccc;margin:1.5mm 0" />` : ''}
+
+    <!-- Yarns -->
+    ${yarns.map((y, i) => {
+      const key = ['Yarn 01','Yarn 02','Yarn 03'][i]
+      return `<div style="display:flex;gap:3mm;padding:1.5mm 0;border-bottom:0.5px solid #ccc">
+        <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase;min-width:14mm">${key}</div>
         <div style="font-size:7pt;font-weight:700;line-height:1.3">${y}</div>
-      </div>`).join('')}
+      </div>`
+    }).join('')}
 
-      ${specs.Comments ? `
-      <div style="margin-top:2mm">
-        <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase;margin-bottom:0.5mm">Comments</div>
-        <div style="font-size:7pt;font-weight:700">${specs.Comments}</div>
-      </div>` : ''}
-    </div>`
+    <!-- Comments -->
+    ${F['Comments'] ? `
+    <div style="margin-top:2mm">
+      <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase;margin-bottom:0.5mm">Comments</div>
+      <div style="font-size:7pt;font-weight:700">${F['Comments']}</div>
+    </div>` : ''}
+
+  </div>`
 }
 
 function printLabel() {
-  const p = selected
-  document.getElementById('print-root').innerHTML = renderLabel(p)
-  document.getElementById('print-root').style.display = 'block'
+  // Use the same field state as the current preview
+  const html = renderLabel(selected, labelFieldState)
+  const pr = document.getElementById('print-root')
+  pr.innerHTML = html
+  pr.style.display = 'block'
   window.print()
-  setTimeout(() => { document.getElementById('print-root').style.display = 'none' }, 1000)
+  setTimeout(() => { pr.style.display = 'none' }, 1200)
 }
 
-function downloadPDF() { printLabel() }
+function downloadPDF() {
+  toast('In the print dialog, choose "Save as PDF" as destination')
+  setTimeout(() => printLabel(), 600)
+}
 
 /* ── SAMPLE REQUEST ── */
 function openReq() {
@@ -765,7 +900,7 @@ function openReq() {
   document.getElementById('r-name').textContent = selected.name
   document.getElementById('r-qty').value = ''
   document.getElementById('r-notes').value = ''
-  close('m-ficha')
+  closeModal('m-ficha')
   document.getElementById('m-req').classList.add('open')
 }
 
@@ -779,7 +914,7 @@ async function submitReq() {
     quantity: qty, notes: document.getElementById('r-notes').value.trim(), status: 'pending'
   })
   if (error) { toast('Error sending request'); return }
-  close('m-req'); toast('Request sent')
+  closeModal('m-req'); toast('Request sent')
 }
 
 /* ── MY REQUESTS ── */
@@ -930,11 +1065,11 @@ async function saveProduct() {
   })
 
   if (error) { toast('Error saving product'); return }
-  close('m-add'); toast('Product saved'); loadProducts()
+  closeModal('m-add'); toast('Product saved'); loadProducts()
 }
 
 /* ── UTILS ── */
-function close(id) { document.getElementById(id).classList.remove('open') }
+function closeModal(id) { document.getElementById(id).classList.remove('open') }
 document.querySelectorAll('.overlay').forEach(el => { el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open') }) })
 function toast(msg) {
   const t = document.getElementById('toast')
