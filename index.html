@@ -331,40 +331,55 @@
     /* ── DASHBOARD ── */
     #view-dashboard { display:none; }
     #view-products { display:flex; flex-direction:column; min-height:0; }
-    .dash-wrap { display:flex; flex-direction:column; gap:0; }
-    .dash-hello { margin-bottom:1.5rem; }
-    .dash-greeting { font-size:1.35rem; font-weight:700; letter-spacing:-0.01em; }
-    .dash-date { font-size:0.8rem; color:var(--text-2); margin-top:0.25rem; }
-    .dash-section { margin-bottom:1.75rem; }
-    .dash-section-label { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.75rem; }
+    .dash-wrap { display:flex; flex-direction:column; }
+    .dash-section { margin-bottom:2rem; }
+    .dash-section-label { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-3); margin-bottom:0.8rem; }
+
+    /* Hero */
+    .dash-hero { position:relative; overflow:hidden; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:1.75rem 2rem; margin-bottom:2rem; display:flex; align-items:flex-end; justify-content:space-between; gap:1rem; }
+    .dash-hero::before { content:''; position:absolute; top:-60%; right:-5%; width:380px; height:380px; border-radius:50%; background:radial-gradient(circle, rgba(15,168,156,0.1) 0%, transparent 65%); pointer-events:none; }
+    .dash-greeting { font-size:1.5rem; font-weight:700; letter-spacing:-0.02em; }
+    .dash-date { font-size:0.82rem; color:var(--text-2); margin-top:0.3rem; }
+    .dash-hero-clock { text-align:right; flex-shrink:0; }
+    .dash-hero-time { font-size:3rem; font-weight:200; letter-spacing:-0.05em; font-variant-numeric:tabular-nums; line-height:1; color:var(--text); }
+    .dash-hero-tz { font-size:0.68rem; color:var(--text-3); margin-top:0.25rem; text-align:right; }
+
+    /* World clocks */
     .clocks-row { display:grid; grid-template-columns:repeat(4,1fr); gap:0.65rem; }
-    .clock-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:0.9rem 1rem; }
-    .clock-city { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.25rem; }
-    .clock-time { font-size:1.6rem; font-weight:300; letter-spacing:-0.03em; font-variant-numeric:tabular-nums; line-height:1.1; }
-    .clock-ampm { font-size:0.95rem; font-weight:400; }
-    .clock-tz { font-size:0.66rem; color:var(--text-2); margin-top:0.25rem; }
+    .clock-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:1rem 1.1rem; }
+    .clock-card.night { background:var(--surface2); }
+    .clock-city { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.3rem; display:flex; align-items:center; gap:0.4rem; }
+    .clock-dot { width:5px; height:5px; border-radius:50%; }
+    .clock-time { font-size:2rem; font-weight:200; letter-spacing:-0.04em; font-variant-numeric:tabular-nums; line-height:1; }
+    .clock-ampm { font-size:1rem; font-weight:300; }
+    .clock-tz { font-size:0.67rem; color:var(--text-2); margin-top:0.3rem; }
+
+    /* Commodities — colored top border is the key Apple touch */
     .commodities-row { display:grid; grid-template-columns:repeat(3,1fr); gap:0.65rem; }
-    .commodity-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1rem 1.1rem; }
-    .commodity-name { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.3rem; }
-    .commodity-price { font-size:1.5rem; font-weight:600; letter-spacing:-0.02em; line-height:1; }
-    .commodity-unit { font-size:0.7rem; color:var(--text-2); margin-top:0.15rem; }
-    .commodity-chg { display:inline-flex; align-items:center; gap:0.15rem; font-size:0.73rem; font-weight:600; padding:0.1rem 0.4rem; border-radius:5px; margin-top:0.4rem; }
-    .commodity-chg.up { color:#1a8a5c; background:rgba(26,138,92,0.09); }
-    .commodity-chg.dn { color:#c0392b; background:rgba(192,57,43,0.09); }
-    .commodity-chart-wrap { margin-top:0.75rem; height:54px; position:relative; }
-    .commodity-na { font-size:0.73rem; color:var(--text-3); margin-top:0.6rem; line-height:1.5; }
-    .news-tabs { display:flex; gap:0.4rem; margin-bottom:0.75rem; flex-wrap:wrap; }
-    .news-tab { padding:0.22rem 0.65rem; border-radius:20px; border:1px solid var(--border); background:none; font-size:0.72rem; color:var(--text-2); cursor:pointer; font-family:inherit; transition:all 0.12s; }
+    .commodity-card { background:var(--surface); border:1px solid var(--border); border-top:3px solid var(--c-accent, var(--border)); border-radius:16px; padding:1.1rem 1.25rem 1.25rem; }
+    .commodity-name { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-3); margin-bottom:0.5rem; }
+    .commodity-price { font-size:2.5rem; font-weight:600; letter-spacing:-0.04em; line-height:1; }
+    .commodity-unit { font-size:0.72rem; color:var(--text-2); margin-top:0.2rem; }
+    .commodity-chg { display:inline-flex; align-items:center; gap:0.2rem; font-size:0.75rem; font-weight:600; padding:0.15rem 0.45rem; border-radius:6px; margin-top:0.55rem; }
+    .commodity-chg.up { color:#1a8a5c; background:rgba(26,138,92,0.1); }
+    .commodity-chg.dn { color:#c0392b; background:rgba(192,57,43,0.1); }
+    .commodity-chart-wrap { margin-top:1rem; height:72px; position:relative; }
+    .commodity-na { font-size:0.75rem; color:var(--text-3); margin-top:0.75rem; line-height:1.6; }
+
+    /* News */
+    .news-tabs { display:flex; gap:0.4rem; margin-bottom:0.8rem; flex-wrap:wrap; }
+    .news-tab { padding:0.25rem 0.7rem; border-radius:20px; border:1px solid var(--border); background:none; font-size:0.72rem; color:var(--text-2); cursor:pointer; font-family:inherit; transition:all 0.12s; }
     .news-tab.active { background:var(--text); color:var(--bg); border-color:var(--text); }
-    .news-list { border:1px solid var(--border); border-radius:14px; overflow:hidden; background:var(--surface); }
-    .news-item { display:flex; gap:0.85rem; align-items:flex-start; padding:0.8rem 1rem; text-decoration:none; color:var(--text); transition:background 0.12s; border-bottom:1px solid var(--border); }
+    .news-list { border:1px solid var(--border); border-radius:16px; overflow:hidden; background:var(--surface); }
+    .news-item { display:flex; gap:1rem; align-items:flex-start; padding:0.95rem 1.1rem; text-decoration:none; color:var(--text); transition:background 0.12s; border-bottom:1px solid var(--border); }
     .news-item:last-child { border-bottom:none; }
     .news-item:hover { background:var(--surface2); }
-    .news-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; margin-top:0.4rem; }
+    .news-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:0.38rem; }
     .news-body { flex:1; min-width:0; }
-    .news-headline { font-size:0.85rem; font-weight:500; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-    .news-meta { font-size:0.67rem; color:var(--text-3); margin-top:0.25rem; }
-    .news-placeholder { padding:2rem; text-align:center; font-size:0.8rem; color:var(--text-3); }
+    .news-headline { font-size:0.88rem; font-weight:500; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .news-meta { font-size:0.68rem; color:var(--text-3); margin-top:0.3rem; }
+    .news-thumb { width:56px; height:56px; border-radius:9px; object-fit:cover; flex-shrink:0; background:var(--surface2); }
+    .news-placeholder { padding:2.5rem; text-align:center; font-size:0.82rem; color:var(--text-3); }
     @keyframes spin { to { transform:rotate(360deg); } }
 
     /* ══════════════════════════════════════
@@ -1791,16 +1806,16 @@ const CLOCK_ZONES = [
 ]
 
 const COMMODITY_CFG = [
-  { id: 'cotton',    symbol: 'CT=F', name: 'Cotton No. 2', unit: '¢ / lb',  color: '#9e00cb' },
+  { id: 'cotton',    symbol: 'CT=F', name: 'Cotton No. 2',  unit: '¢ / lb',  color: '#9e00cb' },
   { id: 'crude',     symbol: 'CL=F', name: 'Crude Oil WTI', unit: '$ / bbl', color: '#ff7824' },
   { id: 'polyester', symbol: null,   name: 'Polyester (PTA)', unit: 'CNY / T', color: '#009fff' },
 ]
 
 const NEWS_SOURCES_CFG = [
-  { name: 'Fibre2Fashion',  url: 'https://www.fibre2fashion.com/rss/industry-news.xml', color: '#0fa89c' },
-  { name: 'Textile World',  url: 'https://www.textileworld.com/feed/',                  color: '#9e00cb' },
-  { name: 'Sourcing Journal', url: 'https://sourcingjournal.com/feed/',                color: '#ff7824' },
-  { name: 'WWD',            url: 'https://wwd.com/feed/',                               color: '#e74c3c' },
+  { name: 'Fashion United', url: 'https://fashionunited.com/news/rss.xml',        color: '#0fa89c' },
+  { name: 'Textile World',  url: 'https://www.textileworld.com/feed/',             color: '#9e00cb' },
+  { name: 'Sourcing Journal', url: 'https://sourcingjournal.com/feed/',            color: '#ff7824' },
+  { name: 'WWD',            url: 'https://wwd.com/feed/',                          color: '#e74c3c' },
 ]
 
 function showDashboard() {
@@ -1818,40 +1833,51 @@ function showDashboard() {
 
   const now = new Date()
   const hr = now.getHours()
-  const greeting = hr < 12 ? 'Buenos días' : hr < 18 ? 'Buenas tardes' : 'Buenas noches'
-  const name = profile?.full_name || me?.email?.split('@')[0] || ''
+  const greeting = hr < 5 ? 'Buenas noches' : hr < 12 ? 'Buenos días' : hr < 19 ? 'Buenas tardes' : 'Buenas noches'
+  const name = (profile?.full_name || me?.email?.split('@')[0] || '').split(' ')[0]
   const dateStr = now.toLocaleDateString('es-HN', { weekday:'long', year:'numeric', month:'long', day:'numeric' })
 
   vd.innerHTML = `<div class="dash-wrap">
-  <div class="dash-hello">
-    <div class="dash-greeting">${greeting}, ${name}</div>
-    <div class="dash-date" style="text-transform:capitalize">${dateStr}</div>
+
+  <!-- Hero greeting -->
+  <div class="dash-hero">
+    <div>
+      <div class="dash-greeting">${greeting}, ${name}.</div>
+      <div class="dash-date" style="text-transform:capitalize">${dateStr}</div>
+    </div>
+    <div class="dash-hero-clock">
+      <div class="dash-hero-time" id="hero-time">—</div>
+      <div class="dash-hero-tz">Honduras · CST</div>
+    </div>
   </div>
 
+  <!-- World clocks -->
   <div class="dash-section">
     <div class="dash-section-label">Hora mundial</div>
     <div class="clocks-row" id="dash-clocks"></div>
   </div>
 
+  <!-- Commodity prices -->
   <div class="dash-section">
     <div class="dash-section-label">Precios de mercado · últimos 30 días</div>
     <div class="commodities-row">
-      ${COMMODITY_CFG.map(c => `<div class="commodity-card">
+      ${COMMODITY_CFG.map(c => `
+      <div class="commodity-card" style="--c-accent:${c.color}">
         <div class="commodity-name">${c.name}</div>
         <div class="commodity-price" id="cprice-${c.id}">—</div>
-        <div class="commodity-unit">${c.unit}</div>
+        <div class="commodity-unit" id="cunit-${c.id}">${c.unit}</div>
         <div id="cchg-${c.id}"></div>
         ${c.symbol
           ? `<div class="commodity-chart-wrap"><canvas id="cchart-${c.id}"></canvas></div>`
-          : `<div class="commodity-na">Cotización no disponible via API pública.<br>El precio del poliéster sigue al petróleo crudo con desfase de 2–4 semanas.</div>`
-        }
+          : `<div class="commodity-na">Precio no disponible via API pública.<br>El poliéster sigue al petróleo crudo con 2–4 semanas de desfase.</div>`}
       </div>`).join('')}
     </div>
   </div>
 
+  <!-- News -->
   <div class="dash-section">
     <div class="dash-section-label">Noticias de la industria</div>
-    <div class="news-tabs">
+    <div class="news-tabs" id="dash-news-tabs">
       ${NEWS_SOURCES_CFG.map((s,i) => `<button class="news-tab${i===0?' active':''}" onclick="loadDashNews(${i},this)">${s.name}</button>`).join('')}
     </div>
     <div class="news-list" id="dash-news-list"><div class="news-placeholder">Cargando...</div></div>
@@ -1859,72 +1885,99 @@ function showDashboard() {
 </div>`
 
   tickClocks()
-  clockInterval = setInterval(tickClocks, 1000)
+  clockInterval = setInterval(tickClocks, 10000)
   COMMODITY_CFG.filter(c => c.symbol).forEach(fetchCommodity)
-  loadDashNews(0, document.querySelector('.news-tab.active'))
+  loadDashNews(0, document.querySelector('#dash-news-tabs .news-tab.active'))
+}
+
+function clockTimeParts(tz) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour:'numeric', minute:'2-digit', hour12:true
+  }).formatToParts(new Date())
+  const get = t => parts.find(p => p.type === t)?.value || ''
+  const tzAbbr = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName:'short' })
+    .formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value || ''
+  const hourNum = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour:'numeric', hour12:false }).format(new Date()))
+  const isNight = hourNum < 7 || hourNum >= 21
+  return { h: get('hour'), m: get('minute'), ampm: get('dayPeriod'), tz: tzAbbr, isNight }
 }
 
 function tickClocks() {
+  // Hero: Honduras time
+  const heroEl = document.getElementById('hero-time')
+  if (heroEl) {
+    const p = clockTimeParts('America/Tegucigalpa')
+    heroEl.textContent = `${p.h}:${p.m} ${p.ampm}`
+  }
+  // World clock cards
   const wrap = document.getElementById('dash-clocks')
   if (!wrap) return
   wrap.innerHTML = CLOCK_ZONES.map(z => {
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: z.tz, hour:'numeric', minute:'2-digit', second:'2-digit', hour12:true
-    }).formatToParts(new Date())
-    const get = t => parts.find(p => p.type === t)?.value || ''
-    const tzAbbr = new Intl.DateTimeFormat('en-US', {
-      timeZone: z.tz, timeZoneName:'short'
-    }).formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value || ''
-    return `<div class="clock-card">
-      <div class="clock-city">${z.city}</div>
-      <div class="clock-time">${get('hour')}:${get('minute')}<span class="clock-ampm"> ${get('dayPeriod')}</span></div>
-      <div class="clock-tz">${tzAbbr}</div>
+    const p = clockTimeParts(z.tz)
+    const dot = p.isNight
+      ? `<span class="clock-dot" style="background:var(--text-3)">`
+      : `<span class="clock-dot" style="background:#ffc529">`
+    return `<div class="clock-card${p.isNight ? ' night' : ''}">
+      <div class="clock-city">${dot}</span>${z.city}</div>
+      <div class="clock-time">${p.h}:${p.m}<span class="clock-ampm"> ${p.ampm}</span></div>
+      <div class="clock-tz">${p.tz}</div>
     </div>`
   }).join('')
 }
 
 async function fetchCommodity(cfg) {
-  try {
-    const yf = `https://query1.finance.yahoo.com/v8/finance/chart/${cfg.symbol}?interval=1d&range=1mo`
-    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(yf)}`)
-    if (!res.ok) return
-    const outer = await res.json()
-    const parsed = JSON.parse(outer.contents)
-    const result = parsed?.chart?.result?.[0]
-    if (!result) return
-    const closes = result.indicators.quote[0].close.filter(v => v != null)
-    const meta = result.meta
-    const price = meta.regularMarketPrice
-    const prev = meta.previousClose || closes[closes.length - 2] || price
-    const chg = price - prev, pct = (chg / prev) * 100
+  const proxies = [
+    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+  ]
+  const yf = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(cfg.symbol)}?interval=1d&range=1mo`
 
-    const priceEl = document.getElementById(`cprice-${cfg.id}`)
-    const chgEl = document.getElementById(`cchg-${cfg.id}`)
-    if (!priceEl) return
-    priceEl.textContent = price.toFixed(2)
-    const dir = chg >= 0 ? 'up' : 'dn', arrow = chg >= 0 ? '↑' : '↓'
-    chgEl.innerHTML = `<span class="commodity-chg ${dir}">${arrow} ${Math.abs(pct).toFixed(2)}% hoy</span>`
+  let result = null
+  for (const makeProxy of proxies) {
+    try {
+      const res = await fetch(makeProxy(yf), { signal: AbortSignal.timeout(8000) })
+      if (!res.ok) continue
+      const body = await res.json()
+      // allorigins wraps in { contents }, corsproxy returns raw
+      const raw = body.contents !== undefined ? JSON.parse(body.contents) : body
+      result = raw?.chart?.result?.[0]
+      if (result) break
+    } catch { continue }
+  }
+  if (!result) return
 
-    const canvas = document.getElementById(`cchart-${cfg.id}`)
-    if (!canvas) return
-    if (dashCharts[cfg.id]) dashCharts[cfg.id].destroy()
-    const ctx = canvas.getContext('2d')
-    const grad = ctx.createLinearGradient(0, 0, 0, 54)
-    grad.addColorStop(0, cfg.color + '55'); grad.addColorStop(1, cfg.color + '00')
-    dashCharts[cfg.id] = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: closes.map((_,i) => i),
-        datasets: [{ data: closes, borderColor: cfg.color, borderWidth: 1.5,
-          backgroundColor: grad, fill: true, tension: 0.35, pointRadius: 0 }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false, animation: { duration: 400 },
-        plugins: { legend: { display: false }, tooltip: { enabled: false } },
-        scales: { x: { display: false }, y: { display: false } }
-      }
-    })
-  } catch { /* silently fail, price stays "—" */ }
+  const quotes = result.indicators.quote[0].close.filter(v => v != null)
+  const meta = result.meta
+  const price = meta.regularMarketPrice
+  const prev = meta.chartPreviousClose || meta.previousClose || quotes[quotes.length - 2] || price
+  const chg = price - prev, pct = (chg / prev) * 100
+
+  const priceEl = document.getElementById(`cprice-${cfg.id}`)
+  const chgEl = document.getElementById(`cchg-${cfg.id}`)
+  if (!priceEl) return
+  priceEl.textContent = price.toFixed(2)
+  const dir = chg >= 0 ? 'up' : 'dn', arrow = chg >= 0 ? '↑' : '↓'
+  chgEl.innerHTML = `<span class="commodity-chg ${dir}">${arrow} ${Math.abs(pct).toFixed(2)}% hoy</span>`
+
+  const canvas = document.getElementById(`cchart-${cfg.id}`)
+  if (!canvas) return
+  if (dashCharts[cfg.id]) dashCharts[cfg.id].destroy()
+  const ctx = canvas.getContext('2d')
+  const grad = ctx.createLinearGradient(0, 0, 0, 72)
+  grad.addColorStop(0, cfg.color + '50'); grad.addColorStop(1, cfg.color + '00')
+  dashCharts[cfg.id] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: quotes.map((_,i) => i),
+      datasets: [{ data: quotes, borderColor: cfg.color, borderWidth: 2,
+        backgroundColor: grad, fill: true, tension: 0.3, pointRadius: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 600 },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: { x: { display: false }, y: { display: false } }
+    }
+  })
 }
 
 async function loadDashNews(idx, tabEl) {
@@ -1935,31 +1988,35 @@ async function loadDashNews(idx, tabEl) {
   if (!list) return
   list.innerHTML = '<div class="news-placeholder">Cargando...</div>'
   try {
-    const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(src.url)}&count=8`
-    const res = await fetch(api)
+    const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(src.url)}&count=10&api_key=`
+    const res = await fetch(api, { signal: AbortSignal.timeout(10000) })
     const data = await res.json()
-    if (data.status !== 'ok' || !data.items?.length) {
-      list.innerHTML = '<div class="news-placeholder">No hay artículos disponibles en este momento.</div>'
+    if (!data.items?.length) {
+      list.innerHTML = '<div class="news-placeholder">Sin artículos disponibles en este momento.</div>'
       return
     }
     list.innerHTML = data.items.map(item => {
       const ago = dashTimeAgo(new Date(item.pubDate))
-      const title = item.title.replace(/[<>]/g, c => c==='<'?'&lt;':'&gt;')
-      return `<a class="news-item" href="${item.link}" target="_blank" rel="noopener">
+      const title = (item.title || '').replace(/[<>]/g, c => c === '<' ? '&lt;' : '&gt;')
+      const thumb = item.thumbnail || item.enclosure?.link || ''
+      const thumbHtml = thumb ? `<img class="news-thumb" src="${thumb}" alt="" loading="lazy" onerror="this.style.display='none'">` : ''
+      return `<a class="news-item" href="${item.link}" target="_blank" rel="noopener noreferrer">
         <div class="news-dot" style="background:${src.color}"></div>
         <div class="news-body">
           <div class="news-headline">${title}</div>
           <div class="news-meta">${src.name} · ${ago}</div>
         </div>
+        ${thumbHtml}
       </a>`
     }).join('')
-  } catch {
-    list.innerHTML = '<div class="news-placeholder">No se pudo cargar el feed. Verifica tu conexión.</div>'
+  } catch (e) {
+    list.innerHTML = `<div class="news-placeholder">No se pudo cargar el feed.<br><small style="color:var(--text-3)">${e.message || 'Error de conexión'}</small></div>`
   }
 }
 
 function dashTimeAgo(date) {
   const s = Math.floor((Date.now() - date) / 1000)
+  if (isNaN(s) || s < 0) return ''
   if (s < 60) return 'ahora'
   const m = Math.floor(s / 60); if (m < 60) return `${m}m`
   const h = Math.floor(m / 60); if (h < 24) return `${h}h`
