@@ -1560,7 +1560,7 @@ async function saveProduct() {
     ;({ error } = await sb.from('products').insert({ ...payload, created_by: me.id }))
   }
 
-  if (error) { toast('Error saving product'); return }
+  if (error) { toast('DB error: ' + error.message); return }
   closeModal('m-add'); toast(editingProductId ? 'Product updated' : 'Product saved'); loadProducts()
 }
 
