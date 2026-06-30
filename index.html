@@ -14,9 +14,9 @@
 
     /* ── TOKENS ── */
     :root {
-      --accent: #16cdbe;
-      --accent-dark: #0fa89c;
-      --accent-light: rgba(22,205,190,0.10);
+      --accent: #0fa89c;
+      --accent-dark: #0d8f85;
+      --accent-light: rgba(15,168,156,0.07);
       --bg: #f5f5f7;
       --bg-alt: #ffffff;
       --surface: #ffffff;
@@ -72,7 +72,7 @@
       transition:border-color 0.15s, box-shadow 0.15s;
     }
     .fg input:focus, .fg select:focus, .fg textarea:focus {
-      border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-light);
+      border-color:var(--accent); box-shadow:none;
     }
     .fg textarea { resize:vertical; min-height:72px; }
     .fg select { appearance:none; cursor:pointer; }
@@ -111,7 +111,7 @@
     .theme-btn { width:30px; height:30px; border-radius:7px; background:none; border:1px solid var(--border); cursor:pointer; color:var(--text-2); display:flex; align-items:center; justify-content:center; font-size:0.85rem; transition:all 0.15s; }
     .theme-btn:hover { background:var(--surface2); color:var(--text); }
     .user-pill { display:flex; align-items:center; gap:0.45rem; background:var(--surface2); border:1px solid var(--border); border-radius:20px; padding:0.22rem 0.7rem 0.22rem 0.3rem; }
-    .u-avatar { width:20px; height:20px; border-radius:50%; background:var(--accent); color:#fff; font-size:0.62rem; font-weight:700; display:flex; align-items:center; justify-content:center; }
+    .u-avatar { width:20px; height:20px; border-radius:50%; background:var(--text-2); color:var(--bg); font-size:0.62rem; font-weight:700; display:flex; align-items:center; justify-content:center; }
     .u-name { font-size:0.78rem; font-weight:500; }
     .u-role { font-size:0.68rem; color:var(--text-3); }
     .u-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); }
@@ -139,11 +139,11 @@
     .search-wrap { position:relative; }
     .search-wrap svg { position:absolute; left:0.6rem; top:50%; transform:translateY(-50%); width:14px; height:14px; color:var(--text-3); pointer-events:none; }
     #search-input { background:var(--surface2); border:1px solid var(--border); border-radius:20px; padding:0.42rem 0.85rem 0.42rem 2rem; font-size:0.8rem; font-family:inherit; color:var(--text); outline:none; width:200px; transition:border-color 0.15s, box-shadow 0.15s, width 0.2s; }
-    #search-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-light); width:240px; }
+    #search-input:focus { border-color:var(--accent); box-shadow:none; width:240px; }
     #search-input::placeholder { color:var(--text-3); }
 
     /* ── SELECT MODE ── */
-    .card.card-selected { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
+    .card.card-selected { border-color:var(--accent); }
     .card-check { position:absolute; top:0.6rem; right:0.6rem; width:20px; height:20px; border-radius:50%; background:var(--surface); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
     .card-selected .card-check { background:var(--accent); border-color:var(--accent); color:#fff; }
     .card-wrap { position:relative; }
@@ -163,7 +163,7 @@
     .comment-del:hover { color:#c0392b; background:rgba(192,57,43,0.08); }
     .comment-form { display:flex; gap:0.5rem; }
     .comment-form input { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:0.55rem 0.75rem; font-size:0.82rem; font-family:inherit; color:var(--text); outline:none; }
-    .comment-form input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-light); }
+    .comment-form input:focus { border-color:var(--accent); box-shadow:none; }
 
     /* ── PRODUCT GRID ── */
     .pg { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:1rem; }
@@ -308,7 +308,7 @@
     .field-toggle { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:0.5rem; padding:0.28rem 0; }
     .toggle-name { font-size:0.72rem; color:var(--text-3); user-select:none; white-space:nowrap; }
     .toggle-val-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:5px; padding:0.22rem 0.45rem; font-size:0.73rem; font-family:inherit; color:var(--text); outline:none; min-width:0; }
-    .toggle-val-input:focus { border-color:var(--accent); }
+    .toggle-val-input:focus { border-color:var(--accent); box-shadow:none; }
     .toggle-switch { position:relative; width:28px; height:16px; flex-shrink:0; }
     .toggle-switch input { opacity:0; width:0; height:0; position:absolute; }
     .toggle-track { position:absolute; inset:0; background:var(--border); border-radius:8px; transition:background 0.2s; }
@@ -1475,8 +1475,10 @@ async function saveProduct() {
   if (imgFile) {
     const ext = imgFile.name.split('.').pop()
     const path = `${me.id}/${Date.now()}.${ext}`
-    const { error: upErr } = await sb.storage.from('product-images').upload(path, imgFile)
-    if (upErr) { toast('Error uploading image'); return }
+    const { error: upErr } = await sb.storage.from('product-images').upload(path, imgFile, {
+      contentType: imgFile.type, upsert: false
+    })
+    if (upErr) { toast('Upload error: ' + upErr.message); return }
     const { data: urlData } = sb.storage.from('product-images').getPublicUrl(path)
     image_url = urlData.publicUrl
   }
