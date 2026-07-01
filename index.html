@@ -215,6 +215,27 @@
     .sidebar.collapsed .sidebar-user { justify-content:center; padding:0.5rem 0; }
     .sidebar.collapsed .sidebar-spacer { display:none; }
 
+    /* ── SIDEBAR HOVER-EXPAND (desktop only) ── */
+    @media (min-width:768px) {
+      .sidebar.collapsed:hover { width:200px; }
+      .sidebar.collapsed:hover .nav-label { display:block; }
+      .sidebar.collapsed:hover .s-label { display:block; }
+      .sidebar.collapsed:hover .sidebar-search input { display:block; }
+      .sidebar.collapsed:hover .sidebar-search { padding:0; justify-content:flex-start; cursor:default; }
+      .sidebar.collapsed:hover .sidebar-search svg { position:absolute; transform:translateY(-50%); width:13px; height:13px; }
+      .sidebar.collapsed:hover .sidebar-user-info { display:block; }
+      .sidebar.collapsed:hover .nav-item { justify-content:flex-start; padding:0.48rem 0.55rem; gap:0.55rem; }
+      .sidebar.collapsed:hover .sidebar-user { justify-content:flex-start; padding:0.5rem 0.4rem; }
+      .sidebar.collapsed:hover .sidebar-spacer { display:flex; }
+      .sidebar.collapsed:hover .n-icon { width:16px; height:16px; }
+      .sidebar.collapsed:hover .n-icon svg { width:16px; height:16px; }
+      .sidebar.collapsed:hover .sidebar-bottom .nav-label { display:block; }
+      .sidebar.collapsed:hover .sidebar-bottom .nav-item { justify-content:flex-start; padding:0.48rem 0.55rem; gap:0.55rem; }
+      .sidebar.collapsed:hover .sidebar-user-row { flex-direction:row; gap:0; }
+      .sidebar.collapsed:hover .sidebar-user-row .sidebar-user { border-radius:8px 0 0 8px; }
+      .sidebar.collapsed:hover .sidebar-user-row .sidebar-signout-btn { display:flex; border-radius:0 8px 8px 0; height:40px; }
+    }
+
     /* Sidebar search */
     .sidebar-search { position:relative; margin-bottom:0.5rem; flex-shrink:0; }
     .sidebar-search svg { position:absolute; left:0.6rem; top:50%; transform:translateY(-50%); width:13px; height:13px; color:var(--text-3); pointer-events:none; }
@@ -257,10 +278,14 @@
     .drawer-backdrop { visibility:hidden; pointer-events:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:398; opacity:0; transition:opacity 0.25s, visibility 0.25s; backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); }
     .drawer-backdrop.open { visibility:visible; pointer-events:auto; opacity:1; }
 
-    /* Mobile topbar icon buttons */
+    /* Mobile topbar icon buttons (kept for compat) */
     .mob-icon-btn { display:none; width:34px; height:34px; border-radius:8px; background:none; border:none; cursor:pointer; color:var(--text-2); align-items:center; justify-content:center; flex-shrink:0; transition:background 0.12s; }
     .mob-icon-btn:hover { background:var(--surface2); color:var(--text); }
     .mob-icon-btn svg { width:18px; height:18px; }
+    /* Mobile floating drawer button */
+    .mob-fab { display:none; position:fixed; top:calc(env(safe-area-inset-top) + 0.85rem); left:0.9rem; z-index:350; width:38px; height:38px; border-radius:10px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow); cursor:pointer; color:var(--text-2); align-items:center; justify-content:center; transition:all 0.12s; }
+    .mob-fab:hover { background:var(--surface2); color:var(--text); }
+    .mob-fab svg { width:18px; height:18px; }
 
     /* ── CONTENT ── */
     .content { flex:1; overflow-y:auto; padding:1.75rem 1.75rem; background:var(--bg); }
@@ -572,10 +597,10 @@
 
     /* ── RESPONSIVE / MOBILE ── */
     @media (max-width: 767px) {
-      /* Stable full-height layout */
+      /* Stable full-height layout — no topbar, sidebar is fixed drawer */
       body { height: 100dvh; overflow: hidden; }
-      #app { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-      .main { flex: 1; overflow: hidden; min-height: 0; display: flex; flex-direction: column; }
+      #app { height: 100dvh; display: flex; flex-direction: row; overflow: hidden; }
+      .main { flex: 1; overflow: hidden; min-height: 0; display: flex; flex-direction: row; }
       .content {
         flex: 1; overflow-y: auto; overflow-x: hidden;
         padding: 1.1rem 0.9rem calc(1.5rem + env(safe-area-inset-bottom));
@@ -604,15 +629,11 @@
       .sidebar-collapse-btn { display: none; }
       .sidebar.collapsed .sidebar-signout-btn { display: flex; }
 
-      /* Topbar — visible on mobile, respects notch */
-      .topbar {
-        display: flex;
-        padding: 0 0.75rem;
-        padding-top: env(safe-area-inset-top);
-        height: calc(52px + env(safe-area-inset-top));
-      }
-      .section-label { display: block; }
-      .mob-icon-btn { display: flex; }
+      /* No topbar on mobile — FAB handles drawer open */
+      .topbar { display: none !important; }
+      .mob-fab { display: flex; }
+      /* Content needs top clearance for FAB */
+      .content { padding-top: calc(env(safe-area-inset-top) + 3.75rem); }
 
       /* Sidebar drawer: shadow for elevation over content */
       .sidebar, .sidebar.collapsed {
@@ -816,24 +837,13 @@
 <!-- Drawer backdrop (mobile) -->
 <div class="drawer-backdrop" id="drawer-backdrop" onclick="closeDrawer()"></div>
 
+<!-- Mobile drawer FAB (no topbar on mobile) -->
+<button class="mob-fab" onclick="openDrawer()" aria-label="Menu">
+  <svg viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+</button>
+
 <!-- ══ APP ══ -->
 <div id="app">
-  <div class="topbar">
-    <div class="topbar-l">
-      <button class="mob-icon-btn" id="mob-menu-btn" onclick="openDrawer()" aria-label="Menu">
-        <svg viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-      </button>
-      <span class="section-label" id="tb-section">Product Index</span>
-    </div>
-    <div class="topbar-r">
-      <button class="mob-icon-btn" id="mob-search-btn" onclick="mobileSearch()" aria-label="Search">
-        <svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.6"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-      </button>
-      <button class="theme-btn mob-icon-btn" onclick="toggleTheme()" id="mob-theme-btn" aria-label="Toggle theme">☾</button>
-      <div class="u-avatar" id="u-av" onclick="openProfile()" style="width:30px;height:30px;font-size:0.62rem">–</div>
-    </div>
-  </div>
-
   <div class="main">
     <div class="sidebar" id="sidebar">
       <div class="sidebar-hdr">
@@ -1146,9 +1156,7 @@ function toggleTheme() {
   setThemeIcon(t)
 }
 function setThemeIcon(t) {
-  const icon = t === 'light' ? '☾' : '☀'
-  const mob = document.getElementById('mob-theme-btn')
-  if (mob) mob.textContent = icon
+  // theme-btn is the sidebar nav-item (SVG icon, no text to swap)
 }
 
 /* ── INIT ── */
