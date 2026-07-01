@@ -969,8 +969,8 @@
       /* Modals: sheet from bottom */
       .overlay { align-items: flex-end; padding: 0; }
       .modal { border-radius: 20px 20px 0 0; max-height: 92dvh; margin: 0; width: 100%; max-width: 100%; }
-      .label-modal-wrap { flex-direction: column; }
-      .label-fields-panel { width: 100%; }
+      .lbl-editor-modal { width: 100%; max-width: 100%; }
+      .lbl-ed-canvas { padding: 1.5rem 1rem; min-height: 200px; }
       .two-col { grid-template-columns: 1fr; }
       .two-col .full { grid-column: 1; }
     }
@@ -1040,72 +1040,128 @@
 
     /* ── LABEL PREVIEW WRAPPER ── */
     #label-preview {
-      zoom: 1.6;
       display: inline-block;
-      box-shadow: 0 2px 16px rgba(0,0,0,0.18);
-      border-radius: 3px;
     }
-    /* Firefox: zoom not supported, use transform instead */
+
+    /* ── LABEL EDITOR (Round 2) ── */
+    .lbl-editor-modal {
+      width: 560px;
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: 90vh;
+    }
+    .lbl-ed-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 1.4rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .lbl-ed-eyebrow {
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-3);
+      margin-bottom: 0.15rem;
+    }
+    .lbl-ed-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .lbl-ed-canvas {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-alt);
+      padding: 2.5rem 2rem;
+      min-height: 260px;
+      overflow: auto;
+    }
+    .lbl-ed-paper {
+      filter: drop-shadow(0 6px 28px rgba(0,0,0,0.16)) drop-shadow(0 1px 4px rgba(0,0,0,0.08));
+      display: inline-block;
+    }
+    .lbl-ed-paper #label-preview {
+      zoom: 2;
+      display: inline-block;
+    }
     @supports not (zoom: 1) {
-      #label-preview { zoom: unset; transform: scale(1.6); transform-origin: top center; }
-      .label-preview-scaler { width: 160mm; display: flex; justify-content: center; padding-bottom: 60%; overflow: hidden; }
+      .lbl-ed-paper #label-preview { zoom: unset; transform: scale(2); transform-origin: top left; }
     }
-
-    /* ── LABEL MODAL ── */
-    .label-modal-wrap { display:flex; align-items:stretch; gap:0; min-height:460px; }
-
-    /* Left panel: field editor */
-    .label-fields-panel {
-      width:252px; flex-shrink:0;
-      border-right:1px solid var(--border);
-      overflow-y:auto;
-      padding:0.75rem 0 1.5rem;
+    .lbl-ed-controls {
+      flex-shrink: 0;
+      padding: 1rem 1.4rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
     }
-    .label-fields-panel h4 { display:none; }
-
-    .lf-group { margin-bottom:0.1rem; }
-    .lf-group-hdr {
-      font-size:0.55rem; font-weight:700; text-transform:uppercase; letter-spacing:0.18em;
-      color:var(--text-3); padding:0.85rem 1.25rem 0.25rem;
+    .lbl-ed-sec-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
     }
-    .lf-row {
-      display:flex; align-items:center; gap:0.5rem;
-      padding:0.34rem 1rem 0.34rem 1rem;
-      cursor:pointer; transition:opacity 0.15s, background 0.1s;
-      border-left:2px solid transparent;
-      user-select:none;
+    .lbl-ed-sec-label {
+      font-size: 0.58rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-3);
+      flex-shrink: 0;
     }
-    .lf-row:hover { background:var(--surface2); }
-    .lf-row.lf-active { border-left-color:var(--accent); }
-    .lf-row.lf-inactive { opacity:0.3; }
-    .lf-key {
-      font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;
-      color:var(--text-3); flex-shrink:0; width:72px; line-height:1.2;
+    .lbl-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
     }
-    .lf-val {
-      flex:1; min-width:0;
-      font-size:0.8rem; font-weight:500; color:var(--text);
-      background:none; border:none; outline:none;
-      font-family:inherit; cursor:text;
-      padding:0.1rem 0.25rem; border-radius:4px;
-      transition:background 0.1s;
+    .lbl-chip {
+      font-size: 0.7rem;
+      font-family: inherit;
+      padding: 0.22rem 0.7rem;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: none;
+      color: var(--text-2);
+      cursor: pointer;
+      transition: all 0.12s;
+      user-select: none;
+      line-height: 1.4;
     }
-    .lf-val:focus { background:var(--surface2); }
-    .lf-row.lf-inactive .lf-val { pointer-events:none; }
-
-    /* Preview panel */
-    .label-preview-panel {
-      flex:1; display:flex; flex-direction:column;
-      align-items:center; justify-content:center;
-      background:var(--bg-alt); padding:2rem 1.5rem 1.25rem; gap:1rem;
+    .lbl-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .lbl-chip.lbl-chip-on {
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
     }
-    .label-preview-scaler {
-      display:inline-block;
-      filter:drop-shadow(0 4px 20px rgba(0,0,0,0.15)) drop-shadow(0 1px 3px rgba(0,0,0,0.08));
+    .lbl-chip.lbl-chip-off { opacity: 0.35; }
+    .lbl-comment-input {
+      width: 100%;
+      background: none;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      padding: 0.3rem 0;
+      font-size: 0.82rem;
+      font-family: inherit;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.12s;
+      box-sizing: border-box;
     }
-    .label-preview-panel .preview-hint {
-      font-size:0.6rem; color:var(--text-3); letter-spacing:0.04em;
-    }
+    .lbl-comment-input::placeholder { color: var(--text-3); }
+    .lbl-comment-input:focus { border-bottom-color: var(--accent); }
+    /* Legacy selectors — keep for mobile override compatibility */
+    .label-modal-wrap { display:none; }
+    .label-fields-panel { display:none; }
+    .label-preview-panel { display:none; }
 
     /* ════════════════════════════
        PRINT STYLES — QL-800 62mm
@@ -1528,29 +1584,31 @@
 
 <!-- ══ MODAL: LABEL ══ -->
 <div class="overlay" id="m-label">
-  <div class="modal" style="width:800px;padding:0;overflow:hidden">
-    <div class="modal-hdr" style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border)">
+  <div class="modal lbl-editor-modal">
+    <!-- Header -->
+    <div class="lbl-ed-hdr">
       <div>
-        <div class="modal-eyebrow" style="color:var(--text-3)">Technical Label</div>
-        <div class="modal-title" id="lbl-title"></div>
+        <div class="lbl-ed-eyebrow">Technical Label</div>
+        <div class="lbl-ed-title" id="lbl-title"></div>
       </div>
       <button class="btn-icon" onclick="closeModal('m-label')">✕</button>
     </div>
-    <div class="modal-body" style="padding:0">
-      <div class="label-modal-wrap">
-        <!-- FIELD EDITOR -->
-        <div class="label-fields-panel">
-          <div id="label-field-toggles"></div>
-        </div>
-        <!-- LIVE PREVIEW -->
-        <div class="label-preview-panel">
-          <div class="label-preview-scaler">
-            <div id="label-preview"></div>
-          </div>
-          <span class="preview-hint">1.6× preview · prints at 62mm on QL-800</span>
-        </div>
+    <!-- Hero: label preview -->
+    <div class="lbl-ed-canvas">
+      <div class="lbl-ed-paper">
+        <div id="label-preview"></div>
       </div>
     </div>
+    <!-- Minimal controls -->
+    <div class="lbl-ed-controls">
+      <div class="lbl-ed-sec-row">
+        <span class="lbl-ed-sec-label">Sections</span>
+        <div class="lbl-chips" id="lbl-chips"></div>
+      </div>
+      <input class="lbl-comment-input" id="lbl-comment-val" type="text" placeholder="Add a note to the label…"
+        oninput="setLabelFieldValue('Comments',this.value);updateLabelPreview()" />
+    </div>
+    <!-- Footer -->
     <div class="modal-ftr" style="border-top:1px solid var(--border)">
       <button class="btn btn-ghost btn-sm" onclick="closeModal('m-label')">Cancel</button>
       <div style="display:flex;gap:0.5rem">
@@ -2523,6 +2581,16 @@ function fichaBody(p) {
 /* ── LABEL FIELD STATE ── */
 let labelFieldState = []
 
+const LABEL_SECTION_DEFS = [
+  { key: 'identity',    label: 'Reference',   fields: ['Mill Article', 'LOT'] },
+  { key: 'origin',      label: 'Origin',      fields: ['Manufactured In'] },
+  { key: 'composition', label: 'Composition', fields: ['Composition'] },
+  { key: 'color',       label: 'Color',       fields: ['Color', 'Dyed Method'] },
+  { key: 'dimensions',  label: 'Dimensions',  fields: ['Width', 'GSM', 'DIA', 'Gauge'] },
+  { key: 'yarns',       label: 'Yarns',       fields: ['Yarn 01', 'Yarn 02', 'Yarn 03'] },
+]
+let lblSections = {}
+
 const LABEL_FIELD_GROUPS = [
   { group: 'Header',      fields: ['Mill Article', 'LOT', 'Manufactured In'] },
   { group: 'Identity',    fields: ['Product Name'] },
@@ -2570,8 +2638,17 @@ function fieldGroup(key) {
 function openLabel() {
   if (!selected) return
   buildLabelFieldState(selected)
+  // Initialize sections: on if any of its fields have data
+  lblSections = {}
+  LABEL_SECTION_DEFS.forEach(sec => {
+    lblSections[sec.key] = sec.fields.some(f => labelFieldState.find(s => s.key === f && s.enabled))
+  })
   document.getElementById('lbl-title').textContent = selected.name
-  renderFieldToggles()
+  // Restore comment field in input
+  const commentField = labelFieldState.find(f => f.key === 'Comments')
+  const commentInput = document.getElementById('lbl-comment-val')
+  if (commentInput) commentInput.value = commentField ? commentField.value : ''
+  renderLblChips()
   updateLabelPreview()
   document.getElementById('m-label').classList.add('open')
 }
@@ -2724,44 +2801,30 @@ async function deleteComment(commentId, productId) {
   loadFichaComments(productId)
 }
 
-function renderFieldToggles() {
-  const groups = {}
-  labelFieldState.forEach(f => {
-    const g = fieldGroup(f.key)
-    if (!groups[g]) groups[g] = []
-    groups[g].push(f)
-  })
-  let html = ''
-  Object.entries(groups).forEach(([g, fields]) => {
-    html += `<div class="lf-group"><div class="lf-group-hdr">${g}</div>`
-    fields.forEach(f => {
-      const safeKey = f.key.replace(/'/g, "\\'").replace(/"/g, '&quot;')
-      const safeVal = String(f.value ?? '').replace(/"/g, '&quot;')
-      html += `<div class="lf-row ${f.enabled ? 'lf-active' : 'lf-inactive'}" onclick="lfRowToggle(event,'${f.key.replace(/'/g,"\\'")}')">
-        <span class="lf-key">${f.key}</span>
-        <input class="lf-val" type="text" value="${safeVal}"
-          onclick="event.stopPropagation()"
-          oninput="setLabelFieldValue('${f.key.replace(/'/g,"\\'")}',this.value)"
-          ${f.enabled ? '' : 'tabindex="-1"'} />
-      </div>`
-    })
-    html += '</div>'
-  })
-  document.getElementById('label-field-toggles').innerHTML = html
+function renderLblChips() {
+  const chips = document.getElementById('lbl-chips')
+  if (!chips) return
+  chips.innerHTML = LABEL_SECTION_DEFS.map(sec => {
+    const hasData = sec.fields.some(f => labelFieldState.find(s => s.key === f))
+    if (!hasData) return ''
+    const on = lblSections[sec.key]
+    return `<button class="lbl-chip ${on ? 'lbl-chip-on' : 'lbl-chip-off'}" onclick="toggleLblSection('${sec.key}')">${sec.label}</button>`
+  }).join('')
 }
 
-function lfRowToggle(e, key) {
-  if (e.target.tagName === 'INPUT') return
-  const f = labelFieldState.find(f => f.key === key)
-  if (!f) return
-  f.enabled = !f.enabled
-  const row = e.currentTarget
-  row.classList.toggle('lf-active', f.enabled)
-  row.classList.toggle('lf-inactive', !f.enabled)
-  const inp = row.querySelector('.lf-val')
-  if (inp) inp.tabIndex = f.enabled ? 0 : -1
+function toggleLblSection(key) {
+  lblSections[key] = !lblSections[key]
+  // Sync to labelFieldState
+  const sec = LABEL_SECTION_DEFS.find(s => s.key === key)
+  if (sec) sec.fields.forEach(f => {
+    const field = labelFieldState.find(s => s.key === f)
+    if (field) field.enabled = lblSections[key]
+  })
+  renderLblChips()
   updateLabelPreview()
 }
+
+function renderFieldToggles() { /* legacy — no-op in Round 2 */ }
 
 function toggleLabelField(key, enabled) {
   const f = labelFieldState.find(f => f.key === key)
