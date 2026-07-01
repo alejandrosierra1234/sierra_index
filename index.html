@@ -3227,7 +3227,7 @@ async function generateTechnicalSheet() {
   if (!p) return
   const code = p.code || p.id.slice(0,6).toUpperCase()
   const specs = p.specs || {}
-  const divLabel = DIV_LBL[p.division] || p.division
+  const divLabel = (DIV_LBL[p.division] || p.division || '').replace('SIERRA ','').toUpperCase()
   const dateStr = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
   const barcode = getProductBarcode(p)
   const pubUrl = getProductPublicUrl(p)
@@ -3243,11 +3243,11 @@ async function generateTechnicalSheet() {
     return `<div class="kv"><span class="kv-k">${esc2(k)}</span><span class="kv-v">${esc2(String(v))}</span></div>`
   }
 
-  // Pre-generate barcode SVG string
+  // Pre-generate barcode SVG
   let bcSvgStr = ''
   try {
     const tmp = document.createElementNS('http://www.w3.org/2000/svg','svg')
-    JsBarcode(tmp, barcode, { format:'CODE128', width:1.5, height:32, displayValue:false, margin:0, background:'#ffffff', lineColor:'#0c0c0c' })
+    JsBarcode(tmp, barcode, { format:'CODE128', width:1.4, height:28, displayValue:false, margin:0, background:'#ffffff', lineColor:'#0c0c0c' })
     bcSvgStr = new XMLSerializer().serializeToString(tmp)
   } catch(e) {}
 
@@ -3255,7 +3255,7 @@ async function generateTechnicalSheet() {
   let qrDataUrl = ''
   try {
     qrDataUrl = await new Promise((res,rej) => {
-      QRCode.toDataURL(pubUrl, { width:84, margin:0, color:{dark:'#0c0c0c',light:'#ffffff'} },
+      QRCode.toDataURL(pubUrl, { width:80, margin:0, color:{dark:'#0c0c0c',light:'#ffffff'} },
         (err,url) => err ? rej(err) : res(url))
     })
   } catch(e) {}
@@ -3292,67 +3292,73 @@ async function generateTechnicalSheet() {
     ['Rec Date', specs['Rec Date']],
   ].filter(([,v]) => ne(v))
 
-  // ── LEFT COLUMN: Composition + Overview ───────────────
-  let leftHtml = ''
-  if (compParts.length || overviewKvs.length) {
-    leftHtml += `<div class="spec-block">`
-    leftHtml += `<div class="spec-lbl">Composition &amp; Overview</div>`
-    if (compParts.length) {
-      leftHtml += `<div class="comp-text">${compParts.map(l =>
-        l.replace(/^(\d+%)/, '<strong>$1</strong>')).join('<br>')}</div>`
-    }
-    overviewKvs.forEach(([k,v]) => { leftHtml += kv(k,v) })
-    leftHtml += `</div>`
-  }
-  if (yarns.length) {
-    leftHtml += `<div class="spec-block"><div class="spec-lbl">Yarn Composition</div>`
-    yarns.forEach((y,i) => {
-      leftHtml += `<div class="yarn-row"><span class="yarn-n">${String(i+1).padStart(2,'0')}</span><span>${esc2(y)}</span></div>`
-    })
-    leftHtml += `</div>`
-  }
-  // Generic division fallback
-  if (!leftHtml && p.description) {
-    leftHtml = `<div class="spec-block"><div class="spec-lbl">Description</div><div class="notes-text">${esc2(p.description)}</div></div>`
+  // Subtitle: Construction · Dye Method under product name
+  const subtitleParts = [
+    specs.Construction ? (CONST_META[specs.Construction]?.label || specs.Construction) : null,
+    specs['Dyed Method'] || null,
+  ].filter(Boolean)
+  const subtitle = subtitleParts.join(' · ')
+
+  // ── CONTENT: Composition block (full-width) ───────────
+  let compHtml = ''
+  if (compParts.length) {
+    compHtml = `<div class="comp-text">${compParts.map(l =>
+      l.replace(/^(\d+%)/, '<strong>$1</strong>')).join('<br>')}</div>`
   }
 
-  // ── RIGHT COLUMN: Construction + Tech Specs + Commercial ──
-  let rightHtml = ''
+  // ── SPEC GRID ── left: overview + yarns, right: construction + tech + commercial
+  let gridLeft = ''
+  if (overviewKvs.length) {
+    gridLeft += `<div class="sec"><div class="sec-lbl">Overview</div>`
+    overviewKvs.forEach(([k,v]) => { gridLeft += kv(k,v) })
+    gridLeft += `</div>`
+  }
+  if (yarns.length) {
+    gridLeft += `<div class="sec"><div class="sec-lbl">Yarn Composition</div>`
+    yarns.forEach((y,i) => {
+      gridLeft += `<div class="yarn-row"><span class="yarn-n">${String(i+1).padStart(2,'0')}</span><span>${esc2(y)}</span></div>`
+    })
+    gridLeft += `</div>`
+  }
+
+  let gridRight = ''
   if (constFields.length) {
-    rightHtml += `<div class="spec-block"><div class="spec-lbl">Construction &amp; Dyeing</div>`
-    constFields.forEach(([k,v]) => { rightHtml += kv(k,v) })
-    rightHtml += `</div>`
+    gridRight += `<div class="sec"><div class="sec-lbl">Construction &amp; Dyeing</div>`
+    constFields.forEach(([k,v]) => { gridRight += kv(k,v) })
+    gridRight += `</div>`
   }
   if (dimFields.length || hasCompare) {
-    rightHtml += `<div class="spec-block"><div class="spec-lbl">Technical Specifications</div>`
-    dimFields.forEach(([k,v]) => { rightHtml += kv(k,v) })
+    gridRight += `<div class="sec"><div class="sec-lbl">Technical Specifications</div>`
+    dimFields.forEach(([k,v]) => { gridRight += kv(k,v) })
     if (hasCompare) {
-      rightHtml += `<table class="cmp-tbl">
+      gridRight += `<table class="cmp-tbl">
         <thead><tr><th></th><th>Width</th><th>GSM</th></tr></thead>
         <tbody>
           <tr><td class="cmp-row-lbl">Requested</td><td>${ne(rw)?esc2(rw):'—'}</td><td>${ne(rg)?esc2(rg):'—'}</td></tr>
           <tr><td class="cmp-row-lbl">Standard</td><td>${ne(sw)?esc2(sw):'—'}</td><td>${ne(sg)?esc2(sg):'—'}</td></tr>
         </tbody></table>`
     }
-    rightHtml += `</div>`
+    gridRight += `</div>`
   }
   if (commFields.length) {
-    rightHtml += `<div class="spec-block"><div class="spec-lbl">Commercial</div>`
-    commFields.forEach(([k,v]) => { rightHtml += kv(k,v) })
-    rightHtml += `</div>`
+    gridRight += `<div class="sec"><div class="sec-lbl">Commercial</div>`
+    commFields.forEach(([k,v]) => { gridRight += kv(k,v) })
+    gridRight += `</div>`
   }
-  // Generic division specs fallback
-  if (!rightHtml) {
+
+  // Generic division fallback
+  if (!gridLeft && !gridRight && !compHtml) {
+    if (p.description) gridLeft = `<div class="sec"><div class="sec-lbl">Description</div><div class="notes-text">${esc2(p.description)}</div></div>`
     const entries = Object.entries(specs).filter(([,v]) => ne(v))
     if (entries.length) {
-      rightHtml = `<div class="spec-block"><div class="spec-lbl">Specifications</div>`
-      entries.forEach(([k,v]) => { rightHtml += kv(k,v) })
-      rightHtml += `</div>`
+      gridRight = `<div class="sec"><div class="sec-lbl">Specifications</div>`
+      entries.forEach(([k,v]) => { gridRight += kv(k,v) })
+      gridRight += `</div>`
     }
   }
 
   const notesHtml = specs.Comments
-    ? `<div class="notes-block"><div class="spec-lbl">Notes</div><div class="notes-text">${esc2(specs.Comments)}</div></div>`
+    ? `<div class="ct-notes"><div class="sec-lbl">Notes</div><div class="notes-text">${esc2(specs.Comments)}</div></div>`
     : ''
 
   // ── LOGOS ─────────────────────────────────────────────
@@ -3375,220 +3381,222 @@ async function generateTechnicalSheet() {
     font-size: 10px; line-height: 1.5;
   }
 
-  /* ── PAGE SHELL ── */
+  /* ── PAGE: SIDEBAR + CONTENT ── */
   .page {
     width: 210mm;
     min-height: 297mm;
-    padding: 13mm 16mm 11mm;
+    display: flex;
+    flex-direction: row;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 58mm;
+    flex-shrink: 0;
+    border-right: 1px solid #e2e2e2;
+    padding: 13mm 9mm 11mm 12mm;
     display: flex;
     flex-direction: column;
   }
-
-  /* ── HEADER ── */
-  .hdr {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding-bottom: 7mm;
-    border-bottom: 1px solid #0c0c0c;
-    margin-bottom: 0;
+  .sb-logo { width: 100%; margin-bottom: 4.5mm; }
+  .sb-logo svg { width: 100%; height: auto; display: block; }
+  .sb-division {
+    font-size: 18px; font-weight: 800;
+    letter-spacing: -0.02em; color: #0c0c0c;
+    line-height: 1; margin-bottom: 5mm;
   }
-  .hdr-logo { width: 140px; flex-shrink: 0; }
-  .hdr-logo svg { width: 100%; height: auto; display: block; }
-  .hdr-label {
-    font-size: 7px; font-weight: 700;
+  .sb-rule-dotted {
+    border: none; border-top: 0.5px dotted #d0d0d0;
+    margin-bottom: 4.5mm;
+  }
+  .sb-tagline {
+    font-size: 7px; color: #aaa; line-height: 1.75;
+    margin-bottom: 5mm;
+  }
+  .sb-contact { }
+  .sb-contact-row {
+    font-size: 6.5px; color: #888; line-height: 2.1;
+    display: flex; align-items: center; gap: 2mm;
+  }
+  .sb-contact-row svg { flex-shrink: 0; opacity: 0.4; }
+  .sb-spacer { flex: 1; min-height: 8mm; }
+  .sb-codes { }
+  .sb-date {
+    font-size: 6px; color: #ccc; letter-spacing: 0.04em;
+    text-transform: uppercase; margin-bottom: 4mm;
+  }
+  .sb-qr { margin-bottom: 3.5mm; }
+  .sb-qr img { width: 22mm; height: 22mm; display: block; }
+  .sb-bc svg { width: 100%; height: auto; max-height: 9mm; display: block; }
+  .sb-bc-id {
+    font-size: 5.5px; color: #bbb; letter-spacing: 0.06em;
+    margin-top: 1.5mm; font-family: 'Courier New', monospace;
+  }
+
+  /* ── CONTENT AREA ── */
+  .content {
+    flex: 1; min-width: 0;
+    padding: 13mm 14mm 11mm 11mm;
+    display: flex; flex-direction: column;
+  }
+
+  /* Doc label top-right */
+  .ct-doc {
+    font-size: 6.5px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.2em;
-    color: #bbb; padding-top: 4px; text-align: right;
+    color: #ccc; text-align: right; margin-bottom: 7mm;
   }
 
-  /* ── HERO ── */
-  .hero { padding: 7mm 0 7mm; }
-  .hero-div {
+  /* Product identity */
+  .ct-sku {
     font-size: 7px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.18em;
-    color: #bbb; margin-bottom: 3.5mm;
+    text-transform: uppercase; letter-spacing: 0.14em;
+    color: #bbb; margin-bottom: 3mm;
   }
-  .hero-name {
-    font-size: 34px; font-weight: 700;
-    letter-spacing: -0.045em; line-height: 1.0;
-    color: #0c0c0c; margin-bottom: 3mm;
+  .ct-name {
+    font-size: 27px; font-weight: 700;
+    letter-spacing: -0.04em; line-height: 1.0;
+    color: #0c0c0c; margin-bottom: 2.5mm;
   }
-  .hero-code {
-    font-size: 8px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.14em; color: #999;
+  .ct-subtitle {
+    font-size: 8px; font-weight: 600; color: #16cdbe;
+    letter-spacing: 0.03em; margin-bottom: 6.5mm;
   }
 
-  /* ── DIVIDER ── */
-  .divider { height: 1px; background: #e4e4e4; margin-bottom: 7mm; }
-
-  /* ── BODY GRID ── */
-  .body { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; flex: 1; }
-
-  /* ── SPEC BLOCK ── */
-  .spec-block { margin-bottom: 6.5mm; }
-  .spec-block:last-child { margin-bottom: 0; }
-  .spec-lbl {
+  /* Composition — full-width typographic block */
+  .ct-composition {
+    padding-bottom: 5.5mm; margin-bottom: 5.5mm;
+    border-bottom: 0.5px solid #e2e2e2;
+  }
+  .ct-composition-lbl {
     font-size: 6px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.2em;
-    color: #bbb; padding-bottom: 3mm; margin-bottom: 3.5mm;
-    border-bottom: 0.5px solid #e4e4e4;
+    color: #bbb; margin-bottom: 3mm;
   }
-
-  /* ── COMPOSITION ── */
   .comp-text {
-    font-size: 14.5px; font-weight: 500;
-    line-height: 1.7; color: #0c0c0c; margin-bottom: 5mm;
+    font-size: 14px; font-weight: 500;
+    line-height: 1.7; color: #0c0c0c;
   }
   .comp-text strong { font-weight: 700; }
 
-  /* ── KEY–VALUE ── */
+  /* Spec grid */
+  .ct-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 7mm; flex: 1;
+  }
+
+  /* Section */
+  .sec { margin-bottom: 6mm; page-break-inside: avoid; }
+  .sec:last-child { margin-bottom: 0; }
+  .sec-lbl {
+    font-size: 6px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.2em;
+    color: #bbb; padding-bottom: 2.5mm; margin-bottom: 3mm;
+    border-bottom: 0.5px solid #e2e2e2;
+  }
+
+  /* Key–value */
   .kv {
     display: flex; justify-content: space-between; align-items: baseline;
-    padding: 2.5mm 0; border-bottom: 0.5px solid #f0f0f0;
+    padding: 2mm 0; border-bottom: 0.5px solid #f0f0f0;
   }
   .kv:last-child { border-bottom: none; }
   .kv-k {
-    font-size: 7px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.09em; color: #bbb;
-    flex-shrink: 0; padding-right: 4mm;
+    font-size: 6.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.09em;
+    color: #bbb; flex-shrink: 0; padding-right: 3mm;
   }
   .kv-v {
-    font-size: 9.5px; font-weight: 500; color: #0c0c0c;
-    text-align: right; line-height: 1.4;
+    font-size: 9px; font-weight: 500;
+    color: #0c0c0c; text-align: right; line-height: 1.4;
   }
 
-  /* ── COMPARISON TABLE ── */
-  .cmp-tbl { width: 100%; border-collapse: collapse; margin-top: 4mm; }
+  /* Comparison table */
+  .cmp-tbl { width: 100%; border-collapse: collapse; margin-top: 3.5mm; }
   .cmp-tbl thead th {
-    font-size: 6.5px; font-weight: 700;
+    font-size: 6px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.1em;
-    color: #bbb; text-align: left; padding-bottom: 2.5mm;
-    border-bottom: 0.5px solid #e4e4e4;
+    color: #bbb; text-align: left; padding-bottom: 2mm;
+    border-bottom: 0.5px solid #e2e2e2;
   }
   .cmp-tbl thead th:not(:first-child) { text-align: right; }
-  .cmp-tbl tbody td {
-    font-size: 9.5px; font-weight: 500; color: #0c0c0c;
-    padding: 2.5mm 0 0;
-  }
+  .cmp-tbl tbody td { font-size: 9px; font-weight: 500; color: #0c0c0c; padding: 2mm 0 0; }
   .cmp-tbl tbody td:not(:first-child) { text-align: right; }
-  .cmp-row-lbl {
-    font-size: 6.5px !important; font-weight: 700 !important;
-    text-transform: uppercase; letter-spacing: 0.08em; color: #bbb !important;
-  }
+  .cmp-row-lbl { font-size: 6px !important; font-weight: 700 !important; text-transform: uppercase; letter-spacing: 0.08em; color: #bbb !important; }
 
-  /* ── YARN ROWS ── */
+  /* Yarn */
   .yarn-row {
-    display: flex; gap: 4mm; align-items: baseline;
-    padding: 2.5mm 0; border-bottom: 0.5px solid #f0f0f0;
-    font-size: 9.5px; font-weight: 500; color: #0c0c0c;
+    display: flex; gap: 3.5mm; align-items: baseline;
+    padding: 2mm 0; border-bottom: 0.5px solid #f0f0f0;
+    font-size: 9px; font-weight: 500; color: #0c0c0c;
   }
-  .yarn-n {
-    font-size: 6.5px; font-weight: 700;
-    letter-spacing: 0.08em; text-transform: uppercase;
-    color: #bbb; flex-shrink: 0; min-width: 6mm;
-  }
+  .yarn-n { font-size: 6px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #bbb; flex-shrink: 0; min-width: 5mm; }
 
-  /* ── NOTES ── */
-  .notes-block { margin-top: 5mm; padding-top: 5mm; border-top: 0.5px solid #e4e4e4; }
-  .notes-text { font-size: 9px; color: #555; line-height: 1.75; margin-top: 3mm; }
+  /* Notes */
+  .ct-notes { margin-top: 5mm; padding-top: 4mm; border-top: 0.5px solid #e2e2e2; }
+  .notes-text { font-size: 8.5px; color: #555; line-height: 1.75; margin-top: 2.5mm; }
 
-  /* ── FOOTER ── */
-  .footer {
-    margin-top: 7mm;
-    padding-top: 5.5mm;
-    border-top: 1px solid #0c0c0c;
-    display: flex;
-    align-items: flex-end;
-    gap: 0;
-  }
-  .ftr-brand {
-    display: flex; align-items: center; gap: 4mm;
-    flex-shrink: 0; min-width: 52mm;
-  }
-  .ftr-bug { width: 20px; flex-shrink: 0; }
-  .ftr-bug svg { width: 100%; height: auto; display: block; }
-  .ftr-contact {
-    font-size: 6.5px; color: #999; line-height: 1.95;
-  }
-  .ftr-meta {
-    flex: 1; padding: 0 5mm;
-    font-size: 6.5px; color: #bbb; line-height: 1.95;
-  }
-  .ftr-codes {
-    display: flex; align-items: flex-end; gap: 4mm; flex-shrink: 0;
-  }
-  .ftr-qr img { width: 18mm; height: 18mm; display: block; }
-  .ftr-bc { display: flex; flex-direction: column; }
-  .ftr-bc svg { width: 44mm; height: auto; max-height: 11mm; display: block; }
-  .ftr-bc-id {
-    font-size: 5.5px; color: #bbb; letter-spacing: 0.08em;
-    margin-top: 1.2mm; font-family: 'Courier New', monospace; text-align: center;
-  }
-
-  /* ── SCREEN PREVIEW ── */
+  /* Screen */
   @media screen {
-    body { background: #d0d0d0; padding: 28px 0; }
-    .page {
-      width: 794px; margin: 0 auto;
-      min-height: 1122px;
-      box-shadow: 0 2px 40px rgba(0,0,0,0.18);
-      background: #fff;
-    }
-    .print-btn {
-      position: fixed; top: 20px; right: 20px; z-index: 200;
-      background: #0c0c0c; color: #fff; border: none; border-radius: 8px;
-      padding: 9px 18px; font-size: 12px; font-weight: 600;
-      font-family: inherit; cursor: pointer; letter-spacing: 0.02em;
-    }
+    body { background: #c4c4c4; padding: 28px 0; }
+    .page { width: 794px; margin: 0 auto; min-height: 1122px; box-shadow: 0 2px 40px rgba(0,0,0,0.2); background: #fff; }
+    .print-btn { position: fixed; top: 20px; right: 20px; z-index: 200; background: #0c0c0c; color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: 0.02em; }
     .print-btn:hover { background: #333; }
   }
   @media print {
     body { background: #fff; padding: 0; }
     .print-btn { display: none; }
-    .page { width: 210mm; box-shadow: none; }
+    .page { width: 210mm; }
   }
 </style>
 </head><body>
 <button class="print-btn" onclick="window.print()">Save PDF</button>
 <div class="page">
 
-  <!-- HEADER -->
-  <div class="hdr">
-    <div class="hdr-logo">${logoWordmark}</div>
-    <div class="hdr-label">Technical Sheet</div>
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar">
+    <div class="sb-logo">${logoWordmark}</div>
+    <div class="sb-division">${esc2(divLabel)}</div>
+    <hr class="sb-rule-dotted">
+    <div class="sb-tagline">Textile intelligence<br>for global brands.</div>
+    <hr class="sb-rule-dotted">
+    <div class="sb-contact">
+      <div class="sb-contact-row">
+        <svg width="8" height="8" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/><path d="M8 1C8 1 5 5 5 8s3 7 3 7M8 1c0 0 3 4 3 7s-3 7-3 7M1 8h14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        sierratextiles.com
+      </div>
+      <div class="sb-contact-row">
+        <svg width="8" height="8" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M1 5l7 5 7-5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        hello@sierratextiles.com
+      </div>
+    </div>
+    <div class="sb-spacer"></div>
+    <div class="sb-codes">
+      <div class="sb-date">${esc2(dateStr)}</div>
+      ${qrDataUrl ? `<div class="sb-qr"><img src="${qrDataUrl}" alt="QR"></div>` : ''}
+      ${bcSvgStr ? `<div class="sb-bc">${bcSvgStr}<div class="sb-bc-id">${esc2(barcode)}</div></div>` : ''}
+    </div>
   </div>
 
-  <!-- HERO -->
-  <div class="hero">
-    <div class="hero-div">${esc2(divLabel)}</div>
-    <div class="hero-name">${esc2(p.name)}</div>
-    <div class="hero-code">${esc2(code)}${p.lot ? ' &middot; LOT ' + esc2(p.lot) : ''}</div>
-  </div>
+  <!-- ── CONTENT ── -->
+  <div class="content">
+    <div class="ct-doc">Technical Sheet</div>
 
-  <div class="divider"></div>
+    <div class="ct-sku">${esc2(code)}${p.lot ? ' &middot; LOT ' + esc2(p.lot) : ''}</div>
+    <div class="ct-name">${esc2(p.name)}</div>
+    ${subtitle ? `<div class="ct-subtitle">${esc2(subtitle)}</div>` : ''}
 
-  <!-- BODY -->
-  <div class="body">
-    <div class="col-left">${leftHtml}</div>
-    <div class="col-right">${rightHtml}</div>
-  </div>
+    ${compHtml ? `<div class="ct-composition">
+      <div class="ct-composition-lbl">Composition</div>
+      ${compHtml}
+    </div>` : ''}
 
-  ${notesHtml}
-
-  <!-- FOOTER -->
-  <div class="footer">
-    <div class="ftr-brand">
-      <div class="ftr-bug">${logoBug}</div>
-      <div class="ftr-contact">www.sierratextiles.com<br>hello@sierratextiles.com</div>
+    <div class="ct-grid">
+      <div>${gridLeft}</div>
+      <div>${gridRight}</div>
     </div>
-    <div class="ftr-meta">
-      Generated ${esc2(dateStr)}<br>
-      SIERRA Index
-    </div>
-    <div class="ftr-codes">
-      ${qrDataUrl ? `<div class="ftr-qr"><img src="${qrDataUrl}" alt="Product QR"></div>` : ''}
-      ${bcSvgStr ? `<div class="ftr-bc">${bcSvgStr}<div class="ftr-bc-id">${esc2(barcode)}</div></div>` : ''}
-    </div>
+
+    ${notesHtml}
   </div>
 
 </div>
