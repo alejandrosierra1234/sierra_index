@@ -3222,498 +3222,377 @@ async function downloadImg(url, name) {
   }
 }
 
-function generateTechnicalSheet() {
+async function generateTechnicalSheet() {
   const p = selected
   if (!p) return
-  const divColor = DIV_CLR[p.division] || '#aaa'
   const code = p.code || p.id.slice(0,6).toUpperCase()
   const specs = p.specs || {}
-  const imgs = (p.image_urls && p.image_urls.length) ? p.image_urls : (p.image_url ? [p.image_url] : [])
   const divLabel = DIV_LBL[p.division] || p.division
   const dateStr = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
-  const yearStr = new Date().getFullYear()
+  const barcode = getProductBarcode(p)
+  const pubUrl = getProductPublicUrl(p)
 
   function ne(v) { return v !== null && v !== undefined && v !== '' && v !== '0' && v !== 0 }
-  function row(k, v) {
-    if (!ne(v)) return ''
-    return `<tr><td class="spec-k">${k}</td><td class="spec-v">${v}</td></tr>`
-  }
-  function section(title, inner) {
-    if (!inner.trim()) return ''
-    return `<div class="ts-section">
-      <div class="ts-sec-lbl">${title}</div>
-      ${inner}
-    </div>`
-  }
-  function tableOf(rows) {
-    const r = rows.filter(([,v]) => ne(v))
-    if (!r.length) return ''
-    return `<table class="ts-table">${r.map(([k,v]) => row(k,v)).join('')}</table>`
-  }
-
-  let bodyHtml = ''
-
-  if (p.division === 'fabric') {
-    // Overview
-    function parseComp(str) {
-      if (!str) return []
-      return str.trim().split(/(?=\d+%)/).map(s => s.trim()).filter(Boolean)
-    }
-    const compParts = parseComp(specs.Composition)
-    let overviewHtml = ''
-    if (compParts.length) {
-      overviewHtml += `<div class="ts-comp">${compParts.map(l =>
-        l.replace(/^(\d+%)/, '<strong>$1</strong> ')).join('<br>')}</div>`
-    }
-    overviewHtml += tableOf([
-      ['Color', specs.Color],
-      ['Country of Origin', p.country || 'Honduras'],
-      ['Lot', p.lot],
-      ['Mill Article', specs['Mill Article']],
-    ])
-    bodyHtml += section('Overview', overviewHtml)
-
-    // Construction
-    bodyHtml += section('Construction', tableOf([
-      ['Construction Type', specs.Construction ? (CONST_META[specs.Construction]?.label || specs.Construction) : null],
-      ['Gauge', specs.Gauge],
-      ['Needles', specs.Needles],
-      ['Diameter', specs.DIA],
-      ['Route Type', specs['Route Type']],
-    ]))
-
-    // Dyeing
-    bodyHtml += section('Dyeing', tableOf([
-      ['Dye Method', specs['Dyed Method']],
-    ]))
-
-    // Technical Specifications
-    const rw = specs['Req Width'], rg = specs['Req GSM'], sw = specs['Std Width'], sg = specs['Std GSM']
-    let techHtml = tableOf([['Width', specs.Width], ['GSM', specs.GSM]])
-    if ([rw, rg, sw, sg].some(ne)) {
-      techHtml += `<table class="ts-compare">
-        <thead><tr><th></th><th>Width</th><th>GSM</th></tr></thead>
-        <tbody>
-          <tr><td>Requested</td><td>${ne(rw) ? rw : '—'}</td><td>${ne(rg) ? rg : '—'}</td></tr>
-          <tr><td>Standard</td><td>${ne(sw) ? sw : '—'}</td><td>${ne(sg) ? sg : '—'}</td></tr>
-        </tbody>
-      </table>`
-    }
-    bodyHtml += section('Technical Specifications', techHtml)
-
-    // Yarn Composition
-    const yarns = [specs['Yarn 01'], specs['Yarn 02'], specs['Yarn 03']].filter(ne)
-    if (yarns.length) {
-      const yarnHtml = yarns.map((y,i) =>
-        `<div class="ts-yarn"><span class="ts-yarn-n">${String(i+1).padStart(2,'0')}</span><span>${y}</span></div>`
-      ).join('')
-      bodyHtml += section('Yarn Composition', yarnHtml)
-    }
-
-    // Commercial
-    bodyHtml += section('Commercial', tableOf([
-      ['Vendor', specs.Vendor],
-      ['Buyer', specs.Buyer],
-      ['Sample Qty', specs['Sample Qty']],
-      ['Rec Date', specs['Rec Date']],
-    ]))
-
-    // Notes
-    if (specs.Comments) {
-      bodyHtml += section('Notes', `<p class="ts-notes">${specs.Comments}</p>`)
-    }
-
-  } else {
-    if (p.description) bodyHtml += section('Description', `<p class="ts-notes">${p.description}</p>`)
-    const entries = Object.entries(specs).filter(([,v]) => ne(v))
-    if (entries.length) bodyHtml += section('Specifications', tableOf(entries))
-  }
-
-  /* ── Build structured data for multi-column layout ── */
-  function ne(v) { return v !== null && v !== undefined && v !== '' && v !== '0' && v !== 0 }
+  function esc2(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
   function parseComp(str) {
     if (!str) return []
     return str.trim().split(/(?=\d+%)/).map(s => s.trim()).filter(Boolean)
   }
+  function kv(k, v) {
+    if (!ne(v)) return ''
+    return `<div class="kv"><span class="kv-k">${esc2(k)}</span><span class="kv-v">${esc2(String(v))}</span></div>`
+  }
 
-  // Compose sections for fabric
-  let overviewLeft = '', overviewRight = '', constructionHtml = '', dyeingHtml = '',
-      techHtml = '', yarnsHtml = '', commercialHtml = '', notesHtml = ''
+  // Pre-generate barcode SVG string
+  let bcSvgStr = ''
+  try {
+    const tmp = document.createElementNS('http://www.w3.org/2000/svg','svg')
+    JsBarcode(tmp, barcode, { format:'CODE128', width:1.5, height:32, displayValue:false, margin:0, background:'#ffffff', lineColor:'#0c0c0c' })
+    bcSvgStr = new XMLSerializer().serializeToString(tmp)
+  } catch(e) {}
 
-  if (p.division === 'fabric') {
-    const compParts = parseComp(specs.Composition)
+  // Pre-generate QR dataURL
+  let qrDataUrl = ''
+  try {
+    qrDataUrl = await new Promise((res,rej) => {
+      QRCode.toDataURL(pubUrl, { width:84, margin:0, color:{dark:'#0c0c0c',light:'#ffffff'} },
+        (err,url) => err ? rej(err) : res(url))
+    })
+  } catch(e) {}
+
+  // ── DATA ──────────────────────────────────────────────
+  const compParts = parseComp(specs.Composition)
+
+  const overviewKvs = [
+    ['Color', specs.Color],
+    ['Country of Origin', p.country || 'Honduras'],
+    ['Lot', p.lot],
+    ['Mill Article', specs['Mill Article']],
+  ].filter(([,v]) => ne(v))
+
+  const constFields = [
+    ['Type', specs.Construction ? (CONST_META[specs.Construction]?.label || specs.Construction) : null],
+    ['Gauge', specs.Gauge],
+    ['Needles', specs.Needles],
+    ['Diameter', specs.DIA],
+    ['Route Type', specs['Route Type']],
+    ['Dye Method', specs['Dyed Method']],
+  ].filter(([,v]) => ne(v))
+
+  const rw = specs['Req Width'], rg = specs['Req GSM'], sw = specs['Std Width'], sg = specs['Std GSM']
+  const dimFields = [['Width', specs.Width], ['GSM', specs.GSM]].filter(([,v]) => ne(v))
+  const hasCompare = [rw,rg,sw,sg].some(ne)
+
+  const yarns = [specs['Yarn 01'], specs['Yarn 02'], specs['Yarn 03']].filter(ne)
+
+  const commFields = [
+    ['Vendor', specs.Vendor],
+    ['Buyer', specs.Buyer],
+    ['Sample Qty', specs['Sample Qty']],
+    ['Rec Date', specs['Rec Date']],
+  ].filter(([,v]) => ne(v))
+
+  // ── LEFT COLUMN: Composition + Overview ───────────────
+  let leftHtml = ''
+  if (compParts.length || overviewKvs.length) {
+    leftHtml += `<div class="spec-block">`
+    leftHtml += `<div class="spec-lbl">Composition &amp; Overview</div>`
     if (compParts.length) {
-      overviewLeft = `<div class="ts-comp">${compParts.map(l =>
-        l.replace(/^(\d+%)/, '<span class="ts-pct">$1</span> ')).join('<br>')}</div>`
+      leftHtml += `<div class="comp-text">${compParts.map(l =>
+        l.replace(/^(\d+%)/, '<strong>$1</strong>')).join('<br>')}</div>`
     }
-    const ovFields = [
-      ['Color', specs.Color], ['Country', p.country || 'Honduras'],
-      ['Lot', p.lot], ['Mill Article', specs['Mill Article']]
-    ].filter(([,v]) => ne(v))
-    if (ovFields.length) {
-      overviewRight = ovFields.map(([k,v]) =>
-        `<div class="ts-kv"><div class="ts-k">${k}</div><div class="ts-v">${v}</div></div>`).join('')
-    }
+    overviewKvs.forEach(([k,v]) => { leftHtml += kv(k,v) })
+    leftHtml += `</div>`
+  }
+  if (yarns.length) {
+    leftHtml += `<div class="spec-block"><div class="spec-lbl">Yarn Composition</div>`
+    yarns.forEach((y,i) => {
+      leftHtml += `<div class="yarn-row"><span class="yarn-n">${String(i+1).padStart(2,'0')}</span><span>${esc2(y)}</span></div>`
+    })
+    leftHtml += `</div>`
+  }
+  // Generic division fallback
+  if (!leftHtml && p.description) {
+    leftHtml = `<div class="spec-block"><div class="spec-lbl">Description</div><div class="notes-text">${esc2(p.description)}</div></div>`
+  }
 
-    const constFields = [
-      ['Type', specs.Construction ? (CONST_META[specs.Construction]?.label || specs.Construction) : null],
-      ['Gauge', specs.Gauge], ['Needles', specs.Needles],
-      ['Diameter', specs.DIA], ['Route Type', specs['Route Type']]
-    ].filter(([,v]) => ne(v))
-    if (constFields.length) {
-      constructionHtml = constFields.map(([k,v]) =>
-        `<div class="ts-kv"><div class="ts-k">${k}</div><div class="ts-v">${v}</div></div>`).join('')
-    }
-
-    if (ne(specs['Dyed Method'])) {
-      dyeingHtml = `<div class="ts-kv"><div class="ts-k">Dye Method</div><div class="ts-v">${specs['Dyed Method']}</div></div>`
-    }
-
-    const dimFields = [['Width', specs.Width], ['GSM', specs.GSM]].filter(([,v]) => ne(v))
-    if (dimFields.length) {
-      techHtml += dimFields.map(([k,v]) =>
-        `<div class="ts-kv"><div class="ts-k">${k}</div><div class="ts-v">${v}</div></div>`).join('')
-    }
-    const rw = specs['Req Width'], rg = specs['Req GSM'], sw = specs['Std Width'], sg = specs['Std GSM']
-    if ([rw, rg, sw, sg].some(ne)) {
-      techHtml += `<table class="ts-compare">
+  // ── RIGHT COLUMN: Construction + Tech Specs + Commercial ──
+  let rightHtml = ''
+  if (constFields.length) {
+    rightHtml += `<div class="spec-block"><div class="spec-lbl">Construction &amp; Dyeing</div>`
+    constFields.forEach(([k,v]) => { rightHtml += kv(k,v) })
+    rightHtml += `</div>`
+  }
+  if (dimFields.length || hasCompare) {
+    rightHtml += `<div class="spec-block"><div class="spec-lbl">Technical Specifications</div>`
+    dimFields.forEach(([k,v]) => { rightHtml += kv(k,v) })
+    if (hasCompare) {
+      rightHtml += `<table class="cmp-tbl">
         <thead><tr><th></th><th>Width</th><th>GSM</th></tr></thead>
         <tbody>
-          <tr><td>Requested</td><td>${ne(rw)?rw:'—'}</td><td>${ne(rg)?rg:'—'}</td></tr>
-          <tr><td>Standard</td><td>${ne(sw)?sw:'—'}</td><td>${ne(sg)?sg:'—'}</td></tr>
+          <tr><td class="cmp-row-lbl">Requested</td><td>${ne(rw)?esc2(rw):'—'}</td><td>${ne(rg)?esc2(rg):'—'}</td></tr>
+          <tr><td class="cmp-row-lbl">Standard</td><td>${ne(sw)?esc2(sw):'—'}</td><td>${ne(sg)?esc2(sg):'—'}</td></tr>
         </tbody></table>`
     }
-
-    const yarns = [specs['Yarn 01'], specs['Yarn 02'], specs['Yarn 03']].filter(ne)
-    if (yarns.length) {
-      yarnsHtml = yarns.map((y,i) =>
-        `<div class="ts-yarn"><span class="ts-yn">${String(i+1).padStart(2,'0')}</span><span>${y}</span></div>`).join('')
-    }
-
-    const commFields = [
-      ['Vendor', specs.Vendor], ['Buyer', specs.Buyer],
-      ['Sample Qty', specs['Sample Qty']], ['Rec Date', specs['Rec Date']]
-    ].filter(([,v]) => ne(v))
-    if (commFields.length) {
-      commercialHtml = commFields.map(([k,v]) =>
-        `<div class="ts-kv"><div class="ts-k">${k}</div><div class="ts-v">${v}</div></div>`).join('')
-    }
-
-    if (specs.Comments) notesHtml = specs.Comments
-  } else {
-    // Generic division
-    if (p.description) notesHtml = p.description
+    rightHtml += `</div>`
+  }
+  if (commFields.length) {
+    rightHtml += `<div class="spec-block"><div class="spec-lbl">Commercial</div>`
+    commFields.forEach(([k,v]) => { rightHtml += kv(k,v) })
+    rightHtml += `</div>`
+  }
+  // Generic division specs fallback
+  if (!rightHtml) {
     const entries = Object.entries(specs).filter(([,v]) => ne(v))
     if (entries.length) {
-      overviewRight = entries.map(([k,v]) =>
-        `<div class="ts-kv"><div class="ts-k">${k}</div><div class="ts-v">${v}</div></div>`).join('')
+      rightHtml = `<div class="spec-block"><div class="spec-lbl">Specifications</div>`
+      entries.forEach(([k,v]) => { rightHtml += kv(k,v) })
+      rightHtml += `</div>`
     }
   }
 
-  // SVG logo inline
+  const notesHtml = specs.Comments
+    ? `<div class="notes-block"><div class="spec-lbl">Notes</div><div class="notes-text">${esc2(specs.Comments)}</div></div>`
+    : ''
+
+  // ── LOGOS ─────────────────────────────────────────────
   const logoWordmark = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1715 353.13"><path fill="#0b0b0b" d="M570.98,144.81c-47.7-6.81-61.33-13.63-61.33-34.07,0-13.63,10.22-23.85,40.88-23.85,37.48,0,47.7,10.22,47.7,30.66l3.41,3.41h40.88l3.41-3.41c0-40.88-27.26-71.55-91.99-71.55s-91.99,30.66-91.99,64.73c0,47.7,37.48,64.73,85.17,71.55,47.7,6.81,61.33,13.63,61.33,37.48,0,20.44-17.03,30.66-47.7,30.66-40.88,0-54.51-13.63-54.51-37.48l-3.41-3.41h-40.88l-3.41,3.41c0,44.29,30.66,78.36,98.8,78.36,71.55,0,98.8-34.07,98.8-71.55,0-47.7-37.48-68.14-85.17-74.95Z"/><polygon fill="#0b0b0b" points="700.44 49.41 697.03 52.82 697.03 284.49 700.44 287.9 741.32 287.9 744.73 284.49 744.73 52.82 741.32 49.41 700.44 49.41"/><polygon fill="#0b0b0b" points="802.64 49.41 799.23 52.82 799.23 284.49 802.64 287.9 962.76 287.9 966.17 284.49 966.17 250.42 962.76 247.02 850.33 247.02 846.93 243.61 846.93 189.1 850.33 185.69 955.95 185.69 959.36 182.29 959.36 148.22 955.95 144.81 850.33 144.81 846.93 141.4 846.93 93.7 850.33 90.3 962.76 90.3 966.17 86.89 966.17 52.82 962.76 49.41 802.64 49.41"/><path fill="#0b0b0b" d="M1211.46,120.96c0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41,68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14ZM1129.7,151.62h-64.73l-3.41-3.41v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66Z"/><path fill="#0b0b0b" d="M1344.33,195.91l68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14,0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41ZM1300.04,148.22v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66h-64.73l-3.41-3.41Z"/><path fill="#0b0b0b" d="M1678.2,284.49v-34.07l-78.36-197.6-3.41-3.41h-44.29l-3.41,3.41-78.36,197.6v34.07l3.41,3.41h30.66l3.41-3.41,17.04-44.29,6.81-3.41h85.17l6.81,3.41,17.03,44.29,3.41,3.41h30.66l3.41-3.41ZM1603.25,195.91h-57.92l-3.41-3.41,30.66-81.77h3.41l30.66,81.77-3.41,3.41Z"/><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>`
   const logoBug = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 411 353.13"><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>`
 
   const w = window.open('', '_blank')
   if (!w) { toast('Enable popups to generate Technical Sheet'); return }
-  w.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
-  <title>${p.name} — SIERRA Technical Sheet</title>
-  <style>
-    /* ── PAGE ── */
-    @page {
-      size: A4;
-      margin: 0;
-    }
-    @page :first { margin: 0; }
 
-    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-    html { font-size: 10px; }
-    body {
-      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      color: #0c0c0c; background: #fff;
-      -webkit-print-color-adjust: exact; print-color-adjust: exact;
-      font-size: 10px; line-height: 1.5;
-    }
+  w.document.write(`<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8">
+<title>${esc2(p.name)} — SIERRA Technical Sheet</title>
+<style>
+  @page { size: A4; margin: 0; }
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #0c0c0c; background: #fff;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    font-size: 10px; line-height: 1.5;
+  }
 
-    /* ── COVER PAGE ── */
-    .cover-page {
-      width: 210mm; height: 297mm;
-      display: flex; flex-direction: column;
-      page-break-after: always;
-    }
-    .cover-header {
-      padding: 14mm 16mm 0;
-      display: flex; align-items: flex-start; justify-content: space-between;
-    }
-    .cover-logo { width: 100px; }
-    .cover-logo svg { width: 100%; height: auto; display: block; }
-    .cover-doc-label {
-      font-size: 8px; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.14em; color: #aaa; margin-top: 4px; text-align: right;
-    }
+  /* ── PAGE SHELL ── */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 13mm 16mm 11mm;
+    display: flex;
+    flex-direction: column;
+  }
 
-    .cover-image-band {
-      flex: 1; background: #f4f4f4; overflow: hidden;
-      margin: 8mm 0 0;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .cover-image-band img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .cover-image-empty {
-      display: flex; flex-direction: column; align-items: center; gap: 10px;
-    }
-    .cover-image-empty svg { opacity: 0.18; }
+  /* ── HEADER ── */
+  .hdr {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding-bottom: 7mm;
+    border-bottom: 1px solid #0c0c0c;
+    margin-bottom: 0;
+  }
+  .hdr-logo { width: 140px; flex-shrink: 0; }
+  .hdr-logo svg { width: 100%; height: auto; display: block; }
+  .hdr-label {
+    font-size: 7px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.2em;
+    color: #bbb; padding-top: 4px; text-align: right;
+  }
 
-    .cover-identity {
-      padding: 9mm 16mm 8mm;
-      border-top: 1px solid #e8e8e8;
-    }
-    .cover-div-label {
-      font-size: 8px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.16em; color: ${divColor}; margin-bottom: 7px;
-    }
-    .cover-product-name {
-      font-size: 28px; font-weight: 700; letter-spacing: -0.03em;
-      line-height: 1.02; color: #0c0c0c; margin-bottom: 5px;
-    }
-    .cover-product-code {
-      font-size: 9px; font-weight: 600; letter-spacing: 0.1em;
-      text-transform: uppercase; color: #999;
-    }
+  /* ── HERO ── */
+  .hero { padding: 7mm 0 7mm; }
+  .hero-div {
+    font-size: 7px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.18em;
+    color: #bbb; margin-bottom: 3.5mm;
+  }
+  .hero-name {
+    font-size: 34px; font-weight: 700;
+    letter-spacing: -0.045em; line-height: 1.0;
+    color: #0c0c0c; margin-bottom: 3mm;
+  }
+  .hero-code {
+    font-size: 8px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.14em; color: #999;
+  }
 
-    .cover-summary {
-      padding: 6mm 16mm 0;
-      display: grid; grid-template-columns: 1fr 1fr 1fr;
-      gap: 0; border-top: 1px solid #e8e8e8;
-    }
-    .cover-summary-item { padding: 5mm 0 5mm; padding-right: 6mm; }
-    .cs-k { font-size: 7.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #bbb; margin-bottom: 3px; }
-    .cs-v { font-size: 11px; font-weight: 600; color: #0c0c0c; line-height: 1.3; }
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: #e4e4e4; margin-bottom: 7mm; }
 
-    .cover-footer {
-      padding: 5mm 16mm;
-      display: flex; align-items: center; justify-content: space-between;
-      border-top: 1px solid #e8e8e8;
-    }
-    .cf-brand { font-size: 7.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #bbb; }
-    .cf-date { font-size: 7.5px; color: #bbb; }
+  /* ── BODY GRID ── */
+  .body { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; flex: 1; }
 
-    /* ── CONTENT PAGES ── */
-    .content-page {
-      width: 210mm;
-      padding: 13mm 16mm 12mm;
-      display: flex; flex-direction: column;
-      page-break-after: always;
-      min-height: 297mm;
-    }
-    .content-page:last-child { page-break-after: auto; }
+  /* ── SPEC BLOCK ── */
+  .spec-block { margin-bottom: 6.5mm; }
+  .spec-block:last-child { margin-bottom: 0; }
+  .spec-lbl {
+    font-size: 6px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.2em;
+    color: #bbb; padding-bottom: 3mm; margin-bottom: 3.5mm;
+    border-bottom: 0.5px solid #e4e4e4;
+  }
 
-    /* Running page header */
-    .pg-hdr {
-      display: flex; align-items: center; justify-content: space-between;
-      padding-bottom: 6mm; margin-bottom: 7mm;
-      border-bottom: 1px solid #ebebeb;
-    }
-    .pg-hdr-left { font-size: 8px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #bbb; }
-    .pg-hdr-right { width: 64px; }
-    .pg-hdr-right svg { width: 100%; height: auto; display: block; }
+  /* ── COMPOSITION ── */
+  .comp-text {
+    font-size: 14.5px; font-weight: 500;
+    line-height: 1.7; color: #0c0c0c; margin-bottom: 5mm;
+  }
+  .comp-text strong { font-weight: 700; }
 
-    /* Page content area */
-    .pg-body { flex: 1; }
+  /* ── KEY–VALUE ── */
+  .kv {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 2.5mm 0; border-bottom: 0.5px solid #f0f0f0;
+  }
+  .kv:last-child { border-bottom: none; }
+  .kv-k {
+    font-size: 7px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.09em; color: #bbb;
+    flex-shrink: 0; padding-right: 4mm;
+  }
+  .kv-v {
+    font-size: 9.5px; font-weight: 500; color: #0c0c0c;
+    text-align: right; line-height: 1.4;
+  }
 
-    /* Running page footer */
-    .pg-ftr {
-      display: flex; align-items: center; justify-content: space-between;
-      padding-top: 5mm; margin-top: 7mm;
-      border-top: 1px solid #ebebeb;
-    }
-    .pg-ftr-brand { font-size: 7.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #bbb; }
-    .pg-ftr-pg { font-size: 7.5px; color: #bbb; }
+  /* ── COMPARISON TABLE ── */
+  .cmp-tbl { width: 100%; border-collapse: collapse; margin-top: 4mm; }
+  .cmp-tbl thead th {
+    font-size: 6.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: #bbb; text-align: left; padding-bottom: 2.5mm;
+    border-bottom: 0.5px solid #e4e4e4;
+  }
+  .cmp-tbl thead th:not(:first-child) { text-align: right; }
+  .cmp-tbl tbody td {
+    font-size: 9.5px; font-weight: 500; color: #0c0c0c;
+    padding: 2.5mm 0 0;
+  }
+  .cmp-tbl tbody td:not(:first-child) { text-align: right; }
+  .cmp-row-lbl {
+    font-size: 6.5px !important; font-weight: 700 !important;
+    text-transform: uppercase; letter-spacing: 0.08em; color: #bbb !important;
+  }
 
-    /* ── SECTION ── */
-    .ts-sec { margin-bottom: 7mm; page-break-inside: avoid; }
-    .ts-sec-lbl {
-      font-size: 7px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.16em; color: #bbb;
-      padding-bottom: 3.5mm; margin-bottom: 4mm;
-      border-bottom: 0.75px solid #e8e8e8;
-    }
+  /* ── YARN ROWS ── */
+  .yarn-row {
+    display: flex; gap: 4mm; align-items: baseline;
+    padding: 2.5mm 0; border-bottom: 0.5px solid #f0f0f0;
+    font-size: 9.5px; font-weight: 500; color: #0c0c0c;
+  }
+  .yarn-n {
+    font-size: 6.5px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: #bbb; flex-shrink: 0; min-width: 6mm;
+  }
 
-    /* Two-column section body */
-    .ts-cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; }
-    .ts-cols-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6mm; }
+  /* ── NOTES ── */
+  .notes-block { margin-top: 5mm; padding-top: 5mm; border-top: 0.5px solid #e4e4e4; }
+  .notes-text { font-size: 9px; color: #555; line-height: 1.75; margin-top: 3mm; }
 
-    /* Key–value field */
-    .ts-kv { margin-bottom: 4mm; }
-    .ts-kv:last-child { margin-bottom: 0; }
-    .ts-k {
-      font-size: 7.5px; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.09em; color: #bbb; margin-bottom: 1.5mm;
-    }
-    .ts-v { font-size: 10.5px; font-weight: 500; color: #0c0c0c; line-height: 1.4; }
+  /* ── FOOTER ── */
+  .footer {
+    margin-top: 7mm;
+    padding-top: 5.5mm;
+    border-top: 1px solid #0c0c0c;
+    display: flex;
+    align-items: flex-end;
+    gap: 0;
+  }
+  .ftr-brand {
+    display: flex; align-items: center; gap: 4mm;
+    flex-shrink: 0; min-width: 52mm;
+  }
+  .ftr-bug { width: 20px; flex-shrink: 0; }
+  .ftr-bug svg { width: 100%; height: auto; display: block; }
+  .ftr-contact {
+    font-size: 6.5px; color: #999; line-height: 1.95;
+  }
+  .ftr-meta {
+    flex: 1; padding: 0 5mm;
+    font-size: 6.5px; color: #bbb; line-height: 1.95;
+  }
+  .ftr-codes {
+    display: flex; align-items: flex-end; gap: 4mm; flex-shrink: 0;
+  }
+  .ftr-qr img { width: 18mm; height: 18mm; display: block; }
+  .ftr-bc { display: flex; flex-direction: column; }
+  .ftr-bc svg { width: 44mm; height: auto; max-height: 11mm; display: block; }
+  .ftr-bc-id {
+    font-size: 5.5px; color: #bbb; letter-spacing: 0.08em;
+    margin-top: 1.2mm; font-family: 'Courier New', monospace; text-align: center;
+  }
 
-    /* Composition — typographic treatment */
-    .ts-comp {
-      font-size: 13px; font-weight: 500; line-height: 1.85;
-      color: #0c0c0c; margin-bottom: 4mm;
+  /* ── SCREEN PREVIEW ── */
+  @media screen {
+    body { background: #d0d0d0; padding: 28px 0; }
+    .page {
+      width: 794px; margin: 0 auto;
+      min-height: 1122px;
+      box-shadow: 0 2px 40px rgba(0,0,0,0.18);
+      background: #fff;
     }
-    .ts-pct { font-weight: 700; }
+    .print-btn {
+      position: fixed; top: 20px; right: 20px; z-index: 200;
+      background: #0c0c0c; color: #fff; border: none; border-radius: 8px;
+      padding: 9px 18px; font-size: 12px; font-weight: 600;
+      font-family: inherit; cursor: pointer; letter-spacing: 0.02em;
+    }
+    .print-btn:hover { background: #333; }
+  }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .print-btn { display: none; }
+    .page { width: 210mm; box-shadow: none; }
+  }
+</style>
+</head><body>
+<button class="print-btn" onclick="window.print()">Save PDF</button>
+<div class="page">
 
-    /* Req vs Std comparison table */
-    .ts-compare { width: 100%; border-collapse: collapse; margin-top: 4mm; }
-    .ts-compare thead th {
-      font-size: 7.5px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.09em; color: #bbb; text-align: left;
-      padding: 0 12mm 3mm 0; border-bottom: 0.75px solid #e8e8e8;
-    }
-    .ts-compare thead th:first-child { padding-left: 0; min-width: 18mm; }
-    .ts-compare tbody td {
-      font-size: 10.5px; font-weight: 500; color: #0c0c0c;
-      padding: 3mm 12mm 0 0; vertical-align: top;
-    }
-    .ts-compare tbody td:first-child {
-      font-size: 7.5px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.07em; color: #bbb; padding-left: 0;
-    }
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-logo">${logoWordmark}</div>
+    <div class="hdr-label">Technical Sheet</div>
+  </div>
 
-    /* Yarn list */
-    .ts-yarn {
-      display: flex; gap: 5mm; align-items: baseline;
-      padding: 2.5mm 0; border-bottom: 0.75px solid #f0f0f0;
-      font-size: 10.5px; font-weight: 500; color: #0c0c0c;
-    }
-    .ts-yarn:first-child { border-top: 0.75px solid #f0f0f0; }
-    .ts-yn {
-      font-size: 7.5px; font-weight: 700; letter-spacing: 0.07em;
-      text-transform: uppercase; color: #bbb; min-width: 7mm;
-    }
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-div">${esc2(divLabel)}</div>
+    <div class="hero-name">${esc2(p.name)}</div>
+    <div class="hero-code">${esc2(code)}${p.lot ? ' &middot; LOT ' + esc2(p.lot) : ''}</div>
+  </div>
 
-    .ts-notes {
-      font-size: 10px; color: #555; line-height: 1.7;
-      padding: 4mm 0; border-top: 0.75px solid #f0f0f0;
-    }
+  <div class="divider"></div>
 
-    /* ── SCREEN PREVIEW ── */
-    @media screen {
-      html { background: #e8e8e8; }
-      body { padding: 24px 0; }
-      .cover-page, .content-page {
-        width: 794px; margin: 0 auto 24px;
-        box-shadow: 0 4px 32px rgba(0,0,0,0.12);
-        background: #fff;
-      }
-      .cover-page { height: 1123px; }
-      .content-page { min-height: 1123px; }
-      .print-btn {
-        position: fixed; top: 20px; right: 20px; z-index: 200;
-        background: #0c0c0c; color: #fff; border: none; border-radius: 9px;
-        padding: 10px 18px; font-size: 13px; font-family: inherit;
-        font-weight: 600; cursor: pointer; letter-spacing: 0.01em;
-      }
-      .print-btn:hover { background: #333; }
-    }
-    @media print {
-      html { background: #fff; }
-      body { padding: 0; }
-      .print-btn { display: none; }
-      .cover-page, .content-page { margin: 0; width: 210mm; }
-    }
-  </style></head><body>
+  <!-- BODY -->
+  <div class="body">
+    <div class="col-left">${leftHtml}</div>
+    <div class="col-right">${rightHtml}</div>
+  </div>
 
-  <button class="print-btn" onclick="window.print()">Save PDF</button>
+  ${notesHtml}
 
-  <!-- ── COVER PAGE ── -->
-  <div class="cover-page">
-    <div class="cover-header">
-      <div class="cover-logo">${logoWordmark}</div>
-      <div class="cover-doc-label">Technical Sheet</div>
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="ftr-brand">
+      <div class="ftr-bug">${logoBug}</div>
+      <div class="ftr-contact">www.sierratextiles.com<br>hello@sierratextiles.com</div>
     </div>
-
-    <div class="cover-image-band">
-      ${imgs[0]
-        ? `<img src="${imgs[0]}" alt="${p.name}" />`
-        : `<div class="cover-image-empty">
-            <svg width="56" height="56" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="#0c0c0c" stroke-width="1"/><circle cx="8.5" cy="8.5" r="1.5" stroke="#0c0c0c" stroke-width="0.9"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="#0c0c0c" stroke-width="0.9" stroke-linecap="round"/></svg>
-          </div>`}
+    <div class="ftr-meta">
+      Generated ${esc2(dateStr)}<br>
+      SIERRA Index
     </div>
-
-    <div class="cover-identity">
-      <div class="cover-div-label">${divLabel}</div>
-      <div class="cover-product-name">${p.name}</div>
-      <div class="cover-product-code">${code}${p.lot ? ' · LOT ' + p.lot : ''}</div>
-    </div>
-
-    <div class="cover-summary">
-      ${specs.Composition ? `<div class="cover-summary-item"><div class="cs-k">Composition</div><div class="cs-v">${specs.Composition}</div></div>` : ''}
-      ${specs.Construction ? `<div class="cover-summary-item"><div class="cs-k">Construction</div><div class="cs-v">${CONST_META[specs.Construction]?.label || specs.Construction}</div></div>` : ''}
-      ${(p.country || specs.Color) ? `<div class="cover-summary-item"><div class="cs-k">${specs.Color ? 'Color' : 'Origin'}</div><div class="cs-v">${specs.Color || p.country}</div></div>` : ''}
-    </div>
-
-    <div class="cover-footer">
-      <span class="cf-brand">SIERRA INDEX</span>
-      <span class="cf-date">${dateStr}</span>
+    <div class="ftr-codes">
+      ${qrDataUrl ? `<div class="ftr-qr"><img src="${qrDataUrl}" alt="Product QR"></div>` : ''}
+      ${bcSvgStr ? `<div class="ftr-bc">${bcSvgStr}<div class="ftr-bc-id">${esc2(barcode)}</div></div>` : ''}
     </div>
   </div>
 
-  <!-- ── SPECIFICATIONS PAGE ── -->
-  <div class="content-page">
-    <div class="pg-hdr">
-      <span class="pg-hdr-left">${p.name} · ${code}</span>
-      <span class="pg-hdr-right">${logoBug}</span>
-    </div>
-
-    <div class="pg-body">
-
-      ${(overviewLeft || overviewRight) ? `
-      <div class="ts-sec">
-        <div class="ts-sec-lbl">Overview</div>
-        <div class="ts-cols-2">
-          <div>${overviewLeft}</div>
-          <div>${overviewRight}</div>
-        </div>
-      </div>` : ''}
-
-      ${(constructionHtml || dyeingHtml) ? `
-      <div class="ts-sec">
-        <div class="ts-sec-lbl">Construction &amp; Dyeing</div>
-        <div class="ts-cols-2">
-          <div>${constructionHtml}</div>
-          <div>${dyeingHtml}</div>
-        </div>
-      </div>` : ''}
-
-      ${techHtml ? `
-      <div class="ts-sec">
-        <div class="ts-sec-lbl">Technical Specifications</div>
-        <div>${techHtml}</div>
-      </div>` : ''}
-
-      ${yarnsHtml ? `
-      <div class="ts-sec">
-        <div class="ts-sec-lbl">Yarn Composition</div>
-        <div>${yarnsHtml}</div>
-      </div>` : ''}
-
-      ${commercialHtml ? `
-      <div class="ts-sec">
-        <div class="ts-sec-lbl">Commercial</div>
-        <div class="ts-cols-2">${commercialHtml}</div>
-      </div>` : ''}
-
-      ${notesHtml ? `
-      <div class="ts-sec">
-        <div class="ts-sec-lbl">Notes</div>
-        <div class="ts-notes">${notesHtml}</div>
-      </div>` : ''}
-
-    </div>
-
-    <div class="pg-ftr">
-      <span class="pg-ftr-brand">SIERRA INDEX · Technical Sheet · ${yearStr}</span>
-      <span class="pg-ftr-pg">Page 2</span>
-    </div>
-  </div>
-
-  </body></html>`)
+</div>
+</body></html>`)
   w.document.close()
 }
 
