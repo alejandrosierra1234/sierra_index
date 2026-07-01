@@ -1017,11 +1017,11 @@
       <button class="nav-item active" id="nav-dash" data-tip="Dashboard" style="--item-color:#16cdbe" onclick="showDashboard()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3L3 8.5V17h5v-4h4v4h5V8.5L10 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Dashboard</span></button>
       <span class="s-label" style="margin-top:0.5rem">Divisions</span>
       <button class="nav-item" id="nav-all" data-tip="All products" style="--item-color:#009fff" onclick="setDiv('all',this)"><span class="n-icon" id="icon-all"></span><span class="nav-label">All products</span></button>
-      <button class="nav-item" id="nav-fiber" data-tip="Sierra Fiber" style="--item-color:#9e00cb" onclick="setDiv('fiber',this)"><span class="n-icon" id="icon-fiber"></span><span class="nav-label">Sierra Fiber</span></button>
-      <button class="nav-item" id="nav-yarn" data-tip="Sierra Yarn" style="--item-color:#3ed600" onclick="setDiv('yarn',this)"><span class="n-icon" id="icon-yarn"></span><span class="nav-label">Sierra Yarn</span></button>
-      <button class="nav-item" id="nav-fabric" data-tip="Sierra Fabric" style="--item-color:#009fff" onclick="setDiv('fabric',this)"><span class="n-icon" id="icon-fabric"></span><span class="nav-label">Sierra Fabric</span></button>
-      <button class="nav-item" id="nav-chemicals" data-tip="Sierra Chemicals" style="--item-color:#ff7824" onclick="setDiv('chemicals',this)"><span class="n-icon" id="icon-chemicals"></span><span class="nav-label">Sierra Chemicals</span></button>
-      <button class="nav-item" id="nav-garment" data-tip="Sierra Apparel" style="--item-color:#16cdbe" onclick="setDiv('garment',this)"><span class="n-icon" id="icon-garment"></span><span class="nav-label">Sierra Apparel</span></button>
+      <button class="nav-item" id="nav-fiber" data-tip="SIERRA Fiber" style="--item-color:#9e00cb" onclick="setDiv('fiber',this)"><span class="n-icon" id="icon-fiber"></span><span class="nav-label">SIERRA Fiber</span></button>
+      <button class="nav-item" id="nav-yarn" data-tip="SIERRA Yarn" style="--item-color:#3ed600" onclick="setDiv('yarn',this)"><span class="n-icon" id="icon-yarn"></span><span class="nav-label">SIERRA Yarn</span></button>
+      <button class="nav-item" id="nav-fabric" data-tip="SIERRA Fabric" style="--item-color:#009fff" onclick="setDiv('fabric',this)"><span class="n-icon" id="icon-fabric"></span><span class="nav-label">SIERRA Fabric</span></button>
+      <button class="nav-item" id="nav-chemicals" data-tip="SIERRA Chemicals" style="--item-color:#ff7824" onclick="setDiv('chemicals',this)"><span class="n-icon" id="icon-chemicals"></span><span class="nav-label">SIERRA Chemicals</span></button>
+      <button class="nav-item" id="nav-garment" data-tip="SIERRA Apparel" style="--item-color:#16cdbe" onclick="setDiv('garment',this)"><span class="n-icon" id="icon-garment"></span><span class="nav-label">SIERRA Apparel</span></button>
       <span class="s-label" style="margin-top:0.5rem">My activity</span>
       <button class="nav-item" id="nav-req" data-tip="My requests" style="--item-color:#ffc529" onclick="showRequests()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M4 5h12M4 10h8M4 15h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-label">My requests</span></button>
       <button class="nav-item" id="nav-all-req" data-tip="All requests" style="--item-color:#ff7824;display:none" onclick="showAllRequests()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M4 5h12M4 10h12M4 15h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-label">All requests</span></button>
@@ -1159,11 +1159,11 @@
       <div class="two-col">
         <div class="fg full"><label>Division</label>
           <select id="np-div" onchange="renderFormFields()">
-            <option value="fiber">Sierra Fiber</option>
-            <option value="yarn">Sierra Yarn</option>
-            <option value="fabric">Sierra Fabric</option>
-            <option value="chemicals">Sierra Chemicals</option>
-            <option value="garment">Sierra Apparel</option>
+            <option value="fiber">SIERRA Fiber</option>
+            <option value="yarn">SIERRA Yarn</option>
+            <option value="fabric">SIERRA Fabric</option>
+            <option value="chemicals">SIERRA Chemicals</option>
+            <option value="garment">SIERRA Apparel</option>
           </select>
         </div>
         <div class="fg full"><label>Product name</label><input type="text" id="np-name" placeholder="e.g. Double Knit Plain Scuba" /></div>
@@ -1271,7 +1271,7 @@ const SB_KEY = 'sb_publishable_9g8UJRbV3NxOlmQgPxjDqg_Xw6hFB0f'
 const sb = supabase.createClient(SB_URL, SB_KEY)
 
 const DIV_CLR = { fiber:'#9e00cb', yarn:'#3ed600', fabric:'#009fff', chemicals:'#ff7824', garment:'#16cdbe' }
-const DIV_LBL = { fiber:'Sierra Fiber', yarn:'Sierra Yarn', fabric:'Sierra Fabric', chemicals:'Sierra Chemicals', garment:'Sierra Apparel' }
+const DIV_LBL = { fiber:'SIERRA Fiber', yarn:'SIERRA Yarn', fabric:'SIERRA Fabric', chemicals:'SIERRA Chemicals', garment:'SIERRA Apparel' }
 
 const DIV_ICON = {
   all:       `<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/></svg>`,
@@ -3466,11 +3466,11 @@ let spotlightDiv = null   // active division filter
 let recentSearches = JSON.parse(localStorage.getItem('sierra-recent-searches') || '[]')
 
 const SPOT_DIVS = [
-  { key:'fiber',     label:'Sierra Fiber',     color:'#9e00cb' },
-  { key:'yarn',      label:'Sierra Yarn',      color:'#3ed600' },
-  { key:'fabric',    label:'Sierra Fabric',    color:'#009fff' },
-  { key:'chemicals', label:'Sierra Chemicals', color:'#ff7824' },
-  { key:'garment',   label:'Sierra Apparel',   color:'#16cdbe' },
+  { key:'fiber',     label:'SIERRA Fiber',     color:'#9e00cb' },
+  { key:'yarn',      label:'SIERRA Yarn',      color:'#3ed600' },
+  { key:'fabric',    label:'SIERRA Fabric',    color:'#009fff' },
+  { key:'chemicals', label:'SIERRA Chemicals', color:'#ff7824' },
+  { key:'garment',   label:'SIERRA Apparel',   color:'#16cdbe' },
 ]
 
 async function openSpotlight() {
