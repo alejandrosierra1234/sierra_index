@@ -587,7 +587,7 @@
 
     /* ── DASHBOARD ── */
     #view-dashboard { display:none; }
-    #view-products { display:flex; flex-direction:column; min-height:0; }
+    #view-products { display:block; }
     .dash-wrap { display:flex; flex-direction:column; gap:0; }
 
     /* Greeting — just clean text, no card */
@@ -787,7 +787,7 @@
 
     @media (max-width: 400px) {
       .clocks-row { grid-template-columns: 1fr 1fr; }
-      .pg { grid-template-columns: 1fr; }
+      .pg-grid { grid-template-columns: 1fr; }
     }
 
     /* ══════════════════════════════════════
@@ -1342,7 +1342,7 @@ document.getElementById('l-pass')?.addEventListener('keydown', e => { if (e.key 
 /* ── PRODUCTS ── */
 async function loadProducts() {
   const pg = document.getElementById('pg')
-  pg.style.display = 'grid'; pg.innerHTML = ''
+  pg.innerHTML = ''
   let q = sb.from('products').select('*').order('created_at', { ascending: false })
   if (division !== 'all') q = q.eq('division', division)
   const { data, error } = await q
@@ -1407,7 +1407,7 @@ function renderProducts(products) {
       </div>`
     }).join('')
   } else {
-    pg.innerHTML = `<div class="pg-grid">${products.map(p => cardHTML(p)).join('')}</div>`
+    pg.innerHTML = `<div class="pg-grid" style="padding-bottom:2rem">${products.map(p => cardHTML(p)).join('')}</div>`
   }
 }
 
