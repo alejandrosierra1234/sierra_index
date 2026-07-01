@@ -448,7 +448,7 @@
       font-size:0.7rem; font-weight:700; letter-spacing:0.08em;
       padding:0.25rem 0.6rem; border-radius:6px;
       background:var(--accent-light); color:var(--accent-dark);
-      font-family: 'SF Mono', 'Fira Mono', monospace;
+      font-family: inherit;
     }
     .const-label { font-size:0.95rem; font-weight:600; color:var(--text); }
     .const-count { font-size:0.8rem; color:var(--text-3); margin-left:auto; }
@@ -682,7 +682,6 @@
 
     /* SKU — functional identifier, not decorative */
     .pd-sku {
-      font-family:'SF Mono','Fira Mono','Courier New',monospace;
       font-size:0.72rem; font-weight:600; letter-spacing:0.08em;
       color:var(--text-2); border:1px solid var(--border);
       display:inline-flex; align-items:center; gap:0.4rem;
@@ -3366,7 +3365,7 @@ async function showAccessLogs() {
                 </div>
               </div>
             </td>
-            <td style="font-family:monospace;font-size:0.8rem;white-space:nowrap">${r.ip||'—'}</td>
+            <td style="font-size:0.8rem;white-space:nowrap">${r.ip||'—'}</td>
             <td>
               <div style="font-size:0.82rem">${flag} ${r.city||''}${r.city&&r.country?', ':''}${r.country||'Unknown'}</div>
               ${r.region && r.region !== r.city ? `<div style="font-size:0.68rem;color:var(--text-3)">${r.region}</div>` : ''}
