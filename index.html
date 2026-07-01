@@ -588,72 +588,114 @@
     /* ── DASHBOARD ── */
     #view-dashboard { display:none; }
     #view-products { display:block; }
-    .dash-wrap { display:flex; flex-direction:column; gap:0; }
 
-    /* Greeting — just clean text, no card */
-    .dash-header { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:2rem; gap:1rem; flex-wrap:wrap; }
-    .dash-greeting { font-size:1.65rem; font-weight:700; letter-spacing:-0.03em; line-height:1; }
-    .dash-date { font-size:0.8rem; color:var(--text-2); }
-    .dash-hero-time { font-size:0.92rem; font-weight:400; color:var(--text-2); font-variant-numeric:tabular-nums; letter-spacing:-0.01em; flex-shrink:0; }
+    /* ── HOME v2 ── */
+    .dash-wrap { max-width:720px; margin:0 auto; padding-bottom:4rem; display:flex; flex-direction:column; }
 
-    /* Section header */
-    .dash-section { margin-bottom:2rem; }
-    .dash-section-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.8rem; }
-    .dash-section-label { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-3); }
-    .dash-section-meta { font-size:0.68rem; color:var(--text-3); }
+    /* Greeting */
+    .dash-header { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:2.75rem; gap:1rem; flex-wrap:wrap; }
+    .dash-greeting { font-size:1.55rem; font-weight:700; letter-spacing:-0.035em; line-height:1; color:var(--text); }
+    .dash-date { font-size:0.78rem; color:var(--text-3); flex-shrink:0; }
 
-    /* World clocks — Apple-style digital */
-    .clocks-row { display:grid; grid-template-columns:repeat(4,1fr); gap:0.65rem; }
-    .clock-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1rem 1.1rem 0.9rem; }
-    .clock-card.night { background:none; }
-    .clock-city { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text); margin-bottom:0.55rem; }
-    .clock-time { font-size:1.85rem; font-weight:400; letter-spacing:-0.03em; font-variant-numeric:tabular-nums; line-height:1; }
-    .clock-ampm { font-size:0.95rem; font-weight:400; }
-    .clock-meta { font-size:0.67rem; color:var(--text-3); margin-top:0.45rem; font-weight:500; letter-spacing:0.01em; }
+    /* Hero search */
+    .dash-search-hero { margin-bottom:3rem; }
+    .dash-search-trigger {
+      display:flex; align-items:center; gap:0.75rem;
+      border:1px solid var(--border); border-radius:12px;
+      padding:0.9rem 1.1rem; cursor:pointer;
+      background:var(--surface2); transition:border-color 0.15s, background 0.15s;
+    }
+    .dash-search-trigger:hover { border-color:var(--text-3); background:var(--surface); }
+    .dst-icon { color:var(--text-3); flex-shrink:0; }
+    .dst-text { flex:1; font-size:0.95rem; color:var(--text-3); }
+    .dst-kbd {
+      font-size:0.65rem; color:var(--text-3);
+      border:1px solid var(--border); border-radius:5px;
+      padding:0.15rem 0.42rem; flex-shrink:0;
+    }
+    .dash-search-tags { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.65rem; }
+    .dst-tag { font-size:0.62rem; color:var(--text-3); }
+    .dst-tag::after { content:'·'; margin-left:0.5rem; }
+    .dst-tag:last-child::after { display:none; }
 
-    /* Market prices — Apple Stocks split layout */
-    .market-panel { display:grid; grid-template-columns:240px 1fr; background:var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; min-height:280px; }
-    .market-list-col { border-right:1px solid var(--border); overflow-y:auto; }
-    .market-row { display:flex; align-items:center; gap:0.65rem; padding:0.8rem 0.9rem; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.12s; }
-    .market-row:last-child { border-bottom:none; }
-    .market-row:hover { background:var(--surface2); }
-    .market-row.active { background:var(--accent-light); }
-    .market-bullet { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-    .market-row-icon { width:28px; height:28px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
-    .market-row-icon svg { width:22px; height:22px; }
-    .market-row-info { flex:1; min-width:0; }
-    .market-row-name { font-size:0.85rem; font-weight:600; display:flex; align-items:center; gap:0.4rem; }
-    .market-row-sub { font-size:0.62rem; color:var(--text-3); margin-top:0.1rem; }
-    .market-row-spark { width:56px; height:30px; flex-shrink:0; }
-    .market-row-price { text-align:right; flex-shrink:0; min-width:64px; }
-    .market-row-pval { font-size:0.9rem; font-weight:600; font-variant-numeric:tabular-nums; }
-    .market-row-chg { font-size:0.62rem; font-weight:600; padding:0.1rem 0.32rem; border-radius:4px; margin-top:0.12rem; display:inline-block; }
-    .market-row-chg.up { color:#1a8a5c; background:rgba(26,138,92,0.1); }
-    .market-row-chg.dn { color:#c0392b; background:rgba(192,57,43,0.1); }
-    /* Detail panel */
-    .market-detail-col { padding:1.4rem 1.5rem; display:flex; flex-direction:column; }
-    .market-detail-name { font-size:1.4rem; font-weight:700; letter-spacing:-0.025em; }
-    .market-detail-sub { font-size:0.7rem; color:var(--text-3); margin-top:0.15rem; }
-    .market-detail-price { font-size:2.4rem; font-weight:700; letter-spacing:-0.04em; font-variant-numeric:tabular-nums; margin-top:0.85rem; line-height:1; }
-    .market-detail-chg { font-size:0.9rem; font-weight:600; margin-top:0.25rem; }
-    .market-detail-chg.up { color:#1a8a5c; }
-    .market-detail-chg.dn { color:#c0392b; }
-    .market-detail-chart { flex:1; min-height:140px; margin-top:1.1rem; position:relative; }
+    /* Section scaffold */
+    .dash-section { margin-bottom:2.75rem; }
+    .dash-section-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.85rem; }
+    .dash-section-label { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); }
+    .dash-section-meta { font-size:0.65rem; color:var(--text-3); }
 
-    /* News */
-    .news-tabs { display:flex; gap:0.4rem; margin-bottom:0.8rem; flex-wrap:wrap; }
-    .news-tab { padding:0.25rem 0.7rem; border-radius:20px; border:1px solid var(--border); background:none; font-size:0.72rem; color:var(--text-2); cursor:pointer; font-family:inherit; transition:all 0.12s; }
-    .news-tab.active { background:var(--text); color:var(--bg); border-color:var(--text); }
-    .news-list { border:1px solid var(--border); border-radius:16px; overflow:hidden; background:var(--surface); }
-    .news-item { display:flex; gap:1rem; align-items:flex-start; padding:0.95rem 1.1rem; text-decoration:none; color:var(--text); transition:background 0.12s; border-bottom:1px solid var(--border); }
-    .news-item:last-child { border-bottom:none; }
-    .news-item:hover { background:var(--surface2); }
-    .news-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:0.38rem; }
-    .news-body { flex:1; min-width:0; }
-    .news-headline { font-size:0.88rem; font-weight:500; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-    .news-meta { font-size:0.68rem; color:var(--text-3); margin-top:0.3rem; }
-    .news-thumb { width:60px; height:60px; border-radius:10px; object-fit:cover; flex-shrink:0; background:var(--surface2); }
-    .news-placeholder { padding:2.5rem; text-align:center; font-size:0.82rem; color:var(--text-3); }
+    /* Market cards */
+    .market-cards { display:flex; gap:0.65rem; }
+    .market-card {
+      flex:1; min-width:0; border:1px solid var(--border); border-radius:12px;
+      padding:1rem 1.1rem; cursor:pointer; transition:border-color 0.15s;
+    }
+    .market-card:hover { border-color:var(--text-3); }
+    .market-card.mc-open { border-color:var(--text); }
+    .mc-label { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.5rem; }
+    .mc-price { font-size:1.35rem; font-weight:700; letter-spacing:-0.03em; font-variant-numeric:tabular-nums; line-height:1; margin-bottom:0.2rem; }
+    .mc-unit { font-size:0.65rem; color:var(--text-3); margin-left:0.2rem; font-weight:500; }
+    .mc-chg { font-size:0.72rem; font-weight:600; }
+    .mc-chg.up { color:#1a8a5c; }
+    .mc-chg.dn { color:#c0392b; }
+    .mc-chg.flat { color:var(--text-3); }
+    .mc-spark { height:32px; margin-top:0.7rem; position:relative; }
+
+    /* Market expand drawer */
+    .market-expand-drawer {
+      border:1px solid var(--border); border-radius:12px;
+      padding:1.25rem 1.4rem 1.1rem; margin-top:0.65rem;
+      display:none;
+    }
+    .market-expand-drawer.open { display:block; }
+    .med-top { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; }
+    .med-name { font-size:1rem; font-weight:700; letter-spacing:-0.02em; }
+    .med-sub { font-size:0.62rem; color:var(--text-3); margin-top:0.15rem; }
+    .med-price { font-size:1.9rem; font-weight:700; letter-spacing:-0.04em; font-variant-numeric:tabular-nums; text-align:right; }
+    .med-chg { font-size:0.82rem; font-weight:600; text-align:right; margin-top:0.1rem; }
+    .med-chg.up { color:#1a8a5c; }
+    .med-chg.dn { color:#c0392b; }
+    .med-chart { height:110px; margin-top:1.1rem; position:relative; }
+    .med-foot { font-size:0.6rem; color:var(--text-3); margin-top:0.55rem; }
+
+    /* News feed */
+    .news-feed { display:flex; flex-direction:column; }
+    .nfi {
+      display:flex; gap:0.85rem; align-items:baseline;
+      padding:0.85rem 0; border-bottom:1px solid var(--border);
+      text-decoration:none; color:var(--text); transition:opacity 0.15s;
+    }
+    .nfi:last-child { border-bottom:none; }
+    .nfi:hover { opacity:0.65; }
+    .nfi-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; margin-top:0.52rem; }
+    .nfi-body { flex:1; min-width:0; }
+    .nfi-headline { font-size:0.88rem; font-weight:500; line-height:1.45; }
+    .nfi-meta { font-size:0.62rem; color:var(--text-3); margin-top:0.28rem; letter-spacing:0.01em; }
+    .news-placeholder { padding:2rem 0; font-size:0.82rem; color:var(--text-3); }
+    /* legacy news classes used in loadDashNews still referenced by code */
+    .news-list { display:none; }
+    .news-tabs { display:none; }
+
+    /* Recent products */
+    .recent-row { display:flex; gap:0.65rem; overflow-x:auto; padding-bottom:3px; scrollbar-width:none; }
+    .recent-row::-webkit-scrollbar { display:none; }
+    .recent-card {
+      flex-shrink:0; width:168px; border:1px solid var(--border); border-radius:10px;
+      padding:0.85rem 0.95rem; cursor:pointer; transition:border-color 0.15s;
+      display:flex; flex-direction:column; gap:0.15rem;
+    }
+    .recent-card:hover { border-color:var(--text-3); }
+    .rc-div { font-size:0.6rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.2rem; }
+    .rc-name { font-size:0.82rem; font-weight:600; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text); }
+    .rc-code { font-size:0.67rem; color:var(--text-3); }
+
+    /* Compact time row */
+    .time-row { display:flex; gap:2.25rem; flex-wrap:wrap; align-items:flex-end; }
+    .tr-zone {}
+    .tr-city { font-size:0.6rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.15rem; }
+    .tr-time { font-size:1.15rem; font-weight:400; font-variant-numeric:tabular-nums; letter-spacing:-0.02em; color:var(--text); line-height:1; }
+    .tr-ampm { font-size:0.65rem; color:var(--text-3); margin-left:0.1rem; }
+    .tr-diff { font-size:0.6rem; color:var(--text-3); margin-top:0.15rem; }
     @keyframes spin { to { transform:rotate(360deg); } }
 
     /* ── PRODUCT DETAIL ── */
@@ -889,25 +931,26 @@
       .n-icon svg { width: 18px; height: 18px; }
 
       /* Dashboard */
-      .dash-wrap { gap: 0; }
-      .dash-header { flex-direction: column; gap: 0.2rem; margin-bottom: 1.25rem; }
-      .dash-hero-time { display: none; }
+      .dash-wrap { padding-bottom: 2.5rem; }
+      .dash-header { flex-direction: column; align-items: flex-start; gap: 0.25rem; margin-bottom: 1.75rem; }
       .dash-greeting { font-size: 1.35rem; }
-      .dash-section { margin-bottom: 1.5rem; }
+      .dash-date { font-size: 0.72rem; }
+      .dash-section { margin-bottom: 2rem; }
+      .dash-search-hero { margin-bottom: 2.25rem; }
 
-      /* Clocks: 2×2 */
-      .clocks-row { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
-      .clock-card { padding: 0.75rem 0.85rem; }
-      .clock-time { font-size: 1.5rem; }
+      /* Market: horizontally scrollable cards */
+      .market-cards { overflow-x: auto; padding-bottom: 3px; scrollbar-width: none; flex-wrap: nowrap; }
+      .market-cards::-webkit-scrollbar { display: none; }
+      .market-card { flex-shrink: 0; min-width: 140px; }
+      .market-expand-drawer { padding: 1rem; }
+      .med-price { font-size: 1.5rem; }
 
-      /* Market panel: list on top, detail below */
-      .market-panel { grid-template-columns: 1fr; min-height: unset; }
-      .market-list-col { border-right: none; border-bottom: 1px solid var(--border); }
-      .market-detail-col { min-height: 180px; padding: 1rem 1.1rem; }
-      .market-row-spark { display: none; }
-      .market-row-icon { width: 22px; height: 22px; }
-      .market-row-icon svg { width: 18px; height: 18px; }
-      .market-detail-price { font-size: 1.8rem; }
+      /* Recent: already scrollable, narrow cards */
+      .recent-card { width: 150px; }
+
+      /* Time row: 2-per-row wrap */
+      .time-row { gap: 1.75rem; }
+      .tr-time { font-size: 1rem; }
 
       /* Product grid: fit narrow screens */
       .pg-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; }
@@ -1668,6 +1711,7 @@ function shareProduct(p) {
 function showProductDetail(p) {
   document.getElementById('div-toolbar').style.display = 'none'
   selected = p
+  trackRecentlyViewed(p)
   const c = DIV_CLR[p.division] || '#aaa'
   const sku = p.code || p.id.slice(0,6).toUpperCase()
   const backLabel = division === 'all' ? 'All products' : DIV_LBL[division]
@@ -3167,7 +3211,7 @@ function showDashboard() {
 
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
   document.getElementById('nav-dash').classList.add('active')
-  document.getElementById('tb-section').textContent = 'Dashboard'
+  document.getElementById('tb-section').textContent = 'Home'
   document.getElementById('view-products').style.display = 'none'
 
   const vd = document.getElementById('view-dashboard')
@@ -3177,72 +3221,114 @@ function showDashboard() {
   const hr = now.getHours()
   const firstName = (profile?.full_name || me?.email?.split('@')[0] || '').split(' ')[0]
   const greeting = hr < 5 ? `Good night, ${firstName}` : hr < 12 ? `Good morning, ${firstName}` : hr < 17 ? `Good afternoon, ${firstName}` : `Good evening, ${firstName}`
-  const dateStr = now.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' })
+  const dateStr = now.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })
+
+  const recentItems = getRecentlyViewed()
+  const recentHtml = recentItems.length ? `
+  <div class="dash-section">
+    <div class="dash-section-hdr">
+      <div class="dash-section-label">Continue Working</div>
+    </div>
+    <div class="recent-row">
+      ${recentItems.map(p => `
+      <div class="recent-card" onclick="showProductDetail(dec('${enc(p)}'))">
+        <div class="rc-div" style="color:${DIV_CLR[p.division]||'var(--text-3)'}">${DIV_LBL[p.division]||p.division}</div>
+        <div class="rc-name">${esc(p.name)}</div>
+        <div class="rc-code">${esc(p.code||'')}</div>
+      </div>`).join('')}
+    </div>
+  </div>` : ''
 
   vd.innerHTML = `<div class="dash-wrap">
 
-  <!-- Greeting — clean text, no card -->
   <div class="dash-header">
-    <div>
-      <div class="dash-greeting">${greeting}.</div>
-      <div class="dash-date" style="margin-top:0.3rem">${dateStr}</div>
-    </div>
-    <div class="dash-hero-time" id="hero-time"></div>
+    <div class="dash-greeting">${greeting}.</div>
+    <div class="dash-date">${dateStr}</div>
   </div>
 
-  <!-- World time -->
+  <!-- Search Hero -->
+  <div class="dash-search-hero">
+    <div class="dash-search-trigger" onclick="openSpotlight()" role="button" tabindex="0">
+      <span class="dst-icon">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </span>
+      <span class="dst-text">Search products, fabrics, yarns, lots…</span>
+      <kbd class="dst-kbd">⌘ K</kbd>
+    </div>
+    <div class="dash-search-tags">
+      <span class="dst-tag">Products</span>
+      <span class="dst-tag">Fabrics</span>
+      <span class="dst-tag">Yarns</span>
+      <span class="dst-tag">Lots</span>
+      <span class="dst-tag">Technical Sheets</span>
+      <span class="dst-tag">Compositions</span>
+      <span class="dst-tag">Colors</span>
+      <span class="dst-tag">Product Codes</span>
+    </div>
+  </div>
+
+  ${recentHtml}
+
+  <!-- Market Snapshot -->
+  <div class="dash-section">
+    <div class="dash-section-hdr">
+      <div class="dash-section-label">Market Snapshot</div>
+      <div class="dash-section-meta" id="market-updated"></div>
+    </div>
+    <div class="market-cards">
+      ${COMMODITY_CFG.map(c => `
+      <div class="market-card" id="mc-${c.id}" onclick="toggleMarketCard('${c.id}')">
+        <div class="mc-label">${c.name}</div>
+        <div class="mc-price" id="mc-price-${c.id}">—<span class="mc-unit">${c.unit}</span></div>
+        <div class="mc-chg flat" id="mc-chg-${c.id}">—</div>
+        <div class="mc-spark"><canvas id="mc-spark-${c.id}"></canvas></div>
+      </div>`).join('')}
+    </div>
+    <div class="market-expand-drawer" id="market-expand-drawer"></div>
+  </div>
+
+  <!-- Industry News — merged feed -->
+  <div class="dash-section">
+    <div class="dash-section-hdr">
+      <div class="dash-section-label">Industry</div>
+      <div class="dash-section-meta" id="news-status"></div>
+    </div>
+    <div class="news-feed" id="dash-news-feed"><div class="news-placeholder">Loading…</div></div>
+  </div>
+
+  <!-- World Time — compact -->
   <div class="dash-section">
     <div class="dash-section-hdr">
       <div class="dash-section-label">World Time</div>
     </div>
-    <div class="clocks-row" id="dash-clocks"></div>
+    <div class="time-row" id="dash-time-row"></div>
   </div>
 
-  <!-- Market prices — Apple Stocks split layout -->
-  <div class="dash-section">
-    <div class="dash-section-hdr">
-      <div class="dash-section-label">Market Prices · 30 Days</div>
-      <div class="dash-section-meta" id="market-updated"></div>
-    </div>
-    <div class="market-panel">
-      <div class="market-list-col">
-        ${COMMODITY_CFG.map(c => `
-        <div class="market-row${c.id === 'cotton' ? ' active' : ''}" data-id="${c.id}" onclick="selectCommodity('${c.id}')">
-          <div class="market-row-icon" style="color:${c.color}">${c.icon || ''}</div>
-          <div class="market-row-info">
-            <div class="market-row-name">${c.name}</div>
-            <div class="market-row-sub">${c.symbol} · ${c.exchange}</div>
-          </div>
-          <div class="market-row-spark"><canvas id="cchart-${c.id}"></canvas></div>
-          <div class="market-row-price">
-            <div class="market-row-pval" id="cprice-${c.id}">—</div>
-            <div id="cchg-${c.id}"></div>
-          </div>
-        </div>`).join('')}
-      </div>
-      <div class="market-detail-col" id="market-detail"></div>
-    </div>
-  </div>
-
-  <!-- Industry news -->
-  <div class="dash-section">
-    <div class="dash-section-hdr">
-      <div class="dash-section-label">Industry News</div>
-    </div>
-    <div class="news-tabs" id="dash-news-tabs">
-      ${NEWS_SOURCES_CFG.map((s,i) => `<button class="news-tab${i===0?' active':''}" onclick="loadDashNews(${i},this)">${s.name}</button>`).join('')}
-    </div>
-    <div class="news-list" id="dash-news-list"><div class="news-placeholder">Loading...</div></div>
-  </div>
 </div>`
 
-  selectedCommodityId = 'cotton'
+  selectedCommodityId = null
   commodityData = {}
-  tickClocks()
-  clockInterval = setInterval(tickClocks, 10000)
-  renderMarketDetail('cotton')
-  COMMODITY_CFG.filter(c => c.symbol).forEach(fetchCommodity)
-  loadDashNews(0, document.querySelector('#dash-news-tabs .news-tab.active'))
+  tickClocksCompact()
+  clockInterval = setInterval(tickClocksCompact, 15000)
+  COMMODITY_CFG.filter(c => c.symbol).forEach(fetchCommodityCard)
+  loadMergedNews()
+}
+
+/* ── RECENT PRODUCTS ── */
+let _recentlyViewed = null
+function getRecentlyViewed() {
+  if (!_recentlyViewed) {
+    try { _recentlyViewed = JSON.parse(localStorage.getItem('sierra_recent') || '[]') } catch { _recentlyViewed = [] }
+  }
+  return _recentlyViewed
+}
+function trackRecentlyViewed(p) {
+  const arr = getRecentlyViewed()
+  const filtered = arr.filter(x => x.id !== p.id)
+  const slim = { id:p.id, name:p.name, code:p.code, division:p.division }
+  filtered.unshift(slim)
+  _recentlyViewed = filtered.slice(0, 8)
+  try { localStorage.setItem('sierra_recent', JSON.stringify(_recentlyViewed)) } catch {}
 }
 
 function clockTimeParts(tz) {
@@ -3283,6 +3369,199 @@ function tickClocks() {
       <div class="clock-meta">${dayLabel}${offLabel}</div>
     </div>`
   }).join('')
+}
+
+function tickClocksCompact() {
+  const wrap = document.getElementById('dash-time-row')
+  if (!wrap) return
+  const now = new Date()
+  const hnDate = now.toLocaleDateString('en-CA', { timeZone:'America/Tegucigalpa' })
+  const hnOff  = getOffsetHours('America/Tegucigalpa', now)
+  wrap.innerHTML = CLOCK_ZONES.map((z, i) => {
+    const p = clockTimeParts(z.tz)
+    const tzDate = now.toLocaleDateString('en-CA', { timeZone: z.tz })
+    const diff = getOffsetHours(z.tz, now) - hnOff
+    const offLabel = i === 0 ? '' : (diff > 0 ? `+${diff}h` : diff < 0 ? `${diff}h` : 'same')
+    const dayLabel = tzDate > hnDate ? ' · Tomorrow' : tzDate < hnDate ? ' · Yesterday' : ''
+    return `<div class="tr-zone">
+      <div class="tr-city">${z.city}</div>
+      <div class="tr-time">${p.h}:${p.m}<span class="tr-ampm">${p.ampm}</span></div>
+      ${offLabel || dayLabel ? `<div class="tr-diff">${offLabel}${dayLabel}</div>` : ''}
+    </div>`
+  }).join('')
+}
+
+async function fetchCommodityCard(cfg) {
+  const yf = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(cfg.symbol)}?interval=1d&range=1mo`
+  const proxies = [
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+  ]
+  let result = null
+  for (const mkProxy of proxies) {
+    try {
+      const res = await fetch(mkProxy(yf), { signal: AbortSignal.timeout(9000) })
+      if (!res.ok) continue
+      const body = await res.json()
+      const raw = body.contents !== undefined ? JSON.parse(body.contents) : body
+      result = raw?.chart?.result?.[0]
+      if (result) break
+    } catch { continue }
+  }
+  if (!result) return
+
+  const closes = result.indicators.quote[0].close.filter(v => v != null)
+  const meta = result.meta
+  const price = meta.regularMarketPrice
+  const prev = meta.chartPreviousClose || meta.previousClose || closes[closes.length - 2] || price
+  const chg = price - prev, pct = (chg / prev) * 100
+
+  commodityData[cfg.id] = { closes, price, chg, pct, cfg }
+
+  const priceEl = document.getElementById(`mc-price-${cfg.id}`)
+  const chgEl = document.getElementById(`mc-chg-${cfg.id}`)
+  if (priceEl) priceEl.innerHTML = `${price.toFixed(2)}<span class="mc-unit">${cfg.unit}</span>`
+  if (chgEl) {
+    const dir = chg >= 0 ? 'up' : 'dn'
+    const arrow = chg >= 0 ? '↑' : '↓'
+    chgEl.className = `mc-chg ${dir}`
+    chgEl.textContent = `${arrow} ${Math.abs(pct).toFixed(2)}%`
+  }
+
+  const upd = document.getElementById('market-updated')
+  if (upd) upd.textContent = `Updated ${new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}`
+
+  const spark = document.getElementById(`mc-spark-${cfg.id}`)
+  if (spark) {
+    if (dashCharts[`spark-${cfg.id}`]) { try { dashCharts[`spark-${cfg.id}`].destroy() } catch {} }
+    const col = chg >= 0 ? '#1a8a5c' : '#c0392b'
+    dashCharts[`spark-${cfg.id}`] = new Chart(spark.getContext('2d'), {
+      type: 'line',
+      data: { labels: closes.map((_,i)=>i), datasets: [{ data: closes, borderColor: col, borderWidth: 1.5, fill: false, tension: 0.35, pointRadius: 0 }] },
+      options: { responsive:true, maintainAspectRatio:false, animation:false, plugins:{legend:{display:false},tooltip:{enabled:false}}, scales:{x:{display:false},y:{display:false}} }
+    })
+  }
+
+  if (cfg.id === selectedCommodityId) renderMarketExpand(cfg.id)
+}
+
+function toggleMarketCard(id) {
+  const drawer = document.getElementById('market-expand-drawer')
+  if (!drawer) return
+  if (selectedCommodityId === id && drawer.classList.contains('open')) {
+    drawer.classList.remove('open')
+    selectedCommodityId = null
+    document.querySelectorAll('.market-card').forEach(c => c.classList.remove('mc-open'))
+    return
+  }
+  selectedCommodityId = id
+  document.querySelectorAll('.market-card').forEach(c => c.classList.remove('mc-open'))
+  const card = document.getElementById(`mc-${id}`)
+  if (card) card.classList.add('mc-open')
+  renderMarketExpand(id)
+  drawer.classList.add('open')
+}
+
+function renderMarketExpand(id) {
+  const drawer = document.getElementById('market-expand-drawer')
+  if (!drawer) return
+  const cfg = COMMODITY_CFG.find(c => c.id === id)
+  const data = commodityData[id]
+  if (!cfg) return
+  const dir = !data ? 'flat' : data.chg >= 0 ? 'up' : 'dn'
+  const arrow = !data ? '' : data.chg >= 0 ? '↑ ' : '↓ '
+  const sign = data?.chg >= 0 ? '+' : ''
+  const chgStr = data ? `${arrow}${sign}${data.chg.toFixed(2)} (${sign}${data.pct.toFixed(2)}%) · 30 days` : '—'
+  const priceStr = data ? data.price.toFixed(2) : '—'
+
+  drawer.innerHTML = `
+    <div class="med-top">
+      <div>
+        <div class="med-name">${cfg.name}</div>
+        <div class="med-sub">${cfg.symbol} · ${cfg.exchange} · ${cfg.unit}</div>
+      </div>
+      <div>
+        <div class="med-price">${priceStr}</div>
+        <div class="med-chg ${dir}">${chgStr}</div>
+      </div>
+    </div>
+    ${data?.closes ? `<div class="med-chart"><canvas id="chart-expand-${id}"></canvas></div>
+    <div class="med-foot">${cfg.exchange} · 30-day closing prices</div>` : '<div class="med-foot" style="margin-top:0.75rem">Loading chart…</div>'}`
+
+  if (data?.closes) {
+    requestAnimationFrame(() => {
+      const canvas = document.getElementById(`chart-expand-${id}`)
+      if (!canvas) return
+      if (dashCharts['expand']) { try { dashCharts['expand'].destroy() } catch {} }
+      const col = data.chg >= 0 ? '#1a8a5c' : '#c0392b'
+      const ctx = canvas.getContext('2d')
+      const grad = ctx.createLinearGradient(0, 0, 0, 110)
+      grad.addColorStop(0, col + '28'); grad.addColorStop(1, col + '00')
+      dashCharts['expand'] = new Chart(ctx, {
+        type: 'line',
+        data: { labels: data.closes.map((_,i)=>i), datasets:[{ data:data.closes, borderColor:col, borderWidth:1.8, backgroundColor:grad, fill:true, tension:0.4, pointRadius:0 }] },
+        options: { responsive:true, maintainAspectRatio:false, animation:{duration:350}, plugins:{legend:{display:false},tooltip:{enabled:false}}, scales:{x:{display:false},y:{display:false,grace:'5%'}} }
+      })
+    })
+  }
+}
+
+async function loadMergedNews() {
+  const feedEl = document.getElementById('dash-news-feed')
+  if (!feedEl) return
+  const statusEl = document.getElementById('news-status')
+
+  const getText = (el, ...tags) => { for (const t of tags) { const v = el.querySelector(t)?.textContent?.trim(); if (v) return v } return '' }
+  const getAttr = (el, tag, attr) => el.querySelector(tag)?.getAttribute(attr) || ''
+  const proxies = [
+    u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  ]
+
+  async function fetchFeed(src) {
+    let xml = null
+    for (const mkProxy of proxies) {
+      try {
+        const res = await fetch(mkProxy(src.url), { signal: AbortSignal.timeout(12000) })
+        if (!res.ok) continue
+        const text = await res.text()
+        if (text.trimStart().startsWith('{')) {
+          try { const j = JSON.parse(text); if (j?.contents) { xml = j.contents; break } } catch {}
+        }
+        if (text.includes('<item') || text.includes('<entry') || text.includes('<?xml')) { xml = text; break }
+      } catch { continue }
+    }
+    if (!xml) return []
+    try {
+      const doc = new DOMParser().parseFromString(xml, 'text/xml')
+      return [...doc.querySelectorAll('item, entry')].slice(0, 6).map(item => {
+        const title = getText(item, 'title').replace(/[<>]/g, c => c === '<' ? '&lt;' : '&gt;').replace(/\s+/g, ' ')
+        const link  = getText(item, 'link') || getAttr(item, 'link[href]', 'href') || getAttr(item, 'link', 'href')
+        const pub   = getText(item, 'pubDate', 'published', 'updated', 'dc\\:date')
+        return { title, link, pub: pub ? new Date(pub) : new Date(0), source: src.name, color: src.color }
+      }).filter(i => i.title && i.link)
+    } catch { return [] }
+  }
+
+  const results = await Promise.allSettled(NEWS_SOURCES_CFG.map(s => fetchFeed(s)))
+  const all = results.flatMap(r => r.status === 'fulfilled' ? r.value : [])
+  all.sort((a, b) => b.pub - a.pub)
+  const items = all.slice(0, 14)
+
+  if (!items.length) {
+    feedEl.innerHTML = '<div class="news-placeholder">No articles available.</div>'
+    return
+  }
+
+  if (statusEl) statusEl.textContent = `${items.length} articles`
+  feedEl.innerHTML = items.map(item => `
+    <a class="nfi" href="${item.link}" target="_blank" rel="noopener noreferrer">
+      <div class="nfi-dot" style="background:${item.color}"></div>
+      <div class="nfi-body">
+        <div class="nfi-headline">${item.title}</div>
+        <div class="nfi-meta">${item.source} · ${dashTimeAgo(item.pub)}</div>
+      </div>
+    </a>`).join('')
 }
 
 function selectCommodity(id) {
