@@ -433,7 +433,28 @@
     .comment-form input:focus { border-color:var(--accent); box-shadow:none; }
 
     /* ── PRODUCT GRID ── */
-    .pg { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:1rem; }
+    .pg { display:block; }
+    .pg-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:1rem; }
+
+    /* Construction sections */
+    .const-section { margin-bottom:2.5rem; }
+    .const-header {
+      display:flex; align-items:center; gap:0.75rem;
+      margin-bottom:1rem; padding-bottom:0.6rem;
+      border-bottom:1px solid var(--border);
+      cursor:pointer; user-select:none;
+    }
+    .const-badge {
+      font-size:0.7rem; font-weight:700; letter-spacing:0.08em;
+      padding:0.25rem 0.6rem; border-radius:6px;
+      background:var(--accent-light); color:var(--accent-dark);
+      font-family: 'SF Mono', 'Fira Mono', monospace;
+    }
+    .const-label { font-size:0.95rem; font-weight:600; color:var(--text); }
+    .const-count { font-size:0.8rem; color:var(--text-3); margin-left:auto; }
+    .const-chevron { color:var(--text-3); transition:transform 0.2s; flex-shrink:0; }
+    .const-section.collapsed .const-chevron { transform:rotate(-90deg); }
+    .const-section.collapsed .pg-grid { display:none; }
 
     .card { background:var(--surface); border:1px solid var(--border); border-radius:13px; cursor:pointer; transition:box-shadow 0.18s, transform 0.18s; }
     .card:hover { box-shadow:var(--shadow-hover); transform:translateY(-1px); }
@@ -740,7 +761,7 @@
       .market-detail-price { font-size: 1.8rem; }
 
       /* Product grid: fit narrow screens */
-      .pg { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; }
+      .pg-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; }
       .card-actions { flex-wrap: wrap; gap: 0.35rem; }
       .card-actions .btn { font-size: 0.73rem; padding: 0.45rem 0.4rem; }
       .card-img { height: 110px; }
@@ -1341,14 +1362,57 @@ function filterProducts() {
   )
 }
 
+const CONST_META = {
+  JRS: { label: 'Jersey',       order: 1 },
+  RIB: { label: 'Rib',          order: 2 },
+  FLC: { label: 'Fleece',       order: 3 },
+  FRT: { label: 'French Terry', order: 4 },
+  ILC: { label: 'Interlock',    order: 5 },
+  PIQ: { label: 'Piqué',        order: 6 },
+  WFL: { label: 'Waffle',       order: 7 },
+  PNT: { label: 'Ponte',        order: 8 },
+}
+
 function renderProducts(products) {
   const pg = document.getElementById('pg')
-  pg.style.display = 'grid'
+  pg.style.display = 'block'
   if (!products.length) {
-    pg.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">◻</div><p>${searchQuery ? 'No results for "'+searchQuery+'".' : 'No products in this division yet.'}</p></div>`
+    pg.innerHTML = `<div class="empty"><div class="empty-icon">◻</div><p>${searchQuery ? 'No results for "'+searchQuery+'".' : 'No products in this division yet.'}</p></div>`
     return
   }
-  pg.innerHTML = products.map(p => cardHTML(p)).join('')
+
+  // Group by construction only for fabric division (no active search)
+  if (division === 'fabric' && !searchQuery) {
+    const groups = {}
+    products.forEach(p => {
+      const key = (p.specs && p.specs.Construction) || 'JRS'
+      if (!groups[key]) groups[key] = []
+      groups[key].push(p)
+    })
+    const sorted = Object.entries(groups).sort(([a],[b]) => {
+      return ((CONST_META[a]?.order || 99) - (CONST_META[b]?.order || 99))
+    })
+    pg.innerHTML = sorted.map(([key, items]) => {
+      const meta = CONST_META[key] || { label: key }
+      return `<div class="const-section" id="csec-${key}">
+        <div class="const-header" onclick="toggleConstSection('${key}')">
+          <span class="const-badge">${key}</span>
+          <span class="const-label">${meta.label}</span>
+          <span class="const-count">${items.length} fabric${items.length !== 1 ? 's' : ''}</span>
+          <svg class="const-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="pg-grid">${items.map(p => cardHTML(p)).join('')}</div>
+      </div>`
+    }).join('')
+  } else {
+    pg.innerHTML = `<div class="pg-grid">${products.map(p => cardHTML(p)).join('')}</div>`
+  }
+}
+
+function toggleConstSection(key) {
+  document.getElementById('csec-' + key)?.classList.toggle('collapsed')
 }
 
 function onSearch(val) {
