@@ -114,6 +114,8 @@
     .btn-ghost.active { background:var(--text); color:var(--bg); border-color:var(--text); }
     .btn-sm { padding:0.42rem 0.85rem; font-size:0.78rem; border-radius:7px; }
     .btn-icon { background:none; border:none; cursor:pointer; color:var(--text-2); padding:0.35rem; border-radius:7px; display:flex; align-items:center; transition:all 0.15s; }
+    .modal-close { background:none; border:none; cursor:pointer; color:var(--text-2); padding:0.35rem; border-radius:7px; display:flex; align-items:center; transition:all 0.15s; font-size:1rem; line-height:1; }
+    .modal-close:hover { background:var(--surface2); color:var(--text); }
     .btn-icon:hover { background:var(--surface2); color:var(--text); }
 
     /* ── TOPBAR ── */
@@ -145,7 +147,6 @@
     .auth-link:hover { text-decoration:underline; }
     .u-name { font-size:0.78rem; font-weight:500; }
     .u-role { font-size:0.68rem; color:var(--text-3); }
-    .u-dot { width:5px; height:5px; border-radius:50%; background:var(--accent); }
     .logout-btn { font-size:0.75rem; color:var(--text-3); background:none; border:none; cursor:pointer; padding:0.3rem 0.45rem; border-radius:6px; font-family:inherit; transition:color 0.15s; }
     .logout-btn:hover { color:var(--text); }
 
@@ -177,8 +178,8 @@
     .sidebar-spacer { flex:1; min-height:0.5rem; }
 
     /* Drawer backdrop (mobile) */
-    .drawer-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:398; opacity:0; transition:opacity 0.25s; backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); }
-    .drawer-backdrop.open { display:block; opacity:1; }
+    .drawer-backdrop { visibility:hidden; pointer-events:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:398; opacity:0; transition:opacity 0.25s, visibility 0.25s; backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); }
+    .drawer-backdrop.open { visibility:visible; pointer-events:auto; opacity:1; }
 
     /* Mobile topbar icon buttons */
     .mob-icon-btn { display:none; width:34px; height:34px; border-radius:8px; background:none; border:none; cursor:pointer; color:var(--text-2); align-items:center; justify-content:center; flex-shrink:0; transition:background 0.12s; }
@@ -373,7 +374,7 @@
     /* World clocks — Apple-style digital */
     .clocks-row { display:grid; grid-template-columns:repeat(4,1fr); gap:0.65rem; }
     .clock-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1rem 1.1rem 0.9rem; }
-    .clock-card.night { background:var(--surface2); }
+    .clock-card.night { background:none; }
     .clock-city { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text); margin-bottom:0.55rem; }
     .clock-time { font-size:1.85rem; font-weight:400; letter-spacing:-0.03em; font-variant-numeric:tabular-nums; line-height:1; }
     .clock-ampm { font-size:0.95rem; font-weight:400; }
@@ -486,7 +487,7 @@
 
       /* Topbar */
       .topbar { padding: 0 0.75rem; }
-      .u-name, .u-role, .u-dot, .logout-btn { display: none; }
+      .u-name, .u-role, .logout-btn { display: none; }
       .sep, .section-label { display: none; }
       .mob-icon-btn { display: flex; }
       .sierra-logo-top svg { height: 17px; }
@@ -671,7 +672,6 @@
       <div class="user-pill">
         <div class="u-avatar" id="u-av" onclick="openProfile()">–</div>
         <span class="u-name" id="u-nm">–</span>
-        <div class="u-dot" id="u-dot"></div>
         <span class="u-role" id="u-role">–</span>
       </div>
       <button class="logout-btn" onclick="logout()">Sign out</button>
@@ -731,27 +731,6 @@
   </div>
 </div>
 
-<!-- ══ MODAL: FICHA ══ -->
-<div class="overlay" id="m-ficha">
-  <div class="modal">
-    <div class="modal-hdr">
-      <div>
-        <div class="modal-eyebrow" id="f-eyebrow"></div>
-        <div class="modal-title" id="f-name"></div>
-      </div>
-      <button class="btn-icon" onclick="closeModal('m-ficha')">✕</button>
-    </div>
-    <div class="modal-body" id="ficha-body"></div>
-    <div id="ficha-comments"></div>
-    <div class="modal-ftr">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('m-ficha')">Close</button>
-      <button class="btn btn-ghost btn-sm" id="ficha-del-btn" onclick="confirmDelete(selected)" style="display:none;color:#c0392b;border-color:rgba(192,57,43,0.25)">Delete</button>
-      <button class="btn btn-ghost btn-sm" id="ficha-edit-btn" onclick="openEdit(selected)" style="display:none">Edit</button>
-      <button class="btn btn-ghost btn-sm" onclick="openLabel()">View label</button>
-      <button class="btn btn-primary btn-sm" onclick="openReq()">Request sample</button>
-    </div>
-  </div>
-</div>
 
 <!-- ══ MODAL: LABEL ══ -->
 <div class="overlay" id="m-label">
@@ -1228,7 +1207,7 @@ function showProductDetail(p) {
   } else {
     galleryHtml = `<div class="ficha-img ficha-img-empty" style="background:${c}0d;border-radius:12px">
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="${c}" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="1.5" stroke="${c}" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="${c}" stroke-width="1.2" stroke-linecap="round"/></svg>
-      ${isEditor ? `<button class="btn btn-ghost btn-sm" style="margin-top:0.75rem" onclick="openEdit(selected)">Add image</button>` : `<span style="font-size:0.72rem;color:var(--text-3);margin-top:0.5rem">No image yet</span>`}
+      ${isEditor() ? `<button class="btn btn-ghost btn-sm" style="margin-top:0.75rem" onclick="openEdit(selected)">Add image</button>` : `<span style="font-size:0.72rem;color:var(--text-3);margin-top:0.5rem">No image yet</span>`}
     </div>`
   }
 
@@ -1252,8 +1231,8 @@ function showProductDetail(p) {
         <div class="detail-actions">
           <button class="btn btn-primary" onclick="openReq()">Request sample</button>
           <button class="btn btn-ghost" onclick="openLabel()">View label</button>
-          ${isEditor ? `<button class="btn btn-ghost" onclick="openEdit(selected)">Edit</button>` : ''}
-          ${isEditor ? `<button class="btn btn-ghost" style="color:#c0392b;border-color:rgba(192,57,43,0.25)" onclick="confirmDelete(selected)">Delete</button>` : ''}
+          ${isEditor() ? `<button class="btn btn-ghost" onclick="openEdit(selected)">Edit</button>` : ''}
+          ${isEditor() ? `<button class="btn btn-ghost" style="color:#c0392b;border-color:rgba(192,57,43,0.25)" onclick="confirmDelete(selected)">Delete</button>` : ''}
         </div>
       </div>
     </div>
@@ -1734,7 +1713,6 @@ function openReq() {
   document.getElementById('r-name').textContent = selected.name
   document.getElementById('r-qty').value = ''
   document.getElementById('r-notes').value = ''
-  closeModal('m-ficha')
   document.getElementById('m-req').classList.add('open')
 }
 
@@ -2737,6 +2715,11 @@ async function saveProfile() {
   } else {
     uav.textContent = initials
   }
+  // Sync sidebar user card
+  const sbAv = document.getElementById('sb-av')
+  const sbNm = document.getElementById('sb-nm')
+  if (sbAv) { sbAv.textContent = initials; if (avatar_url) sbAv.innerHTML = `<img src="${avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` }
+  if (sbNm) sbNm.textContent = name
   pendingAvatarFile = null
   toast('Profile saved')
   closeModal('m-profile')
