@@ -3140,15 +3140,24 @@ function toast(msg) {
 
 /* ── SPOTLIGHT ── */
 let spotlightFocusIdx = -1
+let spotlightDiv = null   // active division filter
 let recentSearches = JSON.parse(localStorage.getItem('sierra-recent-searches') || '[]')
 
+const SPOT_DIVS = [
+  { key:'fiber',     label:'Fiber',         color:'#9e00cb' },
+  { key:'yarn',      label:'Yarn',          color:'#3ed600' },
+  { key:'fabric',    label:'Fabric',        color:'#009fff' },
+  { key:'chemicals', label:'Chemicals',     color:'#ff7824' },
+  { key:'garment',   label:'Garment',       color:'#16cdbe' },
+]
+
 async function openSpotlight() {
+  spotlightDiv = null
   const el = document.getElementById('spotlight')
   el.classList.add('open')
   const inp = document.getElementById('spotlight-input')
   inp.value = ''
   spotlightFocusIdx = -1
-  // Load products in background if not yet fetched
   if (!allProducts.length) {
     const { data } = await sb.from('products').select('*').order('created_at', { ascending: false })
     if (data) allProducts = data
@@ -3159,6 +3168,7 @@ async function openSpotlight() {
 
 function closeSpotlight() {
   document.getElementById('spotlight').classList.remove('open')
+  spotlightDiv = null
 }
 
 function saveRecentSearch(q) {
@@ -3167,50 +3177,56 @@ function saveRecentSearch(q) {
   localStorage.setItem('sierra-recent-searches', JSON.stringify(recentSearches))
 }
 
+function spotlightDivChips(activeKey) {
+  return `<div style="display:flex;flex-wrap:wrap;gap:0.35rem;padding:0.5rem 1rem 0.4rem">
+    ${SPOT_DIVS.map(d => {
+      const active = activeKey === d.key
+      return `<button onclick="spotlightToggleDiv('${d.key}')" style="
+        display:inline-flex;align-items:center;gap:0.35rem;
+        padding:0.25rem 0.6rem;border-radius:20px;
+        border:1px solid ${active ? d.color : 'var(--border)'};
+        background:${active ? d.color+'18' : 'none'};
+        color:${active ? d.color : 'var(--text-3)'};
+        font-size:0.72rem;font-weight:${active?'600':'500'};
+        cursor:pointer;font-family:inherit;transition:all 0.12s;
+        white-space:nowrap;">
+        <span style="width:6px;height:6px;border-radius:50%;background:${d.color};flex-shrink:0"></span>
+        ${d.label}
+      </button>`
+    }).join('')}
+  </div><div class="spotlight-sep"></div>`
+}
+
+function spotlightToggleDiv(key) {
+  spotlightDiv = spotlightDiv === key ? null : key
+  const q = document.getElementById('spotlight-input').value.trim()
+  if (q) spotlightSearch(q)
+  else renderSpotlightHome()
+}
+
 function renderSpotlightHome() {
   const res = document.getElementById('spotlight-results')
-  const divs = [
-    { key:'all', label:'All products', color:'#009fff' },
-    { key:'fiber', label:'Fiber', color:'#9e00cb' },
-    { key:'yarn', label:'Yarn', color:'#3ed600' },
-    { key:'fabric', label:'Fabric', color:'#009fff' },
-    { key:'chemicals', label:'Chemicals', color:'#ff7824' },
-    { key:'garment', label:'Garment', color:'#16cdbe' },
-  ]
-  const recentHtml = recentSearches.length ? `
+  const pool = spotlightDiv ? allProducts.filter(p => p.division === spotlightDiv) : allProducts
+
+  const recentHtml = !spotlightDiv && recentSearches.length ? `
     <div class="spotlight-section-label">Recent searches</div>
     ${recentSearches.map(s => `
       <div class="spotlight-row" onclick="spotlightRunSearch('${s.replace(/'/g,"\\'")}')">
         <div class="spotlight-row-icon" style="color:var(--text-3)">
           <svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5" stroke="currentColor" stroke-width="1.4"/><path d="M13 13L16.5 16.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
         </div>
-        <div class="spotlight-row-info">
-          <div class="spotlight-row-title">${esc(s)}</div>
-        </div>
-        <button style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:0.7rem;padding:0.2rem 0.4rem;border-radius:4px;" onclick="event.stopPropagation();removeRecentSearch('${s.replace(/'/g,"\\'")}');renderSpotlightHome()" title="Remove">✕</button>
+        <div class="spotlight-row-info"><div class="spotlight-row-title">${esc(s)}</div></div>
+        <button style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:0.7rem;padding:0.2rem 0.4rem;border-radius:4px" onclick="event.stopPropagation();removeRecentSearch('${s.replace(/'/g,"\\'")}');renderSpotlightHome()" title="Remove">✕</button>
       </div>`).join('')}
     <div class="spotlight-sep"></div>` : ''
 
-  const newItems = allProducts.slice(0,4)
-  const newHtml = newItems.length ? `
-    <div class="spotlight-section-label">Latest products</div>
-    ${newItems.map(p => spotlightProductRow(p)).join('')}
-    <div class="spotlight-sep"></div>` : ''
+  const items = pool.slice(0, 6)
+  const label = spotlightDiv ? `${DIV_LBL[spotlightDiv]} products` : 'Latest products'
+  const itemsHtml = items.length
+    ? `<div class="spotlight-section-label">${label}</div>${items.map(p => spotlightProductRow(p)).join('')}`
+    : `<div class="spotlight-empty">No products in this division yet.</div>`
 
-  res.innerHTML = `
-    ${recentHtml}
-    <div class="spotlight-section-label">Divisions</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.35rem;padding:0.3rem 1rem 0.5rem">
-      ${divs.map(d => `
-        <div onclick="closeSpotlight();setDiv('${d.key}',document.getElementById('nav-${d.key}'))"
-          style="display:flex;align-items:center;gap:0.5rem;padding:0.45rem 0.6rem;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:0.78rem;font-weight:500;color:var(--text-2);transition:all 0.12s;"
-          onmouseenter="this.style.background='var(--surface2)';this.style.color='var(--text)'"
-          onmouseleave="this.style.background='';this.style.color='var(--text-2)'">
-          <span style="width:8px;height:8px;border-radius:50%;background:${d.color};flex-shrink:0"></span>
-          ${d.label}
-        </div>`).join('')}
-    </div>
-    ${newHtml}`
+  res.innerHTML = spotlightDivChips(spotlightDiv) + recentHtml + itemsHtml
 }
 
 function spotlightProductRow(p, query) {
@@ -3237,24 +3253,24 @@ function spotlightProductRow(p, query) {
 
 function spotlightSearch(val) {
   const q = val.trim()
-  if (!q) { renderSpotlightHome(); return }
+  if (!q && !spotlightDiv) { renderSpotlightHome(); return }
   const lower = q.toLowerCase()
-  const results = allProducts.filter(p =>
+  let pool = spotlightDiv ? allProducts.filter(p => p.division === spotlightDiv) : allProducts
+  const results = q ? pool.filter(p =>
     p.name?.toLowerCase().includes(lower) ||
     p.code?.toLowerCase().includes(lower) ||
-    p.division?.toLowerCase().includes(lower) ||
     (p.tags||[]).some(t => t.toLowerCase().includes(lower)) ||
     p.description?.toLowerCase().includes(lower)
-  ).slice(0, 12)
+  ) : pool
+  const shown = results.slice(0, 14)
 
   const res = document.getElementById('spotlight-results')
-  if (!results.length) {
-    res.innerHTML = `<div class="spotlight-empty">No results for "<strong>${esc(q)}</strong>"</div>`
-    return
-  }
-  res.innerHTML = `
-    <div class="spotlight-section-label">${results.length} result${results.length!==1?'s':''}</div>
-    ${results.map(p => spotlightProductRow(p, q)).join('')}`
+  const label = spotlightDiv
+    ? `${shown.length} in ${DIV_LBL[spotlightDiv]}`
+    : `${shown.length} result${shown.length!==1?'s':''}`
+  res.innerHTML = spotlightDivChips(spotlightDiv) + (shown.length
+    ? `<div class="spotlight-section-label">${label}</div>${shown.map(p => spotlightProductRow(p, q)).join('')}`
+    : `<div class="spotlight-empty">No results${spotlightDiv ? ` in ${DIV_LBL[spotlightDiv]}` : ''} for "<strong>${esc(q)}</strong>"</div>`)
 }
 
 function spotlightRunSearch(q) {
