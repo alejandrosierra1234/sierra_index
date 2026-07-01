@@ -1280,6 +1280,48 @@
     .smp-lbl-bc svg { width:42mm; height:auto; display:block; }
     .smp-lbl-foot { font-size:1.8mm; color:#888; }
   </style>
+  <style>
+/* ── DETAIL HERO LAYOUT (replaces 2-column detail-layout) ── */
+.detail-hero {
+  display:flex; gap:3rem; align-items:flex-start; margin-bottom:2.75rem;
+}
+.pd-identity-block { flex:1; min-width:0; }
+.pd-gallery-block { flex-shrink:0; width:280px; }
+@media (max-width:900px) {
+  .detail-hero { flex-direction:column; gap:1.5rem; }
+  .pd-gallery-block { width:100%; }
+}
+@media (max-width:767px) {
+  .detail-hero { gap:1.1rem; margin-bottom:1.75rem; }
+}
+
+/* ── PUBLIC PRODUCT PAGE ── */
+#pub-page { min-height:100vh; background:#fff; font-family:inherit; }
+.pub-wrap { max-width:520px; margin:0 auto; padding:3.5rem 1.75rem 5rem; }
+.pub-logo { margin-bottom:3rem; }
+.pub-logo svg { height:20px; width:auto; display:block; }
+.pub-eyebrow { font-size:0.6rem; font-weight:600; text-transform:uppercase; letter-spacing:0.14em; color:#bbb; margin-bottom:1rem; }
+.pub-name { font-size:2.4rem; font-weight:700; letter-spacing:-0.045em; line-height:1.02; color:#111; margin-bottom:0.3rem; }
+.pub-sku-line { font-size:0.6rem; font-weight:600; text-transform:uppercase; letter-spacing:0.12em; color:#999; margin-bottom:3rem; }
+.pub-fields { display:flex; flex-direction:column; border-top:1px solid #ebebeb; }
+.pub-field { padding:1.1rem 0; border-bottom:1px solid #ebebeb; }
+.pub-field-lbl { font-size:0.6rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:#bbb; margin-bottom:0.35rem; }
+.pub-field-val { font-size:1rem; font-weight:500; color:#111; line-height:1.4; }
+.pub-footer { margin-top:3.5rem; font-size:0.68rem; color:#ccc; letter-spacing:0.03em; display:flex; align-items:center; gap:0.5rem; }
+[data-theme="dark"] #pub-page { background:#0c0c0c; }
+[data-theme="dark"] .pub-name, [data-theme="dark"] .pub-field-val { color:#e8e8e8; }
+[data-theme="dark"] .pub-fields, [data-theme="dark"] .pub-field { border-color:#222; }
+[data-theme="dark"] .pub-field-lbl, [data-theme="dark"] .pub-eyebrow, [data-theme="dark"] .pub-sku-line { color:#555; }
+[data-theme="dark"] .pub-footer { color:#333; }
+
+/* ── LABEL CODES SECTION (product barcode + QR in label) ── */
+.lbl-codes { display:flex; align-items:flex-end; gap:3mm; padding-top:1.5mm; }
+.lbl-codes-qr canvas, .lbl-codes-qr img { width:20mm; height:20mm; display:block; }
+.lbl-codes-bc { flex:1; min-width:0; display:flex; flex-direction:column; }
+.lbl-codes-bc svg { width:100%; height:auto; max-height:9mm; display:block; }
+.lbl-codes-bc canvas { width:100%; height:auto; display:block; }
+.lbl-codes-id { font-size:1.7mm; color:#888; font-family:Arial,Helvetica,sans-serif; margin-top:0.6mm; letter-spacing:0.04em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  </style>
 </head>
 <body>
 
@@ -1607,6 +1649,9 @@
   </div>
 </div>
 
+<!-- PUBLIC PRODUCT PAGE (no auth required — opens from product QR code) -->
+<div id="pub-page" style="display:none"></div>
+
 <!-- PRINT ROOT (hidden, injected before print) -->
 <div id="print-root"></div>
 
@@ -1674,6 +1719,13 @@ function isEditor() { return ['admin','editor'].includes(profile?.role) }
 let editingProductId = null, editingImageUrls = [], pendingImgFiles = []
 let allProducts = [], searchQuery = '', selectMode = false, selectedProducts = []
 
+function getProductBarcode(p) {
+  return p.specs?.barcode || ('PRD-' + p.id.replace(/-/g,'').slice(0,12).toUpperCase())
+}
+function getProductPublicUrl(p) {
+  return window.location.origin + window.location.pathname + '?pub=' + p.id
+}
+
 /* ── THEME ── */
 const initTheme = localStorage.getItem('sierra-theme') || 'light'
 document.documentElement.setAttribute('data-theme', initTheme)
@@ -1710,6 +1762,12 @@ function hideLoadingScreen() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
+  const pubId = new URLSearchParams(window.location.search).get('pub')
+  if (pubId) {
+    hideLoadingScreen()
+    showPublicProductPage(pubId)
+    return
+  }
   const { data: { session } } = await sb.auth.getSession()
   if (session) {
     await enterApp(session.user)
@@ -1718,6 +1776,51 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('auth-screen').style.display = 'flex'
   }
 })
+
+/* ── PUBLIC PRODUCT PAGE ── */
+async function showPublicProductPage(productId) {
+  const el = document.getElementById('pub-page')
+  el.style.display = 'block'
+  document.getElementById('auth-screen').style.display = 'none'
+  const appEl = document.getElementById('app')
+  if (appEl) appEl.style.display = 'none'
+  const ls = document.getElementById('loading-screen')
+  if (ls) ls.style.display = 'none'
+
+  el.innerHTML = `<div class="pub-wrap"><div class="pub-logo">${LBL_LOGO_SVG}</div><div style="font-size:0.82rem;color:#aaa;margin-top:2rem">Loading…</div></div>`
+
+  const { data: p, error } = await sb.from('products').select('id,name,code,division,specs').eq('id', productId).single()
+  if (error || !p) {
+    el.innerHTML = `<div class="pub-wrap"><div class="pub-logo">${LBL_LOGO_SVG}</div><div style="margin-top:3rem;font-size:0.92rem;color:#aaa">Product not found.</div></div>`
+    return
+  }
+  const specs = p.specs || {}
+  const divLbl = { fiber:'SIERRA Fiber', yarn:'SIERRA Yarn', fabric:'SIERRA Fabric', chemicals:'SIERRA Chemicals', garment:'SIERRA Apparel' }[p.division] || ''
+  const sku = p.code || p.id.slice(0,8).toUpperCase()
+  const fields = [
+    specs.Composition  ? { lbl:'Composition',      val:specs.Composition }  : null,
+    { lbl:'Product Code', val:sku },
+    specs.Construction ? { lbl:'Construction Type', val:specs.Construction } : null,
+    specs.Color        ? { lbl:'Color',             val:specs.Color }        : null,
+  ].filter(Boolean)
+
+  el.innerHTML = `<div class="pub-wrap">
+    <div class="pub-logo">${LBL_LOGO_SVG}</div>
+    <div class="pub-eyebrow">${esc(divLbl)}</div>
+    <div class="pub-name">${esc(p.name)}</div>
+    <div class="pub-sku-line">${esc(sku)}</div>
+    <div class="pub-fields">
+      ${fields.map(f => `<div class="pub-field">
+        <div class="pub-field-lbl">${f.lbl}</div>
+        <div class="pub-field-val">${esc(String(f.val))}</div>
+      </div>`).join('')}
+    </div>
+    <div class="pub-footer">
+      <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Verified by SIERRA Index
+    </div>
+  </div>`
+}
 
 /* ── AUTH ── */
 async function login() {
@@ -2193,26 +2296,24 @@ function showProductDetail(p) {
         </button>
       </div>
     </div>
-    <div class="detail-layout">
-      <div class="detail-gallery-col">${galleryHtml}</div>
-      <div>
-        <div class="pd-identity">
-          <div class="pd-sku" onclick="copyToClipboard('${cp(productIdentity)}')" title="Click to copy">
-            ${esc(sku)} ${copyIcon}
-          </div>
-          <div class="pd-name">${esc(p.name)}</div>
-          <div class="pd-division">${DIV_LBL[p.division]}${specs.Construction ? ' · ' + (CONST_META[specs.Construction]?.label || specs.Construction) : ''}</div>
+    <div class="detail-hero">
+      <div class="pd-identity-block">
+        <div class="pd-sku" onclick="copyToClipboard('${cp(productIdentity)}')" title="Click to copy">
+          ${esc(sku)} ${copyIcon}
         </div>
-        ${infoHtml}
-        <div class="detail-comments-section">
-          <div class="detail-comments-lbl">Comments</div>
-          <div id="ficha-comments-inner"></div>
-        </div>
-        <div class="detail-comments-section">
-          <div class="detail-comments-lbl">Sample History</div>
-          <div id="pd-sample-history"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
-        </div>
+        <div class="pd-name">${esc(p.name)}</div>
+        <div class="pd-division">${DIV_LBL[p.division]}${specs.Construction ? ' · ' + (CONST_META[specs.Construction]?.label || specs.Construction) : ''}</div>
       </div>
+      <div class="pd-gallery-block">${galleryHtml}</div>
+    </div>
+    ${infoHtml}
+    <div class="detail-comments-section">
+      <div class="detail-comments-lbl">Comments</div>
+      <div id="ficha-comments-inner"></div>
+    </div>
+    <div class="detail-comments-section">
+      <div class="detail-comments-lbl">Sample History</div>
+      <div id="pd-sample-history"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
     </div>
   </div>
   ${toolbarHtml}`
@@ -2588,6 +2689,19 @@ function setLabelFieldValue(key, val) {
 
 function updateLabelPreview() {
   document.getElementById('label-preview').innerHTML = renderLabel(selected, labelFieldState)
+  initLabelCodePreviews(selected)
+}
+
+function initLabelCodePreviews(p) {
+  if (!p) return
+  const bcSvg = document.getElementById('lbl-preview-bc')
+  if (bcSvg) {
+    try { JsBarcode(bcSvg, getProductBarcode(p), { format:'CODE128', width:1.3, height:24, displayValue:false, margin:1, background:'#fff', lineColor:'#000' }) } catch(e) {}
+  }
+  const qrCanvas = document.getElementById('lbl-preview-qr')
+  if (qrCanvas) {
+    try { QRCode.toCanvas(qrCanvas, getProductPublicUrl(p), { width:60, margin:1, color:{ dark:'#000000', light:'#ffffff' } }, function(){}) } catch(e) {}
+  }
 }
 
 /* ── LABEL RENDERER ── */
@@ -2602,7 +2716,7 @@ function lblBlock(key, val) {
   return `<div class="lbl-block"><span class="lbl-key">${esc(key)}</span><span class="lbl-val">${esc(String(val))}</span></div>`
 }
 
-function renderLabel(p, fields) {
+function renderLabel(p, fields, codesHtml = '') {
   const F = {}
   fields.forEach(f => { if (f.enabled) F[f.key] = f.value })
 
@@ -2665,6 +2779,18 @@ function renderLabel(p, fields) {
   // Comments
   if (F['Comments']) pushRow(`<div class="lbl-block lbl-comments"><span class="lbl-key">Comments</span><span class="lbl-val">${esc(F['Comments'])}</span></div>`)
 
+  // Product codes section (barcode + QR) at the bottom of every label
+  sections.push('<div class="lbl-divider"></div>')
+  if (codesHtml) {
+    sections.push(codesHtml)
+  } else {
+    // Preview: render placeholder elements, filled by initLabelCodePreviews()
+    sections.push(`<div class="lbl-codes">
+      <div class="lbl-codes-qr"><canvas id="lbl-preview-qr" width="60" height="60"></canvas></div>
+      <div class="lbl-codes-bc"><svg id="lbl-preview-bc"></svg><div class="lbl-codes-id">${esc(p.code || p.id.slice(0,8).toUpperCase())} · SIERRA INDEX</div></div>
+    </div>`)
+  }
+
   return `<div class="lbl">${sections.join('')}</div>`
 }
 
@@ -2698,13 +2824,46 @@ const LABEL_PRINT_CSS = `
   .lc1 { fill:#59a29e; } .lc2 { fill:#141512; }
 `
 
-function printLabel() {
-  const labelHtml = renderLabel(selected, labelFieldState)
-  const w = window.open('', '_blank', 'width=300,height=500,menubar=no,toolbar=no,location=no')
+async function printLabel() {
+  if (!selected) return
+
+  // Pre-generate product barcode SVG
+  let bcSvgStr = ''
+  try {
+    const tmpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    JsBarcode(tmpSvg, getProductBarcode(selected), {
+      format:'CODE128', width:1.3, height:26, displayValue:false, margin:2, background:'#fff', lineColor:'#000',
+    })
+    bcSvgStr = new XMLSerializer().serializeToString(tmpSvg)
+  } catch(e) {}
+
+  // Pre-generate QR code data URL
+  let qrDataUrl = ''
+  try {
+    qrDataUrl = await new Promise((res, rej) => {
+      QRCode.toDataURL(getProductPublicUrl(selected),
+        { width:76, margin:1, color:{ dark:'#000000', light:'#ffffff' } },
+        (err, url) => { if (err) rej(err); else res(url) })
+    })
+  } catch(e) {}
+
+  const codesHtml = `<div class="lbl-codes">
+    <div class="lbl-codes-qr">${qrDataUrl ? `<img src="${qrDataUrl}" style="width:20mm;height:20mm">` : ''}</div>
+    <div class="lbl-codes-bc">${bcSvgStr}<div class="lbl-codes-id">${esc(selected.code || selected.id.slice(0,8).toUpperCase())} · SIERRA INDEX</div></div>
+  </div>`
+
+  const labelHtml = renderLabel(selected, labelFieldState, codesHtml)
+  const w = window.open('', '_blank', 'width=300,height=560,menubar=no,toolbar=no,location=no')
   if (!w) { toast('Allow pop-ups for this site to print'); return }
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
     <title>Label — ${esc(selected?.name || '')}</title>
-    <style>${LABEL_PRINT_CSS}</style>
+    <style>${LABEL_PRINT_CSS}
+    .lbl-codes { display:flex; align-items:flex-end; gap:3mm; padding-top:1.5mm; }
+    .lbl-codes-qr img { width:20mm; height:20mm; display:block; }
+    .lbl-codes-bc { flex:1; min-width:0; display:flex; flex-direction:column; }
+    .lbl-codes-bc svg { width:100%; height:auto; max-height:9mm; display:block; }
+    .lbl-codes-id { font-size:1.7mm; color:#888; font-family:Arial,Helvetica,sans-serif; margin-top:0.6mm; letter-spacing:0.04em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    </style>
   </head><body>${labelHtml}
     <script>
       window.onload = function () {
@@ -2716,7 +2875,7 @@ function printLabel() {
         setTimeout(function () {
           window.print()
           setTimeout(function () { window.close() }, 800)
-        }, 50)
+        }, 150)
       }
     <\/script>
   </body></html>`)
@@ -3742,35 +3901,6 @@ function showDashboard() {
     </div>
   </div>
 
-  <!-- Quick Actions -->
-  <div class="dash-section">
-    <div class="dash-section-hdr">
-      <div class="dash-section-label">Quick Actions</div>
-    </div>
-    <div class="dash-actions-grid">
-      <button class="dash-action-btn" onclick="openSpotlight()">
-        <span class="dash-action-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M9 3a6 6 0 1 0 0 12A6 6 0 0 0 9 3zM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9z" fill="currentColor"/></svg></span>
-        <span class="dash-action-label">Search</span>
-        <span class="dash-action-sub">Products, samples, lots</span>
-      </button>
-      <button class="dash-action-btn" onclick="openScanMode()">
-        <span class="dash-action-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="13" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M13 13h4M13 17h4M17 13v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
-        <span class="dash-action-label">Scan</span>
-        <span class="dash-action-sub">Barcode or QR code</span>
-      </button>
-      <button class="dash-action-btn" onclick="showSampleCenter()">
-        <span class="dash-action-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="11" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M14 11v6M11 14h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
-        <span class="dash-action-label">Sample Center</span>
-        <span class="dash-action-sub">View all samples</span>
-      </button>
-      <button class="dash-action-btn" onclick="if(selected)openReq();else toast('Open a product first to request a sample')">
-        <span class="dash-action-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="4" y="3" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
-        <span class="dash-action-label">Request Sample</span>
-        <span class="dash-action-sub">From current product</span>
-      </button>
-    </div>
-  </div>
-
   <!-- Pending Samples -->
   <div class="dash-section" id="pending-samples-section">
     <div class="dash-section-hdr">
@@ -3807,6 +3937,35 @@ function showDashboard() {
       <div class="dash-section-meta" id="news-status"></div>
     </div>
     <div class="news-feed" id="dash-news-feed"><div class="news-placeholder">Loading…</div></div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="dash-section">
+    <div class="dash-section-hdr">
+      <div class="dash-section-label">Quick Actions</div>
+    </div>
+    <div class="dash-actions-grid">
+      <button class="dash-action-btn" onclick="openSpotlight()">
+        <span class="dash-action-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M9 3a6 6 0 1 0 0 12A6 6 0 0 0 9 3zM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9z" fill="currentColor"/></svg></span>
+        <span class="dash-action-label">Search</span>
+        <span class="dash-action-sub">Products, samples, lots</span>
+      </button>
+      <button class="dash-action-btn" onclick="openScanMode()">
+        <span class="dash-action-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="13" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M13 13h4M13 17h4M17 13v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+        <span class="dash-action-label">Scan</span>
+        <span class="dash-action-sub">Barcode or QR code</span>
+      </button>
+      <button class="dash-action-btn" onclick="showSampleCenter()">
+        <span class="dash-action-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="11" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M14 11v6M11 14h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+        <span class="dash-action-label">Sample Center</span>
+        <span class="dash-action-sub">View all samples</span>
+      </button>
+      <button class="dash-action-btn" onclick="if(selected)openReq();else toast('Open a product first to request a sample')">
+        <span class="dash-action-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="4" y="3" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+        <span class="dash-action-label">Request Sample</span>
+        <span class="dash-action-sub">From current product</span>
+      </button>
+    </div>
   </div>
 
   <!-- World Time — compact -->
@@ -5308,6 +5467,21 @@ async function executeScan(val) {
       return
     }
     toast('Sample not found: ' + v)
+    return
+  }
+  // Check if it's a system-generated product barcode (PRD-XXXXXXXXXXXX)
+  if (/^PRD-/i.test(v)) {
+    const encoded = v.slice(4).toUpperCase()
+    // Barcode encodes first 12 chars of UUID (no dashes). Reconstruct partial UUID for DB lookup.
+    // UUID format: 8-4-4-4-12. Without dashes first 12 = chars [0:8] + [9:13]
+    const partialUuid = encoded.slice(0,8).toLowerCase() + '-' + encoded.slice(8,12).toLowerCase()
+    const { data: prodsByBarcode } = await sb.from('products').select('*').ilike('id', partialUuid + '%').limit(1)
+    if (prodsByBarcode?.length) {
+      closeScanMode()
+      showProductDetail(prodsByBarcode[0])
+      return
+    }
+    toast('Product not found: ' + v)
     return
   }
   // Check if it's a product code
