@@ -658,19 +658,22 @@
 
     /* ── PRODUCT DETAIL ── */
     #view-detail { display:none; }
-    .detail-wrap { max-width:900px; margin:0 auto; padding-bottom:5rem; }
+    .detail-wrap { max-width:900px; margin:0 auto; padding-bottom:2rem; }
     .detail-topbar {
       display:flex; align-items:center; justify-content:space-between;
       margin-bottom:2.75rem; gap:1rem;
     }
     .detail-topbar-right { display:flex; gap:0.4rem; }
     .detail-back-btn {
-      display:inline-flex; align-items:center; gap:0.4rem;
+      display:inline-flex; align-items:center; gap:0.5rem;
       background:none; border:none; cursor:pointer; font-family:inherit;
-      font-size:0.82rem; font-weight:500; color:var(--text-2);
-      padding:0.3rem 0.5rem; border-radius:7px; transition:all 0.12s;
+      font-size:0.78rem; font-weight:500; color:var(--text-3);
+      padding:0.3rem 0.6rem 0.3rem 0.35rem; border-radius:7px; transition:all 0.12s;
     }
     .detail-back-btn:hover { background:var(--surface2); color:var(--text); }
+    .detail-back-dot {
+      width:6px; height:6px; border-radius:50%; flex-shrink:0;
+    }
 
     .detail-layout { display:grid; grid-template-columns:260px 1fr; gap:4rem; align-items:start; }
     .detail-gallery-col { position:sticky; top:1.5rem; }
@@ -683,27 +686,41 @@
     }
     .pd-no-img-hint { font-size:0.7rem; color:var(--text-3); }
 
-    /* SKU — identifier chip, system-radius */
+    /* Identity block */
+    .pd-identity { margin-bottom:2.5rem; }
     .pd-sku {
-      font-size:0.72rem; font-weight:600; letter-spacing:0.06em;
-      color:var(--text-2); border:1px solid var(--border);
-      display:inline-flex; align-items:center; gap:0.4rem;
-      padding:0.25rem 0.6rem; border-radius:7px;
+      font-size:0.62rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;
+      color:var(--text-3); display:inline-flex; align-items:center; gap:0.35rem;
       cursor:pointer; user-select:none; transition:opacity 0.15s;
-      margin-bottom:0.85rem; width:fit-content;
+      margin-bottom:0.55rem;
     }
-    .pd-sku:hover { opacity:0.6; }
+    .pd-sku:hover { opacity:0.55; }
 
-    /* Name — strongest element */
+    /* Name — primary identity */
     .pd-name {
-      font-size:1.8rem; font-weight:700; letter-spacing:-0.035em;
-      line-height:1.1; color:var(--text); margin-bottom:0.3rem;
+      font-size:2.3rem; font-weight:700; letter-spacing:-0.04em;
+      line-height:1.05; color:var(--text); margin-bottom:0.5rem;
     }
-    /* Division — orientation only, recedes */
+    /* Division — quiet orientation, no color */
     .pd-division {
       font-size:0.62rem; font-weight:600; text-transform:uppercase;
-      letter-spacing:0.1em; color:var(--text-3); margin-bottom:2.25rem;
+      letter-spacing:0.1em; color:var(--text-3);
     }
+
+    /* Sticky action bar */
+    .detail-sticky-bar {
+      position:sticky; bottom:0; z-index:50;
+      background:var(--bg); border-top:1px solid var(--border);
+      padding:0.85rem 0;
+      margin-top:2.5rem;
+    }
+    .detail-sticky-inner {
+      max-width:900px; margin:0 auto;
+      display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap;
+    }
+    .detail-sticky-bar .btn-primary { padding:0.52rem 1.1rem; font-size:0.82rem; }
+    .detail-sticky-bar .btn-ghost   { padding:0.52rem 0.9rem;  font-size:0.82rem; }
+    .detail-sticky-spacer { flex:1; }
 
     /* Section titles — match sidebar .s-label exactly */
     .pd-sec-title {
@@ -779,10 +796,7 @@
     .pd-yarn-v { font-size:0.93rem; font-weight:500; color:var(--text); line-height:1.45; }
 
     .detail-desc { font-size:0.88rem; color:var(--text-2); line-height:1.8; margin:0; }
-    .detail-actions {
-      display:flex; gap:0.5rem; flex-wrap:wrap;
-      margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid var(--border);
-    }
+    .detail-actions { display:none; }
     .detail-comments-section {
       border-top:1px solid var(--border); padding-top:1.75rem; margin-top:3rem;
     }
@@ -796,21 +810,23 @@
     @media (max-width:900px) {
       .detail-layout { grid-template-columns:1fr; gap:1.75rem; }
       .detail-gallery-col { position:static; }
-      .pd-name { font-size:1.45rem; }
+      .pd-name { font-size:1.75rem; }
       .pd-grid-4 { grid-template-columns:1fr 1fr; gap:1.25rem; }
       .pd-grid-3 { grid-template-columns:1fr 1fr; gap:1.5rem; }
     }
     @media (max-width:767px) {
-      .detail-wrap { padding-bottom:3.5rem; }
+      .detail-wrap { padding-bottom:2rem; }
       .detail-topbar { margin-bottom:1.75rem; }
-      .pd-name { font-size:1.3rem; }
-      .pd-division { margin-bottom:1.75rem; }
+      .pd-name { font-size:1.5rem; }
+      .pd-identity { margin-bottom:1.75rem; }
       .pd-sec-title { margin-top:1.75rem; }
       .pd-comp-line { font-size:1rem; }
       .pd-no-img { padding:1.5rem; }
       .pd-compare th { padding-right:1.25rem; }
       .pd-compare td { padding-right:1.25rem; }
       .detail-comments-section { margin-top:2.25rem; padding-top:1.5rem; }
+      .detail-sticky-bar { padding:0.7rem 0.75rem; }
+      .detail-sticky-inner { max-width:none; }
     }
     @media (max-width:480px) {
       .pd-grid-2 { grid-template-columns:1fr; gap:1.25rem; }
@@ -1825,38 +1841,43 @@ function showProductDetail(p) {
     infoHtml += `<div style="margin-top:1.25rem">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>`
   }
 
-  const actionsHtml = `<div class="detail-actions">
-    <button class="btn btn-primary" onclick="openReq()">
-      <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M10 3v14M3 10h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      Request sample
-    </button>
-    <button class="btn btn-ghost" onclick="openLabel()">
-      <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 8h6M7 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-      Label
-    </button>
-    <button class="btn btn-ghost" onclick="downloadProductPDF()">
-      <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M5 3h7l4 4v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 3v4h4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 13l3 3 3-3M10 16v-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      PDF
-    </button>
-    ${isEditor() ? `<button class="btn btn-ghost" onclick="openEdit(selected)">
-      <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M14.5 3.5l2 2L6 16H4v-2L14.5 3.5z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Edit
-    </button>` : ''}
-    ${isEditor() ? `<button class="btn btn-ghost" style="color:#c0392b;border-color:rgba(192,57,43,0.25)" onclick="confirmDelete(selected)">
-      <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M4 6h12M8 6V4h4v2M15 6l-1 11H6L5 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Delete
-    </button>` : ''}
+  const productIdentity = `${p.name} — ${sku}`
+
+  const stickyBarHtml = `<div class="detail-sticky-bar">
+    <div class="detail-sticky-inner">
+      <button class="btn btn-primary" onclick="openReq()">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M10 3v14M3 10h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Request Sample
+      </button>
+      <button class="btn btn-ghost" onclick="generateTechnicalSheet()">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M5 3h7l4 4v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 3v4h4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Technical Sheet
+      </button>
+      <button class="btn btn-ghost" onclick="openLabel()">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 8h6M7 11h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Print Label
+      </button>
+      <div class="detail-sticky-spacer"></div>
+      ${isEditor() ? `<button class="btn btn-ghost" onclick="openEdit(selected)">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.5 3.5l2 2L6 16H4v-2L14.5 3.5z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Edit
+      </button>` : ''}
+      ${isEditor() ? `<button class="btn btn-ghost" style="color:#c0392b;border-color:rgba(192,57,43,0.2)" onclick="confirmDelete(selected)">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M4 6h12M8 6V4h4v2M15 6l-1 11H6L5 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Delete
+      </button>` : ''}
+    </div>
   </div>`
 
   vd.innerHTML = `<div class="detail-wrap">
     <div class="detail-topbar">
       <button class="detail-back-btn" onclick="backToProducts()">
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="detail-back-dot" style="background:${c}"></span>
         ${backLabel}
       </button>
       <div class="detail-topbar-right">
         <button class="btn btn-ghost btn-sm" onclick="shareProduct(selected)">
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="15" cy="5" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="5" cy="10" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="15" cy="15" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 9l6-3M7 11l6 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><circle cx="15" cy="5" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="5" cy="10" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="15" cy="15" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 9l6-3M7 11l6 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           Share
         </button>
       </div>
@@ -1864,18 +1885,22 @@ function showProductDetail(p) {
     <div class="detail-layout">
       <div class="detail-gallery-col">${galleryHtml}</div>
       <div>
-        <div class="pd-sku" onclick="copyToClipboard('${cp(sku)}')" title="Click to copy SKU">${esc(sku)} ${copyIcon}</div>
-        <div class="pd-name">${esc(p.name)}</div>
-        <div class="pd-division" style="color:${c}">${DIV_LBL[p.division]}${specs.Construction ? ' · ' + (CONST_META[specs.Construction]?.label || specs.Construction) : ''}</div>
+        <div class="pd-identity">
+          <div class="pd-sku" onclick="copyToClipboard('${cp(productIdentity)}')" title="Click to copy">
+            ${esc(sku)} ${copyIcon}
+          </div>
+          <div class="pd-name">${esc(p.name)}</div>
+          <div class="pd-division">${DIV_LBL[p.division]}${specs.Construction ? ' · ' + (CONST_META[specs.Construction]?.label || specs.Construction) : ''}</div>
+        </div>
         ${infoHtml}
-        ${actionsHtml}
       </div>
     </div>
     <div class="detail-comments-section">
       <div class="detail-comments-lbl">Comments</div>
       <div id="ficha-comments-inner"></div>
     </div>
-  </div>`
+  </div>
+  ${stickyBarHtml}`
 
   loadFichaComments(p.id)
 }
@@ -2721,80 +2746,295 @@ async function downloadImg(url, name) {
   }
 }
 
-function downloadProductPDF() {
+function generateTechnicalSheet() {
   const p = selected
   if (!p) return
-  const c = DIV_CLR[p.division] || '#aaa'
+  const divColor = DIV_CLR[p.division] || '#aaa'
   const code = p.code || p.id.slice(0,6).toUpperCase()
   const specs = p.specs || {}
   const imgs = (p.image_urls && p.image_urls.length) ? p.image_urls : (p.image_url ? [p.image_url] : [])
+  const divLabel = DIV_LBL[p.division] || p.division
+  const dateStr = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
 
-  let specsHtml = ''
-  if (p.division === 'fabric') {
-    const fields = [
-      ['Composition', specs.Composition], ['Color', specs.Color], ['Dyed Method', specs['Dyed Method']],
-      ['Width', specs.Width], ['GSM', specs.GSM], ['DIA', specs.DIA], ['Gauge', specs.Gauge],
-      ['Yarn 01', specs['Yarn 01']], ['Yarn 02', specs['Yarn 02']], ['Yarn 03', specs['Yarn 03']],
-      ['Comments', specs.Comments]
-    ].filter(([,v]) => v)
-    specsHtml = `<div class="spec-grid">${fields.map(([k,v]) =>
-      `<div class="spec-item"><div class="spec-k">${k}</div><div class="spec-v">${v}</div></div>`).join('')}</div>`
-  } else {
-    const fields = Object.entries(specs)
-    if (p.description) fields.unshift(['Description', p.description])
-    specsHtml = `<div class="spec-grid">${fields.map(([k,v]) =>
-      `<div class="spec-item"><div class="spec-k">${k}</div><div class="spec-v">${v}</div></div>`).join('')}</div>`
+  function ne(v) { return v !== null && v !== undefined && v !== '' && v !== '0' && v !== 0 }
+  function row(k, v) {
+    if (!ne(v)) return ''
+    return `<tr><td class="spec-k">${k}</td><td class="spec-v">${v}</td></tr>`
+  }
+  function section(title, inner) {
+    if (!inner.trim()) return ''
+    return `<div class="ts-section">
+      <div class="ts-sec-lbl">${title}</div>
+      ${inner}
+    </div>`
+  }
+  function tableOf(rows) {
+    const r = rows.filter(([,v]) => ne(v))
+    if (!r.length) return ''
+    return `<table class="ts-table">${r.map(([k,v]) => row(k,v)).join('')}</table>`
   }
 
-  const tagsHtml = (p.tags || []).length
-    ? `<div class="tags-row">${(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}</div>` : ''
+  let bodyHtml = ''
 
-  const imgHtml = imgs[0] ? `<img src="${imgs[0]}" class="hero-img" />` : ''
+  if (p.division === 'fabric') {
+    // Overview
+    function parseComp(str) {
+      if (!str) return []
+      return str.trim().split(/(?=\d+%)/).map(s => s.trim()).filter(Boolean)
+    }
+    const compParts = parseComp(specs.Composition)
+    let overviewHtml = ''
+    if (compParts.length) {
+      overviewHtml += `<div class="ts-comp">${compParts.map(l =>
+        l.replace(/^(\d+%)/, '<strong>$1</strong> ')).join('<br>')}</div>`
+    }
+    overviewHtml += tableOf([
+      ['Color', specs.Color],
+      ['Country of Origin', p.country || 'Honduras'],
+      ['Lot', p.lot],
+      ['Mill Article', specs['Mill Article']],
+    ])
+    bodyHtml += section('Overview', overviewHtml)
+
+    // Construction
+    bodyHtml += section('Construction', tableOf([
+      ['Construction Type', specs.Construction ? (CONST_META[specs.Construction]?.label || specs.Construction) : null],
+      ['Gauge', specs.Gauge],
+      ['Needles', specs.Needles],
+      ['Diameter', specs.DIA],
+      ['Route Type', specs['Route Type']],
+    ]))
+
+    // Dyeing
+    bodyHtml += section('Dyeing', tableOf([
+      ['Dye Method', specs['Dyed Method']],
+    ]))
+
+    // Technical Specifications
+    const rw = specs['Req Width'], rg = specs['Req GSM'], sw = specs['Std Width'], sg = specs['Std GSM']
+    let techHtml = tableOf([['Width', specs.Width], ['GSM', specs.GSM]])
+    if ([rw, rg, sw, sg].some(ne)) {
+      techHtml += `<table class="ts-compare">
+        <thead><tr><th></th><th>Width</th><th>GSM</th></tr></thead>
+        <tbody>
+          <tr><td>Requested</td><td>${ne(rw) ? rw : '—'}</td><td>${ne(rg) ? rg : '—'}</td></tr>
+          <tr><td>Standard</td><td>${ne(sw) ? sw : '—'}</td><td>${ne(sg) ? sg : '—'}</td></tr>
+        </tbody>
+      </table>`
+    }
+    bodyHtml += section('Technical Specifications', techHtml)
+
+    // Yarn Composition
+    const yarns = [specs['Yarn 01'], specs['Yarn 02'], specs['Yarn 03']].filter(ne)
+    if (yarns.length) {
+      const yarnHtml = yarns.map((y,i) =>
+        `<div class="ts-yarn"><span class="ts-yarn-n">${String(i+1).padStart(2,'0')}</span><span>${y}</span></div>`
+      ).join('')
+      bodyHtml += section('Yarn Composition', yarnHtml)
+    }
+
+    // Commercial
+    bodyHtml += section('Commercial', tableOf([
+      ['Vendor', specs.Vendor],
+      ['Buyer', specs.Buyer],
+      ['Sample Qty', specs['Sample Qty']],
+      ['Rec Date', specs['Rec Date']],
+    ]))
+
+    // Notes
+    if (specs.Comments) {
+      bodyHtml += section('Notes', `<p class="ts-notes">${specs.Comments}</p>`)
+    }
+
+  } else {
+    if (p.description) bodyHtml += section('Description', `<p class="ts-notes">${p.description}</p>`)
+    const entries = Object.entries(specs).filter(([,v]) => ne(v))
+    if (entries.length) bodyHtml += section('Specifications', tableOf(entries))
+  }
+
+  const logoSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1715 353.13" style="height:20px;width:auto"><path fill="#0b0b0b" d="M570.98,144.81c-47.7-6.81-61.33-13.63-61.33-34.07,0-13.63,10.22-23.85,40.88-23.85,37.48,0,47.7,10.22,47.7,30.66l3.41,3.41h40.88l3.41-3.41c0-40.88-27.26-71.55-91.99-71.55s-91.99,30.66-91.99,64.73c0,47.7,37.48,64.73,85.17,71.55,47.7,6.81,61.33,13.63,61.33,37.48,0,20.44-17.03,30.66-47.7,30.66-40.88,0-54.51-13.63-54.51-37.48l-3.41-3.41h-40.88l-3.41,3.41c0,44.29,30.66,78.36,98.8,78.36,71.55,0,98.8-34.07,98.8-71.55,0-47.7-37.48-68.14-85.17-74.95Z"/><polygon fill="#0b0b0b" points="700.44 49.41 697.03 52.82 697.03 284.49 700.44 287.9 741.32 287.9 744.73 284.49 744.73 52.82 741.32 49.41 700.44 49.41"/><polygon fill="#0b0b0b" points="802.64 49.41 799.23 52.82 799.23 284.49 802.64 287.9 962.76 287.9 966.17 284.49 966.17 250.42 962.76 247.02 850.33 247.02 846.93 243.61 846.93 189.1 850.33 185.69 955.95 185.69 959.36 182.29 959.36 148.22 955.95 144.81 850.33 144.81 846.93 141.4 846.93 93.7 850.33 90.3 962.76 90.3 966.17 86.89 966.17 52.82 962.76 49.41 802.64 49.41"/><path fill="#0b0b0b" d="M1211.46,120.96c0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41,68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14ZM1129.7,151.62h-64.73l-3.41-3.41v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66Z"/><path fill="#0b0b0b" d="M1344.33,195.91l68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14,0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41ZM1300.04,148.22v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66h-64.73l-3.41-3.41Z"/><path fill="#0b0b0b" d="M1678.2,284.49v-34.07l-78.36-197.6-3.41-3.41h-44.29l-3.41,3.41-78.36,197.6v34.07l3.41,3.41h30.66l3.41-3.41,17.04-44.29,6.81-3.41h85.17l6.81,3.41,17.03,44.29,3.41,3.41h30.66l3.41-3.41ZM1603.25,195.91h-57.92l-3.41-3.41,30.66-81.77h3.41l30.66,81.77-3.41,3.41Z"/><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>`
 
   const w = window.open('', '_blank')
-  if (!w) { toast('Enable popups to download PDF'); return }
+  if (!w) { toast('Enable popups to generate Technical Sheet'); return }
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
-  <title>${p.name} — SIERRA INDEX</title>
+  <title>${p.name} — Technical Sheet</title>
   <style>
+    @page { margin: 18mm 16mm 14mm; size: A4; }
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif; color:#0b0b0b; background:#fff; padding:0; }
-    .sheet { max-width:720px; margin:0 auto; padding:40px 48px; }
-    .hdr { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:28px; padding-bottom:20px; border-bottom:2px solid #0b0b0b; }
-    .hdr-left .eyebrow { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; color:${c}; margin-bottom:6px; }
-    .hdr-left .prod-name { font-size:26px; font-weight:700; letter-spacing:-0.025em; line-height:1.1; }
-    .hdr-left .meta { font-size:11px; color:#888; margin-top:6px; }
-    .logo svg { height:22px; width:auto; }
-    .hero-img { width:100%; max-height:260px; object-fit:cover; border-radius:8px; margin-bottom:24px; }
-    .section-lbl { font-size:8px; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; color:#aaa; margin-bottom:10px; }
-    .spec-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:24px; }
-    .spec-item { border:1px solid #ebebeb; border-radius:7px; padding:9px 12px; }
-    .spec-k { font-size:9px; color:#aaa; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:3px; }
-    .spec-v { font-size:13px; font-weight:500; }
-    .tags-row { display:flex; flex-wrap:wrap; gap:5px; margin-top:12px; }
-    .tag { font-size:10px; border:1px solid #ebebeb; border-radius:20px; padding:3px 9px; color:#888; }
-    .footer { margin-top:36px; padding-top:16px; border-top:1px solid #ebebeb; display:flex; justify-content:space-between; align-items:center; }
-    .footer-brand { font-size:10px; color:#aaa; letter-spacing:0.08em; text-transform:uppercase; }
-    .footer-date { font-size:10px; color:#aaa; }
-    @media print { @page { margin:0.6in; } .no-print { display:none; } }
+    body {
+      font-family: -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #0b0b0b; background: #fff;
+      font-size: 10px; line-height: 1.5;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+
+    /* Running header/footer via fixed position inside @page */
+    .page-hdr {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 14mm; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 16mm;
+      border-bottom: 1px solid #ebebeb;
+      background: #fff;
+    }
+    .page-ftr {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: 11mm; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 16mm;
+      border-top: 1px solid #ebebeb;
+      background: #fff;
+    }
+    .page-hdr-left { font-size: 8px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #aaa; }
+    .page-hdr-right { font-size: 8px; color: #aaa; }
+    .ftr-brand { font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: #aaa; }
+    .ftr-date { font-size: 8px; color: #aaa; }
+
+    /* Content offset to avoid fixed header/footer */
+    .sheet { padding: 18mm 0 14mm; }
+
+    /* Cover block */
+    .cover {
+      display: flex; gap: 32px; align-items: flex-start;
+      padding-bottom: 24px; margin-bottom: 24px;
+      border-bottom: 1.5px solid #0b0b0b;
+    }
+    .cover-img {
+      width: 180px; height: 180px; flex-shrink: 0;
+      border-radius: 6px; overflow: hidden; border: 1px solid #ebebeb;
+      display: flex; align-items: center; justify-content: center;
+      background: #f7f7f7;
+    }
+    .cover-img img { width: 100%; height: 100%; object-fit: cover; }
+    .cover-img-empty svg { opacity: 0.25; }
+    .cover-meta { flex: 1; padding-top: 4px; }
+    .cover-eyebrow {
+      font-size: 8px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.14em; color: ${divColor}; margin-bottom: 8px;
+    }
+    .cover-name {
+      font-size: 26px; font-weight: 700; letter-spacing: -0.03em;
+      line-height: 1.05; color: #0b0b0b; margin-bottom: 6px;
+    }
+    .cover-code {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #888; margin-bottom: 14px;
+    }
+    .cover-divider { width: 24px; height: 1.5px; background: #ebebeb; margin-bottom: 14px; }
+    .cover-detail { font-size: 9.5px; color: #555; line-height: 1.7; }
+    .cover-detail strong { font-weight: 600; color: #0b0b0b; }
+
+    /* Sections */
+    .ts-section { margin-bottom: 20px; page-break-inside: avoid; }
+    .ts-sec-lbl {
+      font-size: 7.5px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.14em; color: #aaa;
+      padding-bottom: 5px; margin-bottom: 8px;
+      border-bottom: 1px solid #ebebeb;
+    }
+
+    /* Spec table */
+    .ts-table { width: 100%; border-collapse: collapse; }
+    .ts-table tr + tr td { border-top: 1px solid #f2f2f2; }
+    .spec-k {
+      font-size: 8px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.07em; color: #aaa;
+      width: 36%; padding: 5px 12px 5px 0; vertical-align: top;
+    }
+    .spec-v {
+      font-size: 10.5px; font-weight: 500; color: #0b0b0b;
+      padding: 5px 0; vertical-align: top; line-height: 1.45;
+    }
+
+    /* Composition */
+    .ts-comp {
+      font-size: 12px; font-weight: 500; line-height: 1.8;
+      color: #0b0b0b; margin-bottom: 10px;
+    }
+    .ts-comp strong { font-weight: 700; }
+
+    /* Req vs Std compare */
+    .ts-compare {
+      width: 100%; border-collapse: collapse; margin-top: 10px;
+    }
+    .ts-compare thead th {
+      font-size: 7.5px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #aaa; text-align: left;
+      padding: 0 16px 5px 0; border-bottom: 1px solid #ebebeb;
+    }
+    .ts-compare thead th:first-child { padding-left: 0; min-width: 72px; }
+    .ts-compare tbody td {
+      font-size: 10px; font-weight: 500; color: #0b0b0b;
+      padding: 5px 16px 0 0; vertical-align: top;
+    }
+    .ts-compare tbody td:first-child {
+      font-size: 7.5px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: #aaa; padding-left: 0;
+    }
+
+    /* Yarns */
+    .ts-yarn {
+      display: flex; gap: 10px; align-items: baseline;
+      padding: 4px 0; font-size: 10px; font-weight: 500;
+    }
+    .ts-yarn + .ts-yarn { border-top: 1px solid #f2f2f2; }
+    .ts-yarn-n {
+      font-size: 7.5px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: #aaa; min-width: 16px;
+    }
+
+    .ts-notes { font-size: 10px; color: #555; line-height: 1.7; }
+
+    /* Print only */
+    @media print {
+      .no-print { display: none; }
+      .page-hdr, .page-ftr { display: flex; }
+    }
+    /* Screen preview */
+    @media screen {
+      body { padding: 32px; background: #f2f2f2; }
+      .sheet { max-width: 680px; margin: 0 auto; background: #fff; padding: 40px 48px; border-radius: 4px; box-shadow: 0 2px 24px rgba(0,0,0,0.10); }
+      .page-hdr, .page-ftr { display: none; }
+      .print-btn {
+        position: fixed; top: 24px; right: 24px; z-index: 100;
+        background: #0b0b0b; color: #fff; border: none;
+        padding: 10px 20px; border-radius: 8px; font-size: 13px;
+        font-family: inherit; font-weight: 600; cursor: pointer;
+      }
+      .print-btn:hover { background: #333; }
+    }
   </style></head><body>
-  <div class="sheet">
-    <div class="hdr">
-      <div class="hdr-left">
-        <div class="eyebrow">${DIV_LBL[p.division]} · ${code}${p.lot ? ' · LOT ' + p.lot : ''}</div>
-        <div class="prod-name">${p.name}</div>
-        ${p.country ? `<div class="meta">Origin: ${p.country}</div>` : ''}
-      </div>
-      <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1715 353.13"><path fill="#0b0b0b" d="M570.98,144.81c-47.7-6.81-61.33-13.63-61.33-34.07,0-13.63,10.22-23.85,40.88-23.85,37.48,0,47.7,10.22,47.7,30.66l3.41,3.41h40.88l3.41-3.41c0-40.88-27.26-71.55-91.99-71.55s-91.99,30.66-91.99,64.73c0,47.7,37.48,64.73,85.17,71.55,47.7,6.81,61.33,13.63,61.33,37.48,0,20.44-17.03,30.66-47.7,30.66-40.88,0-54.51-13.63-54.51-37.48l-3.41-3.41h-40.88l-3.41,3.41c0,44.29,30.66,78.36,98.8,78.36,71.55,0,98.8-34.07,98.8-71.55,0-47.7-37.48-68.14-85.17-74.95Z"/><polygon fill="#0b0b0b" points="700.44 49.41 697.03 52.82 697.03 284.49 700.44 287.9 741.32 287.9 744.73 284.49 744.73 52.82 741.32 49.41 700.44 49.41"/><polygon fill="#0b0b0b" points="802.64 49.41 799.23 52.82 799.23 284.49 802.64 287.9 962.76 287.9 966.17 284.49 966.17 250.42 962.76 247.02 850.33 247.02 846.93 243.61 846.93 189.1 850.33 185.69 955.95 185.69 959.36 182.29 959.36 148.22 955.95 144.81 850.33 144.81 846.93 141.4 846.93 93.7 850.33 90.3 962.76 90.3 966.17 86.89 966.17 52.82 962.76 49.41 802.64 49.41"/><path fill="#0b0b0b" d="M1211.46,120.96c0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41,68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14ZM1129.7,151.62h-64.73l-3.41-3.41v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66Z"/><path fill="#0b0b0b" d="M1344.33,195.91l68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14,0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41ZM1300.04,148.22v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66h-64.73l-3.41-3.41Z"/><path fill="#0b0b0b" d="M1678.2,284.49v-34.07l-78.36-197.6-3.41-3.41h-44.29l-3.41,3.41-78.36,197.6v34.07l3.41,3.41h30.66l3.41-3.41,17.04-44.29,6.81-3.41h85.17l6.81,3.41,17.03,44.29,3.41,3.41h30.66l3.41-3.41ZM1603.25,195.91h-57.92l-3.41-3.41,30.66-81.77h3.41l30.66,81.77-3.41,3.41Z"/><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg></div>
-    </div>
-    ${imgHtml}
-    ${Object.keys(specs).length || p.description ? `<div class="section-lbl">Specifications</div>${specsHtml}` : ''}
-    ${tagsHtml}
-    <div class="footer">
-      <span class="footer-brand">SIERRA INDEX · Textile Management</span>
-      <span class="footer-date">${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</span>
-    </div>
+
+  <button class="print-btn no-print" onclick="window.print()">Print / Save PDF</button>
+
+  <div class="page-hdr">
+    <span class="page-hdr-left">${divLabel} · ${code}</span>
+    <span class="page-hdr-right">${logoSvg}</span>
   </div>
-  <script>window.onload=()=>{window.print()}<\/script>
+  <div class="page-ftr">
+    <span class="ftr-brand">SIERRA INDEX · Technical Sheet</span>
+    <span class="ftr-date">${dateStr}</span>
+  </div>
+
+  <div class="sheet">
+    <div class="cover">
+      <div class="cover-img">
+        ${imgs[0] ? `<img src="${imgs[0]}" alt="${p.name}" />` :
+          `<div class="cover-img-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="#0b0b0b" stroke-width="1.2"/><circle cx="8.5" cy="8.5" r="1.5" stroke="#0b0b0b" stroke-width="1"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="#0b0b0b" stroke-width="1" stroke-linecap="round"/></svg></div>`}
+      </div>
+      <div class="cover-meta">
+        <div class="cover-eyebrow">${divLabel}</div>
+        <div class="cover-name">${p.name}</div>
+        <div class="cover-code">${code}${p.lot ? ' · LOT ' + p.lot : ''}</div>
+        <div class="cover-divider"></div>
+        <div class="cover-detail">
+          ${p.country ? `<div><strong>Origin</strong> &nbsp;${p.country}</div>` : ''}
+          ${specs.Composition ? `<div><strong>Composition</strong> &nbsp;${specs.Composition}</div>` : ''}
+          ${specs.Construction ? `<div><strong>Construction</strong> &nbsp;${CONST_META[specs.Construction]?.label || specs.Construction}</div>` : ''}
+        </div>
+      </div>
+    </div>
+
+    ${bodyHtml}
+  </div>
   </body></html>`)
   w.document.close()
 }
