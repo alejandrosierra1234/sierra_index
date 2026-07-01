@@ -4811,7 +4811,7 @@ function spotlightProductRow(p, query) {
   </div>`
 }
 
-function spotlightSearch(val) {
+function _spotlightProductSearch(val) {
   const q = val.trim()
   if (!q && !spotlightDiv) { renderSpotlightHome(); return }
   const lower = q.toLowerCase()
@@ -4832,6 +4832,8 @@ function spotlightSearch(val) {
     ? `<div class="spotlight-section-label">${label}</div>${shown.map(p => spotlightProductRow(p, q)).join('')}`
     : `<div class="spotlight-empty">No results${spotlightDiv ? ` in ${DIV_LBL[spotlightDiv]}` : ''} for "<strong>${esc(q)}</strong>"</div>`)
 }
+
+function spotlightSearch(val) { _spotlightProductSearch(val) }
 
 function spotlightRunSearch(q) {
   saveRecentSearch(q)
@@ -5610,37 +5612,39 @@ async function loadPendingSamples() {
 }
 
 /* ── SPOTLIGHT SEARCH: include sample IDs ── */
-const _origSpotlightSearch = spotlightSearch
-async function spotlightSearch(val) {
-  const q = val.trim()
-  // If query looks like a sample ID or starts with SMP, search samples first
-  if (q && /^SMP/i.test(q)) {
-    const { data } = await sb.from('samples')
-      .select('*, products(name,division,code)')
-      .ilike('sample_id', `${q}%`)
-      .limit(5)
-    const res = document.getElementById('spotlight-results')
-    const smpRows = (data || []).map(s => {
-      const c = DIV_CLR[s.products?.division] || '#aaa'
-      return `<div class="spotlight-row" onclick="closeSpotlight();showSampleRecord('${s.id}')">
-        <div class="spotlight-row-icon" style="color:var(--accent)">
-          <svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="10" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="10" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M13.5 13.5v-1M13.5 16.5v-1M11.5 14.5h1M15.5 14.5h1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-        </div>
-        <div class="spotlight-row-info">
-          <div class="spotlight-row-title">${esc(s.sample_id)}</div>
-          <div class="spotlight-row-sub">${esc(s.products?.name||'—')} · ${esc(s.sample_type)} · ${SMP_STATUS_LABEL[s.status]}</div>
-        </div>
-        <span class="spotlight-row-badge" style="background:var(--accent-light);color:var(--accent)">Sample</span>
-      </div>`
-    }).join('')
-    if (smpRows) {
-      res.innerHTML = `<div class="spotlight-section-label">Samples</div>${smpRows}`
-      if (data?.length < 5) _origSpotlightSearch.call(this, val)
-      return
+;(function () {
+  const _productSearch = _spotlightProductSearch
+  spotlightSearch = async function spotlightSearch(val) {
+    const q = val.trim()
+    // If query looks like a sample ID or starts with SMP, search samples first
+    if (q && /^SMP/i.test(q)) {
+      const { data } = await sb.from('samples')
+        .select('*, products(name,division,code)')
+        .ilike('sample_id', `${q}%`)
+        .limit(5)
+      const res = document.getElementById('spotlight-results')
+      const smpRows = (data || []).map(s => {
+        const c = DIV_CLR[s.products?.division] || '#aaa'
+        return `<div class="spotlight-row" onclick="closeSpotlight();showSampleRecord('${s.id}')">
+          <div class="spotlight-row-icon" style="color:var(--accent)">
+            <svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="10" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="10" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M13.5 13.5v-1M13.5 16.5v-1M11.5 14.5h1M15.5 14.5h1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </div>
+          <div class="spotlight-row-info">
+            <div class="spotlight-row-title">${esc(s.sample_id)}</div>
+            <div class="spotlight-row-sub">${esc(s.products?.name||'—')} · ${esc(s.sample_type)} · ${SMP_STATUS_LABEL[s.status]}</div>
+          </div>
+          <span class="spotlight-row-badge" style="background:var(--accent-light);color:var(--accent)">Sample</span>
+        </div>`
+      }).join('')
+      if (smpRows) {
+        res.innerHTML = `<div class="spotlight-section-label">Samples</div>${smpRows}`
+        if (data?.length < 5) _productSearch(val)
+        return
+      }
     }
+    _productSearch(val)
   }
-  _origSpotlightSearch(val)
-}
+})()
 </script>
 
 <!-- ══ SPOTLIGHT SEARCH ══ -->
