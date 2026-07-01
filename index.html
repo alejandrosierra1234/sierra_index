@@ -131,6 +131,8 @@
     .btn-ghost { background:transparent; color:var(--text-2); border:1px solid var(--border); }
     .btn-ghost:hover { background:var(--surface2); color:var(--text); }
     .btn-ghost.active { background:var(--text); color:var(--bg); border-color:var(--text); }
+    [data-theme="dark"] .btn-ghost { border-color:var(--border); color:var(--text-2); }
+    [data-theme="dark"] .btn-ghost:hover { background:var(--surface2); color:var(--text); }
     .btn-sm { padding:0.42rem 0.85rem; font-size:0.78rem; border-radius:7px; }
     .btn-icon { background:none; border:none; cursor:pointer; color:var(--text-2); padding:0.35rem; border-radius:7px; display:flex; align-items:center; transition:all 0.15s; }
     .modal-close { background:none; border:none; cursor:pointer; color:var(--text-2); padding:0.35rem; border-radius:7px; display:flex; align-items:center; transition:all 0.15s; font-size:1rem; line-height:1; }
@@ -1127,24 +1129,14 @@ setThemeIcon(initTheme)
 
 function toggleSidebar() {
   const sb = document.getElementById('sidebar')
-  const btn = document.getElementById('sidebar-collapse-btn')
   const collapsed = sb.classList.toggle('collapsed')
   localStorage.setItem('sierra-sidebar', collapsed ? 'collapsed' : 'expanded')
-  if (btn) {
-    btn.innerHTML = collapsed
-      ? '<svg viewBox="0 0 14 14" fill="none"><path d="M5 2l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-      : '<svg viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-  }
 }
 
 const initSidebar = localStorage.getItem('sierra-sidebar')
 if (initSidebar === 'collapsed') {
   const sb = document.getElementById('sidebar')
-  if (sb) {
-    sb.classList.add('collapsed')
-    const btn = document.getElementById('sidebar-collapse-btn')
-    if (btn) btn.innerHTML = '<svg viewBox="0 0 14 14" fill="none"><path d="M5 2l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-  }
+  if (sb) sb.classList.add('collapsed')
 }
 
 function toggleTheme() {
@@ -1765,8 +1757,15 @@ async function submitComment(productId) {
   const { error } = await sb.from('product_comments').insert({ product_id: productId, user_id: me.id, comment: text })
   if (btn) { btn.disabled = false; btn.textContent = 'Post' }
   if (error) {
-    const msg = error.code === '42P01' ? 'Comments table not set up. Run update scripts in Supabase.' : 'Error posting comment'
+    const msg = error.code === '42P01'
+      ? 'Comments table not set up in Supabase.'
+      : `Error: ${error.message}`
     toast(msg)
+    const errEl = document.createElement('p')
+    errEl.style.cssText = 'font-size:0.75rem;color:#c0392b;margin-top:0.4rem;'
+    errEl.textContent = msg
+    input.parentElement.appendChild(errEl)
+    setTimeout(() => errEl.remove(), 5000)
     return
   }
   input.value = ''
