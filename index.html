@@ -3142,12 +3142,17 @@ function toast(msg) {
 let spotlightFocusIdx = -1
 let recentSearches = JSON.parse(localStorage.getItem('sierra-recent-searches') || '[]')
 
-function openSpotlight() {
+async function openSpotlight() {
   const el = document.getElementById('spotlight')
   el.classList.add('open')
   const inp = document.getElementById('spotlight-input')
   inp.value = ''
   spotlightFocusIdx = -1
+  // Load products in background if not yet fetched
+  if (!allProducts.length) {
+    const { data } = await sb.from('products').select('*').order('created_at', { ascending: false })
+    if (data) allProducts = data
+  }
   renderSpotlightHome()
   setTimeout(() => inp.focus(), 50)
 }
@@ -3210,9 +3215,13 @@ function renderSpotlightHome() {
 
 function spotlightProductRow(p, query) {
   const c = DIV_CLR[p.division] || '#aaa'
+  const ep = enc(p)
   const code = p.code || p.id.slice(0,6).toUpperCase()
-  const title = query ? esc(p.name).replace(new RegExp(`(${esc(query)})`, 'gi'), '<mark class="sh">$1</mark>') : esc(p.name)
-  return `<div class="spotlight-row" onclick="closeSpotlight();showProductDetail(${enc(p)})">
+  const rawTitle = p.name || ''
+  const title = query
+    ? esc(rawTitle).replace(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'), '<mark class="sh">$1</mark>')
+    : esc(rawTitle)
+  return `<div class="spotlight-row" onclick="closeSpotlight();showProductDetail(dec('${ep}'))">
     <div class="spotlight-row-icon" style="color:${c}">
       ${p.image_urls?.[0] || p.image_url
         ? `<img src="${p.image_urls?.[0]||p.image_url}" style="width:100%;height:100%;object-fit:cover;border-radius:7px">`
