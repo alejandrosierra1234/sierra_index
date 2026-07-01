@@ -1198,12 +1198,6 @@ async function enterApp(user) {
   profile = p
   const name = p?.full_name || user.email.split('@')[0]
   const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
-  const uav = document.getElementById('u-av')
-  if (p?.avatar_url) {
-    uav.innerHTML = `<img src="${p.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
-  } else {
-    uav.textContent = initials
-  }
   const roleLabel = { admin:'Admin', editor:'Editor', user:'User', vendedor:'User' }[p?.role] || 'User'
   // Sidebar user card
   const sbAv = document.getElementById('sb-av')
