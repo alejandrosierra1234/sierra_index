@@ -661,8 +661,10 @@
     .detail-wrap { max-width:1000px; margin:0 auto; padding-bottom:4rem; }
 
     /* ── PRODUCT DETAIL ── */
-    .detail-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem; gap:1rem; }
-    .detail-topbar-right { display:flex; gap:0.4rem; align-items:center; }
+    #view-detail { display:none; }
+    .detail-wrap { max-width:960px; margin:0 auto; padding-bottom:4rem; }
+    .detail-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:2.5rem; gap:1rem; }
+    .detail-topbar-right { display:flex; gap:0.4rem; }
     .detail-back-btn {
       display:inline-flex; align-items:center; gap:0.4rem;
       background:none; border:none; cursor:pointer; font-family:inherit;
@@ -670,84 +672,84 @@
       padding:0.3rem 0.5rem; border-radius:7px; transition:all 0.12s;
     }
     .detail-back-btn:hover { background:var(--surface2); color:var(--text); }
-    .detail-hero { display:grid; grid-template-columns:380px 1fr; gap:3.5rem; align-items:start; }
-    .detail-gallery-area { position:sticky; top:1rem; }
-    .detail-info { display:flex; flex-direction:column; }
 
-    /* SKU */
-    .detail-sku {
+    .detail-layout { display:grid; grid-template-columns:270px 1fr; gap:3.5rem; align-items:start; }
+    .detail-gallery-col { position:sticky; top:1rem; }
+
+    /* Compact empty image placeholder */
+    .pd-no-img {
+      display:flex; align-items:center; justify-content:center; flex-direction:column;
+      gap:0.65rem; border:1.5px dashed var(--border); border-radius:10px;
+      padding:2rem 1.5rem; color:var(--text-3); min-height:110px;
+    }
+    .pd-no-img-hint { font-size:0.7rem; color:var(--text-3); }
+
+    /* Header */
+    .pd-sku {
       font-family:'SF Mono','Fira Mono','Courier New',monospace;
-      font-size:0.78rem; font-weight:600; letter-spacing:0.07em;
+      font-size:0.74rem; font-weight:600; letter-spacing:0.07em;
       color:var(--accent-dark); background:var(--accent-light);
-      display:inline-flex; align-items:center; gap:0.45rem;
-      padding:0.3rem 0.65rem; border-radius:6px;
-      margin-bottom:0.6rem; cursor:pointer; user-select:none;
-      width:fit-content; transition:opacity 0.15s;
+      display:inline-flex; align-items:center; gap:0.4rem;
+      padding:0.28rem 0.6rem; border-radius:5px;
+      cursor:pointer; user-select:none; transition:opacity 0.15s;
+      margin-bottom:0.65rem; width:fit-content;
     }
-    .detail-sku:hover { opacity:0.75; }
-    .detail-name { font-size:1.6rem; font-weight:700; letter-spacing:-0.025em; line-height:1.15; margin-bottom:0.25rem; }
-    .detail-sub { font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-3); margin-bottom:2rem; }
+    .pd-sku:hover { opacity:0.7; }
+    .pd-name { font-size:1.65rem; font-weight:700; letter-spacing:-0.03em; line-height:1.1; color:var(--text); margin-bottom:0.3rem; }
+    .pd-division { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-3); margin-bottom:1.75rem; }
 
-    /* Section divider */
-    .d-sec { margin-top:1.5rem; margin-bottom:0.75rem; }
-    .d-sec-lbl {
-      font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.14em;
-      color:var(--text-3);
-    }
-    .d-sec-line { height:1px; background:var(--border); margin-top:0.35rem; }
+    /* Section title */
+    .pd-sec-title { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.15em; color:var(--text-3); margin-bottom:0.55rem; margin-top:1.75rem; }
 
-    /* 2-column spec grid */
-    .spec-grid {
-      display:grid; grid-template-columns:1fr 1fr; gap:0;
-    }
-    .spec-cell {
-      padding:0.75rem 0.5rem 0.75rem 0;
-      border-bottom:1px solid var(--border);
-      cursor:pointer; transition:background 0.1s;
-    }
-    .spec-cell:hover { background:var(--surface2); }
-    .spec-cell-lbl { font-size:0.6rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); margin-bottom:0.2rem; }
-    .spec-cell-val { font-size:0.9rem; font-weight:500; color:var(--text); line-height:1.3; }
-    .spec-cell.full { grid-column:1/-1; }
-    /* last row: remove bottom border if even/odd */
-    .spec-grid.no-bottom-border .spec-cell:last-child,
-    .spec-grid.no-bottom-border .spec-cell:nth-last-child(2):nth-child(odd) { border-bottom:none; }
+    /* Card */
+    .pd-card { background:var(--surface2); border-radius:10px; border:1px solid var(--border); padding:1.2rem 1.25rem; }
+    .pd-card + .pd-card { margin-top:0.6rem; }
 
-    /* Inline data rows (LOT, vendor, etc.) */
-    .d-row {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:0.55rem 0; border-bottom:1px solid var(--border);
-      cursor:pointer; transition:background 0.1s;
-    }
-    .d-row:last-child { border-bottom:none; }
-    .d-row:hover { background:var(--surface2); }
-    .d-row-lbl { font-size:0.68rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-3); min-width:90px; }
-    .d-row-val { font-size:0.88rem; font-weight:500; color:var(--text); flex:1; padding:0 0.5rem; }
-    .copy-btn { background:none; border:none; padding:0.2rem; cursor:pointer; color:var(--text-3); opacity:0; transition:opacity 0.12s; display:flex; align-items:center; flex-shrink:0; }
-    .d-row:hover .copy-btn, .spec-cell:hover .copy-btn { opacity:1; }
+    /* Individual field: label above value */
+    .pd-field { display:flex; flex-direction:column; gap:0.15rem; cursor:pointer; padding:0.1rem 0; transition:opacity 0.15s; }
+    .pd-field:hover { opacity:0.65; }
+    .pd-field-lbl { font-size:0.59rem; font-weight:500; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); }
+    .pd-field-val { font-size:0.92rem; font-weight:500; color:var(--text); line-height:1.35; }
 
-    /* Yarn */
-    .yarn-list { display:flex; flex-direction:column; }
-    .yarn-entry { display:flex; gap:0.75rem; align-items:baseline; padding:0.55rem 0; border-bottom:1px solid var(--border); }
-    .yarn-entry:last-child { border-bottom:none; }
-    .yarn-num { font-size:0.6rem; font-weight:700; letter-spacing:0.1em; color:var(--accent-dark); background:var(--accent-light); padding:0.1rem 0.35rem; border-radius:4px; }
-    .yarn-text { font-size:0.87rem; font-weight:500; line-height:1.45; }
+    /* Grids */
+    .pd-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; }
+    .pd-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1.1rem; }
+    .pd-grid-4 { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:1rem; }
+
+    /* Composition — prominent, line-by-line */
+    .pd-comp { margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid var(--border); cursor:pointer; transition:opacity 0.15s; }
+    .pd-comp:hover { opacity:0.65; }
+    .pd-comp-lbl { font-size:0.59rem; font-weight:500; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); margin-bottom:0.35rem; }
+    .pd-comp-line { font-size:1rem; font-weight:500; color:var(--text); line-height:1.55; }
+    .pd-comp-pct { font-weight:700; }
 
     /* Req vs Std */
-    .compare-block { display:grid; grid-template-columns:80px 1fr 1fr; gap:0; }
-    .cb-head { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); padding:0.4rem 0; border-bottom:2px solid var(--border); }
-    .cb-row-lbl { font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-3); padding:0.65rem 0; border-bottom:1px solid var(--border); display:flex; align-items:center; }
-    .cb-cell { font-size:0.88rem; font-weight:500; padding:0.65rem 0; border-bottom:1px solid var(--border); display:flex; align-items:center; }
-    .cb-row-lbl.last, .cb-cell.last { border-bottom:none; }
+    .pd-compare { width:100%; border-collapse:collapse; }
+    .pd-compare th { font-size:0.58rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); text-align:left; padding:0 1.5rem 0.5rem 0; border-bottom:1px solid var(--border); }
+    .pd-compare th:first-child { padding-left:0; min-width:70px; }
+    .pd-compare td { padding:0.6rem 1.5rem 0 0; font-size:0.9rem; font-weight:500; color:var(--text); vertical-align:top; }
+    .pd-compare td:first-child { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-3); padding-left:0; }
 
-    .detail-desc { font-size:0.86rem; color:var(--text-2); line-height:1.7; }
+    /* Yarns */
+    .pd-yarn { display:flex; gap:0.7rem; align-items:baseline; padding:0.45rem 0; }
+    .pd-yarn + .pd-yarn { border-top:1px solid var(--border); }
+    .pd-yarn-n { font-size:0.58rem; font-weight:700; color:var(--text-3); min-width:20px; text-transform:uppercase; letter-spacing:0.05em; }
+    .pd-yarn-v { font-size:0.9rem; font-weight:500; color:var(--text); line-height:1.4; }
+
+    .detail-desc { font-size:0.87rem; color:var(--text-2); line-height:1.75; margin:0; }
     .detail-actions { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:2rem; padding-top:1.5rem; border-top:1px solid var(--border); }
     .detail-comments-section { border-top:1px solid var(--border); padding-top:1.5rem; margin-top:2.5rem; }
     .detail-comments-lbl { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-3); margin-bottom:1rem; }
+
     @media (max-width:900px) {
-      .detail-hero { grid-template-columns:1fr; gap:1.5rem; }
-      .detail-gallery-area { position:static; }
-      .detail-name { font-size:1.3rem; }
+      .detail-layout { grid-template-columns:1fr; gap:1.5rem; }
+      .detail-gallery-col { position:static; }
+      .pd-name { font-size:1.3rem; }
+      .pd-grid-4 { grid-template-columns:1fr 1fr; gap:1rem; }
+      .pd-grid-3 { grid-template-columns:1fr 1fr; }
+    }
+    @media (max-width:480px) {
+      .pd-grid-2 { grid-template-columns:1fr; gap:0.85rem; }
     }
 
     /* ── RESPONSIVE / MOBILE ── */
@@ -1596,7 +1598,23 @@ function showProductDetail(p) {
   vd.style.display = 'block'
   document.getElementById('tb-section').textContent = p.name
 
-  const copyIcon = `<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" stroke="currentColor" stroke-width="1.4"/></svg>`
+  const copyIcon = `<svg width="11" height="11" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" stroke="currentColor" stroke-width="1.4"/></svg>`
+
+  function notEmpty(v) { return v !== null && v !== undefined && v !== '' && v !== '0' && v !== 0 }
+  function cp(v) { return String(v).replace(/'/g, "\\'") }
+  function field(lbl, val) {
+    if (!notEmpty(val)) return ''
+    return `<div class="pd-field" onclick="copyToClipboard('${cp(val)}')" title="Click to copy">
+      <span class="pd-field-lbl">${lbl}</span>
+      <span class="pd-field-val">${esc(String(val))}</span>
+    </div>`
+  }
+  function secTitle(t) { return `<div class="pd-sec-title">${t}</div>` }
+  function gridWrap(cls, inner) { return `<div class="${cls}">${inner}</div>` }
+  function parseComp(str) {
+    if (!str) return []
+    return str.trim().split(/(?=\d+%)/).map(s => s.trim()).filter(Boolean)
+  }
 
   // Gallery
   let galleryHtml = ''
@@ -1609,120 +1627,136 @@ function showProductDetail(p) {
       <button class="img-dl-btn" onclick="downloadImg('${imgs[0]}','${esc(p.name)}')">↓ Download</button>
     </div>${thumbs}`
   } else {
-    galleryHtml = `<div class="ficha-img ficha-img-empty" style="background:${c}0d;border-radius:14px;min-height:300px">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="${c}" stroke-width="1.4"/><circle cx="8.5" cy="8.5" r="1.5" stroke="${c}" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="${c}" stroke-width="1.2" stroke-linecap="round"/></svg>
-      ${isEditor() ? `<button class="btn btn-ghost btn-sm" style="margin-top:0.75rem" onclick="openEdit(selected)">Add image</button>` : `<span style="font-size:0.72rem;color:var(--text-3);margin-top:0.5rem">No image yet</span>`}
+    galleryHtml = `<div class="pd-no-img">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="opacity:0.35"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.4"/><circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      ${isEditor()
+        ? `<button class="btn btn-ghost btn-sm" onclick="openEdit(selected)">Add image</button>`
+        : `<span class="pd-no-img-hint">No image</span>`}
     </div>`
   }
-
-  function secLbl(label) {
-    return `<div class="d-sec"><div class="d-sec-lbl">${label}</div><div class="d-sec-line"></div></div>`
-  }
-  function dRow(label, value) {
-    const sv = String(value)
-    const safe = sv.replace(/'/g, "\\'")
-    return `<div class="d-row" onclick="copyToClipboard('${safe}')">
-      <span class="d-row-lbl">${label}</span>
-      <span class="d-row-val">${esc(sv)}</span>
-      <button class="copy-btn" title="Copy">${copyIcon}</button>
-    </div>`
-  }
-  function specCell(label, value, full) {
-    const sv = String(value)
-    const safe = sv.replace(/'/g, "\\'")
-    return `<div class="spec-cell${full?' full':''}" onclick="copyToClipboard('${safe}')">
-      <div class="spec-cell-lbl">${label}</div>
-      <div class="spec-cell-val">${esc(sv)}</div>
-    </div>`
-  }
-  function notEmpty(v) { return v !== null && v !== undefined && v !== '' && v !== '0' && v !== 0 }
 
   let infoHtml = ''
 
   if (p.division === 'fabric') {
-    // — Identity —
-    const idRows = [
-      ['LOT', p.lot],
-      ['Mill Article', specs['Mill Article']],
-      ['Country', p.country || 'Honduras'],
-      ['Construction', specs.Construction ? (CONST_META[specs.Construction]?.label || specs.Construction) : null],
+    // ── Card: Overview ──
+    const compParts = parseComp(specs.Composition)
+    const overviewFields = [
+      ['Color',       specs.Color],
+      ['Country',     p.country || 'Honduras'],
+      ['Lot',         p.lot],
+      ['Mill Article',specs['Mill Article']],
     ].filter(([,v]) => notEmpty(v))
-    if (idRows.length) {
-      infoHtml += secLbl('Identity')
-      infoHtml += `<div>${idRows.map(([k,v]) => dRow(k, v)).join('')}</div>`
+
+    if (compParts.length || overviewFields.length) {
+      let card = ''
+      if (compParts.length) {
+        const lines = compParts.map(part => {
+          const html = part.replace(/^(\d+%)/, '<span class="pd-comp-pct">$1</span> ')
+          return `<div class="pd-comp-line">${html}</div>`
+        }).join('')
+        card += `<div class="pd-comp" onclick="copyToClipboard('${cp(specs.Composition)}')" title="Click to copy">
+          <div class="pd-comp-lbl">Composition</div>
+          ${lines}
+        </div>`
+      }
+      if (overviewFields.length) {
+        const gc = overviewFields.length >= 3 ? 'pd-grid-2' : `pd-grid-${overviewFields.length}`
+        card += gridWrap(gc === 'pd-grid-1' ? '' : gc, overviewFields.map(([k,v]) => field(k,v)).join(''))
+      }
+      infoHtml += `<div class="pd-card">${card}</div>`
     }
 
-    // — Technical specs (2-col grid) —
-    const allSpecs = [
-      ['Composition', specs.Composition, true],
-      ['Color', specs.Color],
-      ['Dyed Method', specs['Dyed Method']],
-      ['Width', specs.Width],
-      ['GSM', specs.GSM],
-      ['DIA', specs.DIA],
-      ['Gauge', specs.Gauge],
-      ['Needles', specs.Needles],
+    // ── Card: Construction ──
+    const constFields = [
+      ['Gauge',      specs.Gauge],
+      ['Needles',    specs.Needles],
+      ['Diameter',   specs.DIA],
       ['Route Type', specs['Route Type']],
     ].filter(([,v]) => notEmpty(v))
-
-    if (allSpecs.length) {
-      infoHtml += secLbl('Technical Sheet')
-      infoHtml += `<div class="spec-grid">${allSpecs.map(([k,v,full]) => specCell(k, v, full)).join('')}</div>`
+    if (constFields.length) {
+      const gc = constFields.length === 1 ? '' : constFields.length === 2 ? 'pd-grid-2' : constFields.length === 3 ? 'pd-grid-3' : 'pd-grid-4'
+      infoHtml += secTitle('Construction')
+      infoHtml += `<div class="pd-card">${gc ? gridWrap(gc, constFields.map(([k,v]) => field(k,v)).join('')) : field(constFields[0][0], constFields[0][1])}</div>`
     }
 
-    // — Req vs Std —
+    // ── Card: Dyeing ──
+    if (notEmpty(specs['Dyed Method'])) {
+      infoHtml += secTitle('Dyeing')
+      infoHtml += `<div class="pd-card">${field('Dye Method', specs['Dyed Method'])}</div>`
+    }
+
+    // ── Card: Technical Specifications ──
+    const hasDims = notEmpty(specs.Width) || notEmpty(specs.GSM)
     const rw = specs['Req Width'], rg = specs['Req GSM'], sw = specs['Std Width'], sg = specs['Std GSM']
     const hasReqStd = [rw, rg, sw, sg].some(notEmpty)
-    if (hasReqStd) {
-      infoHtml += secLbl('Requested vs Standard')
-      infoHtml += `<div class="compare-block">
-        <div class="cb-head"></div><div class="cb-head">Width</div><div class="cb-head">GSM</div>
-        <div class="cb-row-lbl">Req</div>
-        <div class="cb-cell">${notEmpty(rw) ? esc(String(rw)) : '—'}</div>
-        <div class="cb-cell">${notEmpty(rg) ? esc(String(rg)) : '—'}</div>
-        <div class="cb-row-lbl last">Std</div>
-        <div class="cb-cell last">${notEmpty(sw) ? esc(String(sw)) : '—'}</div>
-        <div class="cb-cell last">${notEmpty(sg) ? esc(String(sg)) : '—'}</div>
-      </div>`
+    if (hasDims || hasReqStd) {
+      infoHtml += secTitle('Technical Specifications')
+      let specCard = ''
+      if (hasDims) {
+        const dimF = [['Width', specs.Width], ['GSM', specs.GSM]].filter(([,v]) => notEmpty(v))
+        specCard += gridWrap('pd-grid-2', dimF.map(([k,v]) => field(k,v)).join(''))
+      }
+      if (hasReqStd) {
+        specCard += `<div style="margin-top:${hasDims ? '1.1rem;padding-top:1rem;border-top:1px solid var(--border)' : '0'}">
+          <table class="pd-compare">
+            <thead><tr><th></th><th>Width</th><th>GSM</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Requested</td>
+                <td>${notEmpty(rw) ? esc(String(rw)) : '—'}</td>
+                <td>${notEmpty(rg) ? esc(String(rg)) : '—'}</td>
+              </tr>
+              <tr>
+                <td>Standard</td>
+                <td>${notEmpty(sw) ? esc(String(sw)) : '—'}</td>
+                <td>${notEmpty(sg) ? esc(String(sg)) : '—'}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>`
+      }
+      infoHtml += `<div class="pd-card">${specCard}</div>`
     }
 
-    // — Yarns —
+    // ── Card: Yarn Composition ──
     const yarns = [specs['Yarn 01'], specs['Yarn 02'], specs['Yarn 03']].filter(notEmpty)
     if (yarns.length) {
-      infoHtml += secLbl('Yarn Composition')
-      infoHtml += `<div class="yarn-list">${yarns.map((y,i) =>
-        `<div class="yarn-entry"><span class="yarn-num">${String(i+1).padStart(2,'0')}</span><span class="yarn-text">${esc(y)}</span></div>`
+      infoHtml += secTitle('Yarn Composition')
+      infoHtml += `<div class="pd-card">${yarns.map((y,i) =>
+        `<div class="pd-yarn"><span class="pd-yarn-n">${String(i+1).padStart(2,'0')}</span><span class="pd-yarn-v">${esc(y)}</span></div>`
       ).join('')}</div>`
     }
 
-    // — Notes —
+    // ── Notes ──
     if (specs.Comments) {
-      infoHtml += secLbl('Notes')
-      infoHtml += `<p class="detail-desc" style="margin-top:0.1rem">${esc(specs.Comments)}</p>`
+      infoHtml += secTitle('Notes')
+      infoHtml += `<p class="detail-desc">${esc(specs.Comments)}</p>`
     }
 
-    // — Commercial —
-    const commRows = [
-      ['Vendor', specs.Vendor], ['Buyer', specs.Buyer],
-      ['Sample Qty', specs['Sample Qty']], ['Rec Date', specs['Rec Date']],
+    // ── Card: Commercial ──
+    const commFields = [
+      ['Vendor',     specs.Vendor],
+      ['Buyer',      specs.Buyer],
+      ['Sample Qty', specs['Sample Qty']],
+      ['Rec Date',   specs['Rec Date']],
     ].filter(([,v]) => notEmpty(v))
-    if (commRows.length) {
-      infoHtml += secLbl('Commercial')
-      infoHtml += `<div>${commRows.map(([k,v]) => dRow(k, v)).join('')}</div>`
+    if (commFields.length) {
+      infoHtml += secTitle('Commercial')
+      infoHtml += `<div class="pd-card">${gridWrap('pd-grid-2', commFields.map(([k,v]) => field(k,v)).join(''))}</div>`
     }
+
   } else {
     if (p.description) {
-      infoHtml += `<p class="detail-desc">${esc(p.description)}</p>`
+      infoHtml += `<p class="detail-desc" style="margin-bottom:1.5rem">${esc(p.description)}</p>`
     }
     const entries = Object.entries(specs).filter(([,v]) => notEmpty(v))
     if (entries.length) {
-      infoHtml += secLbl('Specifications')
-      infoHtml += `<div class="spec-grid">${entries.map(([k,v]) => specCell(k, v)).join('')}</div>`
+      infoHtml += `<div class="pd-card">${gridWrap('pd-grid-2', entries.map(([k,v]) => field(k,v)).join(''))}</div>`
     }
   }
 
   if (p.tags?.length) {
-    infoHtml += `<div style="margin-top:1.25rem"><div class="tags">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div></div>`
+    infoHtml += `<div style="margin-top:1.25rem">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>`
   }
 
   const actionsHtml = `<div class="detail-actions">
@@ -1761,14 +1795,12 @@ function showProductDetail(p) {
         </button>
       </div>
     </div>
-    <div class="detail-hero">
-      <div class="detail-gallery-area">${galleryHtml}</div>
-      <div class="detail-info">
-        <div class="detail-sku" onclick="copyToClipboard('${sku.replace(/'/g,"\\'")}')">
-          ${esc(sku)} ${copyIcon}
-        </div>
-        <div class="detail-name">${esc(p.name)}</div>
-        <div class="detail-sub" style="color:${c}">${DIV_LBL[p.division]}${specs.Construction ? ' · ' + (CONST_META[specs.Construction]?.label || specs.Construction) : ''}</div>
+    <div class="detail-layout">
+      <div class="detail-gallery-col">${galleryHtml}</div>
+      <div>
+        <div class="pd-sku" onclick="copyToClipboard('${cp(sku)}')" title="Click to copy SKU">${esc(sku)} ${copyIcon}</div>
+        <div class="pd-name">${esc(p.name)}</div>
+        <div class="pd-division" style="color:${c}">${DIV_LBL[p.division]}${specs.Construction ? ' · ' + (CONST_META[specs.Construction]?.label || specs.Construction) : ''}</div>
         ${infoHtml}
         ${actionsHtml}
       </div>
