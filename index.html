@@ -658,8 +658,11 @@
 
     /* ── PRODUCT DETAIL VIEW ── */
     #view-detail { display:none; }
-    .detail-wrap { max-width:960px; margin:0 auto; padding-bottom:3rem; }
-    .detail-back { margin-bottom:1.75rem; }
+    .detail-wrap { max-width:1000px; margin:0 auto; padding-bottom:4rem; }
+
+    /* Top bar */
+    .detail-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem; gap:1rem; }
+    .detail-topbar-right { display:flex; gap:0.4rem; align-items:center; }
     .detail-back-btn {
       display:inline-flex; align-items:center; gap:0.4rem;
       background:none; border:none; cursor:pointer; font-family:inherit;
@@ -667,22 +670,78 @@
       padding:0.3rem 0.5rem; border-radius:7px; transition:all 0.12s;
     }
     .detail-back-btn:hover { background:var(--surface2); color:var(--text); }
-    .detail-hero { display:grid; grid-template-columns:1fr 1fr; gap:2.5rem; margin-bottom:2.5rem; align-items:start; }
+    .detail-hero { display:grid; grid-template-columns:420px 1fr; gap:3rem; margin-bottom:3rem; align-items:start; }
     .detail-gallery-area { position:sticky; top:1rem; }
     .detail-info { display:flex; flex-direction:column; gap:0; }
-    .detail-eyebrow { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:0.5rem; }
-    .detail-name { font-size:1.6rem; font-weight:700; letter-spacing:-0.025em; line-height:1.15; margin-bottom:0.3rem; }
-    .detail-lot { font-size:0.78rem; color:var(--text-3); margin-bottom:1.5rem; }
+
+    /* SKU hero */
+    .detail-sku {
+      font-family:'SF Mono','Fira Mono','Courier New',monospace;
+      font-size:0.82rem; font-weight:600; letter-spacing:0.06em;
+      color:var(--accent-dark); background:var(--accent-light);
+      display:inline-flex; align-items:center; gap:0.5rem;
+      padding:0.35rem 0.7rem; border-radius:7px;
+      margin-bottom:0.75rem; cursor:pointer; user-select:none;
+      width:fit-content; transition:opacity 0.12s;
+    }
+    .detail-sku:hover { opacity:0.8; }
+    .detail-sku .copy-icon { opacity:0.5; }
+
+    .detail-name { font-size:1.75rem; font-weight:700; letter-spacing:-0.03em; line-height:1.1; margin-bottom:0.4rem; }
+    .detail-division-badge { font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-3); margin-bottom:1.75rem; }
+
+    /* Info section label */
+    .info-sec-lbl {
+      font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.13em;
+      color:var(--text-3); margin-bottom:0.5rem; margin-top:1.5rem;
+      padding-bottom:0.4rem; border-bottom:1px solid var(--border);
+    }
+    .info-sec-lbl:first-of-type { margin-top:0; }
+
+    /* Identity / data table */
+    .info-table { width:100%; border-collapse:collapse; margin-bottom:0; }
+    .info-table tr { border-bottom:1px solid var(--border); }
+    .info-table tr:last-child { border-bottom:none; }
+    .info-table td { padding:0.55rem 0; vertical-align:middle; }
+    .info-table td:first-child { font-size:0.72rem; color:var(--text-3); font-weight:500; width:110px; text-transform:uppercase; letter-spacing:0.04em; }
+    .info-table td:nth-child(2) { font-size:0.88rem; font-weight:500; color:var(--text); }
+    .info-table td:last-child { width:28px; text-align:right; }
+    .info-table tr { cursor:pointer; transition:background 0.1s; }
+    .info-table tr:hover { background:var(--surface2); border-radius:6px; }
+    .copy-btn { background:none; border:none; padding:0.2rem; cursor:pointer; color:var(--text-3); opacity:0; transition:opacity 0.12s; display:flex; align-items:center; }
+    .info-table tr:hover .copy-btn { opacity:1; }
+
+    /* Spec table (technical sheet) */
+    .spec-table { width:100%; border-collapse:collapse; font-size:0.84rem; }
+    .spec-table th { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); padding:0.5rem 0.75rem 0.4rem; text-align:left; border-bottom:1px solid var(--border); }
+    .spec-table td { padding:0.6rem 0.75rem; font-weight:500; vertical-align:top; border-bottom:1px solid var(--border); }
+    .spec-table tr:last-child td { border-bottom:none; }
+    .spec-table th:first-child, .spec-table td:first-child { padding-left:0; }
+    .spec-table th:last-child, .spec-table td:last-child { padding-right:0; }
+
+    /* Req vs Std comparison table */
+    .compare-table { width:100%; border-collapse:collapse; font-size:0.84rem; }
+    .compare-table th { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); padding:0.5rem 0.75rem 0.4rem; text-align:left; border-bottom:1px solid var(--border); }
+    .compare-table td { padding:0.6rem 0.75rem; font-weight:500; border-bottom:1px solid var(--border); }
+    .compare-table tr:last-child td { border-bottom:none; }
+    .compare-table td:first-child { font-size:0.7rem; color:var(--text-3); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; width:80px; }
+    .compare-table th:first-child, .compare-table td:first-child { padding-left:0; }
+
+    /* Yarn list */
+    .yarn-list { display:flex; flex-direction:column; }
+    .yarn-entry { display:flex; gap:1rem; align-items:baseline; padding:0.55rem 0; border-bottom:1px solid var(--border); }
+    .yarn-entry:last-child { border-bottom:none; }
+    .yarn-num { font-size:0.65rem; font-weight:700; letter-spacing:0.08em; color:var(--text-3); min-width:24px; }
+    .yarn-text { font-size:0.86rem; font-weight:500; line-height:1.5; }
+
     .detail-desc { font-size:0.86rem; color:var(--text-2); line-height:1.65; margin-bottom:1.5rem; }
-    .detail-section { margin-bottom:1.5rem; }
-    .detail-section-lbl { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-3); margin-bottom:0.65rem; }
     .detail-actions { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:1.75rem; padding-top:1.5rem; border-top:1px solid var(--border); }
     .detail-comments-section { border-top:1px solid var(--border); padding-top:1.5rem; }
     .detail-comments-lbl { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-3); margin-bottom:1rem; }
-    @media (max-width:767px) {
+    @media (max-width:900px) {
       .detail-hero { grid-template-columns:1fr; gap:1.5rem; }
       .detail-gallery-area { position:static; }
-      .detail-name { font-size:1.3rem; }
+      .detail-name { font-size:1.35rem; }
     }
 
     /* ── RESPONSIVE / MOBILE ── */
@@ -1502,78 +1561,215 @@ function setDiv(d, el) {
 /* ── PRODUCT DETAIL (full page) ── */
 function openFicha(p) { showProductDetail(p) }   // backward compat
 
+function copyToClipboard(text) {
+  navigator.clipboard?.writeText(text).then(() => toast('Copied')).catch(() => {
+    const ta = document.createElement('textarea'); ta.value = text
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy')
+    document.body.removeChild(ta); toast('Copied')
+  })
+}
+
+function shareProduct(p) {
+  const sku = p.code || p.id
+  const url = window.location.href.split('?')[0] + '?p=' + p.id
+  copyToClipboard(url)
+}
+
 function showProductDetail(p) {
   document.getElementById('div-toolbar').style.display = 'none'
   selected = p
   const c = DIV_CLR[p.division] || '#aaa'
-  const code = p.code || p.id.slice(0,6).toUpperCase()
+  const sku = p.code || p.id.slice(0,6).toUpperCase()
   const backLabel = division === 'all' ? 'All products' : `${DIV_LBL[division]} Division`
+  const specs = p.specs || {}
+  const imgs = (p.image_urls && p.image_urls.length) ? p.image_urls : (p.image_url ? [p.image_url] : [])
 
-  // Hide other views
   document.getElementById('view-dashboard').style.display = 'none'
   document.getElementById('view-products').style.display = 'none'
   const vd = document.getElementById('view-detail')
   vd.style.display = 'block'
   document.getElementById('tb-section').textContent = p.name
 
-  // Build gallery HTML
-  const imgs = (p.image_urls && p.image_urls.length) ? p.image_urls
-               : (p.image_url ? [p.image_url] : [])
+  // Gallery
   let galleryHtml = ''
   if (imgs.length) {
     const thumbs = imgs.length > 1
       ? `<div class="ficha-thumbs" style="margin-top:0.5rem">${imgs.map((u,i) =>
           `<div class="ficha-thumb${i===0?' active':''}" onclick="switchFichaImg(this,'${u}')"><img src="${u}"/></div>`).join('')}</div>` : ''
     galleryHtml = `<div class="ficha-gallery-hero" id="ficha-hero">
-      <img id="ficha-hero-img" src="${imgs[0]}" alt="${p.name}"/>
+      <img id="ficha-hero-img" src="${imgs[0]}" alt="${esc(p.name)}"/>
       <button class="img-dl-btn" onclick="downloadImg('${imgs[0]}','${esc(p.name)}')">↓ Download</button>
     </div>${thumbs}`
   } else {
-    galleryHtml = `<div class="ficha-img ficha-img-empty" style="background:${c}0d;border-radius:12px">
+    galleryHtml = `<div class="ficha-img ficha-img-empty" style="background:${c}0d;border-radius:14px;min-height:260px">
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="${c}" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="1.5" stroke="${c}" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="${c}" stroke-width="1.2" stroke-linecap="round"/></svg>
       ${isEditor() ? `<button class="btn btn-ghost btn-sm" style="margin-top:0.75rem" onclick="openEdit(selected)">Add image</button>` : `<span style="font-size:0.72rem;color:var(--text-3);margin-top:0.5rem">No image yet</span>`}
     </div>`
   }
 
-  // Build specs HTML
-  const specsHtml = fichaBody(p).replace(/<div class="ficha-gallery[\s\S]*?<\/div>\s*<\/div>\s*(<\/div>)?/, '').replace(/<div class="ficha-img[\s\S]*?<\/div>/, '')
+  // Build info section (fabric vs generic)
+  let infoHtml = ''
+
+  const copyIcon = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" stroke="currentColor" stroke-width="1.3"/></svg>`
+
+  if (p.division === 'fabric') {
+    // Identity block
+    const idRows = [
+      ['LOT', p.lot],
+      ['Mill Article', specs['Mill Article']],
+      ['Country', p.country || 'Honduras'],
+      ['Construction', specs.Construction ? (CONST_META[specs.Construction]?.label || specs.Construction) : null],
+    ].filter(([,v]) => v)
+
+    infoHtml += `<div class="info-sec-lbl">Identity</div>
+    <table class="info-table">
+      ${idRows.map(([k,v]) => `<tr onclick="copyToClipboard('${String(v).replace(/'/g,"\\'")}')">
+        <td>${k}</td><td>${esc(String(v))}</td>
+        <td><button class="copy-btn" title="Copy">${copyIcon}</button></td>
+      </tr>`).join('')}
+    </table>`
+
+    // Technical spec table
+    const techFields = [
+      ['Composition', specs.Composition],
+      ['Color', specs.Color],
+      ['Dyed Method', specs['Dyed Method']],
+    ].filter(([,v]) => v)
+
+    const dimFields = [
+      ['Width', specs.Width], ['GSM', specs.GSM],
+      ['DIA', specs.DIA], ['Gauge', specs.Gauge], ['Needles', specs.Needles],
+      ['Route Type', specs['Route Type']],
+    ].filter(([,v]) => v)
+
+    if (techFields.length) {
+      infoHtml += `<div class="info-sec-lbl">Technical Sheet</div>
+      <table class="spec-table">
+        <thead><tr>${techFields.map(([k]) => `<th>${k}</th>`).join('')}</tr></thead>
+        <tbody><tr>${techFields.map(([,v]) => `<td>${esc(String(v))}</td>`).join('')}</tr></tbody>
+      </table>`
+    }
+
+    if (dimFields.length) {
+      infoHtml += `<table class="spec-table" style="margin-top:0.5rem">
+        <thead><tr>${dimFields.map(([k]) => `<th>${k}</th>`).join('')}</tr></thead>
+        <tbody><tr>${dimFields.map(([,v]) => `<td>${esc(String(v))}</td>`).join('')}</tr></tbody>
+      </table>`
+    }
+
+    // Req vs Std
+    const hasReqStd = specs['Req Width'] || specs['Req GSM'] || specs['Std Width'] || specs['Std GSM']
+    if (hasReqStd) {
+      infoHtml += `<div class="info-sec-lbl">Requested vs Standard</div>
+      <table class="compare-table">
+        <thead><tr><th></th><th>Width</th><th>GSM</th></tr></thead>
+        <tbody>
+          <tr><td>Requested</td><td>${esc(specs['Req Width'] || '—')}</td><td>${esc(specs['Req GSM'] || '—')}</td></tr>
+          <tr><td>Standard</td><td>${esc(specs['Std Width'] || '—')}</td><td>${esc(specs['Std GSM'] || '—')}</td></tr>
+        </tbody>
+      </table>`
+    }
+
+    // Yarns
+    const yarns = [specs['Yarn 01'], specs['Yarn 02'], specs['Yarn 03']].filter(Boolean)
+    if (yarns.length) {
+      infoHtml += `<div class="info-sec-lbl">Yarn Composition</div>
+      <div class="yarn-list">
+        ${yarns.map((y,i) => `<div class="yarn-entry"><span class="yarn-num">${String(i+1).padStart(2,'0')}</span><span class="yarn-text">${esc(y)}</span></div>`).join('')}
+      </div>`
+    }
+
+    // Comments
+    if (specs.Comments) {
+      infoHtml += `<div class="info-sec-lbl">Notes</div>
+      <p style="font-size:0.86rem;color:var(--text-2);line-height:1.7;margin:0">${esc(specs.Comments)}</p>`
+    }
+
+    // Commercial
+    const commRows = [
+      ['Vendor', specs.Vendor], ['Buyer', specs.Buyer],
+      ['Sample Qty', specs['Sample Qty']], ['Rec Date', specs['Rec Date']],
+    ].filter(([,v]) => v)
+    if (commRows.length) {
+      infoHtml += `<div class="info-sec-lbl">Commercial</div>
+      <table class="info-table">
+        ${commRows.map(([k,v]) => `<tr onclick="copyToClipboard('${String(v).replace(/'/g,"\\'")}')">
+          <td>${k}</td><td>${esc(String(v))}</td>
+          <td><button class="copy-btn" title="Copy">${copyIcon}</button></td>
+        </tr>`).join('')}
+      </table>`
+    }
+  } else {
+    // Generic
+    if (p.description) {
+      infoHtml += `<div class="info-sec-lbl">Description</div>
+      <p style="font-size:0.86rem;color:var(--text-2);line-height:1.7;margin:0 0 1rem">${esc(p.description)}</p>`
+    }
+    const entries = Object.entries(specs).filter(([,v]) => v)
+    if (entries.length) {
+      infoHtml += `<div class="info-sec-lbl">Specifications</div>
+      <table class="info-table">
+        ${entries.map(([k,v]) => `<tr onclick="copyToClipboard('${String(v).replace(/'/g,"\\'")}')">
+          <td>${esc(k)}</td><td>${esc(String(v))}</td>
+          <td><button class="copy-btn" title="Copy">${copyIcon}</button></td>
+        </tr>`).join('')}
+      </table>`
+    }
+  }
+
+  // Tags
+  if (p.tags?.length) {
+    infoHtml += `<div class="info-sec-lbl">Tags</div>
+    <div class="tags">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>`
+  }
+
+  const actionsHtml = `<div class="detail-actions">
+    <button class="btn btn-primary" onclick="openReq()">
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M10 3v14M3 10h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Request sample
+    </button>
+    <button class="btn btn-ghost" onclick="openLabel()">
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 8h6M7 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Label
+    </button>
+    <button class="btn btn-ghost" onclick="downloadProductPDF()">
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M5 3h7l4 4v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 3v4h4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 13l3 3 3-3M10 16v-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      PDF
+    </button>
+    ${isEditor() ? `<button class="btn btn-ghost" onclick="openEdit(selected)">
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M14.5 3.5l2 2L6 16H4v-2L14.5 3.5z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Edit
+    </button>` : ''}
+    ${isEditor() ? `<button class="btn btn-ghost" style="color:#c0392b;border-color:rgba(192,57,43,0.25)" onclick="confirmDelete(selected)">
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M4 6h12M8 6V4h4v2M15 6l-1 11H6L5 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Delete
+    </button>` : ''}
+  </div>`
 
   vd.innerHTML = `<div class="detail-wrap">
-    <div class="detail-back">
+    <div class="detail-topbar">
       <button class="detail-back-btn" onclick="backToProducts()">
         <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M12.5 4.5L7 10l5.5 5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         ${backLabel}
       </button>
+      <div class="detail-topbar-right">
+        <button class="btn btn-ghost btn-sm" onclick="shareProduct(selected)" title="Copy link">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="15" cy="5" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="5" cy="10" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="15" cy="15" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 9l6-3M7 11l6 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          Share
+        </button>
+      </div>
     </div>
     <div class="detail-hero">
       <div class="detail-gallery-area">${galleryHtml}</div>
       <div class="detail-info">
-        <div class="detail-eyebrow" style="color:${c}">${DIV_LBL[p.division]} · ${code}${p.lot ? ' · LOT ' + p.lot : ''}</div>
-        <div class="detail-name">${p.name}</div>
-        ${p.description ? `<div class="detail-desc">${p.description}</div>` : ''}
-        <div>${specsHtml}</div>
-        <div class="detail-actions">
-          <button class="btn btn-primary" onclick="openReq()">
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M10 3v14M3 10h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            Request sample
-          </button>
-          <button class="btn btn-ghost" onclick="openLabel()">
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 8h6M7 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-            Label
-          </button>
-          <button class="btn btn-ghost" onclick="downloadProductPDF()">
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M5 3h7l4 4v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 3v4h4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 13l3 3 3-3M10 16v-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            PDF
-          </button>
-          ${isEditor() ? `<button class="btn btn-ghost" onclick="openEdit(selected)">
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M14.5 3.5l2 2L6 16H4v-2L14.5 3.5z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Edit
-          </button>` : ''}
-          ${isEditor() ? `<button class="btn btn-ghost" style="color:#c0392b;border-color:rgba(192,57,43,0.25)" onclick="confirmDelete(selected)">
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M4 6h12M8 6V4h4v2M15 6l-1 11H6L5 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Delete
-          </button>` : ''}
+        <div class="detail-sku" onclick="copyToClipboard('${sku}')" title="Click to copy SKU">
+          ${esc(sku)}
+          <span class="copy-icon">${copyIcon}</span>
         </div>
+        <div class="detail-name">${esc(p.name)}</div>
+        <div class="detail-division-badge" style="color:${c}">${DIV_LBL[p.division]}${specs.Construction ? ' · ' + (CONST_META[specs.Construction]?.label || specs.Construction) : ''}</div>
+        ${infoHtml}
+        ${actionsHtml}
       </div>
     </div>
     <div class="detail-comments-section">
