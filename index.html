@@ -1466,7 +1466,7 @@ function leaveView() {
   commodityData = {}
   document.getElementById('view-dashboard').style.display = 'none'
   document.getElementById('view-detail').style.display = 'none'
-  document.getElementById('view-products').style.display = 'flex'
+  document.getElementById('view-products').style.display = 'block'
 }
 
 function openDrawer() {
@@ -1587,7 +1587,7 @@ function showProductDetail(p) {
 
 function backToProducts() {
   document.getElementById('view-detail').style.display = 'none'
-  document.getElementById('view-products').style.display = 'flex'
+  document.getElementById('view-products').style.display = 'block'
   document.getElementById('tb-section').textContent = document.getElementById('sec-title').textContent
 }
 
