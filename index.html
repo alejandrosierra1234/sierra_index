@@ -203,14 +203,6 @@
     .nav-label { white-space:nowrap; overflow:hidden; }
     .sidebar.collapsed .nav-label { display:none; }
     .sidebar.collapsed .s-label { display:none; }
-    .sidebar.collapsed .sidebar-search input { display:none; }
-    .sidebar.collapsed .sidebar-search {
-      margin-bottom:0.25rem; padding:0;
-      width:36px; height:36px; display:flex; align-items:center; justify-content:center;
-      cursor:pointer; border-radius:8px;
-    }
-    .sidebar.collapsed .sidebar-search:hover { background:var(--surface2); }
-    .sidebar.collapsed .sidebar-search svg { position:static; transform:none; width:18px; height:18px; }
     .sidebar.collapsed .sidebar-user-info { display:none; }
     /* Square nav buttons when collapsed */
     .sidebar.collapsed .nav-item {
@@ -247,12 +239,6 @@
     .sidebar-toggle-btn .toggle-chevron { transition:transform 0.22s cubic-bezier(0.4,0,0.2,1); }
     .sidebar.collapsed .sidebar-toggle-btn .toggle-chevron { transform:rotate(180deg); }
 
-    /* Sidebar search */
-    .sidebar-search { position:relative; margin-bottom:0.5rem; flex-shrink:0; }
-    .sidebar-search svg { position:absolute; left:0.6rem; top:50%; transform:translateY(-50%); width:13px; height:13px; color:var(--text-3); pointer-events:none; }
-    .sidebar-search input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:0.42rem 0.7rem 0.42rem 1.9rem; font-size:0.78rem; font-family:inherit; color:var(--text); outline:none; transition:border-color 0.15s; }
-    .sidebar-search input:focus { border-color:var(--accent); }
-    .sidebar-search input::placeholder { color:var(--text-3); }
 
     .s-label { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); padding:0.7rem 0.55rem 0.3rem; }
     .nav-item { display:flex; align-items:center; gap:0.55rem; padding:0.48rem 0.55rem; border-radius:8px; cursor:pointer; font-size:0.82rem; color:var(--text-2); transition:all 0.12s; border:1px solid transparent; background:none; width:100%; text-align:left; font-family:inherit; }
@@ -704,7 +690,6 @@
       /* Restore labels/search in drawer */
       .sidebar.collapsed .nav-label,
       .sidebar.collapsed .s-label,
-      .sidebar.collapsed .sidebar-search,
       .sidebar.collapsed .sidebar-user-info { display: revert; }
       .sidebar.collapsed .nav-item { justify-content: flex-start; padding: 0.6rem 0.7rem; gap: 0.55rem; }
       .sidebar.collapsed .sidebar-user { justify-content: flex-start; padding: 0.5rem 0.4rem; }
@@ -732,7 +717,6 @@
       .nav-item { font-size: 0.88rem; padding: 0.6rem 0.7rem; }
       .n-icon { width: 18px; height: 18px; }
       .n-icon svg { width: 18px; height: 18px; }
-      .sidebar-search input { font-size: 0.85rem; padding: 0.5rem 0.8rem 0.5rem 2rem; }
 
       /* Dashboard */
       .dash-wrap { gap: 0; }
@@ -939,10 +923,11 @@
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 411 353.13"><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>
         </div>
       </div>
-      <div class="sidebar-search" onclick="openSpotlight()" style="cursor:pointer">
-        <svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        <input type="search" placeholder="Search…" readonly onclick="openSpotlight()" id="sidebar-search-input" style="cursor:pointer;pointer-events:none" />
-      </div>
+      <button class="nav-item" data-tip="Search" onclick="openSpotlight()" id="sidebar-search-btn">
+        <span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+        <span class="nav-label" style="color:var(--text-3);font-weight:400">Search…</span>
+        <span class="nav-label" style="margin-left:auto;font-size:0.62rem;color:var(--text-3);border:1px solid var(--border);border-radius:4px;padding:0.1rem 0.35rem;line-height:1.4">⌘K</span>
+      </button>
       <button class="nav-item active" id="nav-dash" data-tip="Dashboard" style="--item-color:#16cdbe" onclick="showDashboard()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3L3 8.5V17h5v-4h4v4h5V8.5L10 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Dashboard</span></button>
       <span class="s-label" style="margin-top:0.5rem">Divisions</span>
       <button class="nav-item" id="nav-all" data-tip="All products" style="--item-color:#009fff" onclick="setDiv('all',this)"><span class="n-icon" id="icon-all"></span><span class="nav-label">All products</span></button>
