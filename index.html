@@ -969,8 +969,11 @@
       /* Modals: sheet from bottom */
       .overlay { align-items: flex-end; padding: 0; }
       .modal { border-radius: 20px 20px 0 0; max-height: 92dvh; margin: 0; width: 100%; max-width: 100%; }
-      .lbl-editor-modal { width: 100%; max-width: 100%; }
-      .lbl-ed-canvas { padding: 1.5rem 1rem; min-height: 200px; }
+      .lbl-editor-modal { width: 100%; max-width: 100%; max-height: 100dvh; border-radius: 20px 20px 0 0; }
+      .lbl-ed-body { flex-direction: column; }
+      .lbl-ed-fields { width: 100%; border-right: none; border-bottom: 1px solid var(--border); max-height: 45vh; }
+      .lbl-ed-canvas { padding: 1.5rem 1rem; }
+      #label-preview { zoom: 1.5; }
       .two-col { grid-template-columns: 1fr; }
       .two-col .full { grid-column: 1; }
     }
@@ -1020,148 +1023,224 @@
       gap: 1.8mm;
       box-sizing: border-box;
     }
-    .lbl-hdr { display:flex; align-items:center; justify-content:space-between; gap:2mm; padding-bottom:1.2mm; border-bottom:0.5mm solid #000; }
-    .lbl-logo svg { height:6mm; width:auto; display:block; flex-shrink:0; }
-    .lbl-origin { flex-shrink:0; font-size:1.4mm; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; line-height:1.35; color:#555; text-align:right; }
-    .lbl-divider { height:0.55mm; background:#000; width:100%; flex-shrink:0; }
-    .lbl-thin { display:none; }
-    .lbl-title { font-size:4.8mm; font-weight:700; text-transform:uppercase; color:#000; line-height:0.95; overflow-wrap:break-word; padding:0.8mm 0; letter-spacing:-0.01em; }
-    .lbl-block { display:flex; flex-direction:column; gap:0.3mm; min-width:0; }
-    .lbl-key { font-size:2mm; font-weight:700; text-transform:uppercase; color:#888; letter-spacing:0.04em; }
-    .lbl-val { font-size:3.1mm; font-weight:700; color:#000; line-height:1.05; overflow-wrap:break-word; }
-    .lbl-grid { display:grid; gap:2.5mm; }
+    /* Header */
+    .lbl-hdr { display:flex; align-items:flex-end; justify-content:space-between; gap:2mm; padding-bottom:1.4mm; border-bottom:0.35mm solid #000; }
+    .lbl-logo { flex:1; min-width:0; }
+    .lbl-logo svg { height:5.5mm; width:auto; max-width:36mm; display:block; }
+    .lbl-hdr-right { display:flex; flex-direction:column; align-items:flex-end; gap:0.6mm; flex-shrink:0; }
+    .lbl-origin { font-size:1.35mm; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#666; line-height:1; }
+    .lbl-hdr-qr canvas, .lbl-hdr-qr img { width:9mm; height:9mm; display:block; image-rendering:pixelated; }
+
+    /* Identity */
+    .lbl-identity { display:flex; flex-direction:column; gap:0.4mm; margin-top:0.4mm; }
+    .lbl-identity-codes { font-size:2.8mm; font-weight:800; color:#000; letter-spacing:0.01em; line-height:1.1; }
+    .lbl-identity-sep { font-weight:400; color:#bbb; margin:0 0.8mm; }
+
+    /* Title */
+    .lbl-title { font-size:5mm; font-weight:800; text-transform:uppercase; color:#000; line-height:0.92; overflow-wrap:break-word; letter-spacing:-0.015em; margin-top:0.5mm; }
+
+    /* Spec rows */
+    .lbl-specs { display:flex; flex-direction:column; gap:0.9mm; }
+    .lbl-spec-kv { display:flex; align-items:baseline; gap:1.2mm; min-width:0; overflow:hidden; }
+    .lbl-spec-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:2mm; }
+    .lbl-spec-k { font-size:1.7mm; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#888; flex-shrink:0; white-space:nowrap; }
+    .lbl-spec-v { font-size:2.9mm; font-weight:700; color:#000; line-height:1.1; overflow-wrap:break-word; min-width:0; }
+
+    /* Dimension grid */
+    .lbl-block { display:flex; flex-direction:column; gap:0.2mm; min-width:0; }
+    .lbl-key { font-size:1.7mm; font-weight:700; text-transform:uppercase; color:#888; letter-spacing:0.04em; }
+    .lbl-val { font-size:2.9mm; font-weight:700; color:#000; line-height:1.1; overflow-wrap:break-word; }
+    .lbl-grid { display:grid; gap:2mm; }
     .lbl-grid.c2 { grid-template-columns:1fr 1fr; }
     .lbl-grid.c3 { grid-template-columns:1fr 1fr 1fr; }
     .lbl-grid.c4 { grid-template-columns:1fr 1fr 1fr 1fr; }
-    .lbl-yarn { display:flex; gap:2.5mm; align-items:baseline; }
-    .lbl-yarn-tag { font-size:2mm; font-weight:700; text-transform:uppercase; color:#888; width:10mm; flex-shrink:0; }
-    .lbl-yarn-val { font-size:3.1mm; font-weight:700; color:#000; line-height:1.05; overflow-wrap:break-word; }
-    .lbl-comments .lbl-val { font-size:2.8mm; font-weight:600; }
 
-    /* ── LABEL PREVIEW WRAPPER ── */
-    #label-preview {
-      display: inline-block;
-    }
+    /* Yarns */
+    .lbl-yarns { display:flex; flex-direction:column; gap:0.7mm; }
+    .lbl-yarn { display:flex; gap:2mm; align-items:baseline; }
+    .lbl-yarn-tag { font-size:1.7mm; font-weight:700; text-transform:uppercase; color:#888; width:9mm; flex-shrink:0; }
+    .lbl-yarn-val { font-size:2.9mm; font-weight:700; color:#000; line-height:1.1; overflow-wrap:break-word; }
 
-    /* ── LABEL EDITOR (Round 2) ── */
+    /* Notes */
+    .lbl-notes { display:flex; flex-direction:column; gap:0.9mm; }
+    .lbl-note-kv { display:flex; align-items:baseline; gap:1.2mm; }
+
+    /* Barcode */
+    .lbl-bc-wrap { margin-top:0.8mm; }
+    .lbl-bc-wrap svg { width:100%; height:auto; min-height:8mm; max-height:10mm; display:block; }
+    .lbl-bc-id { font-size:1.5mm; color:#888; letter-spacing:0.04em; margin-top:0.4mm; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+    /* Legacy compat */
+    .lbl-divider { display:none; }
+    .lbl-thin { display:none; }
+    .lbl-comments .lbl-val { font-size:2.8mm; }
+
+    /* ── LABEL PREVIEW (base) ── */
+    #label-preview { display: inline-block; }
+
+    /* ══════════════════════════════════════
+       LABEL EDITOR — Print Studio
+    ══════════════════════════════════════ */
     .lbl-editor-modal {
-      width: 560px;
+      width: min(1060px, 96vw);
       padding: 0;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      max-height: 90vh;
+      max-height: 92vh;
     }
-    .lbl-ed-hdr {
+
+    /* Top bar */
+    .lbl-ed-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 1.1rem 1.4rem;
+      padding: 0.8rem 1.25rem 0.8rem 1.5rem;
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
+      gap: 1rem;
     }
     .lbl-ed-eyebrow {
-      font-size: 0.6rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--text-3);
-      margin-bottom: 0.15rem;
-    }
-    .lbl-ed-title {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--text);
-      line-height: 1.2;
-    }
-    .lbl-ed-canvas {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg-alt);
-      padding: 2.5rem 2rem;
-      min-height: 260px;
-      overflow: auto;
-    }
-    .lbl-ed-paper {
-      filter: drop-shadow(0 6px 28px rgba(0,0,0,0.16)) drop-shadow(0 1px 4px rgba(0,0,0,0.08));
-      display: inline-block;
-    }
-    .lbl-ed-paper #label-preview {
-      zoom: 2;
-      display: inline-block;
-    }
-    @supports not (zoom: 1) {
-      .lbl-ed-paper #label-preview { zoom: unset; transform: scale(2); transform-origin: top left; }
-    }
-    .lbl-ed-controls {
-      flex-shrink: 0;
-      padding: 1rem 1.4rem;
-      border-top: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      gap: 0.85rem;
-    }
-    .lbl-ed-sec-row {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-    .lbl-ed-sec-label {
       font-size: 0.58rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.12em;
       color: var(--text-3);
+      margin-bottom: 0.1rem;
+    }
+    .lbl-ed-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .lbl-ed-bar-r {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
       flex-shrink: 0;
     }
-    .lbl-chips {
+
+    /* Two-panel body */
+    .lbl-ed-body {
       display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
     }
-    .lbl-chip {
-      font-size: 0.7rem;
-      font-family: inherit;
-      padding: 0.22rem 0.7rem;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      background: none;
-      color: var(--text-2);
+
+    /* Left: property inspector */
+    .lbl-ed-fields {
+      width: 300px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 0.25rem 0 2rem;
+    }
+    .lbl-prop-group { padding: 1rem 1.25rem 0.1rem; }
+    .lbl-prop-group + .lbl-prop-group { padding-top: 0.6rem; }
+    .lbl-prop-group-hdr {
+      font-size: 0.53rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--text-3);
+      margin-bottom: 0.45rem;
+    }
+    .lbl-prop-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.55rem;
+      padding: 0.3rem 0.4rem;
+      margin: 0 -0.4rem;
+      border-radius: 6px;
       cursor: pointer;
-      transition: all 0.12s;
+      transition: background 0.1s;
       user-select: none;
-      line-height: 1.4;
     }
-    .lbl-chip:hover { border-color: var(--accent); color: var(--accent); }
-    .lbl-chip.lbl-chip-on {
-      background: color-mix(in srgb, var(--accent) 12%, transparent);
+    .lbl-prop-row:hover { background: var(--surface2); }
+    .lbl-prop-row.lbl-prop-nocheck { cursor: default; }
+    .lbl-prop-row.lbl-prop-nocheck:hover { background: none; }
+    .lbl-prop-check {
+      width: 14px;
+      height: 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 3px;
+      flex-shrink: 0;
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .lbl-prop-row.lbl-prop-on .lbl-prop-check {
+      background: var(--accent);
       border-color: var(--accent);
-      color: var(--accent);
-      font-weight: 600;
     }
-    .lbl-chip.lbl-chip-off { opacity: 0.35; }
-    .lbl-comment-input {
+    .lbl-prop-mark { width: 8px; height: 6px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+    .lbl-prop-row.lbl-prop-on .lbl-prop-mark { opacity: 1; }
+    .lbl-prop-content { flex: 1; min-width: 0; }
+    .lbl-prop-key {
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-3);
+      line-height: 1;
+      margin-bottom: 0.18rem;
+    }
+    .lbl-prop-val {
       width: 100%;
       background: none;
       border: none;
-      border-bottom: 1px solid var(--border);
-      padding: 0.3rem 0;
-      font-size: 0.82rem;
-      font-family: inherit;
-      color: var(--text);
       outline: none;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text);
+      padding: 0;
+      border-bottom: 1px solid transparent;
       transition: border-color 0.12s;
       box-sizing: border-box;
     }
-    .lbl-comment-input::placeholder { color: var(--text-3); }
-    .lbl-comment-input:focus { border-bottom-color: var(--accent); }
-    /* Legacy selectors — keep for mobile override compatibility */
-    .label-modal-wrap { display:none; }
-    .label-fields-panel { display:none; }
-    .label-preview-panel { display:none; }
+    .lbl-prop-val:focus { border-bottom-color: var(--accent); }
+    .lbl-prop-val[disabled] { opacity: 0.28; pointer-events: none; }
+    .lbl-prop-textarea {
+      resize: none;
+      line-height: 1.4;
+      display: block;
+      min-height: 2.4em;
+    }
+    .lbl-prop-nocheck-swatch {
+      width: 14px; height: 14px; flex-shrink: 0; margin-top: 3px;
+    }
+
+    /* Right: print canvas */
+    .lbl-ed-canvas {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-alt);
+      padding: 2.5rem 2rem;
+      gap: 1.1rem;
+      overflow: auto;
+    }
+    .lbl-ed-paper {
+      display: inline-block;
+      filter: drop-shadow(0 8px 36px rgba(0,0,0,0.18)) drop-shadow(0 2px 6px rgba(0,0,0,0.08));
+    }
+    #label-preview { zoom: 2.5; }
+    @supports not (zoom: 1) {
+      #label-preview { zoom: unset; transform: scale(2.5); transform-origin: top left; }
+    }
+    .lbl-ed-hint {
+      font-size: 0.56rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
+    }
 
     /* ════════════════════════════
        PRINT STYLES — QL-800 62mm
@@ -1171,8 +1250,17 @@
       body > * { display:none !important; }
       #print-root { display:block !important; }
       @page { size:62mm auto; margin:0; }
-      /* Reset any preview zoom so label prints at actual size */
-      #print-root #label-preview { zoom:unset; transform:none; box-shadow:none; }
+      /* Reset preview zoom */
+      #print-root #label-preview { zoom:unset !important; transform:none !important; }
+      /* Mono logo for thermal printing */
+      #print-root .lc1 { fill:#000 !important; }
+      /* No gray on thermal — everything full black */
+      #print-root .lbl-spec-k,
+      #print-root .lbl-key,
+      #print-root .lbl-yarn-tag,
+      #print-root .lbl-origin,
+      #print-root .lbl-identity-sep,
+      #print-root .lbl-bc-id { color:#000 !important; }
     }
 
     #print-root { display:none; }
@@ -1585,33 +1673,13 @@
 <!-- ══ MODAL: LABEL ══ -->
 <div class="overlay" id="m-label">
   <div class="modal lbl-editor-modal">
-    <!-- Header -->
-    <div class="lbl-ed-hdr">
+    <!-- Top bar -->
+    <div class="lbl-ed-bar">
       <div>
         <div class="lbl-ed-eyebrow">Technical Label</div>
-        <div class="lbl-ed-title" id="lbl-title"></div>
+        <div class="lbl-ed-name" id="lbl-title"></div>
       </div>
-      <button class="btn-icon" onclick="closeModal('m-label')">✕</button>
-    </div>
-    <!-- Hero: label preview -->
-    <div class="lbl-ed-canvas">
-      <div class="lbl-ed-paper">
-        <div id="label-preview"></div>
-      </div>
-    </div>
-    <!-- Minimal controls -->
-    <div class="lbl-ed-controls">
-      <div class="lbl-ed-sec-row">
-        <span class="lbl-ed-sec-label">Sections</span>
-        <div class="lbl-chips" id="lbl-chips"></div>
-      </div>
-      <input class="lbl-comment-input" id="lbl-comment-val" type="text" placeholder="Add a note to the label…"
-        oninput="setLabelFieldValue('Comments',this.value);updateLabelPreview()" />
-    </div>
-    <!-- Footer -->
-    <div class="modal-ftr" style="border-top:1px solid var(--border)">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('m-label')">Cancel</button>
-      <div style="display:flex;gap:0.5rem">
+      <div class="lbl-ed-bar-r">
         <button class="btn btn-ghost btn-sm" onclick="printLabel()">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="3" y="1" width="10" height="7" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3 8H2a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1h-1" stroke="currentColor" stroke-width="1.3"/><rect x="3" y="10" width="10" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>
           Print QL-800
@@ -1620,6 +1688,19 @@
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           Save PDF
         </button>
+        <button class="btn-icon" onclick="closeModal('m-label')" style="margin-left:0.25rem">✕</button>
+      </div>
+    </div>
+    <!-- Two-panel body -->
+    <div class="lbl-ed-body">
+      <!-- Left: property inspector -->
+      <div class="lbl-ed-fields" id="lbl-field-panel"></div>
+      <!-- Right: print canvas -->
+      <div class="lbl-ed-canvas">
+        <div class="lbl-ed-paper">
+          <div id="label-preview"></div>
+        </div>
+        <div class="lbl-ed-hint">2.5× · 62mm thermal label · QL-800</div>
       </div>
     </div>
   </div>
@@ -2591,6 +2672,15 @@ const LABEL_SECTION_DEFS = [
 ]
 let lblSections = {}
 
+const LBL_PROP_GROUPS = [
+  { group: 'Identity',   fields: ['Mill Article', 'LOT', 'Manufactured In'] },
+  { group: 'Product',    fields: ['Product Name'] },
+  { group: 'Material',   fields: ['Composition', 'Color', 'Dyed Method'] },
+  { group: 'Dimensions', fields: ['Width', 'GSM', 'DIA', 'Gauge'] },
+  { group: 'Yarns',      fields: ['Yarn 01', 'Yarn 02', 'Yarn 03'] },
+  { group: 'Notes',      fields: ['Price', 'Comments'] },
+]
+
 const LABEL_FIELD_GROUPS = [
   { group: 'Header',      fields: ['Mill Article', 'LOT', 'Manufactured In'] },
   { group: 'Identity',    fields: ['Product Name'] },
@@ -2618,6 +2708,7 @@ function buildLabelFieldState(p) {
     'Yarn 01':         specs['Yarn 01'] || null,
     'Yarn 02':         specs['Yarn 02'] || null,
     'Yarn 03':         specs['Yarn 03'] || null,
+    'Price':           specs.Price || null,
     'Comments':        specs.Comments || null,
   }
   if (p.division !== 'fabric') {
@@ -2625,9 +2716,14 @@ function buildLabelFieldState(p) {
       if (v && !(k in allValues)) allValues[k] = v
     })
   }
+  const ALWAYS_PRESENT = new Set(['Price', 'Comments'])
   labelFieldState = Object.entries(allValues)
-    .filter(([, v]) => v !== null && v !== '')
-    .map(([key, value]) => ({ key, value, enabled: true }))
+    .filter(([k, v]) => (v !== null && v !== '') || ALWAYS_PRESENT.has(k))
+    .map(([key, value]) => ({
+      key,
+      value: value ?? '',
+      enabled: value !== null && value !== ''
+    }))
 }
 
 function fieldGroup(key) {
@@ -2638,17 +2734,8 @@ function fieldGroup(key) {
 function openLabel() {
   if (!selected) return
   buildLabelFieldState(selected)
-  // Initialize sections: on if any of its fields have data
-  lblSections = {}
-  LABEL_SECTION_DEFS.forEach(sec => {
-    lblSections[sec.key] = sec.fields.some(f => labelFieldState.find(s => s.key === f && s.enabled))
-  })
   document.getElementById('lbl-title').textContent = selected.name
-  // Restore comment field in input
-  const commentField = labelFieldState.find(f => f.key === 'Comments')
-  const commentInput = document.getElementById('lbl-comment-val')
-  if (commentInput) commentInput.value = commentField ? commentField.value : ''
-  renderLblChips()
+  renderLblFields()
   updateLabelPreview()
   document.getElementById('m-label').classList.add('open')
 }
@@ -2801,30 +2888,65 @@ async function deleteComment(commentId, productId) {
   loadFichaComments(productId)
 }
 
-function renderLblChips() {
-  const chips = document.getElementById('lbl-chips')
-  if (!chips) return
-  chips.innerHTML = LABEL_SECTION_DEFS.map(sec => {
-    const hasData = sec.fields.some(f => labelFieldState.find(s => s.key === f))
-    if (!hasData) return ''
-    const on = lblSections[sec.key]
-    return `<button class="lbl-chip ${on ? 'lbl-chip-on' : 'lbl-chip-off'}" onclick="toggleLblSection('${sec.key}')">${sec.label}</button>`
-  }).join('')
+function renderLblFields() {
+  const panel = document.getElementById('lbl-field-panel')
+  if (!panel) return
+  const NO_TOGGLE = new Set(['Product Name', 'Price', 'Comments'])
+  let html = ''
+  LBL_PROP_GROUPS.forEach(({ group, fields }) => {
+    const rows = fields.filter(k => labelFieldState.find(f => f.key === k))
+    if (!rows.length) return
+    html += `<div class="lbl-prop-group"><div class="lbl-prop-group-hdr">${group}</div>`
+    rows.forEach(key => {
+      const f = labelFieldState.find(f => f.key === key)
+      if (!f) return
+      const safeKey = key.replace(/'/g, "\\'")
+      const safeVal = String(f.value ?? '').replace(/"/g, '&quot;')
+      const isOn = f.enabled || NO_TOGGLE.has(key)
+      const noToggle = NO_TOGGLE.has(key)
+      const isTextarea = key === 'Comments'
+      html += `<div class="lbl-prop-row ${isOn ? 'lbl-prop-on' : 'lbl-prop-off'}${noToggle ? ' lbl-prop-nocheck' : ''}"
+        ${noToggle ? '' : `onclick="toggleLblProp(event,'${safeKey}')"`}>
+        ${noToggle
+          ? `<div class="lbl-prop-nocheck-swatch"></div>`
+          : `<div class="lbl-prop-check"><svg class="lbl-prop-mark" viewBox="0 0 10 8"><polyline points="1,4 3.5,6.5 9,1"/></svg></div>`
+        }
+        <div class="lbl-prop-content">
+          <div class="lbl-prop-key">${esc(key)}</div>
+          ${isTextarea
+            ? `<textarea class="lbl-prop-val lbl-prop-textarea" rows="2"
+                onclick="event.stopPropagation()"
+                oninput="setLabelFieldValue('${safeKey}',this.value)"
+                >${esc(String(f.value ?? ''))}</textarea>`
+            : `<input class="lbl-prop-val" type="text" value="${safeVal}"
+                onclick="event.stopPropagation()"
+                oninput="setLabelFieldValue('${safeKey}',this.value)"
+                ${!isOn && !noToggle ? 'disabled' : ''} />`
+          }
+        </div>
+      </div>`
+    })
+    html += '</div>'
+  })
+  panel.innerHTML = html
 }
 
-function toggleLblSection(key) {
-  lblSections[key] = !lblSections[key]
-  // Sync to labelFieldState
-  const sec = LABEL_SECTION_DEFS.find(s => s.key === key)
-  if (sec) sec.fields.forEach(f => {
-    const field = labelFieldState.find(s => s.key === f)
-    if (field) field.enabled = lblSections[key]
-  })
-  renderLblChips()
+function toggleLblProp(e, key) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+  const f = labelFieldState.find(f => f.key === key)
+  if (!f) return
+  f.enabled = !f.enabled
+  const row = e.currentTarget
+  row.classList.toggle('lbl-prop-on', f.enabled)
+  row.classList.toggle('lbl-prop-off', !f.enabled)
+  const inp = row.querySelector('.lbl-prop-val')
+  if (inp && inp.tagName === 'INPUT') inp.disabled = !f.enabled
   updateLabelPreview()
 }
 
-function renderFieldToggles() { /* legacy — no-op in Round 2 */ }
+function renderLblChips() { /* legacy stub */ }
+function toggleLblSection() { /* legacy stub */ }
+function renderFieldToggles() { /* legacy stub */ }
 
 function toggleLabelField(key, enabled) {
   const f = labelFieldState.find(f => f.key === key)
@@ -2833,7 +2955,12 @@ function toggleLabelField(key, enabled) {
 
 function setLabelFieldValue(key, val) {
   const f = labelFieldState.find(f => f.key === key)
-  if (f) { f.value = val; updateLabelPreview() }
+  if (!f) return
+  f.value = val
+  if (key === 'Price' || key === 'Comments') {
+    f.enabled = val.trim() !== ''
+  }
+  updateLabelPreview()
 }
 
 function updateLabelPreview() {
@@ -2845,11 +2972,11 @@ function initLabelCodePreviews(p) {
   if (!p) return
   const bcSvg = document.getElementById('lbl-preview-bc')
   if (bcSvg) {
-    try { JsBarcode(bcSvg, getProductBarcode(p), { format:'CODE128', width:1.4, height:28, displayValue:false, margin:1, background:'#fff', lineColor:'#000' }) } catch(e) {}
+    try { JsBarcode(bcSvg, getProductBarcode(p), { format:'CODE128', width:1.5, height:26, displayValue:false, margin:0, background:'#fff', lineColor:'#000' }) } catch(e) {}
   }
   const qrCanvas = document.getElementById('lbl-preview-qr')
   if (qrCanvas) {
-    try { QRCode.toCanvas(qrCanvas, getProductPublicUrl(p), { width:48, margin:1, color:{ dark:'#000000', light:'#ffffff' } }, function(){}) } catch(e) {}
+    try { QRCode.toCanvas(qrCanvas, getProductPublicUrl(p), { width:58, margin:0, errorCorrectionLevel:'L', color:{ dark:'#000000', light:'#ffffff' } }, function(){}) } catch(e) {}
   }
 }
 
@@ -2865,177 +2992,134 @@ function lblBlock(key, val) {
   return `<div class="lbl-block"><span class="lbl-key">${esc(key)}</span><span class="lbl-val">${esc(String(val))}</span></div>`
 }
 
-function renderLabel(p, fields, codesHtml = '') {
+function lblSpec(k, v) {
+  return `<div class="lbl-spec-kv"><span class="lbl-spec-k">${esc(k)}</span><span class="lbl-spec-v">${esc(String(v))}</span></div>`
+}
+
+function renderLabel(p, fields, printAssets = null) {
   const F = {}
   fields.forEach(f => { if (f.enabled) F[f.key] = f.value })
 
-  const sections = []
+  const s = []
 
-  function pushRow(html) { sections.push(html) }
+  // QR element — canvas in preview, img in print
+  const qrEl = printAssets
+    ? (printAssets.qrSrc ? `<img src="${printAssets.qrSrc}" style="width:9mm;height:9mm;display:block;image-rendering:pixelated">` : '')
+    : `<canvas id="lbl-preview-qr" width="58" height="58" style="width:9mm;height:9mm;display:block"></canvas>`
 
-  // Header: logo + country
-  sections.push(`<div class="lbl-hdr">
-    <div class="lbl-logo">${LBL_LOGO_SVG}</div>
-    ${F['Manufactured In'] ? `<span class="lbl-origin">MANUFACTURED IN ${esc(F['Manufactured In']).toUpperCase()}</span>` : ''}
+  // Header: logo + (origin + QR)
+  s.push(`<div class="lbl-hdr">
+    <div class="lbl-logo">${printAssets ? LBL_LOGO_SVG : LBL_LOGO_SVG}</div>
+    <div class="lbl-hdr-right">
+      ${F['Manufactured In'] ? `<div class="lbl-origin">MFD IN ${esc(F['Manufactured In']).toUpperCase()}</div>` : ''}
+      <div class="lbl-hdr-qr">${qrEl}</div>
+    </div>
   </div>`)
 
-  // Mill Article + LOT — identity row
-  const idParts = []
-  if (F['Mill Article']) idParts.push(lblBlock('Mill Article', F['Mill Article']))
-  if (F['LOT'])          idParts.push(lblBlock('LOT', F['LOT']))
-  if (idParts.length === 1) pushRow(`<div class="lbl-grid c2">${idParts[0]}<div></div></div>`)
-  else if (idParts.length === 2) pushRow(`<div class="lbl-grid c2">${idParts.join('')}</div>`)
-
-  // Product Name — headline, flanked by thick rules
-  if (F['Product Name']) {
-    sections.push('<div class="lbl-divider"></div>')
-    sections.push(`<div class="lbl-title">${esc(F['Product Name'])}</div>`)
-    sections.push('<div class="lbl-divider"></div>')
-  }
-
-  // Composition — full width
-  if (F['Composition']) pushRow(lblBlock('Composition', F['Composition']))
-
-  // Color / Dyed Method
-  const colorPairs = []
-  if (F['Color'])       colorPairs.push(lblBlock('Color', F['Color']))
-  if (F['Dyed Method']) colorPairs.push(lblBlock('Dyed Method', F['Dyed Method']))
-  if (colorPairs.length === 1) pushRow(`<div class="lbl-grid c2">${colorPairs[0]}<div></div></div>`)
-  else if (colorPairs.length === 2) pushRow(`<div class="lbl-grid c2">${colorPairs.join('')}</div>`)
-
-  // Dimensions — smart grid
-  const dims = ['Width','GSM','DIA','Gauge'].filter(k => F[k]).map(k => lblBlock(k, F[k]))
-  if (dims.length > 0) {
-    const n = dims.length
-    const col = n <= 2 ? 'c2' : n === 3 ? 'c3' : 'c4'
-    const filler = n === 1 ? '<div></div>' : ''
-    pushRow(`<div class="lbl-grid ${col}">${dims.join('')}${filler}</div>`)
-  }
-
-  // Yarns
-  ;['Yarn 01','Yarn 02','Yarn 03'].forEach(k => {
-    if (F[k]) pushRow(`<div class="lbl-yarn"><span class="lbl-yarn-tag">${esc(k)}</span><span class="lbl-yarn-val">${esc(F[k])}</span></div>`)
-  })
-
-  // Comments
-  if (F['Comments']) pushRow(`<div class="lbl-block lbl-comments"><span class="lbl-key">Comments</span><span class="lbl-val">${esc(F['Comments'])}</span></div>`)
-
-  // Identity codes — barcode + QR, always at bottom
-  sections.push('<div class="lbl-divider"></div>')
-  if (codesHtml) {
-    sections.push(codesHtml)
-  } else {
-    sections.push(`<div class="lbl-codes">
-      <div class="lbl-codes-qr">
-        <canvas id="lbl-preview-qr" width="48" height="48"></canvas>
-        <span class="lbl-codes-qr-label">Public page</span>
-      </div>
-      <div class="lbl-codes-bc">
-        <svg id="lbl-preview-bc"></svg>
-        <div class="lbl-codes-id">${esc(p.code || p.id.slice(0,8).toUpperCase())} · SIERRA INDEX</div>
-      </div>
+  // Identity: Article · LOT
+  const idCodes = [F['Mill Article'], F['LOT']].filter(Boolean)
+  if (idCodes.length) {
+    s.push(`<div class="lbl-identity">
+      <div class="lbl-identity-codes">${idCodes.map(v => esc(v)).join('<span class="lbl-identity-sep">·</span>')}</div>
     </div>`)
   }
 
-  return `<div class="lbl">${sections.join('')}</div>`
+  // Product name — dominant typographic element
+  if (F['Product Name']) {
+    s.push(`<div class="lbl-title">${esc(F['Product Name'])}</div>`)
+  }
+
+  // Material specs
+  const specRows = []
+  if (F['Composition']) specRows.push(`<div class="lbl-spec-row">${lblSpec('Composition', F['Composition'])}</div>`)
+  const colorPair = [F['Color'] && lblSpec('Color', F['Color']), F['Dyed Method'] && lblSpec('Dyed Method', F['Dyed Method'])].filter(Boolean)
+  if (colorPair.length === 2) specRows.push(`<div class="lbl-spec-row lbl-spec-row-2">${colorPair.join('')}</div>`)
+  else if (colorPair.length === 1) specRows.push(`<div class="lbl-spec-row">${colorPair[0]}</div>`)
+  if (specRows.length) s.push(`<div class="lbl-specs">${specRows.join('')}</div>`)
+
+  // Dimensions — smart grid
+  const dims = ['Width','GSM','DIA','Gauge'].filter(k => F[k]).map(k => lblBlock(k, F[k]))
+  if (dims.length) {
+    const col = dims.length <= 2 ? `c${dims.length}` : dims.length === 3 ? 'c3' : 'c4'
+    s.push(`<div class="lbl-grid ${col}">${dims.join('')}</div>`)
+  }
+
+  // Yarns
+  const yarns = ['Yarn 01','Yarn 02','Yarn 03'].filter(k => F[k])
+  if (yarns.length) {
+    s.push(`<div class="lbl-yarns">${yarns.map(k =>
+      `<div class="lbl-yarn"><span class="lbl-yarn-tag">${esc(k)}</span><span class="lbl-yarn-val">${esc(F[k])}</span></div>`
+    ).join('')}</div>`)
+  }
+
+  // Notes: price + comments
+  const notes = []
+  if (F['Price'])    notes.push(lblSpec('Price', F['Price']))
+  if (F['Comments']) notes.push(lblSpec('Comments', F['Comments']))
+  if (notes.length) s.push(`<div class="lbl-notes">${notes.join('')}</div>`)
+
+  // Barcode
+  const bcEl = printAssets
+    ? printAssets.bcSvgStr || ''
+    : `<svg id="lbl-preview-bc"></svg>`
+  s.push(`<div class="lbl-bc-wrap">${bcEl}<div class="lbl-bc-id">${esc(p.code || p.id.slice(0,8).toUpperCase())} · SIERRA INDEX</div></div>`)
+
+  return `<div class="lbl">${s.join('')}</div>`
 }
 
-const LABEL_PRINT_CSS = `
-  @page { size: 62mm auto; margin: 0; }
-  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-sizing: border-box; }
-  body { margin: 0; padding: 0; background: #fff; }
-  .lbl { width:62mm; padding:3mm 4.5mm; display:flex; flex-direction:column;
-    font-family: Arial, Helvetica, sans-serif; color:#000; background:#fff; gap:1.8mm; }
-  .lbl-hdr { display:flex; align-items:center; justify-content:space-between; gap:2mm;
-    padding-bottom:1.2mm; border-bottom:0.5mm solid #000; }
-  .lbl-logo svg { height:6mm; width:auto; display:block; flex-shrink:0; }
-  .lbl-origin { flex-shrink:0; font-size:1.4mm; font-weight:700; text-transform:uppercase;
-    letter-spacing:0.03em; line-height:1.35; color:#555; text-align:right; font-family:Arial,Helvetica,sans-serif; }
-  .lbl-divider { height:0.55mm; background:#000; width:100%; flex-shrink:0; }
-  .lbl-thin { display:none; }
-  .lbl-title { font-size:4.8mm; font-weight:700; text-transform:uppercase; color:#000;
-    line-height:0.95; overflow-wrap:break-word; padding:0.8mm 0; letter-spacing:-0.01em; font-family:Arial,Helvetica,sans-serif; }
-  .lbl-block { display:flex; flex-direction:column; gap:0.3mm; min-width:0; }
-  .lbl-key { font-size:2mm; font-weight:700; text-transform:uppercase; color:#888;
-    letter-spacing:0.04em; font-family:Arial,Helvetica,sans-serif; }
-  .lbl-val { font-size:3.1mm; font-weight:700; color:#000; line-height:1.05;
-    overflow-wrap:break-word; font-family:Arial,Helvetica,sans-serif; }
-  .lbl-grid { display:grid; gap:2.5mm; }
-  .lbl-grid.c2 { grid-template-columns:1fr 1fr; }
-  .lbl-grid.c3 { grid-template-columns:1fr 1fr 1fr; }
-  .lbl-grid.c4 { grid-template-columns:1fr 1fr 1fr 1fr; }
-  .lbl-yarn { display:flex; gap:2.5mm; align-items:baseline; }
-  .lbl-yarn-tag { font-size:2mm; font-weight:700; text-transform:uppercase; color:#888;
-    width:10mm; flex-shrink:0; font-family:Arial,Helvetica,sans-serif; }
-  .lbl-yarn-val { font-size:3.1mm; font-weight:700; color:#000; line-height:1.05;
-    overflow-wrap:break-word; font-family:Arial,Helvetica,sans-serif; }
-  .lbl-comments .lbl-val { font-size:2.8mm; font-weight:600; }
-  .lbl-codes { display:flex; align-items:flex-start; gap:2.5mm; padding-top:0.5mm; }
-  .lbl-codes-qr { display:flex; flex-direction:column; align-items:center; gap:0.8mm; }
-  .lbl-codes-qr img { width:16mm; height:16mm; display:block; }
-  .lbl-codes-qr-label { font-size:1.4mm; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#aaa; font-family:Arial,Helvetica,sans-serif; }
-  .lbl-codes-bc { flex:1; min-width:0; display:flex; flex-direction:column; }
-  .lbl-codes-bc svg { width:100%; height:auto; max-height:10mm; min-height:8mm; display:block; }
-  .lbl-codes-id { font-size:1.6mm; color:#999; font-family:Arial,Helvetica,sans-serif;
-    margin-top:0.5mm; letter-spacing:0.03em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .lc1 { fill:#59a29e; } .lc2 { fill:#141512; }
-`
+/* LABEL_PRINT_CSS removed — print handled via #print-root + document @media print block */
 
 async function printLabel() {
   if (!selected) return
 
-  // Pre-generate product barcode SVG
+  // Generate barcode SVG string
   let bcSvgStr = ''
   try {
     const tmpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    JsBarcode(tmpSvg, getProductBarcode(selected), {
-      format:'CODE128', width:1.4, height:28, displayValue:false, margin:1, background:'#fff', lineColor:'#000',
-    })
+    JsBarcode(tmpSvg, getProductBarcode(selected), { format:'CODE128', width:1.5, height:26, displayValue:false, margin:0, background:'#fff', lineColor:'#000' })
     bcSvgStr = new XMLSerializer().serializeToString(tmpSvg)
   } catch(e) {}
 
-  // Pre-generate QR code data URL
-  let qrDataUrl = ''
+  // Generate QR data URL — errorCorrectionLevel L = smallest possible version
+  let qrSrc = ''
   try {
-    qrDataUrl = await new Promise((res, rej) => {
+    qrSrc = await new Promise((res, rej) =>
       QRCode.toDataURL(getProductPublicUrl(selected),
-        { width:64, margin:1, color:{ dark:'#000000', light:'#ffffff' } },
-        (err, url) => { if (err) rej(err); else res(url) })
-    })
+        { width: 58, margin: 0, errorCorrectionLevel: 'L', color: { dark:'#000000', light:'#ffffff' } },
+        (err, url) => err ? rej(err) : res(url)))
   } catch(e) {}
 
-  const codesHtml = `<div class="lbl-codes">
-    <div class="lbl-codes-qr">${qrDataUrl ? `<img src="${qrDataUrl}" style="width:16mm;height:16mm">` : ''}<span class="lbl-codes-qr-label">Public page</span></div>
-    <div class="lbl-codes-bc">${bcSvgStr}<div class="lbl-codes-id">${esc(selected.code || selected.id.slice(0,8).toUpperCase())} · SIERRA INDEX</div></div>
-  </div>`
+  const labelHtml = renderLabel(selected, labelFieldState, { qrSrc, bcSvgStr })
 
-  const labelHtml = renderLabel(selected, labelFieldState, codesHtml)
-  const w = window.open('', '_blank', 'width=300,height=560,menubar=no,toolbar=no,location=no')
-  if (!w) { toast('Allow pop-ups for this site to print'); return }
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>Label — ${esc(selected?.name || '')}</title>
-    <style>${LABEL_PRINT_CSS}</style>
-  </head><body>${labelHtml}
-    <script>
-      window.onload = function () {
-        var lbl = document.querySelector('.lbl')
-        var hmm = Math.ceil((lbl.offsetHeight / 96 * 25.4) + 1)
-        var st = document.createElement('style')
-        st.textContent = '@page { size: 62mm ' + hmm + 'mm; margin: 0; }'
-        document.head.appendChild(st)
-        setTimeout(function () {
-          window.print()
-          setTimeout(function () { window.close() }, 800)
-        }, 150)
-      }
-    <\/script>
-  </body></html>`)
-  w.document.close()
+  // Inject into #print-root (visible in @media print via existing CSS)
+  const root = document.getElementById('print-root')
+  root.innerHTML = labelHtml
+
+  // Measure label height while temporarily visible
+  root.style.cssText = 'display:block;position:fixed;visibility:hidden;top:0;left:0;z-index:-1;pointer-events:none'
+  await new Promise(r => setTimeout(r, 80))
+  const lbl = root.querySelector('.lbl')
+  const hmm = lbl ? Math.ceil((lbl.offsetHeight / 96 * 25.4) + 2) : 100
+  root.style.cssText = ''
+
+  // Set dynamic page height
+  let pageSizeStyle = document.getElementById('lbl-page-size-style')
+  if (!pageSizeStyle) {
+    pageSizeStyle = document.createElement('style')
+    pageSizeStyle.id = 'lbl-page-size-style'
+    document.head.appendChild(pageSizeStyle)
+  }
+  pageSizeStyle.textContent = `@media print { @page { size: 62mm ${hmm}mm; margin: 0; } }`
+
+  window.print()
+
+  // Clean up after dialog closes
+  setTimeout(() => { root.innerHTML = ''; pageSizeStyle.textContent = '' }, 1200)
 }
 
 function downloadPDF() {
-  toast('In the print dialog choose "Save as PDF" as destination')
-  setTimeout(() => printLabel(), 400)
+  toast('In the print dialog, choose "Save as PDF" as destination')
+  setTimeout(() => printLabel(), 300)
 }
 
 /* ── SAMPLE REQUEST ── */
