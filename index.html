@@ -1563,14 +1563,16 @@ function fichaBody(p) {
 
   // Fabric-specific layout
   if (div === 'fabric') {
-    const fields = [
+    const generalFields = [
+      ['Construction', specs.Construction],
       ['Composition', specs.Composition],
       ['Country', p.country || 'Honduras'],
+      ['Mill Article', specs['Mill Article']],
     ].filter(([,v]) => v)
 
-    if (fields.length) {
+    if (generalFields.length) {
       html += `<div class="ficha-sec"><div class="ficha-lbl">General</div><div class="spec-grid">`
-      fields.forEach(([k,v]) => { html += `<div class="spec-item"><div class="spec-k">${k}</div><div class="spec-v">${v}</div></div>` })
+      generalFields.forEach(([k,v]) => { html += `<div class="spec-item"><div class="spec-k">${k}</div><div class="spec-v">${v}</div></div>` })
       html += `</div></div>`
     }
 
@@ -2186,6 +2188,8 @@ document.addEventListener('click', () => {
 /* ── ADD PRODUCT ── */
 const FABRIC_FIELDS = `
   <div class="two-col">
+    <div class="fg"><label>Construction</label><select id="f-construction"><option value="">— Select —</option><option value="JRS">JRS — Jersey</option><option value="RIB">RIB — Rib</option><option value="FLC">FLC — Fleece</option><option value="FRT">FRT — French Terry</option><option value="ILC">ILC — Interlock</option><option value="WFL">WFL — Waffle</option><option value="PNT">PNT — Ponte</option><option value="PIQ">PIQ — Piqué</option></select></div>
+    <div class="fg"><label>Mill Article</label><input type="text" id="f-mill-article" placeholder="e.g. SJ-014" /></div>
     <div class="fg full"><label>Composition</label><input type="text" id="f-composition" placeholder="e.g. 50% Recycled Poly 34% Viscose 12% Cotton 4% Spx" /></div>
     <div class="fg"><label>Color</label><input type="text" id="f-color" placeholder="e.g. Navy" /></div>
     <div class="fg"><label>Dyed Method</label><input type="text" id="f-dyed" placeholder="e.g. Exhaust-Disperse-Reactive" /></div>
@@ -2257,7 +2261,8 @@ function openEdit(p) {
   renderFormFields()
   const s = p.specs || {}
   if (p.division === 'fabric') {
-    const fm = { 'f-composition': s.Composition, 'f-color': s.Color, 'f-dyed': s['Dyed Method'],
+    const fm = { 'f-construction': s.Construction, 'f-mill-article': s['Mill Article'],
+                  'f-composition': s.Composition, 'f-color': s.Color, 'f-dyed': s['Dyed Method'],
                   'f-width': s.Width, 'f-gsm': s.GSM, 'f-dia': s.DIA, 'f-gauge': s.Gauge,
                   'f-yarn1': s['Yarn 01'], 'f-yarn2': s['Yarn 02'], 'f-yarn3': s['Yarn 03'],
                   'f-comments': s.Comments,
@@ -2444,7 +2449,10 @@ async function saveProduct() {
 
   if (div === 'fabric') {
     const g = id => document.getElementById(id)?.value?.trim() || ''
+    const construction = g('f-construction') || 'JRS'
     specs = {
+      Construction: construction,
+      'Mill Article': g('f-mill-article'),
       Composition: g('f-composition'), Color: g('f-color'), 'Dyed Method': g('f-dyed'),
       Width: g('f-width'), GSM: g('f-gsm'), DIA: g('f-dia'), Gauge: g('f-gauge'),
       'Yarn 01': g('f-yarn1'), 'Yarn 02': g('f-yarn2'), 'Yarn 03': g('f-yarn3'),
@@ -2482,9 +2490,24 @@ async function saveProduct() {
   const image_urls = [...editingImageUrls, ...newUrls]
   const image_url = image_urls[0] || null
 
+  // Generate SKU for new fabric products
+  let codeVal = document.getElementById('np-code').value.trim() || null
+  if (!editingProductId && div === 'fabric' && (!codeVal || !codeVal.startsWith('SR-'))) {
+    const yr = new Date().getFullYear().toString().slice(-2)
+    const const_ = specs.Construction || 'JRS'
+    const prefix = `SR-FAB-${const_}-${yr}-`
+    const { data: existing } = await sb.from('products')
+      .select('code').eq('division','fabric').like('code', prefix + '%')
+    const maxSeq = (existing || []).reduce((m, r) => {
+      const n = parseInt((r.code || '').split('-').pop()) || 0
+      return Math.max(m, n)
+    }, 0)
+    codeVal = prefix + String(maxSeq + 1).padStart(5, '0')
+  }
+
   const payload = {
     name, division: div,
-    code: document.getElementById('np-code').value.trim() || null,
+    code: codeVal,
     lot: document.getElementById('np-lot').value.trim() || null,
     country: document.getElementById('np-country').value.trim() || 'Honduras',
     description, specs, tags, image_url, image_urls
