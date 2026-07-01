@@ -1581,6 +1581,12 @@ function fichaBody(p) {
       ['GSM', specs.GSM],
       ['DIA', specs.DIA],
       ['Gauge', specs.Gauge],
+      ['Req Width', specs['Req Width']],
+      ['Req GSM', specs['Req GSM']],
+      ['Std Width', specs['Std Width']],
+      ['Std GSM', specs['Std GSM']],
+      ['Needles', specs.Needles],
+      ['Route Type', specs['Route Type']],
     ].filter(([,v]) => v)
 
     if (measures.length) {
@@ -1596,8 +1602,20 @@ function fichaBody(p) {
       html += `</div>`
     }
 
-    if (specs.Comments) {
-      html += `<div class="ficha-sec"><div class="ficha-lbl">Comments</div><p style="font-size:0.84rem;color:var(--text-2)">${specs.Comments}</p></div>`
+    const commercial = [['Sample Qty', specs['Sample Qty']], ['Rec Date', specs['Rec Date']]].filter(([,v]) => v)
+    if (commercial.length || specs.Comments) {
+      html += `<div class="ficha-sec"><div class="ficha-lbl">Notes</div><div class="spec-grid">`
+      commercial.forEach(([k,v]) => { html += `<div class="spec-item"><div class="spec-k">${k}</div><div class="spec-v">${v}</div></div>` })
+      html += `</div>`
+      if (specs.Comments) html += `<p style="font-size:0.84rem;color:var(--text-2);margin-top:0.5rem">${specs.Comments}</p>`
+      html += `</div>`
+    }
+
+    const commercial2 = [['Vendor', specs.Vendor], ['Buyer', specs.Buyer]].filter(([,v]) => v)
+    if (commercial2.length) {
+      html += `<div class="ficha-sec"><div class="ficha-lbl">Commercial</div><div class="spec-grid">`
+      commercial2.forEach(([k,v]) => { html += `<div class="spec-item"><div class="spec-k">${k}</div><div class="spec-v">${v}</div></div>` })
+      html += `</div></div>`
     }
   } else {
     // Generic specs
@@ -2179,7 +2197,17 @@ const FABRIC_FIELDS = `
     <div class="fg full"><label>Yarn 02</label><input type="text" id="f-yarn2" placeholder="e.g. DTY 50/36 SD 100% Recycled Polyester 2ply" /></div>
     <div class="fg full"><label>Yarn 03</label><input type="text" id="f-yarn3" placeholder="e.g. 40/1 CPRS 65% Recycled Polyester + 40D Spandex" /></div>
     <div class="fg full"><label>Comments</label><textarea id="f-comments" placeholder="Additional notes…"></textarea></div>
+    <div class="fg"><label>Req Width</label><input type="text" id="f-req-width" placeholder='e.g. 60"' /></div>
+    <div class="fg"><label>Req GSM</label><input type="text" id="f-req-gsm" placeholder="e.g. 340" /></div>
+    <div class="fg"><label>Std Width</label><input type="text" id="f-std-width" placeholder='e.g. 62"' /></div>
+    <div class="fg"><label>Std GSM</label><input type="text" id="f-std-gsm" placeholder="e.g. 355" /></div>
+    <div class="fg"><label>Needles</label><input type="text" id="f-needles" placeholder="e.g. 2808" /></div>
+    <div class="fg"><label>Route Type</label><input type="text" id="f-route-type" placeholder="e.g. Circular" /></div>
+    <div class="fg"><label>Sample Qty</label><input type="text" id="f-sample-qty" placeholder="e.g. 5m" /></div>
+    <div class="fg"><label>Rec Date</label><input type="text" id="f-rec-date" placeholder="e.g. 2024-03-15" /></div>
     <div class="fg full"><label>Tags (comma separated)</label><input type="text" id="f-tags" placeholder="e.g. scuba, double knit, recycled" /></div>
+    <div class="fg"><label>Vendor</label><input type="text" id="f-vendor" placeholder="Supplier / mill name" /></div>
+    <div class="fg"><label>Buyer</label><input type="text" id="f-buyer" placeholder="Client / buyer name" /></div>
   </div>`
 
 const GENERIC_FIELDS = `
@@ -2232,7 +2260,12 @@ function openEdit(p) {
     const fm = { 'f-composition': s.Composition, 'f-color': s.Color, 'f-dyed': s['Dyed Method'],
                   'f-width': s.Width, 'f-gsm': s.GSM, 'f-dia': s.DIA, 'f-gauge': s.Gauge,
                   'f-yarn1': s['Yarn 01'], 'f-yarn2': s['Yarn 02'], 'f-yarn3': s['Yarn 03'],
-                  'f-comments': s.Comments }
+                  'f-comments': s.Comments,
+                  'f-req-width': s['Req Width'], 'f-req-gsm': s['Req GSM'],
+                  'f-std-width': s['Std Width'], 'f-std-gsm': s['Std GSM'],
+                  'f-needles': s.Needles, 'f-route-type': s['Route Type'],
+                  'f-sample-qty': s['Sample Qty'], 'f-rec-date': s['Rec Date'],
+                  'f-vendor': s.Vendor, 'f-buyer': s.Buyer }
     Object.entries(fm).forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.value = val || '' })
     const ftagsEl = document.getElementById('f-tags'); if (ftagsEl) ftagsEl.value = (p.tags || []).join(', ')
   } else {
@@ -2415,7 +2448,12 @@ async function saveProduct() {
       Composition: g('f-composition'), Color: g('f-color'), 'Dyed Method': g('f-dyed'),
       Width: g('f-width'), GSM: g('f-gsm'), DIA: g('f-dia'), Gauge: g('f-gauge'),
       'Yarn 01': g('f-yarn1'), 'Yarn 02': g('f-yarn2'), 'Yarn 03': g('f-yarn3'),
-      Comments: g('f-comments')
+      Comments: g('f-comments'),
+      'Req Width': g('f-req-width'), 'Req GSM': g('f-req-gsm'),
+      'Std Width': g('f-std-width'), 'Std GSM': g('f-std-gsm'),
+      Needles: g('f-needles'), 'Route Type': g('f-route-type'),
+      'Sample Qty': g('f-sample-qty'), 'Rec Date': g('f-rec-date'),
+      Vendor: g('f-vendor'), Buyer: g('f-buyer')
     }
     Object.keys(specs).forEach(k => { if (!specs[k]) delete specs[k] })
     tags = (document.getElementById('f-tags')?.value || '').split(',').map(t => t.trim()).filter(Boolean)
