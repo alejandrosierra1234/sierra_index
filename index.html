@@ -50,37 +50,45 @@
       display:flex; flex-direction:column; align-items:center; justify-content:center;
       height:100vh; background:var(--bg);
     }
-    .auth-box { width:340px; display:flex; flex-direction:column; align-items:stretch; }
+    .auth-box { width:320px; display:flex; flex-direction:column; align-items:stretch; }
 
-    /* Auth logo — full SIERRA wordmark + icon */
-    .auth-wordmark { text-align:center; margin-bottom:2.5rem; }
-    .auth-wordmark .sierra-logo-auth svg { height:48px; width:auto; display:block; margin:0 auto; }
-    .auth-wordmark .sub { font-size:0.68rem; color:var(--text-3); margin-top:0.85rem; letter-spacing:0.18em; text-transform:uppercase; font-weight:500; }
-    [data-theme="dark"] .sierra-logo-auth .cls-2 { fill:#f0f0f2; }
+    /* Auth logo */
+    .auth-wordmark { text-align:center; margin-bottom:2.75rem; }
+    .auth-wordmark .sierra-logo-auth svg { height:44px; width:auto; display:block; margin:0 auto; }
+    .auth-wordmark .sub { font-size:0.62rem; color:var(--text-3); margin-top:0.9rem; letter-spacing:0.22em; text-transform:uppercase; font-weight:500; }
+    [data-theme="dark"] .sierra-logo-auth .cls-2 { fill:var(--text); }
 
-    /* Topbar logo */
-    .sierra-logo-top svg { height:20px; width:auto; display:block; }
-    [data-theme="dark"] .sierra-logo-top .cls-2 { fill:#f0f0f2; }
-
-    /* Card — no border, no background */
+    /* Auth form */
     .auth-card { background:none; border:none; box-shadow:none; padding:0; }
     .auth-card h2 { display:none; }
-    .auth-card .fg { margin-bottom:0.55rem; }
+    .auth-card .fg { margin-bottom:0.5rem; }
     .auth-card .fg label { display:none; }
     .auth-card .fg input {
-      background:var(--surface); border:1px solid var(--border);
-      border-radius:12px; padding:0.85rem 1rem; font-size:0.92rem;
-      box-shadow:0 1px 3px rgba(0,0,0,0.05);
+      background:var(--surface2); border:1px solid var(--border);
+      border-radius:10px; padding:0.82rem 1rem; font-size:0.9rem;
+      font-family:inherit; color:var(--text); outline:none;
       transition:border-color 0.15s;
+      -webkit-font-smoothing:antialiased;
     }
-    .auth-card .fg input:focus { border-color:var(--text-2); box-shadow:none; }
+    .auth-card .fg input:focus { border-color:var(--accent); }
+    .auth-card .fg input::placeholder { color:var(--text-3); }
+    /* Kill browser autofill blue */
+    .auth-card .fg input:-webkit-autofill,
+    .auth-card .fg input:-webkit-autofill:hover,
+    .auth-card .fg input:-webkit-autofill:focus {
+      -webkit-box-shadow:0 0 0 1000px var(--surface2) inset !important;
+      -webkit-text-fill-color:var(--text) !important;
+      caret-color:var(--text);
+      border-color:var(--border) !important;
+      transition:background-color 9999s ease-in-out 0s;
+    }
     .auth-card .btn-primary {
-      margin-top:0.65rem; padding:0.85rem; font-size:0.92rem;
-      border-radius:12px; font-weight:600; letter-spacing:0.01em;
+      margin-top:0.75rem; padding:0.82rem; font-size:0.9rem;
+      border-radius:10px; font-weight:600; letter-spacing:0.01em;
     }
-    .auth-footer { text-align:center; margin-top:2.5rem; font-size:0.65rem; color:var(--text-3); letter-spacing:0.04em; }
-    .auth-err { background:rgba(220,53,69,0.07); border:1px solid rgba(220,53,69,0.15); border-radius:10px; padding:0.6rem 0.9rem; font-size:0.8rem; color:#c0392b; margin-bottom:0.75rem; display:none; }
-    [data-theme="dark"] .auth-err { color:#fca5a5; background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.2); }
+    .auth-footer { text-align:center; margin-top:2.75rem; font-size:0.62rem; color:var(--text-3); letter-spacing:0.05em; }
+    .auth-err { background:rgba(220,53,69,0.06); border:1px solid rgba(220,53,69,0.14); border-radius:9px; padding:0.6rem 0.9rem; font-size:0.8rem; color:#c0392b; margin-bottom:0.65rem; display:none; }
+    [data-theme="dark"] .auth-err { color:#fca5a5; background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.18); }
 
     /* ── FORMS ── */
     .fg { margin-bottom:0.9rem; }
@@ -93,6 +101,17 @@
     }
     .fg input:focus, .fg select:focus, .fg textarea:focus {
       border-color:var(--accent); box-shadow:none;
+    }
+    /* Kill browser autofill color injection globally */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    textarea:-webkit-autofill,
+    select:-webkit-autofill {
+      -webkit-box-shadow:0 0 0 1000px var(--surface2) inset !important;
+      -webkit-text-fill-color:var(--text) !important;
+      caret-color:var(--text);
+      transition:background-color 9999s ease-in-out 0s;
     }
     .fg textarea { resize:vertical; min-height:72px; }
     .fg select { appearance:none; cursor:pointer; }
@@ -682,7 +701,7 @@
     #loading-screen.fade-out { opacity:0; pointer-events:none; }
     .loading-logo { opacity:0.9; }
     .loading-logo svg { height:32px; width:auto; display:block; }
-    [data-theme="dark"] #loading-screen .cls-2 { fill:#f0f0f2; }
+    [data-theme="dark"] #loading-screen .cls-2 { fill:var(--text); }
     .loading-spinner { width:20px; height:20px; border:2px solid var(--border); border-top-color:var(--text-3); border-radius:50%; animation:spin 0.7s linear infinite; }
 
     /* ── PRODUCT SHEET PDF PRINT ── */
@@ -718,7 +737,7 @@
         <button class="auth-link" onclick="showForgotPassword()">Forgot password?</button>
       </div>
     </div>
-    <div class="auth-footer">Sierra Textiles · Product Index</div>
+    <div class="auth-footer">Sierra Textiles · PRODUCT INDEX</div>
   </div>
 </div>
 
