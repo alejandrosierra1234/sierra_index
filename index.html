@@ -307,6 +307,79 @@
     /* ── SEARCH (content header — hidden, sidebar handles search) ── */
     .search-wrap { display:none; }
 
+    /* ── SPOTLIGHT SEARCH ── */
+    .spotlight-overlay {
+      position:fixed; inset:0; z-index:800;
+      background:rgba(0,0,0,0.45);
+      backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+      display:flex; align-items:flex-start; justify-content:center;
+      padding-top:12vh;
+      opacity:0; pointer-events:none;
+      transition:opacity 0.18s;
+    }
+    .spotlight-overlay.open { opacity:1; pointer-events:auto; }
+    .spotlight-box {
+      width:100%; max-width:580px; margin:0 1rem;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:16px;
+      box-shadow:0 24px 80px rgba(0,0,0,0.22), 0 4px 16px rgba(0,0,0,0.1);
+      overflow:hidden;
+      transform:scale(0.96) translateY(-8px);
+      transition:transform 0.18s cubic-bezier(0.34,1.3,0.64,1);
+    }
+    .spotlight-overlay.open .spotlight-box { transform:scale(1) translateY(0); }
+    .spotlight-input-row {
+      display:flex; align-items:center; gap:0.7rem;
+      padding:0.9rem 1rem; border-bottom:1px solid var(--border);
+    }
+    .spotlight-input-row svg { width:18px; height:18px; color:var(--text-3); flex-shrink:0; }
+    .spotlight-input-row input {
+      flex:1; border:none; background:none; outline:none;
+      font-family:"Replica", -apple-system, sans-serif;
+      font-size:1rem; color:var(--text);
+    }
+    .spotlight-input-row input::placeholder { color:var(--text-3); }
+    .spotlight-esc {
+      font-size:0.65rem; color:var(--text-3); border:1px solid var(--border);
+      border-radius:5px; padding:0.15rem 0.4rem; font-family:inherit;
+      flex-shrink:0; cursor:pointer; background:none;
+      transition:all 0.12s;
+    }
+    .spotlight-esc:hover { color:var(--text); border-color:var(--text-3); }
+    .spotlight-results {
+      max-height:420px; overflow-y:auto; padding:0.5rem 0;
+    }
+    .spotlight-section-label {
+      font-size:0.62rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.1em; color:var(--text-3);
+      padding:0.6rem 1rem 0.3rem;
+    }
+    .spotlight-row {
+      display:flex; align-items:center; gap:0.75rem;
+      padding:0.5rem 1rem; cursor:pointer;
+      transition:background 0.1s;
+    }
+    .spotlight-row:hover, .spotlight-row.focused { background:var(--surface2); }
+    .spotlight-row-icon {
+      width:32px; height:32px; border-radius:8px;
+      border:1px solid var(--border); background:var(--surface2);
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0; font-size:0.9rem;
+    }
+    .spotlight-row-icon svg { width:16px; height:16px; }
+    .spotlight-row-info { flex:1; min-width:0; }
+    .spotlight-row-title { font-size:0.85rem; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .spotlight-row-sub { font-size:0.72rem; color:var(--text-3); margin-top:0.05rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .spotlight-row-badge {
+      font-size:0.62rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.07em; padding:0.18rem 0.5rem; border-radius:5px;
+      flex-shrink:0;
+    }
+    .spotlight-empty { padding:2.5rem 1rem; text-align:center; color:var(--text-3); font-size:0.85rem; }
+    .spotlight-sep { height:1px; background:var(--border); margin:0.4rem 0; }
+    mark.sh { background:var(--accent-light); color:var(--accent-dark); border-radius:2px; font-style:normal; }
+    [data-theme="dark"] mark.sh { color:var(--accent); }
+
     /* ── SELECT MODE ── */
     .card.card-selected { border-color:var(--accent); }
     .card-check { position:absolute; top:0.6rem; right:0.6rem; width:20px; height:20px; border-radius:50%; background:var(--surface); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; transition:all 0.15s; opacity:0; pointer-events:none; transform:scale(0.7); }
@@ -866,9 +939,9 @@
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 411 353.13"><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>
         </div>
       </div>
-      <div class="sidebar-search" onclick="if(document.getElementById('sidebar').classList.contains('collapsed')){toggleSidebar();}document.getElementById('sidebar-search-input').focus()">
+      <div class="sidebar-search" onclick="openSpotlight()" style="cursor:pointer">
         <svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        <input type="search" placeholder="Search products…" oninput="onSearch(this.value)" onfocus="focusSearch()" id="sidebar-search-input" />
+        <input type="search" placeholder="Search…" readonly onclick="openSpotlight()" id="sidebar-search-input" style="cursor:pointer;pointer-events:none" />
       </div>
       <button class="nav-item active" id="nav-dash" data-tip="Dashboard" style="--item-color:#16cdbe" onclick="showDashboard()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3L3 8.5V17h5v-4h4v4h5V8.5L10 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Dashboard</span></button>
       <span class="s-label" style="margin-top:0.5rem">Divisions</span>
@@ -930,9 +1003,9 @@
 
 <!-- ══ DIVISION TOOLBAR ══ -->
 <div class="div-toolbar" id="div-toolbar" style="display:none">
-  <div class="div-toolbar-search">
+  <div class="div-toolbar-search" onclick="openSpotlight()" style="cursor:pointer">
     <svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-    <input type="search" id="search-input" placeholder="Search…" oninput="onSearch(this.value)" autocomplete="off" />
+    <input type="search" id="search-input" placeholder="Search…" readonly style="cursor:pointer;pointer-events:none" autocomplete="off" />
   </div>
   <div class="div-toolbar-sep"></div>
   <button class="div-toolbar-btn" id="select-btn" onclick="toggleSelectMode()">
@@ -1295,11 +1368,6 @@ function renderProducts(products) {
 
 function onSearch(val) {
   searchQuery = val.trim()
-  // Keep both search inputs in sync
-  const si = document.getElementById('search-input')
-  const ssi = document.getElementById('sidebar-search-input')
-  if (si && si.value !== val) si.value = val
-  if (ssi && ssi.value !== val) ssi.value = val
   renderProducts(filterProducts())
 }
 
@@ -1364,32 +1432,8 @@ function closeDrawer() {
   document.body.style.overflow = ''
 }
 
-function mobileSearch() {
-  // Navigate to products and focus the sidebar search
-  if (document.getElementById('view-products').style.display === 'none') {
-    setDiv('all', document.getElementById('nav-all'))
-  }
-  setTimeout(() => {
-    const si = document.getElementById('sidebar-search-input')
-    if (si) { openDrawer(); si.focus() }
-  }, 50)
-}
-
-function focusSearch() {
-  // When sidebar search is focused, navigate to products
-  if (document.getElementById('view-products').style.display === 'none') {
-    leaveView()
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-    document.getElementById('nav-all').classList.add('active')
-    division = 'all'
-    document.getElementById('sec-title').textContent = 'All products'
-    document.getElementById('sec-sub').textContent = 'Browse technical sheets and request samples'
-    document.getElementById('tb-section').textContent = 'All products'
-    if (isEditor()) document.getElementById('add-btn').style.display = 'flex'
-    document.getElementById('product-controls').style.display = 'flex'
-    loadProducts()
-  }
-}
+function mobileSearch() { openSpotlight() }
+function focusSearch() { openSpotlight() }
 
 function setDiv(d, el) {
   document.getElementById('div-toolbar').style.display = 'flex'
@@ -3108,6 +3152,152 @@ function toast(msg) {
   t.textContent = msg; t.classList.add('show')
   setTimeout(() => t.classList.remove('show'), 2800)
 }
+
+/* ── SPOTLIGHT ── */
+let spotlightFocusIdx = -1
+let recentSearches = JSON.parse(localStorage.getItem('sierra-recent-searches') || '[]')
+
+function openSpotlight() {
+  const el = document.getElementById('spotlight')
+  el.classList.add('open')
+  const inp = document.getElementById('spotlight-input')
+  inp.value = ''
+  spotlightFocusIdx = -1
+  renderSpotlightHome()
+  setTimeout(() => inp.focus(), 50)
+}
+
+function closeSpotlight() {
+  document.getElementById('spotlight').classList.remove('open')
+}
+
+function saveRecentSearch(q) {
+  if (!q) return
+  recentSearches = [q, ...recentSearches.filter(s => s !== q)].slice(0, 6)
+  localStorage.setItem('sierra-recent-searches', JSON.stringify(recentSearches))
+}
+
+function renderSpotlightHome() {
+  const res = document.getElementById('spotlight-results')
+  const divs = [
+    { key:'all', label:'All products', color:'#009fff' },
+    { key:'fiber', label:'Fiber', color:'#9e00cb' },
+    { key:'yarn', label:'Yarn', color:'#3ed600' },
+    { key:'fabric', label:'Fabric', color:'#009fff' },
+    { key:'chemicals', label:'Chemicals', color:'#ff7824' },
+    { key:'garment', label:'Garment', color:'#16cdbe' },
+  ]
+  const recentHtml = recentSearches.length ? `
+    <div class="spotlight-section-label">Recent searches</div>
+    ${recentSearches.map(s => `
+      <div class="spotlight-row" onclick="spotlightRunSearch('${s.replace(/'/g,"\\'")}')">
+        <div class="spotlight-row-icon" style="color:var(--text-3)">
+          <svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5" stroke="currentColor" stroke-width="1.4"/><path d="M13 13L16.5 16.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <div class="spotlight-row-info">
+          <div class="spotlight-row-title">${esc(s)}</div>
+        </div>
+        <button style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:0.7rem;padding:0.2rem 0.4rem;border-radius:4px;" onclick="event.stopPropagation();removeRecentSearch('${s.replace(/'/g,"\\'")}');renderSpotlightHome()" title="Remove">✕</button>
+      </div>`).join('')}
+    <div class="spotlight-sep"></div>` : ''
+
+  const newItems = allProducts.slice(0,4)
+  const newHtml = newItems.length ? `
+    <div class="spotlight-section-label">Latest products</div>
+    ${newItems.map(p => spotlightProductRow(p)).join('')}
+    <div class="spotlight-sep"></div>` : ''
+
+  res.innerHTML = `
+    ${recentHtml}
+    <div class="spotlight-section-label">Divisions</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.35rem;padding:0.3rem 1rem 0.5rem">
+      ${divs.map(d => `
+        <div onclick="closeSpotlight();setDiv('${d.key}',document.getElementById('nav-${d.key}'))"
+          style="display:flex;align-items:center;gap:0.5rem;padding:0.45rem 0.6rem;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:0.78rem;font-weight:500;color:var(--text-2);transition:all 0.12s;"
+          onmouseenter="this.style.background='var(--surface2)';this.style.color='var(--text)'"
+          onmouseleave="this.style.background='';this.style.color='var(--text-2)'">
+          <span style="width:8px;height:8px;border-radius:50%;background:${d.color};flex-shrink:0"></span>
+          ${d.label}
+        </div>`).join('')}
+    </div>
+    ${newHtml}`
+}
+
+function spotlightProductRow(p, query) {
+  const c = DIV_CLR[p.division] || '#aaa'
+  const code = p.code || p.id.slice(0,6).toUpperCase()
+  const title = query ? esc(p.name).replace(new RegExp(`(${esc(query)})`, 'gi'), '<mark class="sh">$1</mark>') : esc(p.name)
+  return `<div class="spotlight-row" onclick="closeSpotlight();showProductDetail(${enc(p)})">
+    <div class="spotlight-row-icon" style="color:${c}">
+      ${p.image_urls?.[0] || p.image_url
+        ? `<img src="${p.image_urls?.[0]||p.image_url}" style="width:100%;height:100%;object-fit:cover;border-radius:7px">`
+        : DIV_ICON[p.division] || '<svg viewBox="0 0 20 20" fill="none"><rect x="4" y="4" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/></svg>'}
+    </div>
+    <div class="spotlight-row-info">
+      <div class="spotlight-row-title">${title}</div>
+      <div class="spotlight-row-sub">${DIV_LBL[p.division] || p.division} · ${code}</div>
+    </div>
+    <span class="spotlight-row-badge" style="background:${c}18;color:${c}">${DIV_LBL[p.division] || ''}</span>
+  </div>`
+}
+
+function spotlightSearch(val) {
+  const q = val.trim()
+  if (!q) { renderSpotlightHome(); return }
+  const lower = q.toLowerCase()
+  const results = allProducts.filter(p =>
+    p.name?.toLowerCase().includes(lower) ||
+    p.code?.toLowerCase().includes(lower) ||
+    p.division?.toLowerCase().includes(lower) ||
+    (p.tags||[]).some(t => t.toLowerCase().includes(lower)) ||
+    p.description?.toLowerCase().includes(lower)
+  ).slice(0, 12)
+
+  const res = document.getElementById('spotlight-results')
+  if (!results.length) {
+    res.innerHTML = `<div class="spotlight-empty">No results for "<strong>${esc(q)}</strong>"</div>`
+    return
+  }
+  res.innerHTML = `
+    <div class="spotlight-section-label">${results.length} result${results.length!==1?'s':''}</div>
+    ${results.map(p => spotlightProductRow(p, q)).join('')}`
+}
+
+function spotlightRunSearch(q) {
+  saveRecentSearch(q)
+  closeSpotlight()
+  onSearch(q)
+  if (document.getElementById('view-products').style.display === 'none') {
+    setDiv('all', document.getElementById('nav-all'))
+  }
+}
+
+function removeRecentSearch(q) {
+  recentSearches = recentSearches.filter(s => s !== q)
+  localStorage.setItem('sierra-recent-searches', JSON.stringify(recentSearches))
+}
+
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openSpotlight(); return }
+  if (e.key === 'Escape' && document.getElementById('spotlight').classList.contains('open')) {
+    closeSpotlight()
+  }
+})
 </script>
+
+<!-- ══ SPOTLIGHT SEARCH ══ -->
+<div class="spotlight-overlay" id="spotlight" onclick="if(event.target===this)closeSpotlight()">
+  <div class="spotlight-box">
+    <div class="spotlight-input-row">
+      <svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <input id="spotlight-input" placeholder="Search products, divisions…"
+        oninput="spotlightSearch(this.value)"
+        onkeydown="if(event.key==='Enter'&&this.value.trim()){saveRecentSearch(this.value.trim());spotlightRunSearch(this.value.trim())}"
+        autocomplete="off" spellcheck="false" />
+      <button class="spotlight-esc" onclick="closeSpotlight()">esc</button>
+    </div>
+    <div class="spotlight-results" id="spotlight-results"></div>
+  </div>
+</div>
 </body>
 </html>
