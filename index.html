@@ -179,33 +179,48 @@
       flex-shrink:0; overflow-y:auto; overflow-x:hidden;
       transition:width 0.22s cubic-bezier(0.4,0,0.2,1);
     }
-    .sidebar.collapsed { width:52px; overflow:visible; }
+    .sidebar.collapsed {
+      width:52px; overflow:visible;
+      padding-left:0; padding-right:0;
+      align-items:center;
+    }
 
     /* Sidebar header: logo only */
-    .sidebar-hdr { display:flex; align-items:center; justify-content:flex-start; padding:0 0.15rem 0.75rem; flex-shrink:0; min-height:34px; }
+    .sidebar-hdr { display:flex; align-items:center; justify-content:flex-start; padding:0 0.15rem 0.75rem; flex-shrink:0; min-height:34px; width:100%; }
     .sidebar-logo-full svg { height:18px; width:auto; display:block; }
     .sidebar-logo-icon { display:none; }
     .sidebar-logo-icon svg { height:18px; width:auto; display:block; }
     .sidebar.collapsed .sidebar-logo-full { display:none; }
     .sidebar.collapsed .sidebar-logo-icon { display:block; }
+    .sidebar.collapsed .sidebar-hdr { justify-content:center; padding:0 0 0.75rem; }
     [data-theme="dark"] .sidebar-logo-full .cls-2 { fill:#e8e8e8; }
     [data-theme="dark"] .sidebar-logo-icon .cls-1 { fill:#16cdbe; }
 
     /* Toggle button — always visible in sidebar-bottom */
-    .sidebar-collapse-btn {
-      display:none; /* hidden: now using nav-item style toggle at bottom */
-    }
+    .sidebar-collapse-btn { display:none; }
 
     /* Nav labels — hidden when collapsed */
     .nav-label { white-space:nowrap; overflow:hidden; }
     .sidebar.collapsed .nav-label { display:none; }
     .sidebar.collapsed .s-label { display:none; }
     .sidebar.collapsed .sidebar-search input { display:none; }
-    .sidebar.collapsed .sidebar-search { padding:0.3rem; display:flex; justify-content:center; cursor:pointer; }
+    .sidebar.collapsed .sidebar-search {
+      margin-bottom:0.25rem; padding:0;
+      width:36px; height:36px; display:flex; align-items:center; justify-content:center;
+      cursor:pointer; border-radius:8px;
+    }
+    .sidebar.collapsed .sidebar-search:hover { background:var(--surface2); }
     .sidebar.collapsed .sidebar-search svg { position:static; transform:none; width:18px; height:18px; }
     .sidebar.collapsed .sidebar-user-info { display:none; }
-    .sidebar.collapsed .nav-item { justify-content:center; padding:0.5rem 0; gap:0; }
-    .sidebar.collapsed .sidebar-user { justify-content:center; padding:0.5rem 0; }
+    /* Square nav buttons when collapsed */
+    .sidebar.collapsed .nav-item {
+      width:36px; height:36px; padding:0;
+      justify-content:center; align-items:center;
+      gap:0; border-radius:9px;
+    }
+    .sidebar.collapsed .sidebar-bottom { align-items:center; width:100%; }
+    .sidebar.collapsed .sidebar-bottom .nav-item { width:36px; height:36px; }
+    .sidebar.collapsed .sidebar-spacer { width:100%; }
 
     /* ── COLLAPSED TOOLTIPS — show label on hover ── */
     .sidebar.collapsed .nav-item,
@@ -255,13 +270,12 @@
     .sidebar-user-row { display:flex; align-items:center; gap:2px; }
     .sidebar-user-row .sidebar-user { flex:1; min-width:0; border-radius:8px; }
     .sidebar-user-row .sidebar-signout-btn { border-radius:8px; flex-shrink:0; }
-    /* Collapsed: user row stacks avatar + signout vertically, both centered */
-    .sidebar.collapsed .sidebar-signout-btn { width:32px; height:32px; border-radius:8px; }
-    .sidebar.collapsed .sidebar-user-row { flex-direction:column; gap:2px; align-items:center; }
-    .sidebar.collapsed .sidebar-user-row .sidebar-user { width:100%; }
+    /* Collapsed: user + signout are square buttons stacked, centered */
+    .sidebar.collapsed .sidebar-signout-btn { width:36px; height:36px; border-radius:9px; }
+    .sidebar.collapsed .sidebar-user-row { flex-direction:column; gap:2px; align-items:center; width:100%; }
+    .sidebar.collapsed .sidebar-user-row .sidebar-user { width:36px; height:36px; }
     .sidebar.collapsed .sidebar-bottom .nav-label { display:none; }
-    .sidebar.collapsed .sidebar-bottom .nav-item { justify-content:center; padding:0.5rem 0; gap:0; }
-    .sidebar.collapsed .sidebar-user { justify-content:center; padding:0.5rem 0; }
+    .sidebar.collapsed .sidebar-user { justify-content:center; align-items:center; padding:0; border-radius:9px; }
 
     /* Drawer backdrop (mobile) */
     .drawer-backdrop { visibility:hidden; pointer-events:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:398; opacity:0; transition:opacity 0.25s, visibility 0.25s; backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); }
