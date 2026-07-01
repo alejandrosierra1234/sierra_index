@@ -521,7 +521,7 @@
       .main { flex: 1; overflow: hidden; min-height: 0; display: flex; flex-direction: column; }
       .content {
         flex: 1; overflow-y: auto; overflow-x: hidden;
-        padding: 1.1rem 0.9rem 2rem;
+        padding: 1.1rem 0.9rem calc(1.5rem + env(safe-area-inset-bottom));
         -webkit-overflow-scrolling: touch;
       }
 
@@ -547,12 +547,27 @@
       .sidebar-collapse-btn { display: none; }
       .sidebar.collapsed .sidebar-signout-btn { display: flex; }
 
-      /* Topbar — visible on mobile */
-      .topbar { display: flex; padding: 0 0.75rem; }
-      .section-label { display: flex; }
+      /* Topbar — visible on mobile, respects notch */
+      .topbar {
+        display: flex;
+        padding: 0 0.75rem;
+        padding-top: env(safe-area-inset-top);
+        height: calc(52px + env(safe-area-inset-top));
+      }
+      .section-label { display: block; }
       .mob-icon-btn { display: flex; }
-      /* Hide desktop sidebar-bottom items on mobile drawer */
-      .sidebar-bottom { display: none; }
+
+      /* Sidebar drawer: shadow for elevation over content */
+      .sidebar, .sidebar.collapsed {
+        box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+      }
+
+      /* Restore sidebar-bottom in mobile drawer */
+      .sidebar-bottom { display: flex; border-top: 1px solid var(--border); }
+      .sidebar.collapsed .sidebar-bottom .nav-label { display: revert; }
+      .sidebar.collapsed .sidebar-bottom .nav-item { justify-content: flex-start; padding: 0.6rem 0.7rem; gap: 0.55rem; }
+      .sidebar.collapsed .sidebar-signout-btn { display: flex; }
+
       .nav-item { font-size: 0.88rem; padding: 0.6rem 0.7rem; }
       .n-icon { width: 18px; height: 18px; }
       .n-icon svg { width: 18px; height: 18px; }
