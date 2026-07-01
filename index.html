@@ -8,6 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3/dist/JsBarcode.all.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1/dist/jsQR.js"></script>
   <style>
     /* ── FONTS ── */
     @font-face { font-family:"Replica"; src:url("Replica Light.otf") format("opentype"); font-weight:300; font-display:swap; }
@@ -974,6 +975,32 @@
       .two-col .full { grid-column: 1; }
     }
 
+    /* ── Additional mobile improvements ── */
+    @media (max-width: 767px) {
+      /* Tables: ensure horizontal scroll for any unwrapped tables */
+      .data-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+      /* Spotlight: full-width on mobile */
+      .spotlight-box { width: 100%; max-width: 100%; margin: 0; border-radius: 16px 16px 0 0; }
+      .spotlight-overlay.open { align-items: flex-end; }
+
+      /* Stats / kpi grids: single column */
+      .stats-row { grid-template-columns: 1fr 1fr !important; gap: 0.6rem; }
+      .kpi-row { grid-template-columns: 1fr 1fr !important; gap: 0.6rem; }
+
+      /* Forms: single column */
+      .form-grid { grid-template-columns: 1fr !important; }
+      .fg { width: 100% !important; }
+
+      /* Header search: full width */
+      .search-row { width: 100%; }
+      .search-row input { width: 100%; }
+
+      /* Prevent fixed-width elements from overflowing */
+      .srd-qr-card { max-width: 100%; }
+      .lbl { max-width: 100%; }
+    }
+
     @media (max-width: 400px) {
       .clocks-row { grid-template-columns: 1fr 1fr; }
       .pg-grid { grid-template-columns: 1fr; }
@@ -1876,6 +1903,18 @@ async function enterApp(user) {
   document.getElementById('app').style.display = 'flex'
   logAccess()
   loadNotifications()
+
+  // Restore last route (survives soft refresh)
+  const savedRoute = sessionStorage.getItem('sierra_route')
+  if (savedRoute && savedRoute.startsWith('div:')) {
+    const divKey = savedRoute.slice(4)
+    const navEl = document.getElementById('nav-' + divKey)
+    if (navEl) { setDiv(divKey, navEl); return }
+  } else if (savedRoute === 'requests') {
+    showRequests(); return
+  } else if (savedRoute === 'all-requests' && isEditor()) {
+    showAllRequests(); return
+  }
   showDashboard()
 }
 
@@ -2043,6 +2082,7 @@ function mobileSearch() { openSpotlight() }
 function focusSearch() { openSpotlight() }
 
 function setDiv(d, el) {
+  sessionStorage.setItem('sierra_route', 'div:' + d)
   document.getElementById('div-toolbar').style.display = 'flex'
   leaveView()
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
@@ -2911,6 +2951,7 @@ async function submitReq() {
 
 /* ── MY REQUESTS ── */
 async function showRequests() {
+  sessionStorage.setItem('sierra_route', 'requests')
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
@@ -2939,7 +2980,7 @@ async function showRequests() {
 
   const statusLabel = { pending:'Pending', approved:'Approved', shipped:'Shipped', rejected:'Rejected' }
 
-  pg.innerHTML = `<table class="data-table">
+  pg.innerHTML = `<div style="overflow-x:auto"><table class="data-table" style="min-width:560px">
     <thead><tr><th>Product</th><th>Division</th><th>Quantity</th><th>Notes</th><th>Status</th><th>Date</th></tr></thead>
     <tbody>${data.map(r => {
       const c = DIV_CLR[r.products?.division] || '#aaa'
@@ -2952,11 +2993,12 @@ async function showRequests() {
         <td style="color:var(--text-3)">${new Date(r.created_at).toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'})}</td>
       </tr>`
     }).join('')}</tbody>
-  </table>`
+  </table></div>`
 }
 
 /* ── ALL REQUESTS (editor) ── */
 async function showAllRequests() {
+  sessionStorage.setItem('sierra_route', 'all-requests')
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
@@ -2982,7 +3024,7 @@ async function showAllRequests() {
   }
 
   const statusLabel = { pending:'Pending', approved:'Approved', shipped:'Shipped', rejected:'Rejected' }
-  pg.innerHTML = `<table class="data-table">
+  pg.innerHTML = `<div style="overflow-x:auto"><table class="data-table" style="min-width:580px">
     <thead><tr><th>Product</th><th>Requested by</th><th>Qty</th><th>Notes</th><th>Status</th><th>Date</th></tr></thead>
     <tbody>${data.map(r => {
       const c = DIV_CLR[r.products?.division] || '#aaa'
@@ -3008,7 +3050,7 @@ async function showAllRequests() {
         <td style="color:var(--text-3)">${new Date(r.created_at).toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'})}</td>
       </tr>`
     }).join('')}</tbody>
-  </table>`
+  </table></div>`
 }
 
 const STATUS_LABEL = { pending:'Pending', approved:'Approved', shipped:'Shipped', rejected:'Rejected' }
@@ -3249,7 +3291,7 @@ async function generateTechnicalSheet() {
   let bcSvgStr = ''
   try {
     const tmp = document.createElementNS('http://www.w3.org/2000/svg','svg')
-    JsBarcode(tmp, barcode, { format:'CODE128', width:1.6, height:30, displayValue:false, margin:0, background:'#ffffff', lineColor:'#0c0c0c' })
+    JsBarcode(tmp, barcode, { format:'CODE128', width:1.6, height:40, displayValue:false, margin:0, background:'#ffffff', lineColor:'#0c0c0c' })
     bcSvgStr = new XMLSerializer().serializeToString(tmp)
   } catch(e) {}
 
@@ -3257,7 +3299,7 @@ async function generateTechnicalSheet() {
   let qrDataUrl = ''
   try {
     qrDataUrl = await new Promise((res,rej) => {
-      QRCode.toDataURL(pubUrl, { width:88, margin:0, color:{dark:'#0c0c0c',light:'#ffffff'} },
+      QRCode.toDataURL(pubUrl, { width:110, margin:0, color:{dark:'#0c0c0c',light:'#ffffff'} },
         (err,url) => err ? rej(err) : res(url))
     })
   } catch(e) {}
@@ -3330,7 +3372,7 @@ async function generateTechnicalSheet() {
 
   .page {
     width: 210mm; min-height: 297mm;
-    padding: 12mm 16mm 10mm;
+    padding: 10mm 14mm 8mm;
     display: flex; flex-direction: column;
   }
 
@@ -3357,18 +3399,18 @@ async function generateTechnicalSheet() {
   /* ATTENTION: product name dominates the page */
   .hero { padding: 6.5mm 0 6.5mm; border-bottom: 0.5px solid #e4e4e4; }
   .hero-name {
-    font-size: 38px; font-weight: 800;
+    font-size: 52px; font-weight: 800;
     letter-spacing: -0.05em; line-height: 0.93;
     color: #0c0c0c; margin-bottom: 4.5mm;
   }
   /* ATTENTION support: what is it in one line */
   .hero-essence {
-    font-size: 8.5px; font-weight: 600; color: #16cdbe;
+    font-size: 11px; font-weight: 600; color: #16cdbe;
     letter-spacing: 0.04em; margin-bottom: 2.5mm;
   }
   /* DOCUMENTATION: code is quiet */
   .hero-sku {
-    font-size: 6.5px; font-weight: 700;
+    font-size: 9px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.16em; color: #ccc;
   }
 
@@ -3379,7 +3421,7 @@ async function generateTechnicalSheet() {
     border-bottom: 0.5px solid #e4e4e4;
   }
   .zone-eyebrow {
-    font-size: 5px; font-weight: 700;
+    font-size: 7px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.28em;
     color: #ccc; margin-bottom: 4mm;
   }
@@ -3390,11 +3432,11 @@ async function generateTechnicalSheet() {
   }
   .fiber-panel:last-child { border-right: none; margin-right: 0; padding-right: 0; }
   .fiber-pct {
-    font-size: 26px; font-weight: 800;
+    font-size: 36px; font-weight: 800;
     letter-spacing: -0.045em; line-height: 1; color: #0c0c0c;
   }
   .fiber-name {
-    font-size: 7px; font-weight: 700;
+    font-size: 10px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.12em;
     color: #999; margin-top: 1.8mm;
   }
@@ -3412,11 +3454,11 @@ async function generateTechnicalSheet() {
   }
   .spec-panel:last-child { border-right: none; margin-right: 0; padding-right: 0; }
   .spec-val {
-    font-size: 20px; font-weight: 700;
+    font-size: 26px; font-weight: 700;
     letter-spacing: -0.03em; line-height: 1; color: #0c0c0c;
   }
   .spec-lbl {
-    font-size: 6px; font-weight: 700;
+    font-size: 8px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.12em;
     color: #bbb; margin-top: 1.5mm;
   }
@@ -3443,11 +3485,11 @@ async function generateTechnicalSheet() {
   }
   .kv:last-child { border-bottom: none; }
   .kv-k {
-    font-size: 6px; font-weight: 700;
+    font-size: 8px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.1em; color: #ccc;
     flex-shrink: 0; padding-right: 3mm;
   }
-  .kv-v { font-size: 8.5px; font-weight: 500; color: #555; text-align: right; }
+  .kv-v { font-size: 11px; font-weight: 500; color: #555; text-align: right; }
   .yarn-row {
     display: flex; gap: 3mm; align-items: baseline;
     padding: 1.5mm 0; border-bottom: 0.5px solid #f4f4f4;
@@ -3476,13 +3518,13 @@ async function generateTechnicalSheet() {
   /* Each panel: purpose label (teal) → code → description */
   .id-panel { display: flex; gap: 4.5mm; align-items: flex-start; }
   .id-purpose {
-    font-size: 5px; font-weight: 700;
+    font-size: 7px; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.26em;
     color: #16cdbe; margin-bottom: 2mm;
   }
-  .id-desc { font-size: 6.5px; color: #aaa; line-height: 1.75; }
+  .id-desc { font-size: 9px; color: #aaa; line-height: 1.75; }
   .id-ref {
-    font-size: 6px; font-weight: 600; letter-spacing: 0.06em;
+    font-size: 8px; font-weight: 600; letter-spacing: 0.06em;
     color: #bbb; font-family: 'Courier New', monospace;
     margin-top: 1.5mm;
   }
@@ -3498,11 +3540,11 @@ async function generateTechnicalSheet() {
   .ftr-bug { width: 14px; flex-shrink: 0; }
   .ftr-bug svg { width: 100%; height: auto; display: block; }
   .ftr-contact {
-    font-size: 6px; color: #bbb;
+    font-size: 9px; color: #bbb;
     display: flex; gap: 4mm; align-items: center; flex: 1;
   }
   .ftr-sep { color: #ddd; }
-  .ftr-date { font-size: 6px; color: #ccc; margin-left: auto; white-space: nowrap; }
+  .ftr-date { font-size: 9px; color: #ccc; margin-left: auto; white-space: nowrap; }
 
   /* ─────────────── SCREEN ─────────────── */
   @media screen {
@@ -3742,6 +3784,7 @@ const NEWS_SOURCES_CFG = [
 ]
 
 function showDashboard() {
+  sessionStorage.setItem('sierra_route', 'dashboard')
   document.getElementById('div-toolbar').style.display = 'none'
   closeDrawer()
   if (clockInterval) { clearInterval(clockInterval); clockInterval = null }
@@ -5399,9 +5442,34 @@ async function executeScan(val) {
   toast('No match found for: ' + v)
 }
 
+let _scanLoopActive = false
+
+async function _scanFrame(video, canvas, ctx) {
+  if (video.readyState !== video.HAVE_ENOUGH_DATA) return null
+  canvas.width = video.videoWidth
+  canvas.height = video.videoHeight
+  ctx.drawImage(video, 0, 0)
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+
+  if (window.BarcodeDetector) {
+    try {
+      const detector = new BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13'] })
+      const codes = await detector.detect(canvas)
+      if (codes.length > 0) return codes[0].rawValue
+    } catch(e) {}
+  }
+
+  if (window.jsQR) {
+    const code = jsQR(imageData.data, imageData.width, imageData.height)
+    if (code) return code.data
+  }
+  return null
+}
+
 async function toggleCameraMode() {
   const view = document.getElementById('scan-camera-view')
   if (view.style.display === 'block') {
+    _scanLoopActive = false
     view.style.display = 'none'
     if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null }
     document.getElementById('scan-video').srcObject = null
@@ -5413,6 +5481,34 @@ async function toggleCameraMode() {
     video.srcObject = scanStream
     view.style.display = 'block'
     toast('Camera active — point at QR or barcode')
+
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    _scanLoopActive = true
+
+    async function scanLoop() {
+      if (!_scanLoopActive) return
+      const result = await _scanFrame(video, canvas, ctx)
+      if (result) {
+        _scanLoopActive = false
+        view.style.display = 'none'
+        if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null }
+        video.srcObject = null
+
+        // Handle ?pub=<uuid> URL or raw value
+        let val = result
+        try {
+          const u = new URL(result)
+          const pubId = u.searchParams.get('pub')
+          if (pubId) { showPublicProductPage(pubId); return }
+          val = u.searchParams.get('p') || result
+        } catch(e) {}
+        executeScan(val)
+        return
+      }
+      requestAnimationFrame(scanLoop)
+    }
+    video.addEventListener('play', () => { requestAnimationFrame(scanLoop) }, { once: true })
   } catch {
     toast('Camera not available on this device')
   }
