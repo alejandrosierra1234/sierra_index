@@ -1765,6 +1765,37 @@
     }
     #product-print-root { display:none; }
 
+    /* ── SHIPPING GUIDE PRINT ── */
+    @media print {
+      body.printing-guide > * { display:none !important; }
+      body.printing-guide #guide-print-root { display:block !important; }
+    }
+    #guide-print-root { display:none; }
+    .sg-wrap { font-family:inherit; color:#000; max-width:180mm; margin:0 auto; }
+    .sg-top { display:flex; align-items:flex-start; justify-content:space-between; border-bottom:2.5px solid #000; padding-bottom:5mm; margin-bottom:5mm; }
+    .sg-brand { font-size:15pt; font-weight:800; letter-spacing:-0.02em; }
+    .sg-doctype { font-size:7pt; font-weight:700; text-transform:uppercase; letter-spacing:0.18em; margin-top:1mm; color:#444; }
+    .sg-ref { text-align:right; }
+    .sg-ref-id { font-size:14pt; font-weight:700; font-variant-numeric:tabular-nums; }
+    .sg-ref-date { font-size:7.5pt; color:#444; margin-top:1mm; }
+    .sg-badges { display:flex; gap:2mm; margin-bottom:5mm; }
+    .sg-badge { font-size:8pt; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; border:1.5px solid #000; padding:1.5mm 4mm; border-radius:2mm; }
+    .sg-badge.urgent { background:#000; color:#fff; }
+    .sg-parties { display:grid; grid-template-columns:1fr 1fr; gap:6mm; margin-bottom:6mm; }
+    .sg-party { border:1px solid #000; border-radius:2mm; padding:4mm; }
+    .sg-party-lbl { font-size:6.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.14em; color:#555; margin-bottom:2mm; }
+    .sg-party-name { font-size:11pt; font-weight:700; margin-bottom:1mm; }
+    .sg-party-line { font-size:8.5pt; line-height:1.5; }
+    .sg-table { width:100%; border-collapse:collapse; margin-bottom:6mm; }
+    .sg-table th { font-size:6.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; text-align:left; border-bottom:1.5px solid #000; padding:2mm 2mm; color:#444; }
+    .sg-table td { font-size:9pt; padding:2.5mm 2mm; border-bottom:0.5px solid #999; }
+    .sg-table .sg-qty { text-align:center; font-weight:700; }
+    .sg-note { font-size:8pt; color:#333; border:1px solid #999; border-radius:2mm; padding:3mm 4mm; margin-bottom:6mm; line-height:1.5; }
+    .sg-barcode-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:8mm; }
+    .sg-together { font-size:7.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; }
+    .sg-sigs { display:grid; grid-template-columns:1fr 1fr; gap:10mm; margin-top:10mm; }
+    .sg-sig { border-top:1px solid #000; padding-top:2mm; font-size:7.5pt; color:#444; }
+
     /* ── SAMPLE CENTER ── */
     #view-samples, #view-sample-detail { display:none; }
 
@@ -2543,6 +2574,7 @@
 
 <!-- PRINT ROOT (hidden, injected before print) -->
 <div id="print-root"></div>
+<div id="guide-print-root"></div>
 
 <!-- TOAST -->
 <!-- ══ PROFILE MODAL ══ -->
@@ -6227,14 +6259,118 @@ async function submitCart() {
   btn.disabled = false; btn.innerHTML = 'Submit request'
   if (!created.length) { toast('Error sending request — run samples_schema.sql in Supabase'); return }
 
+  lastShipment = {
+    ref: batchRef, date: new Date(), customer, priority, delivery, recipient, address, notes,
+    requestedBy: userName,
+    items: sampleCart.map((i, idx) => ({ ...i, sample_id: created[idx]?.sample_id || '' })),
+  }
+  try { localStorage.setItem('sierra_last_guide', JSON.stringify(lastShipment)) } catch {}
+
   sampleCart = []
   saveCart()
   document.getElementById('cart-customer').value = ''
   document.getElementById('cart-recipient').value = ''
   document.getElementById('cart-address').value = ''
   document.getElementById('cart-notes').value = ''
-  closeCart()
+  renderCartSuccess()
   toast(`Request ${batchRef} submitted — ${created.length} sample${created.length>1?'s':''}`)
+}
+
+/* ── SHIPPING GUIDE (internal package ID document) ── */
+let lastShipment = null
+try { lastShipment = JSON.parse(localStorage.getItem('sierra_last_guide') || 'null') } catch {}
+
+function renderCartSuccess() {
+  const s = lastShipment
+  if (!s) return
+  const n = s.items.reduce((t, i) => t + i.qty, 0)
+  document.getElementById('cart-checkout').style.display = 'none'
+  document.getElementById('cart-hdr-sub').textContent = ''
+  document.getElementById('cart-body').innerHTML = `
+    <div style="text-align:center;padding:2.5rem 1rem">
+      <div style="width:52px;height:52px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">
+        <svg width="24" height="24" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="font-size:1rem;font-weight:700;letter-spacing:-0.01em;margin-bottom:0.3rem">Request submitted</div>
+      <div style="font-size:0.78rem;color:var(--text-3);margin-bottom:0.2rem">${esc(s.ref)} · ${s.items.length} product${s.items.length>1?'s':''} · ${n} sample${n>1?'s':''}</div>
+      <div style="font-size:0.72rem;color:var(--text-3);margin-bottom:1.5rem">${esc(s.delivery)}${s.delivery!=='Pickup'?' → '+esc(s.address):''}</div>
+      <button class="cart-submit" onclick="printShippingGuide()" style="margin-bottom:0.5rem">
+        Print shipping guide
+      </button>
+      <button style="width:100%;padding:0.7rem;border:1px solid var(--border);border-radius:11px;background:none;font-family:inherit;font-size:0.8rem;font-weight:500;color:var(--text-2);cursor:pointer" onclick="closeCart()">Done</button>
+    </div>`
+}
+
+function printShippingGuide() {
+  const s = lastShipment
+  if (!s) { toast('No recent request to print'); return }
+  const d = new Date(s.date)
+  const dateStr = d.toLocaleDateString('en-US', { day:'2-digit', month:'short', year:'numeric' }) + ' · ' + d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' })
+  const root = document.getElementById('guide-print-root')
+  root.innerHTML = `<div class="sg-wrap">
+    <div class="sg-top">
+      <div>
+        <div class="sg-brand">SIERRA</div>
+        <div class="sg-doctype">Internal Shipping Guide</div>
+      </div>
+      <div class="sg-ref">
+        <div class="sg-ref-id">${esc(s.ref)}</div>
+        <div class="sg-ref-date">${dateStr} · Requested by ${esc(s.requestedBy)}</div>
+      </div>
+    </div>
+    <div class="sg-badges">
+      <span class="sg-badge">${esc(s.delivery)}</span>
+      ${s.priority === 'urgent' ? '<span class="sg-badge urgent">Urgent</span>' : ''}
+      ${s.customer ? `<span class="sg-badge">${esc(s.customer)}</span>` : ''}
+    </div>
+    <div class="sg-parties">
+      <div class="sg-party">
+        <div class="sg-party-lbl">From</div>
+        <div class="sg-party-name">SIERRA Index</div>
+        <div class="sg-party-line">Sample Center</div>
+      </div>
+      <div class="sg-party">
+        <div class="sg-party-lbl">Deliver to</div>
+        <div class="sg-party-name">${esc(s.recipient)}</div>
+        ${s.address ? `<div class="sg-party-line">${esc(s.address)}</div>` : '<div class="sg-party-line">Pickup at Sample Center</div>'}
+        ${s.customer ? `<div class="sg-party-line">Customer: ${esc(s.customer)}</div>` : ''}
+      </div>
+    </div>
+    <table class="sg-table">
+      <thead><tr><th>Sample ID</th><th>Product</th><th>Code</th><th>Type</th><th style="text-align:center">Qty</th></tr></thead>
+      <tbody>${s.items.map(i => `<tr>
+        <td style="font-variant-numeric:tabular-nums">${esc(i.sample_id)}</td>
+        <td style="font-weight:600">${esc(i.name)}</td>
+        <td>${esc(i.code)}</td>
+        <td>${esc(i.type)}</td>
+        <td class="sg-qty">${i.qty}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+    ${s.notes ? `<div class="sg-note"><strong>Notes:</strong> ${esc(s.notes)}</div>` : ''}
+    <div class="sg-barcode-row">
+      <div class="sg-together">⬚ One package — contents travel together</div>
+      <svg id="sg-barcode"></svg>
+    </div>
+    <div class="sg-sigs">
+      <div class="sg-sig">Prepared by / date</div>
+      <div class="sg-sig">Received by / date</div>
+    </div>
+  </div>`
+  try {
+    JsBarcode(document.getElementById('sg-barcode'), s.ref, { format:'CODE128', width:1.6, height:38, fontSize:10, margin:0, displayValue:true })
+  } catch {}
+  const pageStyle = document.createElement('style')
+  pageStyle.id = 'sg-page-style'
+  pageStyle.textContent = '@media print { @page { size:A4; margin:14mm } }'
+  document.head.appendChild(pageStyle)
+  document.body.classList.add('printing-guide')
+  const cleanup = () => {
+    document.body.classList.remove('printing-guide')
+    document.getElementById('sg-page-style')?.remove()
+    window.removeEventListener('afterprint', cleanup)
+  }
+  window.addEventListener('afterprint', cleanup)
+  window.print()
 }
 
 /* ── SAMPLE REQUEST ENTRY POINTS (route into cart) ── */
