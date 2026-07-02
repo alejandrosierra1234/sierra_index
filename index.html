@@ -576,6 +576,7 @@
     .card-img-placeholder { width:100%; height:148px; display:flex; align-items:center; justify-content:center; background:var(--bg-alt); overflow:hidden; }
     .card-body { padding:0.85rem 0.9rem 0.9rem; }
     .card-meta { display:flex; align-items:center; gap:0.4rem; margin-bottom:0.5rem; }
+    .card-div-pill { font-size:0.59rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; padding:0.18rem 0.5rem; border-radius:20px; }
     .card-div { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.11em; }
     .card-lot { font-size:0.6rem; color:var(--text-3); }
     .card-name { font-size:0.9rem; font-weight:600; color:var(--text); margin-bottom:0.35rem; letter-spacing:-0.01em; line-height:1.35; }
@@ -2831,12 +2832,12 @@ function cardHTML(p) {
 
   const isSelected = selectedProducts.some(s => s.id === p.id)
   return `<div class="card-wrap">
-  <div class="card ${isSelected ? 'card-selected' : ''}" data-id="${p.id}" onclick="onCardClick(dec('${ep}'))">
+  <div class="card ${isSelected ? 'card-selected' : ''}" data-id="${p.id}" onclick="onCardClick(dec('${ep}'))" style="border-top:3px solid ${c}">
     ${imgEl}
     <div class="card-body">
       <div class="card-meta">
-        <span class="card-div" style="color:${c}">${code}</span>
-        ${lot ? `<span class="card-lot">· ${lot}</span>` : ''}
+        <span class="card-div-pill" style="background:${c}18;color:${c}">${DIV_LBL[p.division]}</span>
+        ${lot ? `<span class="card-lot">${lot}</span>` : ''}
       </div>
       <div class="card-name">${p.name}</div>
       <div class="card-desc">${desc}</div>
