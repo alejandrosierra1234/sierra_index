@@ -1055,7 +1055,7 @@
       max-width: 10mm;
     }
     .lbl-hdr-qr canvas, .lbl-hdr-qr img {
-      width: 8mm; height: 8mm; display: block; image-rendering: pixelated;
+      width: 11mm; height: 11mm; display: block; image-rendering: pixelated;
     }
 
     /* ── IDENTITY: codes + product name ── */
@@ -2091,7 +2091,13 @@ function getProductBarcode(p) {
   return p.code || p.specs?.barcode || ('PRD-' + p.id.replace(/-/g,'').slice(0,12).toUpperCase())
 }
 function getProductPublicUrl(p) {
-  return window.location.origin + window.location.pathname + '?pub=' + p.id
+  // Keep URL short so the QR is less dense and easier to scan.
+  // Encode the UUID plus the human-readable code so the public page
+  // can show something useful even if Supabase RLS blocks anonymous reads.
+  const base = window.location.origin + window.location.pathname
+  const ref = encodeURIComponent(p.code || '')
+  const name = encodeURIComponent(p.name || '')
+  return `${base}?pub=${p.id}&ref=${ref}&n=${name}`
 }
 
 /* ── THEME ── */
@@ -2130,10 +2136,15 @@ function hideLoadingScreen() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-  const pubId = new URLSearchParams(window.location.search).get('pub')
+  const params = new URLSearchParams(window.location.search)
+  const pubId = params.get('pub')
   if (pubId) {
     hideLoadingScreen()
-    showPublicProductPage(pubId)
+    // Pass inline fallback data from URL params in case Supabase RLS blocks anon reads
+    showPublicProductPage(pubId, {
+      ref: params.get('ref') || '',
+      name: params.get('n') || ''
+    })
     return
   }
   const { data: { session } } = await sb.auth.getSession()
@@ -2146,7 +2157,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 })
 
 /* ── PUBLIC PRODUCT PAGE ── */
-async function showPublicProductPage(productId) {
+async function showPublicProductPage(productId, fallback = {}) {
   const el = document.getElementById('pub-page')
   el.style.display = 'block'
   document.getElementById('auth-screen').style.display = 'none'
@@ -2155,34 +2166,42 @@ async function showPublicProductPage(productId) {
   const ls = document.getElementById('loading-screen')
   if (ls) ls.style.display = 'none'
 
-  el.innerHTML = `<div class="pub-wrap"><div class="pub-logo">${LBL_LOGO_SVG}</div><div style="font-size:0.82rem;color:#aaa;margin-top:2rem">Loading…</div></div>`
-
-  const { data: p, error } = await sb.from('products').select('id,name,code,division,specs').eq('id', productId).single()
-  if (error || !p) {
-    el.innerHTML = `<div class="pub-wrap"><div class="pub-logo">${LBL_LOGO_SVG}</div><div style="margin-top:3rem;font-size:0.92rem;color:#aaa">Product not found.</div></div>`
-    return
+  // Show inline fallback immediately while DB loads — works even if RLS blocks anon reads
+  if (fallback.name || fallback.ref) {
+    el.innerHTML = pubPageHTML({ name: fallback.name, sku: fallback.ref })
+  } else {
+    el.innerHTML = `<div class="pub-wrap"><div class="pub-logo">${LBL_LOGO_SVG}</div><div style="font-size:0.82rem;color:#aaa;margin-top:2rem">Loading…</div></div>`
   }
+
+  const { data: p } = await sb.from('products').select('id,name,code,division,specs').eq('id', productId).single()
+  if (p) el.innerHTML = pubPageHTML(p)
+}
+
+function pubPageHTML(p) {
   const specs = p.specs || {}
-  const divLbl = { fiber:'SIERRA Fiber', yarn:'SIERRA Yarn', fabric:'SIERRA Fabric', chemicals:'SIERRA Chemicals', garment:'SIERRA Apparel' }[p.division] || ''
-  const sku = p.code || p.id.slice(0,8).toUpperCase()
+  const divLbl = { fiber:'SIERRA Fiber', yarn:'SIERRA Yarn', fabric:'SIERRA Fabric', chemicals:'SIERRA Chemicals', garment:'SIERRA Apparel' }[p.division] || 'SIERRA Index'
+  const sku = p.code || p.sku || p.ref || ''
+  const name = p.name || ''
   const fields = [
-    specs.Composition  ? { lbl:'Composition',      val:specs.Composition }  : null,
-    { lbl:'Product Code', val:sku },
-    specs.Construction ? { lbl:'Construction Type', val:specs.Construction } : null,
-    specs.Color        ? { lbl:'Color',             val:specs.Color }        : null,
+    specs.Composition  ? { lbl:'Composition',   val: specs.Composition }  : null,
+    sku                ? { lbl:'Reference',      val: sku }                : null,
+    specs.Color        ? { lbl:'Color',          val: specs.Color }        : null,
+    specs['Dyed Method'] ? { lbl:'Dyed Method',  val: specs['Dyed Method'] } : null,
+    specs.Width        ? { lbl:'Width',          val: specs.Width }        : null,
+    specs.GSM          ? { lbl:'GSM',            val: specs.GSM }          : null,
   ].filter(Boolean)
 
-  el.innerHTML = `<div class="pub-wrap">
+  return `<div class="pub-wrap">
     <div class="pub-logo">${LBL_LOGO_SVG}</div>
     <div class="pub-eyebrow">${esc(divLbl)}</div>
-    <div class="pub-name">${esc(p.name)}</div>
-    <div class="pub-sku-line">${esc(sku)}</div>
-    <div class="pub-fields">
-      ${fields.map(f => `<div class="pub-field">
+    <div class="pub-name">${esc(name)}</div>
+    ${sku ? `<div class="pub-sku-line">${esc(sku)}</div>` : ''}
+    ${fields.length ? `<div class="pub-fields">${fields.map(f => `
+      <div class="pub-field">
         <div class="pub-field-lbl">${f.lbl}</div>
         <div class="pub-field-val">${esc(String(f.val))}</div>
       </div>`).join('')}
-    </div>
+    </div>` : ''}
     <div class="pub-footer">
       <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       Verified by SIERRA Index
@@ -3153,7 +3172,7 @@ function initLabelCodePreviews(p) {
   }
   const qrCanvas = document.getElementById('lbl-preview-qr')
   if (qrCanvas) {
-    try { QRCode.toCanvas(qrCanvas, getProductPublicUrl(p), { width:58, margin:0, errorCorrectionLevel:'L', color:{ dark:'#000000', light:'#ffffff' } }, function(){}) } catch(e) {}
+    try { QRCode.toCanvas(qrCanvas, getProductPublicUrl(p), { width:88, margin:0, errorCorrectionLevel:'L', color:{ dark:'#000000', light:'#ffffff' } }, function(){}) } catch(e) {}
   }
 }
 
@@ -3185,8 +3204,8 @@ function renderLabel(p, fields, printAssets = null) {
 
   /* ── QR element ── */
   const qrEl = printAssets
-    ? (printAssets.qrSrc ? `<img src="${printAssets.qrSrc}" style="width:8mm;height:8mm;display:block;image-rendering:pixelated">` : '')
-    : `<canvas id="lbl-preview-qr" width="58" height="58" style="width:8mm;height:8mm;display:block"></canvas>`
+    ? (printAssets.qrSrc ? `<img src="${printAssets.qrSrc}" style="width:11mm;height:11mm;display:block;image-rendering:pixelated">` : '')
+    : `<canvas id="lbl-preview-qr" width="88" height="88" style="width:11mm;height:11mm;display:block"></canvas>`
 
   /* ── HEADER: logo · [origin  QR] ── */
   s.push(`<div class="lbl-hdr">
@@ -3263,7 +3282,7 @@ async function printLabel() {
   try {
     qrSrc = await new Promise((res, rej) =>
       QRCode.toDataURL(getProductPublicUrl(selected),
-        { width: 58, margin: 0, errorCorrectionLevel: 'L', color: { dark:'#000000', light:'#ffffff' } },
+        { width: 88, margin: 0, errorCorrectionLevel: 'L', color: { dark:'#000000', light:'#ffffff' } },
         (err, url) => err ? rej(err) : res(url)))
   } catch(e) {}
 
