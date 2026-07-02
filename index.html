@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3/dist/JsBarcode.all.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1/dist/jsQR.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js" defer></script>
   <style>
     /* ── FONTS ── */
     @font-face { font-family:"Replica"; src:url("Replica Light.otf") format("opentype"); font-weight:300; font-display:swap; }
@@ -6131,6 +6132,14 @@ let scanStream = null
 
 /* ── SCAN MODE ── */
 let _scanLoopActive = false
+let _zxingReader = null
+function _getZxingReader() {
+  if (_zxingReader) return _zxingReader
+  if (window.ZXing) {
+    try { _zxingReader = new ZXing.MultiFormatReader() } catch(e) {}
+  }
+  return _zxingReader
+}
 let _scanDetector = null
 
 function _getScanRecents() {
@@ -6263,6 +6272,18 @@ async function _scanFrame(video, canvas, ctx) {
     const code = jsQR(imageData.data, imageData.width, imageData.height)
     if (code) return code.data
   }
+
+  // ZXing fallback: pure-JS CODE128 + QR decoder (works when BarcodeDetector unavailable)
+  const zxing = _getZxingReader()
+  if (zxing) {
+    try {
+      const luminance = new ZXing.HTMLCanvasElementLuminanceSource(canvas)
+      const bitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminance))
+      const decoded = zxing.decode(bitmap)
+      if (decoded) return decoded.getText()
+    } catch(e) {}
+  }
+
   return null
 }
 
@@ -6284,6 +6305,8 @@ async function toggleCameraMode() {
     if (window.BarcodeDetector) {
       try { _scanDetector = new BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13'] }) } catch {}
     }
+    // Pre-init ZXing reader so first frame doesn't pay init cost
+    _getZxingReader()
 
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
