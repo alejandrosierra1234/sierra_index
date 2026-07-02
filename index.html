@@ -507,6 +507,49 @@
     .pg-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:1rem; }
 
     /* Construction sections */
+    /* ── FABRIC FILTER CHIPS ── */
+    #fab-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0 0 1.1rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+      flex-wrap: nowrap;
+      -webkit-overflow-scrolling: touch;
+    }
+    #fab-filter-bar::-webkit-scrollbar { display: none; }
+    .fab-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.8rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: inherit;
+      white-space: nowrap;
+      cursor: pointer;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      color: var(--text-2);
+      transition: all 0.14s;
+      flex-shrink: 0;
+    }
+    .fab-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .fab-chip-active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .fab-chip-active:hover { background: var(--accent-dark); border-color: var(--accent-dark); color: #fff; }
+    .fab-chip-count {
+      font-size: 0.68rem;
+      font-weight: 500;
+      opacity: 0.75;
+    }
+    .fab-chip-active .fab-chip-count { opacity: 0.85; }
+
     .const-section { margin-bottom:2.5rem; }
     .const-header {
       display:flex; align-items:center; gap:0.75rem;
@@ -2054,6 +2097,7 @@
           </div>
           <div class="content-hdr-r" id="product-controls"></div>
         </div>
+        <div id="fab-filter-bar" style="display:none"></div>
         <div class="pg" id="pg"></div>
       </div>
       <div id="view-dashboard"></div>
@@ -2401,6 +2445,7 @@ function isAdmin()  { return profile?.role === 'admin' }
 function isEditor() { return ['admin','editor'].includes(profile?.role) }
 let editingProductId = null, editingImageUrls = [], pendingImgFiles = []
 let allProducts = [], searchQuery = '', selectMode = false, selectedProducts = []
+let fabricFilter = null // active construction type key, null = all
 
 function getProductBarcode(p) {
   return p.code || p.specs?.barcode || null
@@ -2618,9 +2663,13 @@ async function loadProducts() {
 }
 
 function filterProducts() {
-  if (!searchQuery) return allProducts
+  let result = allProducts
+  if (fabricFilter && division === 'fabric') {
+    result = result.filter(p => inferConstruction(p) === fabricFilter)
+  }
+  if (!searchQuery) return result
   const q = searchQuery.toLowerCase()
-  return allProducts.filter(p =>
+  return result.filter(p =>
     p.name.toLowerCase().includes(q) ||
     (p.code && p.code.toLowerCase().includes(q)) ||
     (p.description && p.description.toLowerCase().includes(q)) ||
@@ -2637,6 +2686,28 @@ const CONST_META = {
   PIQ: { label: 'Piqué',        order: 6 },
   WFL: { label: 'Waffle',       order: 7 },
   PNT: { label: 'Ponte',        order: 8 },
+  MSH: { label: 'Mesh',         order: 9 },
+  VLR: { label: 'Velour',       order: 10 },
+  DBK: { label: 'Double Knit',  order: 11 },
+  OTH: { label: 'Other',        order: 99 },
+}
+
+// Infer construction type from product name when specs.Construction is not set
+function inferConstruction(p) {
+  if (p.specs?.Construction) return p.specs.Construction
+  const n = (p.name || '').toLowerCase()
+  if (/\brib\b/.test(n))                        return 'RIB'
+  if (/french\s*terry/.test(n))                 return 'FRT'
+  if (/fleece/.test(n))                         return 'FLC'
+  if (/interlock/.test(n))                      return 'ILC'
+  if (/piqu[eé]/.test(n))                       return 'PIQ'
+  if (/waffle/.test(n))                         return 'WFL'
+  if (/ponte/.test(n))                          return 'PNT'
+  if (/\bmesh\b/.test(n))                       return 'MSH'
+  if (/velour/.test(n))                         return 'VLR'
+  if (/double\s*knit|double\s*face/.test(n))    return 'DBK'
+  if (/jersey/.test(n))                         return 'JRS'
+  return 'OTH'
 }
 
 function renderProducts(products) {
@@ -2647,38 +2718,76 @@ function renderProducts(products) {
     return
   }
 
-  // Group by construction only for fabric division (no active search)
-  if (division === 'fabric' && !searchQuery) {
-    const groups = {}
-    products.forEach(p => {
-      const key = (p.specs && p.specs.Construction) || 'JRS'
-      if (!groups[key]) groups[key] = []
-      groups[key].push(p)
-    })
-    const sorted = Object.entries(groups).sort(([a],[b]) => {
-      return ((CONST_META[a]?.order || 99) - (CONST_META[b]?.order || 99))
-    })
-    pg.innerHTML = sorted.map(([key, items]) => {
-      const meta = CONST_META[key] || { label: key }
-      return `<div class="const-section" id="csec-${key}">
-        <div class="const-header" onclick="toggleConstSection('${key}')">
-          <span class="const-badge">${key}</span>
-          <span class="const-label">${meta.label}</span>
-          <span class="const-count">${items.length} fabric${items.length !== 1 ? 's' : ''}</span>
-          <svg class="const-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="pg-grid">${items.map(p => cardHTML(p)).join('')}</div>
-      </div>`
-    }).join('')
+  // Fabric view: filter chips + grouped sections (or flat when filter active / searching)
+  if (division === 'fabric') {
+    _renderFabricChips()
+    if (!searchQuery && !fabricFilter) {
+      // Grouped by construction type
+      const groups = {}
+      products.forEach(p => {
+        const key = inferConstruction(p)
+        if (!groups[key]) groups[key] = []
+        groups[key].push(p)
+      })
+      const sorted = Object.entries(groups).sort(([a],[b]) =>
+        (CONST_META[a]?.order || 99) - (CONST_META[b]?.order || 99)
+      )
+      pg.innerHTML = sorted.map(([key, items]) => {
+        const meta = CONST_META[key] || { label: key }
+        return `<div class="const-section" id="csec-${key}">
+          <div class="const-header" onclick="toggleConstSection('${key}')">
+            <span class="const-badge">${key}</span>
+            <span class="const-label">${meta.label}</span>
+            <span class="const-count">${items.length} fabric${items.length !== 1 ? 's' : ''}</span>
+            <svg class="const-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="pg-grid">${items.map(p => cardHTML(p)).join('')}</div>
+        </div>`
+      }).join('')
+    } else {
+      // Flat grid when filtered or searching
+      pg.innerHTML = `<div class="pg-grid" style="padding-bottom:2rem">${products.map(p => cardHTML(p)).join('')}</div>`
+    }
   } else {
+    document.getElementById('fab-filter-bar').style.display = 'none'
     pg.innerHTML = `<div class="pg-grid" style="padding-bottom:2rem">${products.map(p => cardHTML(p)).join('')}</div>`
   }
 }
 
 function toggleConstSection(key) {
   document.getElementById('csec-' + key)?.classList.toggle('collapsed')
+}
+
+function _renderFabricChips() {
+  const bar = document.getElementById('fab-filter-bar')
+  if (!bar) return
+  // Count per construction type across all fabric products (not filtered)
+  const counts = {}
+  allProducts.forEach(p => {
+    const k = inferConstruction(p)
+    counts[k] = (counts[k] || 0) + 1
+  })
+  const types = Object.entries(counts)
+    .sort(([a],[b]) => (CONST_META[a]?.order||99) - (CONST_META[b]?.order||99))
+  if (!types.length) { bar.style.display = 'none'; return }
+  bar.style.display = 'flex'
+  bar.innerHTML = [
+    `<button class="fab-chip ${!fabricFilter ? 'fab-chip-active' : ''}" onclick="setFabricFilter(null)">All <span class="fab-chip-count">${allProducts.length}</span></button>`,
+    ...types.map(([key, count]) => {
+      const meta = CONST_META[key] || { label: key }
+      const active = fabricFilter === key
+      return `<button class="fab-chip ${active ? 'fab-chip-active' : ''}" onclick="setFabricFilter('${key}')">
+        ${meta.label} <span class="fab-chip-count">${count}</span>
+      </button>`
+    })
+  ].join('')
+}
+
+function setFabricFilter(key) {
+  fabricFilter = key
+  renderProducts(filterProducts())
 }
 
 function onSearch(val) {
@@ -2760,6 +2869,7 @@ function setDiv(d, el) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
   el.classList.add('active')
   division = d
+  fabricFilter = null // reset construction filter when switching division
   const t = d === 'all' ? 'All products' : DIV_LBL[d]
   document.getElementById('sec-title').textContent = t
   document.getElementById('sec-sub').textContent = 'Browse technical sheets and request samples'
