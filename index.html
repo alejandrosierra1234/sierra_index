@@ -772,13 +772,67 @@
     .dash-side .mc-unit { font-size:0.58rem; }
     .dash-side .market-expand-drawer { display:none !important; }
 
-    /* World time — sidebar compact */
-    .dash-time-strip { display:flex; flex-wrap:wrap; gap:0.55rem 1.5rem; }
-    .dts-zone { display:flex; flex-direction:column; }
-    .dts-city { font-size:0.58rem; font-weight:600; text-transform:uppercase; letter-spacing:0.09em; color:var(--text-3); margin-bottom:0.12rem; }
-    .dts-time { font-size:0.88rem; font-weight:400; font-variant-numeric:tabular-nums; letter-spacing:-0.01em; color:var(--text); line-height:1; }
-    .dts-ampm { font-size:0.55rem; color:var(--text-3); margin-left:0.1rem; }
-    .dts-diff { font-size:0.55rem; color:var(--text-3); margin-top:0.08rem; }
+    /* World time — visual cards */
+    .dash-clocks { display:grid; grid-template-columns:repeat(4,1fr); gap:0.6rem; }
+    .clock-card {
+      border-radius:14px; padding:0.85rem 0.9rem 0.8rem;
+      display:flex; flex-direction:column; gap:0; cursor:default;
+      overflow:hidden; position:relative; transition:transform 0.18s;
+      border:1px solid transparent;
+    }
+    .clock-card:hover { transform:translateY(-2px); }
+    .clock-card.day   { background:linear-gradient(145deg,#fffbe6 0%,#fff3c4 100%); border-color:#f0e07a44; }
+    .clock-card.eve   { background:linear-gradient(145deg,#ffe8d0 0%,#ffd0a0 100%); border-color:#f4a26044; }
+    .clock-card.night { background:linear-gradient(145deg,#1a2340 0%,#0f1729 100%); border-color:#ffffff0f; }
+    [data-theme="dark"] .clock-card.day   { background:linear-gradient(145deg,#2a2510 0%,#1e1c08 100%); border-color:#f0e07a22; }
+    [data-theme="dark"] .clock-card.eve   { background:linear-gradient(145deg,#2a1a0a 0%,#1e1208 100%); border-color:#f4a26022; }
+    [data-theme="dark"] .clock-card.night { background:linear-gradient(145deg,#0d1220 0%,#080e18 100%); border-color:#ffffff0a; }
+    .clock-phase-icon { font-size:1rem; margin-bottom:0.4rem; line-height:1; }
+    .clock-city { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.3rem; }
+    .clock-card.day .clock-city, .clock-card.eve .clock-city { color:rgba(0,0,0,0.5); }
+    .clock-card.night .clock-city { color:rgba(255,255,255,0.45); }
+    .clock-time { font-size:1.35rem; font-weight:300; font-variant-numeric:tabular-nums; letter-spacing:-0.03em; line-height:1; }
+    .clock-card.day .clock-time, .clock-card.eve .clock-time { color:rgba(0,0,0,0.85); }
+    .clock-card.night .clock-time { color:rgba(255,255,255,0.9); }
+    .clock-ampm { font-size:0.6rem; font-weight:500; margin-left:0.15rem; opacity:0.55; }
+    .clock-diff { font-size:0.58rem; margin-top:0.35rem; opacity:0.5; }
+    .clock-card.day .clock-diff, .clock-card.eve .clock-diff { color:#000; }
+    .clock-card.night .clock-diff { color:#fff; }
+    .clock-progress { height:2px; border-radius:2px; margin-top:0.7rem; background:rgba(0,0,0,0.08); overflow:hidden; }
+    .clock-card.night .clock-progress { background:rgba(255,255,255,0.12); }
+    .clock-progress-fill { height:100%; border-radius:2px; transition:width 1s linear; }
+    .clock-card.day .clock-progress-fill { background:rgba(220,160,0,0.7); }
+    .clock-card.eve .clock-progress-fill { background:rgba(220,100,20,0.7); }
+    .clock-card.night .clock-progress-fill { background:rgba(100,140,255,0.5); }
+
+    /* Notifications widget */
+    .dash-notif-list { display:flex; flex-direction:column; gap:0; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    .dash-notif-item { display:flex; align-items:flex-start; gap:0.7rem; padding:0.7rem 0.9rem; background:var(--surface); cursor:pointer; transition:background 0.1s; border-bottom:1px solid var(--border); }
+    .dash-notif-item:last-child { border-bottom:none; }
+    .dash-notif-item:hover { background:var(--surface2); }
+    .dash-notif-item.unread { background:var(--accent-light); }
+    .dash-notif-icon { width:30px; height:30px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .dash-notif-body { flex:1; min-width:0; }
+    .dash-notif-title { font-size:0.78rem; font-weight:600; color:var(--text); line-height:1.35; }
+    .dash-notif-sub { font-size:0.68rem; color:var(--text-3); margin-top:0.12rem; }
+    .dash-notif-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:5px; }
+    .dash-notif-empty { padding:1.25rem; text-align:center; color:var(--text-3); font-size:0.78rem; border:1px solid var(--border); border-radius:12px; }
+
+    /* Tip of the day */
+    .dash-tip {
+      display:flex; align-items:flex-start; gap:0.75rem;
+      border:1px solid var(--border); border-radius:12px;
+      padding:0.9rem 1rem; background:var(--surface);
+      position:relative;
+    }
+    .dash-tip-icon { font-size:1.1rem; flex-shrink:0; margin-top:0.05rem; }
+    .dash-tip-body { flex:1; min-width:0; }
+    .dash-tip-label { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--accent); margin-bottom:0.25rem; }
+    .dash-tip-text { font-size:0.78rem; color:var(--text-2); line-height:1.5; margin-bottom:0.5rem; }
+    .dash-tip-action { font-size:0.73rem; font-weight:600; color:var(--accent); background:none; border:none; cursor:pointer; font-family:inherit; padding:0; }
+    .dash-tip-action:hover { text-decoration:underline; }
+    .dash-tip-close { position:absolute; top:0.65rem; right:0.7rem; background:none; border:none; cursor:pointer; color:var(--text-3); font-size:1rem; line-height:1; padding:0.1rem; }
+    .dash-tip-close:hover { color:var(--text); }
 
     /* Sidebar divider */
     .dash-side-sep { height:1px; background:var(--border); margin:0.85rem 0; }
@@ -4743,8 +4797,16 @@ function showDashboard() {
     </div>
   </div>
 
-  <!-- LEFT COLUMN: recent + pending -->
+  <!-- LEFT COLUMN -->
   <div class="dash-col">
+
+    <div class="dash-section" id="dash-notif-section">
+      <div class="dash-section-hdr">
+        <div class="dash-section-label">Notifications</div>
+        <button class="dash-section-meta" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:0.65rem;padding:0" onclick="toggleNotifications()">See all →</button>
+      </div>
+      <div id="dash-notif-list"><div class="dash-notif-empty">Loading…</div></div>
+    </div>
 
     ${recentHtml}
 
@@ -4756,9 +4818,18 @@ function showDashboard() {
       <div id="pending-smp-list"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
     </div>
 
+    <div class="dash-section" id="dash-clocks-section">
+      <div class="dash-section-hdr"><div class="dash-section-label">World Time</div></div>
+      <div class="dash-clocks" id="dash-clock-cards"></div>
+    </div>
+
+    <div class="dash-section" id="dash-tip-section">
+      <div class="dash-tip" id="dash-tip-card"></div>
+    </div>
+
   </div>
 
-  <!-- RIGHT SIDEBAR: actions + market + time (sticky) -->
+  <!-- RIGHT SIDEBAR -->
   <div class="dash-side">
 
     <div class="dash-section" style="margin-top:0">
@@ -4804,24 +4875,19 @@ function showDashboard() {
       <div class="market-expand-drawer" id="market-expand-drawer"></div>
     </div>
 
-    <div class="dash-side-sep"></div>
-
-    <div class="dash-section" style="margin-bottom:0">
-      <div class="dash-section-hdr"><div class="dash-section-label">Time</div></div>
-      <div class="dash-time-strip" id="dash-time-row"></div>
-    </div>
-
   </div>
 
 </div>`
 
   selectedCommodityId = null
   commodityData = {}
-  tickClocksCompact()
-  clockInterval = setInterval(tickClocksCompact, 15000)
+  renderClockCards()
+  clockInterval = setInterval(renderClockCards, 30000)
   COMMODITY_CFG.filter(c => c.symbol).forEach(fetchCommodityCard)
   loadMergedNews()
   loadPendingSamples()
+  renderDashNotifs()
+  renderDashTip()
 }
 
 /* ── RECENT PRODUCTS ── */
@@ -4900,6 +4966,93 @@ function tickClocksCompact() {
       ${sub ? `<div class="dts-diff">${sub}</div>` : ''}
     </div>`
   }).join('')
+}
+
+/* ── DASHBOARD RENDERING FUNCTIONS ── */
+
+const DASH_TIPS = [
+  { icon:'📷', label:'Pro Tip', text:'Scan any physical barcode to instantly pull up a product in the catalog — no typing needed.', action:'Try scanning', fn:"openScanMode()" },
+  { icon:'🏷️', label:'Did you know', text:'You can print thermal labels directly from any product sheet. Great for organizing samples.', action:'Open catalog', fn:"setDiv('fabric',document.getElementById('nav-fabric'))" },
+  { icon:'📦', label:'Pro Tip', text:'Track your sample requests in real time from the Sample Center. Approve or reject with one tap.', action:'Open samples', fn:"showSampleCenter()" },
+  { icon:'🔍', label:'Did you know', text:'The search (⌘K) supports fuzzy matching — try searching by color, weight, or construction type.', action:'Try search', fn:"openSpotlight()" },
+  { icon:'📊', label:'Market insight', text:'Tap any commodity card to expand a 30-day price chart and track input cost trends.', action:'View market', fn:"" },
+  { icon:'⭐', label:'Pro Tip', text:'Recently viewed products appear on your home screen for quick access — browse freely.', action:'', fn:"" },
+]
+
+function renderClockCards() {
+  const wrap = document.getElementById('dash-clock-cards')
+  if (!wrap) return
+  const now = new Date()
+  const hnOff = getOffsetHours('America/Tegucigalpa', now)
+  wrap.innerHTML = CLOCK_ZONES.map((z, i) => {
+    const p = clockTimeParts(z.tz)
+    const h24 = parseInt(new Intl.DateTimeFormat('en-US', { timeZone:z.tz, hour:'numeric', hour12:false }).format(now))
+    const safe = isNaN(h24) ? 12 : h24
+    const phase = safe >= 20 || safe < 6 ? 'night' : safe >= 17 ? 'eve' : 'day'
+    const icon = phase === 'night' ? '🌙' : phase === 'eve' ? '🌅' : '☀️'
+    const pct = phase === 'night'
+      ? ((safe < 6 ? safe + 4 : safe - 20) / 10 * 100)
+      : phase === 'eve'
+        ? ((safe - 17) / 3 * 100)
+        : ((safe - 6) / 11 * 100)
+    const diff = getOffsetHours(z.tz, now) - hnOff
+    const diffLabel = i === 0 ? '' : diff > 0 ? `+${diff}h` : diff < 0 ? `${diff}h` : 'Same'
+    const nightColor = phase === 'night' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.4)'
+    const cityColor = phase === 'night' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)'
+    const timeColor = phase === 'night' ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.85)'
+    return `<div class="clock-card ${phase}">
+      <div class="clock-phase-icon">${icon}</div>
+      <div class="clock-city" style="color:${cityColor}">${z.city}</div>
+      <div class="clock-time" style="color:${timeColor}">${p.h}:${p.m}<span class="clock-ampm" style="font-size:0.6em;opacity:0.7;margin-left:2px">${p.ampm}</span></div>
+      ${diffLabel ? `<div style="font-size:0.58rem;font-weight:600;letter-spacing:0.05em;opacity:0.5;margin-top:0.15rem;color:${nightColor}">${diffLabel}</div>` : ''}
+      <div class="clock-progress"><div class="clock-progress-fill" style="width:${Math.min(100,Math.max(2,pct))}%"></div></div>
+    </div>`
+  }).join('')
+}
+
+async function renderDashNotifs() {
+  const el = document.getElementById('dash-notif-list')
+  if (!el || !me) return
+  try {
+    const { data } = await sb.from('notifications').select('*').eq('user_id', me.id).order('created_at', { ascending: false }).limit(3)
+    if (!data?.length) { el.innerHTML = '<div class="dash-notif-empty" style="font-size:0.78rem;color:var(--text-3);padding:0.8rem 0.9rem">No notifications yet.</div>'; return }
+    el.innerHTML = `<div class="dash-notif-list">${data.map(n => {
+      const time = new Date(n.created_at).toLocaleDateString('en-US', { day:'numeric', month:'short' })
+      const iconColor = n.type?.includes('sample') ? '#16cdbe' : '#0071e3'
+      const isGood = n.type?.includes('approved') || n.type?.includes('ready') || n.type?.includes('delivered')
+      const iconSvg = isGood
+        ? `<svg viewBox="0 0 20 20" fill="none" style="width:15px;height:15px"><circle cx="10" cy="10" r="7" stroke="${iconColor}" stroke-width="1.4"/><path d="M7 10l2 2 4-4" stroke="${iconColor}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+        : `<svg viewBox="0 0 20 20" fill="none" style="width:15px;height:15px"><path d="M10 3a5 5 0 0 1 5 5v3l1.5 2H3.5L5 11V8a5 5 0 0 1 5-5z" stroke="${iconColor}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+      return `<div class="dash-notif-item${n.read ? '' : ' unread'}" onclick="openNotif('${n.id}','${n.resource_type||''}','${n.resource_id||''}')">
+        <div class="dash-notif-icon" style="background:${iconColor}18;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${iconSvg}</div>
+        <div style="flex:1;min-width:0">
+          <div class="dash-notif-title" style="font-size:0.78rem;font-weight:500;line-height:1.3;margin-bottom:0.15rem">${esc(n.title)}</div>
+          <div style="font-size:0.65rem;color:var(--text-3)">${time}</div>
+        </div>
+        ${!n.read ? '<div style="width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:3px"></div>' : ''}
+      </div>`
+    }).join('')}</div>`
+  } catch { el.innerHTML = '' }
+}
+
+function renderDashTip() {
+  const wrap = document.getElementById('dash-tip-card')
+  if (!wrap) return
+  const dateKey = new Date().toISOString().slice(0,10)
+  const dismissedKey = `sierra_tip_dismissed_${dateKey}`
+  if (localStorage.getItem(dismissedKey)) { wrap.parentElement.style.display = 'none'; return }
+  const tipIdx = Math.floor(Date.now() / 86400000) % DASH_TIPS.length
+  const t = DASH_TIPS[tipIdx]
+  wrap.innerHTML = `
+    <div style="font-size:1.4rem;flex-shrink:0;margin-top:1px">${t.icon}</div>
+    <div style="flex:1;min-width:0">
+      <div class="dash-tip-label">${t.label}</div>
+      <div class="dash-tip-text" style="margin-top:0.2rem">${t.text}</div>
+      ${t.action && t.fn ? `<button class="dash-tip-action" style="margin-top:0.4rem;padding:0" onclick="${t.fn}">${t.action} →</button>` : ''}
+    </div>
+    <button class="dash-tip-close" onclick="event.stopPropagation();localStorage.setItem('${dismissedKey}','1');document.getElementById('dash-tip-section').style.display='none'" title="Dismiss">
+      <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>`
 }
 
 async function fetchCommodityCard(cfg) {
