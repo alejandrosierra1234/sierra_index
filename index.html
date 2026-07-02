@@ -3658,21 +3658,31 @@ async function printLabel() {
   const root = document.getElementById('print-root')
   root.innerHTML = labelHtml
 
-  // Measure label height while temporarily visible
+  // Measure label height and scale to fit within one 62×100mm sheet
   root.style.cssText = 'display:block;position:fixed;visibility:hidden;top:0;left:0;z-index:-1;pointer-events:none'
   await new Promise(r => setTimeout(r, 80))
   const lbl = root.querySelector('.lbl')
-  const hmm = lbl ? Math.ceil((lbl.offsetHeight / 96 * 25.4) + 2) : 100
+  const PX_PER_MM = 96 / 25.4
+  const MAX_MM = 100
+  const naturalHmm = lbl ? (lbl.offsetHeight / PX_PER_MM) : MAX_MM
+  if (lbl && naturalHmm > MAX_MM) {
+    // Scale label down so it always fits on one sheet
+    const scale = MAX_MM / naturalHmm
+    lbl.style.transformOrigin = 'top left'
+    lbl.style.transform = `scale(${scale})`
+    // Expand width so after scaling it still fills 62mm
+    lbl.style.width = (62 / scale) + 'mm'
+  }
   root.style.cssText = ''
 
-  // Set dynamic page height
+  // Always 62×100mm — one label, one sheet
   let pageSizeStyle = document.getElementById('lbl-page-size-style')
   if (!pageSizeStyle) {
     pageSizeStyle = document.createElement('style')
     pageSizeStyle.id = 'lbl-page-size-style'
     document.head.appendChild(pageSizeStyle)
   }
-  pageSizeStyle.textContent = `@media print { @page { size: 62mm ${hmm}mm; margin: 0; } }`
+  pageSizeStyle.textContent = `@media print { @page { size: 62mm 100mm; margin: 0; } #print-root .lbl { page-break-after: avoid; page-break-inside: avoid; } }`
 
   window.print()
 
