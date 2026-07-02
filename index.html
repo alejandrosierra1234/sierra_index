@@ -550,7 +550,7 @@
     /* ── IMG UPLOAD ── */
     /* ── IMAGE GALLERY (ficha) ── */
     .ficha-gallery { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1rem; }
-    .ficha-gallery-hero { width:100%; height:280px; border-radius:10px; overflow:hidden; background:var(--surface2); cursor:zoom-in; position:relative; }
+    .ficha-gallery-hero { width:100%; aspect-ratio:1; border-radius:10px; overflow:hidden; background:var(--surface2); cursor:zoom-in; position:relative; }
     .ficha-gallery-hero img { width:100%; height:100%; object-fit:cover; transition:transform 0.2s; }
     .ficha-gallery-hero:hover img { transform:scale(1.02); }
     .ficha-gallery-hero .img-dl-btn { position:absolute; bottom:0.6rem; right:0.6rem; background:rgba(0,0,0,0.45); color:#fff; border:none; border-radius:7px; padding:0.3rem 0.65rem; font-size:0.72rem; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:0.3rem; backdrop-filter:blur(6px); opacity:0; transition:opacity 0.15s; }
@@ -727,14 +727,12 @@
     .detail-back-btn:hover { background:var(--surface2); color:var(--text); }
     .detail-back-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
 
-    /* Two-column layout — gallery fixed, info scrolls */
-    .detail-layout {
-      display:grid;
-      grid-template-columns:300px 1fr;
-      gap:3.5rem;
-      align-items:start;
+    /* ── PRODUCT DETAIL LAYOUT ── */
+    .pd-layout {
+      display:grid; grid-template-columns:220px 1fr;
+      gap:3rem; align-items:start;
     }
-    .detail-gallery-col { position:sticky; top:1.5rem; }
+    .pd-img-col { position:sticky; top:1.5rem; }
 
     /* Image */
     .pd-no-img {
@@ -744,77 +742,62 @@
     }
     .pd-no-img-hint { font-size:0.68rem; color:var(--text-3); }
 
-    /* Identity block */
-    .pd-identity { margin-bottom:2.75rem; }
+    /* Identity — lives below the image in left col */
+    .pd-meta { margin-top:1.1rem; }
     .pd-sku {
       display:inline-flex; align-items:center; gap:0.35rem;
-      font-size:0.6rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase;
+      font-size:0.58rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
       color:var(--text-3); cursor:pointer; user-select:none;
-      transition:opacity 0.15s; margin-bottom:0.7rem;
+      transition:opacity 0.15s; margin-bottom:0.45rem;
     }
     .pd-sku:hover { opacity:0.5; }
     .pd-name {
-      font-size:2.5rem; font-weight:700; letter-spacing:-0.045em;
-      line-height:1.02; color:var(--text); margin-bottom:0.6rem;
+      font-size:1.25rem; font-weight:700; letter-spacing:-0.025em;
+      line-height:1.2; color:var(--text); margin-bottom:0.35rem;
     }
     .pd-division {
       font-size:0.6rem; font-weight:600; text-transform:uppercase;
-      letter-spacing:0.12em; color:var(--text-3);
-    }
-
-    /* Section label — exactly matches sidebar .s-label */
-    .pd-sec-title {
-      font-size:0.62rem; font-weight:600; text-transform:uppercase;
       letter-spacing:0.1em; color:var(--text-3);
-      margin-top:2rem; margin-bottom:0.6rem;
     }
 
-    /* Cards */
-    .pd-card { border:1px solid var(--border); border-radius:9px; padding:1.4rem 1.5rem; }
-    .pd-card + .pd-card { margin-top:0.6rem; }
-
-    /* Field */
-    .pd-field { display:flex; flex-direction:column; gap:0.2rem; cursor:pointer; transition:opacity 0.15s; }
-    .pd-field:hover { opacity:0.5; }
-    .pd-field-lbl { font-size:0.58rem; font-weight:600; text-transform:uppercase; letter-spacing:0.09em; color:var(--text-3); }
-    .pd-field-val { font-size:0.93rem; font-weight:500; color:var(--text); line-height:1.35; }
-
-    /* Grids */
-    .pd-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:1.75rem; }
-    .pd-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1.5rem; }
-    .pd-grid-4 { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:1.25rem; }
-
-    /* Composition */
-    .pd-comp { margin-bottom:1.4rem; padding-bottom:1.4rem; border-bottom:1px solid var(--border); cursor:pointer; transition:opacity 0.15s; }
-    .pd-comp:hover { opacity:0.5; }
-    .pd-comp-lbl { font-size:0.58rem; font-weight:600; text-transform:uppercase; letter-spacing:0.09em; color:var(--text-3); margin-bottom:0.4rem; }
-    .pd-comp-line { font-size:1.05rem; font-weight:500; color:var(--text); line-height:1.65; }
+    /* ── SPEC TABLE — single unified data list ── */
+    .pd-specs { width:100%; }
+    .pd-hd {
+      font-size:0.58rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.1em; color:var(--text-3);
+      padding:1rem 0 0.4rem; border-top:1px solid var(--border); margin-top:0.2rem;
+    }
+    .pd-hd:first-child { border-top:none; padding-top:0; margin-top:0; }
+    .pd-row {
+      display:flex; gap:1rem; padding:0.42rem 0;
+      border-bottom:1px solid rgba(var(--border-rgb,0,0,0),0.06);
+      cursor:pointer; transition:opacity 0.12s; align-items:baseline;
+    }
+    .pd-row:hover { opacity:0.5; }
+    .pd-k {
+      font-size:0.7rem; font-weight:500; color:var(--text-3);
+      width:110px; flex-shrink:0; line-height:1.45;
+    }
+    .pd-v {
+      font-size:0.85rem; font-weight:500; color:var(--text);
+      flex:1; line-height:1.45;
+    }
+    .pd-comp-block {
+      padding:0.5rem 0 0.85rem;
+      border-bottom:1px solid var(--border);
+      margin-bottom:0.15rem; cursor:pointer; transition:opacity 0.12s;
+    }
+    .pd-comp-block:hover { opacity:0.5; }
+    .pd-comp-line { font-size:0.95rem; font-weight:500; color:var(--text); line-height:1.75; }
     .pd-comp-pct { font-weight:700; }
 
-    /* Req vs Std */
-    .pd-compare { width:100%; border-collapse:collapse; }
-    .pd-compare th { font-size:0.58rem; font-weight:600; text-transform:uppercase; letter-spacing:0.09em; color:var(--text-3); text-align:left; padding:0 1.5rem 0.5rem 0; border-bottom:1px solid var(--border); }
-    .pd-compare th:first-child { padding-left:0; min-width:76px; }
-    .pd-compare td { padding:0.6rem 1.5rem 0 0; font-size:0.92rem; font-weight:500; color:var(--text); vertical-align:top; }
-    .pd-compare td:first-child { font-size:0.58rem; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-3); padding-left:0; }
-
-    /* Yarns */
-    .pd-yarn { display:flex; gap:0.75rem; align-items:baseline; padding:0.5rem 0; }
-    .pd-yarn + .pd-yarn { border-top:1px solid var(--border); }
-    .pd-yarn-n { font-size:0.58rem; font-weight:600; color:var(--text-3); min-width:16px; text-transform:uppercase; letter-spacing:0.06em; }
-    .pd-yarn-v { font-size:0.92rem; font-weight:500; color:var(--text); line-height:1.45; }
-
-    .detail-desc { font-size:0.88rem; color:var(--text-2); line-height:1.8; margin:0; }
+    .detail-desc { font-size:0.83rem; color:var(--text-2); line-height:1.75; margin:0; }
     .detail-actions { display:none; }
 
-    .detail-comments-section { border-top:1px solid var(--border); padding-top:1.75rem; margin-top:3rem; }
+    .detail-comments-section { border-top:1px solid var(--border); padding-top:1.75rem; margin-top:2.5rem; }
     .detail-comments-lbl { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:1.25rem; }
 
-    /* ── STICKY TOOLBAR ──
-       Sticks to viewport bottom. .detail-view-inner has no horizontal padding so
-       margin:-0 -1.75rem cancels .content's side padding, making the bar true full-width.
-       .content.detail-active removes .content's padding-bottom so bottom:0 hits the
-       real viewport edge.                                                          */
+    /* ── STICKY TOOLBAR ── */
     .detail-toolbar {
       position:sticky; bottom:0;
       background:var(--bg);
@@ -840,38 +823,26 @@
     .detail-toolbar-spacer { flex:1; }
 
     /* ── DETAIL RESPONSIVE ── */
-    @media (max-width:1100px) {
-      .detail-layout { grid-template-columns:260px 1fr; gap:3rem; }
-    }
     @media (max-width:900px) {
-      .detail-layout { grid-template-columns:1fr; gap:1.5rem; }
-      .detail-gallery-col { position:static; }
-      .pd-name { font-size:2rem; }
-      .pd-grid-4 { grid-template-columns:1fr 1fr; gap:1.1rem; }
-      .pd-grid-3 { grid-template-columns:1fr 1fr; gap:1.25rem; }
+      .pd-layout { grid-template-columns:180px 1fr; gap:2rem; }
+    }
+    @media (max-width:700px) {
+      .pd-layout { grid-template-columns:1fr; gap:1.25rem; }
+      .pd-img-col { position:static; }
+      .pd-meta { display:flex; flex-direction:column; gap:0.2rem; }
+      .pd-name { font-size:1.4rem; }
+      .pd-k { width:90px; }
     }
     @media (max-width:767px) {
       .detail-view-inner { padding:0 0 calc(66px + env(safe-area-inset-bottom)); }
       .content.detail-active { padding-bottom:0 !important; }
-      .detail-topbar { margin-bottom:1.5rem; }
-      .pd-name { font-size:1.7rem; }
-      .pd-identity { margin-bottom:1.75rem; }
-      .pd-sec-title { margin-top:1.6rem; }
-      .pd-comp-line { font-size:1rem; }
-      .pd-no-img { aspect-ratio:16/9; }
-      .detail-comments-section { margin-top:2rem; padding-top:1.5rem; }
-      /* Toolbar bleeds to mobile content edges */
+      .detail-topbar { margin-bottom:1.25rem; }
+      .detail-comments-section { margin-top:1.75rem; padding-top:1.5rem; }
       .detail-toolbar { margin:0 -0.9rem; padding:0 0.9rem; }
       .detail-toolbar-inner { height:58px; padding-bottom:env(safe-area-inset-bottom,0); }
       .detail-toolbar .btn-primary { height:38px; font-size:0.82rem; }
       .detail-toolbar .btn-ghost   { height:38px; }
       .detail-toolbar-sep { display:none; }
-    }
-    @media (max-width:480px) {
-      .pd-grid-2 { grid-template-columns:1fr; gap:1.1rem; }
-      .pd-card { padding:1.1rem 1.2rem; }
-      .pd-comp { margin-bottom:1.1rem; padding-bottom:1.1rem; }
-      .pd-name { font-size:1.5rem; }
     }
 
     /* ── RESPONSIVE / MOBILE ── */
@@ -1629,18 +1600,8 @@
   </style>
   <style>
 /* ── DETAIL HERO LAYOUT (replaces 2-column detail-layout) ── */
-.detail-hero {
-  display:flex; gap:3rem; align-items:flex-start; margin-bottom:2.75rem;
-}
-.pd-identity-block { flex:1; min-width:0; }
-.pd-gallery-block { flex-shrink:0; width:280px; }
-@media (max-width:900px) {
-  .detail-hero { flex-direction:column; gap:1.5rem; }
-  .pd-gallery-block { width:100%; }
-}
-@media (max-width:767px) {
-  .detail-hero { gap:1.1rem; margin-bottom:1.75rem; }
-}
+/* legacy detail-hero stubs — layout replaced by .pd-layout */
+.detail-hero, .pd-identity-block, .pd-gallery-block { display:contents; }
 
 /* ── PUBLIC PRODUCT PAGE ── */
 #pub-page { min-height:100vh; background:#fff; font-family:inherit; }
@@ -2494,15 +2455,13 @@ function showProductDetail(p) {
 
   function notEmpty(v) { return v !== null && v !== undefined && v !== '' && v !== '0' && v !== 0 }
   function cp(v) { return String(v).replace(/'/g, "\\'") }
-  function field(lbl, val) {
-    if (!notEmpty(val)) return ''
-    return `<div class="pd-field" onclick="copyToClipboard('${cp(val)}')" title="Click to copy">
-      <span class="pd-field-lbl">${lbl}</span>
-      <span class="pd-field-val">${esc(String(val))}</span>
+  function specRow(k, v) {
+    if (!notEmpty(v)) return ''
+    return `<div class="pd-row" onclick="copyToClipboard('${cp(String(v))}')" title="Copy">
+      <div class="pd-k">${k}</div><div class="pd-v">${esc(String(v))}</div>
     </div>`
   }
-  function secTitle(t) { return `<div class="pd-sec-title">${t}</div>` }
-  function gridWrap(cls, inner) { return `<div class="${cls}">${inner}</div>` }
+  function specHead(t) { return `<div class="pd-hd">${t}</div>` }
   function parseComp(str) {
     if (!str) return []
     return str.trim().split(/(?=\d+%)/).map(s => s.trim()).filter(Boolean)
@@ -2527,129 +2486,89 @@ function showProductDetail(p) {
     </div>`
   }
 
-  let infoHtml = ''
+  let infoHtml = '<div class="pd-specs">'
 
   if (p.division === 'fabric') {
-    // ── Card: Overview ──
     const compParts = parseComp(specs.Composition)
-    const overviewFields = [
-      ['Color',       specs.Color],
-      ['Country',     p.country || 'Honduras'],
-      ['Lot',         p.lot],
-      ['Mill Article',specs['Mill Article']],
-    ].filter(([,v]) => notEmpty(v))
 
-    if (compParts.length || overviewFields.length) {
-      let card = ''
-      if (compParts.length) {
-        const lines = compParts.map(part => {
-          const html = part.replace(/^(\d+%)/, '<span class="pd-comp-pct">$1</span> ')
-          return `<div class="pd-comp-line">${html}</div>`
-        }).join('')
-        card += `<div class="pd-comp" onclick="copyToClipboard('${cp(specs.Composition)}')" title="Click to copy">
-          <div class="pd-comp-lbl">Composition</div>
-          ${lines}
-        </div>`
-      }
-      if (overviewFields.length) {
-        const gc = overviewFields.length >= 3 ? 'pd-grid-2' : `pd-grid-${overviewFields.length}`
-        card += gridWrap(gc === 'pd-grid-1' ? '' : gc, overviewFields.map(([k,v]) => field(k,v)).join(''))
-      }
-      infoHtml += `<div class="pd-card">${card}</div>`
+    // Composition
+    infoHtml += specHead('Composition')
+    if (compParts.length) {
+      const lines = compParts.map(part =>
+        `<div class="pd-comp-line">${part.replace(/^(\d+%)/, '<span class="pd-comp-pct">$1</span> ')}</div>`
+      ).join('')
+      infoHtml += `<div class="pd-comp-block" onclick="copyToClipboard('${cp(specs.Composition || '')}')" title="Copy">${lines}</div>`
+    }
+    infoHtml += specRow('Color', specs.Color)
+    infoHtml += specRow('Country', p.country || (notEmpty(specs.Color) ? 'Honduras' : null))
+    infoHtml += specRow('Lot', p.lot)
+    infoHtml += specRow('Mill Article', specs['Mill Article'])
+    infoHtml += specRow('Dye Method', specs['Dyed Method'])
+
+    // Physical
+    const hasPhysical = [specs.Width, specs.GSM, specs.DIA, specs.Gauge].some(notEmpty)
+    if (hasPhysical) {
+      infoHtml += specHead('Physical')
+      infoHtml += specRow('Width', specs.Width)
+      infoHtml += specRow('GSM', specs.GSM)
+      infoHtml += specRow('Diameter', specs.DIA)
+      infoHtml += specRow('Gauge', specs.Gauge)
+      infoHtml += specRow('Needles', specs.Needles)
+      infoHtml += specRow('Route Type', specs['Route Type'])
     }
 
-    // ── Card: Construction ──
-    const constFields = [
-      ['Gauge',      specs.Gauge],
-      ['Needles',    specs.Needles],
-      ['Diameter',   specs.DIA],
-      ['Route Type', specs['Route Type']],
-    ].filter(([,v]) => notEmpty(v))
-    if (constFields.length) {
-      const gc = constFields.length === 1 ? '' : constFields.length === 2 ? 'pd-grid-2' : constFields.length === 3 ? 'pd-grid-3' : 'pd-grid-4'
-      infoHtml += secTitle('Construction')
-      infoHtml += `<div class="pd-card">${gc ? gridWrap(gc, constFields.map(([k,v]) => field(k,v)).join('')) : field(constFields[0][0], constFields[0][1])}</div>`
-    }
-
-    // ── Card: Dyeing ──
-    if (notEmpty(specs['Dyed Method'])) {
-      infoHtml += secTitle('Dyeing')
-      infoHtml += `<div class="pd-card">${field('Dye Method', specs['Dyed Method'])}</div>`
-    }
-
-    // ── Card: Technical Specifications ──
-    const hasDims = notEmpty(specs.Width) || notEmpty(specs.GSM)
+    // Tolerance
     const rw = specs['Req Width'], rg = specs['Req GSM'], sw = specs['Std Width'], sg = specs['Std GSM']
-    const hasReqStd = [rw, rg, sw, sg].some(notEmpty)
-    if (hasDims || hasReqStd) {
-      infoHtml += secTitle('Technical Specifications')
-      let specCard = ''
-      if (hasDims) {
-        const dimF = [['Width', specs.Width], ['GSM', specs.GSM]].filter(([,v]) => notEmpty(v))
-        specCard += gridWrap('pd-grid-2', dimF.map(([k,v]) => field(k,v)).join(''))
-      }
-      if (hasReqStd) {
-        specCard += `<div style="margin-top:${hasDims ? '1.1rem;padding-top:1rem;border-top:1px solid var(--border)' : '0'}">
-          <table class="pd-compare">
-            <thead><tr><th></th><th>Width</th><th>GSM</th></tr></thead>
-            <tbody>
-              <tr>
-                <td>Requested</td>
-                <td>${notEmpty(rw) ? esc(String(rw)) : '—'}</td>
-                <td>${notEmpty(rg) ? esc(String(rg)) : '—'}</td>
-              </tr>
-              <tr>
-                <td>Standard</td>
-                <td>${notEmpty(sw) ? esc(String(sw)) : '—'}</td>
-                <td>${notEmpty(sg) ? esc(String(sg)) : '—'}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>`
-      }
-      infoHtml += `<div class="pd-card">${specCard}</div>`
+    if ([rw, rg, sw, sg].some(notEmpty)) {
+      infoHtml += specHead('Tolerance')
+      infoHtml += specRow('Req Width', rw)
+      infoHtml += specRow('Req GSM', rg)
+      infoHtml += specRow('Std Width', sw)
+      infoHtml += specRow('Std GSM', sg)
     }
 
-    // ── Card: Yarn Composition ──
+    // Yarns
     const yarns = [specs['Yarn 01'], specs['Yarn 02'], specs['Yarn 03']].filter(notEmpty)
     if (yarns.length) {
-      infoHtml += secTitle('Yarn Composition')
-      infoHtml += `<div class="pd-card">${yarns.map((y,i) =>
-        `<div class="pd-yarn"><span class="pd-yarn-n">${String(i+1).padStart(2,'0')}</span><span class="pd-yarn-v">${esc(y)}</span></div>`
-      ).join('')}</div>`
+      infoHtml += specHead('Yarn Composition')
+      yarns.forEach((y, i) => {
+        infoHtml += `<div class="pd-row" onclick="copyToClipboard('${cp(y)}')" title="Copy">
+          <div class="pd-k">${String(i+1).padStart(2,'0')}</div><div class="pd-v">${esc(y)}</div>
+        </div>`
+      })
     }
 
-    // ── Notes ──
-    if (specs.Comments) {
-      infoHtml += secTitle('Notes')
-      infoHtml += `<p class="detail-desc">${esc(specs.Comments)}</p>`
-    }
-
-    // ── Card: Commercial ──
+    // Commercial
     const commFields = [
-      ['Vendor',     specs.Vendor],
-      ['Buyer',      specs.Buyer],
-      ['Sample Qty', specs['Sample Qty']],
-      ['Rec Date',   specs['Rec Date']],
+      ['Vendor', specs.Vendor], ['Buyer', specs.Buyer],
+      ['Sample Qty', specs['Sample Qty']], ['Rec Date', specs['Rec Date']],
     ].filter(([,v]) => notEmpty(v))
     if (commFields.length) {
-      infoHtml += secTitle('Commercial')
-      infoHtml += `<div class="pd-card">${gridWrap('pd-grid-2', commFields.map(([k,v]) => field(k,v)).join(''))}</div>`
+      infoHtml += specHead('Commercial')
+      commFields.forEach(([k,v]) => { infoHtml += specRow(k, v) })
+    }
+
+    // Notes
+    if (specs.Comments) {
+      infoHtml += specHead('Notes')
+      infoHtml += `<div class="pd-row" style="cursor:default">
+        <div class="pd-k"></div><div class="pd-v detail-desc">${esc(specs.Comments)}</div>
+      </div>`
     }
 
   } else {
     if (p.description) {
-      infoHtml += `<p class="detail-desc" style="margin-bottom:1.5rem">${esc(p.description)}</p>`
+      infoHtml += `<div class="pd-row" style="cursor:default"><div class="pd-v detail-desc">${esc(p.description)}</div></div>`
     }
     const entries = Object.entries(specs).filter(([,v]) => notEmpty(v))
-    if (entries.length) {
-      infoHtml += `<div class="pd-card">${gridWrap('pd-grid-2', entries.map(([k,v]) => field(k,v)).join(''))}</div>`
-    }
+    entries.forEach(([k,v]) => { infoHtml += specRow(k, v) })
   }
 
   if (p.tags?.length) {
-    infoHtml += `<div style="margin-top:1.25rem">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>`
+    infoHtml += `<div style="padding:1rem 0 0">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>`
   }
+
+  infoHtml += '</div>'
 
   const productIdentity = `${p.name} — ${sku}`
 
@@ -2693,24 +2612,28 @@ function showProductDetail(p) {
         </button>
       </div>
     </div>
-    <div class="detail-hero">
-      <div class="pd-identity-block">
-        <div class="pd-sku" onclick="copyToClipboard('${cp(productIdentity)}')" title="Click to copy">
-          ${esc(sku)} ${copyIcon}
+    <div class="pd-layout">
+      <div class="pd-img-col">
+        ${galleryHtml}
+        <div class="pd-meta">
+          <div class="pd-sku" onclick="copyToClipboard('${cp(productIdentity)}')" title="Click to copy">
+            ${esc(sku)} ${copyIcon}
+          </div>
+          <div class="pd-name">${esc(p.name)}</div>
+          <div class="pd-division">${DIV_LBL[p.division]}${specs.Construction ? ' · ' + (CONST_META[specs.Construction]?.label || specs.Construction) : ''}</div>
         </div>
-        <div class="pd-name">${esc(p.name)}</div>
-        <div class="pd-division">${DIV_LBL[p.division]}${specs.Construction ? ' · ' + (CONST_META[specs.Construction]?.label || specs.Construction) : ''}</div>
       </div>
-      <div class="pd-gallery-block">${galleryHtml}</div>
-    </div>
-    ${infoHtml}
-    <div class="detail-comments-section">
-      <div class="detail-comments-lbl">Comments</div>
-      <div id="ficha-comments-inner"></div>
-    </div>
-    <div class="detail-comments-section">
-      <div class="detail-comments-lbl">Sample History</div>
-      <div id="pd-sample-history"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
+      <div class="pd-specs-col">
+        ${infoHtml}
+        <div class="detail-comments-section">
+          <div class="detail-comments-lbl">Comments</div>
+          <div id="ficha-comments-inner"></div>
+        </div>
+        <div class="detail-comments-section">
+          <div class="detail-comments-lbl">Sample History</div>
+          <div id="pd-sample-history"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
+        </div>
+      </div>
     </div>
   </div>
   ${toolbarHtml}`
