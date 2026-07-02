@@ -402,6 +402,7 @@
       transition:all 0.12s;
     }
     .spotlight-esc:hover { color:var(--text); border-color:var(--text-3); }
+    .esc-mobile { display:none; }
     .spotlight-results {
       max-height:420px; overflow-y:auto; padding:0.5rem 0;
     }
@@ -1333,9 +1334,32 @@
       /* Tables: ensure horizontal scroll for any unwrapped tables */
       .data-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-      /* Spotlight: full-width on mobile */
-      .spotlight-box { width: 100%; max-width: 100%; margin: 0; border-radius: 16px 16px 0 0; }
-      .spotlight-overlay.open { align-items: flex-end; }
+      /* Spotlight: full-screen takeover on mobile — input pinned top, results
+         fill and scroll. Avoids the iOS bug where a bottom sheet gets covered
+         by the keyboard (position:fixed doesn't track the visual viewport). */
+      .spotlight-overlay {
+        padding-top: 0; align-items: stretch;
+        background: var(--bg); backdrop-filter: none; -webkit-backdrop-filter: none;
+      }
+      .spotlight-box {
+        width: 100%; max-width: 100%; margin: 0; height: 100dvh;
+        border-radius: 0; border: none; box-shadow: none;
+        transform: none; display: flex; flex-direction: column;
+      }
+      .spotlight-overlay.open .spotlight-box { transform: none; }
+      .spotlight-input-row {
+        padding: calc(env(safe-area-inset-top) + 0.9rem) 1rem 0.9rem;
+        gap: 0.85rem;
+      }
+      .spotlight-input-row input { font-size: 1.05rem; }
+      .spotlight-results {
+        max-height: none; flex: 1;
+        padding-bottom: calc(env(safe-area-inset-bottom) + 1.5rem);
+        -webkit-overflow-scrolling: touch;
+      }
+      .spotlight-esc { padding: 0.4rem 0.7rem; font-size: 0.8rem; }
+      .esc-desktop { display: none; }
+      .esc-mobile { display: inline; }
 
       /* Stats / kpi grids: single column */
       .stats-row { grid-template-columns: 1fr 1fr !important; gap: 0.6rem; }
@@ -7324,7 +7348,7 @@ async function loadPendingSamples() {
         oninput="spotlightSearch(this.value)"
         onkeydown="if(event.key==='Enter'&&this.value.trim()){saveRecentSearch(this.value.trim());spotlightRunSearch(this.value.trim())}"
         autocomplete="off" spellcheck="false" />
-      <button class="spotlight-esc" onclick="closeSpotlight()">esc</button>
+      <button class="spotlight-esc" onclick="closeSpotlight()"><span class="esc-desktop">esc</span><span class="esc-mobile">Cancel</span></button>
     </div>
     <div class="spotlight-results" id="spotlight-results"></div>
   </div>
