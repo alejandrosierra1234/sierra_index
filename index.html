@@ -584,15 +584,29 @@
     .card-more-item:hover { background:var(--surface2); }
     .card-more-item svg { width:14px; height:14px; color:var(--text-3); flex-shrink:0; }
 
-    /* ── MODAL ── */
+    /* ── MODAL ──
+       The whole dialog is a flex column capped at max-height; only
+       .modal-body scrolls, so the header and the Save/Cancel footer stay
+       docked in view regardless of how long the form is. */
     .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:200; align-items:center; justify-content:center; backdrop-filter:blur(6px); }
     .overlay.open { display:flex; }
-    .modal { background:var(--surface); border:1px solid var(--border); border-radius:18px; width:560px; max-width:95vw; max-height:90vh; overflow-y:auto; box-shadow:0 24px 80px rgba(0,0,0,0.2); }
-    .modal-hdr { padding:1.4rem 1.4rem 0; display:flex; align-items:flex-start; justify-content:space-between; }
+    .modal {
+      background:var(--surface); border:1px solid var(--border); border-radius:18px;
+      width:560px; max-width:95vw; max-height:90vh;
+      display:flex; flex-direction:column; overflow:hidden;
+      box-shadow:0 24px 80px rgba(0,0,0,0.2);
+    }
+    .modal-hdr {
+      padding:1.25rem 1.4rem; display:flex; align-items:flex-start; justify-content:space-between;
+      flex-shrink:0; border-bottom:1px solid var(--border);
+    }
     .modal-eyebrow { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:0.3rem; }
     .modal-title { font-size:1.05rem; font-weight:600; letter-spacing:-0.01em; }
-    .modal-body { padding:1.1rem 1.4rem; }
-    .modal-ftr { padding:0 1.4rem 1.4rem; display:flex; gap:0.55rem; justify-content:flex-end; }
+    .modal-body { padding:1.1rem 1.4rem; overflow-y:auto; flex:1; min-height:0; }
+    .modal-ftr {
+      padding:1rem 1.4rem; display:flex; gap:0.55rem; justify-content:flex-end;
+      flex-shrink:0; border-top:1px solid var(--border);
+    }
 
     /* ── FICHA LAYOUT ── */
     .ficha-img { width:100%; height:200px; object-fit:cover; border-radius:10px; margin-bottom:1rem; background:var(--surface2); display:flex; align-items:center; justify-content:center; overflow:hidden; }
@@ -655,6 +669,13 @@
     .two-col { display:grid; grid-template-columns:1fr 1fr; gap:0.85rem; }
     .two-col .full { grid-column:1/-1; }
     hr.div { border:none; border-top:1px solid var(--border); margin:1rem 0; }
+
+    /* Grouped sections within the division-specific fields, so a long
+       form (22 fields for Fabric) reads as scannable groups instead of
+       one flat wall of inputs. */
+    .form-sec { padding-top:1.25rem; margin-top:1.25rem; border-top:1px solid var(--border); }
+    .form-sec:first-child { padding-top:0; margin-top:0; border-top:none; }
+    .form-sec-label { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.85rem; }
 
     /* ── IMG UPLOAD ── */
     /* ── IMAGE GALLERY (ficha) ── */
@@ -2560,11 +2581,7 @@
         <div class="fg full"><label>Manufactured in</label><input type="text" id="np-country" placeholder="Honduras" /></div>
       </div>
 
-      <!-- Division-specific fields -->
-      <div id="div-fields"></div>
-
-      <hr class="div" />
-      <div class="fg"><label>Product images</label>
+      <div class="fg full"><label>Product images</label>
         <div class="img-edit-grid" id="img-edit-grid"></div>
         <div class="img-upload-area" id="img-area"
           ondragover="event.preventDefault(); this.classList.add('drag-over')"
@@ -2575,6 +2592,11 @@
           <p id="img-area-label">Click or drag images here</p>
         </div>
       </div>
+
+      <hr class="div" />
+
+      <!-- Division-specific fields -->
+      <div id="div-fields"></div>
     </div>
     <div class="modal-ftr">
       <button class="btn btn-ghost btn-sm" onclick="closeModal('m-add')">Cancel</button>
@@ -4377,31 +4399,54 @@ document.addEventListener('click', () => {
 
 /* ── ADD PRODUCT ── */
 const FABRIC_FIELDS = `
-  <div class="two-col">
-    <div class="fg"><label>Construction</label><select id="f-construction"><option value="">— Select —</option><option value="JRS">JRS — Jersey</option><option value="RIB">RIB — Rib</option><option value="FLC">FLC — Fleece</option><option value="FRT">FRT — French Terry</option><option value="ILC">ILC — Interlock</option><option value="WFL">WFL — Waffle</option><option value="PNT">PNT — Ponte</option><option value="PIQ">PIQ — Piqué</option></select></div>
-    <div class="fg"><label>Mill Article</label><input type="text" id="f-mill-article" placeholder="e.g. SJ-014" /></div>
-    <div class="fg full"><label>Composition</label><input type="text" id="f-composition" placeholder="e.g. 50% Recycled Poly 34% Viscose 12% Cotton 4% Spx" /></div>
-    <div class="fg"><label>Color</label><input type="text" id="f-color" placeholder="e.g. Navy" /></div>
-    <div class="fg"><label>Dyed Method</label><input type="text" id="f-dyed" placeholder="e.g. Exhaust-Disperse-Reactive" /></div>
-    <div class="fg"><label>Width</label><input type="text" id="f-width" placeholder='e.g. 64/66"' /></div>
-    <div class="fg"><label>GSM</label><input type="text" id="f-gsm" placeholder="e.g. 360" /></div>
-    <div class="fg"><label>DIA</label><input type="text" id="f-dia" placeholder="e.g. 42" /></div>
-    <div class="fg"><label>Gauge</label><input type="text" id="f-gauge" placeholder="e.g. 18" /></div>
-    <div class="fg full"><label>Yarn 01</label><input type="text" id="f-yarn1" placeholder="e.g. 40/1 KPRS 100% Viscose" /></div>
-    <div class="fg full"><label>Yarn 02</label><input type="text" id="f-yarn2" placeholder="e.g. DTY 50/36 SD 100% Recycled Polyester 2ply" /></div>
-    <div class="fg full"><label>Yarn 03</label><input type="text" id="f-yarn3" placeholder="e.g. 40/1 CPRS 65% Recycled Polyester + 40D Spandex" /></div>
-    <div class="fg full"><label>Comments</label><textarea id="f-comments" placeholder="Additional notes…"></textarea></div>
-    <div class="fg"><label>Req Width</label><input type="text" id="f-req-width" placeholder='e.g. 60"' /></div>
-    <div class="fg"><label>Req GSM</label><input type="text" id="f-req-gsm" placeholder="e.g. 340" /></div>
-    <div class="fg"><label>Std Width</label><input type="text" id="f-std-width" placeholder='e.g. 62"' /></div>
-    <div class="fg"><label>Std GSM</label><input type="text" id="f-std-gsm" placeholder="e.g. 355" /></div>
-    <div class="fg"><label>Needles</label><input type="text" id="f-needles" placeholder="e.g. 2808" /></div>
-    <div class="fg"><label>Route Type</label><input type="text" id="f-route-type" placeholder="e.g. Circular" /></div>
-    <div class="fg"><label>Sample Qty</label><input type="text" id="f-sample-qty" placeholder="e.g. 5m" /></div>
-    <div class="fg"><label>Rec Date</label><input type="text" id="f-rec-date" placeholder="e.g. 2024-03-15" /></div>
-    <div class="fg full"><label>Tags (comma separated)</label><input type="text" id="f-tags" placeholder="e.g. scuba, double knit, recycled" /></div>
-    <div class="fg"><label>Vendor</label><input type="text" id="f-vendor" placeholder="Supplier / mill name" /></div>
-    <div class="fg"><label>Buyer</label><input type="text" id="f-buyer" placeholder="Client / buyer name" /></div>
+  <div class="form-sec">
+    <div class="form-sec-label">Construction &amp; Composition</div>
+    <div class="two-col">
+      <div class="fg"><label>Construction</label><select id="f-construction"><option value="">— Select —</option><option value="JRS">JRS — Jersey</option><option value="RIB">RIB — Rib</option><option value="FLC">FLC — Fleece</option><option value="FRT">FRT — French Terry</option><option value="ILC">ILC — Interlock</option><option value="WFL">WFL — Waffle</option><option value="PNT">PNT — Ponte</option><option value="PIQ">PIQ — Piqué</option></select></div>
+      <div class="fg"><label>Mill Article</label><input type="text" id="f-mill-article" placeholder="e.g. SJ-014" /></div>
+      <div class="fg full"><label>Composition</label><input type="text" id="f-composition" placeholder="e.g. 50% Recycled Poly 34% Viscose 12% Cotton 4% Spx" /></div>
+      <div class="fg"><label>Color</label><input type="text" id="f-color" placeholder="e.g. Navy" /></div>
+      <div class="fg"><label>Dyed Method</label><input type="text" id="f-dyed" placeholder="e.g. Exhaust-Disperse-Reactive" /></div>
+    </div>
+  </div>
+  <div class="form-sec">
+    <div class="form-sec-label">Physical Specs</div>
+    <div class="two-col">
+      <div class="fg"><label>Width</label><input type="text" id="f-width" placeholder='e.g. 64/66"' /></div>
+      <div class="fg"><label>GSM</label><input type="text" id="f-gsm" placeholder="e.g. 360" /></div>
+      <div class="fg"><label>DIA</label><input type="text" id="f-dia" placeholder="e.g. 42" /></div>
+      <div class="fg"><label>Gauge</label><input type="text" id="f-gauge" placeholder="e.g. 18" /></div>
+      <div class="fg"><label>Needles</label><input type="text" id="f-needles" placeholder="e.g. 2808" /></div>
+      <div class="fg"><label>Route Type</label><input type="text" id="f-route-type" placeholder="e.g. Circular" /></div>
+    </div>
+  </div>
+  <div class="form-sec">
+    <div class="form-sec-label">Yarn Composition</div>
+    <div class="two-col">
+      <div class="fg full"><label>Yarn 01</label><input type="text" id="f-yarn1" placeholder="e.g. 40/1 KPRS 100% Viscose" /></div>
+      <div class="fg full"><label>Yarn 02</label><input type="text" id="f-yarn2" placeholder="e.g. DTY 50/36 SD 100% Recycled Polyester 2ply" /></div>
+      <div class="fg full"><label>Yarn 03</label><input type="text" id="f-yarn3" placeholder="e.g. 40/1 CPRS 65% Recycled Polyester + 40D Spandex" /></div>
+    </div>
+  </div>
+  <div class="form-sec">
+    <div class="form-sec-label">Tolerance</div>
+    <div class="two-col">
+      <div class="fg"><label>Req Width</label><input type="text" id="f-req-width" placeholder='e.g. 60"' /></div>
+      <div class="fg"><label>Req GSM</label><input type="text" id="f-req-gsm" placeholder="e.g. 340" /></div>
+      <div class="fg"><label>Std Width</label><input type="text" id="f-std-width" placeholder='e.g. 62"' /></div>
+      <div class="fg"><label>Std GSM</label><input type="text" id="f-std-gsm" placeholder="e.g. 355" /></div>
+    </div>
+  </div>
+  <div class="form-sec">
+    <div class="form-sec-label">Commercial &amp; Notes</div>
+    <div class="two-col">
+      <div class="fg"><label>Sample Qty</label><input type="text" id="f-sample-qty" placeholder="e.g. 5m" /></div>
+      <div class="fg"><label>Rec Date</label><input type="text" id="f-rec-date" placeholder="e.g. 2024-03-15" /></div>
+      <div class="fg"><label>Vendor</label><input type="text" id="f-vendor" placeholder="Supplier / mill name" /></div>
+      <div class="fg"><label>Buyer</label><input type="text" id="f-buyer" placeholder="Client / buyer name" /></div>
+      <div class="fg full"><label>Tags (comma separated)</label><input type="text" id="f-tags" placeholder="e.g. scuba, double knit, recycled" /></div>
+      <div class="fg full"><label>Comments</label><textarea id="f-comments" placeholder="Additional notes…"></textarea></div>
+    </div>
   </div>`
 
 const GENERIC_FIELDS = `
