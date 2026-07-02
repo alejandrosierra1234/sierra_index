@@ -6258,28 +6258,9 @@ async function executeScan(val) {
 async function _scanFrame(video, canvas, ctx) {
   if (video.readyState !== video.HAVE_ENOUGH_DATA) return null
 
-  const vw = video.videoWidth
-  const vh = video.videoHeight
-
-  // iOS rear camera often delivers frames rotated 90°.
-  // Detect by comparing aspect ratio to the video element's displayed aspect ratio.
-  const isPortraitFrame = vw < vh
-  const needsRotation = isPortraitFrame && vw > 0
-
-  if (needsRotation) {
-    // Rotate canvas 90° so 1D barcodes are horizontal
-    canvas.width = vh
-    canvas.height = vw
-    ctx.save()
-    ctx.translate(vh / 2, vw / 2)
-    ctx.rotate(Math.PI / 2)
-    ctx.drawImage(video, -vw / 2, -vh / 2)
-    ctx.restore()
-  } else {
-    canvas.width = vw
-    canvas.height = vh
-    ctx.drawImage(video, 0, 0)
-  }
+  canvas.width = video.videoWidth
+  canvas.height = video.videoHeight
+  ctx.drawImage(video, 0, 0)
 
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
 
