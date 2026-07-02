@@ -593,15 +593,21 @@
     #view-products { display:block; }
 
     /* ── HOME v2 ── */
-    .dash-wrap { max-width:720px; margin:0 auto; padding-bottom:4rem; display:flex; flex-direction:column; }
+    /* ── DASHBOARD LAYOUT ── */
+    .dash-wrap {
+      max-width:1080px; margin:0 auto; padding-bottom:3rem;
+      display:grid; grid-template-columns:1.15fr 1fr;
+      gap:0 3.5rem; align-items:start;
+    }
+    .dash-eyebrow {
+      grid-column:1/-1;
+      font-size:0.68rem; color:var(--text-3); margin-bottom:1.75rem;
+      letter-spacing:0.01em;
+    }
+    .dash-col { display:flex; flex-direction:column; }
 
-    /* Greeting */
-    .dash-header { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:2.75rem; gap:1rem; flex-wrap:wrap; }
-    .dash-greeting { font-size:1.55rem; font-weight:700; letter-spacing:-0.035em; line-height:1; color:var(--text); }
-    .dash-date { font-size:0.78rem; color:var(--text-3); flex-shrink:0; }
-
-    /* Hero search */
-    .dash-search-hero { margin-bottom:3rem; }
+    /* Search */
+    .dash-search-hero { margin-bottom:1.75rem; }
     .dash-search-trigger {
       display:flex; align-items:center; gap:0.75rem;
       border:1px solid var(--border); border-radius:12px;
@@ -610,22 +616,48 @@
     }
     .dash-search-trigger:hover { border-color:var(--text-3); background:var(--surface); }
     .dst-icon { color:var(--text-3); flex-shrink:0; }
-    .dst-text { flex:1; font-size:0.95rem; color:var(--text-3); }
+    .dst-text { flex:1; font-size:0.88rem; color:var(--text-3); }
     .dst-kbd {
       font-size:0.65rem; color:var(--text-3);
       border:1px solid var(--border); border-radius:5px;
       padding:0.15rem 0.42rem; flex-shrink:0;
     }
-    .dash-search-tags { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.65rem; }
-    .dst-tag { font-size:0.62rem; color:var(--text-3); }
-    .dst-tag::after { content:'·'; margin-left:0.5rem; }
-    .dst-tag:last-child::after { display:none; }
 
     /* Section scaffold */
-    .dash-section { margin-bottom:2.75rem; }
-    .dash-section-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.85rem; }
-    .dash-section-label { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); }
+    .dash-section { margin-bottom:1.75rem; }
+    .dash-section-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.65rem; }
+    .dash-section-label { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); }
     .dash-section-meta { font-size:0.65rem; color:var(--text-3); }
+
+    /* Quick action row */
+    .dash-act-row { display:flex; gap:0.45rem; flex-wrap:wrap; }
+    .dash-act {
+      display:inline-flex; align-items:center; gap:0.45rem;
+      border:1px solid var(--border); border-radius:8px;
+      padding:0.5rem 0.85rem; background:none; cursor:pointer;
+      font-family:inherit; font-size:0.78rem; font-weight:500; color:var(--text);
+      transition:border-color 0.12s, background 0.12s; white-space:nowrap;
+    }
+    .dash-act:hover { border-color:var(--text-3); background:var(--surface2); }
+    .dash-act svg { color:var(--text-3); flex-shrink:0; }
+
+    /* World time — compact strip */
+    .dash-time-strip { display:flex; flex-wrap:wrap; gap:0 2rem; }
+    .dts-zone { display:flex; flex-direction:column; }
+    .dts-city { font-size:0.58rem; font-weight:600; text-transform:uppercase; letter-spacing:0.09em; color:var(--text-3); margin-bottom:0.12rem; }
+    .dts-time { font-size:0.95rem; font-weight:400; font-variant-numeric:tabular-nums; letter-spacing:-0.01em; color:var(--text); line-height:1; }
+    .dts-ampm { font-size:0.58rem; color:var(--text-3); margin-left:0.12rem; }
+    .dts-diff { font-size:0.58rem; color:var(--text-3); margin-top:0.1rem; }
+
+    @media (max-width:920px) {
+      .dash-wrap { grid-template-columns:1fr; gap:0; }
+      .dash-eyebrow { margin-bottom:1.25rem; }
+    }
+    @media (max-width:767px) {
+      .dash-wrap { padding-bottom:2rem; }
+      .dash-section { margin-bottom:1.5rem; }
+      .dash-search-hero { margin-bottom:1.5rem; }
+    }
 
     /* Market cards */
     .market-cards { display:flex; gap:0.65rem; }
@@ -4167,105 +4199,89 @@ function showDashboard() {
 
   vd.innerHTML = `<div class="dash-wrap">
 
-  <div class="dash-header">
-    <div class="dash-greeting">${greeting}.</div>
-    <div class="dash-date">${dateStr}</div>
+  <!-- Eyebrow: greeting + date, full width above grid -->
+  <div class="dash-eyebrow">${greeting} · ${dateStr}</div>
+
+  <!-- LEFT COLUMN: search + pending samples + recent -->
+  <div class="dash-col">
+
+    <div class="dash-search-hero">
+      <div class="dash-search-trigger" onclick="openSpotlight()" role="button" tabindex="0">
+        <span class="dst-icon"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+        <span class="dst-text">Search products, fabrics, yarns, lots…</span>
+        <kbd class="dst-kbd">⌘ K</kbd>
+      </div>
+    </div>
+
+    <div class="dash-section" id="pending-samples-section">
+      <div class="dash-section-hdr">
+        <div class="dash-section-label">Pending Samples</div>
+        <button class="dash-section-meta" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:0.65rem;padding:0" onclick="showSampleCenter()">View all →</button>
+      </div>
+      <div id="pending-smp-list"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
+    </div>
+
+    ${recentHtml}
+
   </div>
 
-  <!-- Search Hero -->
-  <div class="dash-search-hero">
-    <div class="dash-search-trigger" onclick="openSpotlight()" role="button" tabindex="0">
-      <span class="dst-icon">
-        <svg width="17" height="17" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      </span>
-      <span class="dst-text">Search products, fabrics, yarns, lots…</span>
-      <kbd class="dst-kbd">⌘ K</kbd>
-    </div>
-    <div class="dash-search-tags">
-      <span class="dst-tag">Products</span>
-      <span class="dst-tag">Fabrics</span>
-      <span class="dst-tag">Yarns</span>
-      <span class="dst-tag">Lots</span>
-      <span class="dst-tag">Technical Sheets</span>
-      <span class="dst-tag">Compositions</span>
-      <span class="dst-tag">Colors</span>
-      <span class="dst-tag">Product Codes</span>
-    </div>
-  </div>
+  <!-- RIGHT COLUMN: actions + market + news + time -->
+  <div class="dash-col">
 
-  <!-- Pending Samples -->
-  <div class="dash-section" id="pending-samples-section">
-    <div class="dash-section-hdr">
-      <div class="dash-section-label">Pending Samples</div>
-      <button class="dash-section-meta" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:0.72rem;padding:0" onclick="showSampleCenter()">View all →</button>
+    <div class="dash-section" style="margin-top:0">
+      <div class="dash-section-hdr" style="margin-bottom:0.65rem">
+        <div class="dash-section-label">Actions</div>
+      </div>
+      <div class="dash-act-row">
+        <button class="dash-act" onclick="openScanMode()">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="13" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M13 13h4M13 17h4M17 13v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Scan
+        </button>
+        <button class="dash-act" onclick="showSampleCenter()">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="11" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M14 11v6M11 14h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Sample Center
+        </button>
+        <button class="dash-act" onclick="if(selected)openReq();else toast('Open a product first to request a sample')">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Request
+        </button>
+        ${isEditor() ? `<button class="dash-act" onclick="showView('products')">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="3" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="11" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="11" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+          Catalog
+        </button>` : ''}
+      </div>
     </div>
-    <div id="pending-smp-list"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
-  </div>
 
-  ${recentHtml}
+    <div class="dash-section">
+      <div class="dash-section-hdr">
+        <div class="dash-section-label">Market</div>
+        <div class="dash-section-meta" id="market-updated"></div>
+      </div>
+      <div class="market-cards">
+        ${COMMODITY_CFG.map(c => `
+        <div class="market-card" id="mc-${c.id}" onclick="toggleMarketCard('${c.id}')">
+          <div class="mc-label">${c.name}</div>
+          <div class="mc-price" id="mc-price-${c.id}">—<span class="mc-unit">${c.unit}</span></div>
+          <div class="mc-chg flat" id="mc-chg-${c.id}">—</div>
+          <div class="mc-spark"><canvas id="mc-spark-${c.id}"></canvas></div>
+        </div>`).join('')}
+      </div>
+      <div class="market-expand-drawer" id="market-expand-drawer"></div>
+    </div>
 
-  <!-- Market Snapshot -->
-  <div class="dash-section">
-    <div class="dash-section-hdr">
-      <div class="dash-section-label">Market Snapshot</div>
-      <div class="dash-section-meta" id="market-updated"></div>
+    <div class="dash-section">
+      <div class="dash-section-hdr">
+        <div class="dash-section-label">Industry</div>
+        <div class="dash-section-meta" id="news-status"></div>
+      </div>
+      <div class="news-feed" id="dash-news-feed"><div class="news-placeholder">Loading…</div></div>
     </div>
-    <div class="market-cards">
-      ${COMMODITY_CFG.map(c => `
-      <div class="market-card" id="mc-${c.id}" onclick="toggleMarketCard('${c.id}')">
-        <div class="mc-label">${c.name}</div>
-        <div class="mc-price" id="mc-price-${c.id}">—<span class="mc-unit">${c.unit}</span></div>
-        <div class="mc-chg flat" id="mc-chg-${c.id}">—</div>
-        <div class="mc-spark"><canvas id="mc-spark-${c.id}"></canvas></div>
-      </div>`).join('')}
-    </div>
-    <div class="market-expand-drawer" id="market-expand-drawer"></div>
-  </div>
 
-  <!-- Industry News — merged feed -->
-  <div class="dash-section">
-    <div class="dash-section-hdr">
-      <div class="dash-section-label">Industry</div>
-      <div class="dash-section-meta" id="news-status"></div>
+    <div class="dash-section">
+      <div class="dash-section-hdr"><div class="dash-section-label">Time</div></div>
+      <div class="dash-time-strip" id="dash-time-row"></div>
     </div>
-    <div class="news-feed" id="dash-news-feed"><div class="news-placeholder">Loading…</div></div>
-  </div>
 
-  <!-- Quick Actions -->
-  <div class="dash-section">
-    <div class="dash-section-hdr">
-      <div class="dash-section-label">Quick Actions</div>
-    </div>
-    <div class="dash-actions-grid">
-      <button class="dash-action-btn" onclick="openSpotlight()">
-        <span class="dash-action-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M9 3a6 6 0 1 0 0 12A6 6 0 0 0 9 3zM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9z" fill="currentColor"/></svg></span>
-        <span class="dash-action-label">Search</span>
-        <span class="dash-action-sub">Products, samples, lots</span>
-      </button>
-      <button class="dash-action-btn" onclick="openScanMode()">
-        <span class="dash-action-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="13" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M13 13h4M13 17h4M17 13v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
-        <span class="dash-action-label">Scan</span>
-        <span class="dash-action-sub">Barcode or QR code</span>
-      </button>
-      <button class="dash-action-btn" onclick="showSampleCenter()">
-        <span class="dash-action-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="11" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M14 11v6M11 14h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
-        <span class="dash-action-label">Sample Center</span>
-        <span class="dash-action-sub">View all samples</span>
-      </button>
-      <button class="dash-action-btn" onclick="if(selected)openReq();else toast('Open a product first to request a sample')">
-        <span class="dash-action-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="4" y="3" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
-        <span class="dash-action-label">Request Sample</span>
-        <span class="dash-action-sub">From current product</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- World Time — compact -->
-  <div class="dash-section">
-    <div class="dash-section-hdr">
-      <div class="dash-section-label">World Time</div>
-    </div>
-    <div class="time-row" id="dash-time-row"></div>
   </div>
 
 </div>`
@@ -4346,12 +4362,13 @@ function tickClocksCompact() {
     const p = clockTimeParts(z.tz)
     const tzDate = now.toLocaleDateString('en-CA', { timeZone: z.tz })
     const diff = getOffsetHours(z.tz, now) - hnOff
-    const offLabel = i === 0 ? '' : (diff > 0 ? `+${diff}h` : diff < 0 ? `${diff}h` : 'same')
-    const dayLabel = tzDate > hnDate ? ' · Tomorrow' : tzDate < hnDate ? ' · Yesterday' : ''
-    return `<div class="tr-zone">
-      <div class="tr-city">${z.city}</div>
-      <div class="tr-time">${p.h}:${p.m}<span class="tr-ampm">${p.ampm}</span></div>
-      ${offLabel || dayLabel ? `<div class="tr-diff">${offLabel}${dayLabel}</div>` : ''}
+    const offLabel = i === 0 ? '' : (diff > 0 ? `+${diff}h` : diff < 0 ? `${diff}h` : '')
+    const dayLabel = tzDate > hnDate ? 'Tomorrow' : tzDate < hnDate ? 'Yesterday' : ''
+    const sub = [offLabel, dayLabel].filter(Boolean).join(' · ')
+    return `<div class="dts-zone">
+      <div class="dts-city">${z.city}</div>
+      <div class="dts-time">${p.h}:${p.m}<span class="dts-ampm">${p.ampm}</span></div>
+      ${sub ? `<div class="dts-diff">${sub}</div>` : ''}
     </div>`
   }).join('')
 }
