@@ -1114,29 +1114,30 @@
     }
     .lbl-dr-wrap.open .lbl-dr { transform: translateX(0); }
 
-    /* Header bar */
+    /* Header bar — matches .modal-hdr proportions */
     .lbl-dr-hdr {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 1.25rem;
-      height: 52px;
+      padding: 0 1.4rem;
+      height: 56px;
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
       gap: 1rem;
     }
-    .lbl-dr-meta { display: flex; flex-direction: column; gap: 0.06rem; }
+    .lbl-dr-meta { display: flex; flex-direction: column; gap: 0.12rem; }
     .lbl-dr-eyebrow {
-      font-size: 0.52rem;
+      font-size: 0.62rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.14em;
+      letter-spacing: 0.12em;
       color: var(--text-3);
     }
     .lbl-dr-name {
-      font-size: 0.9rem;
-      font-weight: 700;
+      font-size: 0.92rem;
+      font-weight: 600;
       color: var(--text);
+      letter-spacing: -0.01em;
       line-height: 1.2;
     }
     .lbl-dr-actions {
@@ -1162,70 +1163,76 @@
       padding-bottom: 2rem;
     }
 
-    /* Editorial section headers */
+    /* Section headers — matches .s-label / .ficha-lbl pattern */
     .lbl-sec-hdr {
-      padding: 1.1rem 1.2rem 0.35rem;
-      font-size: 0.5rem;
-      font-weight: 800;
+      padding: 1.1rem 1.4rem 0.5rem;
+      font-size: 0.62rem;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.18em;
+      letter-spacing: 0.1em;
       color: var(--text-3);
       border-top: 1px solid var(--border);
     }
-    .lbl-sec-hdr:first-child { border-top: none; }
+    .lbl-sec-hdr:first-child { border-top: none; padding-top: 1.25rem; }
 
-    /* Per-field rows */
+    /* Per-field groups — matches .fg form group */
     .lbl-fld-row {
       display: flex;
       align-items: flex-start;
-      gap: 0.65rem;
-      padding: 0.3rem 1.2rem;
+      gap: 0.75rem;
+      padding: 0.2rem 1.4rem 0.75rem;
       cursor: pointer;
       user-select: none;
     }
-    .lbl-fld-row:hover { background: var(--surface2); }
 
+    /* Checkbox — matches platform interactive accent */
     .lbl-fld-chk {
-      width: 14px; height: 14px;
+      width: 15px; height: 15px;
       border: 1.5px solid var(--border);
-      border-radius: 3px;
+      border-radius: 4px;
       flex-shrink: 0;
-      margin-top: 4px;
+      margin-top: 26px;
       display: flex; align-items: center; justify-content: center;
-      transition: background 0.1s, border-color 0.1s;
+      transition: background 0.12s, border-color 0.12s;
     }
-    .lbl-fld-row.fld-on .lbl-fld-chk { background: #141512; border-color: #141512; }
+    .lbl-fld-row.fld-on .lbl-fld-chk { background: var(--accent); border-color: var(--accent); }
     .lbl-fld-chk-mark { width: 7px; height: 5px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
     .lbl-fld-row.fld-on .lbl-fld-chk-mark { opacity: 1; }
 
-    .lbl-fld-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.18rem; }
+    /* Field content: label + input stack, matches .fg */
+    .lbl-fld-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
     .lbl-fld-key {
-      font-size: 0.57rem;
-      font-weight: 700;
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.07em;
       color: var(--text-3);
+      margin-bottom: 0.4rem;
     }
+
+    /* Inputs — matches .fg input exactly */
     .lbl-fld-val {
       width: 100%;
-      background: none;
-      border: none;
-      border-bottom: 1px solid transparent;
-      outline: none;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.82rem;
       font-family: inherit;
-      font-size: 0.8rem;
-      font-weight: 500;
       color: var(--text);
-      padding: 0;
+      outline: none;
+      transition: border-color 0.15s;
       box-sizing: border-box;
-      transition: border-color 0.12s;
       resize: none;
-      line-height: 1.4;
+      line-height: 1.45;
     }
-    .lbl-fld-val:focus { border-bottom-color: #141512; }
-    .lbl-fld-row.fld-off .lbl-fld-key,
-    .lbl-fld-row.fld-off .lbl-fld-val { opacity: 0.28; }
-    .lbl-fld-row.fld-off .lbl-fld-val { pointer-events: none; }
+    .lbl-fld-val:focus { border-color: var(--accent); }
+    .lbl-fld-row.fld-off .lbl-fld-key { opacity: 0.35; }
+    .lbl-fld-row.fld-off .lbl-fld-val {
+      opacity: 0.35;
+      pointer-events: none;
+    }
 
     /* RIGHT: preview column */
     .lbl-dr-preview {
@@ -2775,7 +2782,7 @@ function renderEditor() {
       const isOn = f.enabled
       const isTextarea = key === 'Comments'
       const inputEl = isTextarea
-        ? `<textarea class="lbl-fld-val" rows="2" placeholder="Optional note…"
+        ? `<textarea class="lbl-fld-val" rows="3" placeholder="Optional note…"
             onclick="event.stopPropagation()"
             oninput="setLabelFieldValue('${safeKey}',this.value)"
             ${isOn ? '' : 'disabled'}>${esc(f.value ?? '')}</textarea>`
