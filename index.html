@@ -971,7 +971,6 @@
       .modal { border-radius: 20px 20px 0 0; max-height: 92dvh; margin: 0; width: 100%; max-width: 100%; }
       .lbl-studio-modal { width: 100%; max-width: 100%; max-height: 100dvh; border-radius: 20px 20px 0 0; }
       .lbl-studio-canvas { padding: 1.25rem 1rem; }
-      #label-preview { zoom: 1.8 !important; }
       .two-col { grid-template-columns: 1fr; }
       .two-col .full { grid-column: 1; }
     }
@@ -1382,10 +1381,7 @@
       display: inline-block;
       filter: drop-shadow(0 4px 16px rgba(0,0,0,0.12)) drop-shadow(0 1px 3px rgba(0,0,0,0.08));
     }
-    #label-preview { zoom: 2.8; }
-    @supports not (zoom: 1) {
-      #label-preview { zoom: unset; transform: scale(2.8); transform-origin: top center; }
-    }
+    #label-preview { transform-origin: top center; }
 
     /* Label content: logo always mono (overrides SVG fill) */
     .lbl .lc1 { fill: #141512; }
@@ -2135,6 +2131,7 @@ function hideLoadingScreen() {
   setTimeout(() => ls.remove(), 350)
 }
 
+window.addEventListener('resize', fitLabelPreview)
 window.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search)
   const pubId = params.get('pub')
@@ -2983,6 +2980,7 @@ function openLabel() {
   renderEditor()
   updateLabelPreview()
   document.getElementById('m-label').classList.add('open')
+  setTimeout(fitLabelPreview, 340) // re-fit after drawer slide-in transition
 }
 
 function quickLabel(p) { selected = p; openLabel() }
@@ -3162,6 +3160,21 @@ function setLabelFieldValue(key, val) {
 function updateLabelPreview() {
   document.getElementById('label-preview').innerHTML = renderLabel(selected, labelFieldState)
   initLabelCodePreviews(selected)
+  requestAnimationFrame(fitLabelPreview)
+}
+
+function fitLabelPreview() {
+  const container = document.querySelector('.lbl-dr-preview')
+  const label = document.getElementById('label-preview')
+  if (!container || !label) return
+  label.style.zoom = '1'
+  const availW = container.clientWidth - 80
+  const availH = container.clientHeight - 96
+  const naturalW = label.offsetWidth
+  const naturalH = label.offsetHeight
+  if (!naturalW || !naturalH) return
+  const zoom = Math.min(availW / naturalW, availH / naturalH, 3.5)
+  label.style.zoom = String(Math.round(zoom * 100) / 100)
 }
 
 function initLabelCodePreviews(p) {
