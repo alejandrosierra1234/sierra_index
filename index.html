@@ -969,11 +969,9 @@
       /* Modals: sheet from bottom */
       .overlay { align-items: flex-end; padding: 0; }
       .modal { border-radius: 20px 20px 0 0; max-height: 92dvh; margin: 0; width: 100%; max-width: 100%; }
-      .lbl-editor-modal { width: 100%; max-width: 100%; max-height: 100dvh; border-radius: 20px 20px 0 0; }
-      .lbl-ed-body { flex-direction: column; }
-      .lbl-ed-fields { width: 100%; border-right: none; border-bottom: 1px solid var(--border); max-height: 45vh; }
-      .lbl-ed-canvas { padding: 1.5rem 1rem; }
-      #label-preview { zoom: 1.5; }
+      .lbl-studio-modal { width: 100%; max-width: 100%; max-height: 100dvh; border-radius: 20px 20px 0 0; }
+      .lbl-studio-canvas { padding: 1.25rem 1rem; }
+      #label-preview { zoom: 1.8 !important; }
       .two-col { grid-template-columns: 1fr; }
       .two-col .full { grid-column: 1; }
     }
@@ -1079,10 +1077,10 @@
     #label-preview { display: inline-block; }
 
     /* ══════════════════════════════════════
-       LABEL EDITOR — Print Studio
+       LABEL STUDIO — Print Studio Layout
     ══════════════════════════════════════ */
-    .lbl-editor-modal {
-      width: min(1060px, 96vw);
+    .lbl-studio-modal {
+      width: min(680px, 96vw);
       padding: 0;
       overflow: hidden;
       display: flex;
@@ -1091,156 +1089,207 @@
     }
 
     /* Top bar */
-    .lbl-ed-bar {
+    .lbl-studio-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0.8rem 1.25rem 0.8rem 1.5rem;
+      padding: 0.75rem 1.25rem;
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
       gap: 1rem;
     }
-    .lbl-ed-eyebrow {
-      font-size: 0.58rem;
+    .lbl-studio-eyebrow {
+      font-size: 0.57rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.12em;
       color: var(--text-3);
-      margin-bottom: 0.1rem;
+      margin-bottom: 0.08rem;
     }
-    .lbl-ed-name {
-      font-size: 0.9rem;
+    .lbl-studio-name {
+      font-size: 0.88rem;
       font-weight: 700;
       color: var(--text);
       line-height: 1.2;
     }
-    .lbl-ed-bar-r {
+    .lbl-studio-actions {
       display: flex;
       align-items: center;
-      gap: 0.45rem;
+      gap: 0.4rem;
       flex-shrink: 0;
     }
 
-    /* Two-panel body */
-    .lbl-ed-body {
-      display: flex;
+    /* Canvas — label is the hero */
+    .lbl-studio-canvas {
       flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-alt);
+      padding: 2rem 1.5rem;
       min-height: 0;
-      overflow: hidden;
+      overflow: auto;
+    }
+    .lbl-studio-paper {
+      display: inline-block;
+      filter: drop-shadow(0 8px 36px rgba(0,0,0,0.18)) drop-shadow(0 2px 5px rgba(0,0,0,0.07));
+    }
+    #label-preview { zoom: 2.5; }
+    @supports not (zoom: 1) {
+      #label-preview { zoom: unset; transform: scale(2.5); transform-origin: top center; }
     }
 
-    /* Left: property inspector */
-    .lbl-ed-fields {
-      width: 300px;
+    /* Bottom dock — minimal, secondary */
+    .lbl-studio-dock {
       flex-shrink: 0;
-      border-right: 1px solid var(--border);
-      overflow-y: auto;
-      padding: 0.25rem 0 2rem;
+      border-top: 1px solid var(--border);
     }
-    .lbl-prop-group { padding: 1rem 1.25rem 0.1rem; }
-    .lbl-prop-group + .lbl-prop-group { padding-top: 0.6rem; }
-    .lbl-prop-group-hdr {
-      font-size: 0.53rem;
+    .lbl-dock-main {
+      padding: 0.85rem 1.25rem 0.8rem;
+    }
+
+    /* Section chips */
+    .lbl-dock-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-bottom: 0.75rem;
+    }
+    .lbl-sec-chip {
+      font-size: 0.68rem;
+      font-weight: 500;
+      font-family: inherit;
+      padding: 0.18rem 0.6rem;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: none;
+      color: var(--text-2);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.1s;
+      line-height: 1.5;
+    }
+    .lbl-sec-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .lbl-sec-chip.sec-on {
+      background: var(--accent-light);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .lbl-sec-chip.sec-off { opacity: 0.32; }
+
+    /* Dock text inputs */
+    .lbl-dock-fields {
+      display: flex;
+      gap: 0.65rem;
+      align-items: flex-start;
+    }
+    .lbl-dock-field { flex: 1; min-width: 0; }
+    .lbl-dock-field-wide { flex: 2; }
+    .lbl-dock-label {
+      font-size: 0.56rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.15em;
+      letter-spacing: 0.1em;
       color: var(--text-3);
-      margin-bottom: 0.45rem;
+      margin-bottom: 0.2rem;
     }
-    .lbl-prop-row {
+    .lbl-dock-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid transparent;
+      border-radius: 7px;
+      padding: 0.32rem 0.6rem;
+      font-size: 0.78rem;
+      font-family: inherit;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.12s;
+      box-sizing: border-box;
+    }
+    .lbl-dock-input:focus { border-color: var(--accent); }
+    .lbl-dock-textarea { resize: none; line-height: 1.45; }
+
+    /* Override expand button */
+    .lbl-dock-expand {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.5rem 1.25rem;
+      border: none;
+      border-top: 1px solid var(--border);
+      background: none;
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-3);
+      cursor: pointer;
+      font-family: inherit;
+      transition: color 0.1s, background 0.1s;
+    }
+    .lbl-dock-expand:hover { color: var(--text); background: var(--surface2); }
+    .lbl-dock-expand svg { transition: transform 0.18s; }
+    .lbl-studio-dock.dock-open .lbl-dock-expand svg { transform: rotate(180deg); }
+
+    /* Override drawer */
+    .lbl-dock-overrides {
+      display: none;
+      padding: 0.5rem 1.25rem 1rem;
+      border-top: 1px solid var(--border);
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .lbl-studio-dock.dock-open .lbl-dock-overrides { display: block; }
+
+    /* Field rows inside overrides drawer */
+    .lbl-ov-group { margin-bottom: 0.6rem; }
+    .lbl-ov-group-hdr {
+      font-size: 0.52rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-3);
+      margin-bottom: 0.35rem;
+      margin-top: 0.6rem;
+    }
+    .lbl-ov-row {
       display: flex;
       align-items: flex-start;
-      gap: 0.55rem;
-      padding: 0.3rem 0.4rem;
-      margin: 0 -0.4rem;
-      border-radius: 6px;
+      gap: 0.5rem;
+      padding: 0.22rem 0;
       cursor: pointer;
-      transition: background 0.1s;
       user-select: none;
     }
-    .lbl-prop-row:hover { background: var(--surface2); }
-    .lbl-prop-row.lbl-prop-nocheck { cursor: default; }
-    .lbl-prop-row.lbl-prop-nocheck:hover { background: none; }
-    .lbl-prop-check {
-      width: 14px;
-      height: 14px;
+    .lbl-ov-check {
+      width: 13px; height: 13px;
       border: 1.5px solid var(--border);
       border-radius: 3px;
       flex-shrink: 0;
       margin-top: 3px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.12s, border-color 0.12s;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.1s, border-color 0.1s;
     }
-    .lbl-prop-row.lbl-prop-on .lbl-prop-check {
-      background: var(--accent);
-      border-color: var(--accent);
+    .lbl-ov-row.ov-on .lbl-ov-check { background: var(--accent); border-color: var(--accent); }
+    .lbl-ov-mark { width: 7px; height: 5px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+    .lbl-ov-row.ov-on .lbl-ov-mark { opacity: 1; }
+    .lbl-ov-content { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 0.5rem; }
+    .lbl-ov-key {
+      font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.04em; color: var(--text-3); flex-shrink: 0; width: 76px;
     }
-    .lbl-prop-mark { width: 8px; height: 6px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
-    .lbl-prop-row.lbl-prop-on .lbl-prop-mark { opacity: 1; }
-    .lbl-prop-content { flex: 1; min-width: 0; }
-    .lbl-prop-key {
-      font-size: 0.6rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--text-3);
-      line-height: 1;
-      margin-bottom: 0.18rem;
+    .lbl-ov-val {
+      flex: 1; background: none; border: none; outline: none;
+      font-family: inherit; font-size: 0.78rem; font-weight: 500; color: var(--text);
+      border-bottom: 1px solid transparent; transition: border-color 0.1s;
+      padding: 0; box-sizing: border-box; width: 100%;
     }
-    .lbl-prop-val {
-      width: 100%;
-      background: none;
-      border: none;
-      outline: none;
-      font-family: inherit;
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: var(--text);
-      padding: 0;
-      border-bottom: 1px solid transparent;
-      transition: border-color 0.12s;
-      box-sizing: border-box;
-    }
-    .lbl-prop-val:focus { border-bottom-color: var(--accent); }
-    .lbl-prop-val[disabled] { opacity: 0.28; pointer-events: none; }
-    .lbl-prop-textarea {
-      resize: none;
-      line-height: 1.4;
-      display: block;
-      min-height: 2.4em;
-    }
-    .lbl-prop-nocheck-swatch {
-      width: 14px; height: 14px; flex-shrink: 0; margin-top: 3px;
-    }
-
-    /* Right: print canvas */
-    .lbl-ed-canvas {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg-alt);
-      padding: 2.5rem 2rem;
-      gap: 1.1rem;
-      overflow: auto;
-    }
-    .lbl-ed-paper {
-      display: inline-block;
-      filter: drop-shadow(0 8px 36px rgba(0,0,0,0.18)) drop-shadow(0 2px 6px rgba(0,0,0,0.08));
-    }
-    #label-preview { zoom: 2.5; }
-    @supports not (zoom: 1) {
-      #label-preview { zoom: unset; transform: scale(2.5); transform-origin: top left; }
-    }
-    .lbl-ed-hint {
-      font-size: 0.56rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-3);
-    }
+    .lbl-ov-val:focus { border-bottom-color: var(--accent); }
+    .lbl-ov-row.ov-off .lbl-ov-key,
+    .lbl-ov-row.ov-off .lbl-ov-val { opacity: 0.3; }
+    .lbl-ov-row.ov-off .lbl-ov-val { pointer-events: none; }
 
     /* ════════════════════════════
        PRINT STYLES — QL-800 62mm
@@ -1672,14 +1721,15 @@
 
 <!-- ══ MODAL: LABEL ══ -->
 <div class="overlay" id="m-label">
-  <div class="modal lbl-editor-modal">
-    <!-- Top bar -->
-    <div class="lbl-ed-bar">
+  <div class="modal lbl-studio-modal">
+
+    <!-- Bar: title + actions -->
+    <div class="lbl-studio-bar">
       <div>
-        <div class="lbl-ed-eyebrow">Technical Label</div>
-        <div class="lbl-ed-name" id="lbl-title"></div>
+        <div class="lbl-studio-eyebrow">Technical Label</div>
+        <div class="lbl-studio-name" id="lbl-title"></div>
       </div>
-      <div class="lbl-ed-bar-r">
+      <div class="lbl-studio-actions">
         <button class="btn btn-ghost btn-sm" onclick="printLabel()">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="3" y="1" width="10" height="7" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3 8H2a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1h-1" stroke="currentColor" stroke-width="1.3"/><rect x="3" y="10" width="10" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>
           Print QL-800
@@ -1688,21 +1738,46 @@
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           Save PDF
         </button>
-        <button class="btn-icon" onclick="closeModal('m-label')" style="margin-left:0.25rem">✕</button>
+        <button class="btn-icon" onclick="closeModal('m-label')" style="margin-left:0.2rem">✕</button>
       </div>
     </div>
-    <!-- Two-panel body -->
-    <div class="lbl-ed-body">
-      <!-- Left: property inspector -->
-      <div class="lbl-ed-fields" id="lbl-field-panel"></div>
-      <!-- Right: print canvas -->
-      <div class="lbl-ed-canvas">
-        <div class="lbl-ed-paper">
-          <div id="label-preview"></div>
+
+    <!-- Canvas: label is the primary element -->
+    <div class="lbl-studio-canvas">
+      <div class="lbl-studio-paper">
+        <div id="label-preview"></div>
+      </div>
+    </div>
+
+    <!-- Dock: minimal secondary controls -->
+    <div class="lbl-studio-dock" id="lbl-dock">
+      <div class="lbl-dock-main">
+        <!-- Section chips -->
+        <div class="lbl-dock-chips" id="lbl-dock-chips"></div>
+        <!-- Price + Comments inputs -->
+        <div class="lbl-dock-fields">
+          <div class="lbl-dock-field">
+            <div class="lbl-dock-label">Price</div>
+            <input class="lbl-dock-input" id="lbl-price-val" type="text" placeholder="e.g. USD 12.50"
+              oninput="setLabelFieldValue('Price',this.value)">
+          </div>
+          <div class="lbl-dock-field lbl-dock-field-wide">
+            <div class="lbl-dock-label">Comments</div>
+            <textarea class="lbl-dock-input lbl-dock-textarea" id="lbl-comments-val" rows="2"
+              placeholder="Optional note…"
+              oninput="setLabelFieldValue('Comments',this.value)"></textarea>
+          </div>
         </div>
-        <div class="lbl-ed-hint">2.5× · 62mm thermal label · QL-800</div>
       </div>
+      <!-- Override values drawer toggle -->
+      <button class="lbl-dock-expand" onclick="toggleDockExpand()">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 4l3-3 3 3M2 7l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Override values
+      </button>
+      <!-- Overrides: all individual field inputs, hidden by default -->
+      <div class="lbl-dock-overrides" id="lbl-dock-overrides"></div>
     </div>
+
   </div>
 </div>
 
@@ -2734,8 +2809,24 @@ function fieldGroup(key) {
 function openLabel() {
   if (!selected) return
   buildLabelFieldState(selected)
+  // Init section states from field data
+  lblSections = {}
+  LABEL_SECTION_DEFS.forEach(sec => {
+    lblSections[sec.key] = sec.fields.some(k => labelFieldState.find(f => f.key === k && f.enabled))
+  })
   document.getElementById('lbl-title').textContent = selected.name
-  renderLblFields()
+  // Restore Price/Comments inputs
+  const pf = labelFieldState.find(f => f.key === 'Price')
+  const cf = labelFieldState.find(f => f.key === 'Comments')
+  const pi = document.getElementById('lbl-price-val')
+  const ci = document.getElementById('lbl-comments-val')
+  if (pi) pi.value = pf ? pf.value : ''
+  if (ci) ci.value = cf ? cf.value : ''
+  // Collapse dock overrides drawer
+  const dock = document.getElementById('lbl-dock')
+  if (dock) dock.classList.remove('dock-open')
+  renderDockChips()
+  renderOverrides()
   updateLabelPreview()
   document.getElementById('m-label').classList.add('open')
 }
@@ -2888,65 +2979,108 @@ async function deleteComment(commentId, productId) {
   loadFichaComments(productId)
 }
 
-function renderLblFields() {
-  const panel = document.getElementById('lbl-field-panel')
-  if (!panel) return
-  const NO_TOGGLE = new Set(['Product Name', 'Price', 'Comments'])
+function renderDockChips() {
+  const el = document.getElementById('lbl-dock-chips')
+  if (!el) return
+  el.innerHTML = LABEL_SECTION_DEFS.map(sec => {
+    const hasData = sec.fields.some(k => labelFieldState.find(f => f.key === k))
+    if (!hasData) return ''
+    const on = !!lblSections[sec.key]
+    return `<button class="lbl-sec-chip ${on ? 'sec-on' : 'sec-off'}" onclick="toggleLblSection('${sec.key}')">${sec.label}</button>`
+  }).join('')
+}
+
+function toggleLblSection(key) {
+  lblSections[key] = !lblSections[key]
+  const sec = LABEL_SECTION_DEFS.find(s => s.key === key)
+  if (sec) sec.fields.forEach(k => {
+    const f = labelFieldState.find(f => f.key === k)
+    if (f) f.enabled = lblSections[key]
+  })
+  // Update chip without full re-render
+  const chips = document.querySelectorAll('#lbl-dock-chips .lbl-sec-chip')
+  chips.forEach(chip => {
+    if (chip.getAttribute('onclick').includes(`'${key}'`)) {
+      chip.classList.toggle('sec-on', lblSections[key])
+      chip.classList.toggle('sec-off', !lblSections[key])
+    }
+  })
+  // Sync override checkboxes
+  const ovRows = document.querySelectorAll('#lbl-dock-overrides .lbl-ov-row')
+  ovRows.forEach(row => {
+    const k = row.dataset.key
+    const f = labelFieldState.find(f => f.key === k)
+    if (f) {
+      row.classList.toggle('ov-on', f.enabled)
+      row.classList.toggle('ov-off', !f.enabled)
+      const inp = row.querySelector('.lbl-ov-val')
+      if (inp) inp.disabled = !f.enabled
+    }
+  })
+  updateLabelPreview()
+}
+
+function renderOverrides() {
+  const el = document.getElementById('lbl-dock-overrides')
+  if (!el) return
+  const SKIP = new Set(['Price', 'Comments'])
   let html = ''
   LBL_PROP_GROUPS.forEach(({ group, fields }) => {
-    const rows = fields.filter(k => labelFieldState.find(f => f.key === k))
+    const rows = fields.filter(k => !SKIP.has(k) && labelFieldState.find(f => f.key === k))
     if (!rows.length) return
-    html += `<div class="lbl-prop-group"><div class="lbl-prop-group-hdr">${group}</div>`
+    html += `<div class="lbl-ov-group"><div class="lbl-ov-group-hdr">${group}</div>`
     rows.forEach(key => {
       const f = labelFieldState.find(f => f.key === key)
       if (!f) return
       const safeKey = key.replace(/'/g, "\\'")
       const safeVal = String(f.value ?? '').replace(/"/g, '&quot;')
-      const isOn = f.enabled || NO_TOGGLE.has(key)
-      const noToggle = NO_TOGGLE.has(key)
-      const isTextarea = key === 'Comments'
-      html += `<div class="lbl-prop-row ${isOn ? 'lbl-prop-on' : 'lbl-prop-off'}${noToggle ? ' lbl-prop-nocheck' : ''}"
-        ${noToggle ? '' : `onclick="toggleLblProp(event,'${safeKey}')"`}>
-        ${noToggle
-          ? `<div class="lbl-prop-nocheck-swatch"></div>`
-          : `<div class="lbl-prop-check"><svg class="lbl-prop-mark" viewBox="0 0 10 8"><polyline points="1,4 3.5,6.5 9,1"/></svg></div>`
-        }
-        <div class="lbl-prop-content">
-          <div class="lbl-prop-key">${esc(key)}</div>
-          ${isTextarea
-            ? `<textarea class="lbl-prop-val lbl-prop-textarea" rows="2"
-                onclick="event.stopPropagation()"
-                oninput="setLabelFieldValue('${safeKey}',this.value)"
-                >${esc(String(f.value ?? ''))}</textarea>`
-            : `<input class="lbl-prop-val" type="text" value="${safeVal}"
-                onclick="event.stopPropagation()"
-                oninput="setLabelFieldValue('${safeKey}',this.value)"
-                ${!isOn && !noToggle ? 'disabled' : ''} />`
-          }
+      html += `<div class="lbl-ov-row ${f.enabled ? 'ov-on' : 'ov-off'}" data-key="${key}"
+        onclick="toggleOvRow(event,'${safeKey}')">
+        <div class="lbl-ov-check"><svg class="lbl-ov-mark" viewBox="0 0 10 8"><polyline points="1,4 3.5,6.5 9,1"/></svg></div>
+        <div class="lbl-ov-content">
+          <span class="lbl-ov-key">${esc(key)}</span>
+          <input class="lbl-ov-val" type="text" value="${safeVal}"
+            onclick="event.stopPropagation()"
+            oninput="setLabelFieldValue('${safeKey}',this.value)"
+            ${f.enabled ? '' : 'disabled'} />
         </div>
       </div>`
     })
     html += '</div>'
   })
-  panel.innerHTML = html
+  el.innerHTML = html
 }
 
-function toggleLblProp(e, key) {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+function toggleOvRow(e, key) {
+  if (e.target.tagName === 'INPUT') return
   const f = labelFieldState.find(f => f.key === key)
   if (!f) return
   f.enabled = !f.enabled
   const row = e.currentTarget
-  row.classList.toggle('lbl-prop-on', f.enabled)
-  row.classList.toggle('lbl-prop-off', !f.enabled)
-  const inp = row.querySelector('.lbl-prop-val')
-  if (inp && inp.tagName === 'INPUT') inp.disabled = !f.enabled
+  row.classList.toggle('ov-on', f.enabled)
+  row.classList.toggle('ov-off', !f.enabled)
+  const inp = row.querySelector('.lbl-ov-val')
+  if (inp) inp.disabled = !f.enabled
+  // Sync section chip state
+  LABEL_SECTION_DEFS.forEach(sec => {
+    if (sec.fields.includes(key)) {
+      const anyOn = sec.fields.some(k => labelFieldState.find(f => f.key === k && f.enabled))
+      lblSections[sec.key] = anyOn
+    }
+  })
+  renderDockChips()
   updateLabelPreview()
 }
 
+function toggleDockExpand() {
+  const dock = document.getElementById('lbl-dock')
+  if (dock) dock.classList.toggle('dock-open')
+}
+
+function renderLblFields() { /* legacy stub */ }
 function renderLblChips() { /* legacy stub */ }
-function toggleLblSection() { /* legacy stub */ }
 function renderFieldToggles() { /* legacy stub */ }
+function toggleLblProp() { /* legacy stub */ }
 
 function toggleLabelField(key, enabled) {
   const f = labelFieldState.find(f => f.key === key)
