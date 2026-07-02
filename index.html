@@ -1228,13 +1228,12 @@
     .lbl-kv { display: flex; align-items: baseline; gap: 0; min-width: 0; }
     .lbl-kv-k {
       font-size: 1.8mm; /* SIZE C */
-      font-weight: 400;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: #000;
       width: 16mm;
       flex-shrink: 0;
-      opacity: 0.42;
     }
     .lbl-kv-v {
       font-size: 2.8mm; /* SIZE B */
@@ -1251,13 +1250,12 @@
     .lbl-dim { flex: 1; }
     .lbl-dim-k {
       font-size: 1.8mm; /* SIZE C */
-      font-weight: 400;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: #000;
       display: block;
       margin-bottom: 0.5mm;
-      opacity: 0.42;
     }
     .lbl-dim-v {
       font-size: 2.8mm; /* SIZE B */
@@ -1272,13 +1270,12 @@
     .lbl-yarn { display: flex; align-items: baseline; gap: 0; }
     .lbl-yarn-k {
       font-size: 1.8mm; /* SIZE C */
-      font-weight: 400;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: #000;
       width: 10mm;
       flex-shrink: 0;
-      opacity: 0.42;
     }
     .lbl-yarn-v {
       font-size: 2.8mm; /* SIZE B */
@@ -1303,11 +1300,8 @@
     .lbl-bc-wrap svg { width: 100%; height: auto; min-height: 13mm; display: block; }
     .lbl-bc-wrap img { width: 100%; height: auto; display: block; }
 
-    /* Footer: code left · mark right */
+    /* Footer: code only (no duplicate logo) */
     .lbl-bc-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
       margin-top: 1.2mm;
     }
     .lbl-bc-id {
@@ -1317,8 +1311,7 @@
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
-    .lbl-logo { flex-shrink: 0; }
-    .lbl-logo svg { height: 3mm; width: auto; display: block; }
+    .lbl-logo { display: none; }
 
     /* Legacy compat */
     .lbl-band { display:contents; }
@@ -3442,8 +3435,11 @@ function setLabelFieldValue(key, val) {
 
 function updateLabelPreview() {
   document.getElementById('label-preview').innerHTML = renderLabel(selected, labelFieldState)
-  initLabelCodePreviews(selected)
-  requestAnimationFrame(fitLabelPreview)
+  // Defer code renders one frame so DOM is painted before JsBarcode measures the SVG
+  requestAnimationFrame(() => {
+    initLabelCodePreviews(selected)
+    requestAnimationFrame(fitLabelPreview)
+  })
 }
 
 function fitLabelPreview() {
@@ -3536,8 +3532,9 @@ function renderLabel(p, fields, printAssets = null) {
     s.push(`<div class="lbl-title">${esc(F['Product Name'])}</div>`)
   }
 
-  /* ── IDENTITY: Mill Article · LOT · Country ── */
-  const idParts = [F['Mill Article'], F['LOT']].filter(Boolean)
+  /* ── IDENTITY: if SKU (barcode) exists show only Country, else Mill Article · LOT · Country ── */
+  const codeStr = p.code || p.specs?.barcode || null
+  const idParts = codeStr ? [] : [F['Mill Article'], F['LOT']].filter(Boolean)
   const origin = F['Manufactured In']
   if (idParts.length || origin) {
     const idStr = idParts.map(v => esc(v)).join('<span class="lbl-identity-sep">·</span>')
@@ -3584,7 +3581,6 @@ function renderLabel(p, fields, printAssets = null) {
   }
 
   /* ── RULE + BARCODE + footer ── */
-  const codeStr = p.code || p.specs?.barcode || null
   if (codeStr) {
     const bcEl = printAssets
       ? (printAssets.bcSrc ? `<img src="${printAssets.bcSrc}" style="width:100%;height:auto;display:block">` : '')
