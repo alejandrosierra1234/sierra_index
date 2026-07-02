@@ -2429,6 +2429,20 @@ const SB_KEY = 'sb_publishable_9g8UJRbV3NxOlmQgPxjDqg_Xw6hFB0f'
 const sb = supabase.createClient(SB_URL, SB_KEY)
 
 const DIV_CLR = { fiber:'#9e00cb', yarn:'#3ed600', fabric:'#009fff', chemicals:'#ff7824', garment:'#16cdbe' }
+const DIV_ACCENT = {
+  all:       { accent:'#16cdbe', dark:'#0fa89c', light:'rgba(22,205,190,0.08)' },
+  fiber:     { accent:'#9e00cb', dark:'#7a0099', light:'rgba(158,0,203,0.08)' },
+  yarn:      { accent:'#3ed600', dark:'#2dad00', light:'rgba(62,214,0,0.08)' },
+  fabric:    { accent:'#009fff', dark:'#007fd4', light:'rgba(0,159,255,0.08)' },
+  chemicals: { accent:'#ff7824', dark:'#d45f00', light:'rgba(255,120,36,0.08)' },
+  garment:   { accent:'#16cdbe', dark:'#0fa89c', light:'rgba(22,205,190,0.08)' },
+}
+function applyDivisionAccent(d) {
+  const a = DIV_ACCENT[d] || DIV_ACCENT.all
+  document.documentElement.style.setProperty('--accent', a.accent)
+  document.documentElement.style.setProperty('--accent-dark', a.dark)
+  document.documentElement.style.setProperty('--accent-light', a.light)
+}
 const DIV_LBL = { fiber:'SIERRA Fiber', yarn:'SIERRA Yarn', fabric:'SIERRA Fabric', chemicals:'SIERRA Chemicals', garment:'SIERRA Apparel' }
 
 const DIV_ICON = {
@@ -2870,6 +2884,7 @@ function setDiv(d, el) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
   el.classList.add('active')
   division = d
+  applyDivisionAccent(d)
   fabricFilter = null // reset construction filter when switching division
   const t = d === 'all' ? 'All products' : DIV_LBL[d]
   document.getElementById('sec-title').textContent = t
