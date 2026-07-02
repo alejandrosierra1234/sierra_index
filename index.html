@@ -3591,7 +3591,7 @@ function renderLabel(p, fields, printAssets = null) {
   /* ── RULE + BARCODE + footer ── */
   if (codeStr) {
     const bcEl = printAssets
-      ? (printAssets.bcSrc ? `<img src="${printAssets.bcSrc}" style="width:100%;height:auto;display:block">` : '')
+      ? (printAssets.bcSvgHtml || (printAssets.bcSrc ? `<img src="${printAssets.bcSrc}" style="width:100%;height:auto;display:block">` : ''))
       : `<svg id="lbl-preview-bc"></svg>`
     s.push(`<div class="lbl-rule"></div>
     <div class="lbl-bc-wrap">${bcEl}</div>
@@ -3619,17 +3619,21 @@ async function printLabel() {
     return
   }
 
-  // Barcode: render to canvas → PNG data URL (pixel-perfect, no SVG scaling artifacts)
-  let bcSrc = ''
+  // Barcode: render to SVG inline (vectorial — no compression, bars stay crisp at any DPI)
+  let bcSvgHtml = ''
   try {
-    const bcCanvas = document.createElement('canvas')
-    JsBarcode(bcCanvas, getProductBarcode(selected), {
+    const tmpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    JsBarcode(tmpSvg, getProductBarcode(selected), {
       format:'CODE128', width:5, height:100,
       displayValue:false,
       marginLeft:60, marginRight:60, marginTop:5, marginBottom:5,
-      background:'#ffffff', lineColor:'#000000'
+      background:'#ffffff', lineColor:'#000000',
+      xmlDocument: document
     })
-    bcSrc = bcCanvas.toDataURL('image/png')
+    tmpSvg.removeAttribute('width')
+    tmpSvg.removeAttribute('height')
+    tmpSvg.setAttribute('style', 'width:100%;height:auto;display:block')
+    bcSvgHtml = tmpSvg.outerHTML
   } catch(e) {}
 
   // QR: UUID-only URL (short) → low-density → 'L' correction → fewest modules → easy scan
@@ -3641,7 +3645,7 @@ async function printLabel() {
         (err, url) => err ? rej(err) : res(url)))
   } catch(e) {}
 
-  const labelHtml = renderLabel(selected, labelFieldState, { qrSrc, bcSrc })
+  const labelHtml = renderLabel(selected, labelFieldState, { qrSrc, bcSvgHtml })
 
   // Inject into #print-root (visible in @media print via existing CSS)
   const root = document.getElementById('print-root')
