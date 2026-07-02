@@ -1134,116 +1134,133 @@
       .pg-grid { grid-template-columns: 1fr; }
     }
 
-    /* ══════════════════════════════════════
-       LABEL — content classes (used in preview AND print-root)
-       Apple design principles:
-       · Zones separated by hairlines, not gap
-       · Two weights only: key=400, value=600
-       · One data pattern for all specs (KV table, fixed key column)
-       · Numeric dimensions get their own compact grid
-    ══════════════════════════════════════ */
-    /*
-      LABEL — Apple information-density approach
-      · No thick zone borders — hierarchy via typography only
-      · No outer label border
-      · Keys: uppercase, small, regular weight
-      · Values: larger, bold — same black
-      · One hairline (0.25mm) to separate barcode from specs
-      · Branding minimal, bottom-right
-      · QR: small, top-right corner
-    */
+    /* ════════════════════════════════════════
+       LABEL — 62mm thermal (QL-800)
+       3 sizes only:
+         A = 6mm   → product name (headline)
+         B = 2.8mm → all spec values, dimensions, yarns
+         C = 1.8mm → keys, codes, meta, hints
+       Font: Arial — industrial, universal, max legibility
+    ════════════════════════════════════════ */
     .lbl {
       width: 62mm;
-      padding: 3mm 3.5mm 3mm;
+      padding: 3mm 3.5mm 2.5mm;
       display: flex;
       flex-direction: column;
-      font-family: "Replica", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-family: Arial, Helvetica, sans-serif;
       color: #000;
       background: #fff;
       gap: 0;
       box-sizing: border-box;
     }
 
-    /* ── TOP ROW: codes + origin left · QR right ── */
+    /* ── TOP ROW: SIERRA logo left · QR right ── */
     .lbl-hdr {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
-      gap: 2mm;
+      gap: 3mm;
       margin-bottom: 2.5mm;
     }
-    .lbl-hdr-left { flex: 1; min-width: 0; }
+    .lbl-hdr-logo { flex: 1; min-width: 0; display: flex; align-items: flex-start; }
+    .lbl-hdr-logo svg { height: 5.5mm; width: auto; max-width: 100%; display: block; }
+    .lbl-hdr-qr {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.7mm;
+    }
+    .lbl-hdr-qr canvas, .lbl-hdr-qr img {
+      width: 13mm; height: 13mm; display: block; image-rendering: pixelated;
+    }
+    .lbl-qr-hint {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 1.6mm; /* SIZE C */
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #000;
+      opacity: 0.38;
+      text-align: center;
+      line-height: 1;
+    }
+
+    /* ── PRODUCT NAME — SIZE A ── */
+    .lbl-title {
+      font-size: 6mm;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #000;
+      line-height: 0.92;
+      letter-spacing: -0.01em;
+      overflow-wrap: break-word;
+      margin-bottom: 1.5mm;
+    }
+
+    /* ── IDENTITY: Mill Article · LOT · Country ── */
     .lbl-identity-codes {
-      font-size: 1.65mm;
-      font-weight: 400;
+      font-size: 1.8mm; /* SIZE C */
+      font-weight: 700;
       color: #000;
       letter-spacing: 0.04em;
-      line-height: 1.4;
+      line-height: 1.5;
     }
-    .lbl-identity-sep { margin: 0 0.6mm; opacity: 0.35; }
+    .lbl-identity-sep { margin: 0 0.9mm; opacity: 0.3; font-weight: 400; }
     .lbl-origin {
-      font-size: 1.5mm;
+      font-size: 1.8mm; /* SIZE C */
       font-weight: 400;
       color: #000;
-      letter-spacing: 0.03em;
-      margin-top: 0.6mm;
-    }
-    .lbl-hdr-qr { flex-shrink: 0; }
-    .lbl-hdr-qr canvas, .lbl-hdr-qr img {
-      width: 16mm; height: 16mm; display: block; image-rendering: pixelated;
+      opacity: 0.55;
     }
 
-    /* ── PRODUCT NAME — large, bold, all-caps · not a band, just text ── */
-    .lbl-title {
-      font-size: 4.6mm;
-      font-weight: 800;
-      text-transform: uppercase;
-      color: #000;
-      line-height: 0.95;
-      letter-spacing: -0.02em;
-      overflow-wrap: break-word;
-      margin-bottom: 3mm;
+    /* ── SECTION HAIRLINE (between content zones) ── */
+    .lbl-sep {
+      height: 0.25mm;
+      background: #000;
+      opacity: 0.12;
+      margin: 2mm 0;
+      flex-shrink: 0;
     }
 
-    /* ── SPECS: tight KV table ── */
-    .lbl-kv-table { display: flex; flex-direction: column; gap: 0.9mm; }
+    /* ── SPECS: KV table ── */
+    .lbl-kv-table { display: flex; flex-direction: column; gap: 1.2mm; }
     .lbl-kv { display: flex; align-items: baseline; gap: 0; min-width: 0; }
     .lbl-kv-k {
-      font-size: 1.35mm;
+      font-size: 1.8mm; /* SIZE C */
       font-weight: 400;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       color: #000;
-      width: 14mm;
+      width: 16mm;
       flex-shrink: 0;
-      padding-top: 0.15mm;
-      opacity: 0.5;
+      opacity: 0.42;
     }
     .lbl-kv-v {
-      font-size: 2.3mm;
+      font-size: 2.8mm; /* SIZE B */
       font-weight: 600;
       color: #000;
       flex: 1;
-      line-height: 1.25;
+      line-height: 1.2;
       overflow-wrap: break-word;
       min-width: 0;
     }
 
-    /* ── DIMENSIONS: inline row, key above value ── */
-    .lbl-dims { display: flex; gap: 0; margin-top: 2mm; }
+    /* ── DIMENSIONS: inline grid ── */
+    .lbl-dims { display: flex; gap: 0; }
     .lbl-dim { flex: 1; }
     .lbl-dim-k {
-      font-size: 1.35mm;
+      font-size: 1.8mm; /* SIZE C */
       font-weight: 400;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       color: #000;
       display: block;
-      margin-bottom: 0.4mm;
-      opacity: 0.5;
+      margin-bottom: 0.5mm;
+      opacity: 0.42;
     }
     .lbl-dim-v {
-      font-size: 3mm;
+      font-size: 2.8mm; /* SIZE B */
       font-weight: 700;
       color: #000;
       line-height: 1;
@@ -1251,20 +1268,20 @@
     }
 
     /* ── YARNS ── */
-    .lbl-yarns { display: flex; flex-direction: column; gap: 0.8mm; margin-top: 2mm; }
+    .lbl-yarns { display: flex; flex-direction: column; gap: 1.2mm; }
     .lbl-yarn { display: flex; align-items: baseline; gap: 0; }
     .lbl-yarn-k {
-      font-size: 1.35mm;
+      font-size: 1.8mm; /* SIZE C */
       font-weight: 400;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       color: #000;
-      width: 7mm;
+      width: 10mm;
       flex-shrink: 0;
-      opacity: 0.5;
+      opacity: 0.42;
     }
     .lbl-yarn-v {
-      font-size: 2.2mm;
+      font-size: 2.8mm; /* SIZE B */
       font-weight: 600;
       color: #000;
       line-height: 1.25;
@@ -1273,39 +1290,42 @@
       min-width: 0;
     }
 
-    /* ── HAIRLINE before barcode ── */
+    /* ── RULE before barcode — solid, full weight ── */
     .lbl-rule {
-      height: 0.25mm;
+      height: 0.4mm;
       background: #000;
       margin: 2.5mm 0 2mm;
       flex-shrink: 0;
     }
 
-    /* ── BARCODE + identity + logo row ── */
+    /* ── BARCODE ── */
     .lbl-bc-wrap { flex-shrink: 0; }
     .lbl-bc-wrap svg { width: 100%; height: auto; min-height: 13mm; display: block; }
+    .lbl-bc-wrap img { width: 100%; height: auto; display: block; }
 
-    /* Bottom row: code left · logo right */
+    /* Footer: code left · mark right */
     .lbl-bc-footer {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: 1mm;
+      margin-top: 1.2mm;
     }
     .lbl-bc-id {
-      font-size: 1.4mm;
-      font-weight: 400;
+      font-size: 1.8mm; /* SIZE C */
+      font-weight: 700;
       color: #000;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
     .lbl-logo { flex-shrink: 0; }
-    .lbl-logo svg { height: 3.5mm; width: auto; display: block; }
+    .lbl-logo svg { height: 3mm; width: auto; display: block; }
 
     /* Legacy compat */
     .lbl-band { display:contents; }
     .lbl-zone { display:contents; }
     .lbl-bc-zone { display:contents; }
     .lbl-hdr-right { display:none; }
+    .lbl-hdr-left { display:none; }
     .lbl-divider { display:none; }
     .lbl-thin { display:none; }
     .lbl-spec-k, .lbl-key, .lbl-yarn-tag { display:none; }
@@ -1529,8 +1549,8 @@
       body > * { display:none !important; }
       #print-root { display:block !important; }
       @page { size:62mm auto; margin:0; }
-      /* Reset preview zoom */
-      #print-root #label-preview { zoom:unset !important; transform:none !important; }
+      /* Reset preview transform */
+      #print-root #label-preview { zoom:unset !important; transform:none !important; transform-origin:unset !important; }
       /* Mono logo for thermal printing */
       #print-root .lc1 { fill:#000 !important; }
       /* Hide any canvas/video elements outside print-root (preview QR, scan camera, etc.) */
@@ -3428,27 +3448,46 @@ function updateLabelPreview() {
 
 function fitLabelPreview() {
   const container = document.querySelector('.lbl-dr-preview')
+  const paper = document.querySelector('.lbl-dr-paper')
   const label = document.getElementById('label-preview')
-  if (!container || !label) return
-  label.style.zoom = '1'
+  if (!container || !label || !paper) return
+
+  // Reset to measure natural size
+  label.style.transform = 'scale(1)'
+  label.style.transformOrigin = 'top center'
+  paper.style.height = ''
+
   const availW = container.clientWidth - 80
   const availH = container.clientHeight - 96
   const naturalW = label.offsetWidth
   const naturalH = label.offsetHeight
   if (!naturalW || !naturalH) return
-  const zoom = Math.min(availW / naturalW, availH / naturalH, 3.5)
-  label.style.zoom = String(Math.round(zoom * 100) / 100)
+
+  const scale = Math.min(availW / naturalW, availH / naturalH, 3.5)
+  const s = Math.round(scale * 100) / 100
+  label.style.transform = `scale(${s})`
+  // Set paper height so container knows scaled visual height
+  paper.style.height = Math.ceil(naturalH * s) + 'px'
 }
 
 function initLabelCodePreviews(p) {
   if (!p) return
   const bcSvg = document.getElementById('lbl-preview-bc')
-  if (bcSvg) {
-    try { JsBarcode(bcSvg, getProductBarcode(p), { format:'CODE128', width:3, height:80, displayValue:false, margin:16, background:'#fff', lineColor:'#000' }) } catch(e) {}
+  const code = getProductBarcode(p)
+  if (bcSvg && code) {
+    try { JsBarcode(bcSvg, code, { format:'CODE128', width:3, height:80, displayValue:false, margin:16, background:'#fff', lineColor:'#000' }) } catch(e) {}
   }
   const qrCanvas = document.getElementById('lbl-preview-qr')
   if (qrCanvas) {
-    try { QRCode.toCanvas(qrCanvas, getProductPublicUrl(p), { width:256, margin:3, errorCorrectionLevel:'L', color:{ dark:'#000000', light:'#ffffff' } }, function(){}) } catch(e) {}
+    try {
+      QRCode.toCanvas(qrCanvas, getProductPublicUrl(p),
+        { width:256, margin:3, errorCorrectionLevel:'L', color:{ dark:'#000000', light:'#ffffff' } },
+        function() {
+          // QRCode.toCanvas overrides canvas style.width/height — reset to label dimensions
+          qrCanvas.style.width = '13mm'
+          qrCanvas.style.height = '13mm'
+        })
+    } catch(e) {}
   }
 }
 
@@ -3478,55 +3517,73 @@ function renderLabel(p, fields, printAssets = null) {
 
   const s = []
 
-  /* ── QR — small, top-right ── */
+  /* ── QR element ── */
   const qrEl = printAssets
-    ? (printAssets.qrSrc ? `<img src="${printAssets.qrSrc}" style="width:16mm;height:16mm;display:block;image-rendering:pixelated">` : '')
-    : `<canvas id="lbl-preview-qr" width="256" height="256" style="width:16mm;height:16mm;display:block"></canvas>`
+    ? (printAssets.qrSrc ? `<img src="${printAssets.qrSrc}" style="width:13mm;height:13mm;display:block;image-rendering:pixelated">` : '')
+    : `<canvas id="lbl-preview-qr" width="256" height="256" style="width:13mm;height:13mm;display:block"></canvas>`
 
-  /* ── TOP ROW: codes + origin left · QR right ── */
-  const idCodes = [F['Mill Article'], F['LOT']].filter(Boolean)
+  /* ── TOP ROW: SIERRA logo left · QR + SCAN right ── */
   s.push(`<div class="lbl-hdr">
-    <div class="lbl-hdr-left">
-      ${idCodes.length ? `<div class="lbl-identity-codes">${
-        idCodes.map(v => esc(v)).join('<span class="lbl-identity-sep">/</span>')
-      }</div>` : ''}
-      ${F['Manufactured In'] ? `<div class="lbl-origin">${esc(F['Manufactured In'])}</div>` : ''}
+    <div class="lbl-hdr-logo">${LBL_LOGO_SVG}</div>
+    <div class="lbl-hdr-qr">
+      ${qrEl}
+      <div class="lbl-qr-hint">▼ SCAN</div>
     </div>
-    <div class="lbl-hdr-qr">${qrEl}</div>
   </div>`)
 
-  /* ── PRODUCT NAME ── */
+  /* ── PRODUCT NAME — SIZE A ── */
   if (F['Product Name']) {
     s.push(`<div class="lbl-title">${esc(F['Product Name'])}</div>`)
+  }
+
+  /* ── IDENTITY: Mill Article · LOT · Country ── */
+  const idParts = [F['Mill Article'], F['LOT']].filter(Boolean)
+  const origin = F['Manufactured In']
+  if (idParts.length || origin) {
+    const idStr = idParts.map(v => esc(v)).join('<span class="lbl-identity-sep">·</span>')
+    const sepStr = idParts.length && origin ? '<span class="lbl-identity-sep">·</span>' : ''
+    const originStr = origin ? `${sepStr}<span class="lbl-origin">${esc(origin)}</span>` : ''
+    s.push(`<div class="lbl-identity-codes">${idStr}${originStr}</div>`)
   }
 
   /* ── SPECS ── */
   const specKeys = ['Composition','Color','Dyed Method'].filter(k => F[k])
   if (specKeys.length) {
+    s.push(`<div class="lbl-sep"></div>`)
     s.push(`<div class="lbl-kv-table">${specKeys.map(k => lblKV(k, F[k])).join('')}</div>`)
   }
 
   /* ── DIMENSIONS ── */
   const dimKeys = ['Width','GSM','DIA','Gauge'].filter(k => F[k])
   if (dimKeys.length) {
+    s.push(`<div class="lbl-sep"></div>`)
     s.push(`<div class="lbl-dims">${dimKeys.map(k => lblDim(k, F[k])).join('')}</div>`)
   }
 
   /* ── YARNS ── */
   const yarnKeys = ['Yarn 01','Yarn 02','Yarn 03'].filter(k => F[k])
   if (yarnKeys.length) {
+    s.push(`<div class="lbl-sep"></div>`)
     s.push(`<div class="lbl-yarns">${yarnKeys.map(k =>
       `<div class="lbl-yarn"><span class="lbl-yarn-k">${esc(k)}</span><span class="lbl-yarn-v">${esc(F[k])}</span></div>`
     ).join('')}</div>`)
   }
 
-  /* ── NOTES ── */
+  /* ── NOTES (price always with $, comments) ── */
   const noteKeys = ['Price','Comments'].filter(k => F[k])
   if (noteKeys.length) {
-    s.push(`<div class="lbl-kv-table" style="margin-top:2mm">${noteKeys.map(k => lblKV(k, F[k])).join('')}</div>`)
+    s.push(`<div class="lbl-sep"></div>`)
+    s.push(`<div class="lbl-kv-table">${noteKeys.map(k => {
+      let v = F[k]
+      if (k === 'Price') {
+        const str = String(v).trim()
+        if (str && !str.startsWith('$')) v = '$' + str
+      }
+      return lblKV(k, v)
+    }).join('')}</div>`)
   }
 
-  /* ── HAIRLINE then BARCODE + code · logo ── */
+  /* ── RULE + BARCODE + footer ── */
   const codeStr = p.code || p.specs?.barcode || null
   if (codeStr) {
     const bcEl = printAssets
