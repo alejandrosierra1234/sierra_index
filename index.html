@@ -2692,9 +2692,8 @@ const CONST_META = {
   OTH: { label: 'Other',        order: 99 },
 }
 
-// Infer construction type from product name when specs.Construction is not set
+// Infer construction type from product name (name is the source of truth — specs.Construction was bulk-set incorrectly)
 function inferConstruction(p) {
-  if (p.specs?.Construction) return p.specs.Construction
   const n = (p.name || '').toLowerCase()
   if (/\brib\b/.test(n))                        return 'RIB'
   if (/french\s*terry/.test(n))                 return 'FRT'
@@ -2707,6 +2706,8 @@ function inferConstruction(p) {
   if (/velour/.test(n))                         return 'VLR'
   if (/double\s*knit|double\s*face/.test(n))    return 'DBK'
   if (/jersey/.test(n))                         return 'JRS'
+  // Only fall back to stored field if name gives no signal
+  if (p.specs?.Construction && p.specs.Construction !== 'JRS') return p.specs.Construction
   return 'OTH'
 }
 
