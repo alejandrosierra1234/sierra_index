@@ -6255,44 +6255,55 @@ async function executeScan(val) {
   toast('No match found for: ' + v)
 }
 
-let _scanDebugCount = 0
 async function _scanFrame(video, canvas, ctx) {
   if (video.readyState !== video.HAVE_ENOUGH_DATA) return null
-  canvas.width = video.videoWidth
-  canvas.height = video.videoHeight
-  ctx.drawImage(video, 0, 0)
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
 
-  const debug = (_scanDebugCount++ % 30 === 0) // log every 30 frames (~1s)
+  const vw = video.videoWidth
+  const vh = video.videoHeight
+
+  // iOS rear camera often delivers frames rotated 90°.
+  // Detect by comparing aspect ratio to the video element's displayed aspect ratio.
+  const isPortraitFrame = vw < vh
+  const needsRotation = isPortraitFrame && vw > 0
+
+  if (needsRotation) {
+    // Rotate canvas 90° so 1D barcodes are horizontal
+    canvas.width = vh
+    canvas.height = vw
+    ctx.save()
+    ctx.translate(vh / 2, vw / 2)
+    ctx.rotate(Math.PI / 2)
+    ctx.drawImage(video, -vw / 2, -vh / 2)
+    ctx.restore()
+  } else {
+    canvas.width = vw
+    canvas.height = vh
+    ctx.drawImage(video, 0, 0)
+  }
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
 
   if (_scanDetector) {
     try {
       const codes = await _scanDetector.detect(canvas)
-      if (debug) console.log('[scan] BarcodeDetector result:', codes)
       if (codes.length > 0) return codes[0].rawValue
-    } catch(e) { if (debug) console.warn('[scan] BarcodeDetector error:', e) }
-  } else {
-    if (debug) console.log('[scan] BarcodeDetector: not available')
+    } catch(e) {}
   }
 
   if (window.jsQR) {
     const code = jsQR(imageData.data, imageData.width, imageData.height)
-    if (debug) console.log('[scan] jsQR result:', code?.data ?? null)
     if (code) return code.data
   }
 
-  // ZXing fallback: pure-JS CODE128 + QR decoder (works when BarcodeDetector unavailable)
+  // ZXing: pure-JS CODE128 + QR, reliable on iOS where BarcodeDetector is unavailable
   const zxing = _getZxingReader()
   if (zxing) {
     try {
       const luminance = new ZXing.HTMLCanvasElementLuminanceSource(canvas)
       const bitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminance))
       const decoded = zxing.decode(bitmap)
-      if (debug) console.log('[scan] ZXing result:', decoded?.getText())
       if (decoded) return decoded.getText()
-    } catch(e) { /* ZXing throws NotFoundException when no code found — normal */ }
-  } else {
-    if (debug) console.log('[scan] ZXing: not loaded', { ZXingAvailable: !!window.ZXing })
+    } catch(e) { /* NotFoundException is normal when no code in frame */ }
   }
 
   return null
@@ -6311,13 +6322,13 @@ async function toggleCameraMode() {
     const btn = document.getElementById('scan-cam-btn')
     btn.classList.add('active')
     document.getElementById('scan-cam-label').textContent = 'Stop Camera'
-    setScanStatus('Align barcode or QR code within frame')
-
     if (window.BarcodeDetector) {
       try { _scanDetector = new BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13'] }) } catch {}
     }
     // Pre-init ZXing reader so first frame doesn't pay init cost
-    _getZxingReader()
+    const zxingReady = !!_getZxingReader()
+    const engine = _scanDetector ? 'Native' : zxingReady ? 'ZXing' : 'jsQR only'
+    setScanStatus(`Scanning… (${engine}) — align barcode within frame`)
 
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
