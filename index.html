@@ -1420,14 +1420,14 @@
       min-height: 0;
     }
 
-    /* LEFT: editor column */
+    /* LEFT: editor column — bg-alt like sidebar sections */
     .lbl-dr-editor {
       width: 300px;
       flex-shrink: 0;
       border-right: 1px solid var(--border);
       overflow-y: auto;
-      padding-bottom: 3rem;
-      /* Thin Apple-style scrollbar */
+      padding: 0.25rem 0 2rem;
+      background: var(--bg-alt);
       scrollbar-width: thin;
       scrollbar-color: var(--border) transparent;
     }
@@ -1435,32 +1435,43 @@
     .lbl-dr-editor::-webkit-scrollbar-track { background: transparent; }
     .lbl-dr-editor::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-    /* Section dividers — clear visual grouping */
+    /* Section label — matches sidebar .s-label exactly */
     .lbl-sec-hdr {
-      padding: 1.25rem 1.4rem 0.45rem;
-      font-size: 0.6rem;
-      font-weight: 700;
+      font-size: 0.62rem;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.1em;
       color: var(--text-3);
-      border-top: 1px solid var(--border);
+      padding: 1rem 1.15rem 0.3rem;
     }
-    .lbl-sec-hdr:first-child { border-top: none; }
+    .lbl-sec-hdr:first-child { padding-top: 0.5rem; }
 
-    /* Per-field rows — horizontal label+checkbox on top, input below */
+    /* Inset grouped card — iOS Settings pattern */
+    .lbl-sec-group {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin: 0 0.75rem 0.15rem;
+      overflow: hidden;
+    }
+
+    /* Per-field rows — full-width inside the card */
     .lbl-fld-row {
-      padding: 0 1.4rem 0.8rem;
+      padding: 0.6rem 0.9rem;
       cursor: pointer;
       user-select: none;
+      border-top: 1px solid var(--border);
+      transition: background 0.1s;
     }
-    .lbl-fld-row:last-child { padding-bottom: 0.4rem; }
+    .lbl-fld-row:first-child { border-top: none; }
+    .lbl-fld-row:hover { background: var(--surface2); }
 
-    /* Label row: text left, checkbox right — Apple inspector pattern */
+    /* Label row: text left, checkbox right */
     .lbl-fld-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 0.38rem;
+      margin-bottom: 0.32rem;
     }
     .lbl-fld-key {
       font-size: 0.68rem;
@@ -1472,7 +1483,7 @@
     }
     .lbl-fld-row.fld-on .lbl-fld-key { color: var(--text-2); }
 
-    /* Checkbox lives in the label row, right-aligned */
+    /* Checkbox */
     .lbl-fld-chk {
       width: 15px; height: 15px;
       border: 1.5px solid var(--border);
@@ -1489,32 +1500,26 @@
     }
     .lbl-fld-row.fld-on .lbl-fld-chk-mark { opacity: 1; }
 
-    /* Inputs — disabled state: readable but clearly inactive */
+    /* Input — borderless inside the card, focus ring only */
     .lbl-fld-val {
       width: 100%;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 0.55rem 0.75rem;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      padding: 0.42rem 0.55rem;
       font-size: 0.82rem;
       font-family: inherit;
       color: var(--text);
       outline: none;
-      transition: border-color 0.15s, opacity 0.15s;
+      transition: background 0.12s, opacity 0.15s;
       box-sizing: border-box;
       resize: none;
       line-height: 1.45;
       display: block;
     }
-    .lbl-fld-val:focus { border-color: var(--accent); }
-    /* Off state: input dimmed, label stays readable */
-    .lbl-fld-row.fld-off .lbl-fld-val {
-      opacity: 0.38;
-      pointer-events: none;
-    }
-    .lbl-fld-row.fld-off .lbl-fld-key {
-      opacity: 0.45;
-    }
+    .lbl-fld-val:focus { background: var(--surface2); }
+    .lbl-fld-row.fld-off .lbl-fld-val { opacity: 0.32; pointer-events: none; }
+    .lbl-fld-row.fld-off .lbl-fld-key { opacity: 0.4; }
 
     /* RIGHT: preview column */
     .lbl-dr-preview {
@@ -3199,6 +3204,7 @@ function renderEditor() {
     const secFields = sec.fields.filter(k => labelFieldState.find(f => f.key === k))
     if (!secFields.length) return
     html += `<div class="lbl-sec-hdr">${sec.title}</div>`
+    html += `<div class="lbl-sec-group">`
     secFields.forEach(key => {
       const f = labelFieldState.find(f => f.key === key)
       if (!f) return
@@ -3216,7 +3222,6 @@ function renderEditor() {
             onclick="event.stopPropagation()"
             oninput="setLabelFieldValue('${safeKey}',this.value)"
             ${isOn ? '' : 'disabled'} />`
-      /* Apple inspector pattern: [LABEL ..... ☑] then [input below] */
       html += `<div class="lbl-fld-row ${isOn ? 'fld-on' : 'fld-off'}" data-key="${key}"
         onclick="toggleLblField(event,'${safeKey}')">
         <div class="lbl-fld-top">
@@ -3228,6 +3233,7 @@ function renderEditor() {
         ${inputEl}
       </div>`
     })
+    html += `</div>`
   })
   el.innerHTML = html
 }
