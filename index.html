@@ -6255,6 +6255,7 @@ async function executeScan(val) {
   toast('No match found for: ' + v)
 }
 
+let _scanDebugCount = 0
 async function _scanFrame(video, canvas, ctx) {
   if (video.readyState !== video.HAVE_ENOUGH_DATA) return null
   canvas.width = video.videoWidth
@@ -6262,14 +6263,21 @@ async function _scanFrame(video, canvas, ctx) {
   ctx.drawImage(video, 0, 0)
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
 
+  const debug = (_scanDebugCount++ % 30 === 0) // log every 30 frames (~1s)
+
   if (_scanDetector) {
     try {
       const codes = await _scanDetector.detect(canvas)
+      if (debug) console.log('[scan] BarcodeDetector result:', codes)
       if (codes.length > 0) return codes[0].rawValue
-    } catch(e) {}
+    } catch(e) { if (debug) console.warn('[scan] BarcodeDetector error:', e) }
+  } else {
+    if (debug) console.log('[scan] BarcodeDetector: not available')
   }
+
   if (window.jsQR) {
     const code = jsQR(imageData.data, imageData.width, imageData.height)
+    if (debug) console.log('[scan] jsQR result:', code?.data ?? null)
     if (code) return code.data
   }
 
@@ -6280,8 +6288,11 @@ async function _scanFrame(video, canvas, ctx) {
       const luminance = new ZXing.HTMLCanvasElementLuminanceSource(canvas)
       const bitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminance))
       const decoded = zxing.decode(bitmap)
+      if (debug) console.log('[scan] ZXing result:', decoded?.getText())
       if (decoded) return decoded.getText()
-    } catch(e) {}
+    } catch(e) { /* ZXing throws NotFoundException when no code found — normal */ }
+  } else {
+    if (debug) console.log('[scan] ZXing: not loaded', { ZXingAvailable: !!window.ZXing })
   }
 
   return null
