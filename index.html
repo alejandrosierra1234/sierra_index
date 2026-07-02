@@ -905,6 +905,7 @@
       box-shadow:0 8px 28px rgba(0,0,0,0.12); padding:0.25rem; display:none;
     }
     .cart-type-dd.open .cart-type-menu { display:block; }
+    .cart-type-dd.up .cart-type-menu { top:auto; bottom:calc(100% + 4px); }
     .cart-type-opt {
       width:100%; display:flex; align-items:center; justify-content:space-between; gap:0.5rem;
       font-family:inherit; font-size:0.76rem; color:var(--text-2); text-align:left;
@@ -959,11 +960,12 @@
     }
 
     @media (max-width:860px) {
-      .dash-wrap { grid-template-columns:1fr; gap:0; }
+      .dash-wrap { grid-template-columns:1fr; gap:0; max-width:100%; }
+      .dash-wrap, .dash-col, .dash-side, .market-cards-wrap { min-width:0; }
       .dash-side { position:static; }
       .dash-act-row { flex-direction:row; flex-wrap:wrap; }
       .dash-act { width:auto; }
-      .dash-side .market-cards { flex-direction:row; overflow-x:auto; }
+      .dash-side .market-cards { flex-direction:row; overflow-x:auto; min-width:0; }
       .dash-side .market-card { border:1px solid var(--border) !important; border-radius:10px !important; padding:0.85rem 1rem !important; flex-shrink:0; min-width:120px; }
       .dash-side .mc-spark { display:block; }
     }
@@ -1204,11 +1206,18 @@
         flex:1; height:44px; font-size:0.84rem; justify-content:center;
       }
       .detail-toolbar .btn-ghost {
-        height:44px; width:44px; min-width:44px; padding:0; justify-content:center;
+        height:44px; width:42px; min-width:42px; padding:0; justify-content:center;
       }
       .detail-toolbar .btn-ghost .btn-lbl { display:none; }
       .detail-toolbar-spacer { display:none; }
       .detail-toolbar-sep { display:none; }
+    }
+    /* Narrow phones: tighten action toolbar so admin's 4 icons + CTA fit */
+    @media (max-width:380px) {
+      .detail-toolbar-inner { gap:0.28rem; }
+      .detail-toolbar { margin:0 -0.7rem; padding:0 0.7rem; }
+      .detail-toolbar .btn-ghost { width:40px; min-width:40px; }
+      .detail-toolbar .btn-primary { padding:0 0.85rem; }
     }
 
     /* ── RESPONSIVE / MOBILE ── */
@@ -1343,6 +1352,25 @@
       /* Prevent fixed-width elements from overflowing */
       .srd-qr-card { max-width: 100%; }
       .lbl { max-width: 100%; }
+    }
+
+    /* ── MOBILE AUDIT: chrome + sample center + cart ── */
+    @media (max-width: 767px) {
+      /* Top-bar: cart button shouldn't inherit search's negative margin */
+      .mob-cart-btn { margin-right: 0; }
+      .mob-topbar-search:last-child { margin-right: -6px; }
+
+      /* Sample Center rows: fold ID/type/date away, keep name + status */
+      .smp-row { gap: 0.75rem; padding: 0.85rem 0; }
+      .smp-row-id, .smp-row-type, .smp-row-date { display: none; }
+      .smp-row .smp-id-inline { display: inline; }
+      .smp-row-name { white-space: normal; }
+
+      /* Cart: comfortable full-height sheet, roomier checkout */
+      .cart-hdr { padding: calc(env(safe-area-inset-top) + 1rem) 1.1rem 0.85rem; }
+      .cart-body { padding: 0.5rem 1.1rem; }
+      .cart-checkout { padding: 1rem 1.1rem calc(1rem + env(safe-area-inset-bottom)); max-height: none; }
+      .cart-item-controls { flex-wrap: wrap; }
     }
 
     @media (max-width: 400px) {
@@ -1877,6 +1905,7 @@
     .smp-row-type { font-size:0.72rem; color:var(--text-2); min-width:70px; flex-shrink:0; }
     .smp-row-right { display:flex; align-items:center; gap:0.65rem; flex-shrink:0; }
     .smp-row-date { font-size:0.68rem; color:var(--text-3); }
+    .smp-id-inline { display:none; font-weight:700; color:var(--text-3); letter-spacing:0.04em; }
 
     /* Sample record (detail page) */
     .srd-layout { display:grid; grid-template-columns:1fr 340px; gap:3rem; align-items:start; }
@@ -3202,7 +3231,10 @@ function showProductDetail(p) {
   function specHead(t) { return `<div class="pd-hd">${t}</div>` }
   function parseComp(str) {
     if (!str) return []
-    return str.trim().split(/(?=\d+%)/).map(s => s.trim()).filter(Boolean)
+    // Match each "NN% material" group. Splitting on a lookahead broke multi-digit
+    // percentages (100% → "1","0","0%") because \d+% also matches inside them.
+    const groups = str.trim().match(/\d+%[^\d]*/g)
+    return (groups || [str.trim()]).map(s => s.trim()).filter(Boolean)
   }
 
   // Gallery
@@ -6246,7 +6278,15 @@ function cartToggleTypeMenu(e, idx) {
   const dd = document.querySelector(`.cart-type-dd[data-idx="${idx}"]`)
   const wasOpen = dd?.classList.contains('open')
   document.querySelectorAll('.cart-type-dd.open').forEach(d => d.classList.remove('open'))
-  if (dd && !wasOpen) dd.classList.add('open')
+  if (dd && !wasOpen) {
+    // Open upward if there isn't room below within the scrollable cart body
+    const body = document.getElementById('cart-body')
+    const trig = dd.querySelector('.cart-type-trigger')
+    const menuH = 40 + (sampleCart[idx] ? (DIV_SAMPLE_TYPES[sampleCart[idx].division]?.length || 1) * 34 : 140)
+    const spaceBelow = body && trig ? body.getBoundingClientRect().bottom - trig.getBoundingClientRect().bottom : 999
+    dd.classList.toggle('up', spaceBelow < menuH)
+    dd.classList.add('open')
+  }
 }
 function cartPickType(e, idx, type) {
   e.stopPropagation()
@@ -6595,7 +6635,7 @@ async function showSampleCenter() {
       <div class="smp-row-id">${esc(s.sample_id)}</div>
       <div class="smp-row-product">
         <div class="smp-row-name">${esc(name)}</div>
-        <div class="smp-row-meta"><span style="color:${c};font-weight:700;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em">${div}</span>${code ? ' · ' + esc(code) : ''} · ${esc(requester)}</div>
+        <div class="smp-row-meta"><span class="smp-id-inline">${esc(s.sample_id)} · </span><span style="color:${c};font-weight:700;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em">${div}</span>${code ? ' · ' + esc(code) : ''} · ${esc(requester)}</div>
       </div>
       <div class="smp-row-type">${esc(s.sample_type)}</div>
       <div class="smp-row-right">
