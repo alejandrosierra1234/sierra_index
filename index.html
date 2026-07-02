@@ -19,9 +19,9 @@
 
     /* ── TOKENS ── */
     :root {
-      --accent: #16cdbe;
-      --accent-dark: #0fa89c;
-      --accent-light: rgba(22,205,190,0.08);
+      --accent: #0f9d90;
+      --accent-dark: #0c7d73;
+      --accent-light: rgba(15,157,144,0.08);
       --bg: #ffffff;
       --bg-alt: #f6f6f6;
       --surface: #ffffff;
@@ -504,7 +504,7 @@
 
     /* ── PRODUCT GRID ── */
     .pg { display:block; }
-    .pg-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr)); gap:1rem; }
+    .pg-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:1.25rem; }
 
     /* Construction sections */
     /* ── FABRIC FILTER CHIPS ── */
@@ -555,28 +555,31 @@
     .const-header { display:none; }
     .const-section.collapsed .pg-grid { display:none; }
 
-    .card { background:var(--surface); border:1px solid var(--border); border-radius:14px; cursor:pointer; transition:box-shadow 0.18s, transform 0.18s; overflow:hidden; }
-    .card:hover { box-shadow:var(--shadow-hover); transform:translateY(-2px); }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; cursor:pointer; transition:box-shadow 0.2s, transform 0.2s; overflow:hidden; }
+    .card:hover { box-shadow:0 4px 20px rgba(0,0,0,0.08); transform:translateY(-2px); }
+    [data-theme="dark"] .card:hover { box-shadow:0 4px 24px rgba(0,0,0,0.35); }
 
-    .card-img { width:100%; height:148px; object-fit:cover; background:var(--bg-alt); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    .card-img { width:100%; height:160px; object-fit:cover; background:var(--bg-alt); display:flex; align-items:center; justify-content:center; overflow:hidden; }
     .card-img img { width:100%; height:100%; object-fit:cover; }
-    .card-img-placeholder { width:100%; height:148px; display:flex; align-items:center; justify-content:center; background:var(--bg-alt); overflow:hidden; }
-    .card-body { padding:0.85rem 0.9rem 0.9rem; }
-    .card-meta { display:flex; align-items:center; gap:0.4rem; margin-bottom:0.5rem; }
-    .card-div-pill { font-size:0.59rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; padding:0.18rem 0.5rem; border-radius:20px; }
+    .card-img-placeholder { width:100%; height:160px; display:flex; align-items:center; justify-content:center; background:var(--bg-alt); overflow:hidden; }
+    .card-body { padding:1rem 1rem 1rem; }
+    .card-meta { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.6rem; }
+    .card-div-pill { font-size:0.58rem; font-weight:600; text-transform:uppercase; letter-spacing:0.09em; padding:0.2rem 0.55rem; border-radius:6px; }
     .card-div { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.11em; }
     .card-lot { font-size:0.6rem; color:var(--text-3); }
-    .card-name { font-size:0.9rem; font-weight:600; color:var(--text); margin-bottom:0.35rem; letter-spacing:-0.01em; line-height:1.35; }
-    .card-desc { font-size:0.74rem; color:var(--text-2); line-height:1.5; margin-bottom:0.8rem; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-    .tags { display:flex; flex-wrap:wrap; gap:0.28rem; margin-bottom:0.8rem; }
+    .card-name { font-size:0.95rem; font-weight:600; color:var(--text); margin-bottom:0.3rem; letter-spacing:-0.015em; line-height:1.3; }
+    .card-desc { font-size:0.75rem; color:var(--text-3); line-height:1.55; margin-bottom:1rem; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .tags { display:flex; flex-wrap:wrap; gap:0.28rem; margin-bottom:0.9rem; }
     .tag { font-size:0.64rem; padding:0.14rem 0.45rem; border-radius:20px; background:none; color:var(--text-3); border:1px solid var(--border); }
-    .card-actions { display:flex; align-items:center; gap:0.4rem; }
-    .card-actions .btn-primary { flex:1; min-width:0; font-size:0.76rem; padding:0.46rem 0.6rem; }
-    .card-more-btn { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-2); cursor:pointer; flex-shrink:0; transition:background 0.12s; position:relative; }
-    .card-more-btn:hover { background:var(--surface2); }
-    .card-more-menu { display:none; position:absolute; bottom:calc(100% + 6px); right:0; background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.12); min-width:140px; overflow:hidden; z-index:50; }
+    .card-actions { display:flex; align-items:center; justify-content:space-between; gap:0.5rem; }
+    .card-req-btn { font-size:0.76rem; font-weight:500; padding:0.46rem 1rem; border-radius:8px; background:var(--accent); color:#fff; border:none; cursor:pointer; font-family:inherit; transition:background 0.14s; }
+    .card-req-btn:hover { background:var(--accent-dark); }
+    .card-more-btn { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-3); cursor:pointer; flex-shrink:0; transition:background 0.12s, color 0.12s; position:relative; }
+    .card-more-btn:hover { background:var(--surface2); color:var(--text); }
+    .card-more-menu { display:none; position:absolute; bottom:calc(100% + 6px); right:0; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.1); min-width:148px; overflow:hidden; z-index:50; }
     .card-more-btn.open .card-more-menu { display:block; }
-    .card-more-item { display:flex; align-items:center; gap:0.5rem; padding:0.55rem 0.85rem; font-size:0.78rem; color:var(--text); cursor:pointer; border:none; background:none; width:100%; text-align:left; font-family:inherit; transition:background 0.1s; }
+    .card-more-item { display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.9rem; font-size:0.78rem; color:var(--text); cursor:pointer; border:none; background:none; width:100%; text-align:left; font-family:inherit; transition:background 0.1s; }
+    .card-more-item + .card-more-item { border-top:1px solid var(--border); }
     .card-more-item:hover { background:var(--surface2); }
     .card-more-item svg { width:14px; height:14px; color:var(--text-3); flex-shrink:0; }
 
@@ -2421,14 +2424,14 @@ const SB_URL = 'https://vhyddogeemohtqijohry.supabase.co'
 const SB_KEY = 'sb_publishable_9g8UJRbV3NxOlmQgPxjDqg_Xw6hFB0f'
 const sb = supabase.createClient(SB_URL, SB_KEY)
 
-const DIV_CLR = { fiber:'#9e00cb', yarn:'#3ed600', fabric:'#009fff', chemicals:'#ff7824', garment:'#16cdbe' }
+const DIV_CLR = { fiber:'#7b2fa6', yarn:'#2e9e1f', fabric:'#0071e3', chemicals:'#d4601a', garment:'#0f9d90' }
 const DIV_ACCENT = {
-  all:       { accent:'#16cdbe', dark:'#0fa89c', light:'rgba(22,205,190,0.08)' },
-  fiber:     { accent:'#9e00cb', dark:'#7a0099', light:'rgba(158,0,203,0.08)' },
-  yarn:      { accent:'#3ed600', dark:'#2dad00', light:'rgba(62,214,0,0.08)' },
-  fabric:    { accent:'#009fff', dark:'#007fd4', light:'rgba(0,159,255,0.08)' },
-  chemicals: { accent:'#ff7824', dark:'#d45f00', light:'rgba(255,120,36,0.08)' },
-  garment:   { accent:'#16cdbe', dark:'#0fa89c', light:'rgba(22,205,190,0.08)' },
+  all:       { accent:'#0f9d90', dark:'#0c7d73', light:'rgba(15,157,144,0.08)' },
+  fiber:     { accent:'#7b2fa6', dark:'#612485', light:'rgba(123,47,166,0.08)' },
+  yarn:      { accent:'#2e9e1f', dark:'#237a17', light:'rgba(46,158,31,0.08)' },
+  fabric:    { accent:'#0071e3', dark:'#0059b3', light:'rgba(0,113,227,0.08)' },
+  chemicals: { accent:'#d4601a', dark:'#a84c13', light:'rgba(212,96,26,0.08)' },
+  garment:   { accent:'#0f9d90', dark:'#0c7d73', light:'rgba(15,157,144,0.08)' },
 }
 function applyDivisionAccent(d) {
   const a = DIV_ACCENT[d] || DIV_ACCENT.all
@@ -2817,20 +2820,20 @@ function cardHTML(p) {
 
   const isSelected = selectedProducts.some(s => s.id === p.id)
   return `<div class="card-wrap">
-  <div class="card ${isSelected ? 'card-selected' : ''}" data-id="${p.id}" onclick="onCardClick(dec('${ep}'))" style="border-top:3px solid ${c}">
+  <div class="card ${isSelected ? 'card-selected' : ''}" data-id="${p.id}" onclick="onCardClick(dec('${ep}'))">
     ${imgEl}
     <div class="card-body">
       <div class="card-meta">
-        <span class="card-div-pill" style="background:${c}18;color:${c}">${DIV_LBL[p.division]}</span>
+        ${division === 'all' ? `<span class="card-div-pill" style="background:${c}15;color:${c}">${DIV_LBL[p.division]}</span>` : `<span class="card-div-pill" style="background:${c}15;color:${c}">${code}</span>`}
         ${lot ? `<span class="card-lot">${lot}</span>` : ''}
       </div>
       <div class="card-name">${p.name}</div>
       <div class="card-desc">${desc}</div>
       <div class="tags">${tags}</div>
       <div class="card-actions" onclick="event.stopPropagation()">
-        <button class="btn btn-primary btn-sm" onclick="quickReq(dec('${ep}'))">Request</button>
+        <button class="card-req-btn" onclick="quickReq(dec('${ep}'))">Request sample</button>
         <div class="card-more-btn" onclick="toggleCardMore(event,this)">
-          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><circle cx="5" cy="10" r="1.5"/><circle cx="10" cy="10" r="1.5"/><circle cx="15" cy="10" r="1.5"/></svg>
+          <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15"><circle cx="5" cy="10" r="1.4"/><circle cx="10" cy="10" r="1.4"/><circle cx="15" cy="10" r="1.4"/></svg>
           <div class="card-more-menu">
             <button class="card-more-item" onclick="openFicha(dec('${ep}'))">
               <svg viewBox="0 0 20 20" fill="none"><path d="M4 5h12M4 9h8M4 13h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>View sheet
