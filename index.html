@@ -744,8 +744,9 @@
     .dash-section-label { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); }
     .dash-section-meta { font-size:0.65rem; color:var(--text-3); }
 
-    /* Recent: 2-column grid */
-    .recent-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.55rem; }
+    /* Recent: single compact row of 4 */
+    .recent-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:0.55rem; }
+    .recent-grid .recent-card { width:auto; min-width:0; }
 
     /* Sidebar action list */
     .dash-act-row { display:flex; flex-direction:column; gap:0.35rem; }
@@ -849,7 +850,8 @@
     @media (max-width:767px) {
       .dash-wrap { padding-bottom:2rem; }
       .dash-section { margin-bottom:1.5rem; }
-      .recent-grid { grid-template-columns:1fr; }
+      .recent-grid { grid-template-columns:1fr 1fr; }
+      .dash-clocks { grid-template-columns:1fr 1fr; }
       /* Override 860px flex with 2×2 grid for better touch target sizing */
       .dash-act-row { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; flex-direction:unset; flex-wrap:unset; }
       .dash-act { width:auto; min-height:44px; }
@@ -4768,7 +4770,7 @@ function showDashboard() {
   const greeting = hr < 5 ? `Good night, ${firstName}` : hr < 12 ? `Good morning, ${firstName}` : hr < 17 ? `Good afternoon, ${firstName}` : `Good evening, ${firstName}`
   const dateStr = now.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })
 
-  const recentItems = getRecentlyViewed()
+  const recentItems = getRecentlyViewed().slice(0, 4)
   const recentHtml = recentItems.length ? `
   <div class="dash-section">
     <div class="dash-section-hdr">
@@ -4800,15 +4802,18 @@ function showDashboard() {
   <!-- LEFT COLUMN -->
   <div class="dash-col">
 
-    <div class="dash-section" id="dash-notif-section">
+    <div class="dash-section" id="dash-clocks-section">
+      <div class="dash-section-hdr"><div class="dash-section-label">World Time</div></div>
+      <div class="dash-clocks" id="dash-clock-cards"></div>
+    </div>
+
+    <div class="dash-section" id="dash-notif-section" style="display:none">
       <div class="dash-section-hdr">
         <div class="dash-section-label">Notifications</div>
         <button class="dash-section-meta" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:0.65rem;padding:0" onclick="toggleNotifications()">See all →</button>
       </div>
-      <div id="dash-notif-list"><div class="dash-notif-empty">Loading…</div></div>
+      <div id="dash-notif-list"></div>
     </div>
-
-    ${recentHtml}
 
     <div class="dash-section" id="pending-samples-section">
       <div class="dash-section-hdr">
@@ -4818,10 +4823,7 @@ function showDashboard() {
       <div id="pending-smp-list"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
     </div>
 
-    <div class="dash-section" id="dash-clocks-section">
-      <div class="dash-section-hdr"><div class="dash-section-label">World Time</div></div>
-      <div class="dash-clocks" id="dash-clock-cards"></div>
-    </div>
+    ${recentHtml}
 
     <div class="dash-section" id="dash-tip-section">
       <div class="dash-tip" id="dash-tip-card"></div>
@@ -5012,10 +5014,12 @@ function renderClockCards() {
 
 async function renderDashNotifs() {
   const el = document.getElementById('dash-notif-list')
+  const section = document.getElementById('dash-notif-section')
   if (!el || !me) return
   try {
     const { data } = await sb.from('notifications').select('*').eq('user_id', me.id).order('created_at', { ascending: false }).limit(3)
-    if (!data?.length) { el.innerHTML = '<div class="dash-notif-empty" style="font-size:0.78rem;color:var(--text-3);padding:0.8rem 0.9rem">No notifications yet.</div>'; return }
+    if (!data?.length) return
+    if (section) section.style.display = ''
     el.innerHTML = `<div class="dash-notif-list">${data.map(n => {
       const time = new Date(n.created_at).toLocaleDateString('en-US', { day:'numeric', month:'short' })
       const iconColor = n.type?.includes('sample') ? '#16cdbe' : '#0071e3'
