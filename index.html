@@ -1077,219 +1077,179 @@
     #label-preview { display: inline-block; }
 
     /* ══════════════════════════════════════
-       LABEL STUDIO — Print Studio Layout
+       LABEL DRAWER — Right-side print studio
     ══════════════════════════════════════ */
-    .lbl-studio-modal {
-      width: min(680px, 96vw);
-      padding: 0;
-      overflow: hidden;
+
+    /* Wrapper: covers viewport, pointer-events off when closed */
+    .lbl-dr-wrap {
+      position: fixed;
+      inset: 0;
+      z-index: 1200;
+      pointer-events: none;
+    }
+    .lbl-dr-wrap.open { pointer-events: auto; }
+
+    /* Backdrop */
+    .lbl-dr-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.32);
+      opacity: 0;
+      transition: opacity 0.28s ease;
+      cursor: pointer;
+    }
+    .lbl-dr-wrap.open .lbl-dr-backdrop { opacity: 1; }
+
+    /* The drawer panel */
+    .lbl-dr {
+      position: absolute;
+      top: 0; right: 0; bottom: 0;
+      width: 78vw;
+      background: var(--surface);
       display: flex;
       flex-direction: column;
-      max-height: 92vh;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: -8px 0 40px rgba(0,0,0,0.22);
     }
+    .lbl-dr-wrap.open .lbl-dr { transform: translateX(0); }
 
-    /* Top bar */
-    .lbl-studio-bar {
+    /* Header bar */
+    .lbl-dr-hdr {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0.75rem 1.25rem;
+      padding: 0 1.25rem;
+      height: 52px;
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
       gap: 1rem;
     }
-    .lbl-studio-eyebrow {
-      font-size: 0.57rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--text-3);
-      margin-bottom: 0.08rem;
-    }
-    .lbl-studio-name {
-      font-size: 0.88rem;
-      font-weight: 700;
-      color: var(--text);
-      line-height: 1.2;
-    }
-    .lbl-studio-actions {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      flex-shrink: 0;
-    }
-
-    /* Canvas — label is the hero */
-    .lbl-studio-canvas {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg-alt);
-      padding: 2rem 1.5rem;
-      min-height: 0;
-      overflow: auto;
-    }
-    .lbl-studio-paper {
-      display: inline-block;
-      filter: drop-shadow(0 8px 36px rgba(0,0,0,0.18)) drop-shadow(0 2px 5px rgba(0,0,0,0.07));
-    }
-    #label-preview { zoom: 2.5; }
-    @supports not (zoom: 1) {
-      #label-preview { zoom: unset; transform: scale(2.5); transform-origin: top center; }
-    }
-
-    /* Bottom dock — minimal, secondary */
-    .lbl-studio-dock {
-      flex-shrink: 0;
-      border-top: 1px solid var(--border);
-    }
-    .lbl-dock-main {
-      padding: 0.85rem 1.25rem 0.8rem;
-    }
-
-    /* Section chips */
-    .lbl-dock-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.35rem;
-      margin-bottom: 0.75rem;
-    }
-    .lbl-sec-chip {
-      font-size: 0.68rem;
-      font-weight: 500;
-      font-family: inherit;
-      padding: 0.18rem 0.6rem;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      background: none;
-      color: var(--text-2);
-      cursor: pointer;
-      user-select: none;
-      transition: all 0.1s;
-      line-height: 1.5;
-    }
-    .lbl-sec-chip:hover { border-color: var(--accent); color: var(--accent); }
-    .lbl-sec-chip.sec-on {
-      background: var(--accent-light);
-      border-color: var(--accent);
-      color: var(--accent);
-      font-weight: 600;
-    }
-    .lbl-sec-chip.sec-off { opacity: 0.32; }
-
-    /* Dock text inputs */
-    .lbl-dock-fields {
-      display: flex;
-      gap: 0.65rem;
-      align-items: flex-start;
-    }
-    .lbl-dock-field { flex: 1; min-width: 0; }
-    .lbl-dock-field-wide { flex: 2; }
-    .lbl-dock-label {
-      font-size: 0.56rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-3);
-      margin-bottom: 0.2rem;
-    }
-    .lbl-dock-input {
-      width: 100%;
-      background: var(--surface2);
-      border: 1px solid transparent;
-      border-radius: 7px;
-      padding: 0.32rem 0.6rem;
-      font-size: 0.78rem;
-      font-family: inherit;
-      color: var(--text);
-      outline: none;
-      transition: border-color 0.12s;
-      box-sizing: border-box;
-    }
-    .lbl-dock-input:focus { border-color: var(--accent); }
-    .lbl-dock-textarea { resize: none; line-height: 1.45; }
-
-    /* Override expand button */
-    .lbl-dock-expand {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.4rem;
-      padding: 0.5rem 1.25rem;
-      border: none;
-      border-top: 1px solid var(--border);
-      background: none;
-      font-size: 0.6rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-3);
-      cursor: pointer;
-      font-family: inherit;
-      transition: color 0.1s, background 0.1s;
-    }
-    .lbl-dock-expand:hover { color: var(--text); background: var(--surface2); }
-    .lbl-dock-expand svg { transition: transform 0.18s; }
-    .lbl-studio-dock.dock-open .lbl-dock-expand svg { transform: rotate(180deg); }
-
-    /* Override drawer */
-    .lbl-dock-overrides {
-      display: none;
-      padding: 0.5rem 1.25rem 1rem;
-      border-top: 1px solid var(--border);
-      max-height: 220px;
-      overflow-y: auto;
-    }
-    .lbl-studio-dock.dock-open .lbl-dock-overrides { display: block; }
-
-    /* Field rows inside overrides drawer */
-    .lbl-ov-group { margin-bottom: 0.6rem; }
-    .lbl-ov-group-hdr {
+    .lbl-dr-meta { display: flex; flex-direction: column; gap: 0.06rem; }
+    .lbl-dr-eyebrow {
       font-size: 0.52rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.14em;
       color: var(--text-3);
-      margin-bottom: 0.35rem;
-      margin-top: 0.6rem;
     }
-    .lbl-ov-row {
+    .lbl-dr-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .lbl-dr-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+
+    /* Body: two columns */
+    .lbl-dr-body {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+
+    /* LEFT: editor column */
+    .lbl-dr-editor {
+      width: 320px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding-bottom: 2rem;
+    }
+
+    /* Editorial section headers */
+    .lbl-sec-hdr {
+      padding: 1.1rem 1.2rem 0.35rem;
+      font-size: 0.5rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--text-3);
+      border-top: 1px solid var(--border);
+    }
+    .lbl-sec-hdr:first-child { border-top: none; }
+
+    /* Per-field rows */
+    .lbl-fld-row {
       display: flex;
       align-items: flex-start;
-      gap: 0.5rem;
-      padding: 0.22rem 0;
+      gap: 0.65rem;
+      padding: 0.3rem 1.2rem;
       cursor: pointer;
       user-select: none;
     }
-    .lbl-ov-check {
-      width: 13px; height: 13px;
+    .lbl-fld-row:hover { background: var(--surface2); }
+
+    .lbl-fld-chk {
+      width: 14px; height: 14px;
       border: 1.5px solid var(--border);
       border-radius: 3px;
       flex-shrink: 0;
-      margin-top: 3px;
+      margin-top: 4px;
       display: flex; align-items: center; justify-content: center;
       transition: background 0.1s, border-color 0.1s;
     }
-    .lbl-ov-row.ov-on .lbl-ov-check { background: var(--accent); border-color: var(--accent); }
-    .lbl-ov-mark { width: 7px; height: 5px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
-    .lbl-ov-row.ov-on .lbl-ov-mark { opacity: 1; }
-    .lbl-ov-content { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 0.5rem; }
-    .lbl-ov-key {
-      font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.04em; color: var(--text-3); flex-shrink: 0; width: 76px;
+    .lbl-fld-row.fld-on .lbl-fld-chk { background: #141512; border-color: #141512; }
+    .lbl-fld-chk-mark { width: 7px; height: 5px; fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+    .lbl-fld-row.fld-on .lbl-fld-chk-mark { opacity: 1; }
+
+    .lbl-fld-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.18rem; }
+    .lbl-fld-key {
+      font-size: 0.57rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
     }
-    .lbl-ov-val {
-      flex: 1; background: none; border: none; outline: none;
-      font-family: inherit; font-size: 0.78rem; font-weight: 500; color: var(--text);
-      border-bottom: 1px solid transparent; transition: border-color 0.1s;
-      padding: 0; box-sizing: border-box; width: 100%;
+    .lbl-fld-val {
+      width: 100%;
+      background: none;
+      border: none;
+      border-bottom: 1px solid transparent;
+      outline: none;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text);
+      padding: 0;
+      box-sizing: border-box;
+      transition: border-color 0.12s;
+      resize: none;
+      line-height: 1.4;
     }
-    .lbl-ov-val:focus { border-bottom-color: var(--accent); }
-    .lbl-ov-row.ov-off .lbl-ov-key,
-    .lbl-ov-row.ov-off .lbl-ov-val { opacity: 0.3; }
-    .lbl-ov-row.ov-off .lbl-ov-val { pointer-events: none; }
+    .lbl-fld-val:focus { border-bottom-color: #141512; }
+    .lbl-fld-row.fld-off .lbl-fld-key,
+    .lbl-fld-row.fld-off .lbl-fld-val { opacity: 0.28; }
+    .lbl-fld-row.fld-off .lbl-fld-val { pointer-events: none; }
+
+    /* RIGHT: preview column */
+    .lbl-dr-preview {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-alt);
+      overflow: auto;
+      padding: 2.5rem 2rem;
+    }
+    .lbl-dr-paper {
+      display: inline-block;
+      filter: drop-shadow(0 8px 36px rgba(0,0,0,0.18)) drop-shadow(0 2px 5px rgba(0,0,0,0.07));
+    }
+    #label-preview { zoom: 2.8; }
+    @supports not (zoom: 1) {
+      #label-preview { zoom: unset; transform: scale(2.8); transform-origin: top center; }
+    }
+
+    /* Label content: logo always mono, larger */
+    .lbl .lc1 { fill: #141512; }
+    .lbl-logo svg { height: 7mm; }
+    .lbl-title { font-size: 5.5mm; }
 
     /* ════════════════════════════
        PRINT STYLES — QL-800 62mm
@@ -1720,16 +1680,20 @@
 </div>
 
 <!-- ══ MODAL: LABEL ══ -->
-<div class="overlay" id="m-label">
-  <div class="modal lbl-studio-modal">
+<div id="m-label" class="lbl-dr-wrap">
+  <!-- Backdrop closes the drawer -->
+  <div class="lbl-dr-backdrop" onclick="closeModal('m-label')"></div>
 
-    <!-- Bar: title + actions -->
-    <div class="lbl-studio-bar">
-      <div>
-        <div class="lbl-studio-eyebrow">Technical Label</div>
-        <div class="lbl-studio-name" id="lbl-title"></div>
+  <!-- Drawer panel -->
+  <div class="lbl-dr">
+
+    <!-- Header -->
+    <div class="lbl-dr-hdr">
+      <div class="lbl-dr-meta">
+        <div class="lbl-dr-eyebrow">Technical Label</div>
+        <div class="lbl-dr-name" id="lbl-title"></div>
       </div>
-      <div class="lbl-studio-actions">
+      <div class="lbl-dr-actions">
         <button class="btn btn-ghost btn-sm" onclick="printLabel()">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="3" y="1" width="10" height="7" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3 8H2a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1h-1" stroke="currentColor" stroke-width="1.3"/><rect x="3" y="10" width="10" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>
           Print QL-800
@@ -1738,46 +1702,24 @@
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           Save PDF
         </button>
-        <button class="btn-icon" onclick="closeModal('m-label')" style="margin-left:0.2rem">✕</button>
+        <button class="btn-icon" onclick="closeModal('m-label')" style="margin-left:0.4rem">✕</button>
       </div>
     </div>
 
-    <!-- Canvas: label is the primary element -->
-    <div class="lbl-studio-canvas">
-      <div class="lbl-studio-paper">
-        <div id="label-preview"></div>
-      </div>
-    </div>
+    <!-- Body: editor + preview -->
+    <div class="lbl-dr-body">
 
-    <!-- Dock: minimal secondary controls -->
-    <div class="lbl-studio-dock" id="lbl-dock">
-      <div class="lbl-dock-main">
-        <!-- Section chips -->
-        <div class="lbl-dock-chips" id="lbl-dock-chips"></div>
-        <!-- Price + Comments inputs -->
-        <div class="lbl-dock-fields">
-          <div class="lbl-dock-field">
-            <div class="lbl-dock-label">Price</div>
-            <input class="lbl-dock-input" id="lbl-price-val" type="text" placeholder="e.g. USD 12.50"
-              oninput="setLabelFieldValue('Price',this.value)">
-          </div>
-          <div class="lbl-dock-field lbl-dock-field-wide">
-            <div class="lbl-dock-label">Comments</div>
-            <textarea class="lbl-dock-input lbl-dock-textarea" id="lbl-comments-val" rows="2"
-              placeholder="Optional note…"
-              oninput="setLabelFieldValue('Comments',this.value)"></textarea>
-          </div>
+      <!-- LEFT: editor panel -->
+      <div class="lbl-dr-editor" id="lbl-editor-panel"></div>
+
+      <!-- RIGHT: live preview -->
+      <div class="lbl-dr-preview">
+        <div class="lbl-dr-paper">
+          <div id="label-preview"></div>
         </div>
       </div>
-      <!-- Override values drawer toggle -->
-      <button class="lbl-dock-expand" onclick="toggleDockExpand()">
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 4l3-3 3 3M2 7l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Override values
-      </button>
-      <!-- Overrides: all individual field inputs, hidden by default -->
-      <div class="lbl-dock-overrides" id="lbl-dock-overrides"></div>
-    </div>
 
+    </div>
   </div>
 </div>
 
@@ -2806,27 +2748,75 @@ function fieldGroup(key) {
   return 'Other'
 }
 
+const LBL_EDITOR_SECTIONS = [
+  { title: 'Header',       fields: ['Mill Article', 'LOT', 'Manufactured In'] },
+  { title: 'Identity',     fields: ['Product Name'] },
+  { title: 'Material',     fields: ['Composition'] },
+  { title: 'Color & Dye',  fields: ['Color', 'Dyed Method'] },
+  { title: 'Dimensions',   fields: ['Width', 'GSM', 'DIA', 'Gauge'] },
+  { title: 'Yarns',        fields: ['Yarn 01', 'Yarn 02', 'Yarn 03'] },
+  { title: 'Price',        fields: ['Price'] },
+  { title: 'Comments',     fields: ['Comments'] },
+]
+
+function renderEditor() {
+  const el = document.getElementById('lbl-editor-panel')
+  if (!el) return
+  let html = ''
+  LBL_EDITOR_SECTIONS.forEach(sec => {
+    const secFields = sec.fields.filter(k => labelFieldState.find(f => f.key === k))
+    if (!secFields.length) return
+    html += `<div class="lbl-sec-hdr">${sec.title}</div>`
+    secFields.forEach(key => {
+      const f = labelFieldState.find(f => f.key === key)
+      if (!f) return
+      const safeKey = key.replace(/'/g, "\\'")
+      const safeVal = String(f.value ?? '').replace(/"/g, '&quot;')
+      const isOn = f.enabled
+      const isTextarea = key === 'Comments'
+      const inputEl = isTextarea
+        ? `<textarea class="lbl-fld-val" rows="2" placeholder="Optional note…"
+            onclick="event.stopPropagation()"
+            oninput="setLabelFieldValue('${safeKey}',this.value)"
+            ${isOn ? '' : 'disabled'}>${esc(f.value ?? '')}</textarea>`
+        : `<input class="lbl-fld-val" type="text" value="${safeVal}"
+            placeholder="${key === 'Price' ? 'e.g. USD 12.50' : ''}"
+            onclick="event.stopPropagation()"
+            oninput="setLabelFieldValue('${safeKey}',this.value)"
+            ${isOn ? '' : 'disabled'} />`
+      html += `<div class="lbl-fld-row ${isOn ? 'fld-on' : 'fld-off'}" data-key="${key}"
+        onclick="toggleLblField(event,'${safeKey}')">
+        <div class="lbl-fld-chk">
+          <svg class="lbl-fld-chk-mark" viewBox="0 0 10 8"><polyline points="1,4 3.5,6.5 9,1"/></svg>
+        </div>
+        <div class="lbl-fld-content">
+          <span class="lbl-fld-key">${esc(key)}</span>
+          ${inputEl}
+        </div>
+      </div>`
+    })
+  })
+  el.innerHTML = html
+}
+
+function toggleLblField(e, key) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+  const f = labelFieldState.find(f => f.key === key)
+  if (!f) return
+  f.enabled = !f.enabled
+  const row = e.currentTarget
+  row.classList.toggle('fld-on', f.enabled)
+  row.classList.toggle('fld-off', !f.enabled)
+  const inp = row.querySelector('.lbl-fld-val')
+  if (inp) inp.disabled = !f.enabled
+  updateLabelPreview()
+}
+
 function openLabel() {
   if (!selected) return
   buildLabelFieldState(selected)
-  // Init section states from field data
-  lblSections = {}
-  LABEL_SECTION_DEFS.forEach(sec => {
-    lblSections[sec.key] = sec.fields.some(k => labelFieldState.find(f => f.key === k && f.enabled))
-  })
   document.getElementById('lbl-title').textContent = selected.name
-  // Restore Price/Comments inputs
-  const pf = labelFieldState.find(f => f.key === 'Price')
-  const cf = labelFieldState.find(f => f.key === 'Comments')
-  const pi = document.getElementById('lbl-price-val')
-  const ci = document.getElementById('lbl-comments-val')
-  if (pi) pi.value = pf ? pf.value : ''
-  if (ci) ci.value = cf ? cf.value : ''
-  // Collapse dock overrides drawer
-  const dock = document.getElementById('lbl-dock')
-  if (dock) dock.classList.remove('dock-open')
-  renderDockChips()
-  renderOverrides()
+  renderEditor()
   updateLabelPreview()
   document.getElementById('m-label').classList.add('open')
 }
@@ -2979,103 +2969,11 @@ async function deleteComment(commentId, productId) {
   loadFichaComments(productId)
 }
 
-function renderDockChips() {
-  const el = document.getElementById('lbl-dock-chips')
-  if (!el) return
-  el.innerHTML = LABEL_SECTION_DEFS.map(sec => {
-    const hasData = sec.fields.some(k => labelFieldState.find(f => f.key === k))
-    if (!hasData) return ''
-    const on = !!lblSections[sec.key]
-    return `<button class="lbl-sec-chip ${on ? 'sec-on' : 'sec-off'}" onclick="toggleLblSection('${sec.key}')">${sec.label}</button>`
-  }).join('')
-}
-
-function toggleLblSection(key) {
-  lblSections[key] = !lblSections[key]
-  const sec = LABEL_SECTION_DEFS.find(s => s.key === key)
-  if (sec) sec.fields.forEach(k => {
-    const f = labelFieldState.find(f => f.key === k)
-    if (f) f.enabled = lblSections[key]
-  })
-  // Update chip without full re-render
-  const chips = document.querySelectorAll('#lbl-dock-chips .lbl-sec-chip')
-  chips.forEach(chip => {
-    if (chip.getAttribute('onclick').includes(`'${key}'`)) {
-      chip.classList.toggle('sec-on', lblSections[key])
-      chip.classList.toggle('sec-off', !lblSections[key])
-    }
-  })
-  // Sync override checkboxes
-  const ovRows = document.querySelectorAll('#lbl-dock-overrides .lbl-ov-row')
-  ovRows.forEach(row => {
-    const k = row.dataset.key
-    const f = labelFieldState.find(f => f.key === k)
-    if (f) {
-      row.classList.toggle('ov-on', f.enabled)
-      row.classList.toggle('ov-off', !f.enabled)
-      const inp = row.querySelector('.lbl-ov-val')
-      if (inp) inp.disabled = !f.enabled
-    }
-  })
-  updateLabelPreview()
-}
-
-function renderOverrides() {
-  const el = document.getElementById('lbl-dock-overrides')
-  if (!el) return
-  const SKIP = new Set(['Price', 'Comments'])
-  let html = ''
-  LBL_PROP_GROUPS.forEach(({ group, fields }) => {
-    const rows = fields.filter(k => !SKIP.has(k) && labelFieldState.find(f => f.key === k))
-    if (!rows.length) return
-    html += `<div class="lbl-ov-group"><div class="lbl-ov-group-hdr">${group}</div>`
-    rows.forEach(key => {
-      const f = labelFieldState.find(f => f.key === key)
-      if (!f) return
-      const safeKey = key.replace(/'/g, "\\'")
-      const safeVal = String(f.value ?? '').replace(/"/g, '&quot;')
-      html += `<div class="lbl-ov-row ${f.enabled ? 'ov-on' : 'ov-off'}" data-key="${key}"
-        onclick="toggleOvRow(event,'${safeKey}')">
-        <div class="lbl-ov-check"><svg class="lbl-ov-mark" viewBox="0 0 10 8"><polyline points="1,4 3.5,6.5 9,1"/></svg></div>
-        <div class="lbl-ov-content">
-          <span class="lbl-ov-key">${esc(key)}</span>
-          <input class="lbl-ov-val" type="text" value="${safeVal}"
-            onclick="event.stopPropagation()"
-            oninput="setLabelFieldValue('${safeKey}',this.value)"
-            ${f.enabled ? '' : 'disabled'} />
-        </div>
-      </div>`
-    })
-    html += '</div>'
-  })
-  el.innerHTML = html
-}
-
-function toggleOvRow(e, key) {
-  if (e.target.tagName === 'INPUT') return
-  const f = labelFieldState.find(f => f.key === key)
-  if (!f) return
-  f.enabled = !f.enabled
-  const row = e.currentTarget
-  row.classList.toggle('ov-on', f.enabled)
-  row.classList.toggle('ov-off', !f.enabled)
-  const inp = row.querySelector('.lbl-ov-val')
-  if (inp) inp.disabled = !f.enabled
-  // Sync section chip state
-  LABEL_SECTION_DEFS.forEach(sec => {
-    if (sec.fields.includes(key)) {
-      const anyOn = sec.fields.some(k => labelFieldState.find(f => f.key === k && f.enabled))
-      lblSections[sec.key] = anyOn
-    }
-  })
-  renderDockChips()
-  updateLabelPreview()
-}
-
-function toggleDockExpand() {
-  const dock = document.getElementById('lbl-dock')
-  if (dock) dock.classList.toggle('dock-open')
-}
+function renderDockChips() { /* replaced by renderEditor */ }
+function toggleLblSection() { /* replaced by toggleLblField */ }
+function renderOverrides() { /* replaced by renderEditor */ }
+function toggleOvRow() { /* replaced by toggleLblField */ }
+function toggleDockExpand() { /* no longer used */ }
 
 function renderLblFields() { /* legacy stub */ }
 function renderLblChips() { /* legacy stub */ }
