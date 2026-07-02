@@ -1266,12 +1266,22 @@
         gap: 2px;
       }
       .sidebar.drawer-open { transform: translateX(0) !important; }
-      /* Restore labels/search in drawer */
+      /* Restore labels/search in drawer — the desktop "collapsed" (icon-rail)
+         state fixes nav-item to a 36x36 square and centers the column; both
+         leak into the mobile drawer unless explicitly reset here, since those
+         properties aren't touched by the overrides below (same-specificity
+         cascade only overrides properties actually redeclared). */
+      .sidebar.collapsed { align-items: stretch; }
+      .sidebar.collapsed .sidebar-hdr { justify-content: space-between; }
       .sidebar.collapsed .nav-label,
       .sidebar.collapsed .s-label,
       .sidebar.collapsed .sidebar-user-info { display: revert; }
-      .sidebar.collapsed .nav-item { justify-content: flex-start; padding: 0.6rem 0.7rem; gap: 0.55rem; }
-      .sidebar.collapsed .sidebar-user { justify-content: flex-start; padding: 0.5rem 0.4rem; }
+      .sidebar.collapsed .nav-item {
+        width: auto; height: auto;
+        justify-content: flex-start; align-items: center;
+        padding: 0.6rem 0.7rem; gap: 0.55rem;
+      }
+      .sidebar.collapsed .sidebar-user { justify-content: flex-start; padding: 0.5rem 0.4rem; width: auto; height: auto; }
       .sidebar.collapsed .sidebar-spacer { display: flex; }
       .sidebar-collapse-btn { display: none; }
       .sidebar.collapsed .sidebar-signout-btn { display: flex; }
@@ -1290,9 +1300,15 @@
 
       /* Restore sidebar-bottom in mobile drawer */
       .sidebar-bottom { display: flex; border-top: 1px solid var(--border); }
+      .sidebar.collapsed .sidebar-bottom { align-items: stretch; }
       .sidebar.collapsed .sidebar-bottom .nav-label { display: revert; }
-      .sidebar.collapsed .sidebar-bottom .nav-item { justify-content: flex-start; padding: 0.6rem 0.7rem; gap: 0.55rem; }
-      .sidebar.collapsed .sidebar-signout-btn { display: flex; }
+      .sidebar.collapsed .sidebar-bottom .nav-item {
+        width: auto; height: auto;
+        justify-content: flex-start; padding: 0.6rem 0.7rem; gap: 0.55rem;
+      }
+      .sidebar.collapsed .sidebar-signout-btn { display: flex; width: auto; height: auto; }
+      .sidebar.collapsed .sidebar-user-row { flex-direction: row; align-items: center; }
+      .sidebar.collapsed .sidebar-user-row .sidebar-user { width: auto; height: auto; flex: 1; }
 
       .nav-item { font-size: 0.88rem; padding: 0.6rem 0.7rem; }
       .n-icon { width: 18px; height: 18px; }
