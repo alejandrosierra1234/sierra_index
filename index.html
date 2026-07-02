@@ -1142,7 +1142,7 @@
     }
     .lbl-hdr-qr { flex-shrink: 0; }
     .lbl-hdr-qr canvas, .lbl-hdr-qr img {
-      width: 9mm; height: 9mm; display: block; image-rendering: pixelated;
+      width: 13mm; height: 13mm; display: block; image-rendering: pixelated;
     }
 
     /* ── PRODUCT NAME — large, bold, all-caps · not a band, just text ── */
@@ -1235,7 +1235,7 @@
 
     /* ── BARCODE + identity + logo row ── */
     .lbl-bc-wrap { flex-shrink: 0; }
-    .lbl-bc-wrap svg { width: 100%; height: auto; min-height: 9mm; max-height: 11mm; display: block; }
+    .lbl-bc-wrap svg { width: 100%; height: auto; min-height: 13mm; display: block; }
 
     /* Bottom row: code left · logo right */
     .lbl-bc-footer {
@@ -3376,11 +3376,11 @@ function initLabelCodePreviews(p) {
   if (!p) return
   const bcSvg = document.getElementById('lbl-preview-bc')
   if (bcSvg) {
-    try { JsBarcode(bcSvg, getProductBarcode(p), { format:'CODE128', width:1.5, height:26, displayValue:false, margin:0, background:'#fff', lineColor:'#000' }) } catch(e) {}
+    try { JsBarcode(bcSvg, getProductBarcode(p), { format:'CODE128', width:2, height:52, displayValue:false, margin:4, background:'#fff', lineColor:'#000' }) } catch(e) {}
   }
   const qrCanvas = document.getElementById('lbl-preview-qr')
   if (qrCanvas) {
-    try { QRCode.toCanvas(qrCanvas, getProductPublicUrl(p), { width:88, margin:0, errorCorrectionLevel:'L', color:{ dark:'#000000', light:'#ffffff' } }, function(){}) } catch(e) {}
+    try { QRCode.toCanvas(qrCanvas, getProductPublicUrl(p), { width:256, margin:2, errorCorrectionLevel:'M', color:{ dark:'#000000', light:'#ffffff' } }, function(){}) } catch(e) {}
   }
 }
 
@@ -3412,8 +3412,8 @@ function renderLabel(p, fields, printAssets = null) {
 
   /* ── QR — small, top-right ── */
   const qrEl = printAssets
-    ? (printAssets.qrSrc ? `<img src="${printAssets.qrSrc}" style="width:9mm;height:9mm;display:block;image-rendering:pixelated">` : '')
-    : `<canvas id="lbl-preview-qr" width="88" height="88" style="width:9mm;height:9mm;display:block"></canvas>`
+    ? (printAssets.qrSrc ? `<img src="${printAssets.qrSrc}" style="width:13mm;height:13mm;display:block;image-rendering:pixelated">` : '')
+    : `<canvas id="lbl-preview-qr" width="256" height="256" style="width:13mm;height:13mm;display:block"></canvas>`
 
   /* ── TOP ROW: codes + origin left · QR right ── */
   const idCodes = [F['Mill Article'], F['LOT']].filter(Boolean)
@@ -3480,7 +3480,7 @@ async function printLabel() {
   let bcSvgStr = ''
   try {
     const tmpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    JsBarcode(tmpSvg, getProductBarcode(selected), { format:'CODE128', width:1.5, height:26, displayValue:false, margin:0, background:'#fff', lineColor:'#000' })
+    JsBarcode(tmpSvg, getProductBarcode(selected), { format:'CODE128', width:2, height:52, displayValue:false, margin:4, background:'#fff', lineColor:'#000' })
     bcSvgStr = new XMLSerializer().serializeToString(tmpSvg)
   } catch(e) {}
 
@@ -3489,7 +3489,7 @@ async function printLabel() {
   try {
     qrSrc = await new Promise((res, rej) =>
       QRCode.toDataURL(getProductPublicUrl(selected),
-        { width: 88, margin: 0, errorCorrectionLevel: 'L', color: { dark:'#000000', light:'#ffffff' } },
+        { width: 512, margin: 2, errorCorrectionLevel: 'M', color: { dark:'#000000', light:'#ffffff' } },
         (err, url) => err ? rej(err) : res(url)))
   } catch(e) {}
 
