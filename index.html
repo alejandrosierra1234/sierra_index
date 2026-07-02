@@ -948,12 +948,8 @@
       .n-icon svg { width: 18px; height: 18px; }
 
       /* Dashboard */
-      .dash-wrap { padding-bottom: 2.5rem; }
-      .dash-header { flex-direction: column; align-items: flex-start; gap: 0.25rem; margin-bottom: 1.75rem; }
-      .dash-greeting { font-size: 1.35rem; }
-      .dash-date { font-size: 0.72rem; }
-      .dash-section { margin-bottom: 2rem; }
-      .dash-search-hero { margin-bottom: 2.25rem; }
+      .dash-section { margin-bottom: 1.5rem; }
+      .dash-search-hero { margin-bottom: 1.5rem; }
 
       /* Market: horizontally scrollable cards */
       .market-cards { overflow-x: auto; padding-bottom: 3px; scrollbar-width: none; flex-wrap: nowrap; }
@@ -4245,7 +4241,7 @@ function showDashboard() {
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           Request
         </button>
-        ${isEditor() ? `<button class="dash-act" onclick="showView('products')">
+        ${isEditor() ? `<button class="dash-act" onclick="setDiv('all',document.getElementById('nav-all'))">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="3" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="11" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="11" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
           Catalog
         </button>` : ''}
