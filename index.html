@@ -1009,69 +1009,176 @@
 
     /* ══════════════════════════════════════
        LABEL — content classes (used in preview AND print-root)
+       Apple design principles:
+       · Zones separated by hairlines, not gap
+       · Two weights only: key=400, value=600
+       · One data pattern for all specs (KV table, fixed key column)
+       · Numeric dimensions get their own compact grid
     ══════════════════════════════════════ */
     .lbl {
       width: 62mm;
-      padding: 3mm 4.5mm;
+      padding: 2.8mm 3.8mm 3mm;
       display: flex;
       flex-direction: column;
       font-family: "Replica", "Helvetica Neue", Helvetica, Arial, sans-serif;
       color: #000;
       background: #fff;
-      gap: 1.8mm;
+      gap: 0;
       box-sizing: border-box;
     }
-    /* Header */
-    .lbl-hdr { display:flex; align-items:flex-end; justify-content:space-between; gap:2mm; padding-bottom:1.4mm; border-bottom:0.35mm solid #000; }
-    .lbl-logo { flex:1; min-width:0; }
-    .lbl-logo svg { height:5.5mm; width:auto; max-width:36mm; display:block; }
-    .lbl-hdr-right { display:flex; flex-direction:column; align-items:flex-end; gap:0.6mm; flex-shrink:0; }
-    .lbl-origin { font-size:1.35mm; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#666; line-height:1; }
-    .lbl-hdr-qr canvas, .lbl-hdr-qr img { width:9mm; height:9mm; display:block; image-rendering:pixelated; }
 
-    /* Identity */
-    .lbl-identity { display:flex; flex-direction:column; gap:0.4mm; margin-top:0.4mm; }
-    .lbl-identity-codes { font-size:2.8mm; font-weight:800; color:#000; letter-spacing:0.01em; line-height:1.1; }
-    .lbl-identity-sep { font-weight:400; color:#bbb; margin:0 0.8mm; }
+    /* ── HEADER: logo left, [origin · QR] right ── */
+    .lbl-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 2mm;
+      border-bottom: 0.3mm solid #000;
+      margin-bottom: 2mm;
+    }
+    .lbl-logo { flex: 1; min-width: 0; }
+    .lbl-logo svg { height: 6mm; width: auto; max-width: 38mm; display: block; }
+    .lbl-hdr-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5mm;
+      flex-shrink: 0;
+    }
+    .lbl-origin {
+      font-size: 1.5mm;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #000;
+      line-height: 1.2;
+      text-align: right;
+      max-width: 10mm;
+    }
+    .lbl-hdr-qr canvas, .lbl-hdr-qr img {
+      width: 8mm; height: 8mm; display: block; image-rendering: pixelated;
+    }
 
-    /* Title */
-    .lbl-title { font-size:5mm; font-weight:800; text-transform:uppercase; color:#000; line-height:0.92; overflow-wrap:break-word; letter-spacing:-0.015em; margin-top:0.5mm; }
+    /* ── IDENTITY: codes + product name ── */
+    .lbl-identity { margin-bottom: 0.6mm; }
+    .lbl-identity-codes {
+      font-size: 1.8mm;
+      font-weight: 400;
+      color: #555;
+      letter-spacing: 0.03em;
+      line-height: 1.3;
+    }
+    .lbl-identity-sep { color: #bbb; margin: 0 0.6mm; }
+    .lbl-title {
+      font-size: 5.2mm;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #000;
+      line-height: 0.9;
+      letter-spacing: -0.02em;
+      overflow-wrap: break-word;
+      margin-top: 0.8mm;
+    }
 
-    /* Spec rows */
-    .lbl-specs { display:flex; flex-direction:column; gap:0.9mm; }
-    .lbl-spec-kv { display:flex; align-items:baseline; gap:1.2mm; min-width:0; overflow:hidden; }
-    .lbl-spec-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:2mm; }
-    .lbl-spec-k { font-size:1.7mm; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#888; flex-shrink:0; white-space:nowrap; }
-    .lbl-spec-v { font-size:2.9mm; font-weight:700; color:#000; line-height:1.1; overflow-wrap:break-word; min-width:0; }
+    /* ── HAIRLINE RULE between zones ── */
+    .lbl-rule {
+      height: 0.25mm;
+      background: #000;
+      margin: 2mm 0;
+      flex-shrink: 0;
+    }
 
-    /* Dimension grid */
-    .lbl-block { display:flex; flex-direction:column; gap:0.2mm; min-width:0; }
-    .lbl-key { font-size:1.7mm; font-weight:700; text-transform:uppercase; color:#888; letter-spacing:0.04em; }
-    .lbl-val { font-size:2.9mm; font-weight:700; color:#000; line-height:1.1; overflow-wrap:break-word; }
-    .lbl-grid { display:grid; gap:2mm; }
-    .lbl-grid.c2 { grid-template-columns:1fr 1fr; }
-    .lbl-grid.c3 { grid-template-columns:1fr 1fr 1fr; }
-    .lbl-grid.c4 { grid-template-columns:1fr 1fr 1fr 1fr; }
+    /* ── KV TABLE: single consistent pattern for all specs ── */
+    /* Key = fixed 16mm column, light weight · Value = fills remaining width */
+    .lbl-kv-table { display: flex; flex-direction: column; gap: 1mm; }
+    .lbl-kv {
+      display: flex;
+      align-items: baseline;
+      gap: 0;
+      min-width: 0;
+    }
+    .lbl-kv-k {
+      font-size: 1.5mm;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #888;
+      width: 16mm;
+      flex-shrink: 0;
+      padding-top: 0.3mm;
+    }
+    .lbl-kv-v {
+      font-size: 2.6mm;
+      font-weight: 600;
+      color: #000;
+      flex: 1;
+      line-height: 1.2;
+      overflow-wrap: break-word;
+      min-width: 0;
+    }
 
-    /* Yarns */
-    .lbl-yarns { display:flex; flex-direction:column; gap:0.7mm; }
-    .lbl-yarn { display:flex; gap:2mm; align-items:baseline; }
-    .lbl-yarn-tag { font-size:1.7mm; font-weight:700; text-transform:uppercase; color:#888; width:9mm; flex-shrink:0; }
-    .lbl-yarn-val { font-size:2.9mm; font-weight:700; color:#000; line-height:1.1; overflow-wrap:break-word; }
+    /* ── DIMENSIONS: compact numeric grid ── */
+    /* Numbers are brief — show key above value, evenly spaced */
+    .lbl-dims { display: flex; gap: 0; }
+    .lbl-dim { flex: 1; }
+    .lbl-dim-k {
+      font-size: 1.5mm;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #888;
+      display: block;
+      margin-bottom: 0.3mm;
+    }
+    .lbl-dim-v {
+      font-size: 3.2mm;
+      font-weight: 700;
+      color: #000;
+      line-height: 1;
+      display: block;
+    }
 
-    /* Notes */
-    .lbl-notes { display:flex; flex-direction:column; gap:0.9mm; }
-    .lbl-note-kv { display:flex; align-items:baseline; gap:1.2mm; }
+    /* ── YARNS ── */
+    .lbl-yarns { display: flex; flex-direction: column; gap: 0.8mm; }
+    .lbl-yarn { display: flex; align-items: baseline; gap: 0; }
+    .lbl-yarn-k {
+      font-size: 1.5mm;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #888;
+      width: 6mm;
+      flex-shrink: 0;
+    }
+    .lbl-yarn-v {
+      font-size: 2.4mm;
+      font-weight: 600;
+      color: #000;
+      line-height: 1.2;
+      overflow-wrap: break-word;
+      flex: 1;
+      min-width: 0;
+    }
 
-    /* Barcode */
-    .lbl-bc-wrap { margin-top:0.8mm; }
-    .lbl-bc-wrap svg { width:100%; height:auto; min-height:8mm; max-height:10mm; display:block; }
-    .lbl-bc-id { font-size:1.5mm; color:#888; letter-spacing:0.04em; margin-top:0.4mm; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    /* ── BARCODE ── */
+    .lbl-bc-wrap { margin-top: 2mm; }
+    .lbl-bc-wrap svg { width: 100%; height: auto; min-height: 7mm; max-height: 9mm; display: block; }
+    .lbl-bc-id {
+      font-size: 1.4mm;
+      font-weight: 400;
+      color: #000;
+      letter-spacing: 0.06em;
+      margin-top: 0.5mm;
+      text-align: center;
+    }
 
-    /* Legacy compat */
+    /* Legacy compat — keep these non-displaying for any stale references */
     .lbl-divider { display:none; }
     .lbl-thin { display:none; }
-    .lbl-comments .lbl-val { font-size:2.8mm; }
+    .lbl-spec-k, .lbl-key, .lbl-yarn-tag { display:none; }
+    .lbl-spec-v, .lbl-val { display:none; }
+    .lbl-specs, .lbl-spec-kv, .lbl-spec-row-2 { display:none; }
+    .lbl-grid, .lbl-block { display:none; }
+    .lbl-notes, .lbl-note-kv { display:none; }
 
     /* ── LABEL PREVIEW (base) ── */
     #label-preview { display: inline-block; }
@@ -1280,10 +1387,8 @@
       #label-preview { zoom: unset; transform: scale(2.8); transform-origin: top center; }
     }
 
-    /* Label content: logo always mono, larger */
+    /* Label content: logo always mono (overrides SVG fill) */
     .lbl .lc1 { fill: #141512; }
-    .lbl-logo svg { height: 7mm; }
-    .lbl-title { font-size: 5.5mm; }
 
     /* ════════════════════════════
        PRINT STYLES — QL-800 62mm
@@ -1297,12 +1402,12 @@
       #print-root #label-preview { zoom:unset !important; transform:none !important; }
       /* Mono logo for thermal printing */
       #print-root .lc1 { fill:#000 !important; }
-      /* No gray on thermal — everything full black */
-      #print-root .lbl-spec-k,
-      #print-root .lbl-key,
-      #print-root .lbl-yarn-tag,
+      /* All grays become black on thermal */
+      #print-root .lbl-kv-k,
+      #print-root .lbl-dim-k,
+      #print-root .lbl-yarn-k,
+      #print-root .lbl-identity-codes,
       #print-root .lbl-origin,
-      #print-root .lbl-identity-sep,
       #print-root .lbl-bc-id { color:#000 !important; }
     }
 
@@ -3058,13 +3163,17 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
 }
 
-function lblBlock(key, val) {
-  return `<div class="lbl-block"><span class="lbl-key">${esc(key)}</span><span class="lbl-val">${esc(String(val))}</span></div>`
+/* helpers — single KV row and dimension block */
+function lblKV(k, v) {
+  return `<div class="lbl-kv"><span class="lbl-kv-k">${esc(k)}</span><span class="lbl-kv-v">${esc(String(v))}</span></div>`
+}
+function lblDim(k, v) {
+  return `<div class="lbl-dim"><span class="lbl-dim-k">${esc(k)}</span><span class="lbl-dim-v">${esc(String(v))}</span></div>`
 }
 
-function lblSpec(k, v) {
-  return `<div class="lbl-spec-kv"><span class="lbl-spec-k">${esc(k)}</span><span class="lbl-spec-v">${esc(String(v))}</span></div>`
-}
+/* Keep old names as stubs so nothing else breaks */
+function lblBlock(key, val) { return lblKV(key, val) }
+function lblSpec(k, v)      { return lblKV(k, v) }
 
 function renderLabel(p, fields, printAssets = null) {
   const F = {}
@@ -3072,66 +3181,63 @@ function renderLabel(p, fields, printAssets = null) {
 
   const s = []
 
-  // QR element — canvas in preview, img in print
+  /* ── QR element ── */
   const qrEl = printAssets
-    ? (printAssets.qrSrc ? `<img src="${printAssets.qrSrc}" style="width:9mm;height:9mm;display:block;image-rendering:pixelated">` : '')
-    : `<canvas id="lbl-preview-qr" width="58" height="58" style="width:9mm;height:9mm;display:block"></canvas>`
+    ? (printAssets.qrSrc ? `<img src="${printAssets.qrSrc}" style="width:8mm;height:8mm;display:block;image-rendering:pixelated">` : '')
+    : `<canvas id="lbl-preview-qr" width="58" height="58" style="width:8mm;height:8mm;display:block"></canvas>`
 
-  // Header: logo + (origin + QR)
+  /* ── HEADER: logo · [origin  QR] ── */
   s.push(`<div class="lbl-hdr">
-    <div class="lbl-logo">${printAssets ? LBL_LOGO_SVG : LBL_LOGO_SVG}</div>
+    <div class="lbl-logo">${LBL_LOGO_SVG}</div>
     <div class="lbl-hdr-right">
-      ${F['Manufactured In'] ? `<div class="lbl-origin">MFD IN ${esc(F['Manufactured In']).toUpperCase()}</div>` : ''}
+      ${F['Manufactured In'] ? `<span class="lbl-origin">${esc(F['Manufactured In'])}</span>` : ''}
       <div class="lbl-hdr-qr">${qrEl}</div>
     </div>
   </div>`)
 
-  // Identity: Article · LOT
+  /* ── IDENTITY: ref codes + product name ── */
   const idCodes = [F['Mill Article'], F['LOT']].filter(Boolean)
   if (idCodes.length) {
-    s.push(`<div class="lbl-identity">
-      <div class="lbl-identity-codes">${idCodes.map(v => esc(v)).join('<span class="lbl-identity-sep">·</span>')}</div>
-    </div>`)
+    s.push(`<div class="lbl-identity"><div class="lbl-identity-codes">${
+      idCodes.map(v => esc(v)).join('<span class="lbl-identity-sep"> · </span>')
+    }</div></div>`)
   }
-
-  // Product name — dominant typographic element
   if (F['Product Name']) {
     s.push(`<div class="lbl-title">${esc(F['Product Name'])}</div>`)
   }
 
-  // Material specs
-  const specRows = []
-  if (F['Composition']) specRows.push(`<div class="lbl-spec-row">${lblSpec('Composition', F['Composition'])}</div>`)
-  const colorPair = [F['Color'] && lblSpec('Color', F['Color']), F['Dyed Method'] && lblSpec('Dyed Method', F['Dyed Method'])].filter(Boolean)
-  if (colorPair.length === 2) specRows.push(`<div class="lbl-spec-row lbl-spec-row-2">${colorPair.join('')}</div>`)
-  else if (colorPair.length === 1) specRows.push(`<div class="lbl-spec-row">${colorPair[0]}</div>`)
-  if (specRows.length) s.push(`<div class="lbl-specs">${specRows.join('')}</div>`)
-
-  // Dimensions — smart grid
-  const dims = ['Width','GSM','DIA','Gauge'].filter(k => F[k]).map(k => lblBlock(k, F[k]))
-  if (dims.length) {
-    const col = dims.length <= 2 ? `c${dims.length}` : dims.length === 3 ? 'c3' : 'c4'
-    s.push(`<div class="lbl-grid ${col}">${dims.join('')}</div>`)
+  /* ── SPECS: one consistent KV table ── */
+  const specKeys = ['Composition','Color','Dyed Method'].filter(k => F[k])
+  if (specKeys.length) {
+    s.push(`<div class="lbl-rule"></div>`)
+    s.push(`<div class="lbl-kv-table">${specKeys.map(k => lblKV(k, F[k])).join('')}</div>`)
   }
 
-  // Yarns
-  const yarns = ['Yarn 01','Yarn 02','Yarn 03'].filter(k => F[k])
-  if (yarns.length) {
-    s.push(`<div class="lbl-yarns">${yarns.map(k =>
-      `<div class="lbl-yarn"><span class="lbl-yarn-tag">${esc(k)}</span><span class="lbl-yarn-val">${esc(F[k])}</span></div>`
+  /* ── DIMENSIONS: compact numeric grid ── */
+  const dimKeys = ['Width','GSM','DIA','Gauge'].filter(k => F[k])
+  if (dimKeys.length) {
+    s.push(`<div class="lbl-rule"></div>`)
+    s.push(`<div class="lbl-dims">${dimKeys.map(k => lblDim(k, F[k])).join('')}</div>`)
+  }
+
+  /* ── YARNS ── */
+  const yarnKeys = ['Yarn 01','Yarn 02','Yarn 03'].filter(k => F[k])
+  if (yarnKeys.length) {
+    s.push(`<div class="lbl-rule"></div>`)
+    s.push(`<div class="lbl-yarns">${yarnKeys.map(k =>
+      `<div class="lbl-yarn"><span class="lbl-yarn-k">${esc(k)}</span><span class="lbl-yarn-v">${esc(F[k])}</span></div>`
     ).join('')}</div>`)
   }
 
-  // Notes: price + comments
-  const notes = []
-  if (F['Price'])    notes.push(lblSpec('Price', F['Price']))
-  if (F['Comments']) notes.push(lblSpec('Comments', F['Comments']))
-  if (notes.length) s.push(`<div class="lbl-notes">${notes.join('')}</div>`)
+  /* ── NOTES: price + comments in the same KV table ── */
+  const noteKeys = ['Price','Comments'].filter(k => F[k])
+  if (noteKeys.length) {
+    s.push(`<div class="lbl-rule"></div>`)
+    s.push(`<div class="lbl-kv-table">${noteKeys.map(k => lblKV(k, F[k])).join('')}</div>`)
+  }
 
-  // Barcode
-  const bcEl = printAssets
-    ? printAssets.bcSvgStr || ''
-    : `<svg id="lbl-preview-bc"></svg>`
+  /* ── BARCODE ── */
+  const bcEl = printAssets ? printAssets.bcSvgStr || '' : `<svg id="lbl-preview-bc"></svg>`
   s.push(`<div class="lbl-bc-wrap">${bcEl}<div class="lbl-bc-id">${esc(p.code || p.id.slice(0,8).toUpperCase())} · SIERRA INDEX</div></div>`)
 
   return `<div class="lbl">${s.join('')}</div>`
