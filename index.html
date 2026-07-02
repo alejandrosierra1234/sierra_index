@@ -36,6 +36,7 @@
       --bg: #1c1c1e; --bg-alt: #141416; --surface: #242426; --surface2: #2c2c2e;
       --border: #3a3a3c; --text: #e8e8e8; --text-2: #9a9a9a; --text-3: #636366;
       --shadow: 0 1px 2px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.25);
+      --warning-bg: #2a1f00; --warning-border: #4a3500; --warning-text: #f0b429;
       --shadow-hover: 0 2px 6px rgba(0,0,0,0.45), 0 8px 24px rgba(0,0,0,0.35);
     }
 
@@ -2092,6 +2093,12 @@
       </div>
     </div>
 
+    <!-- No-code warning banner -->
+    <div id="lbl-no-code-banner" style="display:none;align-items:center;gap:0.6rem;padding:0.6rem 1.25rem;background:var(--warning-bg,#fff8ed);border-bottom:1px solid var(--warning-border,#fde9b8);font-size:0.75rem;color:var(--warning-text,#92600a);">
+      <svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="flex-shrink:0"><path d="M10 3L2 17h16L10 3z" stroke="#f59e0b" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 9v4M10 14.5v.5" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span>This product has no Mill Article code — the barcode section will be blank and printing will be blocked until a code is assigned.</span>
+    </div>
+
     <!-- Body: editor + preview -->
     <div class="lbl-dr-body">
 
@@ -2377,9 +2384,7 @@ let editingProductId = null, editingImageUrls = [], pendingImgFiles = []
 let allProducts = [], searchQuery = '', selectMode = false, selectedProducts = []
 
 function getProductBarcode(p) {
-  // Encode the human-readable Mill Article code so any laser scanner can
-  // look up the product. Fall back to custom barcode field, then UUID.
-  return p.code || p.specs?.barcode || ('PRD-' + p.id.replace(/-/g,'').slice(0,12).toUpperCase())
+  return p.code || p.specs?.barcode || null
 }
 function getProductPublicUrl(p) {
   // UUID only — shortest possible QR payload → fewest modules → reliable scan on thermal print
@@ -3232,8 +3237,13 @@ function openLabel() {
   document.getElementById('lbl-title').textContent = selected.name
   renderEditor()
   updateLabelPreview()
+
+  // Warn if no Mill Article code — barcode will be blocked at print time
+  const noCodeBanner = document.getElementById('lbl-no-code-banner')
+  if (noCodeBanner) noCodeBanner.style.display = selected.code ? 'none' : 'flex'
+
   document.getElementById('m-label').classList.add('open')
-  setTimeout(fitLabelPreview, 340) // re-fit after drawer slide-in transition
+  setTimeout(fitLabelPreview, 340)
 }
 
 function quickLabel(p) { selected = p; openLabel() }
@@ -3517,16 +3527,23 @@ function renderLabel(p, fields, printAssets = null) {
   }
 
   /* ── HAIRLINE then BARCODE + code · logo ── */
-  const codeStr = (p.code || p.id.slice(0,8).toUpperCase()).toUpperCase()
-  const bcEl = printAssets
-    ? (printAssets.bcSrc ? `<img src="${printAssets.bcSrc}" style="width:100%;height:auto;display:block">` : '')
-    : `<svg id="lbl-preview-bc"></svg>`
-  s.push(`<div class="lbl-rule"></div>
-  <div class="lbl-bc-wrap">${bcEl}</div>
-  <div class="lbl-bc-footer">
-    <div class="lbl-bc-id">${esc(codeStr)}</div>
-    <div class="lbl-logo">${LBL_LOGO_SVG}</div>
-  </div>`)
+  const codeStr = p.code || p.specs?.barcode || null
+  if (codeStr) {
+    const bcEl = printAssets
+      ? (printAssets.bcSrc ? `<img src="${printAssets.bcSrc}" style="width:100%;height:auto;display:block">` : '')
+      : `<svg id="lbl-preview-bc"></svg>`
+    s.push(`<div class="lbl-rule"></div>
+    <div class="lbl-bc-wrap">${bcEl}</div>
+    <div class="lbl-bc-footer">
+      <div class="lbl-bc-id">${esc(codeStr.toUpperCase())}</div>
+      <div class="lbl-logo">${LBL_LOGO_SVG}</div>
+    </div>`)
+  } else {
+    s.push(`<div class="lbl-rule"></div>
+    <div class="lbl-bc-footer" style="justify-content:flex-end">
+      <div class="lbl-logo">${LBL_LOGO_SVG}</div>
+    </div>`)
+  }
 
   return `<div class="lbl">${s.join('')}</div>`
 }
@@ -3535,6 +3552,11 @@ function renderLabel(p, fields, printAssets = null) {
 
 async function printLabel() {
   if (!selected) return
+
+  if (!selected.code) {
+    toast('Assign a Mill Article code to this product before printing a label.', 4000)
+    return
+  }
 
   // Barcode: render to canvas → PNG data URL (pixel-perfect, no SVG scaling artifacts)
   let bcSrc = ''
