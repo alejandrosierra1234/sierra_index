@@ -681,7 +681,7 @@
       border:2px dashed var(--border); border-radius:10px; padding:1.5rem; text-align:center;
       cursor:pointer; transition:border-color 0.15s; position:relative; overflow:hidden;
     }
-    .img-upload-area:hover { border-color:var(--accent); }
+    .img-upload-area:hover, .img-upload-area.drag-over { border-color:var(--accent); background:var(--accent-light); }
     .img-upload-area input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
     .img-upload-area .up-icon { font-size:1.4rem; margin-bottom:0.4rem; color:var(--text-3); }
     .img-upload-area p { font-size:0.78rem; color:var(--text-2); }
@@ -1105,6 +1105,7 @@
       aspect-ratio:1; color:var(--text-3);
     }
     .pd-no-img-hint { font-size:0.68rem; color:var(--text-3); }
+    .pd-no-img.drag-over { border-color:var(--accent); background:var(--accent-light); }
 
     /* Identity column */
     .pd-name {
@@ -2565,10 +2566,13 @@
       <hr class="div" />
       <div class="fg"><label>Product images</label>
         <div class="img-edit-grid" id="img-edit-grid"></div>
-        <div class="img-upload-area" id="img-area">
+        <div class="img-upload-area" id="img-area"
+          ondragover="event.preventDefault(); this.classList.add('drag-over')"
+          ondragleave="this.classList.remove('drag-over')"
+          ondrop="event.preventDefault(); this.classList.remove('drag-over'); addImgFiles(event.dataTransfer.files)">
           <input type="file" id="np-img" accept="image/*" multiple onchange="previewImgs(this)" />
           <div class="up-icon">↑</div>
-          <p id="img-area-label">Click to add images</p>
+          <p id="img-area-label">Click or drag images here</p>
         </div>
       </div>
     </div>
@@ -3323,7 +3327,10 @@ function showProductDetail(p) {
       <button class="img-dl-btn" onclick="downloadImg('${imgs[0]}','${esc(p.name)}')">↓ Download</button>
     </div>${thumbs}`
   } else {
-    galleryHtml = `<div class="pd-no-img">
+    galleryHtml = `<div class="pd-no-img"${isEditor() ? `
+      ondragover="event.preventDefault(); this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="event.preventDefault(); this.classList.remove('drag-over'); openEditWithFiles(selected, event.dataTransfer.files)"` : ''}>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="opacity:0.35"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.4"/><circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
       ${isEditor()
         ? `<button class="btn btn-ghost btn-sm" onclick="openEdit(selected)">Add image</button>`
@@ -4430,6 +4437,11 @@ function openAdd() {
   document.getElementById('m-add').classList.add('open')
 }
 
+function openEditWithFiles(p, fileList) {
+  openEdit(p)
+  addImgFiles(fileList)
+}
+
 function openEdit(p) {
   editingProductId = p.id
   editingImageUrls = (p.image_urls && p.image_urls.length) ? [...p.image_urls]
@@ -4502,7 +4514,7 @@ function renderEditImgGrid() {
   grid.innerHTML = saved + pending
   const total = editingImageUrls.length + pendingImgFiles.length
   const lbl = document.getElementById('img-area-label')
-  if (lbl) lbl.textContent = total ? 'Add more images' : 'Click to add images'
+  if (lbl) lbl.textContent = total ? 'Add more images' : 'Click or drag images here'
 }
 
 function removeEditImg(i) {
@@ -4515,10 +4527,16 @@ function removePendingImg(i) {
   renderEditImgGrid()
 }
 
-function previewImgs(input) {
-  pendingImgFiles = [...pendingImgFiles, ...Array.from(input.files)]
-  input.value = ''
+function addImgFiles(fileList) {
+  const files = Array.from(fileList || []).filter(f => f.type.startsWith('image/'))
+  if (!files.length) return
+  pendingImgFiles = [...pendingImgFiles, ...files]
   renderEditImgGrid()
+}
+
+function previewImgs(input) {
+  addImgFiles(input.files)
+  input.value = ''
 }
 
 function switchFichaImg(thumbEl, url) {
