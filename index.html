@@ -6222,6 +6222,7 @@ async function submitCart() {
   const sharedNotes = [`Batch ${batchRef} — all items ship together`, priority === 'urgent' ? 'PRIORITY: URGENT' : '', notes].filter(Boolean).join(' · ')
 
   const created = []
+  let lastError = null
   for (const item of sampleCart) {
     let result = null
     try {
@@ -6232,7 +6233,8 @@ async function submitCart() {
         p_notes: sharedNotes, p_user_id: me.id, p_user_name: userName,
       })
       if (!error) result = data
-    } catch {}
+      else { lastError = error; console.error('create_sample RPC error:', error) }
+    } catch (e) { lastError = e; console.error('create_sample RPC threw:', e) }
     if (!result) {
       const year = new Date().getFullYear()
       const { data: last } = await sb.from('samples').select('sample_id').like('sample_id', `SMP-${year}-%`).order('sample_id', { ascending: false }).limit(1)
@@ -6251,13 +6253,18 @@ async function submitCart() {
           event_data: { status: 'requested' }, created_by: me.id,
         })
         result = { sample_id: newId, id: ins.id }
-      }
+      } else if (insErr) { lastError = insErr; console.error('samples insert error:', insErr) }
     }
     if (result) created.push(result)
   }
 
   btn.disabled = false; btn.innerHTML = 'Submit request'
-  if (!created.length) { toast('Error sending request — run samples_schema.sql in Supabase'); return }
+  if (!created.length) {
+    const msg = lastError?.message || lastError?.hint || 'unknown error'
+    console.error('Sample request failed. Last Supabase error:', lastError)
+    toast(`Request failed: ${msg}`)
+    return
+  }
 
   lastShipment = {
     ref: batchRef, date: new Date(), customer, priority, delivery, recipient, address, notes,
