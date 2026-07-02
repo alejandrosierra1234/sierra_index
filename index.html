@@ -1094,9 +1094,16 @@
        · One data pattern for all specs (KV table, fixed key column)
        · Numeric dimensions get their own compact grid
     ══════════════════════════════════════ */
+    /*
+      LABEL — thermal-print optimized
+      Zones: [HEADER] [NAME BAND] [SPECS] [DIMS] [YARNS] [BARCODE]
+      Rules: 0.5mm zone boundaries · 0.25mm intra-zone
+      Color: black only — no grays (thermal halftoning)
+      Weight: keys 400 (smaller) · values 700 (larger)
+    */
     .lbl {
       width: 62mm;
-      padding: 2.8mm 3.8mm 3mm;
+      padding: 0;
       display: flex;
       flex-direction: column;
       font-family: "Replica", "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -1104,19 +1111,33 @@
       background: #fff;
       gap: 0;
       box-sizing: border-box;
+      border: 0.3mm solid #000;
     }
 
-    /* ── HEADER: logo left, [origin · QR] right ── */
+    /* ── ZONE wrapper — each zone has consistent padding ── */
+    .lbl-zone {
+      padding: 2mm 3.5mm;
+    }
+    .lbl-zone + .lbl-zone {
+      border-top: 0.5mm solid #000;
+    }
+    /* Intra-zone hairline (between content groups within a zone) */
+    .lbl-rule {
+      height: 0.25mm;
+      background: #000;
+      margin: 1.8mm 0;
+      flex-shrink: 0;
+    }
+
+    /* ── ZONE 1: HEADER — logo left · [origin  QR] right ── */
     .lbl-hdr {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-bottom: 2mm;
-      border-bottom: 0.3mm solid #000;
-      margin-bottom: 2mm;
+      gap: 2mm;
     }
     .lbl-logo { flex: 1; min-width: 0; }
-    .lbl-logo svg { height: 6mm; width: auto; max-width: 38mm; display: block; }
+    .lbl-logo svg { height: 5.5mm; width: auto; max-width: 36mm; display: block; }
     .lbl-hdr-right {
       display: flex;
       align-items: center;
@@ -1124,51 +1145,46 @@
       flex-shrink: 0;
     }
     .lbl-origin {
-      font-size: 1.5mm;
-      font-weight: 400;
+      font-size: 1.4mm;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.07em;
       color: #000;
-      line-height: 1.2;
+      line-height: 1.25;
       text-align: right;
       max-width: 10mm;
     }
     .lbl-hdr-qr canvas, .lbl-hdr-qr img {
-      width: 11mm; height: 11mm; display: block; image-rendering: pixelated;
+      width: 10mm; height: 10mm; display: block; image-rendering: pixelated;
     }
 
-    /* ── IDENTITY: codes + product name ── */
-    .lbl-identity { margin-bottom: 0.6mm; }
-    .lbl-identity-codes {
-      font-size: 1.8mm;
-      font-weight: 400;
-      color: #555;
-      letter-spacing: 0.03em;
-      line-height: 1.3;
+    /* ── ZONE 2: IDENTITY BAND — codes + product name ── */
+    .lbl-band {
+      padding: 2mm 3.5mm 2.5mm;
+      border-top: 0.5mm solid #000;
+      border-bottom: 0.5mm solid #000;
     }
-    .lbl-identity-sep { color: #bbb; margin: 0 0.6mm; }
+    .lbl-identity-codes {
+      font-size: 1.7mm;
+      font-weight: 400;
+      color: #000;
+      letter-spacing: 0.05em;
+      line-height: 1.3;
+      margin-bottom: 1mm;
+    }
+    .lbl-identity-sep { margin: 0 0.8mm; opacity: 0.4; }
     .lbl-title {
-      font-size: 5.2mm;
+      font-size: 5mm;
       font-weight: 800;
       text-transform: uppercase;
       color: #000;
-      line-height: 0.9;
-      letter-spacing: -0.02em;
+      line-height: 0.92;
+      letter-spacing: -0.025em;
       overflow-wrap: break-word;
-      margin-top: 0.8mm;
     }
 
-    /* ── HAIRLINE RULE between zones ── */
-    .lbl-rule {
-      height: 0.25mm;
-      background: #000;
-      margin: 2mm 0;
-      flex-shrink: 0;
-    }
-
-    /* ── KV TABLE: single consistent pattern for all specs ── */
-    /* Key = fixed 16mm column, light weight · Value = fills remaining width */
-    .lbl-kv-table { display: flex; flex-direction: column; gap: 1mm; }
+    /* ── ZONE 3 / 4 / 5: SPECS, DIMS, YARNS — within the same zone padding ── */
+    .lbl-kv-table { display: flex; flex-direction: column; gap: 1.1mm; }
     .lbl-kv {
       display: flex;
       align-items: baseline;
@@ -1176,18 +1192,19 @@
       min-width: 0;
     }
     .lbl-kv-k {
-      font-size: 1.5mm;
+      font-size: 1.45mm;
       font-weight: 400;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #888;
-      width: 16mm;
+      letter-spacing: 0.07em;
+      color: #000;
+      width: 15mm;
       flex-shrink: 0;
-      padding-top: 0.3mm;
+      padding-top: 0.2mm;
+      opacity: 0.55;
     }
     .lbl-kv-v {
-      font-size: 2.6mm;
-      font-weight: 600;
+      font-size: 2.5mm;
+      font-weight: 700;
       color: #000;
       flex: 1;
       line-height: 1.2;
@@ -1195,42 +1212,43 @@
       min-width: 0;
     }
 
-    /* ── DIMENSIONS: compact numeric grid ── */
-    /* Numbers are brief — show key above value, evenly spaced */
+    /* Dimensions: key above value, evenly distributed */
     .lbl-dims { display: flex; gap: 0; }
     .lbl-dim { flex: 1; }
     .lbl-dim-k {
-      font-size: 1.5mm;
+      font-size: 1.45mm;
       font-weight: 400;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #888;
+      letter-spacing: 0.07em;
+      color: #000;
       display: block;
-      margin-bottom: 0.3mm;
+      margin-bottom: 0.5mm;
+      opacity: 0.55;
     }
     .lbl-dim-v {
-      font-size: 3.2mm;
-      font-weight: 700;
+      font-size: 3.4mm;
+      font-weight: 800;
       color: #000;
       line-height: 1;
       display: block;
     }
 
-    /* ── YARNS ── */
-    .lbl-yarns { display: flex; flex-direction: column; gap: 0.8mm; }
+    /* Yarns */
+    .lbl-yarns { display: flex; flex-direction: column; gap: 0.9mm; }
     .lbl-yarn { display: flex; align-items: baseline; gap: 0; }
     .lbl-yarn-k {
-      font-size: 1.5mm;
+      font-size: 1.45mm;
       font-weight: 400;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #888;
-      width: 6mm;
+      letter-spacing: 0.07em;
+      color: #000;
+      width: 7mm;
       flex-shrink: 0;
+      opacity: 0.55;
     }
     .lbl-yarn-v {
       font-size: 2.4mm;
-      font-weight: 600;
+      font-weight: 700;
       color: #000;
       line-height: 1.2;
       overflow-wrap: break-word;
@@ -1238,15 +1256,18 @@
       min-width: 0;
     }
 
-    /* ── BARCODE ── */
-    .lbl-bc-wrap { margin-top: 2mm; }
-    .lbl-bc-wrap svg { width: 100%; height: auto; min-height: 7mm; max-height: 9mm; display: block; }
+    /* ── ZONE LAST: BARCODE — full-width, always bottom ── */
+    .lbl-bc-zone {
+      border-top: 0.5mm solid #000;
+      padding: 2mm 3.5mm 2.5mm;
+    }
+    .lbl-bc-wrap svg { width: 100%; height: auto; min-height: 10mm; max-height: 13mm; display: block; }
     .lbl-bc-id {
-      font-size: 1.4mm;
-      font-weight: 400;
+      font-size: 1.6mm;
+      font-weight: 700;
       color: #000;
-      letter-spacing: 0.06em;
-      margin-top: 0.5mm;
+      letter-spacing: 0.14em;
+      margin-top: 1mm;
       text-align: center;
     }
 
@@ -1478,13 +1499,15 @@
       #print-root #label-preview { zoom:unset !important; transform:none !important; }
       /* Mono logo for thermal printing */
       #print-root .lc1 { fill:#000 !important; }
-      /* All grays become black on thermal */
+      /* Full opacity for thermal — eliminate any CSS opacity/color reduction */
       #print-root .lbl-kv-k,
       #print-root .lbl-dim-k,
       #print-root .lbl-yarn-k,
       #print-root .lbl-identity-codes,
       #print-root .lbl-origin,
-      #print-root .lbl-bc-id { color:#000 !important; }
+      #print-root .lbl-bc-id { color:#000 !important; opacity:1 !important; }
+      /* Outer border prints correctly */
+      #print-root .lbl { border-color:#000 !important; }
     }
 
     #print-root { display:none; }
@@ -3404,11 +3427,11 @@ function renderLabel(p, fields, printAssets = null) {
 
   /* ── QR element ── */
   const qrEl = printAssets
-    ? (printAssets.qrSrc ? `<img src="${printAssets.qrSrc}" style="width:11mm;height:11mm;display:block;image-rendering:pixelated">` : '')
-    : `<canvas id="lbl-preview-qr" width="88" height="88" style="width:11mm;height:11mm;display:block"></canvas>`
+    ? (printAssets.qrSrc ? `<img src="${printAssets.qrSrc}" style="width:10mm;height:10mm;display:block;image-rendering:pixelated">` : '')
+    : `<canvas id="lbl-preview-qr" width="88" height="88" style="width:10mm;height:10mm;display:block"></canvas>`
 
-  /* ── HEADER: logo · [origin  QR] ── */
-  s.push(`<div class="lbl-hdr">
+  /* ── ZONE 1: HEADER — logo · [origin  QR] ── */
+  s.push(`<div class="lbl-zone lbl-hdr">
     <div class="lbl-logo">${LBL_LOGO_SVG}</div>
     <div class="lbl-hdr-right">
       ${F['Manufactured In'] ? `<span class="lbl-origin">${esc(F['Manufactured In'])}</span>` : ''}
@@ -3416,50 +3439,51 @@ function renderLabel(p, fields, printAssets = null) {
     </div>
   </div>`)
 
-  /* ── IDENTITY: ref codes + product name ── */
+  /* ── ZONE 2: IDENTITY BAND — codes then large product name ── */
   const idCodes = [F['Mill Article'], F['LOT']].filter(Boolean)
-  if (idCodes.length) {
-    s.push(`<div class="lbl-identity"><div class="lbl-identity-codes">${
-      idCodes.map(v => esc(v)).join('<span class="lbl-identity-sep"> · </span>')
-    }</div></div>`)
-  }
-  if (F['Product Name']) {
-    s.push(`<div class="lbl-title">${esc(F['Product Name'])}</div>`)
+  const hasIdentity = idCodes.length || F['Product Name']
+  if (hasIdentity) {
+    s.push(`<div class="lbl-band">
+      ${idCodes.length ? `<div class="lbl-identity-codes">${
+        idCodes.map(v => esc(v)).join('<span class="lbl-identity-sep"> / </span>')
+      }</div>` : ''}
+      ${F['Product Name'] ? `<div class="lbl-title">${esc(F['Product Name'])}</div>` : ''}
+    </div>`)
   }
 
-  /* ── SPECS: one consistent KV table ── */
+  /* ── ZONE 3: SPECS + DIMS + YARNS + NOTES — one zone, hairlines between groups ── */
   const specKeys = ['Composition','Color','Dyed Method'].filter(k => F[k])
-  if (specKeys.length) {
-    s.push(`<div class="lbl-rule"></div>`)
-    s.push(`<div class="lbl-kv-table">${specKeys.map(k => lblKV(k, F[k])).join('')}</div>`)
-  }
-
-  /* ── DIMENSIONS: compact numeric grid ── */
-  const dimKeys = ['Width','GSM','DIA','Gauge'].filter(k => F[k])
-  if (dimKeys.length) {
-    s.push(`<div class="lbl-rule"></div>`)
-    s.push(`<div class="lbl-dims">${dimKeys.map(k => lblDim(k, F[k])).join('')}</div>`)
-  }
-
-  /* ── YARNS ── */
+  const dimKeys  = ['Width','GSM','DIA','Gauge'].filter(k => F[k])
   const yarnKeys = ['Yarn 01','Yarn 02','Yarn 03'].filter(k => F[k])
-  if (yarnKeys.length) {
-    s.push(`<div class="lbl-rule"></div>`)
-    s.push(`<div class="lbl-yarns">${yarnKeys.map(k =>
-      `<div class="lbl-yarn"><span class="lbl-yarn-k">${esc(k)}</span><span class="lbl-yarn-v">${esc(F[k])}</span></div>`
-    ).join('')}</div>`)
-  }
-
-  /* ── NOTES: price + comments in the same KV table ── */
   const noteKeys = ['Price','Comments'].filter(k => F[k])
-  if (noteKeys.length) {
-    s.push(`<div class="lbl-rule"></div>`)
-    s.push(`<div class="lbl-kv-table">${noteKeys.map(k => lblKV(k, F[k])).join('')}</div>`)
+  const hasSpecs = specKeys.length || dimKeys.length || yarnKeys.length || noteKeys.length
+
+  if (hasSpecs) {
+    const inner = []
+    if (specKeys.length) {
+      inner.push(`<div class="lbl-kv-table">${specKeys.map(k => lblKV(k, F[k])).join('')}</div>`)
+    }
+    if (dimKeys.length) {
+      if (inner.length) inner.push(`<div class="lbl-rule"></div>`)
+      inner.push(`<div class="lbl-dims">${dimKeys.map(k => lblDim(k, F[k])).join('')}</div>`)
+    }
+    if (yarnKeys.length) {
+      if (inner.length) inner.push(`<div class="lbl-rule"></div>`)
+      inner.push(`<div class="lbl-yarns">${yarnKeys.map(k =>
+        `<div class="lbl-yarn"><span class="lbl-yarn-k">${esc(k)}</span><span class="lbl-yarn-v">${esc(F[k])}</span></div>`
+      ).join('')}</div>`)
+    }
+    if (noteKeys.length) {
+      if (inner.length) inner.push(`<div class="lbl-rule"></div>`)
+      inner.push(`<div class="lbl-kv-table">${noteKeys.map(k => lblKV(k, F[k])).join('')}</div>`)
+    }
+    s.push(`<div class="lbl-zone">${inner.join('')}</div>`)
   }
 
-  /* ── BARCODE ── */
+  /* ── ZONE LAST: BARCODE — always at the bottom ── */
+  const codeStr = (p.code || p.id.slice(0,8).toUpperCase()).toUpperCase()
   const bcEl = printAssets ? printAssets.bcSvgStr || '' : `<svg id="lbl-preview-bc"></svg>`
-  s.push(`<div class="lbl-bc-wrap">${bcEl}<div class="lbl-bc-id">${esc(p.code || p.id.slice(0,8).toUpperCase())} · SIERRA INDEX</div></div>`)
+  s.push(`<div class="lbl-bc-zone">${bcEl}<div class="lbl-bc-id">${esc(codeStr)} · SIERRA INDEX</div></div>`)
 
   return `<div class="lbl">${s.join('')}</div>`
 }
