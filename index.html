@@ -1142,7 +1142,7 @@
     }
     .lbl-hdr-qr { flex-shrink: 0; }
     .lbl-hdr-qr canvas, .lbl-hdr-qr img {
-      width: 13mm; height: 13mm; display: block; image-rendering: pixelated;
+      width: 16mm; height: 16mm; display: block; image-rendering: pixelated;
     }
 
     /* ── PRODUCT NAME — large, bold, all-caps · not a band, just text ── */
@@ -1485,6 +1485,10 @@
       #print-root #label-preview { zoom:unset !important; transform:none !important; }
       /* Mono logo for thermal printing */
       #print-root .lc1 { fill:#000 !important; }
+      /* Hide any canvas/video elements outside print-root (preview QR, scan camera, etc.) */
+      canvas, video { display:none !important; }
+      #print-root canvas { display:block !important; }
+
       /* Full opacity for thermal — CSS opacity:0.5 on keys must print as solid black */
       #print-root .lbl-kv-k,
       #print-root .lbl-dim-k,
@@ -2320,13 +2324,9 @@ function getProductBarcode(p) {
   return p.code || p.specs?.barcode || ('PRD-' + p.id.replace(/-/g,'').slice(0,12).toUpperCase())
 }
 function getProductPublicUrl(p) {
-  // Keep URL short so the QR is less dense and easier to scan.
-  // Encode the UUID plus the human-readable code so the public page
-  // can show something useful even if Supabase RLS blocks anonymous reads.
+  // UUID only — shortest possible QR payload → fewest modules → reliable scan on thermal print
   const base = window.location.origin + window.location.pathname
-  const ref = encodeURIComponent(p.code || '')
-  const name = encodeURIComponent(p.name || '')
-  return `${base}?pub=${p.id}&ref=${ref}&n=${name}`
+  return `${base}?pub=${p.id}`
 }
 
 /* ── THEME ── */
@@ -3376,11 +3376,11 @@ function initLabelCodePreviews(p) {
   if (!p) return
   const bcSvg = document.getElementById('lbl-preview-bc')
   if (bcSvg) {
-    try { JsBarcode(bcSvg, getProductBarcode(p), { format:'CODE128', width:2, height:52, displayValue:false, margin:4, background:'#fff', lineColor:'#000' }) } catch(e) {}
+    try { JsBarcode(bcSvg, getProductBarcode(p), { format:'CODE128', width:3, height:80, displayValue:false, margin:16, background:'#fff', lineColor:'#000' }) } catch(e) {}
   }
   const qrCanvas = document.getElementById('lbl-preview-qr')
   if (qrCanvas) {
-    try { QRCode.toCanvas(qrCanvas, getProductPublicUrl(p), { width:256, margin:2, errorCorrectionLevel:'M', color:{ dark:'#000000', light:'#ffffff' } }, function(){}) } catch(e) {}
+    try { QRCode.toCanvas(qrCanvas, getProductPublicUrl(p), { width:256, margin:3, errorCorrectionLevel:'L', color:{ dark:'#000000', light:'#ffffff' } }, function(){}) } catch(e) {}
   }
 }
 
@@ -3412,8 +3412,8 @@ function renderLabel(p, fields, printAssets = null) {
 
   /* ── QR — small, top-right ── */
   const qrEl = printAssets
-    ? (printAssets.qrSrc ? `<img src="${printAssets.qrSrc}" style="width:13mm;height:13mm;display:block;image-rendering:pixelated">` : '')
-    : `<canvas id="lbl-preview-qr" width="256" height="256" style="width:13mm;height:13mm;display:block"></canvas>`
+    ? (printAssets.qrSrc ? `<img src="${printAssets.qrSrc}" style="width:16mm;height:16mm;display:block;image-rendering:pixelated">` : '')
+    : `<canvas id="lbl-preview-qr" width="256" height="256" style="width:16mm;height:16mm;display:block"></canvas>`
 
   /* ── TOP ROW: codes + origin left · QR right ── */
   const idCodes = [F['Mill Article'], F['LOT']].filter(Boolean)
@@ -3460,7 +3460,9 @@ function renderLabel(p, fields, printAssets = null) {
 
   /* ── HAIRLINE then BARCODE + code · logo ── */
   const codeStr = (p.code || p.id.slice(0,8).toUpperCase()).toUpperCase()
-  const bcEl = printAssets ? printAssets.bcSvgStr || '' : `<svg id="lbl-preview-bc"></svg>`
+  const bcEl = printAssets
+    ? (printAssets.bcSrc ? `<img src="${printAssets.bcSrc}" style="width:100%;height:auto;display:block">` : '')
+    : `<svg id="lbl-preview-bc"></svg>`
   s.push(`<div class="lbl-rule"></div>
   <div class="lbl-bc-wrap">${bcEl}</div>
   <div class="lbl-bc-footer">
@@ -3476,24 +3478,28 @@ function renderLabel(p, fields, printAssets = null) {
 async function printLabel() {
   if (!selected) return
 
-  // Generate barcode SVG string
-  let bcSvgStr = ''
+  // Barcode: render to canvas → PNG data URL (pixel-perfect, no SVG scaling artifacts)
+  let bcSrc = ''
   try {
-    const tmpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    JsBarcode(tmpSvg, getProductBarcode(selected), { format:'CODE128', width:2, height:52, displayValue:false, margin:4, background:'#fff', lineColor:'#000' })
-    bcSvgStr = new XMLSerializer().serializeToString(tmpSvg)
+    const bcCanvas = document.createElement('canvas')
+    JsBarcode(bcCanvas, getProductBarcode(selected), {
+      format:'CODE128', width:3, height:80,
+      displayValue:false, margin:16,
+      background:'#ffffff', lineColor:'#000000'
+    })
+    bcSrc = bcCanvas.toDataURL('image/png')
   } catch(e) {}
 
-  // Generate QR data URL — errorCorrectionLevel L = smallest possible version
+  // QR: UUID-only URL (short) → low-density → 'L' correction → fewest modules → easy scan
   let qrSrc = ''
   try {
     qrSrc = await new Promise((res, rej) =>
       QRCode.toDataURL(getProductPublicUrl(selected),
-        { width: 512, margin: 2, errorCorrectionLevel: 'M', color: { dark:'#000000', light:'#ffffff' } },
+        { width: 512, margin: 3, errorCorrectionLevel: 'L', color: { dark:'#000000', light:'#ffffff' } },
         (err, url) => err ? rej(err) : res(url)))
   } catch(e) {}
 
-  const labelHtml = renderLabel(selected, labelFieldState, { qrSrc, bcSvgStr })
+  const labelHtml = renderLabel(selected, labelFieldState, { qrSrc, bcSrc })
 
   // Inject into #print-root (visible in @media print via existing CSS)
   const root = document.getElementById('print-root')
