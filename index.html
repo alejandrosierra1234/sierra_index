@@ -3471,7 +3471,15 @@ function initLabelCodePreviews(p) {
   const bcSvg = document.getElementById('lbl-preview-bc')
   const code = getProductBarcode(p)
   if (bcSvg && code) {
-    try { JsBarcode(bcSvg, code, { format:'CODE128', width:3, height:80, displayValue:false, margin:16, background:'#fff', lineColor:'#000' }) } catch(e) {}
+    // Same proportions as print so preview reflects actual label output
+    try { JsBarcode(bcSvg, code, {
+      format: 'CODE128',
+      width: 5,
+      height: 100,
+      displayValue: false,
+      marginLeft: 60, marginRight: 60, marginTop: 5, marginBottom: 5,
+      background: '#fff', lineColor: '#000'
+    }) } catch(e) {}
   }
   const qrCanvas = document.getElementById('lbl-preview-qr')
   if (qrCanvas) {
@@ -3616,8 +3624,9 @@ async function printLabel() {
   try {
     const bcCanvas = document.createElement('canvas')
     JsBarcode(bcCanvas, getProductBarcode(selected), {
-      format:'CODE128', width:3, height:80,
-      displayValue:false, margin:16,
+      format:'CODE128', width:5, height:100,
+      displayValue:false,
+      marginLeft:60, marginRight:60, marginTop:5, marginBottom:5,
       background:'#ffffff', lineColor:'#000000'
     })
     bcSrc = bcCanvas.toDataURL('image/png')
