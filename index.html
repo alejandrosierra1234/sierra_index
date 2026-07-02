@@ -2086,7 +2086,9 @@ let editingProductId = null, editingImageUrls = [], pendingImgFiles = []
 let allProducts = [], searchQuery = '', selectMode = false, selectedProducts = []
 
 function getProductBarcode(p) {
-  return p.specs?.barcode || ('PRD-' + p.id.replace(/-/g,'').slice(0,12).toUpperCase())
+  // Encode the human-readable Mill Article code so any laser scanner can
+  // look up the product. Fall back to custom barcode field, then UUID.
+  return p.code || p.specs?.barcode || ('PRD-' + p.id.replace(/-/g,'').slice(0,12).toUpperCase())
 }
 function getProductPublicUrl(p) {
   return window.location.origin + window.location.pathname + '?pub=' + p.id
@@ -5812,11 +5814,17 @@ async function executeScan(val) {
     toast('Product not found: ' + v)
     return
   }
-  // Check if it's a product code
+  // Match by Mill Article code or custom barcode field
   const { data: prods } = await sb.from('products').select('*').ilike('code', v).limit(1)
   if (prods?.length) {
     closeScanMode()
     showProductDetail(prods[0])
+    return
+  }
+  const { data: prodsBySpec } = await sb.from('products').select('*').eq('specs->>barcode', v).limit(1)
+  if (prodsBySpec?.length) {
+    closeScanMode()
+    showProductDetail(prodsBySpec[0])
     return
   }
   toast('No match found for: ' + v)
