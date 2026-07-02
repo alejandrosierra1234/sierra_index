@@ -1066,19 +1066,30 @@
 
     /* Back button — now lives at the top of the identity column */
     .detail-back-btn {
-      display:inline-flex; align-items:center; gap:0.55rem;
+      display:inline-flex; align-items:center; gap:0.3rem;
       background:none; border:none; cursor:pointer; font-family:inherit;
       font-size:0.78rem; font-weight:500; color:var(--text-3);
-      padding:0.3rem 0.65rem 0.3rem 0.4rem; border-radius:7px;
-      margin:0 0 0.5rem -0.4rem;
+      padding:0.3rem 0.6rem 0.3rem 0.35rem; border-radius:7px;
       transition:background 0.12s, color 0.12s;
     }
     .detail-back-btn:hover { background:var(--surface2); color:var(--text); }
+    .detail-back-btn svg { flex-shrink:0; }
     .detail-back-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+
+    /* Identity nav row: back (left) + share icon (right) — mirrors the
+       standard back/action navigation-bar pattern instead of a full-width
+       Share button competing with the sticky toolbar's CTAs below. */
+    .pd-id-nav { display:flex; align-items:center; justify-content:space-between; margin:0 0 1.1rem -0.35rem; }
+    .pd-share-icon-btn {
+      width:30px; height:30px; border-radius:7px; border:1px solid var(--border);
+      background:none; color:var(--text-3); display:flex; align-items:center; justify-content:center;
+      cursor:pointer; transition:all 0.12s; flex-shrink:0;
+    }
+    .pd-share-icon-btn:hover { color:var(--text); border-color:var(--text-3); background:var(--surface2); }
 
     /* ── PRODUCT DETAIL LAYOUT — 3 columns: identity | specs | media ── */
     .pd-layout {
-      display:grid; grid-template-columns:210px 1fr 280px;
+      display:grid; grid-template-columns:270px 1fr 280px;
       grid-template-rows:auto auto;
       gap:0 2.75rem; align-items:start;
     }
@@ -1097,8 +1108,8 @@
 
     /* Identity column */
     .pd-name {
-      font-size:1.3rem; font-weight:700; letter-spacing:-0.025em;
-      line-height:1.2; color:var(--text); margin:1rem 0 0.85rem;
+      font-size:1.8rem; font-weight:700; letter-spacing:-0.03em;
+      line-height:1.15; color:var(--text); margin:0 0 0.9rem;
     }
     .pd-sku-box {
       display:inline-flex; align-items:center; gap:0.4rem;
@@ -1125,7 +1136,6 @@
       font-size:0.68rem; font-weight:500; color:var(--text-2);
       border:1px solid var(--border); border-radius:6px; padding:0.28rem 0.55rem;
     }
-    .pd-share-btn { width:100%; justify-content:center; margin-top:0.5rem; }
 
     /* ── SPEC TABLE — single unified data list ── */
     .pd-specs { width:100%; }
@@ -1190,11 +1200,12 @@
     .detail-toolbar-spacer { flex:1; }
 
     /* ── DETAIL RESPONSIVE ── */
-    @media (max-width:1100px) {
-      .pd-layout { grid-template-columns:190px 1fr 240px; gap:0 2rem; }
+    @media (max-width:1200px) {
+      .pd-layout { grid-template-columns:230px 1fr 240px; gap:0 2rem; }
+      .pd-name { font-size:1.55rem; }
     }
     @media (max-width:900px) {
-      .pd-layout { grid-template-columns:170px 1fr; grid-template-rows:auto; gap:1.75rem; }
+      .pd-layout { grid-template-columns:200px 1fr; grid-template-rows:auto; gap:1.75rem; }
       .pd-identity-col { grid-column:1; grid-row:1; }
       .pd-specs-col { grid-column:2; grid-row:1; }
       .pd-gallery-col { grid-column:1 / -1; grid-row:2; position:static; margin-top:0.5rem; max-width:320px; }
@@ -1212,7 +1223,7 @@
       .pd-gallery-col { order:2; margin-bottom:1.5rem; }
       .pd-specs-col { order:3; }
       .pd-comments-col { order:4; margin-top:1.5rem; }
-      .pd-name { font-size:1.35rem; margin-top:0.5rem; }
+      .pd-name { font-size:1.5rem; margin-top:0.5rem; }
       .pd-k { width:88px; }
       .pd-hd { padding:0.85rem 0 0.35rem; }
 
@@ -2187,13 +2198,15 @@
 
     /* Product page — sample history */
     .pd-sample-history { display:flex; flex-direction:column; gap:0; }
-    .psh-item { display:flex; gap:0.85rem; align-items:baseline; padding:0.75rem 0; border-bottom:1px solid var(--border); cursor:pointer; transition:opacity 0.12s; }
+    /* Stacked layout (not a side-by-side id column) so this reads cleanly
+       even in the narrow media-column width, not just on mobile. */
+    .psh-item { display:flex; flex-direction:column; gap:0.3rem; padding:0.75rem 0; border-bottom:1px solid var(--border); cursor:pointer; transition:opacity 0.12s; }
     .psh-item:hover { opacity:0.65; }
     .psh-item:last-child { border-bottom:none; }
-    .psh-id { font-size:0.68rem; font-weight:700; color:var(--text-3); min-width:120px; flex-shrink:0; letter-spacing:0.06em; }
-    .psh-body { flex:1; min-width:0; }
+    .psh-top { display:flex; align-items:center; justify-content:space-between; gap:0.5rem; }
+    .psh-id { font-size:0.66rem; font-weight:700; color:var(--text-3); letter-spacing:0.06em; }
     .psh-type { font-size:0.8rem; font-weight:500; color:var(--text); }
-    .psh-meta { font-size:0.68rem; color:var(--text-3); margin-top:0.1rem; }
+    .psh-meta { font-size:0.68rem; color:var(--text-3); }
     .psh-status { flex-shrink:0; }
 
     /* Home quick actions */
@@ -3439,10 +3452,15 @@ function showProductDetail(p) {
   vd.innerHTML = `<div class="detail-view-inner">
     <div class="pd-layout">
       <div class="pd-identity-col">
-        <button class="detail-back-btn" onclick="backToProducts()">
-          <span class="detail-back-dot" style="background:${c}"></span>
-          ${backLabel}
-        </button>
+        <div class="pd-id-nav">
+          <button class="detail-back-btn" onclick="backToProducts()">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3.5L4.5 8l5.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            ${backLabel}
+          </button>
+          <button class="pd-share-icon-btn" onclick="shareProduct(selected)" title="Share">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="15" cy="5" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="5" cy="10" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="15" cy="15" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 9l6-3M7 11l6 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </button>
+        </div>
         <div class="pd-name">${esc(p.name)}</div>
         <div class="pd-sku-box" onclick="copyToClipboard('${cp(sku)}')" title="Click to copy">
           <span>${esc(sku)}</span>${copyIcon}
@@ -3456,10 +3474,6 @@ function showProductDetail(p) {
           <div class="pd-id-label">Country</div>
           <div class="pd-id-value">${esc(countryVal)}</div>
         </div>
-        <button class="btn btn-ghost btn-sm pd-share-btn" onclick="shareProduct(selected)">
-          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><circle cx="15" cy="5" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="5" cy="10" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="15" cy="15" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 9l6-3M7 11l6 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-          Share
-        </button>
       </div>
       <div class="pd-specs-col">
         ${infoHtml}
@@ -7029,12 +7043,12 @@ async function loadProductSampleHistory(productId) {
     const date = new Date(s.created_at).toLocaleDateString('en-US', { day:'2-digit', month:'short', year:'numeric' })
     const req = s.profiles?.full_name || '—'
     return `<div class="psh-item" onclick="showSampleRecord('${s.id}')">
-      <div class="psh-id">${esc(s.sample_id)}</div>
-      <div class="psh-body">
-        <div class="psh-type">${esc(s.sample_type)}${s.customer ? ' · ' + esc(s.customer) : ''}</div>
-        <div class="psh-meta">${esc(req)} · ${date}</div>
+      <div class="psh-top">
+        <div class="psh-id">${esc(s.sample_id)}</div>
+        <div class="psh-status">${smpBadge(s.status)}</div>
       </div>
-      <div class="psh-status">${smpBadge(s.status)}</div>
+      <div class="psh-type">${esc(s.sample_type)}${s.customer ? ' · ' + esc(s.customer) : ''}</div>
+      <div class="psh-meta">${esc(req)} · ${date}</div>
     </div>`
   }).join('')}</div>`
 }
