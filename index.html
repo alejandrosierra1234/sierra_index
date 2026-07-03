@@ -817,12 +817,30 @@
       border:none; border-radius:0; padding:0.6rem 0; border-bottom:1px solid var(--border);
       background:none !important;
     }
+    .dash-side .market-card.mc-open {
+      background:var(--surface2) !important;
+      border-radius:8px;
+      padding-left:0.65rem;
+      padding-right:0.65rem;
+      border-bottom-color:transparent;
+    }
     .dash-side .market-card:last-child { border-bottom:none; }
     .dash-side .mc-spark { display:none; }
     .dash-side .mc-label { margin-bottom:0.15rem; }
     .dash-side .mc-price { font-size:0.9rem; font-weight:600; letter-spacing:-0.02em; }
     .dash-side .mc-unit { font-size:0.58rem; }
-    .dash-side .market-expand-drawer { display:none !important; }
+    .dash-side .market-expand-drawer {
+      border:none;
+      border-top:1px solid var(--border);
+      border-radius:0;
+      padding:0.85rem 0 0;
+      margin-top:0.75rem;
+    }
+    .dash-side .market-expand-drawer.open { display:block; }
+    .dash-side .med-top { flex-direction:column; gap:0.55rem; }
+    .dash-side .med-price { font-size:1.35rem; text-align:left; }
+    .dash-side .med-chg { font-size:0.72rem; text-align:left; }
+    .dash-side .med-chart { height:96px; margin-top:0.85rem; }
 
     /* World time — visual cards */
     .dash-clocks { display:grid; grid-template-columns:repeat(4,1fr); gap:0.6rem; }
