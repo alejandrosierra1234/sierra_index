@@ -6773,6 +6773,7 @@ async function showSampleCenter() {
   const { data, error } = await q
 
   if (error) {
+    console.error('showSampleCenter error:', error)
     const needsSetup = error.code === 'PGRST200' || error.message?.includes('does not exist')
     pg.innerHTML = needsSetup
       ? `<div class="empty" style="padding:3rem 1rem">
@@ -6781,6 +6782,7 @@ async function showSampleCenter() {
           <p style="font-size:0.78rem;line-height:1.6;max-width:380px;margin:0 auto">
             Run <strong>samples_schema.sql</strong> in your Supabase SQL Editor to enable full sample traceability.
           </p>
+          <p style="font-size:0.68rem;color:var(--text-3);margin-top:1rem;font-family:monospace">${esc(error.code||'')} — ${esc(error.message||'')}</p>
         </div>`
       : `<div class="empty"><p>Error: ${esc(error.message)}</p></div>`
     return
