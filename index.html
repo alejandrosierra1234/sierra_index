@@ -447,6 +447,10 @@
     /* Floating select bar */
     #select-bar { position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%) translateY(80px); background:var(--text); color:var(--bg); border-radius:20px; padding:0.6rem 0.6rem 0.6rem 1.2rem; display:flex; align-items:center; gap:0.65rem; z-index:300; font-size:0.82rem; font-weight:500; box-shadow:0 8px 32px rgba(0,0,0,0.25); opacity:0; transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1); white-space:nowrap; }
     #select-bar.show { transform:translateX(-50%) translateY(0); opacity:1; }
+    /* Both bars are fixed to the same bottom-center spot; when the select
+       bar is actually showing (items picked), the main toolbar behind it
+       has nothing useful to offer and only causes visual collision. */
+    body:has(#select-bar.show) .div-toolbar { display:none !important; }
 
     /* ── DIVISION TOOLBAR (floating command bar) ── */
     .div-toolbar {
@@ -7120,8 +7124,10 @@ async function loadProductSampleHistory(productId) {
     .order('created_at', { ascending: false })
     .limit(8)
 
+  if (error) console.error('loadProductSampleHistory error:', error)
+
   if (error || !data?.length) {
-    el.innerHTML = `<div style="font-size:0.78rem;color:var(--text-3)">${error ? 'Unavailable.' : 'No samples requested yet.'}</div>`
+    el.innerHTML = `<div style="font-size:0.78rem;color:var(--text-3)">${error ? `Unavailable: ${esc(error.message || 'unknown error')}` : 'No samples requested yet.'}</div>`
     return
   }
 
