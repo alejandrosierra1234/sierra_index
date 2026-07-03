@@ -245,6 +245,13 @@
     .rel-card:hover .rel-remove { display:flex; }
     .rel-result { display:flex; align-items:center; gap:0.5rem; padding:0.45rem 0.5rem; border-radius:8px; cursor:pointer; }
     .rel-result:hover { background:var(--surface2); }
+    .rel-result-icon {
+      width:20px; height:20px; border-radius:6px; flex-shrink:0;
+      display:inline-flex; align-items:center; justify-content:center;
+      color:var(--accent); background:var(--accent-light);
+      border:1px solid color-mix(in srgb, var(--accent) 16%, var(--border));
+    }
+    .rel-result-icon svg { width:12px; height:12px; display:block; }
     .rel-result-name { font-size:0.78rem; font-weight:500; color:var(--text); flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .rel-result-code { font-size:0.66rem; color:var(--text-3); }
     #pd-rel-add > div { align-items:center; }
@@ -289,7 +296,7 @@
     .form-errors { background:rgba(192,57,43,0.06); border:1px solid rgba(192,57,43,0.25); border-radius:10px; padding:0.7rem 0.9rem; margin-bottom:1rem; }
     .form-errors-title { font-size:0.75rem; font-weight:700; color:#c0392b; margin-bottom:0.3rem; }
     .form-errors li { font-size:0.76rem; color:var(--text-2); margin-left:1rem; margin-top:0.15rem; }
-    .lc-pill { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.66rem; font-weight:600; padding:0.15rem 0.5rem; border-radius:20px; border:1px solid transparent; white-space:nowrap; }
+    .lc-pill { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.66rem; font-weight:600; padding:0.18rem 0.5rem; border-radius:7px; border:1px solid transparent; white-space:nowrap; }
     .lc-pill-sm { font-size:0.6rem; padding:0.1rem 0.4rem; }
     .lc-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
     .card-req-btn:disabled { opacity:0.45; cursor:not-allowed; }
@@ -774,7 +781,7 @@
     .card-name { font-size:0.95rem; font-weight:600; color:var(--text); margin-bottom:0.3rem; letter-spacing:-0.015em; line-height:1.3; }
     .card-desc { font-size:0.75rem; color:var(--text-3); line-height:1.55; margin-bottom:1rem; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .tags { display:flex; flex-wrap:wrap; gap:0.28rem; margin-bottom:0.9rem; }
-    .tag { font-size:0.64rem; padding:0.14rem 0.45rem; border-radius:20px; background:none; color:var(--text-3); border:1px solid var(--border); }
+    .tag { font-size:0.64rem; padding:0.16rem 0.45rem; border-radius:7px; background:none; color:var(--text-3); border:1px solid var(--border); }
     .card-actions { display:flex; align-items:center; justify-content:space-between; gap:0.5rem; }
     .card-req-btn { font-size:0.76rem; font-weight:500; padding:0.46rem 1rem; border-radius:8px; background:var(--accent); color:#fff; border:none; cursor:pointer; font-family:inherit; transition:background 0.14s; }
     .card-req-btn:hover { background:var(--accent-dark); }
@@ -833,7 +840,7 @@
     .data-table th { text-align:left; padding:0.45rem 0.9rem; font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); border-bottom:1px solid var(--border); }
     .data-table td { padding:0.8rem 0.9rem; border-bottom:1px solid var(--border); vertical-align:middle; }
     .data-table tr:last-child td { border-bottom:none; }
-    .badge { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.66rem; font-weight:600; padding:0.22rem 0.6rem; border-radius:20px; white-space:nowrap; }
+    .badge { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.66rem; font-weight:600; padding:0.22rem 0.6rem; border-radius:7px; white-space:nowrap; }
     .badge-pending  { background:rgba(255,197,41,0.13); color:#8a6d00; }
     .badge-approved { background:rgba(15,168,156,0.10); color:#0a7a72; }
     .badge-shipped  { background:rgba(0,159,255,0.10);  color:#005fa3; }
@@ -888,7 +895,7 @@
     .ficha-gallery-hero::after { content:""; position:absolute; inset:0; pointer-events:none; box-shadow:inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -34px 48px rgba(0,0,0,0.12); }
     .ficha-gallery-hero img { width:100%; height:100%; object-fit:cover; transition:transform 0.42s cubic-bezier(0.22,1,0.36,1); }
     .ficha-gallery-hero:hover img { transform:scale(1.035); }
-    .ficha-gallery-hero .img-dl-btn { position:absolute; bottom:0.65rem; right:0.65rem; background:rgba(0,0,0,0.48); color:#fff; border:1px solid rgba(255,255,255,0.16); border-radius:999px; padding:0.38rem 0.72rem; font-size:0.72rem; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:0.3rem; backdrop-filter:blur(10px); opacity:0; transition:opacity 0.15s, background 0.12s, transform 0.12s; z-index:1; }
+    .ficha-gallery-hero .img-dl-btn { position:absolute; bottom:0.65rem; right:0.65rem; background:rgba(0,0,0,0.48); color:#fff; border:1px solid rgba(255,255,255,0.16); border-radius:8px; padding:0.38rem 0.72rem; font-size:0.72rem; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:0.3rem; backdrop-filter:blur(10px); opacity:0; transition:opacity 0.15s, background 0.12s, transform 0.12s; z-index:1; }
     .ficha-gallery-hero .img-dl-btn:hover { background:rgba(0,0,0,0.62); }
     .ficha-gallery-hero:hover .img-dl-btn { opacity:1; transform:translateY(-1px); }
     .ficha-thumbs { display:flex; gap:0.45rem; overflow-x:auto; padding:0.55rem 0.1rem 0.05rem; }
@@ -1401,26 +1408,18 @@
 
     .pd-panel {
       border:1px solid color-mix(in srgb, var(--border) 82%, transparent);
-      border-radius:16px;
-      background:
-        linear-gradient(180deg, color-mix(in srgb, var(--surface) 94%, white 6%), var(--surface));
-      box-shadow:0 14px 42px rgba(0,0,0,0.045), 0 1px 0 rgba(255,255,255,0.45) inset;
+      border-radius:12px;
+      background:var(--surface);
+      box-shadow:0 8px 24px rgba(0,0,0,0.035);
     }
     [data-theme="dark"] .pd-panel {
-      background:linear-gradient(180deg, rgba(31,31,34,0.96), rgba(22,22,24,0.96));
-      box-shadow:0 18px 48px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.04) inset;
+      background:var(--surface);
+      box-shadow:0 12px 32px rgba(0,0,0,0.24);
     }
     .pd-identity-card {
       padding:1rem;
       position:relative;
       overflow:hidden;
-    }
-    .pd-identity-card::before {
-      content:"";
-      position:absolute;
-      left:0; top:0; bottom:0; width:3px;
-      background:var(--accent);
-      opacity:0.9;
     }
     .pd-section-card { padding:1rem 1rem 0.95rem; }
     .pd-section-title {
@@ -1465,7 +1464,7 @@
       display:inline-flex; align-items:center; gap:0.4rem;
       font-size:0.72rem; font-weight:600; letter-spacing:0.04em;
       color:var(--text-2); cursor:pointer; user-select:none;
-      background:var(--surface2); border:1px solid var(--border); border-radius:999px;
+      background:var(--surface2); border:1px solid var(--border); border-radius:8px;
       padding:0.42rem 0.62rem; transition:border-color 0.12s, background 0.12s, box-shadow 0.12s;
       margin-bottom:1.35rem;
     }
@@ -1481,22 +1480,31 @@
       display:flex; align-items:center; gap:0.45rem;
       min-width:0;
     }
-    .pd-division-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .pd-division-icon {
+      width:22px; height:22px; border-radius:7px; flex-shrink:0;
+      display:inline-flex; align-items:center; justify-content:center;
+      color:var(--accent); background:var(--accent-light);
+      border:1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+    }
+    .pd-division-icon svg { width:14px; height:14px; display:block; }
+    .pd-division-main { min-width:0; display:flex; flex-direction:column; gap:0.08rem; }
+    .pd-division-name { color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .pd-division-meta { font-size:0.68rem; color:var(--text-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .pd-format-chips { display:flex; flex-wrap:wrap; gap:0.38rem; }
     .pd-format-chip {
       font-size:0.68rem; font-weight:500; color:var(--text-2);
-      border:1px solid var(--border); border-radius:999px; padding:0.34rem 0.58rem; background:var(--surface2);
+      border:1px solid var(--border); border-radius:8px; padding:0.34rem 0.58rem; background:var(--surface2);
     }
     .pd-complete {
       width:100%; display:flex; flex-direction:column; gap:0.38rem;
-      border:1px solid color-mix(in srgb, var(--accent) 24%, var(--border)); border-radius:12px;
-      padding:0.7rem 0.75rem; background:rgba(var(--accent-rgb,15,157,144),0.055);
+      border:1px solid var(--border); border-radius:10px;
+      padding:0.7rem 0.75rem; background:var(--surface2);
     }
     .pd-complete-top { display:flex; align-items:baseline; justify-content:space-between; gap:0.75rem; }
     .pd-complete-score { font-size:0.82rem; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
     .pd-complete-caption { font-size:0.66rem; color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .pd-complete-track { height:4px; border-radius:999px; background:var(--surface2); overflow:hidden; }
-    .pd-complete-fill { height:100%; border-radius:999px; background:var(--accent); transition:width 0.24s cubic-bezier(0.22,1,0.36,1); }
+    .pd-complete-track { height:4px; border-radius:4px; background:var(--border); overflow:hidden; }
+    .pd-complete-fill { height:100%; border-radius:4px; background:var(--accent); transition:width 0.24s cubic-bezier(0.22,1,0.36,1); }
 
     /* ── SPEC TABLE — single unified data list ── */
     .pd-specs { width:100%; }
@@ -4290,7 +4298,13 @@ function showProductDetail(p) {
           </div>
           <div class="pd-id-block">
             <div class="pd-id-label">Division</div>
-            <div class="pd-id-value"><span class="pd-division-dot" style="background:${c}"></span>${DIV_LBL[p.division]}${specs.Construction ? ' · ' + (CONST_META[specs.Construction]?.label || specs.Construction) : ''}</div>
+            <div class="pd-id-value">
+              <span class="pd-division-icon">${DIV_ICON[p.division] || DIV_ICON.all}</span>
+              <span class="pd-division-main">
+                <span class="pd-division-name">${DIV_LBL[p.division] || p.division || 'Division'}</span>
+                ${specs.Construction ? `<span class="pd-division-meta">${CONST_META[specs.Construction]?.label || specs.Construction}</span>` : ''}
+              </span>
+            </div>
           </div>
           <div class="pd-id-block">
             <div class="pd-id-label">Availability</div>
@@ -9564,7 +9578,7 @@ async function _relSearchRun(q) {
   el.innerHTML = matches.map(x => {
     const c = DIV_CLR[x.division] || '#aaa'
     return `<div class="rel-result" onclick="addProductLink('${x.id}')">
-      <span class="pd-division-dot" style="background:${c}"></span>
+      <span class="rel-result-icon" style="color:${c};background:${c}12;border-color:${c}24">${DIV_ICON[x.division] || DIV_ICON.all}</span>
       <span class="rel-result-name">${esc(x.name)}</span>
       <span class="rel-result-code">${esc(x.code || '')}</span>
     </div>`
