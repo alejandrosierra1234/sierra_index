@@ -32,6 +32,16 @@ create table if not exists samples (
   updated_at      timestamptz default now()
 );
 
+-- 3b. requested_by only had a FK to auth.users, so PostgREST couldn't
+-- resolve the `profiles!requested_by(...)` embeds the app queries with
+-- (error PGRST200: "Could not find a relationship between 'samples' and
+-- 'profiles'"). Add an explicit FK to profiles(id) so the embed works —
+-- safe because every profiles.id is itself a valid auth.users.id.
+alter table samples drop constraint if exists samples_requested_by_profiles_fkey;
+alter table samples
+  add constraint samples_requested_by_profiles_fkey
+  foreign key (requested_by) references profiles(id);
+
 -- 4. Immutable event timeline (one row per event, never edited)
 create table if not exists sample_events (
   id          uuid primary key default gen_random_uuid(),
