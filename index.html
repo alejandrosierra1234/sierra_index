@@ -22,6 +22,7 @@
       --accent: #0f9d90;
       --accent-dark: #0c7d73;
       --accent-light: rgba(15,157,144,0.08);
+      --accent-rgb: 15,157,144;
       --bg: #ffffff;
       --bg-alt: #f6f6f6;
       --surface: #ffffff;
@@ -208,8 +209,8 @@
     .ins-obs:last-child { border-bottom:none; }
     .ins-obs-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; position:relative; top:-1px; }
     /* ── INVENTORY ── */
-    .inv-loc { margin-top:0.6rem; }
-    .inv-loc-name { font-size:0.74rem; font-weight:700; color:var(--text); display:flex; justify-content:space-between; align-items:baseline; gap:0.5rem; }
+    .inv-loc { margin-top:0.55rem; border:1px solid var(--border); border-radius:10px; padding:0.7rem 0.75rem; background:var(--surface); }
+    .inv-loc-name { font-size:0.74rem; font-weight:700; color:var(--text); display:flex; justify-content:space-between; align-items:baseline; gap:0.5rem; margin-bottom:0.25rem; }
     .inv-loc-owner { font-size:0.62rem; font-weight:500; color:var(--text-3); }
     .inv-row { display:flex; align-items:baseline; gap:0.5rem; padding:0.3rem 0; border-bottom:1px solid var(--border); font-size:0.76rem; }
     .inv-row:last-child { border-bottom:none; }
@@ -219,7 +220,7 @@
     .inv-qty-out { color:#e0442e; font-weight:700; }
     .inv-res { font-size:0.64rem; color:var(--text-3); }
     .inv-low-tag { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#ff9f0a; background:rgba(255,159,10,0.12); padding:0.1rem 0.4rem; border-radius:10px; }
-    .inv-adjust { border:1px solid var(--border); border-radius:10px; padding:0.6rem; margin:0.5rem 0; background:var(--surface2); }
+    .inv-adjust { border:1px solid var(--border); border-radius:12px; padding:0.7rem; margin:0.55rem 0 0.65rem; background:var(--surface); box-shadow:0 8px 28px rgba(0,0,0,0.05); }
     .invw { border:1px solid var(--border); border-radius:14px; padding:0.9rem 1rem; background:var(--surface); }
     .invw-title { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-3); margin-bottom:0.5rem; }
     .invw-row { display:flex; justify-content:space-between; gap:0.75rem; font-size:0.76rem; color:var(--text-2); padding:0.25rem 0; border-bottom:1px solid var(--border); }
@@ -227,8 +228,8 @@
     .invw-row span:last-child { font-variant-numeric:tabular-nums; white-space:nowrap; }
     .invw-empty { font-size:0.74rem; color:var(--text-3); }
     /* ── KNOWLEDGE GRAPH: related product cards ── */
-    .rel-card { display:flex; align-items:center; gap:0.6rem; padding:0.55rem 0.6rem; border:1px solid var(--border); border-radius:12px; margin-top:0.5rem; cursor:pointer; transition:border-color 0.15s, transform 0.15s, box-shadow 0.15s; position:relative; }
-    .rel-card:hover { border-color:var(--accent); transform:translateY(-1px); box-shadow:0 3px 10px rgba(0,0,0,0.06); }
+    .rel-card { display:flex; align-items:center; gap:0.65rem; padding:0.62rem 0.68rem; border:1px solid var(--border); border-radius:12px; margin-top:0.5rem; cursor:pointer; transition:border-color 0.15s, background 0.15s, box-shadow 0.15s; position:relative; background:var(--surface); }
+    .rel-card:hover { border-color:rgba(var(--accent-rgb,15,157,144),0.3); background:var(--surface2); box-shadow:0 5px 18px rgba(0,0,0,0.05); }
     .rel-thumb { width:38px; height:38px; border-radius:9px; object-fit:cover; flex-shrink:0; }
     .rel-thumb-empty { display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; }
     .rel-info { flex:1; min-width:0; }
@@ -243,13 +244,22 @@
     .rel-result:hover { background:var(--surface2); }
     .rel-result-name { font-size:0.78rem; font-weight:500; color:var(--text); flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .rel-result-code { font-size:0.66rem; color:var(--text-3); }
+    #pd-rel-add > div { align-items:center; }
+    #rel-search-results { margin-top:0.35rem; }
+    #pd-related > div[style*="font-size"],
+    #pd-inventory > div[style*="font-size"],
+    #pd-sample-history > div[style*="font-size"],
+    #pd-timeline > div[style*="font-size"] {
+      padding:0.55rem 0; color:var(--text-3) !important;
+    }
     /* ── AUDIT: tabs, timeline, versions ── */
-    .pd-tabs { display:flex; gap:0.25rem; background:var(--surface2); border-radius:9px; padding:0.2rem; margin-bottom:0.75rem; }
-    .pd-tab { flex:1; border:none; background:none; font-family:inherit; font-size:0.74rem; font-weight:600; color:var(--text-3); padding:0.35rem 0.6rem; border-radius:7px; cursor:pointer; transition:all 0.15s; }
+    .pd-tabs { display:flex; gap:0.25rem; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:0.22rem; margin-bottom:0.75rem; }
+    .pd-tab { flex:1; min-height:30px; border:none; background:none; font-family:inherit; font-size:0.74rem; font-weight:600; color:var(--text-3); padding:0.38rem 0.6rem; border-radius:8px; cursor:pointer; transition:background 0.15s, color 0.15s, box-shadow 0.15s; }
     .pd-tab.active { background:var(--surface); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
-    .tl-controls { display:flex; gap:0.4rem; margin-bottom:0.7rem; }
-    .tl-search { flex:1; min-width:0; font-size:0.74rem; padding:0.35rem 0.6rem; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:inherit; }
-    .tl-item { display:flex; gap:0.6rem; padding:0.55rem 0; border-bottom:1px solid var(--border); }
+    .tl-controls { display:flex; gap:0.45rem; margin-bottom:0.75rem; align-items:center; }
+    .tl-search { flex:1; min-width:0; min-height:34px; font-size:0.74rem; padding:0.42rem 0.62rem; border-radius:9px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:inherit; transition:border-color 0.12s, background 0.12s, box-shadow 0.12s; }
+    .tl-search:focus { outline:none; border-color:rgba(var(--accent-rgb,15,157,144),0.38); box-shadow:0 0 0 3px rgba(var(--accent-rgb,15,157,144),0.08); }
+    .tl-item { display:flex; gap:0.65rem; padding:0.62rem 0; border-bottom:1px solid var(--border); }
     .tl-item:last-child { border-bottom:none; }
     .tl-dot { width:7px; height:7px; border-radius:50%; background:var(--text-3); margin-top:0.35rem; flex-shrink:0; }
     .tl-body { flex:1; min-width:0; }
@@ -262,8 +272,9 @@
     .tl-old { color:var(--text-3); text-decoration:line-through; }
     .tl-arrow { color:var(--text-3); }
     .tl-new { color:var(--accent); font-weight:600; background:var(--accent-light); padding:0 0.3rem; border-radius:4px; }
-    .ver-card { display:flex; align-items:center; gap:0.55rem; padding:0.6rem 0.65rem; border:1px solid var(--border); border-radius:10px; margin-bottom:0.5rem; transition:border-color 0.15s; }
-    .ver-card-sel { border-color:var(--accent); }
+    .ver-card { display:flex; align-items:center; gap:0.55rem; padding:0.68rem 0.72rem; border:1px solid var(--border); border-radius:12px; margin-bottom:0.5rem; transition:border-color 0.15s, background 0.15s, box-shadow 0.15s; background:var(--surface); }
+    .ver-card:hover { background:var(--surface2); }
+    .ver-card-sel { border-color:rgba(var(--accent-rgb,15,157,144),0.45); box-shadow:0 0 0 3px rgba(var(--accent-rgb,15,157,144),0.08); }
     .ver-check input { accent-color:var(--accent); cursor:pointer; }
     .ver-main { flex:1; min-width:0; }
     .ver-title { font-size:0.78rem; font-weight:600; color:var(--text); }
@@ -280,6 +291,38 @@
     .lc-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
     .card-req-btn:disabled { opacity:0.45; cursor:not-allowed; }
     .grant-sel { font-size:0.72rem; padding:0.25rem 0.4rem; border-radius:7px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:inherit; cursor:pointer; }
+    #view-detail select { display:none !important; }
+    .pd-select { position:relative; display:inline-flex; min-width:118px; max-width:100%; vertical-align:middle; }
+    .pd-select.wide { width:100%; }
+    .pd-select-btn {
+      width:100%; min-height:34px; display:inline-flex; align-items:center; justify-content:space-between; gap:0.65rem;
+      border:1px solid var(--border); border-radius:9px; background:var(--surface);
+      color:var(--text); font-family:inherit; font-size:0.74rem; font-weight:600;
+      padding:0.42rem 0.58rem 0.42rem 0.68rem; cursor:pointer;
+      transition:background 0.12s, border-color 0.12s, box-shadow 0.12s, color 0.12s;
+    }
+    .pd-select-btn:hover { background:var(--surface2); border-color:var(--text-3); }
+    .pd-select.open .pd-select-btn { border-color:rgba(var(--accent-rgb,15,157,144),0.42); box-shadow:0 0 0 3px rgba(var(--accent-rgb,15,157,144),0.08); }
+    .pd-select-label { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .pd-select-chev { width:14px; height:14px; flex-shrink:0; color:var(--text-3); transition:transform 0.16s cubic-bezier(0.22,1,0.36,1); }
+    .pd-select.open .pd-select-chev { transform:rotate(180deg); }
+    .pd-select-menu {
+      position:fixed; left:0; top:0; min-width:160px; max-width:min(280px, calc(100vw - 24px));
+      display:none; padding:0.28rem; border:1px solid var(--border); border-radius:12px;
+      background:var(--surface); box-shadow:0 14px 38px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06);
+      z-index:950; max-height:min(320px, calc(100vh - 24px)); overflow:auto;
+      transform-origin:top center; animation:pdMenuIn 0.14s cubic-bezier(0.22,1,0.36,1);
+    }
+    .pd-select.open .pd-select-menu { display:block; }
+    .pd-select-opt {
+      width:100%; min-height:32px; display:flex; align-items:center; gap:0.5rem; text-align:left;
+      border:none; border-radius:9px; background:none; color:var(--text-2);
+      font:inherit; font-size:0.75rem; font-weight:500; padding:0.42rem 0.55rem; cursor:pointer;
+      transition:background 0.1s, color 0.1s;
+    }
+    .pd-select-opt:hover, .pd-select-opt.is-active { background:var(--surface2); color:var(--text); }
+    .pd-select-opt-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; background:var(--accent); }
+    @keyframes pdMenuIn { from { opacity:0; transform:translateY(-4px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
     .prof-role-badge.role-admin { background:rgba(var(--accent-rgb,0,122,255),0.1); border-color:rgba(var(--accent-rgb,0,122,255),0.25); color:var(--accent); }
     /* Settings groups */
     .prof-group { border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:0.85rem; }
@@ -837,10 +880,11 @@
     /* ── IMG UPLOAD ── */
     /* ── IMAGE GALLERY (ficha) ── */
     .ficha-gallery { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1rem; }
-    .ficha-gallery-hero { width:100%; aspect-ratio:1; border-radius:10px; overflow:hidden; background:var(--surface2); cursor:zoom-in; position:relative; }
-    .ficha-gallery-hero img { width:100%; height:100%; object-fit:cover; transition:transform 0.2s; }
+    .ficha-gallery-hero { width:100%; aspect-ratio:1; border-radius:12px; overflow:hidden; background:var(--surface2); cursor:zoom-in; position:relative; border:1px solid var(--border); }
+    .ficha-gallery-hero img { width:100%; height:100%; object-fit:cover; transition:transform 0.28s cubic-bezier(0.22,1,0.36,1); }
     .ficha-gallery-hero:hover img { transform:scale(1.02); }
-    .ficha-gallery-hero .img-dl-btn { position:absolute; bottom:0.6rem; right:0.6rem; background:rgba(0,0,0,0.45); color:#fff; border:none; border-radius:7px; padding:0.3rem 0.65rem; font-size:0.72rem; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:0.3rem; backdrop-filter:blur(6px); opacity:0; transition:opacity 0.15s; }
+    .ficha-gallery-hero .img-dl-btn { position:absolute; bottom:0.65rem; right:0.65rem; background:rgba(0,0,0,0.48); color:#fff; border:1px solid rgba(255,255,255,0.16); border-radius:8px; padding:0.34rem 0.68rem; font-size:0.72rem; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:0.3rem; backdrop-filter:blur(8px); opacity:0; transition:opacity 0.15s, background 0.12s; }
+    .ficha-gallery-hero .img-dl-btn:hover { background:rgba(0,0,0,0.62); }
     .ficha-gallery-hero:hover .img-dl-btn { opacity:1; }
     .ficha-thumbs { display:flex; gap:0.4rem; overflow-x:auto; padding-bottom:2px; }
     .ficha-thumbs::-webkit-scrollbar { height:3px; }
@@ -1308,7 +1352,7 @@
 
     /* .content already provides horizontal padding — only add bottom clearance for toolbar */
     .detail-view-inner {
-      padding:0 0 76px;
+      padding:0 0 82px;
     }
     /* Remove .content bottom padding when detail is active so toolbar truly sticks to viewport edge */
     .content.detail-active { padding-bottom:0 !important; }
@@ -1328,7 +1372,7 @@
     /* Identity nav row: back (left) + share icon (right) — mirrors the
        standard back/action navigation-bar pattern instead of a full-width
        Share button competing with the sticky toolbar's CTAs below. */
-    .pd-id-nav { display:flex; align-items:center; justify-content:space-between; margin:0 0 1.1rem -0.35rem; }
+    .pd-id-nav { display:flex; align-items:center; justify-content:space-between; gap:0.75rem; margin:0 0 1.05rem -0.35rem; min-height:34px; }
     .pd-share-icon-btn {
       width:30px; height:30px; border-radius:7px; border:1px solid var(--border);
       background:none; color:var(--text-3); display:flex; align-items:center; justify-content:center;
@@ -1338,9 +1382,9 @@
 
     /* ── PRODUCT DETAIL LAYOUT — 3 columns: identity | specs | media ── */
     .pd-layout {
-      display:grid; grid-template-columns:270px 1fr 280px;
+      display:grid; grid-template-columns:minmax(230px,270px) minmax(0,1fr) minmax(240px,280px);
       grid-template-rows:auto auto;
-      gap:0 2.75rem; align-items:start;
+      gap:0 2.65rem; align-items:start;
     }
     .pd-identity-col { grid-column:1; grid-row:1 / span 2; position:sticky; top:1.5rem; min-width:0; }
     .pd-specs-col { grid-column:2; grid-row:1 / span 2; min-width:0; }
@@ -1350,8 +1394,9 @@
     /* Image */
     .pd-no-img {
       display:flex; align-items:center; justify-content:center; flex-direction:column;
-      gap:0.65rem; border:1px solid var(--border); border-radius:10px;
-      aspect-ratio:1; color:var(--text-3);
+      gap:0.65rem; border:1px solid var(--border); border-radius:12px;
+      aspect-ratio:1; color:var(--text-3); background:var(--surface2);
+      transition:border-color 0.14s, background 0.14s, box-shadow 0.14s;
     }
     .pd-no-img-hint { font-size:0.68rem; color:var(--text-3); }
     .pd-no-img.drag-over { border-color:var(--accent); background:var(--accent-light); }
@@ -1359,19 +1404,20 @@
     /* Identity column */
     .pd-name {
       font-size:1.8rem; font-weight:700; letter-spacing:-0.03em;
-      line-height:1.15; color:var(--text); margin:0 0 0.9rem;
+      line-height:1.12; color:var(--text); margin:0 0 0.85rem;
+      text-wrap:balance;
     }
     .pd-sku-box {
       display:inline-flex; align-items:center; gap:0.4rem;
       font-size:0.72rem; font-weight:600; letter-spacing:0.04em;
       color:var(--text-2); cursor:pointer; user-select:none;
       background:var(--surface2); border:1px solid var(--border); border-radius:8px;
-      padding:0.4rem 0.6rem; transition:border-color 0.12s, background 0.12s;
-      margin-bottom:1.5rem;
+      padding:0.42rem 0.62rem; transition:border-color 0.12s, background 0.12s, box-shadow 0.12s;
+      margin-bottom:1.35rem;
     }
-    .pd-sku-box:hover { border-color:var(--text-3); background:var(--surface); }
+    .pd-sku-box:hover { border-color:var(--text-3); background:var(--surface); box-shadow:0 3px 12px rgba(0,0,0,0.04); }
     .pd-sku-box svg { color:var(--text-3); flex-shrink:0; }
-    .pd-id-block { margin-bottom:1.25rem; }
+    .pd-id-block { margin-bottom:1.15rem; }
     .pd-id-label {
       font-size:0.58rem; font-weight:700; text-transform:uppercase;
       letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.4rem;
@@ -1381,11 +1427,20 @@
       display:flex; align-items:center; gap:0.45rem;
     }
     .pd-division-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-    .pd-format-chips { display:flex; flex-wrap:wrap; gap:0.35rem; }
+    .pd-format-chips { display:flex; flex-wrap:wrap; gap:0.38rem; }
     .pd-format-chip {
       font-size:0.68rem; font-weight:500; color:var(--text-2);
-      border:1px solid var(--border); border-radius:6px; padding:0.28rem 0.55rem;
+      border:1px solid var(--border); border-radius:7px; padding:0.3rem 0.55rem; background:var(--surface);
     }
+    .pd-complete {
+      width:100%; display:flex; flex-direction:column; gap:0.38rem;
+      border:1px solid var(--border); border-radius:10px; padding:0.65rem 0.7rem; background:var(--surface);
+    }
+    .pd-complete-top { display:flex; align-items:baseline; justify-content:space-between; gap:0.75rem; }
+    .pd-complete-score { font-size:0.82rem; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
+    .pd-complete-caption { font-size:0.66rem; color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .pd-complete-track { height:4px; border-radius:999px; background:var(--surface2); overflow:hidden; }
+    .pd-complete-fill { height:100%; border-radius:999px; background:var(--accent); transition:width 0.24s cubic-bezier(0.22,1,0.36,1); }
 
     /* ── SPEC TABLE — single unified data list ── */
     .pd-specs { width:100%; }
@@ -1396,11 +1451,12 @@
     }
     .pd-hd:first-child { border-top:none; padding-top:0; margin-top:0; }
     .pd-row {
-      display:flex; gap:1rem; padding:0.42rem 0;
-      cursor:pointer; transition:opacity 0.12s; align-items:baseline;
+      display:flex; gap:1rem; padding:0.54rem 0;
+      cursor:pointer; transition:background 0.12s, opacity 0.12s; align-items:baseline;
+      border-radius:8px;
     }
     .pd-row + .pd-row { border-top:1px solid var(--border); }
-    .pd-row:hover { opacity:0.5; }
+    .pd-row:hover { background:var(--surface2); opacity:1; }
     .pd-k {
       font-size:0.7rem; font-weight:500; color:var(--text-3);
       width:110px; flex-shrink:0; line-height:1.45;
@@ -1410,40 +1466,43 @@
       flex:1; line-height:1.45; overflow-wrap:break-word; min-width:0;
     }
     .pd-comp-block {
-      padding:0.5rem 0 0.85rem;
+      padding:0.58rem 0 0.92rem;
       border-bottom:1px solid var(--border);
-      margin-bottom:0.15rem; cursor:pointer; transition:opacity 0.12s;
+      margin-bottom:0.15rem; cursor:pointer; transition:background 0.12s, opacity 0.12s; border-radius:8px;
     }
-    .pd-comp-block:hover { opacity:0.5; }
+    .pd-comp-block:hover { background:var(--surface2); opacity:1; }
     .pd-comp-line { font-size:0.95rem; font-weight:500; color:var(--text); line-height:1.75; }
     .pd-comp-pct { font-weight:700; }
 
     .detail-desc { font-size:0.83rem; color:var(--text-2); line-height:1.75; margin:0; }
     .detail-actions { display:none; }
 
-    .detail-comments-section { border-top:1px solid var(--border); padding-top:1.75rem; margin-top:2.5rem; }
-    .detail-comments-lbl { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:1.25rem; }
+    .detail-comments-section { border:1px solid var(--border); border-radius:14px; padding:1rem; margin-top:1rem; background:var(--surface); box-shadow:0 1px 2px rgba(0,0,0,0.025); }
+    .detail-comments-section:first-child { margin-top:0; }
+    .detail-comments-lbl { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.85rem; }
 
     /* ── STICKY TOOLBAR ── */
     .detail-toolbar {
       position:sticky; bottom:0;
-      background:var(--bg);
+      background:rgba(255,255,255,0.88);
       border-top:1px solid var(--border);
-      box-shadow:0 -4px 16px rgba(0,0,0,0.05);
+      box-shadow:0 -6px 24px rgba(0,0,0,0.06);
+      backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
       z-index:100;
       margin:0 -1.75rem;
       padding:0 1.75rem;
     }
+    [data-theme="dark"] .detail-toolbar { background:rgba(28,28,30,0.86); box-shadow:0 -8px 28px rgba(0,0,0,0.35); }
     .detail-toolbar-inner {
-      display:flex; align-items:center; gap:0.4rem;
-      height:52px;
+      display:flex; align-items:center; gap:0.45rem;
+      min-height:56px;
     }
     .detail-toolbar .btn-primary {
-      height:34px; padding:0 1.1rem; font-size:0.8rem; font-weight:600;
+      height:36px; padding:0 1.1rem; font-size:0.8rem; font-weight:600;
       display:inline-flex; align-items:center; gap:0.4rem; white-space:nowrap;
     }
     .detail-toolbar .btn-ghost {
-      height:34px; padding:0 0.85rem; font-size:0.8rem;
+      height:36px; padding:0 0.85rem; font-size:0.8rem;
       display:inline-flex; align-items:center; gap:0.4rem; white-space:nowrap;
     }
     .detail-toolbar-sep { width:1px; height:18px; background:var(--border); margin:0 0.25rem; flex-shrink:0; }
@@ -1455,11 +1514,11 @@
       .pd-name { font-size:1.55rem; }
     }
     @media (max-width:900px) {
-      .pd-layout { grid-template-columns:200px 1fr; grid-template-rows:auto; gap:1.75rem; }
+      .pd-layout { grid-template-columns:minmax(180px,220px) minmax(0,1fr); grid-template-rows:auto; gap:1.5rem; }
       .pd-identity-col { grid-column:1; grid-row:1; }
       .pd-specs-col { grid-column:2; grid-row:1; }
       .pd-gallery-col { grid-column:1 / -1; grid-row:2; position:static; margin-top:0.5rem; max-width:320px; }
-      .pd-comments-col { grid-column:1 / -1; grid-row:3; margin-top:1rem; max-width:640px; }
+      .pd-comments-col { grid-column:1 / -1; grid-row:3; margin-top:0.75rem; max-width:680px; }
     }
 
     /* Mobile: single column — identity, image, specs, comments (via order) */
@@ -1476,6 +1535,12 @@
       .pd-name { font-size:1.5rem; margin-top:0.5rem; }
       .pd-k { width:88px; }
       .pd-hd { padding:0.85rem 0 0.35rem; }
+      .pd-row { padding:0.58rem 0; }
+      .detail-comments-section { margin-top:0.85rem; padding:0.9rem; border-radius:12px; }
+      .tl-controls { flex-direction:column; align-items:stretch; }
+      #pd-rel-add > div { flex-direction:column; align-items:stretch; }
+      .pd-select { width:100%; }
+      .pd-select-menu { max-width:calc(100vw - 24px); }
 
       /* Topbar */
       .detail-view-inner { padding:0 0 calc(60px + env(safe-area-inset-bottom)); }
@@ -3083,6 +3148,8 @@ function applyDivisionAccent(d) {
   document.documentElement.style.setProperty('--accent', a.accent)
   document.documentElement.style.setProperty('--accent-dark', a.dark)
   document.documentElement.style.setProperty('--accent-light', a.light)
+  const rgb = a.accent.replace('#', '').match(/.{1,2}/g)?.map(x => parseInt(x, 16)).join(',') || '15,157,144'
+  document.documentElement.style.setProperty('--accent-rgb', rgb)
 }
 const DIV_LBL = { fiber:'SIERRA Fiber', yarn:'SIERRA Yarn', fabric:'SIERRA Fabric', chemicals:'SIERRA Chemicals', garment:'SIERRA Apparel' }
 
@@ -3878,6 +3945,17 @@ function showProductDetail(p) {
     const groups = str.trim().match(/\d+%[^\d]*/g)
     return (groups || [str.trim()]).map(s => s.trim()).filter(Boolean)
   }
+  function detailCompleteness() {
+    const base = [p.name, p.code, p.division, p.country || countryVal, lc(p)]
+    const image = [imgs.length ? 'image' : '']
+    const divisionFields = p.division === 'fabric'
+      ? [specs.Composition, specs.Color, specs.Width, specs.GSM, specs['Mill Article']]
+      : [p.description, ...Object.values(specs).slice(0, 4)]
+    const fields = [...base, ...image, ...divisionFields]
+    const total = Math.max(fields.length, 1)
+    const done = fields.filter(notEmpty).length
+    return { pct: Math.round((done / total) * 100), done, total }
+  }
 
   // Gallery
   let galleryHtml = ''
@@ -3991,6 +4069,23 @@ function showProductDetail(p) {
     <div class="pd-format-chips">${formatTypes.map(t => `<span class="pd-format-chip">${esc(t)}</span>`).join('')}</div>
   </div>` : ''
   const countryVal = p.country || 'Honduras'
+  const complete = detailCompleteness()
+  const completeCaption = complete.pct >= 90 ? 'Ready for sharing'
+    : complete.pct >= 70 ? 'Almost complete'
+    : 'Needs product detail'
+  const statusOptions = Object.entries(LIFECYCLE)
+    .filter(([k]) => k !== lc(p))
+    .map(([value, m]) => ({ value, label: m.label, color: m.color }))
+  const linkTypeOptions = Object.entries(LINK_TYPES).map(([value, t]) => ({ value, label: t.label }))
+  const activityFilterOptions = [
+    { value:'', label:'All events' },
+    { value:'edited', label:'Edits' },
+    { value:'status_changed', label:'Status changes' },
+    { value:'image', label:'Images' },
+    { value:'comment', label:'Comments' },
+    { value:'sample_requested', label:'Samples' },
+    { value:'restored', label:'Restores' },
+  ]
 
   const toolbarHtml = `<div class="detail-toolbar">
     <div class="detail-toolbar-inner">
@@ -4047,10 +4142,17 @@ function showProductDetail(p) {
           <div class="pd-id-label">Status</div>
           <div class="pd-id-value" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
             ${lcPill(p)}
-            ${canEditDiv(p.division) ? `<select class="grant-sel" onchange="changeLifecycle(this.value)" title="Change status">
-              <option value="">Change…</option>
-              ${Object.entries(LIFECYCLE).filter(([k]) => k !== lc(p)).map(([k, m]) => `<option value="${k}">${m.label}</option>`).join('')}
-            </select>` : ''}
+            ${canEditDiv(p.division) ? pdSelect('pd-lifecycle', statusOptions, '', 'Change status', 'changeLifecycle') : ''}
+          </div>
+        </div>
+        <div class="pd-id-block">
+          <div class="pd-id-label">Completeness</div>
+          <div class="pd-complete" aria-label="Product completeness ${complete.pct}%">
+            <div class="pd-complete-top">
+              <span class="pd-complete-score">${complete.pct}%</span>
+              <span class="pd-complete-caption">${completeCaption}</span>
+            </div>
+            <div class="pd-complete-track"><div class="pd-complete-fill" style="width:${complete.pct}%"></div></div>
           </div>
         </div>
         ${formatChipsHtml}
@@ -4068,7 +4170,7 @@ function showProductDetail(p) {
           </div>
           <div id="pd-rel-add" style="display:none">
             <div style="display:flex;gap:0.4rem;margin:0.5rem 0">
-              <select id="rel-type" class="grant-sel"></select>
+              ${pdSelect('rel-type', linkTypeOptions, 'related', 'Relationship')}
               <input type="text" class="tl-search" id="rel-search" placeholder="Search products…" oninput="relSearch(this.value)" />
             </div>
             <div id="rel-search-results"></div>
@@ -4105,15 +4207,7 @@ function showProductDetail(p) {
           <div id="pd-tab-activity">
             <div class="tl-controls">
               <input type="text" class="tl-search" placeholder="Search activity…" oninput="pdActivityFilter(this.value, null)" />
-              <select class="grant-sel" onchange="pdActivityFilter(null, this.value)">
-                <option value="">All events</option>
-                <option value="edited">Edits</option>
-                <option value="status_changed">Status changes</option>
-                <option value="image">Images</option>
-                <option value="comment">Comments</option>
-                <option value="sample_requested">Samples</option>
-                <option value="restored">Restores</option>
-              </select>
+              ${pdSelect('pd-activity-filter', activityFilterOptions, '', 'All events', 'pdActivitySelectFilter')}
             </div>
             <div id="pd-timeline"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
             <button id="pd-timeline-more" class="btn btn-ghost btn-sm" style="display:none;margin-top:0.6rem;width:100%" onclick="loadPdActivity(false)">Load more</button>
@@ -4661,6 +4755,88 @@ const LBL_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1715 
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
 }
+function escAttr(s) {
+  return esc(s).replace(/"/g,'&quot;')
+}
+function jsStr(s) {
+  return String(s ?? '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,'\\n')
+}
+
+function pdSelect(id, options, value = '', placeholder = 'Select', onChange = '', cls = '') {
+  const opts = options || []
+  const active = opts.find(o => String(o.value) === String(value))
+  const label = active?.label || placeholder
+  return `<div class="pd-select ${cls}" id="${escAttr(id)}-dd">
+    <input type="hidden" id="${escAttr(id)}" value="${escAttr(value)}" />
+    <button type="button" class="pd-select-btn" onclick="togglePdSelect(event,'${jsStr(id)}')" aria-haspopup="listbox" aria-expanded="false">
+      <span class="pd-select-label">${esc(label)}</span>
+      <svg class="pd-select-chev" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="pd-select-menu" role="listbox">
+      ${opts.map(o => `<button type="button" class="pd-select-opt${String(o.value) === String(value) ? ' is-active' : ''}" role="option" aria-selected="${String(o.value) === String(value) ? 'true' : 'false'}" onclick="pickPdSelect(event,'${jsStr(id)}','${jsStr(o.value)}','${jsStr(o.label)}','${jsStr(onChange)}')">
+        ${o.color ? `<span class="pd-select-opt-dot" style="background:${escAttr(o.color)}"></span>` : ''}
+        <span>${esc(o.label)}</span>
+      </button>`).join('')}
+    </div>
+  </div>`
+}
+
+function closePdSelects(exceptId = null) {
+  document.querySelectorAll('.pd-select.open').forEach(dd => {
+    if (exceptId && dd.id === `${exceptId}-dd`) return
+    dd.classList.remove('open')
+    dd.querySelector('.pd-select-btn')?.setAttribute('aria-expanded', 'false')
+  })
+}
+function positionPdSelect(id) {
+  const dd = document.getElementById(`${id}-dd`)
+  const menu = dd?.querySelector('.pd-select-menu')
+  const btn = dd?.querySelector('.pd-select-btn')
+  if (!dd || !menu || !btn || !dd.classList.contains('open')) return
+  const r = btn.getBoundingClientRect()
+  const minW = Math.max(r.width, 160)
+  menu.style.minWidth = `${minW}px`
+  const mw = Math.min(Math.max(minW, menu.offsetWidth), window.innerWidth - 24)
+  const left = Math.max(12, Math.min(r.left, window.innerWidth - mw - 12))
+  const spaceBelow = window.innerHeight - r.bottom
+  const mh = Math.min(menu.offsetHeight, window.innerHeight - 24)
+  const top = spaceBelow >= Math.min(mh, 260) + 8
+    ? r.bottom + 6
+    : Math.max(12, r.top - mh - 6)
+  menu.style.left = `${left}px`
+  menu.style.top = `${top}px`
+  menu.style.maxWidth = `${mw}px`
+}
+function togglePdSelect(e, id) {
+  e.stopPropagation()
+  const dd = document.getElementById(`${id}-dd`)
+  if (!dd) return
+  const willOpen = !dd.classList.contains('open')
+  closePdSelects(id)
+  dd.classList.toggle('open', willOpen)
+  dd.querySelector('.pd-select-btn')?.setAttribute('aria-expanded', willOpen ? 'true' : 'false')
+  if (willOpen) requestAnimationFrame(() => positionPdSelect(id))
+}
+function pickPdSelect(e, id, value, label, onChange) {
+  e.stopPropagation()
+  const input = document.getElementById(id)
+  const dd = document.getElementById(`${id}-dd`)
+  if (input) input.value = value
+  if (dd) {
+    dd.querySelector('.pd-select-label').textContent = label
+    dd.querySelectorAll('.pd-select-opt').forEach(opt => opt.classList.remove('is-active'))
+    e.currentTarget.classList.add('is-active')
+  }
+  closePdSelects()
+  if (onChange && typeof window[onChange] === 'function') window[onChange](value)
+}
+window.addEventListener('resize', () => document.querySelectorAll('.pd-select.open input').forEach(i => positionPdSelect(i.id)))
+document.addEventListener('scroll', e => {
+  if (e.target?.closest?.('.pd-select-menu')) return
+  closePdSelects()
+}, true)
+document.addEventListener('click', () => closePdSelects())
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePdSelects() })
 
 /* helpers — single KV row and dimension block */
 function lblKV(k, v) {
@@ -8702,6 +8878,9 @@ function pdActivityFilter(search, filter) {
   if (filter !== null) _pdAudit.filter = filter
   renderPdTimeline()
 }
+function pdActivitySelectFilter(value) {
+  pdActivityFilter(null, value)
+}
 
 async function loadPdActivity(reset) {
   const p = _pdAudit.p
@@ -8902,10 +9081,6 @@ let _pdLinks = []
 async function loadPdRelated(p) {
   const el = document.getElementById('pd-related')
   if (!el) return
-  const typeSel = document.getElementById('rel-type')
-  if (typeSel && !typeSel.options.length) {
-    typeSel.innerHTML = Object.entries(LINK_TYPES).map(([k, t]) => `<option value="${k}">${t.label}</option>`).join('')
-  }
   try {
     const { data, error } = await sb.from('product_links')
       .select('id,source_id,target_id,link_type')
@@ -9158,23 +9333,26 @@ async function toggleInvAdjust() {
   if (box.style.display === 'block') { box.style.display = 'none'; return }
   const locs = (await loadInvLocations()).filter(canAdjustLoc)
   const formats = DIV_SAMPLE_TYPES[selected?.division] || ['Sample']
+  const locOptions = locs.map(l => ({ value:l.id, label:l.name }))
+  const formatOptions = formats.map(f => ({ value:f, label:f }))
+  const typeOptions = [
+    { value:'received', label:'Received' },
+    { value:'produced', label:'Produced' },
+    { value:'returned', label:'Returned' },
+    { value:'adjustment', label:'Manual adjustment (+)' },
+    { value:'disposed', label:'Disposed' },
+    { value:'reserved', label:'Reserve' },
+    { value:'released', label:'Release' },
+  ]
   box.style.display = 'block'
   box.innerHTML = `
     <div class="inv-adjust">
       <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
-        <select id="inv-loc" class="grant-sel" style="flex:1;min-width:120px">${locs.map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('')}</select>
-        <select id="inv-fmt" class="grant-sel">${formats.map(f => `<option>${esc(f)}</option>`).join('')}</select>
+        ${pdSelect('inv-loc', locOptions, locOptions[0]?.value || '', 'Location', '', 'wide')}
+        ${pdSelect('inv-fmt', formatOptions, formatOptions[0]?.value || '', 'Format')}
       </div>
       <div style="display:flex;gap:0.4rem;margin-top:0.4rem;flex-wrap:wrap">
-        <select id="inv-type" class="grant-sel">
-          <option value="received">Received</option>
-          <option value="produced">Produced</option>
-          <option value="returned">Returned</option>
-          <option value="adjustment">Manual adjustment (+)</option>
-          <option value="disposed">Disposed</option>
-          <option value="reserved">Reserve</option>
-          <option value="released">Release</option>
-        </select>
+        ${pdSelect('inv-type', typeOptions, 'received', 'Movement')}
         <input type="number" id="inv-qty" class="tl-search" style="width:70px;flex:none" min="1" value="1" placeholder="Qty" />
         <input type="number" id="inv-min" class="tl-search" style="width:90px;flex:none" min="0" placeholder="Min stock" />
       </div>
