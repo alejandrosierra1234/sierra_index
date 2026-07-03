@@ -753,18 +753,17 @@
 
     /* ── HOME v2 ── */
     /* ── DASHBOARD LAYOUT ── */
-    /* ── DASHBOARD LAYOUT ── */
     .dash-wrap {
-      max-width:940px; margin:0 auto; padding-bottom:3rem;
-      display:grid; grid-template-columns:1fr 188px;
-      gap:0 2.75rem; align-items:start;
+      max-width:1040px; margin:0 auto; padding-bottom:3rem;
+      display:grid; grid-template-columns:minmax(0,1fr) 220px;
+      gap:0 2.5rem; align-items:start;
     }
     .dash-hero-zone {
       grid-column:1/-1;
       margin-bottom:2rem;
     }
     .dash-greeting {
-      font-size:1.35rem; font-weight:700; letter-spacing:-0.025em;
+      font-size:1.42rem; font-weight:700; letter-spacing:0;
       color:var(--text); line-height:1.2; margin-bottom:0.25rem;
     }
     .dash-date {
@@ -776,11 +775,11 @@
     /* Search */
     .dash-search-trigger {
       display:flex; align-items:center; gap:0.75rem;
-      border:1px solid var(--border); border-radius:12px;
-      padding:0.85rem 1rem; cursor:pointer;
-      background:var(--surface2); transition:border-color 0.15s, background 0.15s;
+      border:1px solid var(--border); border-radius:10px;
+      padding:0.82rem 1rem; cursor:pointer;
+      background:var(--surface2); transition:border-color 0.15s, background 0.15s, box-shadow 0.15s;
     }
-    .dash-search-trigger:hover { border-color:var(--text-3); background:var(--surface); }
+    .dash-search-trigger:hover { border-color:var(--text-3); background:var(--surface); box-shadow:var(--shadow); }
     .dst-icon { color:var(--text-3); flex-shrink:0; }
     .dst-text { flex:1; font-size:0.85rem; color:var(--text-3); }
     .dst-kbd {
@@ -790,7 +789,7 @@
     }
 
     /* Section scaffold */
-    .dash-section { margin-bottom:1.75rem; }
+    .dash-section { margin-bottom:1.85rem; }
     .dash-section-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.65rem; }
     .dash-section-label { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); }
     .dash-section-meta { font-size:0.65rem; color:var(--text-3); }
@@ -804,11 +803,11 @@
     .dash-act {
       display:flex; align-items:center; gap:0.55rem;
       border:1px solid var(--border); border-radius:8px;
-      padding:0.6rem 0.75rem; background:none; cursor:pointer;
+      padding:0.6rem 0.75rem; background:var(--surface); cursor:pointer;
       font-family:inherit; font-size:0.78rem; font-weight:500; color:var(--text);
-      transition:border-color 0.12s, background 0.12s; white-space:nowrap; width:100%;
+      transition:border-color 0.12s, background 0.12s, box-shadow 0.12s; white-space:nowrap; width:100%;
     }
-    .dash-act:hover { border-color:var(--text-3); background:var(--surface2); }
+    .dash-act:hover { border-color:var(--text-3); background:var(--surface2); box-shadow:var(--shadow); }
     .dash-act svg { color:var(--text-3); flex-shrink:0; }
 
     /* Sidebar market: compact rows */
@@ -827,7 +826,7 @@
     .dash-side .market-card:last-child { border-bottom:none; }
     .dash-side .mc-spark { display:none; }
     .dash-side .mc-label { margin-bottom:0.15rem; }
-    .dash-side .mc-price { font-size:0.9rem; font-weight:600; letter-spacing:-0.02em; }
+    .dash-side .mc-price { font-size:0.9rem; font-weight:600; letter-spacing:0; }
     .dash-side .mc-unit { font-size:0.58rem; }
     .dash-side .market-expand-drawer {
       border:none;
@@ -842,41 +841,27 @@
     .dash-side .med-chg { font-size:0.72rem; text-align:left; }
     .dash-side .med-chart { height:96px; margin-top:0.85rem; }
 
-    /* World time — visual cards */
-    .dash-clocks { display:grid; grid-template-columns:repeat(4,1fr); gap:0.6rem; }
+    /* World time */
+    .dash-clocks { display:grid; grid-template-columns:repeat(4,1fr); gap:0; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
     .clock-card {
-      border-radius:14px; padding:0.85rem 0.9rem 0.8rem;
+      min-width:0; padding:0.82rem 0.9rem 0.78rem;
       display:flex; flex-direction:column; gap:0; cursor:default;
-      overflow:hidden; position:relative; transition:transform 0.18s;
-      border:1px solid transparent;
+      overflow:hidden; position:relative; border-right:1px solid var(--border);
+      background:var(--surface);
     }
-    .clock-card:hover { transform:translateY(-2px); }
-    .clock-card.day   { background:linear-gradient(145deg,#fffbe6 0%,#fff3c4 100%); border-color:#f0e07a44; }
-    .clock-card.eve   { background:linear-gradient(145deg,#ffe8d0 0%,#ffd0a0 100%); border-color:#f4a26044; }
-    .clock-card.night { background:linear-gradient(145deg,#1a2340 0%,#0f1729 100%); border-color:#ffffff0f; }
-    [data-theme="dark"] .clock-card.day   { background:linear-gradient(145deg,#2a2510 0%,#1e1c08 100%); border-color:#f0e07a22; }
-    [data-theme="dark"] .clock-card.eve   { background:linear-gradient(145deg,#2a1a0a 0%,#1e1208 100%); border-color:#f4a26022; }
-    [data-theme="dark"] .clock-card.night { background:linear-gradient(145deg,#0d1220 0%,#080e18 100%); border-color:#ffffff0a; }
-    .clock-phase-icon { font-size:1rem; margin-bottom:0.4rem; line-height:1; }
-    .clock-city { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:0.3rem; }
-    .clock-card.day .clock-city, .clock-card.eve .clock-city { color:rgba(0,0,0,0.5); }
-    .clock-card.night .clock-city { color:rgba(255,255,255,0.45); }
-    .clock-time { font-size:1.35rem; font-weight:300; font-variant-numeric:tabular-nums; letter-spacing:-0.03em; line-height:1; }
-    .clock-card.day .clock-time, .clock-card.eve .clock-time { color:rgba(0,0,0,0.85); }
-    .clock-card.night .clock-time { color:rgba(255,255,255,0.9); }
-    .clock-ampm { font-size:0.6rem; font-weight:500; margin-left:0.15rem; opacity:0.55; }
-    .clock-diff { font-size:0.58rem; margin-top:0.35rem; opacity:0.5; }
-    .clock-card.day .clock-diff, .clock-card.eve .clock-diff { color:#000; }
-    .clock-card.night .clock-diff { color:#fff; }
-    .clock-progress { height:2px; border-radius:2px; margin-top:0.7rem; background:rgba(0,0,0,0.08); overflow:hidden; }
-    .clock-card.night .clock-progress { background:rgba(255,255,255,0.12); }
-    .clock-progress-fill { height:100%; border-radius:2px; transition:width 1s linear; }
-    .clock-card.day .clock-progress-fill { background:rgba(220,160,0,0.7); }
-    .clock-card.eve .clock-progress-fill { background:rgba(220,100,20,0.7); }
-    .clock-card.night .clock-progress-fill { background:rgba(100,140,255,0.5); }
+    .clock-card:last-child { border-right:none; }
+    .clock-top { display:flex; align-items:center; gap:0.38rem; margin-bottom:0.42rem; min-width:0; }
+    .clock-status { width:6px; height:6px; border-radius:50%; flex-shrink:0; background:var(--text-3); opacity:0.65; }
+    .clock-status.day { background:#1a8a5c; }
+    .clock-status.eve { background:#d4601a; }
+    .clock-status.night { background:#4f6fb5; }
+    .clock-city { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .clock-time { font-size:1.12rem; font-weight:500; font-variant-numeric:tabular-nums; letter-spacing:0; color:var(--text); line-height:1; }
+    .clock-ampm { font-size:0.56rem; font-weight:600; margin-left:0.12rem; color:var(--text-3); letter-spacing:0.04em; }
+    .clock-meta { min-height:0.9rem; font-size:0.58rem; font-weight:600; letter-spacing:0.04em; color:var(--text-3); margin-top:0.35rem; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
     /* Notifications widget */
-    .dash-notif-list { display:flex; flex-direction:column; gap:0; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    .dash-notif-list { display:flex; flex-direction:column; gap:0; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
     .dash-notif-item { display:flex; align-items:flex-start; gap:0.7rem; padding:0.7rem 0.9rem; background:var(--surface); cursor:pointer; transition:background 0.1s; border-bottom:1px solid var(--border); }
     .dash-notif-item:last-child { border-bottom:none; }
     .dash-notif-item:hover { background:var(--surface2); }
@@ -886,16 +871,21 @@
     .dash-notif-title { font-size:0.78rem; font-weight:600; color:var(--text); line-height:1.35; }
     .dash-notif-sub { font-size:0.68rem; color:var(--text-3); margin-top:0.12rem; }
     .dash-notif-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; margin-top:5px; }
-    .dash-notif-empty { padding:1.25rem; text-align:center; color:var(--text-3); font-size:0.78rem; border:1px solid var(--border); border-radius:12px; }
+    .dash-notif-empty { padding:1.25rem; text-align:center; color:var(--text-3); font-size:0.78rem; border:1px solid var(--border); border-radius:10px; }
 
     /* Tip of the day */
     .dash-tip {
       display:flex; align-items:flex-start; gap:0.75rem;
-      border:1px solid var(--border); border-radius:12px;
+      border:1px solid var(--border); border-radius:10px;
       padding:0.9rem 1rem; background:var(--surface);
       position:relative;
     }
-    .dash-tip-icon { font-size:1.1rem; flex-shrink:0; margin-top:0.05rem; }
+    .dash-tip-icon {
+      width:28px; height:28px; border-radius:8px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      color:var(--accent); background:var(--accent-light); margin-top:0.05rem;
+    }
+    .dash-tip-icon svg { width:15px; height:15px; }
     .dash-tip-body { flex:1; min-width:0; }
     .dash-tip-label { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--accent); margin-bottom:0.25rem; }
     .dash-tip-text { font-size:0.78rem; color:var(--text-2); line-height:1.5; margin-bottom:0.5rem; }
@@ -1043,6 +1033,9 @@
       .dash-section { margin-bottom:1.5rem; }
       .recent-grid { grid-template-columns:1fr 1fr; }
       .dash-clocks { grid-template-columns:1fr 1fr; }
+      .clock-card { border-right:none; border-bottom:1px solid var(--border); }
+      .clock-card:nth-child(odd) { border-right:1px solid var(--border); }
+      .clock-card:nth-last-child(-n+2) { border-bottom:none; }
       /* Override 860px flex with 2×2 grid for better touch target sizing */
       .dash-act-row { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; flex-direction:unset; flex-wrap:unset; }
       .dash-act { width:auto; min-height:44px; }
@@ -5409,41 +5402,48 @@ function tickClocksCompact() {
 /* ── DASHBOARD RENDERING FUNCTIONS ── */
 
 const DASH_TIPS = [
-  { icon:'📷', label:'Pro Tip', text:'Scan any physical barcode to instantly pull up a product in the catalog — no typing needed.', action:'Try scanning', fn:"openScanMode()" },
-  { icon:'🏷️', label:'Did you know', text:'You can print thermal labels directly from any product sheet. Great for organizing samples.', action:'Open catalog', fn:"setDiv('fabric',document.getElementById('nav-fabric'))" },
-  { icon:'📦', label:'Pro Tip', text:'Track your sample requests in real time from the Sample Center. Approve or reject with one tap.', action:'Open samples', fn:"showSampleCenter()" },
-  { icon:'🔍', label:'Did you know', text:'The search (⌘K) supports fuzzy matching — try searching by color, weight, or construction type.', action:'Try search', fn:"openSpotlight()" },
-  { icon:'📊', label:'Market insight', text:'Tap any commodity card to expand a 30-day price chart and track input cost trends.', action:'View market', fn:"" },
-  { icon:'⭐', label:'Pro Tip', text:'Recently viewed products appear on your home screen for quick access — browse freely.', action:'', fn:"" },
+  { type:'scan', label:'Workflow', text:'Scan any physical barcode to instantly pull up a product in the catalog.', action:'Try scanning', fn:"openScanMode()" },
+  { type:'label', label:'Production', text:'Print thermal labels directly from any product sheet to organize samples cleanly.', action:'Open catalog', fn:"setDiv('fabric',document.getElementById('nav-fabric'))" },
+  { type:'samples', label:'Samples', text:'Track sample requests in real time from the Sample Center, from approval to delivery.', action:'Open samples', fn:"showSampleCenter()" },
+  { type:'search', label:'Search', text:'Use command search to find products by color, weight, construction, lot, or code.', action:'Try search', fn:"openSpotlight()" },
+  { type:'market', label:'Market', text:'Tap a market row to review a 30-day price history for input cost context.', action:'', fn:"" },
+  { type:'recent', label:'Recent work', text:'Recently viewed products stay on the dashboard so you can return to active work quickly.', action:'', fn:"" },
 ]
+
+function dashTipIcon(type) {
+  const icons = {
+    scan: '<path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+    label: '<path d="M4 5.5h8l4 4V15a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 5.5V9h3.5M6 12h7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
+    samples: '<rect x="3" y="3" width="6" height="6" rx="1.4" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.4" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.4" stroke="currentColor" stroke-width="1.4"/><path d="M14 11v6M11 14h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
+    search: '<circle cx="9" cy="9" r="5.2" stroke="currentColor" stroke-width="1.5"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+    market: '<path d="M3 15h14M5 12l3-3 3 2 4-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+    recent: '<path d="M10 4v5l3 2M17 10a7 7 0 1 1-2.05-4.95" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  }
+  return `<svg viewBox="0 0 20 20" fill="none">${icons[type] || icons.recent}</svg>`
+}
 
 function renderClockCards() {
   const wrap = document.getElementById('dash-clock-cards')
   if (!wrap) return
   const now = new Date()
+  const hnDate = now.toLocaleDateString('en-CA', { timeZone:'America/Tegucigalpa' })
   const hnOff = getOffsetHours('America/Tegucigalpa', now)
   wrap.innerHTML = CLOCK_ZONES.map((z, i) => {
     const p = clockTimeParts(z.tz)
     const h24 = parseInt(new Intl.DateTimeFormat('en-US', { timeZone:z.tz, hour:'numeric', hour12:false }).format(now))
     const safe = isNaN(h24) ? 12 : h24
     const phase = safe >= 20 || safe < 6 ? 'night' : safe >= 17 ? 'eve' : 'day'
-    const icon = phase === 'night' ? '🌙' : phase === 'eve' ? '🌅' : '☀️'
-    const pct = phase === 'night'
-      ? ((safe < 6 ? safe + 4 : safe - 20) / 10 * 100)
-      : phase === 'eve'
-        ? ((safe - 17) / 3 * 100)
-        : ((safe - 6) / 11 * 100)
     const diff = getOffsetHours(z.tz, now) - hnOff
-    const diffLabel = i === 0 ? '' : diff > 0 ? `+${diff}h` : diff < 0 ? `${diff}h` : 'Same'
-    const nightColor = phase === 'night' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.4)'
-    const cityColor = phase === 'night' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.35)'
-    const timeColor = phase === 'night' ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.85)'
-    return `<div class="clock-card ${phase}">
-      <div class="clock-phase-icon">${icon}</div>
-      <div class="clock-city" style="color:${cityColor}">${z.city}</div>
-      <div class="clock-time" style="color:${timeColor}">${p.h}:${p.m}<span class="clock-ampm" style="font-size:0.6em;opacity:0.7;margin-left:2px">${p.ampm}</span></div>
-      ${diffLabel ? `<div style="font-size:0.58rem;font-weight:600;letter-spacing:0.05em;opacity:0.5;margin-top:0.15rem;color:${nightColor}">${diffLabel}</div>` : ''}
-      <div class="clock-progress"><div class="clock-progress-fill" style="width:${Math.min(100,Math.max(2,pct))}%"></div></div>
+    const tzDate = now.toLocaleDateString('en-CA', { timeZone:z.tz })
+    const dayLabel = tzDate > hnDate ? 'Tomorrow' : tzDate < hnDate ? 'Yesterday' : 'Today'
+    const diffLabel = i === 0 ? dayLabel : `${diff > 0 ? '+' : ''}${diff}h · ${dayLabel}`
+    return `<div class="clock-card">
+      <div class="clock-top">
+        <span class="clock-status ${phase}"></span>
+        <div class="clock-city">${z.city}</div>
+      </div>
+      <div class="clock-time">${p.h}:${p.m}<span class="clock-ampm">${p.ampm}</span></div>
+      <div class="clock-meta">${diffLabel}</div>
     </div>`
   }).join('')
 }
@@ -5484,7 +5484,7 @@ function renderDashTip() {
   const tipIdx = Math.floor(Date.now() / 86400000) % DASH_TIPS.length
   const t = DASH_TIPS[tipIdx]
   wrap.innerHTML = `
-    <div style="font-size:1.4rem;flex-shrink:0;margin-top:1px">${t.icon}</div>
+    <div class="dash-tip-icon">${dashTipIcon(t.type)}</div>
     <div style="flex:1;min-width:0">
       <div class="dash-tip-label">${t.label}</div>
       <div class="dash-tip-text" style="margin-top:0.2rem">${t.text}</div>
