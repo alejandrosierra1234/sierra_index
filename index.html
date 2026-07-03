@@ -823,6 +823,7 @@
     /* ── DASHBOARD ── */
     #view-dashboard { display:none; }
     #view-products { display:block; }
+    #view-styleguide { display:none; }
 
     /* ── HOME v2 ── */
     /* ── DASHBOARD LAYOUT ── */
@@ -970,6 +971,58 @@
     /* Sidebar divider */
     .dash-side-sep { height:1px; background:var(--border); margin:0.85rem 0; }
 
+    /* Style guide */
+    .sg-wrap { max-width:1040px; margin:0 auto; padding-bottom:3rem; }
+    .sg-hero { margin-bottom:2.2rem; }
+    .sg-eyebrow { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--accent); margin-bottom:0.55rem; }
+    .sg-title { font-size:2.05rem; font-weight:700; letter-spacing:0; line-height:1.04; color:var(--text); max-width:620px; }
+    .sg-sub { font-size:0.86rem; color:var(--text-2); line-height:1.55; max-width:620px; margin-top:0.85rem; }
+    .sg-layout { display:grid; grid-template-columns:minmax(0,1fr) 240px; gap:2.5rem; align-items:start; }
+    .sg-main { display:flex; flex-direction:column; gap:2rem; min-width:0; }
+    .sg-side { position:sticky; top:1.5rem; display:flex; flex-direction:column; gap:0.9rem; }
+    .sg-section { border-top:1px solid var(--border); padding-top:1.25rem; }
+    .sg-section:first-child { border-top:none; padding-top:0; }
+    .sg-section-h { display:flex; align-items:baseline; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
+    .sg-section-title { font-size:0.98rem; font-weight:700; color:var(--text); letter-spacing:0; }
+    .sg-section-note { font-size:0.66rem; color:var(--text-3); text-transform:uppercase; letter-spacing:0.09em; white-space:nowrap; }
+    .sg-principles { display:grid; grid-template-columns:repeat(3,1fr); gap:0.7rem; }
+    .sg-principle { border:1px solid var(--border); border-radius:10px; padding:0.95rem; background:var(--surface); min-width:0; }
+    .sg-principle-k { font-size:0.62rem; font-weight:700; letter-spacing:0.09em; text-transform:uppercase; color:var(--text-3); margin-bottom:0.45rem; }
+    .sg-principle-v { font-size:0.82rem; line-height:1.5; color:var(--text-2); }
+    .sg-swatches { display:grid; grid-template-columns:repeat(4,1fr); gap:0.65rem; }
+    .sg-swatch { border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); }
+    .sg-swatch-chip { height:54px; border-bottom:1px solid var(--border); }
+    .sg-swatch-body { padding:0.72rem 0.78rem; }
+    .sg-swatch-name { font-size:0.72rem; font-weight:700; color:var(--text); }
+    .sg-swatch-val { font-size:0.62rem; color:var(--text-3); margin-top:0.18rem; font-variant-numeric:tabular-nums; }
+    .sg-type-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.9rem; }
+    .sg-type-sample { border:1px solid var(--border); border-radius:10px; padding:1rem; background:var(--surface); min-width:0; }
+    .sg-type-label { font-size:0.58rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-3); margin-bottom:0.7rem; }
+    .sg-type-display { font-size:1.7rem; font-weight:700; line-height:1.06; letter-spacing:0; color:var(--text); }
+    .sg-type-body { font-size:0.86rem; line-height:1.58; color:var(--text-2); }
+    .sg-component-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:0.8rem; }
+    .sg-component { border:1px solid var(--border); border-radius:10px; padding:0.95rem; background:var(--surface); min-width:0; }
+    .sg-component-title { font-size:0.82rem; font-weight:700; color:var(--text); margin-bottom:0.28rem; }
+    .sg-component-text { font-size:0.74rem; color:var(--text-3); line-height:1.5; margin-bottom:0.8rem; }
+    .sg-demo-row { display:flex; align-items:center; gap:0.55rem; flex-wrap:wrap; }
+    .sg-demo-btn { display:inline-flex; align-items:center; gap:0.42rem; border:1px solid var(--border); border-radius:8px; padding:0.48rem 0.68rem; background:var(--surface2); color:var(--text); font-size:0.75rem; font-weight:600; }
+    .sg-demo-btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .sg-demo-pill { border:1px solid var(--border); border-radius:6px; padding:0.24rem 0.48rem; font-size:0.64rem; font-weight:700; color:var(--text-2); text-transform:uppercase; letter-spacing:0.08em; }
+    .sg-demo-field { height:34px; min-width:160px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); color:var(--text-3); display:flex; align-items:center; padding:0 0.65rem; font-size:0.74rem; }
+    .sg-rules { display:grid; grid-template-columns:repeat(2,1fr); gap:0.75rem; }
+    .sg-rule { display:flex; gap:0.65rem; align-items:flex-start; border:1px solid var(--border); border-radius:10px; padding:0.85rem; background:var(--surface); }
+    .sg-rule-dot { width:7px; height:7px; border-radius:50%; background:var(--accent); margin-top:0.36rem; flex-shrink:0; }
+    .sg-rule-text { font-size:0.78rem; color:var(--text-2); line-height:1.5; }
+    .sg-side-card { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:0.95rem; }
+    .sg-side-title { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.09em; color:var(--text-3); margin-bottom:0.65rem; }
+    .sg-token-row { display:flex; justify-content:space-between; gap:0.7rem; padding:0.45rem 0; border-bottom:1px solid var(--border); font-size:0.72rem; }
+    .sg-token-row:last-child { border-bottom:none; }
+    .sg-token-k { color:var(--text-3); }
+    .sg-token-v { color:var(--text); font-weight:600; text-align:right; }
+    .sg-mini-nav { display:flex; flex-direction:column; gap:0.2rem; }
+    .sg-mini-nav a { color:var(--text-2); text-decoration:none; font-size:0.75rem; padding:0.35rem 0; }
+    .sg-mini-nav a:hover { color:var(--text); }
+
     /* ── SAMPLE CART ── */
     /* Sidebar nav item badge (expanded: count pill at row end) */
     .cart-nav-count {
@@ -1095,6 +1148,9 @@
       .dash-wrap { grid-template-columns:1fr; gap:0; max-width:100%; }
       .dash-wrap, .dash-col, .dash-side, .market-cards-wrap { min-width:0; }
       .dash-side { position:static; }
+      .sg-layout { grid-template-columns:1fr; gap:1.7rem; }
+      .sg-side { position:static; }
+      .sg-principles, .sg-swatches { grid-template-columns:1fr 1fr; }
       .dash-act-row { flex-direction:row; flex-wrap:wrap; }
       .dash-act { width:auto; }
       .dash-side .market-cards { flex-direction:row; overflow-x:auto; min-width:0; }
@@ -1104,6 +1160,10 @@
     @media (max-width:767px) {
       .dash-wrap { padding-bottom:2rem; }
       .dash-section { margin-bottom:1.5rem; }
+      .sg-wrap { padding-bottom:2rem; }
+      .sg-title { font-size:1.55rem; }
+      .sg-section-h { flex-direction:column; align-items:flex-start; gap:0.25rem; }
+      .sg-principles, .sg-swatches, .sg-type-grid, .sg-component-grid, .sg-rules { grid-template-columns:1fr; }
       .recent-grid { grid-template-columns:1fr 1fr; }
       .dash-clocks { grid-template-columns:1fr 1fr; }
       .clock-card { border-right:none; border-bottom:1px solid var(--border); }
@@ -2486,6 +2546,7 @@
         <span class="nav-label" style="margin-left:auto;font-size:0.62rem;color:var(--text-3);border:1px solid var(--border);border-radius:4px;padding:0.1rem 0.35rem;line-height:1.4">⌘K</span>
       </button>
       <button class="nav-item active" id="nav-dash" data-tip="Dashboard" style="--item-color:#16cdbe" onclick="showDashboard()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3L3 8.5V17h5v-4h4v4h5V8.5L10 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Dashboard</span></button>
+      <button class="nav-item" id="nav-styleguide" data-tip="Style Guide" style="--item-color:#16cdbe" onclick="showStyleGuide()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M5 4h8.5A1.5 1.5 0 0 1 15 5.5V16H6.5A1.5 1.5 0 0 1 5 14.5V4Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 7h4M8 10h4M8 13h2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Style Guide</span></button>
       <span class="s-label" style="margin-top:0.5rem">Divisions</span>
       <button class="nav-item" id="nav-all" data-tip="All products" style="--item-color:#009fff" onclick="setDiv('all',this)"><span class="n-icon" id="icon-all"></span><span class="nav-label">All products</span></button>
       <button class="nav-item" id="nav-fiber" data-tip="SIERRA Fiber" style="--item-color:#9e00cb" onclick="setDiv('fiber',this)"><span class="n-icon" id="icon-fiber"></span><span class="nav-label">SIERRA Fiber</span></button>
@@ -2548,6 +2609,7 @@
         <div class="pg" id="pg"></div>
       </div>
       <div id="view-dashboard"></div>
+      <div id="view-styleguide"></div>
       <div id="view-detail" style="display:none"></div>
       <div id="view-samples" style="display:none"></div>
       <div id="view-sample-detail" style="display:none"></div>
@@ -3322,6 +3384,8 @@ async function enterApp(user) {
     showRequests(); return
   } else if (savedRoute === 'all-requests' && can('read', 'customer_service')) {
     showAllRequests(); return
+  } else if (savedRoute === 'style-guide') {
+    showStyleGuide(); return
   }
   showDashboard()
 }
@@ -3542,6 +3606,7 @@ function leaveView() {
   dashCharts = {}
   commodityData = {}
   document.getElementById('view-dashboard').style.display = 'none'
+  document.getElementById('view-styleguide').style.display = 'none'
   document.getElementById('view-detail').style.display = 'none'
   document.getElementById('view-samples').style.display = 'none'
   document.getElementById('view-sample-detail').style.display = 'none'
@@ -3615,6 +3680,7 @@ function showProductDetail(p) {
   const imgs = (p.image_urls && p.image_urls.length) ? p.image_urls : (p.image_url ? [p.image_url] : [])
 
   document.getElementById('view-dashboard').style.display = 'none'
+  document.getElementById('view-styleguide').style.display = 'none'
   document.getElementById('view-products').style.display = 'none'
   document.getElementById('view-samples').style.display = 'none'
   document.getElementById('view-sample-detail').style.display = 'none'
@@ -5635,6 +5701,163 @@ const NEWS_SOURCES_CFG = [
   { name: 'WWD',             url: 'https://wwd.com/feed/',                 color: '#e74c3c' },
 ]
 
+function showStyleGuide() {
+  sessionStorage.setItem('sierra_route', 'style-guide')
+  document.getElementById('div-toolbar').style.display = 'none'
+  closeDrawer()
+  if (clockInterval) { clearInterval(clockInterval); clockInterval = null }
+  Object.values(dashCharts).forEach(c => { try { c.destroy() } catch {} })
+  dashCharts = {}
+  commodityData = {}
+
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+  document.getElementById('nav-styleguide').classList.add('active')
+  document.getElementById('tb-section').textContent = 'Style Guide'
+  document.getElementById('view-products').style.display = 'none'
+  document.getElementById('view-dashboard').style.display = 'none'
+  document.getElementById('view-styleguide').style.display = 'none'
+  document.getElementById('view-detail').style.display = 'none'
+  document.getElementById('view-samples').style.display = 'none'
+  document.getElementById('view-sample-detail').style.display = 'none'
+  document.getElementById('content').classList.remove('detail-active')
+
+  const fabBar = document.getElementById('fab-filter-bar')
+  if (fabBar) fabBar.style.display = 'none'
+  const vd = document.getElementById('view-styleguide')
+  vd.style.display = 'block'
+
+  vd.innerHTML = `<div class="sg-wrap">
+    <div class="sg-hero">
+      <div class="sg-eyebrow">Sierra Index</div>
+      <div class="sg-title">Style Guide</div>
+      <div class="sg-sub">A reference for building clear, quiet, product-focused screens across the platform.</div>
+    </div>
+
+    <div class="sg-layout">
+      <div class="sg-main">
+        <section class="sg-section" id="sg-principles">
+          <div class="sg-section-h">
+            <div class="sg-section-title">Principles</div>
+            <div class="sg-section-note">Design lens</div>
+          </div>
+          <div class="sg-principles">
+            <div class="sg-principle">
+              <div class="sg-principle-k">Calm</div>
+              <div class="sg-principle-v">Use restraint first. Data, product identity, and actions should lead before decoration.</div>
+            </div>
+            <div class="sg-principle">
+              <div class="sg-principle-k">Precise</div>
+              <div class="sg-principle-v">Make states, labels, and controls explicit. Avoid playful ambiguity in operational views.</div>
+            </div>
+            <div class="sg-principle">
+              <div class="sg-principle-k">Fast</div>
+              <div class="sg-principle-v">Prioritize scanning, repeat use, and low-friction actions over marketing-style presentation.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="sg-section" id="sg-color">
+          <div class="sg-section-h">
+            <div class="sg-section-title">Color</div>
+            <div class="sg-section-note">Tokens</div>
+          </div>
+          <div class="sg-swatches">
+            <div class="sg-swatch"><div class="sg-swatch-chip" style="background:var(--accent)"></div><div class="sg-swatch-body"><div class="sg-swatch-name">Accent</div><div class="sg-swatch-val">var(--accent)</div></div></div>
+            <div class="sg-swatch"><div class="sg-swatch-chip" style="background:#009fff"></div><div class="sg-swatch-body"><div class="sg-swatch-name">Fiber</div><div class="sg-swatch-val">#009fff</div></div></div>
+            <div class="sg-swatch"><div class="sg-swatch-chip" style="background:#9e00cb"></div><div class="sg-swatch-body"><div class="sg-swatch-name">Yarn</div><div class="sg-swatch-val">#9e00cb</div></div></div>
+            <div class="sg-swatch"><div class="sg-swatch-chip" style="background:#ff7824"></div><div class="sg-swatch-body"><div class="sg-swatch-name">Chemicals</div><div class="sg-swatch-val">#ff7824</div></div></div>
+          </div>
+        </section>
+
+        <section class="sg-section" id="sg-type">
+          <div class="sg-section-h">
+            <div class="sg-section-title">Typography</div>
+            <div class="sg-section-note">Replica</div>
+          </div>
+          <div class="sg-type-grid">
+            <div class="sg-type-sample">
+              <div class="sg-type-label">Display</div>
+              <div class="sg-type-display">Technical clarity for textile work.</div>
+            </div>
+            <div class="sg-type-sample">
+              <div class="sg-type-label">Body</div>
+              <div class="sg-type-body">Body copy should be short, direct, and useful. Use sentence case for actions and avoid explaining the interface when a label can do the job.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="sg-section" id="sg-components">
+          <div class="sg-section-h">
+            <div class="sg-section-title">Components</div>
+            <div class="sg-section-note">Patterns</div>
+          </div>
+          <div class="sg-component-grid">
+            <div class="sg-component">
+              <div class="sg-component-title">Actions</div>
+              <div class="sg-component-text">Buttons stay compact, icon-led, and task specific.</div>
+              <div class="sg-demo-row">
+                <span class="sg-demo-btn primary"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>New product</span>
+                <span class="sg-demo-btn"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Scan</span>
+              </div>
+            </div>
+            <div class="sg-component">
+              <div class="sg-component-title">Inputs</div>
+              <div class="sg-component-text">Controls use quiet surfaces, clear borders, and stable height.</div>
+              <div class="sg-demo-row"><span class="sg-demo-field">Search products...</span></div>
+            </div>
+            <div class="sg-component">
+              <div class="sg-component-title">Status</div>
+              <div class="sg-component-text">Badges are compact and semantic. Use color as support, not the full message.</div>
+              <div class="sg-demo-row">
+                <span class="sg-demo-pill">Pending</span>
+                <span class="sg-demo-pill" style="color:var(--accent);background:var(--accent-light);border-color:transparent">Ready</span>
+              </div>
+            </div>
+            <div class="sg-component">
+              <div class="sg-component-title">Cards</div>
+              <div class="sg-component-text">Cards frame repeated items. Page sections remain unframed unless the content needs containment.</div>
+              <div class="sg-demo-row"><span class="recent-card" style="width:150px"><span class="rc-div">SIERRA Fabric</span><span class="rc-name">Cotton Jersey</span><span class="rc-code">FAB-1024</span></span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="sg-section" id="sg-rules">
+          <div class="sg-section-h">
+            <div class="sg-section-title">Rules</div>
+            <div class="sg-section-note">Use every time</div>
+          </div>
+          <div class="sg-rules">
+            <div class="sg-rule"><span class="sg-rule-dot"></span><div class="sg-rule-text">Use 8 to 10px radius for platform UI. Larger radii are reserved for major modals or product media.</div></div>
+            <div class="sg-rule"><span class="sg-rule-dot"></span><div class="sg-rule-text">Prefer icons for tools, text for commands, and icon plus text for primary repeated workflows.</div></div>
+            <div class="sg-rule"><span class="sg-rule-dot"></span><div class="sg-rule-text">Dark mode should reduce contrast noise. Avoid saturated backgrounds behind dense data.</div></div>
+            <div class="sg-rule"><span class="sg-rule-dot"></span><div class="sg-rule-text">Keep labels short. Operational screens should feel built for people who use them every day.</div></div>
+          </div>
+        </section>
+      </div>
+
+      <aside class="sg-side">
+        <div class="sg-side-card">
+          <div class="sg-side-title">Sections</div>
+          <nav class="sg-mini-nav">
+            <a href="#sg-principles">Principles</a>
+            <a href="#sg-color">Color</a>
+            <a href="#sg-type">Typography</a>
+            <a href="#sg-components">Components</a>
+            <a href="#sg-rules">Rules</a>
+          </nav>
+        </div>
+        <div class="sg-side-card">
+          <div class="sg-side-title">Core Tokens</div>
+          <div class="sg-token-row"><span class="sg-token-k">Radius</span><span class="sg-token-v">8-10px</span></div>
+          <div class="sg-token-row"><span class="sg-token-k">Border</span><span class="sg-token-v">var(--border)</span></div>
+          <div class="sg-token-row"><span class="sg-token-k">Surface</span><span class="sg-token-v">var(--surface)</span></div>
+          <div class="sg-token-row"><span class="sg-token-k">Accent</span><span class="sg-token-v">#16cdbe</span></div>
+        </div>
+      </aside>
+    </div>
+  </div>`
+}
+
 function showDashboard() {
   sessionStorage.setItem('sierra_route', 'dashboard')
   document.getElementById('div-toolbar').style.display = 'none'
@@ -5646,6 +5869,7 @@ function showDashboard() {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
   document.getElementById('nav-dash').classList.add('active')
   document.getElementById('tb-section').textContent = 'Home'
+  document.getElementById('view-styleguide').style.display = 'none'
   document.getElementById('view-products').style.display = 'none'
 
   const vd = document.getElementById('view-dashboard')
@@ -7487,6 +7711,7 @@ async function showSampleRecord(sampleId) {
   document.getElementById('div-toolbar').style.display = 'none'
   document.getElementById('view-products').style.display = 'none'
   document.getElementById('view-dashboard').style.display = 'none'
+  document.getElementById('view-styleguide').style.display = 'none'
   document.getElementById('view-detail').style.display = 'none'
   document.getElementById('view-samples').style.display = 'none'
   const vs = document.getElementById('view-sample-detail')
@@ -7654,6 +7879,7 @@ async function showCollectionRecord(collectionId) {
   document.getElementById('div-toolbar').style.display = 'none'
   document.getElementById('view-products').style.display = 'none'
   document.getElementById('view-dashboard').style.display = 'none'
+  document.getElementById('view-styleguide').style.display = 'none'
   document.getElementById('view-detail').style.display = 'none'
   document.getElementById('view-samples').style.display = 'none'
   const vs = document.getElementById('view-sample-detail')
@@ -7875,6 +8101,7 @@ async function showDispatch(collectionId) {
   document.getElementById('div-toolbar').style.display = 'none'
   document.getElementById('view-products').style.display = 'none'
   document.getElementById('view-dashboard').style.display = 'none'
+  document.getElementById('view-styleguide').style.display = 'none'
   document.getElementById('view-detail').style.display = 'none'
   document.getElementById('view-samples').style.display = 'none'
   const vs = document.getElementById('view-sample-detail')
