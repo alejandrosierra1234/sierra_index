@@ -132,6 +132,8 @@
     .btn-full { width:100%; }
     .btn-primary { background:var(--accent); color:#fff; }
     .btn-primary:hover { background:var(--accent-dark); }
+    .btn:disabled { background:var(--surface2); color:var(--text-3); cursor:not-allowed; opacity:0.7; }
+    .btn:disabled:hover { background:var(--surface2); }
     .btn-primary:active { transform:scale(0.98); }
     .btn-ghost { background:transparent; color:var(--text-2); border:1px solid var(--border); }
     .btn-ghost:hover { background:var(--surface2); color:var(--text); }
@@ -2731,6 +2733,7 @@
       <svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="flex-shrink:0"><rect x="3" y="6" width="14" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 9h14M10 6V3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       Every sample in this collection is packed and delivered together, as one package.
     </div>
+    <div class="cart-fg"><label>Collection name (optional)</label><input type="text" id="cart-name" placeholder="e.g. Nike Fall '26 Swatches" /></div>
     <div class="cart-fg"><label>Customer</label><input type="text" id="cart-customer" placeholder="e.g. Nike, Adidas" /></div>
     <div class="cart-fg"><label>Priority</label>
       <div class="cart-seg" id="cart-priority">
@@ -2861,6 +2864,7 @@ const DIV_ICON = {
 let me = null, profile = null, division = 'all', selected = null
 function isAdmin()  { return profile?.role === 'admin' }
 function isEditor() { return ['admin','editor'].includes(profile?.role) }
+function isDispatcher() { return ['admin','dispatcher'].includes(profile?.role) }
 let editingProductId = null, editingImageUrls = [], pendingImgFiles = []
 let allProducts = [], searchQuery = '', selectMode = false, selectedProducts = []
 let fabricFilter = null // active construction type key, null = all
@@ -6034,7 +6038,7 @@ async function showUserManagement() {
             <td style="font-size:0.78rem;color:var(--text-2)">${u.email||'—'}</td>
             <td>
               <select class="role-select" data-uid="${u.id}" style="font-size:0.78rem;padding:0.3rem 0.5rem;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;cursor:pointer" ${isSelf ? 'disabled title="Cannot change your own role"' : ''}>
-                ${['admin','editor','user'].map(r => `<option value="${r}" ${(u.role||'user')===r?'selected':''}>${r.charAt(0).toUpperCase()+r.slice(1)}</option>`).join('')}
+                ${['admin','editor','dispatcher','user'].map(r => `<option value="${r}" ${(u.role||'user')===r?'selected':''}>${r.charAt(0).toUpperCase()+r.slice(1)}</option>`).join('')}
               </select>
             </td>
           </tr>`
@@ -6498,6 +6502,7 @@ function cartDeliveryChanged() {
 
 async function submitCart() {
   if (!sampleCart.length) return
+  const name = document.getElementById('cart-name').value.trim()
   const customer = document.getElementById('cart-customer').value.trim()
   const priority = cartSegVal('cart-priority')
   const delivery = cartSegVal('cart-delivery')
@@ -6519,7 +6524,7 @@ async function submitCart() {
       p_items: sampleCart.map(i => ({ product_id: i.id, sample_type: i.type, quantity: i.qty })),
       p_customer: customer, p_priority: priority, p_delivery: delivery,
       p_recipient: recipient, p_address: address, p_notes: notes,
-      p_user_id: me.id, p_user_name: userName,
+      p_user_id: me.id, p_user_name: userName, p_name: name || null,
     })
     if (!error && data) {
       collectionRef = data.collection_ref
@@ -6579,7 +6584,7 @@ async function submitCart() {
   }
 
   lastShipment = {
-    ref: collectionRef, collectionId: collectionDbId, date: new Date(), customer, priority, delivery, recipient, address, notes,
+    ref: collectionRef, name, collectionId: collectionDbId, date: new Date(), customer, priority, delivery, recipient, address, notes,
     requestedBy: userName,
     items: sampleCart.map((i, idx) => ({ ...i, sample_id: created[idx]?.sample_id || '' })),
   }
@@ -6587,6 +6592,7 @@ async function submitCart() {
 
   sampleCart = []
   saveCart()
+  document.getElementById('cart-name').value = ''
   document.getElementById('cart-customer').value = ''
   document.getElementById('cart-recipient').value = ''
   document.getElementById('cart-address').value = ''
@@ -6611,12 +6617,10 @@ function renderCartSuccess() {
         <svg width="24" height="24" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
       <div style="font-size:1rem;font-weight:700;letter-spacing:-0.01em;margin-bottom:0.3rem">Collection created</div>
+      ${s.name ? `<div style="font-size:0.85rem;font-weight:600;margin-bottom:0.2rem">${esc(s.name)}</div>` : ''}
       <div style="font-size:0.78rem;color:var(--text-3);margin-bottom:0.2rem">${esc(s.ref)} · ${s.items.length} product${s.items.length>1?'s':''} · ${n} sample${n>1?'s':''}</div>
-      <div style="font-size:0.72rem;color:var(--text-3);margin-bottom:1.5rem">${esc(s.delivery)}${s.delivery!=='Pickup'?' → '+esc(s.address):''}</div>
-      <button class="cart-submit" onclick="printShippingGuide()" style="margin-bottom:0.5rem">
-        Print shipping guide
-      </button>
-      ${s.collectionId ? `<button style="width:100%;padding:0.7rem;border:1px solid var(--border);border-radius:11px;background:none;font-family:inherit;font-size:0.8rem;font-weight:500;color:var(--text-2);cursor:pointer;margin-bottom:0.5rem" onclick="closeCart();showCollectionRecord('${s.collectionId}')">View collection</button>` : ''}
+      <div style="font-size:0.72rem;color:var(--text-3);margin-bottom:1.5rem">${esc(s.delivery)}${s.delivery!=='Pickup'?' → '+esc(s.address):''} · The shipping guide prints once dispatch verifies every item.</div>
+      ${s.collectionId ? `<button class="cart-submit" style="margin-bottom:0.5rem" onclick="closeCart();showCollectionRecord('${s.collectionId}')">View collection</button>` : ''}
       <button style="width:100%;padding:0.7rem;border:1px solid var(--border);border-radius:11px;background:none;font-family:inherit;font-size:0.8rem;font-weight:500;color:var(--text-2);cursor:pointer" onclick="closeCart()">Done</button>
     </div>`
 }
@@ -6666,6 +6670,12 @@ function printShippingGuide() {
         <td class="sg-qty">${i.qty}</td>
       </tr>`).join('')}</tbody>
     </table>
+    ${s.excludedItems?.length ? `
+    <div class="sg-note" style="border-color:#c0392b40">
+      <strong>Not included in this package:</strong>
+      ${s.excludedItems.map(i => `<div style="margin-top:0.3rem">• ${esc(i.name)}${i.code ? ' ('+esc(i.code)+')' : ''} — ${esc(i.reason)}</div>`).join('')}
+    </div>` : ''}
+    ${s.verifiedBy ? `<div class="sg-note">Verified &amp; packed by <strong>${esc(s.verifiedBy)}</strong></div>` : ''}
     ${s.notes ? `<div class="sg-note"><strong>Notes:</strong> ${esc(s.notes)}</div>` : ''}
     <div class="sg-barcode-row">
       <div class="sg-together">⬚ One package — contents travel together</div>
@@ -7073,9 +7083,10 @@ async function showCollectionRecord(collectionId) {
   vs.style.display = 'block'
   vs.innerHTML = '<div style="padding:2rem 1.75rem;color:var(--text-3);font-size:0.85rem">Loading…</div>'
 
-  const [colRes, itemsRes] = await Promise.all([
+  const [colRes, itemsRes, collabRes] = await Promise.all([
     sb.from('sample_collections').select('*, profiles!requested_by(full_name,email)').eq('id', collectionId).single(),
     sb.from('samples').select('*, products(name,division,code)').eq('collection_id', collectionId).order('created_at', { ascending: true }),
+    sb.from('collection_collaborators').select('*, profiles!user_id(full_name,email)').eq('collection_id', collectionId),
   ])
 
   if (colRes.error || !colRes.data) {
@@ -7085,10 +7096,27 @@ async function showCollectionRecord(collectionId) {
 
   const col = colRes.data
   const items = itemsRes.data || []
+  const collaborators = collabRes.data || []
   const requesterName = col.profiles?.full_name || col.profiles?.email || '—'
   const dateStr = new Date(col.created_at).toLocaleDateString('en-US', { day:'2-digit', month:'long', year:'numeric' })
   const canEdit = isEditor()
+  const canDispatch = isDispatcher()
+  const isReadyOrLater = ['ready','picked_up','shipped','delivered'].includes(col.status)
   const totalQty = items.reduce((t, i) => t + (i.quantity || 1), 0)
+
+  const collaboratorsHtml = `
+    <div class="srd-section-label">Collaborators</div>
+    <div class="srd-card" style="margin-bottom:1.5rem">
+      ${collaborators.length ? collaborators.map(c => `
+        <div style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0">
+          <div style="width:26px;height:26px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;flex-shrink:0">${(c.profiles?.full_name||c.profiles?.email||'?')[0].toUpperCase()}</div>
+          <div style="font-size:0.82rem">${esc(c.profiles?.full_name || c.profiles?.email || '—')}</div>
+        </div>`).join('') : '<div style="font-size:0.78rem;color:var(--text-3)">No collaborators yet — you\'re building this alone.</div>'}
+      <div style="display:flex;gap:0.5rem;margin-top:0.75rem">
+        <input type="text" id="collab-invite-input" placeholder="Name or email…" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;font-size:0.8rem;font-family:inherit;background:var(--surface2);color:var(--text)" />
+        <button class="btn btn-ghost btn-sm" onclick="inviteCollaborator('${col.id}')">Invite</button>
+      </div>
+    </div>`
 
   const nextStatuses = SMP_STATUS_ORDER.filter(st => st !== col.status).slice(0, 4)
   const statusActionsHtml = canEdit ? `
@@ -7119,8 +7147,8 @@ async function showCollectionRecord(collectionId) {
 
     <div class="srd-id-block">
       <div>
-        <div class="srd-id-text">${esc(col.collection_id)}</div>
-        <div class="srd-id-sub">Collection · ${items.length} sample${items.length!==1?'s':''} · ${totalQty} total qty</div>
+        <div class="srd-id-text">${esc(col.name || col.collection_id)}</div>
+        <div class="srd-id-sub">${col.name ? esc(col.collection_id)+' · ' : ''}${items.length} sample${items.length!==1?'s':''} · ${totalQty} total qty</div>
       </div>
       <div style="flex:1"></div>
       ${smpBadge(col.status)}
@@ -7143,6 +7171,8 @@ async function showCollectionRecord(collectionId) {
           ${statusActionsHtml}
         </div>
 
+        ${collaboratorsHtml}
+
         <div class="srd-section-label">Samples in this collection</div>
         <div class="srd-card">
           ${itemsHtml || '<div style="font-size:0.82rem;color:var(--text-3)">No samples found.</div>'}
@@ -7155,10 +7185,16 @@ async function showCollectionRecord(collectionId) {
           <canvas class="srd-qr-canvas" id="col-qr-${col.id}" width="160" height="160"></canvas>
           <div class="srd-sample-id-code">${esc(col.collection_id)}</div>
         </div>
+        ${isReadyOrLater ? `
         <button class="btn btn-ghost btn-sm" style="width:100%" onclick="printCollectionGuide('${col.id}')">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="14" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 9h14M10 6V3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-          Print Shipping Guide
-        </button>
+          Reprint Shipping Guide
+        </button>` : canDispatch ? `
+        <button class="btn btn-primary btn-sm" style="width:100%" onclick="showDispatch('${col.id}')">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Go to Dispatch
+        </button>` : `
+        <div style="font-size:0.72rem;color:var(--text-3);text-align:center;padding:0.5rem 0">Awaiting dispatch — the shipping guide prints once every item is verified.</div>`}
       </div>
     </div>
   </div>`
@@ -7185,6 +7221,40 @@ async function updateCollectionStatus(id, status) {
   showCollectionRecord(id)
 }
 
+async function inviteCollaborator(collectionId) {
+  const input = document.getElementById('collab-invite-input')
+  const query = input?.value.trim()
+  if (!query) { toast('Type a name or email to invite'); return }
+
+  const { data: matches } = await sb.from('profiles')
+    .select('id, full_name, email')
+    .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`)
+    .limit(1)
+
+  const match = matches?.[0]
+  if (!match) { toast('No teammate found with that name or email'); return }
+
+  const { error } = await sb.from('collection_collaborators').insert({
+    collection_id: collectionId, user_id: match.id, added_by: me.id,
+  })
+  if (error) {
+    console.error('inviteCollaborator error:', error)
+    toast(error.code === '23505' ? `${match.full_name || match.email} is already a collaborator` : 'Could not invite collaborator')
+    return
+  }
+
+  const { data: col } = await sb.from('sample_collections').select('collection_id').eq('id', collectionId).single()
+  await sb.from('notifications').insert({
+    user_id: match.id, type: 'collection_invite',
+    title: `You were added to collection ${col?.collection_id || ''}`,
+    body: `${profile?.full_name || 'A teammate'} invited you to help build and track this collection.`,
+    resource_type: 'collection', resource_id: collectionId,
+  })
+
+  toast(`${match.full_name || match.email} added as collaborator`)
+  showCollectionRecord(collectionId)
+}
+
 async function printCollectionGuide(collectionId) {
   const [colRes, itemsRes] = await Promise.all([
     sb.from('sample_collections').select('*, profiles!requested_by(full_name,email)').eq('id', collectionId).single(),
@@ -7192,11 +7262,13 @@ async function printCollectionGuide(collectionId) {
   ])
   if (colRes.error || !colRes.data) { toast('Could not load collection'); return }
   const col = colRes.data
+  const allItems = itemsRes.data || []
   lastShipment = {
     ref: col.collection_id, date: col.created_at, customer: col.customer, priority: col.priority,
     delivery: col.delivery_method, recipient: col.recipient, address: col.address, notes: col.notes,
     requestedBy: col.profiles?.full_name || col.profiles?.email || '—',
-    items: (itemsRes.data || []).map(i => ({ name: i.products?.name || '—', code: i.products?.code || '', type: i.sample_type, qty: i.quantity || 1, sample_id: i.sample_id })),
+    items: allItems.filter(i => !i.excluded).map(i => ({ name: i.products?.name || '—', code: i.products?.code || '', type: i.sample_type, qty: i.quantity || 1, sample_id: i.sample_id })),
+    excludedItems: allItems.filter(i => i.excluded).map(i => ({ name: i.products?.name || '—', code: i.products?.code || '', reason: i.exclusion_reason || '' })),
   }
   printShippingGuide()
 }
@@ -7204,6 +7276,225 @@ async function printCollectionGuide(collectionId) {
 async function loadProductById(id) {
   const { data } = await sb.from('products').select('*').eq('id', id).single()
   return data
+}
+
+/* ── DISPATCH: pick, verify, and pack a collection before it can ship ──
+   Every item must be resolved (scanned present, or excluded with a reason)
+   before Print & Notify unlocks. Printing sets the collection to 'ready'
+   and notifies the requester + collaborators with what shipped and what
+   didn't. */
+let _dispatchCol = null, _dispatchItems = []
+
+async function showDispatch(collectionId) {
+  document.getElementById('div-toolbar').style.display = 'none'
+  document.getElementById('view-products').style.display = 'none'
+  document.getElementById('view-dashboard').style.display = 'none'
+  document.getElementById('view-detail').style.display = 'none'
+  document.getElementById('view-samples').style.display = 'none'
+  const vs = document.getElementById('view-sample-detail')
+  vs.style.display = 'block'
+  vs.innerHTML = '<div style="padding:2rem 1.75rem;color:var(--text-3);font-size:0.85rem">Loading…</div>'
+
+  const [colRes, itemsRes] = await Promise.all([
+    sb.from('sample_collections').select('*').eq('id', collectionId).single(),
+    sb.from('samples').select('*, products(name,division,code)').eq('collection_id', collectionId).order('created_at', { ascending: true }),
+  ])
+  if (colRes.error || !colRes.data) { vs.innerHTML = `<div style="padding:2rem 1.75rem"><p>Error loading collection.</p></div>`; return }
+  _dispatchCol = colRes.data
+  _dispatchItems = itemsRes.data || []
+  renderDispatchScreen()
+}
+
+function dispatchItemHtml(i) {
+  const c = DIV_CLR[i.products?.division] || '#aaa'
+  let stateHtml
+  if (i.excluded) {
+    stateHtml = `<div style="font-size:0.72rem;color:#c0392b;margin-top:0.5rem">Excluded — ${esc(i.exclusion_reason||'')}</div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:0.4rem" onclick="dispatchVerify('${i.id}')">Include after all</button>`
+  } else if (i.verified) {
+    stateHtml = `<div style="font-size:0.72rem;color:#0a7a72;margin-top:0.5rem;font-weight:600">✓ Verified present</div>`
+  } else {
+    stateHtml = `
+      <div style="display:flex;gap:0.4rem;margin-top:0.6rem">
+        <button class="btn btn-primary btn-sm" onclick="dispatchVerify('${i.id}')">Mark present</button>
+        <button class="btn btn-ghost btn-sm" style="color:#c0392b" onclick="dispatchRevealExclude('${i.id}')">Exclude…</button>
+      </div>
+      <div id="exclude-form-${i.id}" style="display:none;margin-top:0.6rem">
+        <input type="text" id="exclude-reason-${i.id}" placeholder="Why isn't this going? (required)"
+          style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.65rem;font-size:0.8rem;font-family:inherit;background:var(--surface2);color:var(--text);margin-bottom:0.4rem" />
+        <button class="btn btn-primary btn-sm" onclick="dispatchExclude('${i.id}')">Confirm exclude</button>
+      </div>`
+  }
+  return `<div class="srd-card" style="margin-bottom:0.6rem">
+    <div style="display:flex;align-items:center;gap:0.6rem">
+      <span style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0"></span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:0.85rem;font-weight:600">${esc(i.products?.name||'—')}</div>
+        <div style="font-size:0.68rem;color:var(--text-3)">${esc(i.sample_id)} · ${esc(i.sample_type)} · Qty ${i.quantity||1}${i.products?.code ? ' · '+esc(i.products.code) : ''}</div>
+      </div>
+    </div>
+    ${stateHtml}
+  </div>`
+}
+
+function renderDispatchScreen() {
+  const col = _dispatchCol, items = _dispatchItems
+  const resolved = items.filter(i => i.verified || i.excluded).length
+  const allResolved = items.length > 0 && resolved === items.length
+  const vs = document.getElementById('view-sample-detail')
+  vs.innerHTML = `
+  <div style="padding:1.75rem 1.75rem 0">
+    <div style="margin-bottom:2rem">
+      <button class="detail-back-btn" onclick="showCollectionRecord('${col.id}')">
+        <span class="detail-back-dot" style="background:var(--accent)"></span>
+        ${esc(col.name || col.collection_id)}
+      </button>
+    </div>
+
+    <div class="srd-id-block">
+      <div>
+        <div class="srd-id-text">Dispatch</div>
+        <div class="srd-id-sub">${esc(col.collection_id)} · ${resolved}/${items.length} resolved</div>
+      </div>
+      <div style="flex:1"></div>
+      ${smpBadge(col.status)}
+    </div>
+
+    <div class="srd-section-label" style="margin-top:0">Add a product</div>
+    <div class="srd-card" style="margin-bottom:1.5rem">
+      <input type="text" id="dispatch-search" placeholder="Search products to add…" oninput="dispatchSearchProducts(this.value)"
+        style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:8px;padding:0.55rem 0.7rem;font-family:inherit;font-size:0.85rem;background:var(--surface2);color:var(--text)" />
+      <div id="dispatch-search-results"></div>
+    </div>
+
+    <div class="srd-section-label">Items (${items.length})</div>
+    <div id="dispatch-items" style="max-width:640px">
+      ${items.map(dispatchItemHtml).join('') || '<div style="font-size:0.82rem;color:var(--text-3)">No items yet.</div>'}
+    </div>
+  </div>
+  <div class="detail-toolbar">
+    <div class="detail-toolbar-inner">
+      <button class="btn btn-primary" id="dispatch-print-btn" onclick="finalizeDispatch()" ${allResolved ? '' : 'disabled'}
+        title="${allResolved ? '' : 'Resolve every item first — scan it present or exclude it with a reason'}">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="14" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 9h14M10 6V3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        Print &amp; Notify
+      </button>
+    </div>
+  </div>`
+}
+
+async function dispatchVerify(sampleId) {
+  const userName = profile?.full_name || me?.email?.split('@')[0] || 'User'
+  const { error } = await sb.rpc('verify_sample', { p_id: sampleId, p_user_id: me.id, p_user_name: userName })
+  if (error) {
+    console.error('verify_sample error:', error)
+    await sb.from('samples').update({ verified: true, verified_by: me.id, verified_at: new Date().toISOString(), excluded: false, exclusion_reason: null }).eq('id', sampleId)
+  }
+  const item = _dispatchItems.find(i => i.id === sampleId)
+  if (item) { item.verified = true; item.excluded = false; item.exclusion_reason = null }
+  renderDispatchScreen()
+}
+
+function dispatchRevealExclude(sampleId) {
+  const el = document.getElementById(`exclude-form-${sampleId}`)
+  if (el) el.style.display = 'block'
+}
+
+async function dispatchExclude(sampleId) {
+  const reasonEl = document.getElementById(`exclude-reason-${sampleId}`)
+  const reason = reasonEl?.value.trim()
+  if (!reason) { toast('Please explain why this item is excluded'); return }
+  const userName = profile?.full_name || me?.email?.split('@')[0] || 'User'
+  const { error } = await sb.rpc('exclude_sample', { p_id: sampleId, p_reason: reason, p_user_id: me.id, p_user_name: userName })
+  if (error) {
+    console.error('exclude_sample error:', error)
+    await sb.from('samples').update({ excluded: true, exclusion_reason: reason, verified: false }).eq('id', sampleId)
+  }
+  const item = _dispatchItems.find(i => i.id === sampleId)
+  if (item) { item.excluded = true; item.exclusion_reason = reason; item.verified = false }
+  renderDispatchScreen()
+}
+
+function dispatchSearchProducts(query) {
+  const el = document.getElementById('dispatch-search-results')
+  if (!el) return
+  if (!query.trim()) { el.innerHTML = ''; return }
+  const q = query.toLowerCase()
+  const already = new Set(_dispatchItems.map(i => i.product_id))
+  const matches = allProducts.filter(p => !already.has(p.id) && (p.name.toLowerCase().includes(q) || (p.code||'').toLowerCase().includes(q))).slice(0, 6)
+  el.innerHTML = matches.map(p => `<div style="padding:0.5rem 0;border-top:1px solid var(--border);cursor:pointer;font-size:0.82rem" onclick="dispatchAddProduct('${p.id}')">${esc(p.name)} <span style="color:var(--text-3);font-size:0.7rem">${esc(p.code||'')}</span></div>`).join('')
+    || `<div style="padding:0.5rem 0;border-top:1px solid var(--border);font-size:0.78rem;color:var(--text-3)">No matches.</div>`
+}
+
+async function dispatchAddProduct(productId) {
+  const product = allProducts.find(p => p.id === productId)
+  if (!product || !_dispatchCol) return
+  const userName = profile?.full_name || me?.email?.split('@')[0] || 'User'
+  const types = DIV_SAMPLE_TYPES[product.division] || ['Sample']
+  const year = new Date().getFullYear()
+  const { data: last } = await sb.from('samples').select('sample_id').like('sample_id', `SMP-${year}-%`).order('sample_id', { ascending: false }).limit(1)
+  const lastNum = last?.[0]?.sample_id ? parseInt(last[0].sample_id.split('-')[2]) : 0
+  const newId = `SMP-${year}-${String(lastNum + 1).padStart(6, '0')}`
+  const { data: ins, error } = await sb.from('samples').insert({
+    sample_id: newId, product_id: productId, sample_type: types[0], quantity: 1,
+    customer: _dispatchCol.customer, destination: _dispatchCol.delivery_method,
+    reason: 'Added during dispatch', status: 'requested', requested_by: me.id, collection_id: _dispatchCol.id,
+  }).select('*, products(name,division,code)').single()
+  if (error || !ins) { toast('Could not add product'); console.error('dispatchAddProduct error:', error); return }
+  await sb.from('sample_events').insert({ sample_id: ins.id, event_type: 'added_by_dispatcher', event_label: `Added during dispatch by ${userName}`, event_data: {}, created_by: me.id })
+  _dispatchItems.push(ins)
+  const searchInput = document.getElementById('dispatch-search')
+  if (searchInput) searchInput.value = ''
+  const resultsEl = document.getElementById('dispatch-search-results')
+  if (resultsEl) resultsEl.innerHTML = ''
+  renderDispatchScreen()
+  toast(`${product.name} added to collection`)
+}
+
+async function finalizeDispatch() {
+  const col = _dispatchCol, items = _dispatchItems
+  if (!col) return
+  const unresolved = items.filter(i => !i.verified && !i.excluded)
+  if (unresolved.length) { toast(`${unresolved.length} item${unresolved.length>1?'s':''} still need${unresolved.length>1?'':'s'} to be verified or excluded`); return }
+
+  const included = items.filter(i => !i.excluded)
+  const excluded = items.filter(i => i.excluded)
+  const userName = profile?.full_name || me?.email?.split('@')[0] || 'User'
+
+  const { error } = await sb.rpc('update_collection_status', { p_id: col.id, p_status: 'ready', p_user_id: me.id, p_user_name: userName })
+  if (error) console.error('update_collection_status error:', error)
+
+  // Notify the requester + every collaborator with what shipped and what didn't
+  const recipients = new Set([col.requested_by].filter(Boolean))
+  const { data: collabs } = await sb.from('collection_collaborators').select('user_id').eq('collection_id', col.id)
+  ;(collabs || []).forEach(c => recipients.add(c.user_id))
+  recipients.delete(me.id)
+
+  const includedNames = included.map(i => i.products?.name || i.sample_id).join(', ') || 'none'
+  const excludedLines = excluded.map(i => `${i.products?.name || i.sample_id} (${i.exclusion_reason})`).join('; ')
+  const bodyParts = [`Included: ${includedNames}.`]
+  if (excluded.length) bodyParts.push(`Not included: ${excludedLines}.`)
+
+  const notifRows = [...recipients].map(uid => ({
+    user_id: uid, type: 'collection_ready',
+    title: `Your collection ${col.collection_id} is ready`,
+    body: bodyParts.join(' '),
+    resource_type: 'collection', resource_id: col.id,
+  }))
+  if (notifRows.length) {
+    const { error: notifErr } = await sb.from('notifications').insert(notifRows)
+    if (notifErr) console.error('notify collection ready error:', notifErr)
+  }
+
+  lastShipment = {
+    ref: col.collection_id, date: col.created_at, customer: col.customer, priority: col.priority,
+    delivery: col.delivery_method, recipient: col.recipient, address: col.address, notes: col.notes,
+    requestedBy: userName, verifiedBy: userName,
+    items: included.map(i => ({ name: i.products?.name || '—', code: i.products?.code || '', type: i.sample_type, qty: i.quantity || 1, sample_id: i.sample_id })),
+    excludedItems: excluded.map(i => ({ name: i.products?.name || '—', code: i.products?.code || '', reason: i.exclusion_reason })),
+  }
+  printShippingGuide()
+  toast('Package ready — requester notified')
 }
 
 /* ── SAMPLE STATUS UPDATE ── */
@@ -7618,6 +7909,7 @@ async function openNotif(id, resourceType, resourceId) {
   closeNotifications()
   await sb.from('notifications').update({ read: true }).eq('id', id)
   if (resourceType === 'sample' && resourceId) showSampleRecord(resourceId)
+  else if (resourceType === 'collection' && resourceId) showCollectionRecord(resourceId)
   else if (resourceType === 'product' && resourceId) {
     const { data } = await sb.from('products').select('*').eq('id', resourceId).single()
     if (data) showProductDetail(data)

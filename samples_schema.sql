@@ -218,7 +218,8 @@ create or replace function create_sample_collection(
   p_address      text,
   p_notes        text,
   p_user_id      uuid,
-  p_user_name    text
+  p_user_name    text,
+  p_name         text default null
 ) returns jsonb language plpgsql security definer as $$
 declare
   v_collection_ref text;
@@ -235,8 +236,8 @@ begin
                         else p_delivery || ' → ' || p_address || ' · Attn: ' || p_recipient end;
   v_reason := case when p_priority = 'urgent' then 'Urgent request' else 'Sample request' end;
 
-  insert into sample_collections (collection_id, customer, priority, delivery_method, recipient, address, notes, status, requested_by)
-    values (v_collection_ref, p_customer, p_priority, p_delivery, p_recipient, p_address, p_notes, 'requested', p_user_id)
+  insert into sample_collections (collection_id, name, customer, priority, delivery_method, recipient, address, notes, status, requested_by)
+    values (v_collection_ref, p_name, p_customer, p_priority, p_delivery, p_recipient, p_address, p_notes, 'requested', p_user_id)
     returning id into v_col_id;
 
   for v_item in select * from jsonb_array_elements(p_items) loop
@@ -284,5 +285,111 @@ begin
   insert into sample_events (sample_id, event_type, event_label, event_data, created_by)
     select id, 'status_change', v_label, jsonb_build_object('status', p_status), p_user_id
     from samples where collection_id = p_id;
+end;
+$$;
+
+-- ══════════════════════════════════════════════════════════════
+-- DISPATCH — naming, collaborators, and pack-verification workflow
+-- ("despachador" scans/confirms every item before the shipping
+-- guide can print; missing items are excluded with a reason;
+-- printing notifies everyone involved with what shipped and what didn't)
+-- ══════════════════════════════════════════════════════════════
+
+-- 1. New role: dispatcher (warehouse/packing staff, distinct from editor)
+alter table profiles drop constraint if exists profiles_role_check;
+alter table profiles add constraint profiles_role_check
+  check (role in ('admin','editor','user','vendedor','dispatcher'));
+
+-- 2. Collections get an optional human-readable name
+alter table sample_collections add column if not exists name text;
+
+-- 3. Collaborators — people invited to help build/track a collection
+create table if not exists collection_collaborators (
+  id             uuid primary key default gen_random_uuid(),
+  collection_id  uuid references sample_collections(id) on delete cascade not null,
+  user_id        uuid references profiles(id) not null,
+  added_by       uuid references profiles(id),
+  created_at     timestamptz default now(),
+  unique (collection_id, user_id)
+);
+alter table collection_collaborators enable row level security;
+
+drop policy if exists "authenticated can view collaborators" on collection_collaborators;
+create policy "authenticated can view collaborators"
+  on collection_collaborators for select using (auth.uid() is not null);
+
+drop policy if exists "collection members can invite collaborators" on collection_collaborators;
+create policy "collection members can invite collaborators"
+  on collection_collaborators for insert with check (
+    exists (
+      select 1 from sample_collections c
+      where c.id = collection_id and (
+        c.requested_by = auth.uid()
+        or exists (select 1 from collection_collaborators cc where cc.collection_id = c.id and cc.user_id = auth.uid())
+      )
+    )
+    or exists (select 1 from profiles where id = auth.uid() and role in ('admin','editor','dispatcher'))
+  );
+
+drop policy if exists "members can remove collaborators" on collection_collaborators;
+create policy "members can remove collaborators"
+  on collection_collaborators for delete using (
+    added_by = auth.uid() or user_id = auth.uid()
+    or exists (select 1 from profiles where id = auth.uid() and role in ('admin','editor'))
+  );
+
+-- 4. Per-sample dispatch/verification state
+alter table samples add column if not exists verified boolean default false;
+alter table samples add column if not exists verified_by uuid references profiles(id);
+alter table samples add column if not exists verified_at timestamptz;
+alter table samples add column if not exists excluded boolean default false;
+alter table samples add column if not exists exclusion_reason text;
+
+-- 5. Dispatchers (and editors/admins) can update samples & collections —
+-- extend the existing update policies to include the new role.
+drop policy if exists "editors can update sample status" on samples;
+create policy "editors can update sample status"
+  on samples for update using (
+    requested_by = auth.uid() or
+    exists (select 1 from profiles where id = auth.uid() and role in ('admin','editor','dispatcher'))
+  );
+
+drop policy if exists "editors can update collections" on sample_collections;
+create policy "editors can update collections"
+  on sample_collections for update using (
+    requested_by = auth.uid() or
+    exists (select 1 from profiles where id = auth.uid() and role in ('admin','editor','dispatcher'))
+  );
+
+-- Collaborators and the requester can also add samples to a collection
+-- that's still open (dispatcher-added items reuse this same insert policy).
+drop policy if exists "users can request samples" on samples;
+create policy "users can request samples"
+  on samples for insert with check (
+    requested_by = auth.uid()
+    or exists (select 1 from profiles where id = auth.uid() and role in ('admin','editor','dispatcher'))
+  );
+
+-- 6. Mark one sample verified (scanned present) during dispatch
+create or replace function verify_sample(
+  p_id uuid, p_user_id uuid, p_user_name text
+) returns void language plpgsql security definer as $$
+begin
+  update samples set verified = true, verified_by = p_user_id, verified_at = now(), excluded = false, exclusion_reason = null
+  where id = p_id;
+  insert into sample_events (sample_id, event_type, event_label, event_data, created_by)
+    values (p_id, 'verified', 'Verified by ' || p_user_name, '{}'::jsonb, p_user_id);
+end;
+$$;
+
+-- 7. Exclude a sample from the shipment with a mandatory reason
+create or replace function exclude_sample(
+  p_id uuid, p_reason text, p_user_id uuid, p_user_name text
+) returns void language plpgsql security definer as $$
+begin
+  update samples set excluded = true, exclusion_reason = p_reason, verified = false
+  where id = p_id;
+  insert into sample_events (sample_id, event_type, event_label, event_data, created_by)
+    values (p_id, 'excluded', p_user_name || ' excluded this item: ' || p_reason, jsonb_build_object('reason', p_reason), p_user_id);
 end;
 $$;
