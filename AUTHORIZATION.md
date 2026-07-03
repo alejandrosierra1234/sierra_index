@@ -80,3 +80,29 @@ until deprecation.
 
 - `products` table policies were configured directly in Supabase (not in this repo); they still use role checks until exported and rewritten through `authorize()`.
 - Client grant snapshot loads at login; mid-session revocation leaves stale buttons (harmless — the DB rejects the write). Consider refetching on window focus.
+
+## Product lifecycle (interaction with capabilities)
+
+Products carry `products.lifecycle`: `draft`, `development`, `available`,
+`reserved`, `discontinued`, `archived` (missing/legacy rows behave as
+`available`). Rules, enforced in `index.html` helpers (`lc`, `lifecycleVisible`,
+`canRequestSample`, `isArchived`) and `set_product_lifecycle()` in SQL:
+
+- Status pill shown on every product card and on the detail page (Status block,
+  with a change-status selector for users with `write` on the division).
+- `draft`/`development` visible only where `canEditDiv(p.division)` — filtered
+  out of catalog lists and Spotlight at load time.
+- `discontinued` stays searchable but is not requestable: card/detail request
+  buttons disabled and `addToCart()` (single choke point for the cart) refuses;
+  dispatch add-product search also excludes it.
+- `archived` is read-only: edit/delete hidden and guarded in `openEdit`/
+  `confirmDelete`; only a status change (division `write`) reopens it. Not
+  requestable.
+- Public page (`?pub=`) refuses `draft`/`archived` ("This product is not
+  available"). DB-level anon policy for products lives in the Supabase
+  dashboard — see the note at the end of `samples_schema.sql` for the
+  recommended `using` clause.
+- Every status change is written to `product_events` by the
+  `set_product_lifecycle()` RPC (with `authorize(division,'write')` check) and
+  shown in the detail page "Activity" panel. The client falls back to a direct
+  update + event insert if the RPC isn't migrated yet.

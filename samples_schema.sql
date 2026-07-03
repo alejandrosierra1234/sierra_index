@@ -756,3 +756,74 @@ begin
     values (p_id, 'status_change', v_label, jsonb_build_object('status', p_status), v_actor);
 end;
 $$;
+
+-- ══════════════════════════════════════════════════════════════
+-- PRODUCT LIFECYCLE
+--   draft → development → available → reserved → discontinued → archived
+--   draft/development: internal (division editors) only
+--   discontinued:      searchable internally, not requestable
+--   archived:          read-only
+--   public page:       never exposes draft or archived
+-- ══════════════════════════════════════════════════════════════
+
+alter table products add column if not exists lifecycle text default 'available';
+update products set lifecycle = 'available' where lifecycle is null;
+alter table products drop constraint if exists products_lifecycle_check;
+alter table products add constraint products_lifecycle_check
+  check (lifecycle in ('draft','development','available','reserved','discontinued','archived'));
+
+-- Product activity history (mirrors sample_events)
+create table if not exists product_events (
+  id          uuid primary key default gen_random_uuid(),
+  product_id  uuid references products(id) on delete cascade not null,
+  event_type  text not null,        -- lifecycle_change | note
+  event_label text not null,        -- "Status changed to Available by Bella"
+  event_data  jsonb default '{}',
+  created_by  uuid references profiles(id),
+  created_at  timestamptz default now()
+);
+alter table product_events enable row level security;
+
+drop policy if exists "authenticated can view product events" on product_events;
+create policy "authenticated can view product events"
+  on product_events for select using (auth.uid() is not null);
+
+-- inserts happen only through the RPC below (security definer)
+
+-- Change a product's lifecycle status; requires write on the product's
+-- division. Records the change in product_events. Archived products can
+-- only be brought back by someone with write on the division (same check).
+create or replace function set_product_lifecycle(
+  p_id     uuid,
+  p_status text
+) returns void language plpgsql security definer as $$
+declare
+  v_actor    uuid := auth.uid();
+  v_name     text;
+  v_division text;
+  v_old      text;
+begin
+  if p_status not in ('draft','development','available','reserved','discontinued','archived') then
+    raise exception 'invalid lifecycle status: %', p_status;
+  end if;
+  select division, coalesce(lifecycle,'available') into v_division, v_old from products where id = p_id;
+  if v_division is null then raise exception 'product not found'; end if;
+  if v_actor is not null and not authorize(v_division, 'write') then
+    raise exception 'not authorized: write on % required', v_division;
+  end if;
+  select full_name into v_name from profiles where id = v_actor;
+  v_name := coalesce(v_name, 'System');
+  update products set lifecycle = p_status where id = p_id;
+  insert into product_events (product_id, event_type, event_label, event_data, created_by)
+    values (p_id, 'lifecycle_change',
+      'Status changed from ' || initcap(replace(v_old,'_',' ')) || ' to ' || initcap(replace(p_status,'_',' ')) || ' by ' || v_name,
+      jsonb_build_object('from', v_old, 'to', p_status), v_actor);
+end;
+$$;
+
+-- NOTE (public exposure): the products SELECT policies live in the Supabase
+-- dashboard, not in this file. To enforce draft/archived hiding at the DB
+-- level for anonymous readers, replace the anon select policy with:
+--   using ( auth.uid() is not null
+--           or coalesce(lifecycle,'available') not in ('draft','archived') )
+-- The app also enforces this on the public page client-side.
