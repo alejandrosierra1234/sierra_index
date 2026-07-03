@@ -3466,6 +3466,9 @@ async function enterApp(user) {
 
   updateCartFab()
 
+  // Deep link takes precedence: #/product/{id} or #/division/{key}
+  if (await applyRoute(location.hash)) return
+
   // Restore last route (survives soft refresh)
   const savedRoute = sessionStorage.getItem('sierra_route')
   if (savedRoute && savedRoute.startsWith('div:')) {
@@ -3693,7 +3696,79 @@ function cardHTML(p) {
 function enc(p) { return encodeURIComponent(JSON.stringify(p)) }
 function dec(s) { return JSON.parse(decodeURIComponent(s)) }
 
-function leaveView() {
+/* ── HASH ROUTER ──
+   #/product/{id} and #/division/{key} survive refresh, back/forward and
+   sharing (hash-based → works on GitHub Pages). Public ?pub= links and
+   the sessionStorage route restore are untouched — the hash simply takes
+   precedence when present. */
+let _routeApplying = false   // true while a hash is being applied — view fns must not rewrite it
+let _expectedHash = null     // hash we set ourselves — its event is not re-routed
+
+function setHash(h) {
+  if (_routeApplying || location.hash === h) return
+  _expectedHash = h
+  location.hash = h
+}
+function clearHash() {
+  if (_routeApplying || !location.hash) return
+  history.replaceState(null, '', location.pathname + location.search)
+}
+window.addEventListener('hashchange', () => {
+  if (location.hash === _expectedHash) { _expectedHash = null; return }
+  _expectedHash = null
+  if (me) applyRoute(location.hash)
+})
+
+async function applyRoute(h) {
+  const mProd = (h || '').match(/^#\/product\/([\w-]+)/)
+  const mDiv = (h || '').match(/^#\/division\/([a-z]+)/)
+  if (!mProd && !mDiv) return false
+  _routeApplying = true
+  try {
+    if (mDiv) {
+      const el = document.getElementById('nav-' + mDiv[1])
+      if (!el) return false
+      setDiv(mDiv[1], el)
+      return true
+    }
+    return await openProductRoute(mProd[1])
+  } finally { _routeApplying = false }
+}
+
+async function openProductRoute(id) {
+  let p = allProducts.find(x => x.id === id)
+  if (!p) {
+    const { data } = await sb.from('products').select('*').eq('id', id).single()
+    p = data
+  }
+  if (!p || !lifecycleVisible(p)) { renderProductNotFound(); return true }
+  // load the product's division behind the detail so Back has somewhere to go
+  const navEl = document.getElementById('nav-' + p.division)
+  if (navEl && division !== p.division) setDiv(p.division, navEl)
+  selected = p
+  showProductDetail(p)
+  return true
+}
+
+function renderProductNotFound() {
+  leaveView(true)
+  document.getElementById('div-toolbar').style.display = 'none'
+  document.getElementById('view-products').style.display = 'none'
+  const vd = document.getElementById('view-detail')
+  vd.style.display = 'block'
+  document.getElementById('content').classList.add('detail-active')
+  vd.innerHTML = `<div class="detail-view-inner" style="display:flex;align-items:center;justify-content:center;min-height:60vh">
+    <div style="text-align:center;max-width:340px">
+      <div style="font-size:2.2rem;margin-bottom:0.75rem">◻</div>
+      <div style="font-size:1.15rem;font-weight:700;color:var(--text);letter-spacing:-0.01em">Product not found</div>
+      <p style="font-size:0.82rem;color:var(--text-3);margin:0.5rem 0 1.25rem">It may have been deleted, or the link is out of date.</p>
+      <button class="btn btn-primary" onclick="setDiv('all', document.getElementById('nav-all'))">Back to catalog</button>
+    </div>
+  </div>`
+}
+
+function leaveView(keepHash) {
+  if (!keepHash) clearHash()
   closeDrawer()
   if (clockInterval) { clearInterval(clockInterval); clockInterval = null }
   Object.values(dashCharts).forEach(c => { try { c.destroy() } catch {} })
@@ -3730,8 +3805,9 @@ function focusSearch() { openSpotlight() }
 
 function setDiv(d, el) {
   sessionStorage.setItem('sierra_route', 'div:' + d)
+  setHash('#/division/' + d)
   document.getElementById('div-toolbar').style.display = 'flex'
-  leaveView()
+  leaveView(true)
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
   el.classList.add('active')
   division = d
@@ -3764,6 +3840,7 @@ function shareProduct(p) {
 }
 
 function showProductDetail(p) {
+  setHash('#/product/' + p.id)
   document.getElementById('div-toolbar').style.display = 'none'
   selected = p
   trackRecentlyViewed(p)
@@ -4056,6 +4133,7 @@ function showProductDetail(p) {
 }
 
 function backToProducts() {
+  setHash('#/division/' + division)
   document.getElementById('view-detail').style.display = 'none'
   document.getElementById('content').classList.remove('detail-active')
   document.getElementById('view-products').style.display = 'block'
@@ -5954,6 +6032,7 @@ function showStyleGuide() {
 
 function showDashboard() {
   sessionStorage.setItem('sierra_route', 'dashboard')
+  clearHash()
   document.getElementById('div-toolbar').style.display = 'none'
   closeDrawer()
   if (clockInterval) { clearInterval(clockInterval); clockInterval = null }
