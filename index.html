@@ -883,17 +883,20 @@
     /* ── IMG UPLOAD ── */
     /* ── IMAGE GALLERY (ficha) ── */
     .ficha-gallery { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1rem; }
-    .ficha-gallery-hero { width:100%; aspect-ratio:1; border-radius:12px; overflow:hidden; background:var(--surface2); cursor:zoom-in; position:relative; border:1px solid var(--border); }
-    .ficha-gallery-hero img { width:100%; height:100%; object-fit:cover; transition:transform 0.28s cubic-bezier(0.22,1,0.36,1); }
-    .ficha-gallery-hero:hover img { transform:scale(1.02); }
-    .ficha-gallery-hero .img-dl-btn { position:absolute; bottom:0.65rem; right:0.65rem; background:rgba(0,0,0,0.48); color:#fff; border:1px solid rgba(255,255,255,0.16); border-radius:8px; padding:0.34rem 0.68rem; font-size:0.72rem; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:0.3rem; backdrop-filter:blur(8px); opacity:0; transition:opacity 0.15s, background 0.12s; }
+    .ficha-gallery-hero { width:100%; aspect-ratio:1; border-radius:13px; overflow:hidden; background:var(--surface2); cursor:zoom-in; position:relative; border:1px solid color-mix(in srgb, var(--border) 76%, transparent); box-shadow:0 12px 34px rgba(0,0,0,0.08); }
+    [data-theme="dark"] .ficha-gallery-hero { box-shadow:0 16px 42px rgba(0,0,0,0.32); }
+    .ficha-gallery-hero::after { content:""; position:absolute; inset:0; pointer-events:none; box-shadow:inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -34px 48px rgba(0,0,0,0.12); }
+    .ficha-gallery-hero img { width:100%; height:100%; object-fit:cover; transition:transform 0.42s cubic-bezier(0.22,1,0.36,1); }
+    .ficha-gallery-hero:hover img { transform:scale(1.035); }
+    .ficha-gallery-hero .img-dl-btn { position:absolute; bottom:0.65rem; right:0.65rem; background:rgba(0,0,0,0.48); color:#fff; border:1px solid rgba(255,255,255,0.16); border-radius:999px; padding:0.38rem 0.72rem; font-size:0.72rem; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:0.3rem; backdrop-filter:blur(10px); opacity:0; transition:opacity 0.15s, background 0.12s, transform 0.12s; z-index:1; }
     .ficha-gallery-hero .img-dl-btn:hover { background:rgba(0,0,0,0.62); }
-    .ficha-gallery-hero:hover .img-dl-btn { opacity:1; }
-    .ficha-thumbs { display:flex; gap:0.4rem; overflow-x:auto; padding-bottom:2px; }
+    .ficha-gallery-hero:hover .img-dl-btn { opacity:1; transform:translateY(-1px); }
+    .ficha-thumbs { display:flex; gap:0.45rem; overflow-x:auto; padding:0.55rem 0.1rem 0.05rem; }
     .ficha-thumbs::-webkit-scrollbar { height:3px; }
     .ficha-thumbs::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
-    .ficha-thumb { width:56px; height:56px; border-radius:7px; overflow:hidden; cursor:pointer; flex-shrink:0; border:2px solid transparent; transition:border-color 0.12s; }
-    .ficha-thumb.active { border-color:var(--accent); }
+    .ficha-thumb { width:54px; height:54px; border-radius:9px; overflow:hidden; cursor:pointer; flex-shrink:0; border:1px solid var(--border); opacity:0.72; transition:border-color 0.12s, opacity 0.12s, box-shadow 0.12s; }
+    .ficha-thumb:hover { opacity:1; }
+    .ficha-thumb.active { border-color:var(--accent); opacity:1; box-shadow:0 0 0 2px rgba(var(--accent-rgb,15,157,144),0.16); }
     .ficha-thumb img { width:100%; height:100%; object-fit:cover; }
 
     /* ── IMAGE GRID (edit form) ── */
@@ -1355,7 +1358,9 @@
 
     /* .content already provides horizontal padding — only add bottom clearance for toolbar */
     .detail-view-inner {
-      padding:0 0 82px;
+      padding:0 0 88px;
+      max-width:1480px;
+      margin:0 auto;
     }
     /* Remove .content bottom padding when detail is active so toolbar truly sticks to viewport edge */
     .content.detail-active { padding-bottom:0 !important; }
@@ -1387,17 +1392,63 @@
     .pd-layout {
       display:grid; grid-template-columns:minmax(230px,270px) minmax(0,1fr) minmax(240px,280px);
       grid-template-rows:auto auto;
-      gap:0 2.65rem; align-items:start;
+      gap:0 2rem; align-items:start;
     }
     .pd-identity-col { grid-column:1; grid-row:1 / span 2; position:sticky; top:1.5rem; min-width:0; }
     .pd-specs-col { grid-column:2; grid-row:1 / span 2; min-width:0; }
     .pd-gallery-col { grid-column:3; grid-row:1; position:sticky; top:1.5rem; min-width:0; }
     .pd-comments-col { grid-column:3; grid-row:2; margin-top:2.5rem; min-width:0; }
 
+    .pd-panel {
+      border:1px solid color-mix(in srgb, var(--border) 82%, transparent);
+      border-radius:16px;
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--surface) 94%, white 6%), var(--surface));
+      box-shadow:0 14px 42px rgba(0,0,0,0.045), 0 1px 0 rgba(255,255,255,0.45) inset;
+    }
+    [data-theme="dark"] .pd-panel {
+      background:linear-gradient(180deg, rgba(31,31,34,0.96), rgba(22,22,24,0.96));
+      box-shadow:0 18px 48px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.04) inset;
+    }
+    .pd-identity-card {
+      padding:1rem;
+      position:relative;
+      overflow:hidden;
+    }
+    .pd-identity-card::before {
+      content:"";
+      position:absolute;
+      left:0; top:0; bottom:0; width:3px;
+      background:var(--accent);
+      opacity:0.9;
+    }
+    .pd-section-card { padding:1rem 1rem 0.95rem; }
+    .pd-section-title {
+      display:flex; align-items:baseline; justify-content:space-between; gap:1rem;
+      padding:0.05rem 0 0.85rem;
+      border-bottom:1px solid var(--border);
+      margin-bottom:0.2rem;
+    }
+    .pd-section-title strong {
+      font-size:0.95rem; letter-spacing:-0.02em; color:var(--text);
+    }
+    .pd-section-title span {
+      font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em;
+      color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .pd-media-card { padding:0.55rem; }
+    .pd-media-label {
+      display:flex; align-items:center; justify-content:space-between; gap:0.75rem;
+      padding:0.2rem 0.2rem 0.65rem;
+      font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em;
+      color:var(--text-3);
+    }
+    .pd-media-label span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
     /* Image */
     .pd-no-img {
       display:flex; align-items:center; justify-content:center; flex-direction:column;
-      gap:0.65rem; border:1px solid var(--border); border-radius:12px;
+      gap:0.65rem; border:1px dashed color-mix(in srgb, var(--border) 82%, var(--text-3) 18%); border-radius:12px;
       aspect-ratio:1; color:var(--text-3); background:var(--surface2);
       transition:border-color 0.14s, background 0.14s, box-shadow 0.14s;
     }
@@ -1406,21 +1457,21 @@
 
     /* Identity column */
     .pd-name {
-      font-size:1.8rem; font-weight:700; letter-spacing:-0.03em;
-      line-height:1.12; color:var(--text); margin:0 0 0.85rem;
-      text-wrap:balance;
+      font-size:2rem; font-weight:750; letter-spacing:-0.035em;
+      line-height:1.08; color:var(--text); margin:0 0 0.9rem;
+      text-wrap:balance; overflow-wrap:anywhere;
     }
     .pd-sku-box {
       display:inline-flex; align-items:center; gap:0.4rem;
       font-size:0.72rem; font-weight:600; letter-spacing:0.04em;
       color:var(--text-2); cursor:pointer; user-select:none;
-      background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+      background:var(--surface2); border:1px solid var(--border); border-radius:999px;
       padding:0.42rem 0.62rem; transition:border-color 0.12s, background 0.12s, box-shadow 0.12s;
       margin-bottom:1.35rem;
     }
     .pd-sku-box:hover { border-color:var(--text-3); background:var(--surface); box-shadow:0 3px 12px rgba(0,0,0,0.04); }
     .pd-sku-box svg { color:var(--text-3); flex-shrink:0; }
-    .pd-id-block { margin-bottom:1.15rem; }
+    .pd-id-block { margin-bottom:1rem; }
     .pd-id-label {
       font-size:0.58rem; font-weight:700; text-transform:uppercase;
       letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.4rem;
@@ -1428,16 +1479,18 @@
     .pd-id-value {
       font-size:0.85rem; font-weight:500; color:var(--text);
       display:flex; align-items:center; gap:0.45rem;
+      min-width:0;
     }
     .pd-division-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
     .pd-format-chips { display:flex; flex-wrap:wrap; gap:0.38rem; }
     .pd-format-chip {
       font-size:0.68rem; font-weight:500; color:var(--text-2);
-      border:1px solid var(--border); border-radius:7px; padding:0.3rem 0.55rem; background:var(--surface);
+      border:1px solid var(--border); border-radius:999px; padding:0.34rem 0.58rem; background:var(--surface2);
     }
     .pd-complete {
       width:100%; display:flex; flex-direction:column; gap:0.38rem;
-      border:1px solid var(--border); border-radius:10px; padding:0.65rem 0.7rem; background:var(--surface);
+      border:1px solid color-mix(in srgb, var(--accent) 24%, var(--border)); border-radius:12px;
+      padding:0.7rem 0.75rem; background:rgba(var(--accent-rgb,15,157,144),0.055);
     }
     .pd-complete-top { display:flex; align-items:baseline; justify-content:space-between; gap:0.75rem; }
     .pd-complete-score { font-size:0.82rem; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
@@ -1450,27 +1503,28 @@
     .pd-hd {
       font-size:0.58rem; font-weight:700; text-transform:uppercase;
       letter-spacing:0.1em; color:var(--text-3);
-      padding:1rem 0 0.4rem; border-top:1px solid var(--border); margin-top:0.2rem;
+      padding:1.05rem 0.7rem 0.45rem; border-top:1px solid var(--border); margin-top:0.2rem;
     }
     .pd-hd:first-child { border-top:none; padding-top:0; margin-top:0; }
     .pd-row {
-      display:flex; gap:1rem; padding:0.54rem 0;
-      cursor:pointer; transition:background 0.12s, opacity 0.12s; align-items:baseline;
-      border-radius:8px;
+      display:flex; gap:1rem; padding:0.68rem 0.7rem;
+      cursor:pointer; transition:background 0.16s, opacity 0.16s, box-shadow 0.16s; align-items:baseline;
+      border-radius:10px;
     }
-    .pd-row + .pd-row { border-top:1px solid var(--border); }
-    .pd-row:hover { background:var(--surface2); opacity:1; }
+    .pd-row + .pd-row { border-top:1px solid color-mix(in srgb, var(--border) 82%, transparent); }
+    .pd-row:hover { background:var(--surface2); opacity:1; box-shadow:0 1px 0 rgba(255,255,255,0.4) inset; }
     .pd-k {
-      font-size:0.7rem; font-weight:500; color:var(--text-3);
-      width:110px; flex-shrink:0; line-height:1.45;
+      font-size:0.68rem; font-weight:650; color:var(--text-3);
+      width:118px; flex-shrink:0; line-height:1.45;
+      text-transform:uppercase; letter-spacing:0.045em;
     }
     .pd-v {
       font-size:0.85rem; font-weight:500; color:var(--text);
       flex:1; line-height:1.45; overflow-wrap:break-word; min-width:0;
     }
     .pd-comp-block {
-      padding:0.58rem 0 0.92rem;
-      border-bottom:1px solid var(--border);
+      padding:0.78rem 0.7rem 0.95rem;
+      border-bottom:1px solid color-mix(in srgb, var(--border) 82%, transparent);
       margin-bottom:0.15rem; cursor:pointer; transition:background 0.12s, opacity 0.12s; border-radius:8px;
     }
     .pd-comp-block:hover { background:var(--surface2); opacity:1; }
@@ -1480,33 +1534,44 @@
     .detail-desc { font-size:0.83rem; color:var(--text-2); line-height:1.75; margin:0; }
     .detail-actions { display:none; }
 
-    .detail-comments-section { border:1px solid var(--border); border-radius:14px; padding:1rem; margin-top:1rem; background:var(--surface); box-shadow:0 1px 2px rgba(0,0,0,0.025); }
+    .detail-comments-section {
+      border:1px solid color-mix(in srgb, var(--border) 82%, transparent);
+      border-radius:16px; padding:1rem; margin-top:1rem;
+      background:linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, white 4%), var(--surface));
+      box-shadow:0 10px 30px rgba(0,0,0,0.035), 0 1px 0 rgba(255,255,255,0.35) inset;
+    }
+    [data-theme="dark"] .detail-comments-section {
+      background:linear-gradient(180deg, rgba(28,28,30,0.94), rgba(20,20,22,0.94));
+      box-shadow:0 14px 36px rgba(0,0,0,0.22), 0 1px 0 rgba(255,255,255,0.04) inset;
+    }
     .detail-comments-section:first-child { margin-top:0; }
     .detail-comments-lbl { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.85rem; }
 
     /* ── STICKY TOOLBAR ── */
     .detail-toolbar {
       position:sticky; bottom:0;
-      background:rgba(255,255,255,0.88);
-      border-top:1px solid var(--border);
-      box-shadow:0 -6px 24px rgba(0,0,0,0.06);
+      background:rgba(255,255,255,0.76);
+      border-top:1px solid color-mix(in srgb, var(--border) 82%, transparent);
+      box-shadow:0 -12px 40px rgba(0,0,0,0.08);
       backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
       z-index:100;
       margin:0 -1.75rem;
       padding:0 1.75rem;
     }
-    [data-theme="dark"] .detail-toolbar { background:rgba(28,28,30,0.86); box-shadow:0 -8px 28px rgba(0,0,0,0.35); }
+    [data-theme="dark"] .detail-toolbar { background:rgba(15,15,17,0.82); box-shadow:0 -14px 42px rgba(0,0,0,0.46); }
     .detail-toolbar-inner {
       display:flex; align-items:center; gap:0.45rem;
-      min-height:56px;
+      min-height:62px;
     }
     .detail-toolbar .btn-primary {
-      height:36px; padding:0 1.1rem; font-size:0.8rem; font-weight:600;
+      height:40px; padding:0 1.2rem; font-size:0.82rem; font-weight:650;
       display:inline-flex; align-items:center; gap:0.4rem; white-space:nowrap;
+      box-shadow:0 7px 20px rgba(var(--accent-rgb,15,157,144),0.22);
     }
     .detail-toolbar .btn-ghost {
-      height:36px; padding:0 0.85rem; font-size:0.8rem;
+      height:40px; padding:0 0.9rem; font-size:0.8rem;
       display:inline-flex; align-items:center; gap:0.4rem; white-space:nowrap;
+      background:color-mix(in srgb, var(--surface) 82%, transparent);
     }
     .detail-toolbar-sep { width:1px; height:18px; background:var(--border); margin:0 0.25rem; flex-shrink:0; }
     .detail-toolbar-spacer { flex:1; }
@@ -1536,6 +1601,10 @@
       .pd-specs-col { order:3; }
       .pd-comments-col { order:4; margin-top:1.5rem; }
       .pd-name { font-size:1.5rem; margin-top:0.5rem; }
+      .pd-identity-card, .pd-section-card { padding:0.9rem; }
+      .pd-section-title { flex-direction:column; gap:0.18rem; align-items:flex-start; }
+      .pd-section-title span { max-width:100%; }
+      .pd-media-label { align-items:flex-start; }
       .pd-k { width:88px; }
       .pd-hd { padding:0.85rem 0 0.35rem; }
       .pd-row { padding:0.58rem 0; }
@@ -4214,43 +4283,48 @@ function showProductDetail(p) {
             <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="15" cy="5" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="5" cy="10" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="15" cy="15" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 9l6-3M7 11l6 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           </button>
         </div>
-        <div class="pd-name">${esc(p.name)}</div>
-        <div class="pd-sku-box" onclick="copyToClipboard('${cp(sku)}')" title="Click to copy">
-          <span>${esc(sku)}</span>${copyIcon}
-        </div>
-        <div class="pd-id-block">
-          <div class="pd-id-label">Division</div>
-          <div class="pd-id-value"><span class="pd-division-dot" style="background:${c}"></span>${DIV_LBL[p.division]}${specs.Construction ? ' · ' + (CONST_META[specs.Construction]?.label || specs.Construction) : ''}</div>
-        </div>
-        <div class="pd-id-block">
-          <div class="pd-id-label">Availability</div>
-          <div class="pd-id-value" id="pd-avail"><span style="font-size:0.72rem;color:var(--text-3)">—</span></div>
-        </div>
-        <div class="pd-id-block">
-          <div class="pd-id-label">Status</div>
-          <div class="pd-id-value" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
-            ${lcPill(p)}
-            ${canEditDiv(p.division) ? pdSelect('pd-lifecycle', statusOptions, '', 'Change status', 'changeLifecycle') : ''}
+        <div class="pd-panel pd-identity-card">
+          <div class="pd-name">${esc(p.name)}</div>
+          <div class="pd-sku-box" onclick="copyToClipboard('${cp(sku)}')" title="Click to copy">
+            <span>${esc(sku)}</span>${copyIcon}
           </div>
-        </div>
-        <div class="pd-id-block">
-          <div class="pd-id-label">Completeness</div>
-          <div class="pd-complete" aria-label="Product completeness ${complete.pct}%">
-            <div class="pd-complete-top">
-              <span class="pd-complete-score">${complete.pct}%</span>
-              <span class="pd-complete-caption">${completeCaption}</span>
+          <div class="pd-id-block">
+            <div class="pd-id-label">Division</div>
+            <div class="pd-id-value"><span class="pd-division-dot" style="background:${c}"></span>${DIV_LBL[p.division]}${specs.Construction ? ' · ' + (CONST_META[specs.Construction]?.label || specs.Construction) : ''}</div>
+          </div>
+          <div class="pd-id-block">
+            <div class="pd-id-label">Availability</div>
+            <div class="pd-id-value" id="pd-avail"><span style="font-size:0.72rem;color:var(--text-3)">—</span></div>
+          </div>
+          <div class="pd-id-block">
+            <div class="pd-id-label">Status</div>
+            <div class="pd-id-value" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+              ${lcPill(p)}
+              ${canEditDiv(p.division) ? pdSelect('pd-lifecycle', statusOptions, '', 'Change status', 'changeLifecycle') : ''}
             </div>
-            <div class="pd-complete-track"><div class="pd-complete-fill" style="width:${complete.pct}%"></div></div>
           </div>
-        </div>
-        ${formatChipsHtml}
-        <div class="pd-id-block">
-          <div class="pd-id-label">Country</div>
-          <div class="pd-id-value">${esc(countryVal)}</div>
+          <div class="pd-id-block">
+            <div class="pd-id-label">Completeness</div>
+            <div class="pd-complete" aria-label="Product completeness ${complete.pct}%">
+              <div class="pd-complete-top">
+                <span class="pd-complete-score">${complete.pct}%</span>
+                <span class="pd-complete-caption">${completeCaption}</span>
+              </div>
+              <div class="pd-complete-track"><div class="pd-complete-fill" style="width:${complete.pct}%"></div></div>
+            </div>
+          </div>
+          ${formatChipsHtml}
+          <div class="pd-id-block">
+            <div class="pd-id-label">Country</div>
+            <div class="pd-id-value">${esc(countryVal)}</div>
+          </div>
         </div>
       </div>
       <div class="pd-specs-col">
-        ${infoHtml}
+        <div class="pd-panel pd-section-card">
+          <div class="pd-section-title"><strong>Technical profile</strong><span>Tap rows to copy</span></div>
+          ${infoHtml}
+        </div>
         <div class="detail-comments-section" style="margin-top:1.25rem">
           <div class="detail-comments-lbl" style="display:flex;justify-content:space-between;align-items:center">
             Related Products
@@ -4276,7 +4350,10 @@ function showProductDetail(p) {
         </div>
       </div>
       <div class="pd-gallery-col">
-        ${galleryHtml}
+        <div class="pd-panel pd-media-card">
+          <div class="pd-media-label"><span>Product media</span><span>${imgs.length ? `${imgs.length} image${imgs.length > 1 ? 's' : ''}` : 'No image'}</span></div>
+          ${galleryHtml}
+        </div>
       </div>
       <div class="pd-comments-col">
         <div class="detail-comments-section">
