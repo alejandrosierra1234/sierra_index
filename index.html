@@ -6179,6 +6179,22 @@ async function validateProduct({ name, div, specs, code }) {
   return errs
 }
 
+function dropMissingProductColumn(error, payload) {
+  const msg = error?.message || ''
+  const missing = msg.match(/Could not find the '([^']+)' column/i)?.[1]
+  const drop = missing || (/lifecycle/i.test(msg) ? 'lifecycle' : '')
+  if (!drop) return false
+  const items = Array.isArray(payload) ? payload : [payload]
+  let changed = false
+  items.forEach(item => {
+    if (item && Object.prototype.hasOwnProperty.call(item, drop)) {
+      delete item[drop]
+      changed = true
+    }
+  })
+  return changed
+}
+
 async function saveProduct() {
   clearFormErrors()
   const name = document.getElementById('np-name').value.trim()
@@ -6265,23 +6281,20 @@ async function saveProduct() {
   }
 
   let error, savedId = editingProductId
-  if (editingProductId) {
-    ;({ error } = await sb.from('products').update(payload).eq('id', editingProductId))
-  } else {
-    const ins = await sb.from('products').insert({ ...payload, created_by: me.id }).select('id').single()
-    error = ins.error; savedId = ins.data?.id
-  }
-
-  // lifecycle column not migrated yet — retry without it so saving still works
-  if (error && /lifecycle/i.test(error.message || '')) {
-    delete payload.lifecycle
-    if (editingProductId) {
-      ;({ error } = await sb.from('products').update(payload).eq('id', editingProductId))
-    } else {
-      const ins = await sb.from('products').insert({ ...payload, created_by: me.id }).select('id').single()
-      error = ins.error; savedId = ins.data?.id
+  const saveWithCompatibleColumns = async () => {
+    for (let tries = 0; tries < 4; tries++) {
+      if (editingProductId) {
+        ;({ error } = await sb.from('products').update(payload).eq('id', editingProductId))
+      } else {
+        const ins = await sb.from('products').insert({ ...payload, created_by: me.id }).select('id').single()
+        error = ins.error; savedId = ins.data?.id
+      }
+      if (!error) return
+      if (dropMissingProductColumn(error, payload)) continue
+      break
     }
   }
+  await saveWithCompatibleColumns()
 
   if (error) {
     if (error.code === '23505' || /duplicate key/i.test(error.message || '')) {
@@ -9507,7 +9520,10 @@ async function restorePdVersion(no) {
   ;['name','code','lot','country','description','specs','tags','image_url','image_urls','lifecycle'].forEach(k => {
     if (k in s) payload[k] = s[k]
   })
-  const { error } = await sb.from('products').update(payload).eq('id', p.id)
+  let { error } = await sb.from('products').update(payload).eq('id', p.id)
+  if (error && dropMissingProductColumn(error, payload)) {
+    ;({ error } = await sb.from('products').update(payload).eq('id', p.id))
+  }
   if (error) { toast('Could not restore: ' + error.message); return }
   const before = JSON.parse(JSON.stringify(p))
   Object.assign(p, payload)
@@ -10507,9 +10523,11 @@ async function runImport() {
   let ok = 0, failed = 0
   for (let i = 0; i < valid.length; i += 50) {
     const chunk = valid.slice(i, i + 50).map(r => ({ ...r.data, lifecycle, created_by: me.id }))
-    let { error } = await sb.from('products').insert(chunk)
-    if (error && /lifecycle/i.test(error.message || '')) {
-      ;({ error } = await sb.from('products').insert(chunk.map(({ lifecycle: _, ...rest }) => rest)))
+    let error = null
+    for (let tries = 0; tries < 4; tries++) {
+      ;({ error } = await sb.from('products').insert(chunk))
+      if (!error) break
+      if (!dropMissingProductColumn(error, chunk)) break
     }
     if (error) failed += chunk.length; else ok += chunk.length
   }
