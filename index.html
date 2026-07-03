@@ -715,7 +715,7 @@
 
     /* ── PRODUCT GRID ── */
     .pg { display:block; }
-    .pg-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:1.25rem; }
+    .pg-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:1rem; align-items:start; }
 
     /* Construction sections */
     /* ── FABRIC FILTER CHIPS ── */
@@ -763,29 +763,53 @@
     .fab-chip-active .fab-chip-count { opacity: 0.8; }
 
     .const-section { margin-bottom:2.5rem; }
+    .const-section:last-child { padding-bottom:5.5rem; }
     .const-header { display:none; }
     .const-section.collapsed .pg-grid { display:none; }
 
-    .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; cursor:pointer; transition:box-shadow 0.2s, transform 0.2s; overflow:hidden; }
-    .card:hover { box-shadow:0 4px 20px rgba(0,0,0,0.08); transform:translateY(-2px); }
-    [data-theme="dark"] .card:hover { box-shadow:0 4px 24px rgba(0,0,0,0.35); }
+    .card {
+      background:var(--surface); border:1px solid var(--border); border-radius:12px;
+      cursor:pointer; transition:border-color 0.16s, box-shadow 0.18s, transform 0.18s;
+      overflow:hidden; min-width:0;
+    }
+    .card:hover { border-color:color-mix(in srgb, var(--text-3) 42%, var(--border)); box-shadow:0 8px 26px rgba(0,0,0,0.06); transform:translateY(-1px); }
+    [data-theme="dark"] .card:hover { box-shadow:0 10px 28px rgba(0,0,0,0.32); }
 
-    .card-img { width:100%; height:160px; object-fit:cover; background:var(--bg-alt); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    .card-img { width:100%; height:128px; object-fit:cover; background:var(--bg-alt); display:flex; align-items:center; justify-content:center; overflow:hidden; }
     .card-img img { width:100%; height:100%; object-fit:cover; }
-    .card-img-placeholder { width:100%; height:160px; display:flex; align-items:center; justify-content:center; background:var(--bg-alt); overflow:hidden; }
-    .card-body { padding:1rem 1rem 1rem; }
-    .card-meta { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.6rem; }
-    .card-div-pill { font-size:0.58rem; font-weight:600; text-transform:uppercase; letter-spacing:0.09em; padding:0.2rem 0.55rem; border-radius:6px; }
+    .card-img-placeholder {
+      width:100%; height:128px; display:flex; align-items:center; justify-content:center;
+      background:linear-gradient(180deg, var(--surface2), var(--bg-alt)); overflow:hidden;
+    }
+    .card-img-placeholder svg { width:22px; height:22px; opacity:0.55; }
+    .card-body { padding:0.82rem 0.86rem 0.82rem; }
+    .card-meta { display:flex; align-items:flex-start; justify-content:space-between; gap:0.65rem; margin-bottom:0.65rem; min-width:0; }
+    .card-meta-main { display:flex; align-items:center; gap:0.45rem; min-width:0; }
+    .card-meta-side { display:flex; flex-direction:column; align-items:flex-end; gap:0.26rem; flex-shrink:0; }
+    .card-div-pill {
+      display:inline-flex; align-items:center; gap:0.38rem; min-width:0; max-width:100%;
+      font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+      padding:0.24rem 0.48rem; border-radius:7px; border:1px solid transparent;
+    }
+    .card-div-pill span:last-child { min-width:0; overflow:hidden; text-overflow:ellipsis; line-height:1.05; }
+    .card-div-icon { width:14px; height:14px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; }
+    .card-div-icon svg { width:14px; height:14px; display:block; }
     .card-div { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.11em; }
-    .card-lot { font-size:0.6rem; color:var(--text-3); }
-    .card-name { font-size:0.95rem; font-weight:600; color:var(--text); margin-bottom:0.3rem; letter-spacing:-0.015em; line-height:1.3; }
-    .card-desc { font-size:0.75rem; color:var(--text-3); line-height:1.55; margin-bottom:1rem; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .card-lot { font-size:0.6rem; color:var(--text-3); max-width:82px; text-align:right; line-height:1.2; overflow:hidden; text-overflow:ellipsis; }
+    .card-name {
+      font-size:0.94rem; font-weight:650; color:var(--text); margin-bottom:0.3rem;
+      letter-spacing:-0.012em; line-height:1.28; min-height:2.38em;
+      display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+    }
+    .card-desc { font-size:0.74rem; color:var(--text-3); line-height:1.45; margin-bottom:0.8rem; min-height:2.15em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .tags { display:flex; flex-wrap:wrap; gap:0.28rem; margin-bottom:0.9rem; }
+    .tags:empty { display:none; }
     .tag { font-size:0.64rem; padding:0.16rem 0.45rem; border-radius:7px; background:none; color:var(--text-3); border:1px solid var(--border); }
     .card-actions { display:flex; align-items:center; justify-content:space-between; gap:0.5rem; }
-    .card-req-btn { font-size:0.76rem; font-weight:500; padding:0.46rem 1rem; border-radius:8px; background:var(--accent); color:#fff; border:none; cursor:pointer; font-family:inherit; transition:background 0.14s; }
+    .card-req-btn { font-size:0.74rem; font-weight:600; padding:0.45rem 0.8rem; border-radius:8px; background:var(--accent); color:#fff; border:none; cursor:pointer; font-family:inherit; transition:background 0.14s, transform 0.12s; }
     .card-req-btn:hover { background:var(--accent-dark); }
-    .card-more-btn { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-3); cursor:pointer; flex-shrink:0; transition:background 0.12s, color 0.12s; position:relative; }
+    .card-req-btn:active { transform:scale(0.98); }
+    .card-more-btn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-3); cursor:pointer; flex-shrink:0; transition:background 0.12s, color 0.12s, border-color 0.12s; position:relative; }
     .card-more-btn:hover { background:var(--surface2); color:var(--text); }
     .card-more-menu { display:none; position:absolute; bottom:calc(100% + 6px); right:0; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.1); min-width:148px; overflow:hidden; z-index:50; }
     .card-more-btn.open .card-more-menu { display:block; }
@@ -3798,11 +3822,11 @@ function renderProducts(products) {
       }).join('')
     } else {
       // Flat grid when filtered or searching
-      pg.innerHTML = `<div class="pg-grid" style="padding-bottom:2rem">${products.map(p => cardHTML(p)).join('')}</div>`
+      pg.innerHTML = `<div class="pg-grid" style="padding-bottom:6rem">${products.map(p => cardHTML(p)).join('')}</div>`
     }
   } else {
     document.getElementById('fab-filter-bar').style.display = 'none'
-    pg.innerHTML = `<div class="pg-grid" style="padding-bottom:2rem">${products.map(p => cardHTML(p)).join('')}</div>`
+    pg.innerHTML = `<div class="pg-grid" style="padding-bottom:6rem">${products.map(p => cardHTML(p)).join('')}</div>`
   }
   _renderArchivedFooter(pg)
 }
@@ -3862,11 +3886,15 @@ function cardHTML(p) {
   const lot = p.lot ? `LOT ${p.lot}` : ''
   const specs = p.specs || {}
   const desc = specs.Composition || specs.composition || p.description || ''
-  const tags = (p.tags || []).slice(0,3).map(t => `<span class="tag">${t}</span>`).join('')
+  const tags = (p.tags || []).slice(0,3).map(t => `<span class="tag">${esc(t)}</span>`).join('')
+  const metaLabel = division === 'all'
+    ? esc(DIV_LBL[p.division] || p.division || 'Product').replace('SIERRA ', 'SIERRA<br>')
+    : esc(code)
+  const metaIcon = DIV_ICON[p.division] || DIV_ICON.all
 
   const thumb = (p.image_urls && p.image_urls[0]) || p.image_url || null
   const imgEl = thumb
-    ? `<div class="card-img"><img src="${thumb}" alt="${p.name}" loading="lazy" /></div>`
+    ? `<div class="card-img"><img src="${thumb}" alt="${esc(p.name)}" loading="lazy" /></div>`
     : `<div class="card-img-placeholder"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--border)" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="1.5" stroke="var(--text-3)" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--text-3)" stroke-width="1.2" stroke-linecap="round"/></svg></div>`
 
   const isSelected = selectedProducts.some(s => s.id === p.id)
@@ -3875,12 +3903,19 @@ function cardHTML(p) {
     ${imgEl}
     <div class="card-body">
       <div class="card-meta">
-        ${division === 'all' ? `<span class="card-div-pill" style="background:${c}15;color:${c}">${DIV_LBL[p.division]}</span>` : `<span class="card-div-pill" style="background:${c}15;color:${c}">${code}</span>`}
-        ${lot ? `<span class="card-lot">${lot}</span>` : ''}
-        ${lcPill(p, true)}
+        <div class="card-meta-main">
+          <span class="card-div-pill" style="background:${c}12;color:${c};border-color:${c}20">
+            <span class="card-div-icon">${metaIcon}</span>
+            <span>${metaLabel}</span>
+          </span>
+        </div>
+        <div class="card-meta-side">
+          ${lot ? `<span class="card-lot">${esc(lot)}</span>` : ''}
+          ${lcPill(p, true)}
+        </div>
       </div>
-      <div class="card-name">${p.name}</div>
-      <div class="card-desc">${desc}</div>
+      <div class="card-name">${esc(p.name)}</div>
+      <div class="card-desc">${esc(desc)}</div>
       <div class="tags">${tags}</div>
       <div class="card-actions" onclick="event.stopPropagation()">
         <button class="card-req-btn" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p) ? '' : `disabled title="${LIFECYCLE[lc(p)].label} products can't be requested"`}>Add sample</button>
