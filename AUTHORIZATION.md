@@ -155,3 +155,38 @@ The product page's "Related Products" section renders visual cards
 note) with one-click navigation between products; editors get inline
 search-to-link and per-card removal. Link add/remove events are recorded in
 the activity log.
+
+## Sample operations — multi-location inventory
+
+Tables: `inventory_locations` (seeded: Guatemala Marketing Sample Library →
+customer_service, Northern Textiles Sample Warehouse → warehouse, Pride
+Chemicals Sample Center → chemicals; a new location = one row, nothing else),
+`inventory_stock` (qty / reserved / min_qty per product × location × format,
+DB checks make negative stock and over-reservation impossible),
+`inventory_movements` (append-only: received, produced, transferred in/out,
+reserved, released, picked, dispatched, returned, disposed, adjustment — with
+actor, location, qty, reason, notes, optional collection/sample links).
+
+**`move_inventory()` is the only write path** — security definer, row-locked
+(`for update`), authorization inside via `can_adjust_location()` (location's
+owner_domain `write`, warehouse `dispatch`, or platform admin). Every call
+appends a movement; nothing changes stock silently. `transfer_inventory()`
+moves between locations in one transaction. Low-stock (available ≤ min_qty)
+inserts deduplicated `low_inventory` notifications for the owning domain's
+grant holders.
+
+Collection lifecycle integration: `reserve_collection_inventory()` on
+creation (reserves, never deducts; skips untracked products so adoption is
+gradual), `release_collection_inventory()` on cancel (archived/damaged),
+`dispatch_collection_inventory()` at dispatch (verified → dispatched,
+excluded → released). All hooked from the existing cart/status/dispatch
+flows — no manual updates.
+
+Product page: Availability chip in the identity column (Available / Low
+Stock / Out of Stock / reserved count), per-location per-format inventory
+in the specs column, lazy Movement history, and an Adjust form (reason
+required) shown only to users who can adjust at least one location.
+`INV_WIDGETS` + `renderInventoryWidget(key, el)` provide the six reusable
+dashboard widgets (low inventory, most requested, by location, today's
+dispatches, pending reservations, recently produced) for the future
+Executive Dashboard.

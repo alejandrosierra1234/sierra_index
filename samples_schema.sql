@@ -1022,3 +1022,265 @@ create policy "editors can remove links"
     exists (select 1 from products where id = source_id and authorize(division,'write'))
     or exists (select 1 from products where id = target_id and authorize(division,'write'))
   );
+
+-- ══════════════════════════════════════════════════════════════
+-- SAMPLE OPERATIONS — multi-location physical sample inventory
+--
+-- Not ERP inventory: this tracks physical marketing/development samples.
+-- inventory_locations — each with an owning authorization domain
+-- inventory_stock     — qty/reserved/min per (product, location, format)
+-- inventory_movements — append-only; NOTHING changes stock silently
+-- move_inventory()    — the single transactional write path (row-locked,
+--                       negative stock impossible, authorization inside)
+-- Collections reserve stock on creation, dispatch consumes it, cancel
+-- releases it. Low stock triggers notification-center alerts.
+-- ══════════════════════════════════════════════════════════════
+
+create table if not exists inventory_locations (
+  id           uuid primary key default gen_random_uuid(),
+  key          text unique not null,
+  name         text not null,
+  owner_label  text not null,          -- displayed owner
+  owner_domain text not null,          -- authorization domain that manages it
+  active       boolean default true,
+  created_at   timestamptz default now()
+);
+
+insert into inventory_locations (key, name, owner_label, owner_domain) values
+  ('guatemala', 'Guatemala Marketing Sample Library', 'Marketing Sample Library', 'customer_service'),
+  ('northern',  'Northern Textiles Sample Warehouse', 'Sample Warehouse',         'warehouse'),
+  ('pride',     'Pride Chemicals Sample Center',      'Chemical Operations',      'chemicals')
+on conflict (key) do nothing;
+
+create table if not exists inventory_stock (
+  id          uuid primary key default gen_random_uuid(),
+  product_id  uuid references products(id) on delete cascade not null,
+  location_id uuid references inventory_locations(id) on delete cascade not null,
+  format      text not null,           -- Hanger, Swatch, Cone, Bottle …
+  qty         integer not null default 0 check (qty >= 0),
+  reserved    integer not null default 0 check (reserved >= 0),
+  min_qty     integer not null default 0 check (min_qty >= 0),
+  updated_at  timestamptz default now(),
+  unique (product_id, location_id, format),
+  check (reserved <= qty)
+);
+create index if not exists inventory_stock_product_idx on inventory_stock (product_id);
+create index if not exists inventory_stock_low_idx on inventory_stock (location_id)
+  where min_qty > 0;
+
+create table if not exists inventory_movements (
+  id            uuid primary key default gen_random_uuid(),
+  product_id    uuid references products(id) on delete cascade not null,
+  location_id   uuid references inventory_locations(id) not null,
+  format        text not null,
+  movement_type text not null check (movement_type in
+    ('received','produced','transferred_in','transferred_out','reserved',
+     'released','picked','dispatched','returned','disposed','adjustment')),
+  qty           integer not null check (qty > 0),
+  reason        text,
+  notes         text,
+  collection_id uuid references sample_collections(id) on delete set null,
+  sample_id     uuid references samples(id) on delete set null,
+  actor         uuid references profiles(id),
+  created_at    timestamptz default now()
+);
+create index if not exists inventory_movements_product_idx
+  on inventory_movements (product_id, created_at desc);
+create index if not exists inventory_movements_sample_idx
+  on inventory_movements (sample_id) where sample_id is not null;
+create index if not exists inventory_movements_recent_idx
+  on inventory_movements (movement_type, created_at desc);
+
+alter table inventory_locations enable row level security;
+alter table inventory_stock enable row level security;
+alter table inventory_movements enable row level security;
+
+drop policy if exists "authenticated can view locations" on inventory_locations;
+create policy "authenticated can view locations"
+  on inventory_locations for select using (auth.uid() is not null);
+drop policy if exists "authenticated can view stock" on inventory_stock;
+create policy "authenticated can view stock"
+  on inventory_stock for select using (auth.uid() is not null);
+drop policy if exists "authenticated can view movements" on inventory_movements;
+create policy "authenticated can view movements"
+  on inventory_movements for select using (auth.uid() is not null);
+-- all writes go through the RPCs below
+
+-- Can this user adjust inventory at this location?
+create or replace function can_adjust_location(p_location uuid)
+returns boolean language plpgsql security definer stable as $$
+declare v_domain text;
+begin
+  select owner_domain into v_domain from inventory_locations where id = p_location;
+  if v_domain is null then return false; end if;
+  return authorize(v_domain, 'write')
+      or authorize('warehouse', 'dispatch')
+      or authorize('platform', 'admin');
+end;
+$$;
+
+-- THE single transactional write path for stock. Row-locked; check
+-- constraints make negative stock or over-reservation impossible even
+-- under concurrency. Every call appends a movement — no silent changes.
+create or replace function move_inventory(
+  p_product    uuid,
+  p_location   uuid,
+  p_format     text,
+  p_type       text,
+  p_qty        integer,
+  p_reason     text default null,
+  p_notes      text default null,
+  p_collection uuid default null,
+  p_sample     uuid default null,
+  p_min_qty    integer default null   -- optionally (re)configure minimum
+) returns jsonb language plpgsql security definer as $$
+declare
+  v_stock inventory_stock%rowtype;
+  v_available integer;
+begin
+  if auth.uid() is not null and not can_adjust_location(p_location) then
+    raise exception 'not authorized to adjust inventory at this location';
+  end if;
+  if p_qty is null or p_qty <= 0 then raise exception 'quantity must be positive'; end if;
+
+  insert into inventory_stock (product_id, location_id, format)
+    values (p_product, p_location, p_format)
+    on conflict (product_id, location_id, format) do nothing;
+  select * into v_stock from inventory_stock
+    where product_id = p_product and location_id = p_location and format = p_format
+    for update;
+
+  if p_type in ('received','produced','returned','transferred_in') then
+    update inventory_stock set qty = qty + p_qty, updated_at = now() where id = v_stock.id;
+  elsif p_type in ('disposed','transferred_out') then
+    update inventory_stock set qty = qty - p_qty, updated_at = now() where id = v_stock.id;
+  elsif p_type = 'adjustment' then
+    -- adjustment sets an explicit delta via reason '+'/'-' — callers pass
+    -- p_reason starting with 'set:' to set absolute qty
+    if p_reason like 'set:%' then
+      update inventory_stock set qty = greatest(p_qty, reserved), updated_at = now() where id = v_stock.id;
+    else
+      update inventory_stock set qty = qty + p_qty, updated_at = now() where id = v_stock.id;
+    end if;
+  elsif p_type = 'reserved' then
+    update inventory_stock set reserved = reserved + p_qty, updated_at = now() where id = v_stock.id;
+  elsif p_type = 'released' then
+    update inventory_stock set reserved = greatest(reserved - p_qty, 0), updated_at = now() where id = v_stock.id;
+  elsif p_type in ('picked','dispatched') then
+    update inventory_stock set qty = qty - p_qty, reserved = greatest(reserved - p_qty, 0), updated_at = now() where id = v_stock.id;
+  else
+    raise exception 'unknown movement type: %', p_type;
+  end if;
+
+  if p_min_qty is not null then
+    update inventory_stock set min_qty = p_min_qty where id = v_stock.id;
+  end if;
+
+  insert into inventory_movements (product_id, location_id, format, movement_type, qty, reason, notes, collection_id, sample_id, actor)
+    values (p_product, p_location, p_format, p_type, p_qty, p_reason, p_notes, p_collection, p_sample, auth.uid());
+
+  -- Low-stock alert into the notification center for the location's managers
+  select qty - reserved into v_available from inventory_stock where id = v_stock.id;
+  if exists (select 1 from inventory_stock s where s.id = v_stock.id and s.min_qty > 0 and (s.qty - s.reserved) <= s.min_qty) then
+    insert into notifications (user_id, type, title, body, resource_type, resource_id)
+    select distinct g.user_id, 'low_inventory',
+      'Low inventory: ' || coalesce((select name from products where id = p_product), 'product'),
+      p_format || ' at ' || (select name from inventory_locations where id = p_location)
+        || ' is at ' || v_available || ' (minimum ' || (select min_qty from inventory_stock where id = v_stock.id) || ')',
+      'product', p_product::text
+    from capability_grants g
+    join inventory_locations l on l.id = p_location
+    where g.domain = l.owner_domain and g.capability = 'write' and g.resource_id is null
+      and not exists (
+        select 1 from notifications n
+        where n.user_id = g.user_id and n.type = 'low_inventory'
+          and n.resource_id = p_product::text and n.read = false
+          and n.created_at > now() - interval '1 day'
+      );
+  end if;
+
+  return (select jsonb_build_object('qty', qty, 'reserved', reserved, 'available', qty - reserved, 'min_qty', min_qty)
+          from inventory_stock where id = v_stock.id);
+end;
+$$;
+
+-- Transfer between locations: one transaction, two movements
+create or replace function transfer_inventory(
+  p_product  uuid, p_from uuid, p_to uuid, p_format text, p_qty integer,
+  p_reason text default null, p_notes text default null
+) returns void language plpgsql security definer as $$
+begin
+  perform move_inventory(p_product, p_from, p_format, 'transferred_out', p_qty, p_reason, p_notes);
+  perform move_inventory(p_product, p_to,   p_format, 'transferred_in',  p_qty, p_reason, p_notes);
+end;
+$$;
+
+-- PART 5 — collection lifecycle integration.
+-- Reserve: for each sample in the collection, reserve stock at the first
+-- active location with enough availability (skips samples with no stock —
+-- inventory adoption can be gradual, workflows never break).
+create or replace function reserve_collection_inventory(p_collection uuid)
+returns void language plpgsql security definer as $$
+declare
+  r record; v_loc uuid;
+begin
+  for r in select s.id, s.product_id, s.sample_type, coalesce(s.quantity,1) as qty
+           from samples s where s.collection_id = p_collection loop
+    -- already reserved for this sample?
+    continue when exists (select 1 from inventory_movements m
+      where m.sample_id = r.id and m.movement_type = 'reserved');
+    select st.location_id into v_loc
+      from inventory_stock st
+      join inventory_locations l on l.id = st.location_id and l.active
+      where st.product_id = r.product_id and st.format = r.sample_type
+        and (st.qty - st.reserved) >= r.qty
+      order by l.created_at limit 1;
+    if v_loc is not null then
+      perform move_inventory(r.product_id, v_loc, r.sample_type, 'reserved', r.qty,
+        'Collection reservation', null, p_collection, r.id);
+    end if;
+  end loop;
+end;
+$$;
+
+-- Release every open reservation of the collection (cancel path)
+create or replace function release_collection_inventory(p_collection uuid)
+returns void language plpgsql security definer as $$
+declare r record;
+begin
+  for r in
+    select m.product_id, m.location_id, m.format, m.qty, m.sample_id
+    from inventory_movements m
+    where m.collection_id = p_collection and m.movement_type = 'reserved'
+      and not exists (select 1 from inventory_movements x
+        where x.sample_id = m.sample_id and x.movement_type in ('released','dispatched'))
+  loop
+    perform move_inventory(r.product_id, r.location_id, r.format, 'released', r.qty,
+      'Collection cancelled', null, p_collection, r.sample_id);
+  end loop;
+end;
+$$;
+
+-- Dispatch: consume reservations of verified samples; release excluded ones
+create or replace function dispatch_collection_inventory(p_collection uuid)
+returns void language plpgsql security definer as $$
+declare r record;
+begin
+  for r in
+    select m.product_id, m.location_id, m.format, m.qty, m.sample_id, s.excluded
+    from inventory_movements m
+    join samples s on s.id = m.sample_id
+    where m.collection_id = p_collection and m.movement_type = 'reserved'
+      and not exists (select 1 from inventory_movements x
+        where x.sample_id = m.sample_id and x.movement_type in ('released','dispatched'))
+  loop
+    if r.excluded then
+      perform move_inventory(r.product_id, r.location_id, r.format, 'released', r.qty,
+        'Excluded at dispatch', null, p_collection, r.sample_id);
+    else
+      perform move_inventory(r.product_id, r.location_id, r.format, 'dispatched', r.qty,
+        'Collection dispatched', null, p_collection, r.sample_id);
+    end if;
+  end loop;
+end;
+$$;
