@@ -184,6 +184,29 @@
       background:var(--surface2); border:1px solid var(--border); color:var(--text-3);
       margin-top:0.1rem;
     }
+    /* ── INSIGHTS ── */
+    .ins-head { display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center; justify-content:space-between; margin-bottom:1.25rem; }
+    .ins-tabs { display:flex; gap:0.25rem; background:var(--surface2); border-radius:10px; padding:0.2rem; flex-wrap:wrap; }
+    .ins-controls { display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap; }
+    .ins-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:0.9rem; margin-bottom:1.25rem; }
+    .ins-card { border:1px solid var(--border); border-radius:16px; padding:1.1rem 1.2rem; background:var(--surface); }
+    .ins-card-click { cursor:pointer; transition:border-color 0.15s, transform 0.15s, box-shadow 0.15s; }
+    .ins-card-click:hover { border-color:var(--accent); transform:translateY(-1px); box-shadow:0 4px 14px rgba(0,0,0,0.06); }
+    .ins-card-value { font-size:1.9rem; font-weight:800; letter-spacing:-0.02em; color:var(--text); font-variant-numeric:tabular-nums; }
+    .ins-card-title { font-size:0.78rem; font-weight:600; color:var(--text-2); margin-top:0.2rem; }
+    .ins-card-sub { font-size:0.68rem; color:var(--text-3); margin-top:0.1rem; }
+    .ins-cols { display:grid; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr)); gap:0.9rem; }
+    .ins-panel { border:1px solid var(--border); border-radius:16px; padding:1rem 1.2rem; background:var(--surface); margin-bottom:0.9rem; }
+    .ins-panel-title { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-3); margin-bottom:0.6rem; }
+    .ins-bar-row { display:grid; grid-template-columns:1fr auto; gap:0.15rem 0.75rem; padding:0.4rem 0; }
+    .ins-bar-label { font-size:0.8rem; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ins-bar-val { font-size:0.78rem; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .ins-bar-track { grid-column:1 / -1; height:4px; border-radius:2px; background:var(--surface2); overflow:hidden; }
+    .ins-bar-fill { height:100%; border-radius:2px; background:var(--accent); opacity:0.75; }
+    .ins-trend { font-size:0.66rem; font-weight:700; }
+    .ins-obs { display:flex; gap:0.55rem; align-items:baseline; font-size:0.82rem; color:var(--text-2); padding:0.4rem 0; border-bottom:1px solid var(--border); }
+    .ins-obs:last-child { border-bottom:none; }
+    .ins-obs-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; position:relative; top:-1px; }
     /* ── INVENTORY ── */
     .inv-loc { margin-top:0.6rem; }
     .inv-loc-name { font-size:0.74rem; font-weight:700; color:var(--text); display:flex; justify-content:space-between; align-items:baseline; gap:0.5rem; }
@@ -2564,6 +2587,7 @@
       <button class="nav-item" id="nav-garment" data-tip="SIERRA Apparel" style="--item-color:#16cdbe" onclick="setDiv('garment',this)"><span class="n-icon" id="icon-garment"></span><span class="nav-label">SIERRA Apparel</span></button>
       <span class="s-label" style="margin-top:0.5rem">My activity</span>
       <button class="nav-item" id="nav-samples" data-tip="Sample Center" style="--item-color:#16cdbe" onclick="showSampleCenter()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="10" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="10" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M13.5 13.5v-1M13.5 16.5v-1M11.5 14.5h1M15.5 14.5h1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Sample Center</span></button>
+      <button class="nav-item" id="nav-insights" data-tip="Insights" style="--item-color:#9e00cb;display:none" onclick="showInsights()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M4 16V9M10 16V4M16 16v-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="nav-label">Insights</span></button>
       <button class="nav-item cart-nav-item" id="nav-cart" data-tip="Collection" style="--item-color:#16cdbe;display:none" onclick="openCart()"><span class="n-icon" style="position:relative"><svg viewBox="0 0 20 20" fill="none"><path d="M3 4h2l1.6 9.5a1 1 0 0 0 1 .8h7.3a1 1 0 0 0 1-.75L17.5 8H5.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="17" r="1.1" fill="currentColor"/><circle cx="14.5" cy="17" r="1.1" fill="currentColor"/></svg><span class="cart-nav-badge" id="cart-nav-badge">0</span></span><span class="nav-label">Collection</span><span class="cart-nav-count" id="cart-nav-count">0</span></button>
       <button class="nav-item" id="nav-scan" data-tip="Scan" style="--item-color:#009fff" onclick="openScanMode()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Scan</span></button>
       <button class="nav-item" id="nav-req" data-tip="My requests" style="--item-color:#ffc529" onclick="showRequests()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M4 5h12M4 10h8M4 15h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-label">My requests</span></button>
@@ -3367,6 +3391,7 @@ async function enterApp(user) {
     const nu = document.getElementById('nav-users')
     if (nu) nu.style.display = 'flex'
   }
+  if (insightsSections().length) document.getElementById('nav-insights').style.display = 'flex'
   // Store email in profiles for admin view
   if (p && !p.email) {
     sb.from('profiles').update({ email: user.email }).eq('id', user.id).then(() => {})
@@ -3392,6 +3417,8 @@ async function enterApp(user) {
     if (navEl) { setDiv(divKey, navEl); return }
   } else if (savedRoute === 'requests') {
     showRequests(); return
+  } else if (savedRoute === 'insights' && insightsSections().length) {
+    showInsights(); return
   } else if (savedRoute === 'all-requests' && can('read', 'customer_service')) {
     showAllRequests(); return
   } else if (savedRoute === 'style-guide') {
@@ -9100,6 +9127,424 @@ async function renderInventoryWidget(key, container) {
   container.innerHTML = `<div class="invw"><div class="invw-title">${w.title}</div><div class="invw-body">Loading…</div></div>`
   try { container.querySelector('.invw-body').innerHTML = await w.html() }
   catch (_) { container.querySelector('.invw-body').innerHTML = '<div class="invw-empty">Unavailable.</div>' }
+}
+
+/* ══ INSIGHTS — business intelligence layer ══
+   Not a chart dashboard: sections answer business questions with cards,
+   ranked lists and deterministic observations computed from real platform
+   data. One cached load (5-min TTL) powers every section; sections render
+   lazily on demand. Permission-gated per Section-12 roles. */
+const INS_TTL = 5 * 60 * 1000
+let _insCache = null
+let _insPeriod = 30           // 7 | 30 | 90 | 365
+let _insQuery = ''
+let _insSection = 'overview'
+let _insExport = { title: 'insights', rows: [] }   // current section's exportable rows
+
+async function insightsData(force) {
+  if (!force && _insCache && Date.now() - _insCache.ts < INS_TTL) return _insCache
+  const [prods, smps, cols, stocks, locs, moves] = await Promise.all([
+    sb.from('products').select('id,name,code,division,specs,tags,lifecycle,image_url,image_urls,created_at,updated_at').limit(5000),
+    sb.from('samples').select('id,sample_id,product_id,sample_type,quantity,customer,status,created_at,updated_at,collection_id,requested_by').order('created_at', { ascending: false }).limit(5000),
+    sb.from('sample_collections').select('id,collection_id,name,customer,priority,delivery_method,status,created_at,updated_at,requested_by').order('created_at', { ascending: false }).limit(2000),
+    sb.from('inventory_stock').select('product_id,location_id,format,qty,reserved,min_qty').limit(5000).then(r => r, () => ({ data: [] })),
+    loadInvLocations(),
+    sb.from('inventory_movements').select('product_id,location_id,format,movement_type,qty,created_at').order('created_at', { ascending: false }).limit(2000).then(r => r, () => ({ data: [] })),
+  ])
+  const products = prods.data || []
+  const byId = {}; products.forEach(p => { byId[p.id] = p })
+  _insCache = {
+    ts: Date.now(),
+    products, productById: byId,
+    samples: smps.data || [],
+    collections: cols.data || [],
+    stocks: stocks.data || [],
+    locations: locs || [],
+    movements: moves.data || [],
+  }
+  return _insCache
+}
+
+const insDaysAgo = d => new Date(Date.now() - d * 86400000)
+const insIn = (row, days) => new Date(row.created_at) >= insDaysAgo(days)
+function insMatch(text) {
+  return !_insQuery || String(text || '').toLowerCase().includes(_insQuery)
+}
+function insCount(rows, keyFn) {
+  const m = {}
+  rows.forEach(r => { const k = keyFn(r); if (k) m[k] = (m[k] || 0) + 1 })
+  return Object.entries(m).sort((a, b) => b[1] - a[1])
+}
+function insGrowth(rows, keyFn, days) {
+  // % change: last `days` vs the previous equal window
+  const cur = {}, prev = {}
+  const t1 = insDaysAgo(days), t2 = insDaysAgo(days * 2)
+  rows.forEach(r => {
+    const k = keyFn(r); if (!k) return
+    const d = new Date(r.created_at)
+    if (d >= t1) cur[k] = (cur[k] || 0) + 1
+    else if (d >= t2) prev[k] = (prev[k] || 0) + 1
+  })
+  const out = {}
+  new Set([...Object.keys(cur), ...Object.keys(prev)]).forEach(k => {
+    const c = cur[k] || 0, p = prev[k] || 0
+    out[k] = { cur: c, prev: p, pct: p === 0 ? (c > 0 ? 100 : 0) : Math.round(((c - p) / p) * 100) }
+  })
+  return out
+}
+function insAvgHours(rows, fromStatus) {
+  // avg hours between created_at and updated_at for rows that reached fromStatus
+  const hs = rows.filter(r => r.status === fromStatus && r.updated_at)
+    .map(r => (new Date(r.updated_at) - new Date(r.created_at)) / 3600000)
+    .filter(h => h >= 0 && h < 24 * 90)
+  if (!hs.length) return null
+  return hs.reduce((a, b) => a + b, 0) / hs.length
+}
+const insFmtH = h => h == null ? '—' : h < 48 ? `${h.toFixed(1)} h` : `${(h / 24).toFixed(1)} d`
+
+/* UI atoms */
+function insTrendChip(pct) {
+  if (pct == null) return ''
+  const up = pct > 0, flat = pct === 0
+  const color = flat ? 'var(--text-3)' : up ? '#34c759' : '#e0442e'
+  return `<span class="ins-trend" style="color:${color}">${flat ? '—' : up ? '↑' : '↓'} ${Math.abs(pct)}%</span>`
+}
+function insCard(title, value, sub, onclick) {
+  return `<div class="ins-card${onclick ? ' ins-card-click' : ''}" ${onclick ? `onclick="${onclick}"` : ''}>
+    <div class="ins-card-value">${value}</div>
+    <div class="ins-card-title">${title}</div>
+    ${sub ? `<div class="ins-card-sub">${sub}</div>` : ''}
+  </div>`
+}
+function insList(title, pairs, opts = {}) {
+  const filtered = pairs.filter(([k]) => insMatch(k)).slice(0, opts.limit || 6)
+  if (!filtered.length) return ''
+  const max = Math.max(...filtered.map(([, v]) => v), 1)
+  return `<div class="ins-panel">
+    <div class="ins-panel-title">${title}</div>
+    ${filtered.map(([k, v]) => `
+      <div class="ins-bar-row${opts.click ? ' ins-card-click' : ''}" ${opts.click ? `onclick="${opts.click.replace('%K%', esc(String(k)).replace(/"/g, '&quot;'))}"` : ''}>
+        <span class="ins-bar-label">${esc(String(k))}</span>
+        <span class="ins-bar-val">${v}${opts.growth?.[k] ? ' ' + insTrendChip(opts.growth[k].pct) : ''}</span>
+        <div class="ins-bar-track"><div class="ins-bar-fill" style="width:${Math.round(v / max * 100)}%"></div></div>
+      </div>`).join('')}
+  </div>`
+}
+
+/* Section registry — permission-gated (Section 12). Data owners get their
+   division sections via division read/write; adding a section later is one
+   registry entry. */
+function insightsSections() {
+  const S = []
+  const cs = can('read', 'customer_service'), wh = can('read', 'warehouse') || can('dispatch', 'warehouse')
+  const anyDiv = AUTH_DIVISIONS.some(d => can('write', d))
+  if (cs || wh || anyDiv || isAdmin()) S.push('overview')
+  if (cs || isAdmin()) S.push('demand', 'operations', 'customers', 'trends')
+  if (wh || isAdmin()) S.push('inventory')
+  if (anyDiv || isAdmin()) S.push('health')
+  return S
+}
+const INS_LABELS = { overview:'Overview', demand:'Demand', operations:'Operations', inventory:'Inventory', customers:'Customers', health:'Product Health', trends:'Trends' }
+
+async function showInsights() {
+  sessionStorage.setItem('sierra_route', 'insights')
+  document.getElementById('div-toolbar').style.display = 'none'
+  leaveView()
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+  document.getElementById('nav-insights')?.classList.add('active')
+  document.getElementById('tb-section').textContent = 'Insights'
+  document.getElementById('product-controls').style.display = 'none'
+  document.getElementById('sec-title').textContent = 'Insights'
+  document.getElementById('sec-sub').textContent = 'What is happening, and what needs your attention'
+  const pg = document.getElementById('pg')
+  pg.style.display = 'block'
+  const sections = insightsSections()
+  if (!sections.length) { pg.innerHTML = '<div class="empty"><p>No insights available for your access level.</p></div>'; return }
+  if (!sections.includes(_insSection)) _insSection = sections[0]
+  pg.innerHTML = `
+    <div class="ins-head">
+      <div class="ins-tabs">${sections.map(s => `<button class="pd-tab ${s === _insSection ? 'active' : ''}" data-tab="${s}" onclick="insSwitch('${s}')">${INS_LABELS[s]}</button>`).join('')}</div>
+      <div class="ins-controls">
+        <input type="text" class="tl-search" style="min-width:170px" placeholder="Search — Nike, French Terry, Yarn…" value="${esc(_insQuery)}" oninput="insSearch(this.value)" />
+        <select class="grant-sel" onchange="insSetPeriod(this.value)">
+          ${[[7,'7 days'],[30,'30 days'],[90,'90 days'],[365,'12 months']].map(([v, l]) => `<option value="${v}" ${_insPeriod === v ? 'selected' : ''}>${l}</option>`).join('')}
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="insExport('csv')" title="Export CSV">CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="insExport('excel')" title="Export Excel">Excel</button>
+        <button class="btn btn-ghost btn-sm" onclick="insExport('print')" title="Print / PDF">Print</button>
+      </div>
+    </div>
+    <div id="ins-body"><div class="empty"><div class="empty-icon">⌛</div><p>Loading…</p></div></div>`
+  renderInsSection()
+}
+function insSwitch(s) {
+  _insSection = s
+  document.querySelectorAll('.ins-tabs .pd-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === s))
+  renderInsSection()
+}
+let _insSearchTimer = null
+function insSearch(v) {
+  clearTimeout(_insSearchTimer)
+  _insSearchTimer = setTimeout(() => {
+    _insQuery = v.trim().toLowerCase()
+    // "last month" style period phrases switch the window automatically
+    if (/last (month|30)/.test(_insQuery)) { _insPeriod = 30; _insQuery = _insQuery.replace(/show |last (month|30 ?d?a?y?s?)/g, '').trim() }
+    if (/last week|7 days/.test(_insQuery)) { _insPeriod = 7; _insQuery = _insQuery.replace(/show |last week|7 ?days/g, '').trim() }
+    _insQuery = _insQuery.replace(/^show /, '')
+    renderInsSection()
+  }, 250)
+}
+function insSetPeriod(v) { _insPeriod = parseInt(v, 10); renderInsSection() }
+
+async function renderInsSection() {
+  const el = document.getElementById('ins-body')
+  if (!el) return
+  const D = await insightsData()
+  const P = _insPeriod
+  const smps = D.samples.filter(s => insIn(s, P))
+  const cols = D.collections.filter(c => insIn(c, P))
+  const pname = id => D.productById[id]?.name || '—'
+  const pdiv = id => D.productById[id]?.division
+  const rows = []   // export accumulator
+  let html = ''
+
+  if (_insSection === 'overview') {
+    const pending = D.collections.filter(c => ['requested','approved','preparing'].includes(c.status))
+    const urgent = pending.filter(c => c.priority === 'urgent')
+    const lowStock = D.stocks.filter(s => s.min_qty > 0 && (s.qty - s.reserved) <= s.min_qty)
+    const missing = D.products.filter(p => !(p.image_urls?.length || p.image_url) || !Object.keys(p.specs || {}).length)
+    const today = D.samples.filter(s => new Date(s.created_at).toDateString() === new Date().toDateString())
+    const week = D.products.filter(p => insIn(p, 7))
+    const dispatchH = insAvgHours(D.collections.filter(c => insIn(c, P)), 'ready')
+    html = `<div class="ins-grid">
+      ${insCard('Pending dispatches', pending.length, urgent.length ? `${urgent.length} urgent` : 'all normal priority', "insSwitch('operations')")}
+      ${insCard('Urgent collections', urgent.length, 'awaiting action', "insSwitch('operations')")}
+      ${insCard('Low sample inventory', lowStock.length, 'formats below minimum', "insSwitch('inventory')")}
+      ${insCard('Products missing info', missing.length, 'no image or no specs', "insSwitch('health')")}
+      ${insCard('Waiting approval', D.collections.filter(c => c.status === 'requested').length, 'collections in queue', "insSwitch('operations')")}
+      ${insCard('Avg dispatch time', insFmtH(dispatchH), `last ${P} days`)}
+      ${insCard("Today's requests", today.length, 'samples requested today', "insSwitch('demand')")}
+      ${insCard('Products this week', week.length, 'added in last 7 days')}
+    </div>
+    <div id="ins-observations"></div>`
+    rows.push(['metric','value'], ['pending dispatches', pending.length], ['urgent', urgent.length],
+      ['low inventory', lowStock.length], ['missing info', missing.length], ['today requests', today.length])
+  }
+
+  else if (_insSection === 'demand') {
+    const growth = insGrowth(D.samples, s => pname(s.product_id), P)
+    const byDivList = d => insCount(smps.filter(s => pdiv(s.product_id) === d), s => pname(s.product_id))
+    html = `<div class="ins-cols">
+      ${insList('Most requested products', insCount(smps, s => pname(s.product_id)), { growth, click: "insOpenProduct('%K%')" })}
+      ${insList('Most requested fabrics', byDivList('fabric'), { click: "insOpenProduct('%K%')" })}
+      ${insList('Most requested yarns', byDivList('yarn'), { click: "insOpenProduct('%K%')" })}
+      ${insList('Most requested chemicals', byDivList('chemicals'), { click: "insOpenProduct('%K%')" })}
+      ${insList('Most requested apparel', byDivList('garment'), { click: "insOpenProduct('%K%')" })}
+      ${insList('Sample formats', insCount(smps, s => s.sample_type))}
+      ${insList('Top collections', insCount(smps.filter(s => s.collection_id), s => D.collections.find(c => c.id === s.collection_id)?.name || D.collections.find(c => c.id === s.collection_id)?.collection_id))}
+      ${insList('Customers', insCount(smps, s => s.customer), { growth: insGrowth(D.samples, s => s.customer, P) })}
+      ${insList('Countries', insCount(smps, s => D.productById[s.product_id]?.country || 'Honduras'))}
+    </div>` || ''
+    insCount(smps, s => pname(s.product_id)).forEach(([k, v]) => rows.push([k, v]))
+    rows.unshift(['product', `requests (${P}d)`])
+  }
+
+  else if (_insSection === 'operations') {
+    const cAll = D.collections.filter(c => insIn(c, P))
+    const done = cAll.filter(c => ['ready','picked_up','shipped','delivered'].includes(c.status))
+    const perCol = cAll.map(c => D.samples.filter(s => s.collection_id === c.id).length).filter(n => n > 0)
+    const avgSize = perCol.length ? (perCol.reduce((a, b) => a + b, 0) / perCol.length).toFixed(1) : '—'
+    const late = cAll.filter(c => ['requested','approved','preparing'].includes(c.status) && new Date(c.created_at) < insDaysAgo(7))
+    const urgent = cAll.filter(c => c.priority === 'urgent')
+    html = `<div class="ins-grid">
+      ${insCard('Avg approval time', insFmtH(insAvgHours(cAll, 'approved')), 'request → approved')}
+      ${insCard('Avg preparation', insFmtH(insAvgHours(cAll, 'preparing')), 'time in preparation')}
+      ${insCard('Avg dispatch time', insFmtH(insAvgHours(cAll, 'ready')), 'request → ready')}
+      ${insCard('Avg delivery time', insFmtH(insAvgHours(cAll, 'delivered')), 'request → delivered')}
+      ${insCard('Avg collection size', avgSize, 'samples per collection')}
+      ${insCard('Dispatch success', cAll.length ? Math.round(done.length / cAll.length * 100) + '%' : '—', `${done.length} of ${cAll.length} completed`)}
+      ${insCard('Late collections', late.length, 'open for more than 7 days')}
+      ${insCard('Urgent requests', urgent.length, `of ${cAll.length} collections`)}
+    </div>
+    ${insList('Daily volume (samples requested)', insCount(smps, s => new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })), { limit: 14 })}`
+    rows.push(['kpi','value'], ['avg dispatch h', insAvgHours(cAll, 'ready')?.toFixed(1) || ''], ['late', late.length], ['urgent', urgent.length])
+  }
+
+  else if (_insSection === 'inventory') {
+    const locName = id => D.locations.find(l => l.id === id)?.name || '—'
+    const availBy = keyFn => {
+      const m = {}
+      D.stocks.forEach(s => { const k = keyFn(s); if (k) m[k] = (m[k] || 0) + (s.qty - s.reserved) })
+      return Object.entries(m).sort((a, b) => b[1] - a[1])
+    }
+    const low = D.stocks.filter(s => s.min_qty > 0 && (s.qty - s.reserved) <= s.min_qty && (s.qty - s.reserved) > 0)
+    const out = D.stocks.filter(s => (s.qty - s.reserved) <= 0)
+    const moved = insCount(D.movements.filter(m => insIn(m, P) && ['dispatched','picked'].includes(m.movement_type)), m => pname(m.product_id))
+    const requestedIds = new Set(D.samples.map(s => s.product_id))
+    const never = D.products.filter(p => !requestedIds.has(p.id))
+    const stockedIds = new Set(D.stocks.filter(s => s.qty - s.reserved > 0).map(s => s.product_id))
+    const reqButUnavailable = [...requestedIds].filter(id => D.productById[id] && D.stocks.some(s => s.product_id === id) && !stockedIds.has(id))
+    const totalAvail = D.stocks.reduce((t, s) => t + s.qty - s.reserved, 0)
+    const dispatched = D.movements.filter(m => insIn(m, P) && m.movement_type === 'dispatched').reduce((t, m) => t + m.qty, 0)
+    html = `<div class="ins-grid">
+      ${insCard('Low inventory', low.length, 'formats below minimum')}
+      ${insCard('Out of stock', out.length, 'formats at zero')}
+      ${insCard('Inventory turnover', totalAvail ? (dispatched / totalAvail * 100).toFixed(0) + '%' : '—', `dispatched vs stock · ${P}d`)}
+      ${insCard('Requested, unavailable', reqButUnavailable.length, 'demand without stock')}
+      ${insCard('Never requested', never.length, 'products with zero requests')}
+    </div>
+    <div class="ins-cols">
+      ${insList('Inventory by location', availBy(s => locName(s.location_id)))}
+      ${insList('Inventory by division', availBy(s => DIV_LBL[pdiv(s.product_id)] || '—'))}
+      ${insList('Inventory by format', availBy(s => s.format))}
+      ${insList('Fast moving', moved, { click: "insOpenProduct('%K%')" })}
+      ${insList('Slow moving (stocked, no dispatches)', availBy(s => stockedIds.has(s.product_id) && !moved.some(([k]) => k === pname(s.product_id)) ? pname(s.product_id) : null), { click: "insOpenProduct('%K%')" })}
+    </div>`
+    rows.push(['location','available'], ...availBy(s => locName(s.location_id)))
+  }
+
+  else if (_insSection === 'customers') {
+    const custSmps = _insQuery ? smps.filter(s => insMatch(s.customer)) : smps
+    const byCust = insCount(smps, s => s.customer)
+    const repeat = byCust.filter(([, v]) => v > 1)
+    const activeIds = new Set(D.samples.filter(s => insIn(s, P)).map(s => s.customer).filter(Boolean))
+    const allCust = new Set(D.samples.map(s => s.customer).filter(Boolean))
+    const inactive = [...allCust].filter(c => !activeIds.has(c))
+    const avgReq = allCust.size ? (D.samples.filter(s => s.customer).length / allCust.size).toFixed(1) : '—'
+    html = `<div class="ins-grid">
+      ${insCard('Active customers', activeIds.size, `last ${P} days`)}
+      ${insCard('Repeat customers', repeat.length, '2+ requests')}
+      ${insCard('Inactive customers', inactive.length, `no requests in ${P} days`)}
+      ${insCard('Avg requests / customer', avgReq, 'all time')}
+    </div>
+    <div class="ins-cols">
+      ${insList('Top customers & brands', byCust, { growth: insGrowth(D.samples, s => s.customer, P) })}
+      ${insList('Favorite products', insCount(custSmps, s => pname(s.product_id)), { click: "insOpenProduct('%K%')" })}
+      ${insList('Favorite constructions', insCount(custSmps.filter(s => pdiv(s.product_id) === 'fabric'), s => { const c = D.productById[s.product_id]; return CONST_META[inferConstruction(c || {})]?.label }))}
+      ${insList('Favorite divisions', insCount(custSmps, s => DIV_LBL[pdiv(s.product_id)]))}
+    </div>
+    ${_insQuery ? `<div class="ins-panel"><div class="ins-panel-title">Request timeline — “${esc(_insQuery)}”</div>
+      ${custSmps.slice(0, 12).map(s => `<div class="tl-item"><div class="tl-dot"></div><div class="tl-body">
+        <div class="tl-head"><span class="tl-actor">${esc(s.customer || '—')}</span><span class="tl-time">${tlWhen(s.created_at)}</span></div>
+        <div class="tl-summary">${esc(pname(s.product_id))} · ${esc(s.sample_type)} ${smpBadge(s.status)}</div>
+      </div></div>`).join('') || '<div class="invw-empty">No requests found.</div>'}</div>` : ''}`
+    rows.push(['customer','requests'], ...byCust)
+  }
+
+  else if (_insSection === 'health') {
+    const noImg = D.products.filter(p => !(p.image_urls?.length || p.image_url))
+    const noSpecs = D.products.filter(p => !Object.keys(p.specs || {}).length)
+    const noCode = D.products.filter(p => !p.code && !p.specs?.barcode)
+    const complete = p => [(p.image_urls?.length || p.image_url), Object.keys(p.specs || {}).length, p.code, p.name, (p.tags || []).length].filter(Boolean).length / 5
+    const below = D.products.filter(p => complete(p) < 0.6)
+    const recent = D.products.filter(p => p.updated_at && insIn({ created_at: p.updated_at }, 7))
+    const requestedIds = new Set(D.samples.map(s => s.product_id))
+    const listOf = arr => arr.filter(p => insMatch(p.name)).slice(0, 6).map(p => [p.name, Math.round(complete(p) * 100) + '%'])
+    html = `<div class="ins-grid">
+      ${insCard('Missing images', noImg.length, 'no photo at all')}
+      ${insCard('Missing specs', noSpecs.length, 'empty technical data')}
+      ${insCard('Missing QR / barcode', noCode.length, 'no code assigned')}
+      ${insCard('Below 60% complete', below.length, 'completeness threshold')}
+      ${insCard('Updated this week', recent.length, 'recently maintained')}
+      ${insCard('Archived', D.products.filter(p => p.lifecycle === 'archived').length, 'read-only')}
+      ${insCard('Discontinued', D.products.filter(p => p.lifecycle === 'discontinued').length, 'not requestable')}
+      ${insCard('Never requested', D.products.filter(p => !requestedIds.has(p.id)).length, 'zero demand')}
+    </div>
+    <div class="ins-cols">
+      ${insList('Lowest completeness', D.products.filter(p => insMatch(p.name)).sort((a, b) => complete(a) - complete(b)).slice(0, 6).map(p => [p.name, Math.round(complete(p) * 100)]), { click: "insOpenProduct('%K%')" })}
+    </div>`
+    rows.push(['product','completeness %'], ...D.products.map(p => [p.name, Math.round(complete(p) * 100)]))
+  }
+
+  else if (_insSection === 'trends') {
+    html = `<div id="ins-observations"></div>`
+  }
+
+  el.innerHTML = html
+  _insExport = { title: `insights-${_insSection}-${P}d`, rows }
+
+  // Observations (Sections 7 & 8) — deterministic, shown on Overview & Trends
+  const obsEl = document.getElementById('ins-observations')
+  if (obsEl) obsEl.innerHTML = `<div class="ins-panel"><div class="ins-panel-title">Automatic insights</div>
+    ${insObservations(D, P).filter(o => insMatch(o.text)).map(o => `
+      <div class="ins-obs"><span class="ins-obs-dot" style="background:${o.color || 'var(--accent)'}"></span>${esc(o.text)}${o.pct != null ? ' ' + insTrendChip(o.pct) : ''}</div>`).join('')
+    || '<div class="invw-empty">Not enough data yet for observations.</div>'}</div>`
+}
+
+/* Deterministic business observations — no AI, pure counting */
+function insObservations(D, P) {
+  const obs = []
+  const pname = id => D.productById[id]?.name
+  // construction growth (fabric)
+  const constGrowth = insGrowth(D.samples.filter(s => D.productById[s.product_id]?.division === 'fabric'),
+    s => CONST_META[inferConstruction(D.productById[s.product_id] || {})]?.label, P)
+  Object.entries(constGrowth).filter(([, g]) => g.cur + g.prev >= 3 && g.pct !== 0)
+    .sort((a, b) => Math.abs(b[1].pct) - Math.abs(a[1].pct)).slice(0, 3)
+    .forEach(([k, g]) => obs.push({
+      text: `${k} requests ${g.pct > 0 ? 'increased' : 'decreased'} ${Math.abs(g.pct)}% vs the previous ${P} days.`,
+      pct: g.pct, color: g.pct > 0 ? '#34c759' : '#e0442e',
+    }))
+  // fastest growing construction
+  const fastest = Object.entries(constGrowth).filter(([, g]) => g.cur >= 2).sort((a, b) => b[1].pct - a[1].pct)[0]
+  if (fastest && fastest[1].pct > 0) obs.push({ text: `${fastest[0]} is the fastest growing construction.`, color: '#34c759' })
+  // customer volume
+  insCount(D.samples.filter(s => insIn(s, P) && s.collection_id), s => s.customer).slice(0, 2)
+    .forEach(([c, n]) => { if (n >= 2) {
+      const nCols = new Set(D.samples.filter(s => s.customer === c && insIn(s, P)).map(s => s.collection_id).values()).size
+      obs.push({ text: `${c} requested ${nCols} collection${nCols > 1 ? 's' : ''} during the last ${P} days.` })
+    }})
+  // format growth
+  Object.entries(insGrowth(D.samples, s => s.sample_type, P))
+    .filter(([, g]) => g.cur + g.prev >= 3 && Math.abs(g.pct) >= 25).slice(0, 2)
+    .forEach(([k, g]) => obs.push({ text: `${k} samples ${g.pct > 0 ? 'increased' : 'decreased'} ${Math.abs(g.pct)}%.`, pct: g.pct, color: g.pct > 0 ? '#34c759' : '#e0442e' }))
+  // low inventory per location
+  D.locations.forEach(l => {
+    const low = D.stocks.filter(s => s.location_id === l.id && s.min_qty > 0 && (s.qty - s.reserved) <= s.min_qty)
+    if (low.length) obs.push({ text: `${l.name} has ${low.length} format${low.length > 1 ? 's' : ''} below the minimum threshold.`, color: '#ff9f0a' })
+  })
+  // silent divisions
+  AUTH_DIVISIONS.forEach(d => {
+    const last = D.samples.find(s => D.productById[s.product_id]?.division === d)
+    if (D.products.some(p => p.division === d) && last) {
+      const days = Math.floor((Date.now() - new Date(last.created_at)) / 86400000)
+      if (days >= 30) obs.push({ text: `The ${DIV_LBL[d] || d} division has not received requests in ${days} days.`, color: '#ff9f0a' })
+    }
+  })
+  return obs.slice(0, 8)
+}
+
+function insOpenProduct(name) {
+  const p = allProducts.find(x => x.name === name) || (_insCache?.products || []).find(x => x.name === name)
+  if (p) { selected = p; showProductDetail(p) }
+}
+
+/* Section 10 — exports: CSV, Excel (.xls), Print/PDF */
+function insExport(kind) {
+  const { title, rows } = _insExport
+  if (kind === 'print') {
+    const body = document.getElementById('ins-body')?.innerHTML || ''
+    const w = window.open('', '_blank')
+    w.document.write(`<html><head><title>${title}</title><style>
+      body{font-family:-apple-system,Helvetica,Arial,sans-serif;padding:2rem;color:#111}
+      .ins-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+      .ins-card{border:1px solid #ddd;border-radius:12px;padding:1rem}
+      .ins-card-value{font-size:1.6rem;font-weight:800}.ins-card-title{font-size:0.8rem;color:#555}
+      .ins-panel{border:1px solid #ddd;border-radius:12px;padding:1rem;margin-top:1rem}
+      .ins-bar-track,.tl-dot,button,select,input{display:none}
+      .ins-bar-row{display:flex;justify-content:space-between;padding:0.25rem 0;border-bottom:1px solid #eee}
+    </style></head><body><h2>SIERRA Index — ${title}</h2>${body}</body></html>`)
+    w.document.close(); w.print()
+    return
+  }
+  if (!rows.length) { toast('Nothing to export in this view'); return }
+  const sep = ','
+  const csv = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(sep)).join('\n')
+  const blob = new Blob(['﻿' + csv], { type: kind === 'excel' ? 'application/vnd.ms-excel' : 'text/csv' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `${title}.${kind === 'excel' ? 'xls' : 'csv'}`
+  a.click(); URL.revokeObjectURL(a.href)
+  Audit.log('user', me.id, null, 'report_exported', `Exported ${title} (${kind})`)
 }
 
 /* ── SCAN MODE ── */

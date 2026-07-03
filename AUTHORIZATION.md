@@ -190,3 +190,31 @@ required) shown only to users who can adjust at least one location.
 dashboard widgets (low inventory, most requested, by location, today's
 dispatches, pending reservations, recently produced) for the future
 Executive Dashboard.
+
+## Insights (business intelligence layer)
+
+Sidebar module (`showInsights()`), not a chart dashboard. One cached data
+load (`insightsData()`, 5-minute TTL, capped parallel queries) powers seven
+lazy sections in a registry: Overview (attention cards: pending/urgent
+dispatches, low inventory, missing info, waiting approval, avg dispatch time,
+today's requests, products this week), Demand (ranked lists per division,
+formats, collections, customers, countries, with growth chips), Operations
+(approval/preparation/dispatch/delivery times, collection size, success rate,
+late + urgent, daily volume), Inventory (by location/division/format,
+low/out, turnover, fast/slow movers, never-requested, requested-but-
+unavailable), Customers (top/active/repeat/inactive, favorites, per-customer
+request timeline), Product Health (missing images/specs/codes, completeness
+threshold, archived/discontinued), Trends + Automatic Insights.
+
+Observations are **deterministic** (`insObservations()` — pure counting, no
+AI): construction/format growth vs the previous equal window, top customer
+collection counts, per-location low-stock, silent divisions.
+
+Cross-cutting: period selector (7/30/90/365 days), search box that filters
+every list and recognizes period phrases ("last month"), clickable cards/rows
+(products open their detail page, cards jump to their section), CSV / Excel /
+Print-to-PDF export per section (logged to the activity log), permission
+gating per section (`insightsSections()`: customer_service → demand/
+operations/customers/trends, warehouse → inventory, division write → product
+health, platform admin → everything, plain users see nothing and get no nav
+item).
