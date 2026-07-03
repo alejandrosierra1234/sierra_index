@@ -156,3 +156,133 @@ begin
     values (p_id, 'status_change', v_label, jsonb_build_object('status', p_status), p_user_id);
 end;
 $$;
+
+-- ══════════════════════════════════════════════════════════════
+-- COLLECTIONS — grouping several samples into one physical package
+-- ("I need 30 fabric swatches, pack them together, ship via DHL")
+-- ══════════════════════════════════════════════════════════════
+
+create sequence if not exists collection_seq start 1;
+
+create or replace function next_collection_id()
+returns text language plpgsql as $$
+begin
+  return 'COL-' || to_char(now(), 'YYYY') || '-' || lpad(nextval('collection_seq')::text, 6, '0');
+end;
+$$;
+
+create table if not exists sample_collections (
+  id              uuid primary key default gen_random_uuid(),
+  collection_id   text unique not null,           -- COL-2026-000001
+  customer        text,
+  priority        text default 'normal',           -- normal | urgent
+  delivery_method text default 'Pickup',            -- Pickup | DHL | FedEx | Courier
+  recipient       text,
+  address         text,
+  notes           text,
+  status          text default 'requested',        -- mirrors sample lifecycle
+  requested_by    uuid references profiles(id),
+  created_at      timestamptz default now(),
+  updated_at      timestamptz default now()
+);
+
+alter table sample_collections enable row level security;
+
+drop policy if exists "authenticated can view collections" on sample_collections;
+create policy "authenticated can view collections"
+  on sample_collections for select using (auth.uid() is not null);
+
+drop policy if exists "users can create collections" on sample_collections;
+create policy "users can create collections"
+  on sample_collections for insert with check (requested_by = auth.uid());
+
+drop policy if exists "editors can update collections" on sample_collections;
+create policy "editors can update collections"
+  on sample_collections for update using (
+    requested_by = auth.uid() or
+    exists (select 1 from profiles where id = auth.uid() and role in ('admin','editor'))
+  );
+
+-- Each individual sample can belong to a collection (nullable — a single,
+-- ad-hoc sample request doesn't require one).
+alter table samples add column if not exists collection_id uuid references sample_collections(id) on delete set null;
+
+-- Atomically creates a collection + every sample in it + their first
+-- timeline event. p_items is a jsonb array of {product_id, sample_type, quantity}.
+create or replace function create_sample_collection(
+  p_items        jsonb,
+  p_customer     text,
+  p_priority     text,
+  p_delivery     text,
+  p_recipient    text,
+  p_address      text,
+  p_notes        text,
+  p_user_id      uuid,
+  p_user_name    text
+) returns jsonb language plpgsql security definer as $$
+declare
+  v_collection_ref text;
+  v_col_id         uuid;
+  v_item           jsonb;
+  v_sample_id      text;
+  v_sample_uuid    uuid;
+  v_destination    text;
+  v_reason         text;
+  v_created        jsonb := '[]'::jsonb;
+begin
+  v_collection_ref := next_collection_id();
+  v_destination := case when p_delivery = 'Pickup' then 'Pickup · ' || p_recipient
+                        else p_delivery || ' → ' || p_address || ' · Attn: ' || p_recipient end;
+  v_reason := case when p_priority = 'urgent' then 'Urgent request' else 'Sample request' end;
+
+  insert into sample_collections (collection_id, customer, priority, delivery_method, recipient, address, notes, status, requested_by)
+    values (v_collection_ref, p_customer, p_priority, p_delivery, p_recipient, p_address, p_notes, 'requested', p_user_id)
+    returning id into v_col_id;
+
+  for v_item in select * from jsonb_array_elements(p_items) loop
+    v_sample_id := next_sample_id();
+    insert into samples (sample_id, product_id, sample_type, quantity, customer, destination, reason, notes, status, requested_by, collection_id)
+      values (
+        v_sample_id, (v_item->>'product_id')::uuid, v_item->>'sample_type',
+        coalesce((v_item->>'quantity')::integer, 1), p_customer, v_destination, v_reason, p_notes,
+        'requested', p_user_id, v_col_id
+      )
+      returning id into v_sample_uuid;
+    insert into sample_events (sample_id, event_type, event_label, event_data, created_by)
+      values (v_sample_uuid, 'status_change', 'Requested by ' || p_user_name, '{"status":"requested"}'::jsonb, p_user_id);
+    v_created := v_created || jsonb_build_object('id', v_sample_uuid, 'sample_id', v_sample_id);
+  end loop;
+
+  return jsonb_build_object('collection_id', v_col_id, 'collection_ref', v_collection_ref, 'items', v_created);
+end;
+$$;
+
+-- Updates a collection's status and cascades it to every sample inside it,
+-- logging one timeline event per sample (so per-sample history stays intact).
+create or replace function update_collection_status(
+  p_id        uuid,
+  p_status    text,
+  p_user_id   uuid,
+  p_user_name text
+) returns void language plpgsql security definer as $$
+declare v_label text;
+begin
+  update sample_collections set status = p_status, updated_at = now() where id = p_id;
+  update samples set status = p_status, updated_at = now() where collection_id = p_id;
+  v_label := case p_status
+    when 'approved'   then 'Approved by ' || p_user_name
+    when 'preparing'  then 'Preparation started by ' || p_user_name
+    when 'ready'      then 'Marked ready by ' || p_user_name
+    when 'picked_up'  then 'Picked up by ' || p_user_name
+    when 'shipped'    then 'Shipped by ' || p_user_name
+    when 'delivered'  then 'Delivered — confirmed by ' || p_user_name
+    when 'returned'   then 'Returned to sample library'
+    when 'damaged'    then 'Marked as damaged'
+    when 'archived'   then 'Archived by ' || p_user_name
+    else 'Status updated by ' || p_user_name
+  end;
+  insert into sample_events (sample_id, event_type, event_label, event_data, created_by)
+    select id, 'status_change', v_label, jsonb_build_object('status', p_status), p_user_id
+    from samples where collection_id = p_id;
+end;
+$$;
