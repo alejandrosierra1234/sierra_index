@@ -827,3 +827,40 @@ $$;
 --   using ( auth.uid() is not null
 --           or coalesce(lifecycle,'available') not in ('draft','archived') )
 -- The app also enforces this on the public page client-side.
+
+-- ══════════════════════════════════════════════════════════════
+-- PRODUCT DATA QUALITY — DB-level backstops for the client-side
+-- validation in the product editor (duplicate SKU / barcode).
+-- Wrapped in DO blocks: if existing data already contains duplicates,
+-- the index is skipped with a notice instead of failing the migration —
+-- clean up the listed duplicates and re-run.
+-- ══════════════════════════════════════════════════════════════
+
+do $$
+begin
+  if exists (
+    select lower(code) from products
+    where code is not null and code <> ''
+    group by lower(code) having count(*) > 1
+  ) then
+    raise notice 'products_code_unique skipped: duplicate codes exist. Find them with:
+      select code, count(*) from products where code is not null group by code having count(*) > 1;';
+  else
+    create unique index if not exists products_code_unique
+      on products (lower(code)) where code is not null and code <> '';
+  end if;
+end $$;
+
+do $$
+begin
+  if exists (
+    select specs->>'barcode' from products
+    where specs->>'barcode' is not null and specs->>'barcode' <> ''
+    group by specs->>'barcode' having count(*) > 1
+  ) then
+    raise notice 'products_barcode_unique skipped: duplicate barcodes exist.';
+  else
+    create unique index if not exists products_barcode_unique
+      on products ((specs->>'barcode')) where specs->>'barcode' is not null and specs->>'barcode' <> '';
+  end if;
+end $$;

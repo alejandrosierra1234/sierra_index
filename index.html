@@ -184,6 +184,9 @@
       background:var(--surface2); border:1px solid var(--border); color:var(--text-3);
       margin-top:0.1rem;
     }
+    .form-errors { background:rgba(192,57,43,0.06); border:1px solid rgba(192,57,43,0.25); border-radius:10px; padding:0.7rem 0.9rem; margin-bottom:1rem; }
+    .form-errors-title { font-size:0.75rem; font-weight:700; color:#c0392b; margin-bottom:0.3rem; }
+    .form-errors li { font-size:0.76rem; color:var(--text-2); margin-left:1rem; margin-top:0.15rem; }
     .lc-pill { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.66rem; font-weight:600; padding:0.15rem 0.5rem; border-radius:20px; border:1px solid transparent; white-space:nowrap; }
     .lc-pill-sm { font-size:0.6rem; padding:0.1rem 0.4rem; }
     .lc-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
@@ -2612,6 +2615,7 @@
       <button class="btn-icon" onclick="closeModal('m-add')">✕</button>
     </div>
     <div class="modal-body">
+      <div class="form-errors" id="np-errors" style="display:none"></div>
       <!-- Common -->
       <div class="two-col">
         <div class="fg full"><label>Division</label>
@@ -4646,6 +4650,7 @@ function renderFormFields() {
 function openAdd() {
   editingProductId = null
   editingImageUrls = []; pendingImgFiles = []
+  clearFormErrors()
   document.getElementById('add-modal-title').textContent = 'New product'
   ;['np-name','np-code','np-lot','np-country'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
   document.getElementById('np-country').value = 'Honduras'
@@ -4665,6 +4670,7 @@ function openEditWithFiles(p, fileList) {
 
 function openEdit(p) {
   if (isArchived(p)) { toast('Archived products are read-only — change their status first'); return }
+  clearFormErrors()
   editingProductId = p.id
   editingImageUrls = (p.image_urls && p.image_urls.length) ? [...p.image_urls]
                      : (p.image_url ? [p.image_url] : [])
@@ -4751,8 +4757,22 @@ function removePendingImg(i) {
   renderEditImgGrid()
 }
 
+const IMG_MAX_MB = 8, IMG_MAX_COUNT = 12
+const IMG_TYPES = ['image/jpeg','image/png','image/webp','image/gif','image/avif']
 function addImgFiles(fileList) {
-  const files = Array.from(fileList || []).filter(f => f.type.startsWith('image/'))
+  const all = Array.from(fileList || [])
+  const rejected = []
+  const files = all.filter(f => {
+    if (!IMG_TYPES.includes(f.type)) { rejected.push(`${f.name}: not a supported image (JPG, PNG, WebP, GIF or AVIF)`); return false }
+    if (f.size > IMG_MAX_MB * 1024 * 1024) { rejected.push(`${f.name}: larger than ${IMG_MAX_MB} MB`); return false }
+    return true
+  })
+  const room = IMG_MAX_COUNT - (editingImageUrls.length + pendingImgFiles.length)
+  if (files.length > room) {
+    rejected.push(`A product can have up to ${IMG_MAX_COUNT} images — ${files.length - Math.max(room,0)} skipped`)
+    files.length = Math.max(room, 0)
+  }
+  if (rejected.length) toast(rejected[0])
   if (!files.length) return
   pendingImgFiles = [...pendingImgFiles, ...files]
   renderEditImgGrid()
@@ -5187,16 +5207,83 @@ async function generateTechnicalSheet() {
   w.document.close()
 }
 
+/* ── PRODUCT VALIDATION ──
+   Runs before anything is uploaded or written. Returns friendly,
+   field-labeled messages; saveProduct blocks while any remain. */
+function showFormErrors(errs) {
+  const box = document.getElementById('np-errors')
+  if (!box) { toast(errs[0]); return }
+  box.style.display = 'block'
+  box.innerHTML = `<div class="form-errors-title">Please fix before saving</div><ul>${errs.map(e => `<li>${esc(e)}</li>`).join('')}</ul>`
+  box.closest('.modal-body')?.scrollTo({ top: 0, behavior: 'smooth' })
+}
+function clearFormErrors() {
+  const box = document.getElementById('np-errors')
+  if (box) { box.style.display = 'none'; box.innerHTML = '' }
+}
+
+// Sum of "NN%" groups in a composition string; null when no percentages given
+function compositionTotal(str) {
+  const pcts = (str || '').match(/(\d+(?:\.\d+)?)\s*%/g)
+  if (!pcts) return null
+  return pcts.reduce((t, s) => t + parseFloat(s), 0)
+}
+
+async function validateProduct({ name, div, specs, code }) {
+  const errs = []
+  if (!name) errs.push('Product name is required')
+  else if (name.length < 2) errs.push('Product name is too short')
+
+  // Required fields per division
+  if (div === 'fabric') {
+    if (!specs.Construction) errs.push('Fabric products need a Construction type')
+    if (!specs.Composition) errs.push('Fabric products need a Composition')
+  }
+
+  // Composition percentages: none may be negative/zero, total may not exceed 100
+  const compTotal = compositionTotal(specs.Composition)
+  if (compTotal !== null) {
+    if (compTotal > 100.001) errs.push(`Composition adds up to ${+compTotal.toFixed(1)}% — it cannot exceed 100%`)
+    if (/(^|[^\d.])0+(?:\.0+)?\s*%/.test(specs.Composition)) errs.push('Composition percentages must be greater than 0%')
+  }
+
+  // Numeric spec fields must not be negative
+  const numericFields = ['GSM','Width','DIA','Gauge','Req Width','Req GSM','Std Width','Std GSM','Sample Qty','Needles']
+  numericFields.forEach(k => {
+    const v = specs[k]
+    if (v == null || v === '') return
+    const n = parseFloat(String(v).replace(/[^\d.\-]/g, ' ').trim().split(/\s+/)[0])
+    if (!Number.isNaN(n) && n < 0) errs.push(`${k} cannot be negative`)
+  })
+
+  // SKU / barcode uniqueness (QR encodes the product UUID, unique by design;
+  // barcodes are derived from the code, so a code collision is a barcode
+  // collision too — also check codes stored as specs.barcode on other rows)
+  if (code) {
+    try {
+      const [byCode, byBarcode] = await Promise.all([
+        sb.from('products').select('id,name').ilike('code', code).limit(2),
+        sb.from('products').select('id,name').eq('specs->>barcode', code).limit(2),
+      ])
+      const clash = [...(byCode.data || []), ...(byBarcode.data || [])]
+        .find(r => r.id !== editingProductId)
+      if (clash) errs.push(`SKU / barcode "${code}" is already used by "${clash.name}"`)
+    } catch (_) { /* offline or query issue — DB unique index is the backstop */ }
+  }
+
+  return errs
+}
+
 async function saveProduct() {
+  clearFormErrors()
   const name = document.getElementById('np-name').value.trim()
-  if (!name) { toast('Product name is required'); return }
 
   const div = document.getElementById('np-div').value
   let specs = {}, tags = [], description = ''
 
   if (div === 'fabric') {
     const g = id => document.getElementById(id)?.value?.trim() || ''
-    const construction = g('f-construction') || 'JRS'
+    const construction = g('f-construction')
     specs = {
       Construction: construction,
       'Mill Article': g('f-mill-article'),
@@ -5221,6 +5308,11 @@ async function saveProduct() {
     })
     tags = (document.getElementById('g-tags')?.value || '').split(',').map(t => t.trim()).filter(Boolean)
   }
+
+  // Validate everything before uploading or writing anything
+  const manualCode = document.getElementById('np-code').value.trim()
+  const verrs = await validateProduct({ name, div, specs, code: manualCode || null })
+  if (verrs.length) { showFormErrors(verrs); return }
 
   // Upload new images
   const newUrls = []
@@ -5278,7 +5370,14 @@ async function saveProduct() {
     }
   }
 
-  if (error) { toast('DB error: ' + error.message); return }
+  if (error) {
+    if (error.code === '23505' || /duplicate key/i.test(error.message || '')) {
+      showFormErrors([`SKU / barcode "${payload.code || ''}" is already used by another product`])
+    } else {
+      showFormErrors(['Could not save: ' + error.message])
+    }
+    return
+  }
   const wasEditing = !!editingProductId
   closeModal('m-add')
   toast(wasEditing ? 'Product updated' : 'Product saved')
