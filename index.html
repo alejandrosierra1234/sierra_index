@@ -184,6 +184,7 @@
       background:var(--surface2); border:1px solid var(--border); color:var(--text-3);
       margin-top:0.1rem;
     }
+    .grant-sel { font-size:0.72rem; padding:0.25rem 0.4rem; border-radius:7px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:inherit; cursor:pointer; }
     .prof-role-badge.role-admin { background:rgba(var(--accent-rgb,0,122,255),0.1); border-color:rgba(var(--accent-rgb,0,122,255),0.25); color:var(--accent); }
     /* Settings groups */
     .prof-group { border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:0.85rem; }
@@ -2876,9 +2877,67 @@ const DIV_ICON = {
 }
 
 let me = null, profile = null, division = 'all', selected = null
-function isAdmin()  { return profile?.role === 'admin' }
-function isEditor() { return ['admin','editor'].includes(profile?.role) }
-function isDispatcher() { return ['admin','dispatcher'].includes(profile?.role) }
+
+/* ── AUTHORIZATION (capability-based) ──
+   The DB is the authority (authorize() in samples_schema.sql + RLS); these
+   client checks only gate what the UI shows. Grants are rows of
+   (domain, capability[, resource_id]) loaded from capability_grants at login.
+   Domains: fiber/yarn/fabric/chemicals/garment (product divisions),
+   warehouse (dispatch), customer_service (requests lifecycle), platform.
+   Capabilities: read/write/delete/publish/dispatch/manage_status/grant/admin.
+   can() falls back to the legacy profiles.role mapping so users keep their
+   current access until grants exist — mirror of authorize()'s fallback. */
+const AUTH_DIVISIONS = ['fiber','yarn','fabric','chemicals','garment']
+const AUTH_DOMAINS = [...AUTH_DIVISIONS, 'warehouse', 'customer_service', 'platform']
+let myGrants = []
+
+async function loadGrants() {
+  myGrants = []
+  if (!me) return
+  try {
+    const { data, error } = await sb.from('capability_grants')
+      .select('domain,capability,resource_id,expires_at')
+      .eq('user_id', me.id)
+    if (!error && Array.isArray(data)) {
+      myGrants = data.filter(g => !g.expires_at || new Date(g.expires_at) > new Date())
+    }
+  } catch (_) { /* grants table not migrated yet — legacy fallback applies */ }
+}
+
+function can(capability, domain, resourceId = null) {
+  if (myGrants.some(g =>
+    g.domain === domain && g.capability === capability &&
+    (!g.resource_id || g.resource_id === resourceId)
+  )) return true
+  // Legacy role fallback — keep in sync with authorize() in samples_schema.sql
+  const role = profile?.role
+  if (role === 'admin') return true
+  if (role === 'editor')
+    return domain !== 'platform' && ['read','write','delete','publish','manage_status'].includes(capability)
+  if (role === 'dispatcher')
+    return (domain === 'warehouse' && ['read','dispatch'].includes(capability))
+        || (domain === 'customer_service' && ['read','manage_status'].includes(capability))
+        || (capability === 'read' && AUTH_DIVISIONS.includes(domain))
+  return false
+}
+
+// Division-aware helpers: pass a specific division when the context knows it
+// (product detail/editor); 'all'/null means "any division".
+function canEditDiv(d)   { return d && d !== 'all' ? can('write', d)  : AUTH_DIVISIONS.some(x => can('write', x)) }
+function canDeleteDiv(d) { return d && d !== 'all' ? can('delete', d) : AUTH_DIVISIONS.some(x => can('delete', x)) }
+
+function authRoleLabel() {
+  if (can('admin', 'platform')) return 'Admin'
+  if (AUTH_DOMAINS.some(d => can('grant', d))) return 'Data Owner'
+  if (canEditDiv('all')) return 'Editor'
+  if (can('dispatch', 'warehouse')) return 'Dispatcher'
+  return 'Viewer'
+}
+
+// Deprecated shims — legacy call sites only; new code should call can()
+function isAdmin()  { return can('admin', 'platform') }
+function isEditor() { return canEditDiv('all') }
+function isDispatcher() { return can('dispatch', 'warehouse') }
 let editingProductId = null, editingImageUrls = [], pendingImgFiles = []
 let allProducts = [], searchQuery = '', selectMode = false, selectedProducts = []
 let fabricFilter = null // active construction type key, null = all
@@ -3021,9 +3080,10 @@ async function enterApp(user) {
   me = user
   const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).single()
   profile = p
+  await loadGrants()
   const name = p?.full_name || user.email.split('@')[0]
   const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
-  const roleLabel = { admin:'Admin', editor:'Editor', user:'User', vendedor:'User' }[p?.role] || 'User'
+  const roleLabel = authRoleLabel()
   // Sidebar user card
   const sbAv = document.getElementById('sb-av')
   if (p?.avatar_url) {
@@ -3033,11 +3093,9 @@ async function enterApp(user) {
   }
   document.getElementById('sb-nm').textContent = name
   document.getElementById('sb-role').textContent = roleLabel
-  if (isEditor()) {
-    document.getElementById('add-btn').style.display = 'flex'
-    document.getElementById('nav-all-req').style.display = 'flex'
-  }
-  if (isAdmin()) {
+  if (canEditDiv('all')) document.getElementById('add-btn').style.display = 'flex'
+  if (can('read', 'customer_service')) document.getElementById('nav-all-req').style.display = 'flex'
+  if (can('admin', 'platform')) {
     document.getElementById('nav-logs').style.display = 'flex'
     const nu = document.getElementById('nav-users')
     if (nu) nu.style.display = 'flex'
@@ -3067,7 +3125,7 @@ async function enterApp(user) {
     if (navEl) { setDiv(divKey, navEl); return }
   } else if (savedRoute === 'requests') {
     showRequests(); return
-  } else if (savedRoute === 'all-requests' && isEditor()) {
+  } else if (savedRoute === 'all-requests' && can('read', 'customer_service')) {
     showAllRequests(); return
   }
   showDashboard()
@@ -3328,7 +3386,7 @@ function setDiv(d, el) {
   document.getElementById('sec-title').textContent = t
   document.getElementById('sec-sub').textContent = 'Browse technical sheets and request samples'
   document.getElementById('tb-section').textContent = t
-  if (isEditor()) document.getElementById('add-btn').style.display = 'flex'
+  if (canEditDiv(division)) document.getElementById('add-btn').style.display = 'flex'
   document.getElementById('product-controls').style.display = 'flex'
   loadProducts()
 }
@@ -3399,12 +3457,12 @@ function showProductDetail(p) {
       <button class="img-dl-btn" onclick="downloadImg('${imgs[0]}','${esc(p.name)}')">↓ Download</button>
     </div>${thumbs}`
   } else {
-    galleryHtml = `<div class="pd-no-img"${isEditor() ? `
+    galleryHtml = `<div class="pd-no-img"${canEditDiv(p.division) ? `
       ondragover="event.preventDefault(); this.classList.add('drag-over')"
       ondragleave="this.classList.remove('drag-over')"
       ondrop="event.preventDefault(); this.classList.remove('drag-over'); openEditWithFiles(selected, event.dataTransfer.files)"` : ''}>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="opacity:0.35"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.4"/><circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-      ${isEditor()
+      ${canEditDiv(p.division)
         ? `<button class="btn btn-ghost btn-sm" onclick="openEdit(selected)">Add image</button>`
         : `<span class="pd-no-img-hint">No image</span>`}
     </div>`
@@ -3516,12 +3574,12 @@ function showProductDetail(p) {
         <span class="btn-lbl">Print Label</span>
       </button>
       <div class="detail-toolbar-spacer"></div>
-      ${isEditor() ? `<button class="btn btn-ghost" onclick="openEdit(selected)" title="Edit">
+      ${canEditDiv(p.division) ? `<button class="btn btn-ghost" onclick="openEdit(selected)" title="Edit">
         <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.5 3.5l2 2L6 16H4v-2L14.5 3.5z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="btn-lbl">Edit</span>
       </button>
       <div class="detail-toolbar-sep"></div>` : ''}
-      ${isEditor() ? `<button class="btn btn-ghost" style="color:#c0392b;border-color:rgba(192,57,43,0.18)" onclick="confirmDelete(selected)" title="Delete">
+      ${canDeleteDiv(p.division) ? `<button class="btn btn-ghost" style="color:#c0392b;border-color:rgba(192,57,43,0.18)" onclick="confirmDelete(selected)" title="Delete">
         <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M4 6h12M8 6V4h4v2M15 6l-1 11H6L5 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="btn-lbl">Delete</span>
       </button>` : ''}
@@ -3610,7 +3668,7 @@ function fichaBody(p) {
   } else {
     html += `<div class="ficha-img ficha-img-empty" style="background:${fc}0d">
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="${fc}" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="1.5" stroke="${fc}" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="${fc}" stroke-width="1.2" stroke-linecap="round"/></svg>
-      ${isEditor() ? `<button class="btn btn-ghost btn-sm" style="margin-top:0.75rem" onclick="openEdit(selected)">Add image</button>` : `<span style="font-size:0.72rem;color:var(--text-3);margin-top:0.5rem">No image yet</span>`}
+      ${canEditDiv(p.division) ? `<button class="btn btn-ghost btn-sm" style="margin-top:0.75rem" onclick="openEdit(selected)">Add image</button>` : `<span style="font-size:0.72rem;color:var(--text-3);margin-top:0.5rem">No image yet</span>`}
     </div>`
   }
 
@@ -3957,7 +4015,7 @@ async function loadFichaComments(productId) {
     return
   }
   const items = (data || []).map(c => {
-    const canDel = me.id === c.user_id || isEditor()
+    const canDel = me.id === c.user_id || canEditDiv(selected?.division)
     return `<div class="comment-item" data-cid="${c.id}">
       <div class="comment-meta">
         <span class="comment-author">${esc(c.profiles?.full_name || 'Unknown')}</span>
@@ -4366,7 +4424,7 @@ async function showAllRequests() {
   document.getElementById('sec-title').textContent = 'All requests'
   document.getElementById('sec-sub').textContent = 'Manage sample requests from all collaborators'
   document.getElementById('tb-section').textContent = 'All requests'
-  if (isEditor()) document.getElementById('add-btn').style.display = 'flex'
+  if (canEditDiv(division)) document.getElementById('add-btn').style.display = 'flex'
   document.getElementById('product-controls').style.display = 'none'
   clearSelection()
 
@@ -6028,22 +6086,32 @@ async function showUserManagement() {
   document.getElementById('tb-section').textContent = 'Team'
   document.getElementById('product-controls').style.display = 'none'
   document.getElementById('sec-title').textContent = 'Team'
-  document.getElementById('sec-sub').textContent = 'Manage roles for all users'
+  document.getElementById('sec-sub').textContent = 'Manage domain access for all users'
 
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
   pg.innerHTML = '<div class="empty"><div class="empty-icon">⌛</div><p>Loading…</p></div>'
 
-  const { data, error } = await sb.from('profiles').select('id,full_name,email,role,created_at').order('created_at', { ascending: true })
-  if (error) { pg.innerHTML = `<div class="empty"><p>Error: ${error.message}</p></div>`; return }
+  const [profRes, grantRes] = await Promise.all([
+    sb.from('profiles').select('id,full_name,email,role,created_at').order('created_at', { ascending: true }),
+    sb.from('capability_grants').select('id,user_id,domain,capability,resource_id,expires_at'),
+  ])
+  if (profRes.error) { pg.innerHTML = `<div class="empty"><p>Error: ${profRes.error.message}</p></div>`; return }
+  const data = profRes.data
   if (!data.length) { pg.innerHTML = '<div class="empty"><p>No users yet.</p></div>'; return }
+  // grants table may not be migrated yet — render legacy-only view in that case
+  _teamGrants = grantRes.error ? null : (grantRes.data || []).filter(g => !g.resource_id)
 
-  const roleOpts = ['admin','editor','user'].map(r => `<option value="${r}">${r.charAt(0).toUpperCase()+r.slice(1)}</option>`).join('')
+  const domainLabel = {
+    fiber:'Fiber', yarn:'Yarn', fabric:'Fabric', chemicals:'Chemicals', garment:'Apparel',
+    warehouse:'Warehouse', customer_service:'Customer Service', platform:'Platform',
+  }
+  const domainOpts = AUTH_DOMAINS.map(d => `<option value="${d}">${domainLabel[d]}</option>`).join('')
 
   pg.innerHTML = `
   <div style="overflow-x:auto">
-    <table class="data-table" style="min-width:520px">
-      <thead><tr><th>User</th><th>Email</th><th>Role</th></tr></thead>
+    <table class="data-table" style="min-width:680px">
+      <thead><tr><th>User</th><th>Email</th><th>Domain access</th><th>Legacy role</th></tr></thead>
       <tbody>
         ${data.map(u => {
           const name = u.full_name || (u.email||'?').split('@')[0]
@@ -6053,10 +6121,24 @@ async function showUserManagement() {
             <td>
               <div style="display:flex;align-items:center;gap:0.5rem">
                 <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${initials}</div>
-                <span style="font-size:0.82rem;font-weight:500">${name}${isSelf ? ' <span style="font-size:0.65rem;color:var(--text-3)">(you)</span>' : ''}</span>
+                <span style="font-size:0.82rem;font-weight:500">${esc(name)}${isSelf ? ' <span style="font-size:0.65rem;color:var(--text-3)">(you)</span>' : ''}</span>
               </div>
             </td>
-            <td style="font-size:0.78rem;color:var(--text-2)">${u.email||'—'}</td>
+            <td style="font-size:0.78rem;color:var(--text-2)">${esc(u.email||'—')}</td>
+            <td>
+              ${_teamGrants === null
+                ? '<span style="font-size:0.72rem;color:var(--text-3)">Run the capability migration to manage grants</span>'
+                : `<div id="grants-${u.id}" style="display:flex;flex-wrap:wrap;gap:0.3rem;align-items:center">${renderGrantChips(u.id)}</div>
+                   <div style="display:flex;gap:0.3rem;margin-top:0.35rem;align-items:center">
+                     <select id="gd-${u.id}" class="grant-sel">${domainOpts}</select>
+                     <select id="gl-${u.id}" class="grant-sel">
+                       <option value="viewer">Viewer</option>
+                       <option value="editor">Editor</option>
+                       <option value="owner">Data Owner</option>
+                     </select>
+                     <button class="btn btn-ghost btn-sm" onclick="addGrant('${u.id}')">Add</button>
+                   </div>`}
+            </td>
             <td>
               <select class="role-select" data-uid="${u.id}" style="font-size:0.78rem;padding:0.3rem 0.5rem;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;cursor:pointer" ${isSelf ? 'disabled title="Cannot change your own role"' : ''}>
                 ${['admin','editor','dispatcher','user'].map(r => `<option value="${r}" ${(u.role||'user')===r?'selected':''}>${r.charAt(0).toUpperCase()+r.slice(1)}</option>`).join('')}
@@ -6066,15 +6148,70 @@ async function showUserManagement() {
         }).join('')}
       </tbody>
     </table>
-  </div>`
+  </div>
+  <p style="font-size:0.7rem;color:var(--text-3);margin-top:0.75rem;max-width:60ch">
+    Domain access is the source of truth going forward. The legacy role keeps
+    older behavior working during the transition and will be removed once every
+    user has explicit grants.
+  </p>`
 
   pg.querySelectorAll('.role-select').forEach(sel => {
     sel.addEventListener('change', async e => {
-      const uid = e.target.dataset.uid
-      const role = e.target.value
-      await setUserRole(uid, role)
+      await setUserRole(e.target.dataset.uid, e.target.value)
     })
   })
+}
+
+/* Grants management (Team screen). Levels expand to capability bundles —
+   bundles exist only in this UI; enforcement always checks single capabilities. */
+let _teamGrants = null
+function bundleCaps(domain, level) {
+  if (domain === 'platform') return level === 'owner' ? ['admin','grant'] : ['admin']
+  if (domain === 'warehouse')
+    return level === 'owner' ? ['read','dispatch','grant'] : level === 'editor' ? ['read','dispatch'] : ['read']
+  if (domain === 'customer_service')
+    return level === 'owner' ? ['read','write','manage_status','grant'] : level === 'editor' ? ['read','write','manage_status'] : ['read']
+  return level === 'owner' ? ['read','write','delete','publish','grant'] : level === 'editor' ? ['read','write','publish'] : ['read']
+}
+function grantLevelOf(caps) {
+  if (caps.includes('grant')) return 'Data Owner'
+  if (caps.includes('write') || caps.includes('dispatch') || caps.includes('admin')) return 'Editor'
+  return 'Viewer'
+}
+function renderGrantChips(uid) {
+  const byDomain = {}
+  _teamGrants.filter(g => g.user_id === uid).forEach(g => {
+    (byDomain[g.domain] = byDomain[g.domain] || []).push(g.capability)
+  })
+  const domains = Object.keys(byDomain)
+  if (!domains.length) return '<span style="font-size:0.72rem;color:var(--text-3)">No grants</span>'
+  return domains.map(d => {
+    const lvl = d === 'platform' && byDomain[d].includes('admin') ? 'Admin' : grantLevelOf(byDomain[d])
+    return `<span style="display:inline-flex;align-items:center;gap:0.3rem;font-size:0.68rem;font-weight:600;padding:0.2rem 0.5rem;border-radius:20px;background:var(--surface2);border:1px solid var(--border)" title="${byDomain[d].join(', ')}">
+      ${d.replace('_',' ')} · ${lvl}
+      <button onclick="revokeDomainGrants('${uid}','${d}')" title="Revoke" style="border:none;background:none;color:var(--text-3);cursor:pointer;font-size:0.75rem;line-height:1;padding:0">×</button>
+    </span>`
+  }).join('')
+}
+async function addGrant(uid) {
+  const domain = document.getElementById('gd-' + uid).value
+  const level = document.getElementById('gl-' + uid).value
+  const rows = bundleCaps(domain, level).map(capability => ({
+    user_id: uid, domain, capability, granted_by: me.id,
+  }))
+  const { error } = await sb.from('capability_grants').upsert(rows, { onConflict: 'user_id,domain,capability,resource_id', ignoreDuplicates: true })
+  if (error) {
+    // upsert onConflict can't target the expression index — fall back to inserts
+    for (const r of rows) await sb.from('capability_grants').insert(r)
+  }
+  toast(`Granted ${domain.replace('_',' ')} ${level}`)
+  showUserManagement()
+}
+async function revokeDomainGrants(uid, domain) {
+  const { error } = await sb.from('capability_grants').delete().eq('user_id', uid).eq('domain', domain).is('resource_id', null)
+  if (error) { toast('Failed to revoke: ' + error.message); return }
+  toast(`Revoked ${domain.replace('_',' ')} access`)
+  showUserManagement()
 }
 
 async function setUserRole(userId, role) {
@@ -6091,8 +6228,7 @@ let pendingAvatarFile = null
 function openProfile() {
   const name = profile?.full_name || me?.email?.split('@')[0] || ''
   const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || '–'
-  const role = profile?.role || 'viewer'
-  const roleLabel = role === 'admin' ? 'Admin' : role === 'editor' ? 'Editor' : 'Viewer'
+  const roleLabel = authRoleLabel()
 
   document.getElementById('prof-name').value = name
   document.getElementById('prof-display-name').textContent = name || me?.email?.split('@')[0] || '–'
@@ -6104,7 +6240,7 @@ function openProfile() {
 
   const badge = document.getElementById('prof-role-badge')
   badge.textContent = roleLabel
-  badge.className = 'prof-role-badge' + (role === 'admin' ? ' role-admin' : '')
+  badge.className = 'prof-role-badge' + (roleLabel === 'Admin' ? ' role-admin' : '')
 
   const img = document.getElementById('prof-av-img')
   if (profile?.avatar_url) {
@@ -6822,7 +6958,7 @@ async function showSampleCenter() {
     .order('created_at', { ascending: false })
     .limit(30)
 
-  if (!isEditor()) { q = q.eq('requested_by', me.id); colQ = colQ.eq('requested_by', me.id) }
+  if (!can('read', 'customer_service')) { q = q.eq('requested_by', me.id); colQ = colQ.eq('requested_by', me.id) }
 
   const [{ data, error }, { data: collections }] = await Promise.all([q, colQ])
 
@@ -6955,7 +7091,7 @@ async function showSampleRecord(sampleId) {
   const thumb = (p.image_urls && p.image_urls[0]) || p.image_url || null
   const requesterName = s.profiles?.full_name || s.profiles?.email || '—'
   const dateStr = new Date(s.created_at).toLocaleDateString('en-US', { day:'2-digit', month:'long', year:'numeric' })
-  const canEdit = isEditor()
+  const canEdit = can('manage_status', 'customer_service')
 
   // Status actions for editors
   const nextStatuses = SMP_STATUS_ORDER.filter(st => st !== s.status).slice(0, 4)
@@ -7120,8 +7256,8 @@ async function showCollectionRecord(collectionId) {
   const collaborators = collabRes.data || []
   const requesterName = col.profiles?.full_name || col.profiles?.email || '—'
   const dateStr = new Date(col.created_at).toLocaleDateString('en-US', { day:'2-digit', month:'long', year:'numeric' })
-  const canEdit = isEditor()
-  const canDispatch = isDispatcher()
+  const canEdit = can('manage_status', 'customer_service')
+  const canDispatch = can('dispatch', 'warehouse')
   const isReadyOrLater = ['ready','picked_up','shipped','delivered'].includes(col.status)
   const totalQty = items.reduce((t, i) => t + (i.quantity || 1), 0)
 

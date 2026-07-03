@@ -393,3 +393,366 @@ begin
     values (p_id, 'excluded', p_user_name || ' excluded this item: ' || p_reason, jsonb_build_object('reason', p_reason), p_user_id);
 end;
 $$;
+
+-- ══════════════════════════════════════════════════════════════
+-- CAPABILITY-BASED AUTHORIZATION (Platform Owner + Data Owners)
+--
+-- Replaces role-string checks with grants of (capability, domain):
+--   Domains:      fiber | yarn | fabric | chemicals | garment
+--                 warehouse (physical samples / dispatch)
+--                 customer_service (requests & collections lifecycle)
+--                 platform (users, grants, audit, analytics)
+--   Capabilities: read | write | delete | publish | dispatch
+--                 manage_status | grant | admin
+--
+-- A "Data Owner" holds `grant` (plus working capabilities) on a domain.
+-- The "Platform Owner" holds `admin` + `grant` on `platform`.
+--
+-- Everything below is idempotent and BACKWARD COMPATIBLE:
+-- authorize() falls back to the legacy profiles.role mapping, so users
+-- keep exactly their current access until grants are managed explicitly.
+-- ══════════════════════════════════════════════════════════════
+
+-- 1. Grants table
+create table if not exists capability_grants (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid references profiles(id) on delete cascade not null,
+  domain      text not null check (domain in
+                ('fiber','yarn','fabric','chemicals','garment',
+                 'warehouse','customer_service','platform')),
+  capability  text not null check (capability in
+                ('read','write','delete','publish','dispatch',
+                 'manage_status','grant','admin')),
+  resource_id uuid,                                -- null = whole domain
+  granted_by  uuid references profiles(id),
+  expires_at  timestamptz,                         -- null = permanent
+  created_at  timestamptz default now()
+);
+
+-- unique across nullable resource_id (coalesce to a sentinel uuid)
+create unique index if not exists capability_grants_unique
+  on capability_grants (user_id, domain, capability,
+      coalesce(resource_id, '00000000-0000-0000-0000-000000000000'::uuid));
+
+-- 2. Append-only audit of every grant / revoke
+create table if not exists grant_audit (
+  id         uuid primary key default gen_random_uuid(),
+  action     text not null,          -- granted | revoked
+  user_id    uuid,
+  domain     text,
+  capability text,
+  resource_id uuid,
+  actor      uuid,                   -- who performed the change (auth.uid())
+  created_at timestamptz default now()
+);
+
+create or replace function log_grant_change() returns trigger
+language plpgsql security definer as $$
+begin
+  if tg_op = 'INSERT' then
+    insert into grant_audit (action, user_id, domain, capability, resource_id, actor)
+      values ('granted', new.user_id, new.domain, new.capability, new.resource_id, auth.uid());
+    return new;
+  else
+    insert into grant_audit (action, user_id, domain, capability, resource_id, actor)
+      values ('revoked', old.user_id, old.domain, old.capability, old.resource_id, auth.uid());
+    return old;
+  end if;
+end;
+$$;
+
+drop trigger if exists trg_grant_audit on capability_grants;
+create trigger trg_grant_audit
+  after insert or delete on capability_grants
+  for each row execute function log_grant_change();
+
+-- 3. THE single authority function. Every RLS policy and RPC calls this.
+--    security definer so it can read capability_grants/profiles regardless
+--    of the caller's RLS visibility. Actor is ALWAYS auth.uid() — never a
+--    client-supplied parameter.
+create or replace function authorize(
+  p_domain      text,
+  p_capability  text,
+  p_resource_id uuid default null
+) returns boolean language plpgsql security definer stable as $$
+declare
+  v_uid  uuid := auth.uid();
+  v_role text;
+begin
+  if v_uid is null then return false; end if;
+
+  -- explicit capability grant (domain-wide or resource-scoped, unexpired)
+  if exists (
+    select 1 from capability_grants g
+    where g.user_id = v_uid
+      and g.domain = p_domain
+      and g.capability = p_capability
+      and (g.resource_id is null or g.resource_id = p_resource_id)
+      and (g.expires_at is null or g.expires_at > now())
+  ) then return true; end if;
+
+  -- LEGACY FALLBACK — mirrors the old role model so nothing breaks while
+  -- grants are being adopted. Remove this block in the deprecation phase.
+  select role into v_role from profiles where id = v_uid;
+  if v_role = 'admin' then return true; end if;
+  if v_role = 'editor' then
+    return p_domain <> 'platform'
+       and p_capability in ('read','write','delete','publish','manage_status');
+  end if;
+  if v_role = 'dispatcher' then
+    return (p_domain = 'warehouse' and p_capability in ('read','dispatch'))
+        or (p_domain = 'customer_service' and p_capability in ('read','manage_status'))
+        or (p_capability = 'read' and p_domain in ('fiber','yarn','fabric','chemicals','garment'));
+  end if;
+  return false;
+end;
+$$;
+
+-- 4. RLS for the grants table itself
+alter table capability_grants enable row level security;
+alter table grant_audit enable row level security;
+
+drop policy if exists "users see own grants" on capability_grants;
+create policy "users see own grants"
+  on capability_grants for select using (
+    user_id = auth.uid()
+    or authorize('platform','admin')
+    or authorize(domain,'grant')
+  );
+
+drop policy if exists "platform admins and data owners can grant" on capability_grants;
+create policy "platform admins and data owners can grant"
+  on capability_grants for insert with check (
+    authorize('platform','admin')
+    or (authorize(domain,'grant') and capability <> 'admin')
+  );
+
+drop policy if exists "platform admins and data owners can revoke" on capability_grants;
+create policy "platform admins and data owners can revoke"
+  on capability_grants for delete using (
+    authorize('platform','admin')
+    or (authorize(domain,'grant') and capability <> 'admin')
+  );
+
+drop policy if exists "platform admins can read audit" on grant_audit;
+create policy "platform admins can read audit"
+  on grant_audit for select using (authorize('platform','admin'));
+
+-- 5. AUTOMATIC MIGRATION of existing users (idempotent: on conflict skip).
+--    admin      → platform owner bundle (admin + grant on platform)
+--    editor     → editor bundle on every division + customer_service
+--    dispatcher → warehouse dispatcher bundle + read on divisions
+--    user/vendedor → no grants (baseline authenticated access unchanged)
+insert into capability_grants (user_id, domain, capability, granted_by)
+select p.id, 'platform', c.cap, p.id
+from profiles p, (values ('admin'),('grant')) as c(cap)
+where p.role = 'admin'
+on conflict do nothing;
+
+insert into capability_grants (user_id, domain, capability, granted_by)
+select p.id, d.dom, c.cap, p.id
+from profiles p,
+     (values ('fiber'),('yarn'),('fabric'),('chemicals'),('garment')) as d(dom),
+     (values ('read'),('write'),('delete'),('publish')) as c(cap)
+where p.role in ('admin','editor')
+on conflict do nothing;
+
+insert into capability_grants (user_id, domain, capability, granted_by)
+select p.id, 'customer_service', c.cap, p.id
+from profiles p, (values ('read'),('write'),('manage_status')) as c(cap)
+where p.role in ('admin','editor')
+on conflict do nothing;
+
+insert into capability_grants (user_id, domain, capability, granted_by)
+select p.id, 'warehouse', c.cap, p.id
+from profiles p, (values ('read'),('dispatch')) as c(cap)
+where p.role in ('admin','dispatcher')
+on conflict do nothing;
+
+insert into capability_grants (user_id, domain, capability, granted_by)
+select p.id, d.dom, 'read', p.id
+from profiles p,
+     (values ('fiber'),('yarn'),('fabric'),('chemicals'),('garment')) as d(dom)
+where p.role = 'dispatcher'
+on conflict do nothing;
+
+-- Migrate collection collaborators into resource-scoped grants
+-- (collection_collaborators stays as the live invite mechanism for now;
+-- these grants make the new model aware of existing memberships).
+insert into capability_grants (user_id, domain, capability, resource_id, granted_by)
+select cc.user_id, 'customer_service', c.cap, cc.collection_id, cc.added_by
+from collection_collaborators cc, (values ('read'),('write')) as c(cap)
+on conflict do nothing;
+
+-- 6. Rewrite RLS policies to route through authorize()
+--    (same names as before so drop-if-exists stays idempotent)
+drop policy if exists "editors can update sample status" on samples;
+create policy "editors can update sample status"
+  on samples for update using (
+    requested_by = auth.uid()
+    or authorize('customer_service','manage_status')
+    or authorize('warehouse','dispatch')
+  );
+
+drop policy if exists "users can request samples" on samples;
+create policy "users can request samples"
+  on samples for insert with check (
+    requested_by = auth.uid()
+    or authorize('customer_service','write')
+    or authorize('warehouse','dispatch')
+  );
+
+drop policy if exists "editors can update collections" on sample_collections;
+create policy "editors can update collections"
+  on sample_collections for update using (
+    requested_by = auth.uid()
+    or authorize('customer_service','manage_status')
+    or authorize('warehouse','dispatch')
+  );
+
+drop policy if exists "collection members can invite collaborators" on collection_collaborators;
+create policy "collection members can invite collaborators"
+  on collection_collaborators for insert with check (
+    exists (
+      select 1 from sample_collections c
+      where c.id = collection_id and (
+        c.requested_by = auth.uid()
+        or exists (select 1 from collection_collaborators cc where cc.collection_id = c.id and cc.user_id = auth.uid())
+      )
+    )
+    or authorize('customer_service','write')
+    or authorize('warehouse','dispatch')
+  );
+
+drop policy if exists "members can remove collaborators" on collection_collaborators;
+create policy "members can remove collaborators"
+  on collection_collaborators for delete using (
+    added_by = auth.uid() or user_id = auth.uid()
+    or authorize('customer_service','manage_status')
+    or authorize('platform','admin')
+  );
+
+-- 7. HARDEN RPCs — actor is auth.uid() (client-supplied p_user_id is only a
+--    fallback for SQL-editor testing where auth.uid() is null); display name
+--    comes from profiles, not the client. authorize() is enforced inside,
+--    since security definer bypasses RLS.
+
+create or replace function verify_sample(
+  p_id uuid, p_user_id uuid, p_user_name text
+) returns void language plpgsql security definer as $$
+declare
+  v_actor uuid := coalesce(auth.uid(), p_user_id);
+  v_name  text;
+begin
+  if auth.uid() is not null and not authorize('warehouse','dispatch') then
+    raise exception 'not authorized: warehouse/dispatch required';
+  end if;
+  select coalesce(full_name, p_user_name) into v_name from profiles where id = v_actor;
+  v_name := coalesce(v_name, p_user_name, 'Unknown');
+  update samples set verified = true, verified_by = v_actor, verified_at = now(), excluded = false, exclusion_reason = null
+  where id = p_id;
+  insert into sample_events (sample_id, event_type, event_label, event_data, created_by)
+    values (p_id, 'verified', 'Verified by ' || v_name, '{}'::jsonb, v_actor);
+end;
+$$;
+
+create or replace function exclude_sample(
+  p_id uuid, p_reason text, p_user_id uuid, p_user_name text
+) returns void language plpgsql security definer as $$
+declare
+  v_actor uuid := coalesce(auth.uid(), p_user_id);
+  v_name  text;
+begin
+  if auth.uid() is not null and not authorize('warehouse','dispatch') then
+    raise exception 'not authorized: warehouse/dispatch required';
+  end if;
+  select coalesce(full_name, p_user_name) into v_name from profiles where id = v_actor;
+  v_name := coalesce(v_name, p_user_name, 'Unknown');
+  update samples set excluded = true, exclusion_reason = p_reason, verified = false
+  where id = p_id;
+  insert into sample_events (sample_id, event_type, event_label, event_data, created_by)
+    values (p_id, 'excluded', v_name || ' excluded this item: ' || p_reason, jsonb_build_object('reason', p_reason), v_actor);
+end;
+$$;
+
+create or replace function update_collection_status(
+  p_id        uuid,
+  p_status    text,
+  p_user_id   uuid,
+  p_user_name text
+) returns void language plpgsql security definer as $$
+declare
+  v_actor uuid := coalesce(auth.uid(), p_user_id);
+  v_name  text;
+  v_label text;
+  v_requester uuid;
+begin
+  select requested_by into v_requester from sample_collections where id = p_id;
+  if auth.uid() is not null
+     and v_actor <> v_requester
+     and not authorize('customer_service','manage_status')
+     and not authorize('warehouse','dispatch') then
+    raise exception 'not authorized: manage_status or dispatch required';
+  end if;
+  select coalesce(full_name, p_user_name) into v_name from profiles where id = v_actor;
+  v_name := coalesce(v_name, p_user_name, 'Unknown');
+  update sample_collections set status = p_status, updated_at = now() where id = p_id;
+  update samples set status = p_status, updated_at = now() where collection_id = p_id;
+  v_label := case p_status
+    when 'approved'   then 'Approved by ' || v_name
+    when 'preparing'  then 'Preparation started by ' || v_name
+    when 'ready'      then 'Marked ready by ' || v_name
+    when 'picked_up'  then 'Picked up by ' || v_name
+    when 'shipped'    then 'Shipped by ' || v_name
+    when 'delivered'  then 'Delivered — confirmed by ' || v_name
+    when 'returned'   then 'Returned to sample library'
+    when 'damaged'    then 'Marked as damaged'
+    when 'archived'   then 'Archived by ' || v_name
+    else 'Status updated by ' || v_name
+  end;
+  insert into sample_events (sample_id, event_type, event_label, event_data, created_by)
+    select id, 'status_change', v_label, jsonb_build_object('status', p_status), v_actor
+    from samples where collection_id = p_id;
+end;
+$$;
+
+create or replace function update_sample_status(
+  p_id        uuid,
+  p_status    text,
+  p_user_id   uuid,
+  p_user_name text
+) returns void language plpgsql security definer as $$
+declare
+  v_actor uuid := coalesce(auth.uid(), p_user_id);
+  v_name  text;
+  v_label text;
+  v_requester uuid;
+begin
+  select requested_by into v_requester from samples where id = p_id;
+  if auth.uid() is not null
+     and v_actor <> v_requester
+     and not authorize('customer_service','manage_status')
+     and not authorize('warehouse','dispatch') then
+    raise exception 'not authorized: manage_status or dispatch required';
+  end if;
+  select coalesce(full_name, p_user_name) into v_name from profiles where id = v_actor;
+  v_name := coalesce(v_name, p_user_name, 'Unknown');
+  update samples set status = p_status, updated_at = now(),
+    approved_by = case when p_status = 'approved' then v_actor else approved_by end
+  where id = p_id;
+  v_label := case p_status
+    when 'approved'   then 'Approved by ' || v_name
+    when 'preparing'  then 'Preparation started by ' || v_name
+    when 'ready'      then 'Marked ready by ' || v_name
+    when 'picked_up'  then 'Picked up by ' || v_name
+    when 'shipped'    then 'Shipped by ' || v_name
+    when 'delivered'  then 'Delivered — confirmed by ' || v_name
+    when 'returned'   then 'Returned to sample library'
+    when 'damaged'    then 'Marked as damaged'
+    when 'archived'   then 'Archived by ' || v_name
+    else 'Status updated by ' || v_name
+  end;
+  insert into sample_events (sample_id, event_type, event_label, event_data, created_by)
+    values (p_id, 'status_change', v_label, jsonb_build_object('status', p_status), v_actor);
+end;
+$$;

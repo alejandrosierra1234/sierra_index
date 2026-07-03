@@ -1,0 +1,82 @@
+# SIERRA Index — Capability-Based Authorization
+
+Governance model: **Platform Owner + Data Owners**. Enforcement is
+capability-based; legacy roles remain only as a compatibility fallback.
+
+## Model
+
+| Concept | Definition |
+|---|---|
+| Domain | A business area that owns its data: `fiber`, `yarn`, `fabric`, `chemicals`, `garment` (product divisions), `warehouse` (physical samples / dispatch), `customer_service` (requests & collections lifecycle), `platform` (users, grants, audit). |
+| Capability | A verb granted on a domain: `read`, `write`, `delete`, `publish`, `dispatch`, `manage_status`, `grant`, `admin`. |
+| Data Owner | Holder of `grant` (plus working capabilities) on a domain — can delegate access within it. |
+| Platform Owner | Holder of `admin` + `grant` on `platform` — governs users and all grants. |
+| Clients / public | No login-tier data; only the public product page (`?pub=<id>`), unchanged. |
+
+Intended ownership: Product Development → fabric · Fiber Team → fiber ·
+Yarn Team → yarn · Pride Chemicals → chemicals · Sample Warehouse →
+warehouse · Customer Service → customer_service.
+
+## Database (`samples_schema.sql`, "CAPABILITY-BASED AUTHORIZATION" section)
+
+- **`capability_grants`** — `(user_id, domain, capability, resource_id?, granted_by, expires_at?)`. `resource_id = null` means the whole domain; a value scopes the grant to a single resource (used for collection collaborators). Unique per `(user, domain, capability, resource)`.
+- **`grant_audit`** — append-only log of every grant/revoke, written by a trigger; readable by platform admins only.
+- **`authorize(domain, capability, resource_id?)`** — the single authority function (security definer). Actor is always `auth.uid()`, never a client parameter. Checks explicit unexpired grants, then falls back to the legacy `profiles.role` mapping (admin → everything; editor → read/write/delete/publish/manage_status outside platform; dispatcher → warehouse read+dispatch, customer_service read+manage_status, division read). **Remove the fallback block in the deprecation phase.**
+- **RLS** — all samples / sample_collections / collection_collaborators write policies now route through `authorize()`. Policy names unchanged (idempotent drop/create).
+- **RPC hardening** — `verify_sample`, `exclude_sample`, `update_sample_status`, `update_collection_status` now (a) derive the actor from `auth.uid()` (`p_user_id` is only a SQL-editor fallback), (b) resolve the display name from `profiles`, and (c) enforce `authorize()` internally (security definer bypasses RLS, so this closed a spoofing gap). Signatures unchanged — no client migration needed.
+
+### Automatic user migration
+
+Idempotent backfill inserts grants from existing roles (`on conflict do nothing`):
+admin → platform admin/grant + full division + customer_service + warehouse bundles;
+editor → division editor bundles + customer_service; dispatcher → warehouse
+dispatch + division read; user/vendedor → no grants (baseline unchanged).
+Existing `collection_collaborators` rows are mirrored as resource-scoped
+customer_service grants.
+
+**To apply: run the whole `samples_schema.sql` (or just the new section) in the Supabase SQL Editor. The app works before and after — order doesn't matter.**
+
+## Client (`index.html`)
+
+Module right after the global state declarations:
+
+- `loadGrants()` — loads the signed-in user's grants at login (called in `enterApp`); silently degrades to legacy fallback if the table doesn't exist yet.
+- `can(capability, domain, resourceId?)` — UI gate; mirrors `authorize()` including the legacy fallback. **The DB is authoritative; `can()` is cosmetic.**
+- `canEditDiv(d)` / `canDeleteDiv(d)` — division-aware helpers (`'all'`/null = any division).
+- `authRoleLabel()` — badge label derived from capabilities (Admin / Data Owner / Editor / Dispatcher / Viewer).
+- `isAdmin()` / `isEditor()` / `isDispatcher()` — **deprecated shims** over `can()`, kept for low-risk call sites; new code must call `can()`.
+
+### Call-site mapping
+
+| UI surface | Check |
+|---|---|
+| Product edit / add-image / drag-drop (detail page) | `canEditDiv(p.division)` |
+| Product delete | `canDeleteDiv(p.division)` |
+| Add product FAB | `canEditDiv(division)` (current division) |
+| Sample Center "see all" + All Requests nav/route | `can('read','customer_service')` |
+| Sample/collection status actions | `can('manage_status','customer_service')` |
+| Dispatch screen / Go to Dispatch | `can('dispatch','warehouse')` |
+| Team, Access Logs | `can('admin','platform')` |
+| Comment delete | own comment or `canEditDiv(selected.division)` |
+
+### Team screen
+
+Now shows per-user **Domain access** chips (domain + level, hover for raw
+capabilities, × to revoke) and an add-grant control (domain × level). Levels
+are UI-only bundles expanded by `bundleCaps()`:
+Viewer → read · Editor → read/write/publish (warehouse: read/dispatch;
+customer_service: +manage_status; platform: admin) · Data Owner → editor
+bundle + delete + `grant`. The legacy role dropdown remains (labeled as such)
+until deprecation.
+
+## Deprecation checklist (later phase)
+
+1. Confirm every active user has explicit grants (`select * from profiles p where not exists (select 1 from capability_grants g where g.user_id = p.id)`).
+2. Remove the legacy fallback block from `authorize()` and from `can()`.
+3. Remove the role dropdown + `setUserRole()`; drop/ignore `profiles.role`.
+4. Migrate `collection_collaborators` reads to resource-scoped grants and retire the table.
+
+## Known gaps
+
+- `products` table policies were configured directly in Supabase (not in this repo); they still use role checks until exported and rewritten through `authorize()`.
+- Client grant snapshot loads at login; mid-session revocation leaves stale buttons (harmless — the DB rejects the write). Consider refetching on window focus.
