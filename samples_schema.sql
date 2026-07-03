@@ -1284,3 +1284,20 @@ begin
   end loop;
 end;
 $$;
+
+-- ══════════════════════════════════════════════════════════════
+-- PRICING & LABELS — Customer Service owns pricing; Sample Warehouse
+-- prints, never types prices. Pricing lives on the collection item
+-- (samples), NEVER on the base product. Pricing changes are recorded
+-- in activity_events (customer_service domain) = pricing history.
+-- Label/sticker prints are tracked per sample for dispatch gating.
+-- ══════════════════════════════════════════════════════════════
+
+alter table samples add column if not exists price numeric check (price is null or price >= 0);
+alter table samples add column if not exists price_currency text default 'USD';
+alter table samples add column if not exists moq text;
+alter table samples add column if not exists price_valid_until date;
+alter table samples add column if not exists price_notes text;
+alter table samples add column if not exists label_printed_at timestamptz;
+alter table samples add column if not exists sticker_printed_at timestamptz;
+alter table sample_collections add column if not exists pricing_notes text;

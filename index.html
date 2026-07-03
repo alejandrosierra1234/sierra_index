@@ -2771,10 +2771,46 @@
     <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.3"/><path d="M5.5 8l2 2 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
     Select
   </button>
+  <button class="div-toolbar-icon-btn" id="import-btn" onclick="openImport()" title="Import products (CSV / Excel)" style="display:none">
+    <svg viewBox="0 0 20 20" fill="none"><path d="M10 13V4M6.5 7.5L10 4l3.5 3.5M4 16h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
   <button class="div-toolbar-btn div-toolbar-btn-primary" id="add-btn" onclick="openAdd()" style="display:none">
     <svg viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
     New product
   </button>
+</div>
+
+<!-- ══ MODAL: BULK IMPORT ══ -->
+<div class="overlay" id="m-import">
+  <div class="modal" style="width:680px">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-eyebrow" style="color:var(--text-3)">Catalog</div>
+        <div class="modal-title">Import products</div>
+      </div>
+      <button class="btn-icon" onclick="closeModal('m-import')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="two-col">
+        <div class="fg"><label>Division</label>
+          <select id="imp-div">
+            <option value="fiber">SIERRA Fiber</option>
+            <option value="yarn">SIERRA Yarn</option>
+            <option value="fabric" selected>SIERRA Fabric</option>
+            <option value="chemicals">SIERRA Chemicals</option>
+            <option value="garment">SIERRA Apparel</option>
+          </select>
+        </div>
+        <div class="fg"><label>Template</label>
+          <button class="btn btn-ghost" style="width:100%" onclick="downloadImportTemplate()">Download CSV template</button>
+        </div>
+      </div>
+      <div class="fg full" style="margin-top:0.5rem"><label>File (.csv or .xlsx)</label>
+        <input type="file" id="imp-file" accept=".csv,.xlsx,.xls" onchange="parseImportFile(this)" />
+      </div>
+      <div id="imp-preview"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ══ MODAL: LABEL ══ -->
@@ -2883,7 +2919,7 @@
     <div class="modal-body">
       <div class="form-errors" id="np-errors" style="display:none"></div>
       <!-- Common -->
-      <div class="two-col">
+      <div class="two-col" id="edit-sec-basics">
         <div class="fg full"><label>Division</label>
           <select id="np-div" onchange="renderFormFields()">
             <option value="fiber">SIERRA Fiber</option>
@@ -2909,7 +2945,14 @@
         </div>
       </div>
 
-      <div class="fg full"><label>Product images</label>
+      <div class="two-col" id="edit-sec-extras">
+        <div class="fg full"><label>Sample formats <span style="font-weight:400;color:var(--text-3)">(optional — overrides division defaults)</span></label>
+          <input type="text" id="np-formats" placeholder="e.g. Hanger, Swatch, Roll Sample" /></div>
+        <div class="fg full"><label>Documents <span style="font-weight:400;color:var(--text-3)">(one link per line)</span></label>
+          <textarea id="np-docs" rows="2" placeholder="https://…"></textarea></div>
+      </div>
+
+      <div class="fg full" id="edit-sec-images"><label>Product images</label>
         <div class="img-edit-grid" id="img-edit-grid"></div>
         <div class="img-upload-area" id="img-area"
           ondragover="event.preventDefault(); this.classList.add('drag-over')"
@@ -3581,8 +3624,14 @@ async function loadProducts() {
   renderProducts(filterProducts())
 }
 
+let _showArchived = false
+function toggleArchivedView() {
+  _showArchived = !_showArchived
+  renderProducts(filterProducts())
+}
 function filterProducts() {
-  let result = allProducts
+  // Archived products live in their own section, not the normal catalog
+  let result = allProducts.filter(p => _showArchived ? isArchived(p) : !isArchived(p))
   if (fabricFilter && division === 'fabric') {
     result = result.filter(p => inferConstruction(p) === fabricFilter)
   }
@@ -3634,7 +3683,8 @@ function renderProducts(products) {
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
   if (!products.length) {
-    pg.innerHTML = `<div class="empty"><div class="empty-icon">◻</div><p>${searchQuery ? 'No results for "'+searchQuery+'".' : 'No products in this division yet.'}</p></div>`
+    pg.innerHTML = `<div class="empty"><div class="empty-icon">◻</div><p>${_showArchived ? 'No archived products here.' : searchQuery ? 'No results for "'+searchQuery+'".' : 'No products in this division yet.'}</p></div>`
+    _renderArchivedFooter(pg)
     return
   }
 
@@ -3674,6 +3724,18 @@ function renderProducts(products) {
     document.getElementById('fab-filter-bar').style.display = 'none'
     pg.innerHTML = `<div class="pg-grid" style="padding-bottom:2rem">${products.map(p => cardHTML(p)).join('')}</div>`
   }
+  _renderArchivedFooter(pg)
+}
+
+function _renderArchivedFooter(pg) {
+  const archN = allProducts.filter(isArchived).length
+  if (!archN && !_showArchived) return
+  pg.insertAdjacentHTML('beforeend', `<div style="text-align:center;padding:0.5rem 0 2.5rem">
+    ${_showArchived
+      ? `<div style="font-size:0.72rem;color:var(--text-3);margin-bottom:0.5rem">Viewing archived products — read-only, hidden from the catalog and public pages.</div>
+         <button class="btn btn-ghost btn-sm" onclick="toggleArchivedView()">← Back to catalog</button>`
+      : `<button class="btn btn-ghost btn-sm" onclick="toggleArchivedView()" style="color:var(--text-3)">${archN} archived product${archN > 1 ? 's' : ''} — view</button>`}
+  </div>`)
 }
 
 function toggleConstSection(key) {
@@ -3880,11 +3942,15 @@ function setDiv(d, el) {
   division = d
   applyDivisionAccent(d)
   fabricFilter = null // reset construction filter when switching division
+  _showArchived = false
   const t = d === 'all' ? 'All products' : DIV_LBL[d]
   document.getElementById('sec-title').textContent = t
   document.getElementById('sec-sub').textContent = 'Browse technical sheets and request samples'
   document.getElementById('tb-section').textContent = t
-  if (canEditDiv(division)) document.getElementById('add-btn').style.display = 'flex'
+  if (canEditDiv(division)) {
+    document.getElementById('add-btn').style.display = 'flex'
+    const impBtn = document.getElementById('import-btn'); if (impBtn) impBtn.style.display = 'flex'
+  }
   document.getElementById('product-controls').style.display = 'flex'
   loadProducts()
 }
@@ -4053,8 +4119,15 @@ function showProductDetail(p) {
     if (p.description) {
       infoHtml += `<div class="pd-row" style="cursor:default"><div class="pd-v detail-desc">${esc(p.description)}</div></div>`
     }
-    const entries = Object.entries(specs).filter(([,v]) => notEmpty(v))
+    const entries = Object.entries(specs).filter(([k, v]) => notEmpty(v) && !['Documents','Sample Formats'].includes(k))
     entries.forEach(([k,v]) => { infoHtml += specRow(k, v) })
+  }
+
+  if (specs.Documents) {
+    infoHtml += `<div style="padding:0.75rem 0 0"><div class="pd-id-label" style="margin-bottom:0.3rem">Documents</div>
+      ${specs.Documents.split('\n').map(u => u.trim()).filter(Boolean).map(u =>
+        `<a href="${esc(u)}" target="_blank" rel="noopener" style="display:block;font-size:0.76rem;color:var(--accent);text-decoration:none;padding:0.15rem 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u)}</a>`).join('')}
+    </div>`
   }
 
   if (p.tags?.length) {
@@ -4063,7 +4136,9 @@ function showProductDetail(p) {
 
   infoHtml += '</div>'
 
-  const formatTypes = DIV_SAMPLE_TYPES[p.division] || []
+  const formatTypes = specs['Sample Formats']
+    ? specs['Sample Formats'].split(',').map(s => s.trim()).filter(Boolean)
+    : (DIV_SAMPLE_TYPES[p.division] || [])
   const formatChipsHtml = formatTypes.length ? `<div class="pd-id-block">
     <div class="pd-id-label">Available as</div>
     <div class="pd-format-chips">${formatTypes.map(t => `<span class="pd-format-chip">${esc(t)}</span>`).join('')}</div>
@@ -4106,10 +4181,20 @@ function showProductDetail(p) {
         <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.5 3.5l2 2L6 16H4v-2L14.5 3.5z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="btn-lbl">Edit</span>
       </button>
+      <div class="card-more-btn" style="width:auto;padding:0 0.6rem" onclick="toggleCardMore(event,this)" title="Quick actions">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15"><circle cx="5" cy="10" r="1.4"/><circle cx="10" cy="10" r="1.4"/><circle cx="15" cy="10" r="1.4"/></svg>
+        <div class="card-more-menu">
+          <button class="card-more-item" onclick="duplicateProduct(selected)">Duplicate product</button>
+          <button class="card-more-item" onclick="openEdit(selected,'specs')">Edit technical specs</button>
+          <button class="card-more-item" onclick="openEdit(selected,'images')">Edit images</button>
+          <button class="card-more-item" onclick="openEdit(selected,'extras')">Edit documents &amp; formats</button>
+          <button class="card-more-item" onclick="document.querySelector('.pd-id-value .grant-sel')?.focus()">Edit lifecycle status</button>
+        </div>
+      </div>
       <div class="detail-toolbar-sep"></div>` : ''}
-      ${canDeleteDiv(p.division) && !isArchived(p) ? `<button class="btn btn-ghost" style="color:#c0392b;border-color:rgba(192,57,43,0.18)" onclick="confirmDelete(selected)" title="Delete">
-        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M4 6h12M8 6V4h4v2M15 6l-1 11H6L5 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span class="btn-lbl">Delete</span>
+      ${canDeleteDiv(p.division) && !isArchived(p) ? `<button class="btn btn-ghost" style="color:#b47107;border-color:rgba(255,159,10,0.25)" onclick="confirmArchive(selected)" title="Archive — products are never deleted">
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4.5 8v7a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V8M8 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <span class="btn-lbl">Archive</span>
       </button>` : ''}
     </div>
   </div>`
@@ -5102,7 +5187,10 @@ async function showAllRequests() {
   document.getElementById('sec-title').textContent = 'All requests'
   document.getElementById('sec-sub').textContent = 'Manage sample requests from all collaborators'
   document.getElementById('tb-section').textContent = 'All requests'
-  if (canEditDiv(division)) document.getElementById('add-btn').style.display = 'flex'
+  if (canEditDiv(division)) {
+    document.getElementById('add-btn').style.display = 'flex'
+    const impBtn = document.getElementById('import-btn'); if (impBtn) impBtn.style.display = 'flex'
+  }
   document.getElementById('product-controls').style.display = 'none'
   clearSelection()
 
@@ -5258,6 +5346,9 @@ function openAdd() {
   editingProductId = null
   editingImageUrls = []; pendingImgFiles = []
   clearFormErrors()
+  applyEditSection(null)
+  const fmtNew = document.getElementById('np-formats'); if (fmtNew) fmtNew.value = ''
+  const docNew = document.getElementById('np-docs'); if (docNew) docNew.value = ''
   document.getElementById('add-modal-title').textContent = 'New product'
   ;['np-name','np-code','np-lot','np-country'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
   document.getElementById('np-country').value = 'Honduras'
@@ -5275,9 +5366,54 @@ function openEditWithFiles(p, fileList) {
   addImgFiles(fileList)
 }
 
-function openEdit(p) {
+/* Section-based editing: openEdit(p, 'specs'|'images'|'extras'|'basics')
+   shows only that block — every other input stays in the DOM prefilled, so
+   saveProduct still writes the complete, validated payload (save-by-section
+   with zero divergence risk). */
+function applyEditSection(section) {
+  const secs = { basics: 'edit-sec-basics', extras: 'edit-sec-extras', images: 'edit-sec-images', specs: 'div-fields' }
+  Object.values(secs).forEach(id => { const el = document.getElementById(id); if (el) el.style.display = '' })
+  if (!section || !secs[section]) return
+  Object.entries(secs).forEach(([k, id]) => {
+    const el = document.getElementById(id)
+    if (el && k !== section) el.style.display = 'none'
+  })
+}
+
+// Non-blocking amber banner: what's missing before this product is complete
+function previewMissingInfo(p) {
+  const missing = []
+  if (!(p.image_urls?.length || p.image_url)) missing.push('images')
+  if (p.division === 'fabric') {
+    if (!p.specs?.Construction) missing.push('Construction')
+    if (!p.specs?.Composition) missing.push('Composition')
+  }
+  if (!p.code) missing.push('SKU')
+  const box = document.getElementById('np-errors')
+  if (missing.length && box) {
+    box.style.display = 'block'
+    box.style.background = 'rgba(255,159,10,0.07)'
+    box.style.borderColor = 'rgba(255,159,10,0.3)'
+    box.innerHTML = `<div class="form-errors-title" style="color:#b47107">Missing: ${missing.join(', ')}</div>`
+  }
+}
+
+function duplicateProduct(p) {
+  const clone = { ...p, id: null, name: (p.name || '') + ' (copy)', code: '', lot: '', lifecycle: 'draft',
+    specs: { ...(p.specs || {}) }, tags: [...(p.tags || [])] }
+  openEdit(clone)
+  editingProductId = null
+  _editOriginal = null
+  document.getElementById('add-modal-title').textContent = 'Duplicate product'
+  const lcSel = document.getElementById('np-lifecycle'); if (lcSel) lcSel.value = 'draft'
+  toast('Review and save — the copy starts as a Draft')
+}
+
+function openEdit(p, section) {
   if (isArchived(p)) { toast('Archived products are read-only — change their status first'); return }
   clearFormErrors()
+  const errBox = document.getElementById('np-errors')
+  if (errBox) { errBox.style.background = ''; errBox.style.borderColor = '' }
   editingProductId = p.id
   _editOriginal = JSON.parse(JSON.stringify(p))
   editingImageUrls = (p.image_urls && p.image_urls.length) ? [...p.image_urls]
@@ -5289,6 +5425,8 @@ function openEdit(p) {
   document.getElementById('np-lot').value = p.lot || ''
   document.getElementById('np-country').value = p.country || 'Honduras'
   const lcSel = document.getElementById('np-lifecycle'); if (lcSel) lcSel.value = lc(p)
+  const fmtEl = document.getElementById('np-formats'); if (fmtEl) fmtEl.value = p.specs?.['Sample Formats'] || ''
+  const docEl = document.getElementById('np-docs'); if (docEl) docEl.value = p.specs?.Documents || ''
   document.getElementById('np-div').value = p.division
   renderFormFields()
   const s = p.specs || {}
@@ -5317,23 +5455,51 @@ function openEdit(p) {
   }
   renderEditImgGrid()
   document.getElementById('np-img').value = ''
+  applyEditSection(section)
+  previewMissingInfo(p)
   // Close detail view if open so edit modal has full z-index
   document.getElementById('view-detail').style.display = 'none'
   document.getElementById('m-add').classList.add('open')
 }
 
-async function confirmDelete(p) {
+/* Products are NEVER permanently deleted from the UI. Archiving requires a
+   written reason and password re-confirmation, warns about active work, is
+   fully recorded, and is reversible from the Archived section. */
+async function confirmArchive(p) {
   if (!p) return
-  if (isArchived(p)) { toast('Archived products are read-only — change their status first'); return }
-  if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return
-  const { error } = await sb.from('products').delete().eq('id', p.id)
-  if (error) { toast('Error deleting product'); return }
-  Audit.log('product', p.id, p, 'deleted', `Deleted product "${p.name}"`)
-  document.getElementById('view-detail').style.display = 'none'
-  toast('Product deleted')
-  loadProducts()
-  leaveView()
+  if (isArchived(p)) { toast('This product is already archived'); return }
+
+  // Warn if the product is inside active requests or open collections
+  let activeWarn = ''
+  try {
+    const { data: act } = await sb.from('samples').select('id,collection_id,status')
+      .eq('product_id', p.id)
+      .in('status', ['requested','approved','preparing','ready'])
+      .limit(10)
+    if (act?.length) {
+      const nCols = new Set(act.map(a => a.collection_id).filter(Boolean)).size
+      activeWarn = `⚠ This product is in ${act.length} active sample request${act.length > 1 ? 's' : ''}${nCols ? ` across ${nCols} open collection${nCols > 1 ? 's' : ''}` : ''}.\n\n`
+    }
+  } catch (_) {}
+
+  if (!confirm(`${activeWarn}Archive "${p.name}"?\n\nIt becomes read-only, leaves the catalog and public pages, and can be restored later from Archived products.`)) return
+
+  const reason = (prompt('Reason for archiving (required):') || '').trim()
+  if (!reason) { toast('A written reason is required to archive'); return }
+
+  const pwd = prompt('Confirm your password to archive this product:')
+  if (!pwd) return
+  const { error: authErr } = await sb.auth.signInWithPassword({ email: me.email, password: pwd })
+  if (authErr) { toast('Password confirmation failed — product not archived'); return }
+
+  selected = p
+  await changeLifecycle('archived')
+  Audit.log('product', p.id, p, 'archived', `Archived: ${reason}`, [], { reason, had_active_requests: !!activeWarn })
+  toast('Product archived')
 }
+
+// Kept only as a compatibility alias for any stale onclick in cached HTML
+function confirmDelete(p) { confirmArchive(p) }
 
 function renderEditImgGrid() {
   const grid = document.getElementById('img-edit-grid')
@@ -5918,6 +6084,12 @@ async function saveProduct() {
     })
     tags = (document.getElementById('g-tags')?.value || '').split(',').map(t => t.trim()).filter(Boolean)
   }
+
+  // Product-level sample formats + document links (any division)
+  const fmtVal = document.getElementById('np-formats')?.value?.trim()
+  const docVal = document.getElementById('np-docs')?.value?.trim()
+  if (fmtVal) specs['Sample Formats'] = fmtVal; else delete specs['Sample Formats']
+  if (docVal) specs.Documents = docVal; else delete specs.Documents
 
   // Validate everything before uploading or writing anything
   const manualCode = document.getElementById('np-code').value.trim()
@@ -8325,6 +8497,8 @@ async function showCollectionRecord(collectionId) {
 
         ${collaboratorsHtml}
 
+        ${pricingCardHtml(col, items)}
+
         <div class="srd-section-label">Samples in this collection</div>
         <div class="srd-card">
           ${itemsHtml || '<div style="font-size:0.82rem;color:var(--text-3)">No samples found.</div>'}
@@ -8357,6 +8531,129 @@ async function showCollectionRecord(collectionId) {
       try { QRCode.toCanvas(qrCanvas, col.collection_id, { width: 160, margin: 1, color: { dark: '#000000', light: '#ffffff' } }) } catch (e) {}
     }
   }, 80)
+}
+
+/* ── COLLECTION PRICING (Customer Service owns it) ──
+   Pricing lives on collection items (samples), never on the product, so it
+   varies freely per customer and collection. Warehouse sees it read-only
+   for labeling; edits require customer_service write. Every change is
+   logged with old→new values = pricing history. */
+function canEditPricing() { return can('write', 'customer_service') }
+function fmtPrice(i) {
+  if (i.price == null || i.price === '') return null
+  return `${i.price_currency || 'USD'} ${Number(i.price).toFixed(2)}`
+}
+
+function pricingCardHtml(col, items) {
+  const editable = canEditPricing()
+  const anyPrice = items.some(i => i.price != null)
+  if (!editable && !anyPrice) return ''
+  return `<div class="srd-section-label">Pricing <span style="font-weight:400;color:var(--text-3);text-transform:none;letter-spacing:0">· optional, owned by Customer Service</span></div>
+  <div class="srd-card">
+    ${items.map(i => `
+      <div style="display:grid;grid-template-columns:1fr repeat(4, minmax(70px, 110px));gap:0.4rem;align-items:center;padding:0.35rem 0;border-bottom:1px solid var(--border);font-size:0.76rem">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.products?.name || '—')} <span style="color:var(--text-3)">${esc(i.sample_type)}</span></span>
+        ${editable ? `
+          <input type="number" min="0" step="0.01" class="tl-search" id="pr-${i.id}" value="${i.price ?? ''}" placeholder="Price" />
+          <select class="grant-sel" id="cur-${i.id}">${['USD','EUR','GTQ','HNL','MXN'].map(c => `<option ${(i.price_currency || 'USD') === c ? 'selected' : ''}>${c}</option>`).join('')}</select>
+          <input type="text" class="tl-search" id="moq-${i.id}" value="${esc(i.moq || '')}" placeholder="MOQ" />
+          <input type="date" class="tl-search" id="val-${i.id}" value="${i.price_valid_until || ''}" title="Valid until" />
+        ` : `
+          <span style="font-weight:700">${fmtPrice(i) || '—'}</span>
+          <span></span>
+          <span style="color:var(--text-3)">${i.moq ? 'MOQ ' + esc(i.moq) : ''}</span>
+          <span style="color:var(--text-3)">${i.price_valid_until ? 'until ' + i.price_valid_until : ''}</span>
+        `}
+      </div>`).join('')}
+    ${editable ? `
+      <input type="text" class="tl-search" id="pr-notes" style="width:100%;margin-top:0.5rem" placeholder="Pricing notes (optional)" value="${esc(col.pricing_notes || '')}" />
+      <button class="btn btn-primary btn-sm" style="margin-top:0.5rem" onclick="savePricing('${col.id}')">Save pricing</button>`
+    : col.pricing_notes ? `<div style="font-size:0.72rem;color:var(--text-3);margin-top:0.5rem">${esc(col.pricing_notes)}</div>` : ''}
+  </div>`
+}
+
+async function savePricing(collectionId) {
+  const { data: items } = await sb.from('samples').select('id,price,price_currency,moq,price_valid_until,products(name)').eq('collection_id', collectionId)
+  const changes = []
+  for (const i of (items || [])) {
+    const priceRaw = document.getElementById('pr-' + i.id)?.value?.trim()
+    const price = priceRaw === '' || priceRaw == null ? null : parseFloat(priceRaw)
+    if (price != null && (Number.isNaN(price) || price < 0)) { toast(`Invalid price for ${i.products?.name}`); return }
+    const upd = {
+      price,
+      price_currency: document.getElementById('cur-' + i.id)?.value || 'USD',
+      moq: document.getElementById('moq-' + i.id)?.value?.trim() || null,
+      price_valid_until: document.getElementById('val-' + i.id)?.value || null,
+    }
+    const changed = ['price','price_currency','moq','price_valid_until'].filter(k => String(i[k] ?? '') !== String(upd[k] ?? ''))
+    if (!changed.length) continue
+    const { error } = await sb.from('samples').update(upd).eq('id', i.id)
+    if (error) { toast('Could not save pricing: ' + error.message); return }
+    changed.forEach(k => changes.push({ field: `${i.products?.name || 'item'} · ${k}`, from: i[k] ?? '', to: upd[k] ?? '' }))
+  }
+  const notes = document.getElementById('pr-notes')?.value?.trim() || null
+  await sb.from('sample_collections').update({ pricing_notes: notes }).eq('id', collectionId)
+  if (changes.length) Audit.log('collection', collectionId, null, 'pricing_updated',
+    `Pricing updated (${changes.length} change${changes.length > 1 ? 's' : ''})`, changes)
+  toast('Pricing saved')
+  showCollectionRecord(collectionId)
+}
+
+/* ── COMMERCIAL PRICE STICKER (separate from the base product label) ── */
+async function printPriceSticker(sampleId) {
+  const { data: s } = await sb.from('samples')
+    .select('*, products(name,code), sample_collections!collection_id(collection_id,customer,name)')
+    .eq('id', sampleId).single()
+  if (!s) { toast('Item not found'); return }
+  if (s.price == null) { toast('This item has no pricing yet — Customer Service adds it on the collection'); return }
+  let bcHtml = ''
+  try {
+    const tmp = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    JsBarcode(tmp, s.sample_id, { format: 'CODE128', width: 3, height: 60, displayValue: false, background: '#fff', lineColor: '#000', xmlDocument: document })
+    tmp.removeAttribute('width'); tmp.removeAttribute('height')
+    tmp.setAttribute('style', 'width:100%;height:auto;display:block')
+    bcHtml = tmp.outerHTML
+  } catch (_) {}
+  const col = s.sample_collections || {}
+  const w = window.open('', '_blank')
+  w.document.write(`<html><head><title>Price sticker ${esc(s.sample_id)}</title><style>
+    @page { size: 62mm 40mm; margin: 2mm; }
+    body { font-family: -apple-system, Helvetica, Arial, sans-serif; margin:0; color:#000; }
+    .st { width: 58mm; padding: 1mm; }
+    .row { display:flex; justify-content:space-between; font-size:8pt; }
+    .price { font-size:15pt; font-weight:800; margin:1mm 0; }
+    .small { font-size:7pt; color:#333; }
+  </style></head><body><div class="st">
+    <div class="row"><strong>${esc(col.customer || '')}</strong><span>${esc(col.collection_id || '')}</span></div>
+    <div class="small">${esc(s.products?.name || '')} · ${esc(s.products?.code || '')}</div>
+    <div class="price">${esc(s.price_currency || 'USD')} ${Number(s.price).toFixed(2)}</div>
+    <div class="row small">
+      <span>${s.moq ? 'MOQ ' + esc(s.moq) : ''}</span>
+      <span>${s.price_valid_until ? 'Valid until ' + esc(s.price_valid_until) : ''}</span>
+    </div>
+    ${s.price_notes ? `<div class="small">${esc(s.price_notes)}</div>` : ''}
+    ${bcHtml}
+    <div class="small" style="text-align:center">${esc(s.sample_id)}</div>
+  </div></body></html>`)
+  w.document.close(); w.print()
+  await sb.from('samples').update({ sticker_printed_at: new Date().toISOString() }).eq('id', sampleId)
+  const item = (_dispatchItems || []).find(i => i.id === sampleId)
+  if (item) item.sticker_printed_at = new Date().toISOString()
+  Audit.log('sample', sampleId, null, 'price_sticker_printed',
+    `Commercial price sticker printed (${s.price_currency || 'USD'} ${Number(s.price).toFixed(2)})`, [], { collection: col.collection_id })
+  if (_dispatchCol) renderDispatchScreen()
+}
+
+async function printBaseLabelFor(sampleId) {
+  const item = (_dispatchItems || []).find(i => i.id === sampleId)
+  if (!item) return
+  const { data: prod } = await sb.from('products').select('*').eq('id', item.product_id).single()
+  if (!prod) { toast('Product not found'); return }
+  quickLabel(prod)
+  await sb.from('samples').update({ label_printed_at: new Date().toISOString() }).eq('id', sampleId)
+  item.label_printed_at = new Date().toISOString()
+  Audit.log('sample', sampleId, null, 'label_printed', `Base product label printed for ${prod.name}`)
+  renderDispatchScreen()
 }
 
 async function updateCollectionStatus(id, status) {
@@ -8487,6 +8784,21 @@ function dispatchItemHtml(i) {
         <button class="btn btn-primary btn-sm" onclick="dispatchExclude('${i.id}')">Confirm exclude</button>
       </div>`
   }
+  // Labeling state: base label always expected; commercial sticker only
+  // when the item carries pricing (set by Customer Service — warehouse
+  // never types prices, it only prints)
+  const needsSticker = i.price != null
+  const labelChips = `
+    <div style="display:flex;gap:0.35rem;flex-wrap:wrap;margin-top:0.45rem;align-items:center">
+      <span class="lc-pill lc-pill-sm" style="${i.label_printed_at ? 'background:rgba(52,199,89,0.1);color:#0a7a72;border-color:rgba(52,199,89,0.25)' : 'background:rgba(255,159,10,0.1);color:#b47107;border-color:rgba(255,159,10,0.25)'}">
+        ${i.label_printed_at ? 'Label ✓' : 'Label needed'}</span>
+      ${!i.label_printed_at && !i.excluded ? `<button class="btn btn-ghost btn-sm" onclick="printBaseLabelFor('${i.id}')">Print label</button>` : ''}
+      ${needsSticker ? `
+        <span class="lc-pill lc-pill-sm" style="${i.sticker_printed_at ? 'background:rgba(52,199,89,0.1);color:#0a7a72;border-color:rgba(52,199,89,0.25)' : 'background:rgba(255,159,10,0.1);color:#b47107;border-color:rgba(255,159,10,0.25)'}">
+          ${i.sticker_printed_at ? 'Price sticker ✓' : 'Price sticker needed'} · ${esc(fmtPrice(i) || '')}</span>
+        ${!i.sticker_printed_at && !i.excluded ? `<button class="btn btn-ghost btn-sm" onclick="printPriceSticker('${i.id}')">Print sticker</button>` : ''}
+      ` : ''}
+    </div>`
   return `<div class="srd-card" style="margin-bottom:0.6rem">
     <div style="display:flex;align-items:center;gap:0.6rem">
       <span style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0"></span>
@@ -8495,6 +8807,7 @@ function dispatchItemHtml(i) {
         <div style="font-size:0.68rem;color:var(--text-3)">${esc(i.sample_id)} · ${esc(i.sample_type)} · Qty ${i.quantity||1}${i.products?.code ? ' · '+esc(i.products.code) : ''}</div>
       </div>
     </div>
+    ${i.excluded ? '' : labelChips}
     ${stateHtml}
   </div>`
 }
@@ -8622,6 +8935,23 @@ async function finalizeDispatch() {
   const included = items.filter(i => !i.excluded)
   const excluded = items.filter(i => i.excluded)
   const userName = profile?.full_name || me?.email?.split('@')[0] || 'User'
+
+  // Labeling gate: every included item needs its base label, and a price
+  // sticker when it has pricing. Missing ones block completion unless the
+  // dispatcher records an override reason — which is logged.
+  const missingLabels = included.filter(i => !i.label_printed_at)
+  const missingStickers = included.filter(i => i.price != null && !i.sticker_printed_at)
+  if (missingLabels.length || missingStickers.length) {
+    const what = [
+      missingLabels.length ? `${missingLabels.length} base label${missingLabels.length > 1 ? 's' : ''}` : '',
+      missingStickers.length ? `${missingStickers.length} price sticker${missingStickers.length > 1 ? 's' : ''}` : '',
+    ].filter(Boolean).join(' and ')
+    const override = (prompt(`Missing ${what}.\n\nPrint them from each item, or type an override reason to dispatch anyway:`) || '').trim()
+    if (!override) { toast('Dispatch blocked — print the missing labels or record an override reason'); return }
+    Audit.log('collection', col.id, null, 'dispatch_override',
+      `Dispatched with missing ${what} — override: ${override}`, [],
+      { reason: override, missing_labels: missingLabels.map(i => i.sample_id), missing_stickers: missingStickers.map(i => i.sample_id) })
+  }
 
   const { error } = await sb.rpc('update_collection_status', { p_id: col.id, p_status: 'ready', p_user_id: me.id, p_user_name: userName })
   if (error) console.error('update_collection_status error:', error)
@@ -9859,6 +10189,207 @@ function insExport(kind) {
   a.download = `${title}.${kind === 'excel' ? 'xls' : 'csv'}`
   a.click(); URL.revokeObjectURL(a.href)
   Audit.log('user', me.id, null, 'report_exported', `Exported ${title} (${kind})`)
+}
+
+/* ── BULK PRODUCT IMPORT (CSV / Excel) ──
+   Templates per division; every row is validated with the same rules as
+   the editor before anything is written. Nothing publishes automatically:
+   imports land as Draft unless "publish" is explicitly checked. */
+const IMPORT_TEMPLATES = {
+  fiber:     ['name','code','lot','country','description','tags'],
+  yarn:      ['name','code','lot','country','description','tags'],
+  chemicals: ['name','code','lot','country','description','tags'],
+  garment:   ['name','code','lot','country','description','tags'],
+  fabric:    ['name','code','lot','country','construction','composition','color','width','gsm','tags'],
+}
+let _importRows = null
+
+function openImport() {
+  document.getElementById('imp-div').value = division !== 'all' ? division : 'fabric'
+  document.getElementById('imp-file').value = ''
+  document.getElementById('imp-preview').innerHTML = ''
+  _importRows = null
+  document.getElementById('m-import').classList.add('open')
+}
+
+function downloadImportTemplate() {
+  const div = document.getElementById('imp-div').value
+  const cols = IMPORT_TEMPLATES[div]
+  const example = div === 'fabric'
+    ? ['Plain Jersey 180', 'S-100', 'LOT-01', 'Honduras', 'JRS', '95% Cotton 5% Spandex', 'White', '1.60 m', '180', 'soft,basic']
+    : ['Example product', 'S-100', 'LOT-01', 'Honduras', 'Short description', 'tag1,tag2']
+  const csv = cols.join(',') + '\n' + example.map(v => `"${v}"`).join(',')
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' }))
+  a.download = `sierra-import-${div}.csv`
+  a.click(); URL.revokeObjectURL(a.href)
+}
+
+// Minimal CSV parser (quotes, commas, CRLF)
+function parseCSV(text) {
+  const rows = []; let row = [], cell = '', q = false
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    if (q) {
+      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++ }
+      else if (ch === '"') q = false
+      else cell += ch
+    } else if (ch === '"') q = true
+    else if (ch === ',') { row.push(cell); cell = '' }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++
+      row.push(cell); cell = ''
+      if (row.some(c => c !== '')) rows.push(row)
+      row = []
+    } else cell += ch
+  }
+  row.push(cell)
+  if (row.some(c => c !== '')) rows.push(row)
+  return rows
+}
+
+async function parseImportFile(input) {
+  const file = input.files?.[0]
+  if (!file) return
+  const prev = document.getElementById('imp-preview')
+  prev.innerHTML = '<div style="font-size:0.78rem;color:var(--text-3);padding:0.75rem 0">Reading file…</div>'
+  let grid
+  try {
+    if (/\.xlsx?$/i.test(file.name)) {
+      // Excel: lazy-load SheetJS only when actually needed
+      if (!window.XLSX) await new Promise((res, rej) => {
+        const s = document.createElement('script')
+        s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
+        s.onload = res; s.onerror = () => rej(new Error('Could not load the Excel reader — check your connection or use CSV'))
+        document.head.appendChild(s)
+      })
+      const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' })
+      grid = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: '' })
+    } else {
+      grid = parseCSV(await file.text())
+    }
+  } catch (e) {
+    prev.innerHTML = `<div class="form-errors"><div class="form-errors-title">${esc(e.message || 'Could not read the file')}</div></div>`
+    return
+  }
+  if (!grid || grid.length < 2) {
+    prev.innerHTML = '<div class="form-errors"><div class="form-errors-title">The file has no data rows</div></div>'
+    return
+  }
+
+  const div = document.getElementById('imp-div').value
+  const headers = grid[0].map(h => String(h).trim().toLowerCase())
+  const idx = k => headers.indexOf(k)
+  const get = (r, k) => { const i = idx(k); return i >= 0 ? String(r[i] ?? '').trim() : '' }
+
+  // duplicate SKU pre-check: in-file + one DB query for the whole batch
+  const codes = grid.slice(1).map(r => get(r, 'code')).filter(Boolean)
+  let dbDupes = new Set()
+  try {
+    const { data } = await sb.from('products').select('code').in('code', codes)
+    dbDupes = new Set((data || []).map(r => (r.code || '').toLowerCase()))
+  } catch (_) {}
+  const seen = new Set()
+
+  _importRows = grid.slice(1).map((r, n) => {
+    const errors = []
+    const name = get(r, 'name')
+    const code = get(r, 'code')
+    if (!name) errors.push('name is required')
+    if (div === 'fabric') {
+      if (!get(r, 'construction')) errors.push('construction is required for fabric')
+      if (!get(r, 'composition')) errors.push('composition is required for fabric')
+      const total = compositionTotal(get(r, 'composition'))
+      if (total !== null && total > 100.001) errors.push(`composition adds up to ${+total.toFixed(1)}%`)
+      const gsm = parseFloat(get(r, 'gsm'))
+      if (!Number.isNaN(gsm) && gsm < 0) errors.push('gsm cannot be negative')
+    }
+    if (code) {
+      if (seen.has(code.toLowerCase())) errors.push(`duplicate SKU "${code}" inside the file`)
+      else if (dbDupes.has(code.toLowerCase())) errors.push(`SKU "${code}" already exists in the catalog`)
+      seen.add(code.toLowerCase())
+    }
+    const specs = {}
+    if (div === 'fabric') {
+      if (get(r, 'construction')) specs.Construction = get(r, 'construction').toUpperCase()
+      if (get(r, 'composition')) specs.Composition = get(r, 'composition')
+      if (get(r, 'color')) specs.Color = get(r, 'color')
+      if (get(r, 'width')) specs.Width = get(r, 'width')
+      if (get(r, 'gsm')) specs.GSM = get(r, 'gsm')
+    }
+    return {
+      n: n + 2, errors,
+      data: {
+        name, division: div, code: code || null, lot: get(r, 'lot') || null,
+        country: get(r, 'country') || 'Honduras',
+        description: get(r, 'description') || '', specs,
+        tags: get(r, 'tags').split(',').map(t => t.trim()).filter(Boolean),
+        image_url: null, image_urls: [],
+      },
+    }
+  })
+  renderImportPreview()
+}
+
+function renderImportPreview() {
+  const prev = document.getElementById('imp-preview')
+  const rows = _importRows || []
+  const valid = rows.filter(r => !r.errors.length)
+  const bad = rows.filter(r => r.errors.length)
+  const dupes = rows.filter(r => r.errors.some(e => /SKU/.test(e)))
+  const missing = rows.filter(r => r.errors.some(e => /required/.test(e)))
+  prev.innerHTML = `
+    <div class="ins-grid" style="margin:1rem 0 0.75rem;grid-template-columns:repeat(4,1fr)">
+      ${insCard('Total rows', rows.length, '')}
+      ${insCard('Valid', valid.length, 'ready to import')}
+      ${insCard('With errors', bad.length, 'will be skipped')}
+      ${insCard('Duplicate SKUs', dupes.length, missing.length ? `${missing.length} missing required` : '')}
+    </div>
+    ${bad.length ? `
+      <div class="form-errors" style="max-height:140px;overflow-y:auto">
+        <div class="form-errors-title">Rows with errors</div>
+        <ul>${bad.slice(0, 8).map(r => `<li>Row ${r.n}: ${esc(r.errors.join('; '))}</li>`).join('')}</ul>
+        ${bad.length > 8 ? `<div style="font-size:0.7rem;color:var(--text-3);margin-top:0.3rem">…and ${bad.length - 8} more — download the report.</div>` : ''}
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-bottom:0.75rem" onclick="downloadImportErrors()">Download error report</button>` : ''}
+    ${valid.length ? `
+      <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.78rem;color:var(--text-2);margin:0.5rem 0">
+        <input type="checkbox" id="imp-publish" style="accent-color:var(--accent)" />
+        Publish immediately as Available (otherwise everything imports as <strong>Draft</strong>)
+      </label>
+      <button class="btn btn-primary" style="width:100%" onclick="runImport()">Import ${valid.length} product${valid.length > 1 ? 's' : ''}</button>` : ''}`
+}
+
+function downloadImportErrors() {
+  const bad = (_importRows || []).filter(r => r.errors.length)
+  const csv = 'row,errors\n' + bad.map(r => `${r.n},"${r.errors.join('; ').replace(/"/g, '""')}"`).join('\n')
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' }))
+  a.download = 'import-errors.csv'
+  a.click(); URL.revokeObjectURL(a.href)
+}
+
+async function runImport() {
+  const valid = (_importRows || []).filter(r => !r.errors.length)
+  if (!valid.length) return
+  const publish = document.getElementById('imp-publish')?.checked
+  const lifecycle = publish ? 'available' : 'draft'
+  const div = document.getElementById('imp-div').value
+  let ok = 0, failed = 0
+  for (let i = 0; i < valid.length; i += 50) {
+    const chunk = valid.slice(i, i + 50).map(r => ({ ...r.data, lifecycle, created_by: me.id }))
+    let { error } = await sb.from('products').insert(chunk)
+    if (error && /lifecycle/i.test(error.message || '')) {
+      ;({ error } = await sb.from('products').insert(chunk.map(({ lifecycle: _, ...rest }) => rest)))
+    }
+    if (error) failed += chunk.length; else ok += chunk.length
+  }
+  Audit.log('user', me.id, null, 'products_imported',
+    `Imported ${ok} ${DIV_LBL[div] || div} product${ok > 1 ? 's' : ''} as ${lifecycle}${failed ? ` (${failed} failed)` : ''}`,
+    [], { division: div, ok, failed, lifecycle })
+  toast(failed ? `Imported ${ok}, ${failed} failed` : `Imported ${ok} product${ok > 1 ? 's' : ''} as ${lifecycle}`)
+  closeModal('m-import')
+  loadProducts()
 }
 
 /* ── SCAN MODE ── */

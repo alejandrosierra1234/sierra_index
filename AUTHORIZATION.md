@@ -218,3 +218,41 @@ gating per section (`insightsSections()`: customer_service → demand/
 operations/customers/trends, warehouse → inventory, division write → product
 health, platform admin → everything, plain users see nothing and get no nav
 item).
+
+## Daily workflows: editing, archiving, import, pricing & stickers
+
+- **Section-based editing** — `openEdit(p, section)` shows one block
+  (basics / specs / images / extras) while the rest stay prefilled in the
+  DOM, so `saveProduct` still writes the complete validated payload
+  (save-by-section with zero divergence). Quick-actions menu on the detail
+  toolbar: duplicate (opens as insert-mode Draft copy), specs, images,
+  documents & formats, lifecycle. Amber "Missing: …" banner on open. New
+  optional per-product fields stored in specs: `Sample Formats` (overrides
+  division defaults on the detail page) and `Documents` (links list).
+- **Safe archiving** — the Delete button is now Archive: warns when the
+  product sits in active requests/collections, requires a written reason
+  AND password re-confirmation (`signInWithPassword`), goes through the
+  lifecycle system (read-only, hidden from public pages), and is logged
+  with the reason. Archived products leave the normal catalog
+  (`filterProducts`) and live behind an "N archived products — view"
+  footer toggle; restore = lifecycle change by division `write`.
+  `confirmDelete` remains only as an alias to archive.
+- **Bulk import** — toolbar Import button (division `write`): per-division
+  CSV templates, CSV parsed natively, Excel via lazy-loaded SheetJS.
+  Validation reuses editor rules + in-file and one-query DB duplicate-SKU
+  checks. Preview cards (total/valid/errors/duplicates), downloadable
+  error report, imports land as **Draft** unless "publish" is checked,
+  chunked inserts, summary logged to the activity log.
+- **Pricing** — lives on collection items (`samples.price/currency/moq/
+  valid_until/notes` + `sample_collections.pricing_notes`), never on the
+  product. Editable only with customer_service `write`; warehouse sees it
+  read-only. Every change logged with old→new = pricing history.
+- **Commercial price stickers** — `printPriceSticker()` prints a separate
+  62×40mm sticker (customer, collection ref, SKU, price+currency, MOQ,
+  valid-until, notes, CODE128 of the sample id) without touching the base
+  product label; every print is logged and timestamped
+  (`sticker_printed_at`; base labels track `label_printed_at`).
+- **Dispatch gating** — each dispatch item shows Label ✓/needed and Price
+  sticker ✓/needed chips with print buttons; finalize blocks while labels
+  or required stickers are missing unless the dispatcher records an
+  override reason, which is logged with the affected sample ids.
