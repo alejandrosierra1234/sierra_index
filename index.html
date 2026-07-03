@@ -3275,6 +3275,11 @@ function leaveView() {
   document.getElementById('view-sample-detail').style.display = 'none'
   document.getElementById('content').classList.remove('detail-active')
   document.getElementById('view-products').style.display = 'block'
+  // The fabric construction filter bar only belongs to the Fabric division
+  // grid; renderProducts() re-shows it when that grid renders. Without
+  // this, navigating away (e.g. to Sample Center) left it stuck on screen.
+  const fabBar = document.getElementById('fab-filter-bar')
+  if (fabBar) fabBar.style.display = 'none'
 }
 
 function openDrawer() {
