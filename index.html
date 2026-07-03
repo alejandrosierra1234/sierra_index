@@ -184,6 +184,35 @@
       background:var(--surface2); border:1px solid var(--border); color:var(--text-3);
       margin-top:0.1rem;
     }
+    /* ── AUDIT: tabs, timeline, versions ── */
+    .pd-tabs { display:flex; gap:0.25rem; background:var(--surface2); border-radius:9px; padding:0.2rem; margin-bottom:0.75rem; }
+    .pd-tab { flex:1; border:none; background:none; font-family:inherit; font-size:0.74rem; font-weight:600; color:var(--text-3); padding:0.35rem 0.6rem; border-radius:7px; cursor:pointer; transition:all 0.15s; }
+    .pd-tab.active { background:var(--surface); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+    .tl-controls { display:flex; gap:0.4rem; margin-bottom:0.7rem; }
+    .tl-search { flex:1; min-width:0; font-size:0.74rem; padding:0.35rem 0.6rem; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:inherit; }
+    .tl-item { display:flex; gap:0.6rem; padding:0.55rem 0; border-bottom:1px solid var(--border); }
+    .tl-item:last-child { border-bottom:none; }
+    .tl-dot { width:7px; height:7px; border-radius:50%; background:var(--text-3); margin-top:0.35rem; flex-shrink:0; }
+    .tl-body { flex:1; min-width:0; }
+    .tl-head { display:flex; justify-content:space-between; gap:0.5rem; align-items:baseline; }
+    .tl-actor { font-size:0.74rem; font-weight:600; color:var(--text); }
+    .tl-time { font-size:0.66rem; color:var(--text-3); white-space:nowrap; }
+    .tl-summary { font-size:0.76rem; color:var(--text-2); margin-top:0.1rem; }
+    .tl-change { display:flex; align-items:baseline; gap:0.4rem; flex-wrap:wrap; margin-top:0.25rem; font-size:0.72rem; }
+    .tl-field { font-weight:600; color:var(--text-3); text-transform:capitalize; }
+    .tl-old { color:var(--text-3); text-decoration:line-through; }
+    .tl-arrow { color:var(--text-3); }
+    .tl-new { color:var(--accent); font-weight:600; background:var(--accent-light); padding:0 0.3rem; border-radius:4px; }
+    .ver-card { display:flex; align-items:center; gap:0.55rem; padding:0.6rem 0.65rem; border:1px solid var(--border); border-radius:10px; margin-bottom:0.5rem; transition:border-color 0.15s; }
+    .ver-card-sel { border-color:var(--accent); }
+    .ver-check input { accent-color:var(--accent); cursor:pointer; }
+    .ver-main { flex:1; min-width:0; }
+    .ver-title { font-size:0.78rem; font-weight:600; color:var(--text); }
+    .ver-restored { font-size:0.64rem; font-weight:500; color:var(--accent); background:var(--accent-light); padding:0.05rem 0.4rem; border-radius:10px; }
+    .ver-meta { font-size:0.68rem; color:var(--text-3); margin-top:0.1rem; }
+    .ver-reason { font-size:0.7rem; color:var(--text-2); margin-top:0.15rem; font-style:italic; }
+    .ver-diff { border:1px solid var(--border); border-radius:10px; padding:0.6rem 0.7rem; margin-bottom:0.6rem; background:var(--surface2); }
+    .ver-diff-title { font-size:0.72rem; font-weight:700; color:var(--text); margin-bottom:0.3rem; }
     .form-errors { background:rgba(192,57,43,0.06); border:1px solid rgba(192,57,43,0.25); border-radius:10px; padding:0.7rem 0.9rem; margin-bottom:1rem; }
     .form-errors-title { font-size:0.75rem; font-weight:700; color:#c0392b; margin-bottom:0.3rem; }
     .form-errors li { font-size:0.76rem; color:var(--text-2); margin-left:1rem; margin-top:0.15rem; }
@@ -2984,7 +3013,82 @@ function canRequestSample(p) {
   return !['discontinued', 'archived', 'draft'].includes(lc(p))
 }
 function isArchived(p) { return lc(p) === 'archived' }
-let editingProductId = null, editingImageUrls = [], pendingImgFiles = []
+
+/* ── AUDIT CORE (activity log + version history) ──
+   Generic and reusable: registering an entity type here gives it
+   activity logging, immutable versioning, timeline and restore without
+   touching the core. DB side: activity_events / entity_versions +
+   log_activity() / save_entity_version() in samples_schema.sql.
+   Auditing must NEVER break a workflow — every call swallows errors. */
+const AUDIT_REGISTRY = {
+  product:    { label: 'Product',    domain: e => e?.division || 'fabric' },
+  collection: { label: 'Collection', domain: () => 'customer_service' },
+  sample:     { label: 'Sample',     domain: () => 'customer_service' },
+  user:       { label: 'User',       domain: () => 'platform' },
+}
+const Audit = {
+  domainOf(type, entity) { return (AUDIT_REGISTRY[type]?.domain || (() => 'platform'))(entity) },
+
+  async log(type, id, entity, eventType, summary, changes = [], metadata = {}) {
+    try {
+      const domain = this.domainOf(type, entity)
+      const { error } = await sb.rpc('log_activity', {
+        p_entity_type: type, p_entity_id: String(id), p_domain: domain,
+        p_event_type: eventType, p_summary: summary, p_changes: changes, p_metadata: metadata,
+      })
+      if (error) await sb.from('activity_events').insert({
+        entity_type: type, entity_id: String(id), domain,
+        event_type: eventType, summary, changes, metadata, actor: me?.id,
+      })
+    } catch (_) {}
+  },
+
+  // Appends an immutable version; returns the new version_no (or null)
+  async snapshot(type, id, entity, snap, reason = null, restoredFrom = null) {
+    try {
+      const domain = this.domainOf(type, entity)
+      const { data, error } = await sb.rpc('save_entity_version', {
+        p_entity_type: type, p_entity_id: String(id), p_domain: domain,
+        p_snapshot: snap, p_reason: reason, p_restored_from: restoredFrom,
+      })
+      if (!error) return data
+      const { data: prev } = await sb.from('entity_versions').select('version_no')
+        .eq('entity_type', type).eq('entity_id', String(id))
+        .order('version_no', { ascending: false }).limit(1)
+      const no = ((prev && prev[0]?.version_no) || 0) + 1
+      const ins = await sb.from('entity_versions').insert({
+        entity_type: type, entity_id: String(id), domain, version_no: no,
+        snapshot: snap, reason, restored_from: restoredFrom, actor: me?.id,
+      })
+      return ins.error ? null : no
+    } catch (_) { return null }
+  },
+
+  // Field-level diff of two entity states. specs.* is flattened so spec
+  // changes read as "GSM: 180 → 185". Returns [{field, from, to}].
+  diff(oldObj, newObj) {
+    const SKIP = ['id','created_at','updated_at','created_by','image_url','profiles']
+    const flat = o => {
+      const out = {}
+      Object.entries(o || {}).forEach(([k, v]) => {
+        if (SKIP.includes(k)) return
+        if (k === 'specs' && v && typeof v === 'object') {
+          Object.entries(v).forEach(([sk, sv]) => { out[sk] = sv })
+        } else if (Array.isArray(v)) out[k] = v.join(', ')
+        else if (v && typeof v === 'object') out[k] = JSON.stringify(v)
+        else out[k] = v
+      })
+      return out
+    }
+    const a = flat(oldObj), b = flat(newObj), changes = []
+    new Set([...Object.keys(a), ...Object.keys(b)]).forEach(k => {
+      const f = a[k] ?? '', t = b[k] ?? ''
+      if (String(f) !== String(t)) changes.push({ field: k, from: f, to: t })
+    })
+    return changes
+  },
+}
+let editingProductId = null, editingImageUrls = [], pendingImgFiles = [], _editOriginal = null
 let allProducts = [], searchQuery = '', selectMode = false, selectedProducts = []
 let fabricFilter = null // active construction type key, null = all
 
@@ -3694,8 +3798,27 @@ function showProductDetail(p) {
           <div id="pd-sample-history"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
         </div>
         <div class="detail-comments-section">
-          <div class="detail-comments-lbl">Activity</div>
-          <div id="pd-activity"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
+          <div class="pd-tabs">
+            <button class="pd-tab active" data-tab="activity" onclick="switchPdTab('activity')">Activity</button>
+            <button class="pd-tab" data-tab="versions" onclick="switchPdTab('versions')">Versions</button>
+          </div>
+          <div id="pd-tab-activity">
+            <div class="tl-controls">
+              <input type="text" class="tl-search" placeholder="Search activity…" oninput="pdActivityFilter(this.value, null)" />
+              <select class="grant-sel" onchange="pdActivityFilter(null, this.value)">
+                <option value="">All events</option>
+                <option value="edited">Edits</option>
+                <option value="status_changed">Status changes</option>
+                <option value="image">Images</option>
+                <option value="comment">Comments</option>
+                <option value="sample_requested">Samples</option>
+                <option value="restored">Restores</option>
+              </select>
+            </div>
+            <div id="pd-timeline"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
+            <button id="pd-timeline-more" class="btn btn-ghost btn-sm" style="display:none;margin-top:0.6rem;width:100%" onclick="loadPdActivity(false)">Load more</button>
+          </div>
+          <div id="pd-tab-versions" style="display:none"></div>
         </div>
       </div>
     </div>
@@ -3704,7 +3827,7 @@ function showProductDetail(p) {
 
   loadFichaComments(p.id)
   loadProductSampleHistory(p.id)
-  loadProductActivity(p.id)
+  initPdAudit(p)
 }
 
 function backToProducts() {
@@ -3964,6 +4087,8 @@ function toggleLblField(e, key) {
 
 function openLabel() {
   if (!selected) return
+  Audit.log('product', selected.id, selected, 'label_generated', 'Label / QR / barcode generated',
+    [], { code: getProductBarcode(selected) })
   buildLabelFieldState(selected)
   document.getElementById('lbl-title').textContent = selected.name
   renderEditor()
@@ -4126,12 +4251,15 @@ async function submitComment(productId) {
     return
   }
   input.value = ''
+  Audit.log('product', productId, selected, 'comment_added', 'Added a comment',
+    [], { preview: text.slice(0, 80) })
   loadFichaComments(productId)
 }
 
 async function deleteComment(commentId, productId) {
   const { error } = await sb.from('product_comments').delete().eq('id', commentId)
   if (error) { toast('Error deleting comment'); return }
+  Audit.log('product', productId, selected, 'comment_deleted', 'Deleted a comment')
   loadFichaComments(productId)
 }
 
@@ -4672,6 +4800,7 @@ function openEdit(p) {
   if (isArchived(p)) { toast('Archived products are read-only — change their status first'); return }
   clearFormErrors()
   editingProductId = p.id
+  _editOriginal = JSON.parse(JSON.stringify(p))
   editingImageUrls = (p.image_urls && p.image_urls.length) ? [...p.image_urls]
                      : (p.image_url ? [p.image_url] : [])
   pendingImgFiles = []
@@ -4720,6 +4849,7 @@ async function confirmDelete(p) {
   if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return
   const { error } = await sb.from('products').delete().eq('id', p.id)
   if (error) { toast('Error deleting product'); return }
+  Audit.log('product', p.id, p, 'deleted', `Deleted product "${p.name}"`)
   document.getElementById('view-detail').style.display = 'none'
   toast('Product deleted')
   loadProducts()
@@ -4810,6 +4940,7 @@ async function downloadImg(url, name) {
 async function generateTechnicalSheet() {
   const p = selected
   if (!p) return
+  Audit.log('product', p.id, p, 'sheet_generated', 'Technical sheet generated')
   const code = p.code || p.id.slice(0,6).toUpperCase()
   const specs = p.specs || {}
   const sierraDivision = 'SIERRA ' + (DIV_LBL[p.division] || p.division || '').replace('SIERRA ','')
@@ -5353,11 +5484,12 @@ async function saveProduct() {
     lifecycle: document.getElementById('np-lifecycle')?.value || 'available',
   }
 
-  let error
+  let error, savedId = editingProductId
   if (editingProductId) {
     ;({ error } = await sb.from('products').update(payload).eq('id', editingProductId))
   } else {
-    ;({ error } = await sb.from('products').insert({ ...payload, created_by: me.id }))
+    const ins = await sb.from('products').insert({ ...payload, created_by: me.id }).select('id').single()
+    error = ins.error; savedId = ins.data?.id
   }
 
   // lifecycle column not migrated yet — retry without it so saving still works
@@ -5366,7 +5498,8 @@ async function saveProduct() {
     if (editingProductId) {
       ;({ error } = await sb.from('products').update(payload).eq('id', editingProductId))
     } else {
-      ;({ error } = await sb.from('products').insert({ ...payload, created_by: me.id }))
+      const ins = await sb.from('products').insert({ ...payload, created_by: me.id }).select('id').single()
+      error = ins.error; savedId = ins.data?.id
     }
   }
 
@@ -5379,6 +5512,27 @@ async function saveProduct() {
     return
   }
   const wasEditing = !!editingProductId
+
+  // Audit: activity event(s) + immutable version snapshot (never blocks saving)
+  if (savedId) {
+    if (wasEditing && _editOriginal) {
+      const allDiffs = Audit.diff(_editOriginal, payload)
+      const fieldDiffs = allDiffs.filter(c => c.field !== 'image_urls')
+      if (fieldDiffs.length) {
+        const summary = fieldDiffs.length === 1 ? `Changed ${fieldDiffs[0].field}` : `Edited ${fieldDiffs.length} fields`
+        Audit.log('product', savedId, payload, 'edited', summary, fieldDiffs)
+      }
+      const oldImgs = _editOriginal.image_urls || []
+      const addedN = image_urls.filter(u => !oldImgs.includes(u)).length
+      const removedN = oldImgs.filter(u => !image_urls.includes(u)).length
+      if (addedN) Audit.log('product', savedId, payload, 'image_uploaded', `Added ${addedN} image${addedN>1?'s':''}`)
+      if (removedN) Audit.log('product', savedId, payload, 'image_removed', `Removed ${removedN} image${removedN>1?'s':''}`)
+    } else if (!wasEditing) {
+      Audit.log('product', savedId, payload, 'created', 'Created product')
+    }
+    Audit.snapshot('product', savedId, payload, { id: savedId, ...payload })
+  }
+
   closeModal('m-add')
   toast(wasEditing ? 'Product updated' : 'Product saved')
   await loadProducts()
@@ -6385,12 +6539,16 @@ async function addGrant(uid) {
     // upsert onConflict can't target the expression index — fall back to inserts
     for (const r of rows) await sb.from('capability_grants').insert(r)
   }
+  Audit.log('user', uid, null, 'permissions_updated', `Granted ${domain.replace('_',' ')} ${level}`,
+    [{ field: domain, from: '', to: level }])
   toast(`Granted ${domain.replace('_',' ')} ${level}`)
   showUserManagement()
 }
 async function revokeDomainGrants(uid, domain) {
   const { error } = await sb.from('capability_grants').delete().eq('user_id', uid).eq('domain', domain).is('resource_id', null)
   if (error) { toast('Failed to revoke: ' + error.message); return }
+  Audit.log('user', uid, null, 'permissions_updated', `Revoked ${domain.replace('_',' ')} access`,
+    [{ field: domain, from: 'granted', to: 'revoked' }])
   toast(`Revoked ${domain.replace('_',' ')} access`)
   showUserManagement()
 }
@@ -6400,7 +6558,10 @@ async function setUserRole(userId, role) {
   if (error) {
     alert('Failed to update role: ' + error.message)
     showUserManagement()
+    return
   }
+  Audit.log('user', userId, null, 'role_changed', `Legacy role changed to ${role}`,
+    [{ field: 'role', from: '', to: role }])
 }
 
 /* ── PROFILE ── */
@@ -6872,6 +7033,11 @@ async function submitCart() {
       collectionRef = data.collection_ref
       collectionDbId = data.collection_id
       created = data.items || []
+      Audit.log('collection', collectionDbId, null, 'created',
+        `Collection ${collectionRef} created`, [],
+        { name: name || null, items: sampleCart.length, customer, priority, delivery })
+      sampleCart.forEach(i => Audit.log('product', i.id, i, 'sample_requested',
+        `Sample requested (${i.type} × ${i.qty})`, [], { collection: collectionRef }))
     } else if (error) { lastError = error; console.error('create_sample_collection RPC error:', error) }
   } catch (e) { lastError = e; console.error('create_sample_collection RPC threw:', e) }
 
@@ -7559,6 +7725,8 @@ async function updateCollectionStatus(id, status) {
     await sb.from('sample_collections').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
     await sb.from('samples').update({ status, updated_at: new Date().toISOString() }).eq('collection_id', id)
   }
+  Audit.log('collection', id, null, 'status_changed', `Collection ${SMP_STATUS_LABEL[status] || status}`,
+    [{ field: 'status', from: '', to: SMP_STATUS_LABEL[status] || status }])
   toast(`Collection status: ${SMP_STATUS_LABEL[status]}`)
   showCollectionRecord(id)
 }
@@ -7593,6 +7761,8 @@ async function inviteCollaborator(collectionId) {
     resource_type: 'collection', resource_id: collectionId,
   })
 
+  Audit.log('collection', collectionId, null, 'user_invited',
+    `Invited ${match.full_name || match.email} as collaborator`)
   toast(`${match.full_name || match.email} added as collaborator`)
   showCollectionRecord(collectionId)
 }
@@ -7835,6 +8005,9 @@ async function finalizeDispatch() {
     items: included.map(i => ({ name: i.products?.name || '—', code: i.products?.code || '', type: i.sample_type, qty: i.quantity || 1, sample_id: i.sample_id })),
     excludedItems: excluded.map(i => ({ name: i.products?.name || '—', code: i.products?.code || '', reason: i.exclusion_reason })),
   }
+  Audit.log('collection', col.id, null, 'dispatched',
+    `Collection ${col.collection_id} dispatched`, [],
+    { included: _dispatchItems.filter(i => i.verified).length, excluded: _dispatchItems.filter(i => i.excluded).length })
   printShippingGuide()
   toast('Package ready — requester notified')
 }
@@ -7851,6 +8024,8 @@ async function updateSampleStatus(id, status) {
     const label = `${SMP_STATUS_LABEL[status]} by ${userName}`
     await sb.from('sample_events').insert({ sample_id: id, event_type: 'status_change', event_label: label, event_data: { status }, created_by: me.id })
   }
+  Audit.log('sample', id, null, 'status_changed', `Sample ${SMP_STATUS_LABEL[status] || status}`,
+    [{ field: 'status', from: '', to: SMP_STATUS_LABEL[status] || status }])
   toast(`Status: ${SMP_STATUS_LABEL[status]}`)
   showSampleRecord(id)
 }
@@ -7988,36 +8163,246 @@ async function changeLifecycle(status) {
       event_data: { from: lc(p), to: status }, created_by: me.id,
     }).then(() => {})
   }
+  const prevStatus = lc(p)
   p.lifecycle = status
   const cached = allProducts.find(x => x.id === p.id)
   if (cached) cached.lifecycle = status
+  const summary = status === 'archived' ? 'Product archived'
+    : prevStatus === 'archived' ? 'Product restored from archive'
+    : status === 'available' && ['draft','development'].includes(prevStatus) ? 'Product published'
+    : `Status changed to ${LIFECYCLE[status].label}`
+  Audit.log('product', p.id, p, 'status_changed', summary,
+    [{ field: 'lifecycle', from: LIFECYCLE[prevStatus].label, to: LIFECYCLE[status].label }])
   toast(`Status changed to ${LIFECYCLE[status].label}`)
   showProductDetail(p)
 }
 
-async function loadProductActivity(productId) {
-  const el = document.getElementById('pd-activity')
-  if (!el) return
+/* ── PRODUCT ACTIVITY TIMELINE & VERSION HISTORY (tabs on the detail page) ──
+   One continuous timeline: activity_events (paginated), legacy
+   product_events (deduped against the new feed), and a synthetic
+   "Product created" entry at the very end. Versions load lazily on
+   first tab open. Generic pieces (Audit, resolveNames, tlWhen) are
+   reusable by any entity registered in AUDIT_REGISTRY. */
+const TL_PAGE = 15
+let _pdAudit = {}
+const _nameCache = {}
+
+async function resolveNames(ids) {
+  const need = [...new Set(ids.filter(Boolean))].filter(id => !_nameCache[id])
+  if (!need.length) return
   try {
-    const { data, error } = await sb.from('product_events')
-      .select('event_label,created_at')
-      .eq('product_id', productId)
+    const { data } = await sb.from('profiles').select('id,full_name,email').in('id', need)
+    ;(data || []).forEach(r => { _nameCache[r.id] = r.full_name || r.email || '—' })
+  } catch (_) {}
+}
+
+function tlWhen(ts) {
+  const d = new Date(ts), now = new Date()
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  const sameDay = (a, b) => a.toDateString() === b.toDateString()
+  if (sameDay(d, now)) return `Today · ${time}`
+  const yest = new Date(now); yest.setDate(now.getDate() - 1)
+  if (sameDay(d, yest)) return `Yesterday · ${time}`
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ` · ${time}`
+}
+
+function initPdAudit(p) {
+  _pdAudit = { p, page: 0, entries: [], done: false, search: '', filter: '', versions: null, sel: [] }
+  loadPdActivity(true)
+}
+
+function switchPdTab(tab) {
+  document.querySelectorAll('.pd-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
+  const act = document.getElementById('pd-tab-activity'), ver = document.getElementById('pd-tab-versions')
+  if (act) act.style.display = tab === 'activity' ? 'block' : 'none'
+  if (ver) ver.style.display = tab === 'versions' ? 'block' : 'none'
+  if (tab === 'versions' && _pdAudit.versions === null) loadPdVersions() // lazy
+}
+
+function pdActivityFilter(search, filter) {
+  if (search !== null) _pdAudit.search = search.toLowerCase()
+  if (filter !== null) _pdAudit.filter = filter
+  renderPdTimeline()
+}
+
+async function loadPdActivity(reset) {
+  const p = _pdAudit.p
+  if (!p) return
+  if (reset) { _pdAudit.page = 0; _pdAudit.entries = []; _pdAudit.done = false }
+
+  const from = _pdAudit.page * TL_PAGE
+  let events = []
+  try {
+    const { data } = await sb.from('activity_events')
+      .select('event_type,summary,changes,metadata,actor,created_at')
+      .eq('entity_type', 'product').eq('entity_id', String(p.id))
       .order('created_at', { ascending: false })
-      .limit(10)
-    if (error || !data?.length) {
-      el.innerHTML = '<div style="font-size:0.78rem;color:var(--text-3)">No activity yet.</div>'
-      return
-    }
-    el.innerHTML = data.map(e => {
-      const date = new Date(e.created_at).toLocaleDateString('en-US', { day:'2-digit', month:'short', year:'numeric' })
-      return `<div style="padding:0.45rem 0;border-bottom:1px solid var(--border)">
-        <div style="font-size:0.76rem;color:var(--text)">${esc(e.event_label)}</div>
-        <div style="font-size:0.68rem;color:var(--text-3);margin-top:0.1rem">${date}</div>
-      </div>`
-    }).join('')
-  } catch (_) {
-    el.innerHTML = '<div style="font-size:0.78rem;color:var(--text-3)">No activity yet.</div>'
+      .range(from, from + TL_PAGE - 1)
+    events = data || []
+  } catch (_) {}
+  if (events.length < TL_PAGE) _pdAudit.done = true
+  _pdAudit.page++
+
+  const entries = events.map(e => ({ ...e, kind: 'event' }))
+
+  if (reset) {
+    // Legacy lifecycle log (pre-audit rows) — skip any that duplicate a
+    // status_changed activity event within a 5-second window
+    try {
+      const { data: legacy } = await sb.from('product_events')
+        .select('event_label,created_at,created_by')
+        .eq('product_id', p.id).order('created_at', { ascending: false }).limit(10)
+      ;(legacy || []).forEach(le => {
+        const dup = events.some(e => e.event_type === 'status_changed' &&
+          Math.abs(new Date(e.created_at) - new Date(le.created_at)) < 5000)
+        if (!dup) entries.push({ kind: 'event', event_type: 'status_changed', summary: le.event_label, changes: [], actor: le.created_by, created_at: le.created_at })
+      })
+    } catch (_) {}
+    // Sample requests against this product
+    try {
+      const { data: smp } = await sb.from('samples')
+        .select('sample_id,sample_type,quantity,status,created_at,requested_by')
+        .eq('product_id', p.id).order('created_at', { ascending: false }).limit(8)
+      ;(smp || []).forEach(s => {
+        const dup = events.some(e => e.event_type === 'sample_requested' &&
+          Math.abs(new Date(e.created_at) - new Date(s.created_at)) < 5000)
+        if (!dup) entries.push({ kind: 'event', event_type: 'sample_requested',
+          summary: `Sample ${s.sample_id} requested (${s.sample_type} × ${s.quantity || 1})`,
+          changes: [], actor: s.requested_by, created_at: s.created_at })
+      })
+    } catch (_) {}
   }
+
+  _pdAudit.entries = [..._pdAudit.entries, ...entries]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+
+  await resolveNames(_pdAudit.entries.map(e => e.actor))
+  renderPdTimeline()
+}
+
+function renderPdTimeline() {
+  const el = document.getElementById('pd-timeline')
+  if (!el) return
+  const p = _pdAudit.p
+  let list = _pdAudit.entries
+  if (_pdAudit.filter) {
+    list = list.filter(e => _pdAudit.filter === 'image'
+      ? e.event_type.startsWith('image')
+      : _pdAudit.filter === 'comment' ? e.event_type.startsWith('comment')
+      : e.event_type === _pdAudit.filter)
+  }
+  if (_pdAudit.search) {
+    list = list.filter(e => (e.summary + ' ' + (e.changes || []).map(c => `${c.field} ${c.from} ${c.to}`).join(' ')).toLowerCase().includes(_pdAudit.search))
+  }
+
+  const createdEntry = _pdAudit.done && !_pdAudit.filter && !_pdAudit.search && p.created_at
+    && !list.some(e => e.event_type === 'created')
+    ? `<div class="tl-item"><div class="tl-dot" style="background:var(--accent)"></div><div class="tl-body">
+         <div class="tl-head"><span class="tl-actor">—</span><span class="tl-time">${tlWhen(p.created_at)}</span></div>
+         <div class="tl-summary">Product created</div></div></div>`
+    : ''
+
+  el.innerHTML = (list.map(e => {
+    const who = _nameCache[e.actor] || '—'
+    const changesHtml = (e.changes || []).map(c =>
+      `<div class="tl-change"><span class="tl-field">${esc(c.field)}</span>${notEmptyStr(c.from) ? `<span class="tl-old">${esc(String(c.from))}</span><span class="tl-arrow">→</span>` : ''}<span class="tl-new">${esc(String(c.to ?? ''))}</span></div>`
+    ).join('')
+    return `<div class="tl-item"><div class="tl-dot"></div><div class="tl-body">
+      <div class="tl-head"><span class="tl-actor">${esc(who)}</span><span class="tl-time">${tlWhen(e.created_at)}</span></div>
+      <div class="tl-summary">${esc(e.summary)}</div>
+      ${changesHtml}
+    </div></div>`
+  }).join('') + createdEntry)
+    || '<div style="font-size:0.78rem;color:var(--text-3)">No activity yet.</div>'
+
+  const more = document.getElementById('pd-timeline-more')
+  if (more) more.style.display = _pdAudit.done ? 'none' : 'block'
+}
+function notEmptyStr(v) { return v !== null && v !== undefined && String(v) !== '' }
+
+/* ── Versions tab ── */
+async function loadPdVersions() {
+  const el = document.getElementById('pd-tab-versions')
+  if (!el) return
+  el.innerHTML = '<div style="font-size:0.78rem;color:var(--text-3)">Loading…</div>'
+  try {
+    const { data, error } = await sb.from('entity_versions')
+      .select('version_no,snapshot,reason,restored_from,actor,created_at')
+      .eq('entity_type', 'product').eq('entity_id', String(_pdAudit.p.id))
+      .order('version_no', { ascending: false }).limit(30)
+    _pdAudit.versions = error ? [] : (data || [])
+  } catch (_) { _pdAudit.versions = [] }
+  await resolveNames(_pdAudit.versions.map(v => v.actor))
+  renderPdVersions()
+}
+
+function renderPdVersions() {
+  const el = document.getElementById('pd-tab-versions')
+  if (!el) return
+  const vs = _pdAudit.versions || []
+  if (!vs.length) {
+    el.innerHTML = '<div style="font-size:0.78rem;color:var(--text-3)">No versions yet — a version is recorded every time the product is saved.</div>'
+    return
+  }
+  const canRestore = canEditDiv(_pdAudit.p.division) || isAdmin()
+  const sel = _pdAudit.sel
+  el.innerHTML = `
+    ${sel.length === 2 ? `<button class="btn btn-primary btn-sm" style="width:100%;margin-bottom:0.6rem" onclick="comparePdVersions()">Compare V${Math.min(...sel)} → V${Math.max(...sel)}</button>` : `<div style="font-size:0.68rem;color:var(--text-3);margin-bottom:0.6rem">Select two versions to compare.</div>`}
+    <div id="pd-ver-diff"></div>
+    ${vs.map((v, i) => `
+      <div class="ver-card${sel.includes(v.version_no) ? ' ver-card-sel' : ''}">
+        <label class="ver-check"><input type="checkbox" ${sel.includes(v.version_no) ? 'checked' : ''} onchange="togglePdVerSel(${v.version_no})"></label>
+        <div class="ver-main">
+          <div class="ver-title">Version ${v.version_no}${v.restored_from ? ` <span class="ver-restored">restored from Version ${v.restored_from}</span>` : ''}</div>
+          <div class="ver-meta">${esc(_nameCache[v.actor] || '—')} · ${tlWhen(v.created_at)}</div>
+          ${v.reason ? `<div class="ver-reason">${esc(v.reason)}</div>` : ''}
+        </div>
+        ${canRestore && i !== 0 ? `<button class="btn btn-ghost btn-sm" onclick="restorePdVersion(${v.version_no})">Restore</button>` : ''}
+      </div>`).join('')}`
+}
+
+function togglePdVerSel(no) {
+  const s = _pdAudit.sel
+  if (s.includes(no)) _pdAudit.sel = s.filter(x => x !== no)
+  else _pdAudit.sel = [...s, no].slice(-2)
+  renderPdVersions()
+}
+
+function comparePdVersions() {
+  const [a, b] = [..._pdAudit.sel].sort((x, y) => x - y)
+  const va = _pdAudit.versions.find(v => v.version_no === a)
+  const vb = _pdAudit.versions.find(v => v.version_no === b)
+  if (!va || !vb) return
+  const diffs = Audit.diff(va.snapshot, vb.snapshot)
+  const el = document.getElementById('pd-ver-diff')
+  el.innerHTML = `<div class="ver-diff">
+    <div class="ver-diff-title">Version ${a} → Version ${b}${diffs.length ? '' : ' — no differences'}</div>
+    ${diffs.map(c => `<div class="tl-change"><span class="tl-field">${esc(c.field)}</span>${notEmptyStr(c.from) ? `<span class="tl-old">${esc(String(c.from))}</span><span class="tl-arrow">→</span>` : ''}<span class="tl-new">${esc(String(c.to ?? ''))}</span></div>`).join('')}
+  </div>`
+}
+
+async function restorePdVersion(no) {
+  const p = _pdAudit.p
+  const v = _pdAudit.versions.find(x => x.version_no === no)
+  if (!v || !p) return
+  if (!confirm(`Restore "${p.name}" to Version ${no}? A new version will be created — history is never deleted.`)) return
+  const s = v.snapshot || {}
+  const payload = {}
+  ;['name','code','lot','country','description','specs','tags','image_url','image_urls','lifecycle'].forEach(k => {
+    if (k in s) payload[k] = s[k]
+  })
+  const { error } = await sb.from('products').update(payload).eq('id', p.id)
+  if (error) { toast('Could not restore: ' + error.message); return }
+  const before = JSON.parse(JSON.stringify(p))
+  Object.assign(p, payload)
+  const cached = allProducts.find(x => x.id === p.id)
+  if (cached) Object.assign(cached, payload)
+  const newNo = await Audit.snapshot('product', p.id, p, { id: p.id, ...payload }, `Restored from Version ${no}`, no)
+  Audit.log('product', p.id, p, 'restored',
+    `Restored from Version ${no}${newNo ? ` (now Version ${newNo})` : ''}`, Audit.diff(before, payload))
+  toast(`Restored from Version ${no}`)
+  selected = p
+  showProductDetail(p)
 }
 
 /* ── SCAN MODE ── */

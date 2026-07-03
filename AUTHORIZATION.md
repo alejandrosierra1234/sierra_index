@@ -106,3 +106,36 @@ Products carry `products.lifecycle`: `draft`, `development`, `available`,
   `set_product_lifecycle()` RPC (with `authorize(division,'write')` check) and
   shown in the detail page "Activity" panel. The client falls back to a direct
   update + event insert if the RPC isn't migrated yet.
+
+## Audit core (activity log, versions, audit trail)
+
+Tables `activity_events` and `entity_versions` (+ RPCs `log_activity`,
+`save_entity_version`) are generic: rows carry `(entity_type, entity_id,
+domain)`. A separate `version_changes` table was deliberately omitted — diffs
+are derived from adjacent snapshots (`Audit.diff`), so storing them would
+denormalize. Visibility follows Part-8 rules via RLS: the actor, platform
+admins, and holders of `read` on the row's domain; anonymous users see nothing.
+Version numbering is gapless per entity (advisory-lock serialized in the RPC);
+restores never rewrite history — they append a new version with
+`restored_from` set.
+
+Client: the `Audit` module (`Audit.log`, `Audit.snapshot`, `Audit.diff`) plus
+`AUDIT_REGISTRY`. **Registering a new entity type = adding one registry entry**
+(label + domain resolver); logging, versioning, timeline rendering and restore
+all reuse the same code paths. Every Audit call swallows errors so auditing can
+never break a workflow, and everything degrades gracefully until the SQL
+migration runs.
+
+Instrumented events: product created/edited/deleted, image uploads/removals,
+lifecycle changes (archived/restored/published), technical sheet + label/QR/
+barcode generation, comments added/deleted, collection created/status/dispatch,
+sample requested/status, collaborator invited, legacy role changes and
+capability grants/revocations.
+
+Product page UI: Activity + Versions tabs (Apple-style segmented control).
+Activity is one continuous newest-first timeline (activity_events paginated 15
+at a time with Load more, legacy product_events and sample requests merged and
+deduped, searchable and filterable). Versions load lazily on first open: pick
+two to compare (only changed fields shown, old struck through, new
+highlighted), Restore (division `write` or platform admin) writes the snapshot
+back and appends a new version.

@@ -864,3 +864,116 @@ begin
       on products ((specs->>'barcode')) where specs->>'barcode' is not null and specs->>'barcode' <> '';
   end if;
 end $$;
+
+-- ══════════════════════════════════════════════════════════════
+-- AUDIT CORE — activity log, version history, audit trail
+--
+-- Generic by design: any entity participates by writing rows with its
+-- (entity_type, entity_id, domain). Nothing here is product-specific.
+--   activity_events  — what/who/when/old→new for every important action
+--   entity_versions  — immutable full snapshots, monotonic version_no
+-- (a separate version_changes table is intentionally omitted: diffs are
+-- derived from adjacent snapshots, so storing them would denormalize)
+--
+-- Visibility (Part 8): platform admins see everything; data owners see
+-- their domain; the actor sees their own events; anonymous sees nothing.
+-- ══════════════════════════════════════════════════════════════
+
+create table if not exists activity_events (
+  id          uuid primary key default gen_random_uuid(),
+  entity_type text not null,          -- product | collection | sample | user | …
+  entity_id   text not null,          -- uuid or natural key, stored as text
+  domain      text not null,          -- authorization domain for visibility
+  event_type  text not null,          -- created | edited | status_changed | …
+  summary     text not null,          -- human line: "Changed GSM"
+  changes     jsonb default '[]',     -- [{field, from, to}]
+  metadata    jsonb default '{}',
+  actor       uuid references profiles(id),
+  created_at  timestamptz default now()
+);
+create index if not exists activity_events_entity_idx
+  on activity_events (entity_type, entity_id, created_at desc);
+create index if not exists activity_events_domain_idx
+  on activity_events (domain, created_at desc);
+
+create table if not exists entity_versions (
+  id            uuid primary key default gen_random_uuid(),
+  entity_type   text not null,
+  entity_id     text not null,
+  domain        text not null,
+  version_no    integer not null,
+  snapshot      jsonb not null,       -- complete entity state at save time
+  reason        text,                 -- optional change reason
+  restored_from integer,              -- version_no this was restored from
+  actor         uuid references profiles(id),
+  created_at    timestamptz default now(),
+  unique (entity_type, entity_id, version_no)
+);
+create index if not exists entity_versions_entity_idx
+  on entity_versions (entity_type, entity_id, version_no desc);
+
+alter table activity_events enable row level security;
+alter table entity_versions enable row level security;
+
+drop policy if exists "audit visibility" on activity_events;
+create policy "audit visibility"
+  on activity_events for select using (
+    actor = auth.uid()
+    or authorize('platform','admin')
+    or authorize(domain,'read')
+  );
+
+drop policy if exists "version visibility" on entity_versions;
+create policy "version visibility"
+  on entity_versions for select using (
+    actor = auth.uid()
+    or authorize('platform','admin')
+    or authorize(domain,'read')
+  );
+
+-- Writes go through the RPCs below (security definer), never direct.
+
+create or replace function log_activity(
+  p_entity_type text,
+  p_entity_id   text,
+  p_domain      text,
+  p_event_type  text,
+  p_summary     text,
+  p_changes     jsonb default '[]',
+  p_metadata    jsonb default '{}'
+) returns uuid language plpgsql security definer as $$
+declare v_id uuid;
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  insert into activity_events (entity_type, entity_id, domain, event_type, summary, changes, metadata, actor)
+    values (p_entity_type, p_entity_id, p_domain, p_event_type, p_summary,
+            coalesce(p_changes,'[]'::jsonb), coalesce(p_metadata,'{}'::jsonb), auth.uid())
+    returning id into v_id;
+  return v_id;
+end;
+$$;
+
+-- Atomically appends the next immutable version. History is never
+-- deleted or rewritten; restores append a new version that points back
+-- via restored_from.
+create or replace function save_entity_version(
+  p_entity_type   text,
+  p_entity_id     text,
+  p_domain        text,
+  p_snapshot      jsonb,
+  p_reason        text default null,
+  p_restored_from integer default null
+) returns integer language plpgsql security definer as $$
+declare v_no integer;
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  -- serialize concurrent saves of the same entity so version_no stays gapless
+  perform pg_advisory_xact_lock(hashtext(p_entity_type || ':' || p_entity_id));
+  select coalesce(max(version_no), 0) + 1 into v_no
+    from entity_versions
+    where entity_type = p_entity_type and entity_id = p_entity_id;
+  insert into entity_versions (entity_type, entity_id, domain, version_no, snapshot, reason, restored_from, actor)
+    values (p_entity_type, p_entity_id, p_domain, v_no, p_snapshot, p_reason, p_restored_from, auth.uid());
+  return v_no;
+end;
+$$;
