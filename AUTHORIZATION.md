@@ -139,3 +139,19 @@ deduped, searchable and filterable). Versions load lazily on first open: pick
 two to compare (only changed fields shown, old struck through, new
 highlighted), Restore (division `write` or platform admin) writes the snapshot
 back and appends a new version.
+
+## Product knowledge graph
+
+`product_links` stores typed product↔product relationships (one row per
+link): `uses`, `produces`, `alternative`, `replacement`, `compatible`,
+`collection`, `related`. Symmetric types read identically from both sides;
+directional types flip to an inverse label when viewed from the target
+(Uses ↔ Used by, Produces ↔ Produced from, Replacement ↔ Replaces) — defined
+in the client `LINK_TYPES` registry. The table only stores product ids, so
+future divisions participate with zero changes. RLS: authenticated read;
+creating/removing a link requires `write` on either endpoint's division.
+The product page's "Related Products" section renders visual cards
+(relationship type in the division's color, thumb, name, code, lifecycle
+note) with one-click navigation between products; editors get inline
+search-to-link and per-card removal. Link add/remove events are recorded in
+the activity log.

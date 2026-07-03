@@ -977,3 +977,48 @@ begin
   return v_no;
 end;
 $$;
+
+-- ══════════════════════════════════════════════════════════════
+-- PRODUCT KNOWLEDGE GRAPH — typed relationships between products
+--
+-- One row per link. Symmetric types (alternative, compatible, related,
+-- collection) read the same from both sides; directional types (uses,
+-- produces, replacement) show their inverse label when viewed from the
+-- target ("Uses" ↔ "Used by"). Division-agnostic by design: any product
+-- can link to any product, so future divisions need no changes here.
+-- ══════════════════════════════════════════════════════════════
+
+create table if not exists product_links (
+  id         uuid primary key default gen_random_uuid(),
+  source_id  uuid references products(id) on delete cascade not null,
+  target_id  uuid references products(id) on delete cascade not null,
+  link_type  text not null check (link_type in
+    ('uses','produces','alternative','replacement','compatible','collection','related')),
+  created_by uuid references profiles(id),
+  created_at timestamptz default now(),
+  check (source_id <> target_id),
+  unique (source_id, target_id, link_type)
+);
+create index if not exists product_links_source_idx on product_links (source_id);
+create index if not exists product_links_target_idx on product_links (target_id);
+
+alter table product_links enable row level security;
+
+drop policy if exists "authenticated can view links" on product_links;
+create policy "authenticated can view links"
+  on product_links for select using (auth.uid() is not null);
+
+-- Linking requires write on either endpoint's division
+drop policy if exists "editors can create links" on product_links;
+create policy "editors can create links"
+  on product_links for insert with check (
+    exists (select 1 from products where id = source_id and authorize(division,'write'))
+    or exists (select 1 from products where id = target_id and authorize(division,'write'))
+  );
+
+drop policy if exists "editors can remove links" on product_links;
+create policy "editors can remove links"
+  on product_links for delete using (
+    exists (select 1 from products where id = source_id and authorize(division,'write'))
+    or exists (select 1 from products where id = target_id and authorize(division,'write'))
+  );
