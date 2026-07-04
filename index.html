@@ -6370,6 +6370,21 @@ function dropMissingProductColumn(error, payload) {
   return changed
 }
 
+function dropMissingPayloadColumn(error, payload) {
+  const msg = error?.message || ''
+  const missing = msg.match(/Could not find the '([^']+)' column/i)?.[1]
+  if (!missing) return null
+  const items = Array.isArray(payload) ? payload : [payload]
+  let changed = false
+  items.forEach(item => {
+    if (item && Object.prototype.hasOwnProperty.call(item, missing)) {
+      delete item[missing]
+      changed = true
+    }
+  })
+  return changed ? missing : null
+}
+
 async function saveProduct() {
   clearFormErrors()
   const name = document.getElementById('np-name').value.trim()
@@ -7789,13 +7804,18 @@ async function saveProfile() {
   }
 
   const payload = { full_name: name, avatar_url, ui_language: appLang }
-  let { error } = await sb.from('profiles').update(payload).eq('id', me.id)
-  if (error && /ui_language|schema cache|column/i.test(error.message || '')) {
-    delete payload.ui_language
+  const droppedProfileColumns = new Set()
+  let error = null
+  for (let i = 0; i < 3; i++) {
     ;({ error } = await sb.from('profiles').update(payload).eq('id', me.id))
+    if (!error) break
+    const dropped = dropMissingPayloadColumn(error, payload)
+    if (!dropped) break
+    droppedProfileColumns.add(dropped)
   }
   if (error) { toast('Save error: ' + error.message); return }
 
+  if (droppedProfileColumns.has('avatar_url')) avatar_url = profile?.avatar_url || null
   profile = { ...profile, full_name: name, avatar_url, ui_language: appLang }
   const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
   const imgHtml = avatar_url ? `<img src="${avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : null
