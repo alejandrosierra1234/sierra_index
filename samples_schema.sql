@@ -331,7 +331,7 @@ create policy "collection members can invite collaborators"
   on collection_collaborators for insert with check (
     exists (
       select 1 from sample_collections c
-      where c.id = collection_id and (
+      where c.id = collection_collaborators.collection_id and (
         c.requested_by = auth.uid()
         or exists (select 1 from collection_collaborators cc where cc.collection_id = c.id and cc.user_id = auth.uid())
       )
@@ -623,7 +623,7 @@ create policy "collection members can invite collaborators"
   on collection_collaborators for insert with check (
     exists (
       select 1 from sample_collections c
-      where c.id = collection_id and (
+      where c.id = collection_collaborators.collection_id and (
         c.requested_by = auth.uid()
         or exists (select 1 from collection_collaborators cc where cc.collection_id = c.id and cc.user_id = auth.uid())
       )
