@@ -72,6 +72,7 @@ alter table sample_events enable row level security;
 alter table notifications enable row level security;
 
 -- samples: all authenticated users can read; own inserts; editors can update any
+drop policy if exists "authenticated can view samples" on samples;
 create policy "authenticated can view samples"
   on samples for select using (auth.uid() is not null);
 
@@ -85,19 +86,24 @@ create policy "editors can update sample status"
   );
 
 -- sample_events: authenticated read; insert allowed for authenticated
+drop policy if exists "authenticated can view events" on sample_events;
 create policy "authenticated can view events"
   on sample_events for select using (auth.uid() is not null);
 
+drop policy if exists "authenticated can add events" on sample_events;
 create policy "authenticated can add events"
   on sample_events for insert with check (created_by = auth.uid());
 
 -- notifications: users only see their own
+drop policy if exists "users own notifications select" on notifications;
 create policy "users own notifications select"
   on notifications for select using (user_id = auth.uid());
 
+drop policy if exists "users own notifications update" on notifications;
 create policy "users own notifications update"
   on notifications for update using (user_id = auth.uid());
 
+drop policy if exists "system can insert notifications" on notifications;
 create policy "system can insert notifications"
   on notifications for insert with check (true);
 
