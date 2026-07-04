@@ -76,9 +76,11 @@ drop policy if exists "authenticated can view samples" on samples;
 create policy "authenticated can view samples"
   on samples for select using (auth.uid() is not null);
 
+drop policy if exists "users can request samples" on samples;
 create policy "users can request samples"
   on samples for insert with check (requested_by = auth.uid());
 
+drop policy if exists "editors can update sample status" on samples;
 create policy "editors can update sample status"
   on samples for update using (
     requested_by = auth.uid() or
