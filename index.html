@@ -2909,7 +2909,8 @@
         <span class="nav-label" style="color:var(--text-3);font-weight:400">Search…</span>
         <span class="nav-label" style="margin-left:auto;font-size:0.62rem;color:var(--text-3);border:1px solid var(--border);border-radius:4px;padding:0.1rem 0.35rem;line-height:1.4">⌘K</span>
       </button>
-      <button class="nav-item active" id="nav-dash" data-tip="Dashboard" style="--item-color:#16cdbe" onclick="showDashboard()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3L3 8.5V17h5v-4h4v4h5V8.5L10 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Dashboard</span></button>
+      <button class="nav-item active" id="nav-modules" data-tip="Módulos" style="--item-color:#9e00cb" onclick="showModuleHub()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/></svg></span><span class="nav-label">Módulos</span></button>
+      <button class="nav-item" id="nav-dash" data-tip="Dashboard" style="--item-color:#16cdbe" onclick="showDashboard()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3L3 8.5V17h5v-4h4v4h5V8.5L10 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Dashboard</span></button>
       <button class="nav-item" id="nav-styleguide" data-tip="Style Guide" style="--item-color:#16cdbe" onclick="showStyleGuide()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M5 4h8.5A1.5 1.5 0 0 1 15 5.5V16H6.5A1.5 1.5 0 0 1 5 14.5V4Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 7h4M8 10h4M8 13h2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Style Guide</span></button>
       <span class="s-label" style="margin-top:0.5rem">Divisions</span>
       <button class="nav-item" id="nav-all" data-tip="All products" style="--item-color:#009fff" onclick="setDiv('all',this)"><span class="n-icon" id="icon-all"></span><span class="nav-label">All products</span></button>
@@ -3580,7 +3581,7 @@ function applyLanguage(opts = {}) {
    can() falls back to the legacy profiles.role mapping so users keep their
    current access until grants exist — mirror of authorize()'s fallback. */
 const AUTH_DIVISIONS = ['fiber','yarn','fabric','chemicals','garment']
-const AUTH_DOMAINS = [...AUTH_DIVISIONS, 'warehouse', 'customer_service', 'platform']
+const AUTH_DOMAINS = [...AUTH_DIVISIONS, 'warehouse', 'customer_service', 'talento_humano', 'platform']
 let myGrants = []
 
 async function loadGrants() {
@@ -3959,8 +3960,12 @@ async function enterApp(user) {
     showAllRequests(); return
   } else if (savedRoute === 'style-guide') {
     showStyleGuide(); return
+  } else if (savedRoute === 'dashboard') {
+    showDashboard(); return
+  } else if (savedRoute && savedRoute.startsWith('module:')) {
+    showModuleTools(savedRoute.slice(7)); return
   }
-  showDashboard()
+  showModuleHub()
 }
 
 async function logout() {
@@ -7423,6 +7428,277 @@ function showStyleGuide() {
   </div>`
 }
 
+/* ── MÓDULOS ──
+   Home screen after login: módulos (business areas) group the tools a
+   user works with. Access to a módulo mirrors read access to its
+   authorization domain (capability_grants) — an editor/Data Owner grants
+   it from the Team screen exactly like any other domain grant. Each
+   módulo lists its herramientas; clicking one navigates into it. */
+const MODULES = {
+  talento_humano: {
+    label: 'Talento Humano',
+    domain: 'talento_humano',
+    color: '#9e00cb',
+    icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.2" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 17c0-3.6 2.9-5.4 6.5-5.4s6.5 1.8 6.5 5.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+    tools: [
+      {
+        id: 'gafetes',
+        label: 'Creador de Gafetes',
+        desc: 'Diseña, guarda e imprime gafetes de identificación del personal',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="4" y="2.5" width="12" height="15" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="8" r="2.2" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 14.5c0-1.7 1.6-2.7 3.5-2.7s3.5 1 3.5 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+        run: 'showGafetes',
+      },
+    ],
+  },
+  servicio_cliente: {
+    label: 'Servicio al Cliente',
+    domain: 'customer_service',
+    color: '#ff7824',
+    icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 10a7 7 0 0114 0v3.5a1.5 1.5 0 01-1.5 1.5H14v-5h3a5 5 0 00-10 0h3v5H4.5A1.5 1.5 0 013 13.5V10z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
+    tools: [
+      {
+        id: 'catalogo',
+        label: 'Catálogo de productos + muestras',
+        desc: 'Explora el catálogo SIERRA y gestiona solicitudes de muestra',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/></svg>',
+        run: 'showDashboard',
+      },
+    ],
+  },
+}
+function accessibleModules() { return Object.entries(MODULES).filter(([, m]) => can('read', m.domain)) }
+
+function showModuleHub() {
+  sessionStorage.setItem('sierra_route', 'modules')
+  clearHash()
+  document.getElementById('div-toolbar').style.display = 'none'
+  leaveView()
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+  document.getElementById('nav-modules')?.classList.add('active')
+  document.getElementById('tb-section').textContent = 'Módulos'
+  document.getElementById('product-controls').style.display = 'none'
+  document.getElementById('sec-title').textContent = 'Módulos'
+  document.getElementById('sec-sub').textContent = 'Selecciona un módulo para ver sus herramientas'
+  const pg = document.getElementById('pg')
+  pg.style.display = 'block'
+  const mods = accessibleModules()
+  if (!mods.length) { pg.innerHTML = '<div class="empty"><p>No tienes acceso a ningún módulo todavía. Pide a un editor que te lo asigne en Team.</p></div>'; return }
+  pg.innerHTML = `<div class="pg-grid">${mods.map(([key, m]) => `
+    <div class="card-wrap">
+      <div class="card" onclick="showModuleTools('${key}')" style="cursor:pointer;padding:1.25rem">
+        <div style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:${m.color}14;color:${m.color};margin-bottom:0.85rem">${m.icon}</div>
+        <div class="card-name" style="font-size:1rem">${esc(m.label)}</div>
+        <div class="card-desc">${m.tools.length} herramienta${m.tools.length !== 1 ? 's' : ''}</div>
+      </div>
+    </div>`).join('')}</div>`
+}
+
+function showModuleTools(key) {
+  const m = MODULES[key]
+  if (!m || !can('read', m.domain)) { showModuleHub(); return }
+  sessionStorage.setItem('sierra_route', 'module:' + key)
+  clearHash()
+  document.getElementById('div-toolbar').style.display = 'none'
+  leaveView()
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+  document.getElementById('nav-modules')?.classList.add('active')
+  document.getElementById('tb-section').textContent = m.label
+  document.getElementById('product-controls').style.display = 'none'
+  document.getElementById('sec-title').textContent = m.label
+  document.getElementById('sec-sub').textContent = 'Herramientas de este módulo'
+  const pg = document.getElementById('pg')
+  pg.style.display = 'block'
+  pg.innerHTML = `
+    <button class="btn btn-ghost btn-sm" style="margin-bottom:1rem" onclick="showModuleHub()">← Módulos</button>
+    <div class="pg-grid">${m.tools.map(t => `
+    <div class="card-wrap">
+      <div class="card" onclick="${t.run}()" style="cursor:pointer;padding:1.25rem">
+        <div style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:${m.color}14;color:${m.color};margin-bottom:0.85rem">${t.icon}</div>
+        <div class="card-name" style="font-size:1rem">${esc(t.label)}</div>
+        <div class="card-desc">${esc(t.desc)}</div>
+      </div>
+    </div>`).join('')}</div>`
+}
+
+/* ── GAFETES (Talento Humano) ── */
+let _gafetes = []
+let _gafeteEditingId = null
+let _gafetePhotoFile = null
+let _gafeteFormOpen = false
+
+async function showGafetes() {
+  sessionStorage.setItem('sierra_route', 'module:talento_humano')
+  clearHash()
+  document.getElementById('div-toolbar').style.display = 'none'
+  leaveView()
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+  document.getElementById('nav-modules')?.classList.add('active')
+  document.getElementById('tb-section').textContent = 'Creador de Gafetes'
+  document.getElementById('product-controls').style.display = 'none'
+  document.getElementById('sec-title').textContent = 'Creador de Gafetes'
+  document.getElementById('sec-sub').textContent = 'Talento Humano'
+  const pg = document.getElementById('pg')
+  pg.style.display = 'block'
+  pg.innerHTML = '<div class="empty"><div class="empty-icon">⌛</div><p>Cargando…</p></div>'
+  const { data, error } = await sb.from('employee_badges').select('*').order('created_at', { ascending: false })
+  if (error) { pg.innerHTML = `<div class="empty"><p>Error cargando gafetes: ${esc(error.message)}</p></div>`; return }
+  _gafetes = data || []
+  _gafeteFormOpen = false
+  _gafeteEditingId = null
+  _gafetePhotoFile = null
+  renderGafetes()
+}
+
+function renderGafetes() {
+  const pg = document.getElementById('pg')
+  const canWrite = can('write', 'talento_humano')
+  pg.innerHTML = `
+    <button class="btn btn-ghost btn-sm" style="margin-bottom:1rem" onclick="showModuleTools('talento_humano')">← Talento Humano</button>
+    ${canWrite ? `<div style="margin-bottom:1rem">
+      <button class="btn btn-primary btn-sm" onclick="openGafeteForm()">+ Nuevo gafete</button>
+    </div>` : ''}
+    <div id="gafete-form-slot"></div>
+    <div class="pg-grid" id="gafete-grid">
+      ${_gafetes.length ? _gafetes.map(gafeteCardHTML).join('') : '<div class="empty"><p>Aún no hay gafetes.</p></div>'}
+    </div>`
+  if (_gafeteFormOpen) renderGafeteForm()
+}
+
+function gafeteCardHTML(b) {
+  const photo = b.photo_url
+    ? `<img src="${esc(b.photo_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+    : `<span style="font-size:1.1rem;font-weight:700;color:var(--text-3)">${esc((b.full_name||'?')[0].toUpperCase())}</span>`
+  const canWrite = can('write', 'talento_humano')
+  return `<div class="card-wrap">
+    <div class="card" style="padding:1.1rem;cursor:default">
+      <div style="display:flex;gap:0.75rem;align-items:center;margin-bottom:0.75rem">
+        <div style="width:48px;height:48px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">${photo}</div>
+        <div style="min-width:0">
+          <div class="card-name" style="font-size:0.92rem">${esc(b.full_name)}</div>
+          <div class="card-desc">${esc(b.position || '')}${b.department ? ' · ' + esc(b.department) : ''}</div>
+        </div>
+      </div>
+      <div class="card-actions" style="display:flex;gap:0.4rem">
+        <button class="btn btn-ghost btn-sm" onclick="printGafete('${b.id}')">Imprimir</button>
+        ${canWrite ? `<button class="btn btn-ghost btn-sm" onclick="openGafeteForm('${b.id}')">Editar</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteGafete('${b.id}')" style="color:#e80000">Eliminar</button>` : ''}
+      </div>
+    </div>
+  </div>`
+}
+
+function openGafeteForm(id = null) {
+  _gafeteEditingId = id
+  _gafeteFormOpen = true
+  _gafetePhotoFile = null
+  renderGafetes()
+  document.getElementById('gafete-form-slot')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+function closeGafeteForm() {
+  _gafeteFormOpen = false
+  _gafeteEditingId = null
+  _gafetePhotoFile = null
+  renderGafetes()
+}
+
+function renderGafeteForm() {
+  const slot = document.getElementById('gafete-form-slot')
+  if (!slot) return
+  const b = _gafeteEditingId ? _gafetes.find(g => g.id === _gafeteEditingId) : null
+  slot.innerHTML = `
+    <div class="card" style="padding:1.25rem;margin-bottom:1.25rem;max-width:480px">
+      <div class="card-name" style="margin-bottom:0.75rem">${b ? 'Editar gafete' : 'Nuevo gafete'}</div>
+      <div class="two-col">
+        <div class="fg full"><label>Nombre completo</label><input type="text" id="gf-name" value="${esc(b?.full_name || '')}" placeholder="Ej. Ana López" /></div>
+        <div class="fg"><label>Puesto</label><input type="text" id="gf-position" value="${esc(b?.position || '')}" placeholder="Ej. Analista de Nómina" /></div>
+        <div class="fg"><label>Departamento</label><input type="text" id="gf-department" value="${esc(b?.department || '')}" placeholder="Ej. Talento Humano" /></div>
+        <div class="fg full"><label>Código de empleado</label><input type="text" id="gf-code" value="${esc(b?.employee_code || '')}" placeholder="Ej. EMP-0042" /></div>
+        <div class="fg full"><label>Foto</label>
+          <input type="file" id="gf-photo" accept="image/*" onchange="previewGafetePhoto(this)" />
+          <img id="gf-photo-preview" src="${b?.photo_url || ''}" style="display:${b?.photo_url ? 'block' : 'none'};width:64px;height:64px;object-fit:cover;border-radius:50%;margin-top:0.5rem" />
+        </div>
+      </div>
+      <div style="display:flex;gap:0.5rem;margin-top:1rem">
+        <button class="btn btn-primary btn-sm" onclick="saveGafete()">Guardar</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeGafeteForm()">Cancelar</button>
+      </div>
+    </div>`
+}
+
+function previewGafetePhoto(input) {
+  const file = input.files[0]; if (!file) return
+  _gafetePhotoFile = file
+  const img = document.getElementById('gf-photo-preview')
+  img.src = URL.createObjectURL(file); img.style.display = 'block'
+}
+
+async function saveGafete() {
+  const full_name = document.getElementById('gf-name').value.trim()
+  if (!full_name) { toast('El nombre es requerido'); return }
+  const position = document.getElementById('gf-position').value.trim() || null
+  const department = document.getElementById('gf-department').value.trim() || null
+  const employee_code = document.getElementById('gf-code').value.trim() || null
+
+  let photo_url = _gafeteEditingId ? (_gafetes.find(g => g.id === _gafeteEditingId)?.photo_url || null) : null
+  if (_gafetePhotoFile) {
+    const ext = _gafetePhotoFile.name.split('.').pop()
+    const path = `badges/${_gafeteEditingId || crypto.randomUUID()}/photo.${ext}`
+    const { error: upErr } = await sb.storage.from('product-images').upload(path, _gafetePhotoFile, { upsert: true, contentType: _gafetePhotoFile.type })
+    if (upErr) { toast('Error subiendo foto: ' + upErr.message); return }
+    const { data: urlData } = sb.storage.from('product-images').getPublicUrl(path)
+    photo_url = urlData.publicUrl + '?t=' + Date.now()
+  }
+
+  const payload = { full_name, position, department, employee_code, photo_url, updated_at: new Date().toISOString() }
+  let error
+  if (_gafeteEditingId) {
+    ;({ error } = await sb.from('employee_badges').update(payload).eq('id', _gafeteEditingId))
+  } else {
+    ;({ error } = await sb.from('employee_badges').insert({ ...payload, created_by: me.id }))
+  }
+  if (error) { toast('Error guardando gafete: ' + error.message); return }
+  toast('Gafete guardado')
+  showGafetes()
+}
+
+async function deleteGafete(id) {
+  if (!confirm('¿Eliminar este gafete?')) return
+  const { error } = await sb.from('employee_badges').delete().eq('id', id)
+  if (error) { toast('Error eliminando: ' + error.message); return }
+  _gafetes = _gafetes.filter(g => g.id !== id)
+  renderGafetes()
+}
+
+function printGafete(id) {
+  const b = _gafetes.find(g => g.id === id)
+  if (!b) return
+  const photo = b.photo_url
+    ? `<img src="${b.photo_url}" style="width:100%;height:100%;object-fit:cover" />`
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22pt;font-weight:800;color:#888">${esc((b.full_name||'?')[0].toUpperCase())}</div>`
+  const w = window.open('', '_blank')
+  w.document.write(`<html><head><title>Gafete ${esc(b.full_name)}</title><style>
+    @page { size: 85.6mm 54mm; margin: 0; }
+    body { font-family: -apple-system, Helvetica, Arial, sans-serif; margin:0; color:#111; }
+    .badge { width: 85.6mm; height: 54mm; box-sizing: border-box; padding: 4mm; display:flex; flex-direction:column; align-items:center; text-align:center; }
+    .logo { width: 26mm; margin-bottom: 2mm; }
+    .photo { width: 20mm; height: 20mm; border-radius: 50%; overflow: hidden; background:#eee; margin-bottom: 2mm; }
+    .name { font-size: 12pt; font-weight: 800; }
+    .position { font-size: 9pt; color: #444; }
+    .department { font-size: 8pt; color: #666; }
+    .code { font-size: 7pt; color: #888; margin-top: 2mm; letter-spacing: 0.5px; }
+  </style></head><body>
+    <div class="badge">
+      <img class="logo" src="${location.origin}${location.pathname.replace(/[^/]*$/, '')}SIERRA_Primary_Blue02.svg" />
+      <div class="photo">${photo}</div>
+      <div class="name">${esc(b.full_name)}</div>
+      <div class="position">${esc(b.position || '')}</div>
+      <div class="department">${esc(b.department || '')}</div>
+      ${b.employee_code ? `<div class="code">${esc(b.employee_code)}</div>` : ''}
+    </div>
+  </body></html>`)
+  w.document.close(); w.print()
+}
+
 function showDashboard() {
   sessionStorage.setItem('sierra_route', 'dashboard')
   clearHash()
@@ -8294,7 +8570,7 @@ async function showUserManagement() {
 
   const domainLabel = {
     fiber:'Fiber', yarn:'Yarn', fabric:'Fabric', chemicals:'Chemicals', garment:'Apparel',
-    warehouse:'Warehouse', customer_service:'Customer Service', platform:'Platform',
+    warehouse:'Warehouse', customer_service:'Customer Service', talento_humano:'Talento Humano', platform:'Platform',
   }
   const domainOpts = AUTH_DOMAINS.map(d => `<option value="${d}">${domainLabel[d]}</option>`).join('')
 
@@ -8361,6 +8637,8 @@ function bundleCaps(domain, level) {
     return level === 'owner' ? ['read','dispatch','grant'] : level === 'editor' ? ['read','dispatch'] : ['read']
   if (domain === 'customer_service')
     return level === 'owner' ? ['read','write','manage_status','grant'] : level === 'editor' ? ['read','write','manage_status'] : ['read']
+  if (domain === 'talento_humano')
+    return level === 'owner' ? ['read','write','grant'] : level === 'editor' ? ['read','write'] : ['read']
   return level === 'owner' ? ['read','write','delete','publish','grant'] : level === 'editor' ? ['read','write','publish'] : ['read']
 }
 function grantLevelOf(caps) {
