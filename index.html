@@ -2528,6 +2528,7 @@
 
     /* Sample status badges */
     .smp-badge { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.66rem; font-weight:600; padding:0.22rem 0.6rem; border-radius:20px; white-space:nowrap; }
+    .smp-draft      { background:rgba(255,120,36,0.10);  color:#a04800; border:1px dashed rgba(255,120,36,0.35); }
     .smp-requested  { background:rgba(170,170,170,0.12); color:#555; }
     .smp-approved   { background:rgba(15,168,156,0.10);  color:#0a7a72; }
     .smp-preparing  { background:rgba(255,197,41,0.13);  color:#8a6d00; }
@@ -2538,6 +2539,7 @@
     .smp-returned   { background:rgba(255,120,36,0.12);  color:#a04800; }
     .smp-damaged    { background:rgba(192,57,43,0.10);   color:#a0281e; }
     .smp-archived   { background:rgba(100,100,100,0.10); color:#666; }
+    [data-theme="dark"] .smp-draft      { background:rgba(255,120,36,0.12); color:#ff9955; }
     [data-theme="dark"] .smp-requested  { background:rgba(200,200,200,0.08); color:#999; }
     [data-theme="dark"] .smp-approved   { background:rgba(15,168,156,0.12); color:#2dd4c9; }
     [data-theme="dark"] .smp-preparing  { background:rgba(255,197,41,0.12); color:#ffc529; }
@@ -3359,6 +3361,7 @@
       <svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="flex-shrink:0"><rect x="3" y="6" width="14" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 9h14M10 6V3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       Every sample in this collection is packed and delivered together, as one package.
     </div>
+    <div id="cart-collab-fg"></div>
     <div class="cart-fg"><label>Collection name (optional)</label><input type="text" id="cart-name" placeholder="e.g. Nike Fall '26 Swatches" /></div>
     <div class="cart-fg"><label>Customer</label><input type="text" id="cart-customer" placeholder="e.g. Nike, Adidas" /></div>
     <div class="cart-fg"><label>Priority</label>
@@ -3990,6 +3993,7 @@ async function enterApp(user) {
   }
   if (insightsSections().length) document.getElementById('nav-insights').style.display = 'flex'
   renderModuleSwitcher()
+  loadDraftCart()
   // Store email in profiles for admin view
   if (p && !p.email) {
     sb.from('profiles').update({ email: user.email }).eq('id', user.id).then(() => {})
@@ -7531,7 +7535,7 @@ const MODULES = {
     ],
   },
   muestras_productos: {
-    label: 'Muestras de Productos',
+    label: 'Muestras',
     // Visible to inventory managers (write on any material), internal
     // customers (read on customer_service) and — once the read_external
     // capability ships — external clients too.
@@ -9218,7 +9222,7 @@ const DIV_SAMPLE_TYPES = {
 }
 
 const SMP_STATUS_LABEL = {
-  requested: 'Requested', approved: 'Approved', preparing: 'Preparing',
+  draft: 'Draft', requested: 'Requested', approved: 'Approved', preparing: 'Preparing',
   ready: 'Ready', picked_up: 'Picked Up', shipped: 'Shipped',
   delivered: 'Delivered', returned: 'Returned', damaged: 'Damaged', archived: 'Archived',
 }
@@ -9229,12 +9233,42 @@ function smpBadge(status) {
   return `<span class="smp-badge smp-${status}">${SMP_STATUS_LABEL[status] || status}</span>`
 }
 
-/* ── SAMPLE CART ── */
-let sampleCart = []
-try { sampleCart = JSON.parse(localStorage.getItem('sierra_sample_cart') || '[]') } catch {}
+/* ── SAMPLE CART — a collaborative draft collection ──
+   The cart is not a local scratchpad: the moment the first product is
+   added it becomes a real sample_collections row with status='draft'
+   (create_draft_collection), so it can be invited into and jointly
+   edited before anyone submits it. Only localStorage keeps a pointer
+   (sierra_draft_collection_id) — the cart's actual contents always
+   come from the DB, so a colleague's edits show up next time it opens. */
+let sampleCart = []            // rendering cache of the active draft's items
+let draftCollectionId = null
+let draftCollectionRef = null
+let draftCollaborators = []
+try { draftCollectionId = localStorage.getItem('sierra_draft_collection_id') || null } catch {}
 
-function saveCart() {
-  try { localStorage.setItem('sierra_sample_cart', JSON.stringify(sampleCart)) } catch {}
+async function loadDraftCart() {
+  if (!draftCollectionId) { sampleCart = []; draftCollaborators = []; updateCartFab(); return }
+  const [{ data: col, error: colErr }, { data: items }, { data: collabs }] = await Promise.all([
+    sb.from('sample_collections').select('*').eq('id', draftCollectionId).single(),
+    sb.from('samples').select('id,product_id,sample_type,quantity,products(name,code,division)')
+      .eq('collection_id', draftCollectionId).eq('status', 'draft').order('created_at', { ascending: true }),
+    sb.from('collection_collaborators').select('*, profiles!user_id(full_name,email)').eq('collection_id', draftCollectionId),
+  ])
+  if (colErr || !col || col.status !== 'draft') {
+    // submitted elsewhere, discarded, or never existed — drop the pointer
+    draftCollectionId = null; draftCollectionRef = null
+    try { localStorage.removeItem('sierra_draft_collection_id') } catch {}
+    sampleCart = []; draftCollaborators = []
+    updateCartFab()
+    return
+  }
+  draftCollectionRef = col.collection_id
+  sampleCart = (items || []).map(i => ({
+    id: i.id, product_id: i.product_id,
+    name: i.products?.name || '—', code: i.products?.code || '', division: i.products?.division,
+    type: i.sample_type, qty: i.quantity || 1,
+  }))
+  draftCollaborators = collabs || []
   updateCartFab()
 }
 
@@ -9257,29 +9291,110 @@ function updateCartFab() {
   }
 }
 
-function addToCart(p) {
+async function addToCart(p) {
   if (!canRequestSample(p)) {
     toast(`${LIFECYCLE[lc(p)].label} products can't be requested as samples`)
     return
   }
-  const existing = sampleCart.find(i => i.id === p.id)
-  if (existing) { existing.qty++ }
-  else {
-    const types = DIV_SAMPLE_TYPES[p.division] || ['Sample']
-    sampleCart.push({ id:p.id, name:p.name, code:p.code||'', division:p.division, type:types[0], qty:1 })
+  if (!draftCollectionId) {
+    const { data, error } = await sb.rpc('create_draft_collection', {})
+    if (error || !data) { toast('Could not start a collection: ' + (error?.message || 'unknown error')); return }
+    draftCollectionId = data.collection_id
+    draftCollectionRef = data.collection_ref
+    try { localStorage.setItem('sierra_draft_collection_id', draftCollectionId) } catch {}
   }
-  saveCart()
+  const existing = sampleCart.find(i => i.product_id === p.id)
+  if (existing) {
+    const newQty = existing.qty + 1
+    const { error } = await sb.rpc('update_draft_item', { p_id: existing.id, p_quantity: newQty })
+    if (error) { toast('Could not update quantity: ' + error.message); return }
+    existing.qty = newQty
+  } else {
+    const types = DIV_SAMPLE_TYPES[p.division] || ['Sample']
+    const { data, error } = await sb.rpc('add_draft_item', {
+      p_collection_id: draftCollectionId, p_product_id: p.id, p_sample_type: types[0], p_quantity: 1,
+    })
+    if (error || !data) { toast('Could not add to collection: ' + (error?.message || 'unknown error')); return }
+    sampleCart.push({ id: data.id, product_id: p.id, name: p.name, code: p.code || '', division: p.division, type: types[0], qty: 1 })
+  }
+  updateCartFab()
+  renderCart()
   toast(`${p.name} added to collection`)
 }
 
-function openCart() {
-  renderCart()
+async function openCart() {
   document.getElementById('cart-panel').classList.add('open')
   document.getElementById('cart-backdrop').classList.add('open')
+  document.getElementById('cart-body').innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">◻</div>Loading…</div>`
+  document.getElementById('cart-checkout').style.display = 'none'
+  await loadDraftCart()
+  renderCart()
 }
 function closeCart() {
   document.getElementById('cart-panel').classList.remove('open')
   document.getElementById('cart-backdrop').classList.remove('open')
+}
+
+function cartCollabHtml() {
+  if (!draftCollectionId) return ''
+  const chips = draftCollaborators.length
+    ? `<div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.6rem">
+        ${draftCollaborators.map(c => `<span style="display:inline-flex;align-items:center;gap:0.35rem;background:var(--surface2);border-radius:999px;padding:0.3rem 0.65rem;font-size:0.72rem;font-weight:500">${esc(c.profiles?.full_name || c.profiles?.email || '—')}</span>`).join('')}
+      </div>`
+    : `<div style="font-size:0.76rem;color:var(--text-3);margin-bottom:0.6rem">Building this alone — invite a teammate to co-edit before you submit.</div>`
+  return `<div class="cart-fg">
+    <label>Collaborators${draftCollectionRef ? ` · ${esc(draftCollectionRef)}` : ''}</label>
+    ${chips}
+    <div style="display:flex;gap:0.5rem">
+      <input type="text" id="cart-collab-input" placeholder="Name or email…"
+        style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;font-size:0.8rem;font-family:inherit;background:var(--surface2);color:var(--text)"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();inviteCartCollaborator()}" />
+      <button class="btn btn-ghost btn-sm" onclick="inviteCartCollaborator()">Invite</button>
+    </div>
+    <button type="button" onclick="discardDraftCart()" style="margin-top:0.6rem;background:none;border:none;padding:0;font-family:inherit;font-size:0.72rem;color:var(--text-3);cursor:pointer;text-decoration:underline">Discard this draft</button>
+  </div>`
+}
+
+async function discardDraftCart() {
+  if (!draftCollectionId) return
+  if (!confirm('Discard this draft collection and every item in it? This can\'t be undone.')) return
+  const id = draftCollectionId
+  draftCollectionId = null; draftCollectionRef = null
+  try { localStorage.removeItem('sierra_draft_collection_id') } catch {}
+  sampleCart = []; draftCollaborators = []
+  updateCartFab()
+  closeCart()
+  const { error } = await sb.rpc('discard_draft_collection', { p_id: id })
+  if (error) console.error('discard_draft_collection error:', error)
+  else toast('Draft discarded')
+}
+
+async function inviteCartCollaborator() {
+  if (!draftCollectionId) { toast('Add a product first'); return }
+  const input = document.getElementById('cart-collab-input')
+  const query = input?.value.trim()
+  if (!query) { toast('Type a name or email to invite'); return }
+  const { data: matches } = await sb.from('profiles').select('id, full_name, email')
+    .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`).limit(1)
+  const match = matches?.[0]
+  if (!match) { toast('No teammate found with that name or email'); return }
+  const { error } = await sb.from('collection_collaborators').insert({
+    collection_id: draftCollectionId, user_id: match.id, added_by: me.id,
+  })
+  if (error) {
+    toast(error.code === '23505' ? `${match.full_name || match.email} is already a collaborator` : 'Could not invite collaborator')
+    return
+  }
+  await sb.from('notifications').insert({
+    user_id: match.id, type: 'collection_invite',
+    title: `You were added to collection ${draftCollectionRef || ''}`,
+    body: `${profile?.full_name || 'A teammate'} invited you to help build this collection together — it's still a draft, add or change items freely.`,
+    resource_type: 'collection', resource_id: draftCollectionId,
+  })
+  Audit.log('collection', draftCollectionId, null, 'user_invited', `Invited ${match.full_name || match.email} as collaborator`)
+  toast(`${match.full_name || match.email} added — they can now co-edit this collection`)
+  await loadDraftCart()
+  renderCart()
 }
 
 function renderCart() {
@@ -9288,8 +9403,10 @@ function renderCart() {
   const sub = document.getElementById('cart-hdr-sub')
   const n = sampleCart.reduce((s, i) => s + i.qty, 0)
   if (sub) sub.textContent = sampleCart.length ? `${sampleCart.length} product${sampleCart.length>1?'s':''} · ${n} sample${n>1?'s':''}` : ''
+  const collabFg = document.getElementById('cart-collab-fg')
+  if (collabFg) collabFg.innerHTML = cartCollabHtml()
   if (!sampleCart.length) {
-    body.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">◻</div>Your request is empty.<br>Add samples from any product card.</div>`
+    body.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">◻</div>Your request is empty.<br>Add samples from any product card, or start from an existing collection.</div>`
     checkout.style.display = 'none'
     return
   }
@@ -9343,20 +9460,37 @@ function cartToggleTypeMenu(e, idx) {
     dd.classList.add('open')
   }
 }
-function cartPickType(e, idx, type) {
+async function cartPickType(e, idx, type) {
   e.stopPropagation()
-  sampleCart[idx].type = type
-  saveCart()
+  const item = sampleCart[idx]
+  if (!item) return
+  item.type = type
   renderCart()
+  const { error } = await sb.rpc('update_draft_item', { p_id: item.id, p_sample_type: type })
+  if (error) { toast('Could not update type: ' + error.message); await loadDraftCart(); renderCart() }
 }
 document.addEventListener('click', () => {
   document.querySelectorAll('.cart-type-dd.open').forEach(d => d.classList.remove('open'))
 })
 
-function cartRemove(idx) { sampleCart.splice(idx, 1); saveCart(); renderCart(); if (!sampleCart.length) closeCart() }
-function cartSetQty(idx, delta) {
-  sampleCart[idx].qty = Math.max(1, sampleCart[idx].qty + delta)
-  saveCart(); renderCart()
+async function cartRemove(idx) {
+  const item = sampleCart[idx]
+  if (!item) return
+  sampleCart.splice(idx, 1)
+  updateCartFab()
+  renderCart()
+  if (!sampleCart.length) closeCart()
+  const { error } = await sb.rpc('remove_draft_item', { p_id: item.id })
+  if (error) { toast('Could not remove item: ' + error.message); await loadDraftCart(); renderCart() }
+}
+async function cartSetQty(idx, delta) {
+  const item = sampleCart[idx]
+  if (!item) return
+  const newQty = Math.max(1, item.qty + delta)
+  item.qty = newQty
+  renderCart()
+  const { error } = await sb.rpc('update_draft_item', { p_id: item.id, p_quantity: newQty })
+  if (error) { toast('Could not update quantity: ' + error.message); await loadDraftCart(); renderCart() }
 }
 function cartSeg(btn) {
   btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('on'))
@@ -9370,7 +9504,7 @@ function cartDeliveryChanged() {
 }
 
 async function submitCart() {
-  if (!sampleCart.length) return
+  if (!sampleCart.length || !draftCollectionId) return
   const name = document.getElementById('cart-name').value.trim()
   const customer = document.getElementById('cart-customer').value.trim()
   const priority = cartSegVal('cart-priority')
@@ -9385,91 +9519,43 @@ async function submitCart() {
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'
 
   const userName = profile?.full_name || me?.email?.split('@')[0] || 'User'
-  let collectionRef = null, collectionDbId = null, created = [], lastError = null
+  const itemsSnapshot = sampleCart.slice()
 
-  // Preferred path: one atomic call creates the collection + every sample in it.
-  try {
-    const { data, error } = await sb.rpc('create_sample_collection', {
-      p_items: sampleCart.map(i => ({ product_id: i.id, sample_type: i.type, quantity: i.qty })),
-      p_customer: customer, p_priority: priority, p_delivery: delivery,
-      p_recipient: recipient, p_address: address, p_notes: notes,
-      p_user_id: me.id, p_user_name: userName, p_name: name || null,
-    })
-    if (!error && data) {
-      collectionRef = data.collection_ref
-      collectionDbId = data.collection_id
-      created = data.items || []
-      Audit.log('collection', collectionDbId, null, 'created',
-        `Collection ${collectionRef} created`, [],
-        { name: name || null, items: sampleCart.length, customer, priority, delivery })
-      // Reserve physical stock for every item (skips products without
-      // tracked inventory — adoption is gradual, the flow never blocks)
-      sb.rpc('reserve_collection_inventory', { p_collection: collectionDbId })
-        .then(({ error: re }) => { if (re) console.error('reserve inventory:', re) })
-      sampleCart.forEach(i => Audit.log('product', i.id, i, 'sample_requested',
-        `Sample requested (${i.type} × ${i.qty})`, [], { collection: collectionRef }))
-    } else if (error) { lastError = error; console.error('create_sample_collection RPC error:', error) }
-  } catch (e) { lastError = e; console.error('create_sample_collection RPC threw:', e) }
-
-  // Fallback: older schema without the collection RPC yet — behave like before,
-  // creating each sample individually with a client-side batch reference.
-  if (!created.length) {
-    collectionRef = `REQ-${Date.now().toString(36).toUpperCase()}`
-    const destination = delivery === 'Pickup' ? `Pickup · ${recipient}` : `${delivery} → ${address} · Attn: ${recipient}`
-    const sharedNotes = [`Batch ${collectionRef} — all items ship together`, priority === 'urgent' ? 'PRIORITY: URGENT' : '', notes].filter(Boolean).join(' · ')
-    for (const item of sampleCart) {
-      let result = null
-      try {
-        const { data, error } = await sb.rpc('create_sample', {
-          p_product_id: item.id, p_sample_type: item.type, p_quantity: item.qty,
-          p_customer: customer, p_destination: destination,
-          p_reason: priority === 'urgent' ? 'Urgent request' : 'Sample request',
-          p_notes: sharedNotes, p_user_id: me.id, p_user_name: userName,
-        })
-        if (!error) result = data
-        else { lastError = error; console.error('create_sample RPC error:', error) }
-      } catch (e) { lastError = e; console.error('create_sample RPC threw:', e) }
-      if (!result) {
-        const year = new Date().getFullYear()
-        const { data: last } = await sb.from('samples').select('sample_id').like('sample_id', `SMP-${year}-%`).order('sample_id', { ascending: false }).limit(1)
-        const lastNum = last?.[0]?.sample_id ? parseInt(last[0].sample_id.split('-')[2]) : 0
-        const newId = `SMP-${year}-${String(lastNum + 1).padStart(6, '0')}`
-        const { data: ins, error: insErr } = await sb.from('samples').insert({
-          sample_id: newId, product_id: item.id, sample_type: item.type,
-          quantity: item.qty, customer, destination,
-          reason: priority === 'urgent' ? 'Urgent request' : 'Sample request',
-          notes: sharedNotes, status: 'requested', requested_by: me.id,
-        }).select().single()
-        if (!insErr && ins) {
-          await sb.from('sample_events').insert({
-            sample_id: ins.id, event_type: 'status_change',
-            event_label: `Requested by ${userName} (batch ${collectionRef})`,
-            event_data: { status: 'requested' }, created_by: me.id,
-          })
-          result = { sample_id: newId, id: ins.id }
-        } else if (insErr) { lastError = insErr; console.error('samples insert error:', insErr) }
-      }
-      if (result) created.push(result)
-    }
-  }
+  const { data, error } = await sb.rpc('submit_draft_collection', {
+    p_id: draftCollectionId, p_customer: customer, p_priority: priority, p_delivery: delivery,
+    p_recipient: recipient, p_address: address, p_notes: notes, p_name: name || null,
+  })
 
   btn.disabled = false; btn.innerHTML = 'Create collection'
-  if (!created.length) {
-    const msg = lastError?.message || lastError?.hint || 'unknown error'
-    console.error('Collection creation failed. Last Supabase error:', lastError)
-    toast(`Collection failed: ${msg}`)
+  if (error || !data) {
+    console.error('submit_draft_collection error:', error)
+    toast(`Collection failed: ${error?.message || 'unknown error'}`)
     return
   }
+
+  const collectionRef = data.collection_ref
+  const collectionDbId = data.collection_id
+  const created = data.items || []
+
+  Audit.log('collection', collectionDbId, null, 'created',
+    `Collection ${collectionRef} created`, [],
+    { name: name || null, items: itemsSnapshot.length, customer, priority, delivery })
+  sb.rpc('reserve_collection_inventory', { p_collection: collectionDbId })
+    .then(({ error: re }) => { if (re) console.error('reserve inventory:', re) })
+  itemsSnapshot.forEach(i => Audit.log('product', i.product_id, i, 'sample_requested',
+    `Sample requested (${i.type} × ${i.qty})`, [], { collection: collectionRef }))
 
   lastShipment = {
     ref: collectionRef, name, collectionId: collectionDbId, date: new Date(), customer, priority, delivery, recipient, address, notes,
     requestedBy: userName,
-    items: sampleCart.map((i, idx) => ({ ...i, sample_id: created[idx]?.sample_id || '' })),
+    items: itemsSnapshot.map((i, idx) => ({ ...i, sample_id: created[idx]?.sample_id || '' })),
   }
   try { localStorage.setItem('sierra_last_guide', JSON.stringify(lastShipment)) } catch {}
 
-  sampleCart = []
-  saveCart()
+  draftCollectionId = null; draftCollectionRef = null
+  try { localStorage.removeItem('sierra_draft_collection_id') } catch {}
+  sampleCart = []; draftCollaborators = []
+  updateCartFab()
   document.getElementById('cart-name').value = ''
   document.getElementById('cart-customer').value = ''
   document.getElementById('cart-recipient').value = ''
@@ -9477,6 +9563,63 @@ async function submitCart() {
   document.getElementById('cart-notes').value = ''
   renderCartSuccess()
   toast(`Collection ${collectionRef} created — ${created.length} sample${created.length>1?'s':''}`)
+}
+
+/* ── "Start from an existing collection" — clone a past collection's
+   items into a brand-new draft the caller can then edit and invite
+   others into, instead of rebuilding a recurring order from scratch. */
+async function cloneCollectionToDraft(sourceId) {
+  const { data, error } = await sb.rpc('clone_collection_to_draft', { p_source_id: sourceId })
+  if (error || !data) { toast('Could not start from this collection: ' + (error?.message || 'unknown error')); return }
+  draftCollectionId = data.collection_id
+  draftCollectionRef = data.collection_ref
+  try { localStorage.setItem('sierra_draft_collection_id', draftCollectionId) } catch {}
+  Audit.log('collection', draftCollectionId, null, 'created',
+    `Draft ${draftCollectionRef} started from an existing collection`)
+  toast(`New draft ${draftCollectionRef} started — edit it freely before submitting`)
+  await openCart()
+}
+
+/* ── MY DRAFTS — resumable, in-progress collections (own or invited into) ── */
+async function renderMyDrafts() {
+  const [{ data: own }, { data: collabRows }] = await Promise.all([
+    sb.from('sample_collections').select('id,collection_id,name,customer,created_at').eq('status', 'draft').eq('requested_by', me.id),
+    sb.from('collection_collaborators').select('collection_id, sample_collections!collection_id(id,collection_id,name,customer,status,created_at)').eq('user_id', me.id),
+  ])
+  const invited = (collabRows || [])
+    .map(r => r.sample_collections)
+    .filter(c => c && c.status === 'draft')
+  const seen = new Set()
+  const drafts = [...(own || []), ...invited].filter(c => {
+    if (seen.has(c.id)) return false
+    seen.add(c.id); return true
+  })
+  if (!drafts.length) return ''
+  return `
+    <div class="srd-section-label" style="margin-top:0">My Drafts <span style="font-weight:400;color:var(--text-3);text-transform:none;letter-spacing:0">· in progress, not yet submitted</span></div>
+    <div class="smp-list" style="margin-bottom:2rem">
+      ${drafts.map(c => {
+        const date = new Date(c.created_at).toLocaleDateString('en-US', { day:'2-digit', month:'short', year:'numeric' })
+        return `<div class="smp-row" onclick="openDraftFromList('${c.id}')">
+          <div class="smp-row-id">${esc(c.collection_id)}</div>
+          <div class="smp-row-product">
+            <div class="smp-row-name">${esc(c.name || 'Untitled draft')}</div>
+            <div class="smp-row-meta"><span class="smp-id-inline">${esc(c.collection_id)} · </span>${c.customer ? esc(c.customer) : 'No customer set yet'}</div>
+          </div>
+          <div class="smp-row-type">Draft</div>
+          <div class="smp-row-right">
+            ${smpBadge('draft')}
+            <div class="smp-row-date">${date}</div>
+          </div>
+        </div>`
+      }).join('')}
+    </div>`
+}
+
+async function openDraftFromList(id) {
+  draftCollectionId = id
+  try { localStorage.setItem('sierra_draft_collection_id', id) } catch {}
+  await openCart()
 }
 
 /* ── SHIPPING GUIDE (internal package ID document) ── */
@@ -9582,8 +9725,8 @@ function printShippingGuide() {
 }
 
 /* ── SAMPLE REQUEST ENTRY POINTS (route into cart) ── */
-function openReq() { if (selected) { addToCart(selected); openCart() } }
-function quickReq(p) { addToCart(p) }
+async function openReq() { if (selected) { await addToCart(selected); openCart() } }
+async function quickReq(p) { await addToCart(p) }
 
 function selectReqType(btn, type) {
   document.querySelectorAll('#r-type-grid .req-type-opt').forEach(b => b.classList.remove('selected'))
@@ -9672,16 +9815,18 @@ async function showSampleCenter() {
 
   let q = sb.from('samples')
     .select('*, products(name,division,code), profiles!requested_by(full_name)')
+    .neq('status', 'draft')
     .order('created_at', { ascending: false })
     .limit(80)
   let colQ = sb.from('sample_collections')
     .select('*')
+    .neq('status', 'draft')
     .order('created_at', { ascending: false })
     .limit(30)
 
   if (!can('read', 'customer_service')) { q = q.eq('requested_by', me.id); colQ = colQ.eq('requested_by', me.id) }
 
-  const [{ data, error }, { data: collections }] = await Promise.all([q, colQ])
+  const [{ data, error }, { data: collections }, draftsHtml] = await Promise.all([q, colQ, renderMyDrafts()])
 
   if (error) {
     console.error('showSampleCenter error:', error)
@@ -9700,7 +9845,7 @@ async function showSampleCenter() {
   }
 
   if (!data?.length) {
-    pg.innerHTML = `<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>No samples yet. Request one from any product page.</p></div>`
+    pg.innerHTML = draftsHtml + `<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>No samples yet. Request one from any product page.</p></div>`
     return
   }
 
@@ -9708,7 +9853,7 @@ async function showSampleCenter() {
   const collectionCounts = {}
   data.forEach(s => { if (s.collection_id) collectionCounts[s.collection_id] = (collectionCounts[s.collection_id] || 0) + 1 })
 
-  const collectionsHtml = collections?.length ? `
+  const collectionsHtml = draftsHtml + (collections?.length ? `
     <div class="srd-section-label" style="margin-top:0">Collections</div>
     <div class="smp-list" style="margin-bottom:2rem">
       ${collections.map(c => {
@@ -9727,7 +9872,7 @@ async function showSampleCenter() {
           </div>
         </div>`
       }).join('')}
-    </div>` : ''
+    </div>` : '')
 
   // Group by status
   const statusGroups = {}
@@ -10077,6 +10222,10 @@ async function showCollectionRecord(collectionId) {
           Go to Dispatch
         </button>` : `
         <div style="font-size:0.72rem;color:var(--text-3);text-align:center;padding:0.5rem 0">Awaiting dispatch — the shipping guide prints once every item is verified.</div>`}
+        <button class="btn btn-ghost btn-sm" style="width:100%" onclick="cloneCollectionToDraft('${col.id}')">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="4" y="4" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M7 4V2.5h9v9H14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Start a new draft from this
+        </button>
       </div>
     </div>
   </div>`
@@ -11348,8 +11497,8 @@ async function insightsData(force) {
   if (!force && _insCache && Date.now() - _insCache.ts < INS_TTL) return _insCache
   const [prods, smps, cols, stocks, locs, moves] = await Promise.all([
     sb.from('products').select('id,name,code,division,specs,tags,lifecycle,image_url,image_urls,created_at,updated_at').limit(5000),
-    sb.from('samples').select('id,sample_id,product_id,sample_type,quantity,customer,status,created_at,updated_at,collection_id,requested_by').order('created_at', { ascending: false }).limit(5000),
-    sb.from('sample_collections').select('id,collection_id,name,customer,priority,delivery_method,status,created_at,updated_at,requested_by').order('created_at', { ascending: false }).limit(2000),
+    sb.from('samples').select('id,sample_id,product_id,sample_type,quantity,customer,status,created_at,updated_at,collection_id,requested_by').neq('status', 'draft').order('created_at', { ascending: false }).limit(5000),
+    sb.from('sample_collections').select('id,collection_id,name,customer,priority,delivery_method,status,created_at,updated_at,requested_by').neq('status', 'draft').order('created_at', { ascending: false }).limit(2000),
     sb.from('inventory_stock').select('product_id,location_id,format,qty,reserved,min_qty').limit(5000).then(r => r, () => ({ data: [] })),
     loadInvLocations(),
     sb.from('inventory_movements').select('product_id,location_id,format,movement_type,qty,created_at').order('created_at', { ascending: false }).limit(2000).then(r => r, () => ({ data: [] })),
