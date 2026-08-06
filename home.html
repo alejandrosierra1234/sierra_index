@@ -64,14 +64,18 @@
 
   /* ── NAVBAR (single row, Apple-style, mega menu) ── */
   :root { --nav-h: 56px; }
+  /* Frosted, not floating: the nav (and the mega menu below it) blur the
+     page content behind them — they don't sit on top of it as a
+     translucent, shadowed panel. Same fill on both, no shadow, no seam
+     between them. */
   .nav {
     position:sticky; top:0; z-index:50;
-    background:color-mix(in srgb, var(--bg) 82%, transparent);
-    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
-    border-bottom:1px solid var(--border);
-    transition:box-shadow var(--dur-slow) var(--ease-out);
+    background:color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border-bottom:1px solid transparent;
+    transition:border-color var(--dur-slow) var(--ease-out);
   }
-  .nav.scrolled { box-shadow:0 1px 0 var(--border), 0 8px 24px rgba(0,0,0,0.04); }
+  .nav.scrolled { border-bottom-color:var(--border); }
   .nav-row {
     max-width:1280px; margin:0 auto; padding:0 1.5rem;
     height:var(--nav-h);
@@ -125,11 +129,9 @@
   /* Mega menu panel — full width, appears under the nav */
   .mega {
     position:fixed; top:var(--nav-h); left:0; right:0; z-index:49;
-    background:color-mix(in srgb, var(--bg) 96%, transparent);
+    background:color-mix(in srgb, var(--bg) 92%, transparent);
     backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
-    border-bottom:1px solid var(--border);
-    box-shadow:var(--shadow-floating);
-    opacity:0; pointer-events:none; transform:translateY(-6px);
+    opacity:0; pointer-events:none; transform:translateY(-4px);
     transition:opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
   }
   @media (hover:hover) {
