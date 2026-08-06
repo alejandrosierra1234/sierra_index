@@ -136,6 +136,9 @@
     cursor:pointer;
   }
   .btn-login:hover { border-color:var(--text-3); background:color-mix(in srgb, var(--text) 4%, transparent); }
+  .btn-login-dot { width:6px; height:6px; border-radius:50%; background:var(--up); display:none; flex-shrink:0; }
+  .btn-login.authed { border-color:color-mix(in srgb, var(--up) 35%, var(--border)); }
+  .btn-login.authed .btn-login-dot { display:inline-block; }
 
   /* Mega menu panel — full width, appears under the nav */
   .mega {
@@ -589,7 +592,10 @@
         <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M14 14l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         <kbd class="nav-search-kbd">⌘K</kbd>
       </button>
-      <button class="btn-login" onclick="location.href='index.html'">Login</button>
+      <button class="btn-login" id="nav-login-btn" onclick="location.href='index.html'">
+        <span class="btn-login-dot" id="btn-login-dot"></span>
+        <span id="btn-login-label">Login</span>
+      </button>
     </div>
   </div>
 </nav>
@@ -613,7 +619,10 @@
     <span class="t-price loading" id="ct-price-m">88.88¢/lb</span>
     <span class="t-chg" id="ct-chg-m"></span>
   </div>
-  <button class="btn-login" onclick="location.href='index.html'">Login</button>
+  <button class="btn-login" id="nav-login-btn-m" onclick="location.href='index.html'">
+    <span class="btn-login-dot" id="btn-login-dot-m"></span>
+    <span id="btn-login-label-m">Login</span>
+  </button>
 </div>
 
 <div class="search-overlay" id="search-overlay" onclick="if(event.target===this) closeSearch()">
@@ -751,6 +760,26 @@
 
 <script>
   document.getElementById('f-year').textContent = new Date().getFullYear()
+
+  // Auth-aware Login button: if the visitor already has a session with
+  // the internal app (same Supabase project, shared browser storage),
+  // reflect that instead of showing "Login" as if they were signed out.
+  ;(function () {
+    try {
+      const sb = supabase.createClient(
+        'https://vhyddogeemohtqijohry.supabase.co',
+        'sb_publishable_9g8UJRbV3NxOlmQgPxjDqg_Xw6hFB0f'
+      )
+      sb.auth.getSession().then(({ data }) => {
+        if (!data?.session) return
+        ;[['nav-login-btn', 'btn-login-label'], ['nav-login-btn-m', 'btn-login-label-m']].forEach(([btnId, lblId]) => {
+          const btn = document.getElementById(btnId)
+          const lbl = document.getElementById(lblId)
+          if (btn && lbl) { btn.classList.add('authed'); lbl.textContent = 'Open App' }
+        })
+      }).catch(() => {})
+    } catch (_) { /* supabase-js failed to load — button just stays "Login" */ }
+  })()
 
   // Mobile menu (only shown under the 980px breakpoint, where the mega
   // menu can't fit inline)
