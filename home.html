@@ -13,8 +13,10 @@
   :root {
     --accent: #0f9d90;
     --accent-ink: #ffffff;
+    --up: #1a8a5c;
+    --down: #c0392b;
     --bg: #ffffff;
-    --bg-alt: #f7f7f7;
+    --bg-alt: #ffffff;
     --surface: #ffffff;
     --border: #ebebeb;
     --text: #0b0b0b;
@@ -23,13 +25,13 @@
     --shadow: 0 12px 34px rgba(0,0,0,0.06);
   }
   [data-theme="dark"] {
-    --bg: #131315; --bg-alt: #1a1a1c; --surface: #1c1c1e;
+    --bg: #131315; --bg-alt: #131315; --surface: #1c1c1e;
     --border: #2e2e30; --text: #ececec; --text-2: #a8a9ad; --text-3: #6c6d70;
     --shadow: 0 16px 40px rgba(0,0,0,0.4);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #131315; --bg-alt: #1a1a1c; --surface: #1c1c1e;
+      --bg: #131315; --bg-alt: #131315; --surface: #1c1c1e;
       --border: #2e2e30; --text: #ececec; --text-2: #a8a9ad; --text-3: #6c6d70;
       --shadow: 0 16px 40px rgba(0,0,0,0.4);
     }
@@ -45,59 +47,92 @@
   a { color:inherit; text-decoration:none; }
   .wrap { max-width:1180px; margin:0 auto; padding:0 1.5rem; }
 
-  /* ── NAVBAR ── */
-  .nav {
-    position:sticky; top:0; z-index:50;
-    display:flex; align-items:center; justify-content:space-between;
-    padding:0.9rem 1.5rem; background:color-mix(in srgb, var(--bg) 88%, transparent);
-    backdrop-filter:blur(14px); border-bottom:1px solid var(--border);
-  }
-  .nav-inner { max-width:1180px; margin:0 auto; width:100%; display:flex; align-items:center; justify-content:space-between; }
-  .nav-logo img { height:26px; display:block; }
+  /* ── NAVBAR (two-tier, Repsol-style) ── */
+  .nav { position:sticky; top:0; z-index:50; background:var(--bg); }
   [data-theme="dark"] .nav-logo img,
   [data-theme="dark"] .f-logo img { filter:brightness(0) invert(1); }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) .nav-logo img,
     :root:not([data-theme="light"]) .f-logo img { filter:brightness(0) invert(1); }
   }
-  .nav-links { display:flex; align-items:center; gap:2rem; list-style:none; margin:0; padding:0; }
-  .nav-links a {
-    font-size:0.86rem; font-weight:500; color:var(--text-2);
-    transition:color 0.15s;
+
+  /* Row 1 — utility bar: logo, region, cotton ticker, search/contact/login */
+  .nav-top {
+    border-bottom:1px solid var(--border);
   }
-  .nav-links a:hover { color:var(--text); }
-  .nav-right { display:flex; align-items:center; gap:0.9rem; }
+  .nav-top-inner {
+    max-width:1180px; margin:0 auto; padding:0.55rem 1.5rem;
+    display:flex; align-items:center; gap:0.9rem;
+  }
+  .nav-logo { display:flex; align-items:center; }
+  .nav-logo img { height:20px; display:block; }
+  .nav-sep { width:1px; height:14px; background:var(--border); flex-shrink:0; }
+  .nav-region { font-size:0.78rem; color:var(--text-2); font-weight:500; flex-shrink:0; }
+  .ticker {
+    display:flex; align-items:center; gap:0.4rem; font-size:0.78rem; font-weight:600; flex-shrink:0;
+  }
+  .ticker .t-lbl { color:var(--text-2); font-weight:500; }
+  .ticker .t-price { color:var(--text); }
+  .ticker .t-chg { display:flex; align-items:center; gap:0.15rem; }
+  .ticker .t-chg.up { color:var(--up); }
+  .ticker .t-chg.down { color:var(--down); }
+  .nav-top-right { margin-left:auto; display:flex; align-items:center; gap:1.1rem; }
+  .nav-icon-btn {
+    background:none; border:none; color:var(--text-2); cursor:pointer;
+    padding:0.2rem; display:flex; align-items:center; transition:color 0.15s;
+  }
+  .nav-icon-btn:hover { color:var(--text); }
+  .nav-contact {
+    display:flex; align-items:center; gap:0.4rem; font-size:0.8rem; font-weight:500;
+    color:var(--text-2); transition:color 0.15s;
+  }
+  .nav-contact:hover { color:var(--text); }
   .btn-login {
-    font-size:0.82rem; font-weight:700; padding:0.55rem 1.15rem;
-    border-radius:999px; background:var(--accent); color:#fff;
-    border:1px solid var(--accent); transition:opacity 0.15s, transform 0.15s;
+    display:flex; align-items:center; gap:0.4rem;
+    font-size:0.8rem; font-weight:600; padding:0.42rem 1rem;
+    border-radius:999px; background:transparent; color:var(--text);
+    border:1px solid var(--border); transition:border-color 0.15s, transform 0.15s;
     cursor:pointer;
   }
-  .btn-login:hover { opacity:0.9; transform:translateY(-1px); }
-  .nav-toggle { display:none; background:none; border:none; cursor:pointer; padding:0.4rem; color:var(--text); }
+  .btn-login:hover { border-color:var(--text-3); transform:translateY(-1px); }
+
+  /* Row 2 — section nav, pipe-separated */
+  .nav-main { border-bottom:1px solid var(--border); }
+  .nav-main-inner {
+    max-width:1180px; margin:0 auto; padding:0.75rem 1.5rem;
+    display:flex; align-items:center; gap:1.3rem;
+  }
+  .nav-toggle {
+    display:flex; align-items:center; gap:0.4rem; background:none; border:none;
+    cursor:pointer; padding:0.2rem; color:var(--text); font-size:0.84rem; font-weight:600;
+  }
+  .nav-links { display:flex; align-items:center; gap:1.3rem; list-style:none; margin:0; padding:0; flex-wrap:wrap; }
+  .nav-links li { display:flex; align-items:center; gap:1.3rem; }
+  .nav-links li:not(:last-child)::after { content:"|"; color:var(--border); }
+  .nav-links a { font-size:0.86rem; font-weight:500; color:var(--text-2); transition:color 0.15s; }
+  .nav-links a:hover { color:var(--text); }
+
   .nav-mobile {
-    display:none; position:fixed; inset:0 0 auto 0; top:60px; z-index:49;
+    display:none; position:fixed; inset:0 0 auto 0; top:96px; z-index:49;
     background:var(--bg); border-bottom:1px solid var(--border);
     flex-direction:column; padding:1rem 1.5rem 1.5rem; gap:0.2rem;
+    max-height:calc(100vh - 96px); overflow-y:auto;
   }
   .nav-mobile.open { display:flex; }
   .nav-mobile a {
     padding:0.85rem 0.2rem; font-size:0.98rem; font-weight:500;
     border-bottom:1px solid var(--border); color:var(--text);
   }
-  .nav-mobile .btn-login { margin-top:1rem; text-align:center; }
+  .nav-mobile .btn-login { margin-top:1rem; justify-content:center; }
 
   @media (max-width: 860px) {
-    .nav-links { display:none; }
-    .nav-right .btn-login { display:none; }
-    .nav-toggle { display:flex; }
+    .nav-top .nav-region, .nav-top .ticker, .nav-top .nav-contact, .nav-top .nav-sep { display:none; }
+    .nav-main .nav-links { display:none; }
   }
 
   /* ── HERO ── */
   .hero {
-    padding:6.5rem 1.5rem 5rem; text-align:center;
-    background:
-      radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 60%);
+    padding:6.5rem 1.5rem 5rem; text-align:center; background:var(--bg);
   }
   .hero-eyebrow {
     display:inline-block; font-size:0.72rem; font-weight:700; letter-spacing:0.14em;
@@ -213,21 +248,46 @@
 <body>
 
 <nav class="nav">
-  <div class="nav-inner">
-    <a class="nav-logo" href="#top"><img src="SIERRA_Primary_Blue02.svg" alt="SIERRA" /></a>
-    <ul class="nav-links">
-      <li><a href="#company">Company</a></li>
-      <li><a href="#solutions">Solutions</a></li>
-      <li><a href="#manufacturing">Manufacturing</a></li>
-      <li><a href="#innovation">Innovation</a></li>
-      <li><a href="#sustainability">Sustainability</a></li>
-      <li><a href="#contact">Contact</a></li>
-    </ul>
-    <div class="nav-right">
-      <button class="btn-login" onclick="location.href='index.html'">Login</button>
+  <div class="nav-top">
+    <div class="nav-top-inner">
+      <a class="nav-logo" href="#top"><img src="SIERRA_Primary_Blue02.svg" alt="SIERRA" /></a>
+      <div class="nav-sep"></div>
+      <div class="nav-region">Global</div>
+      <div class="nav-sep"></div>
+      <div class="ticker" id="cotton-ticker">
+        <span class="t-lbl">Cotton</span>
+        <span class="t-price" id="ct-price">—</span>
+        <span class="t-chg" id="ct-chg"></span>
+      </div>
+      <div class="nav-top-right">
+        <button class="nav-icon-btn" aria-label="Search" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M14 14l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <a class="nav-contact" href="#contact">
+          <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="4.5" width="15" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 6l6.5 5 6.5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Contact
+        </a>
+        <button class="btn-login" onclick="location.href='index.html'">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M4 17c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Login
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="nav-main">
+    <div class="nav-main-inner">
       <button class="nav-toggle" id="nav-toggle-btn" aria-label="Menu">
-        <svg width="22" height="22" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span class="nav-toggle-lbl">Menu</span>
       </button>
+      <ul class="nav-links">
+        <li><a href="#company">Company</a></li>
+        <li><a href="#solutions">Solutions</a></li>
+        <li><a href="#manufacturing">Manufacturing</a></li>
+        <li><a href="#innovation">Innovation</a></li>
+        <li><a href="#sustainability">Sustainability</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
     </div>
   </div>
 </nav>
@@ -239,6 +299,11 @@
   <a href="#innovation">Innovation</a>
   <a href="#sustainability">Sustainability</a>
   <a href="#contact">Contact</a>
+  <div class="ticker" style="margin-top:0.85rem">
+    <span class="t-lbl">Cotton</span>
+    <span class="t-price" id="ct-price-m">—</span>
+    <span class="t-chg" id="ct-chg-m"></span>
+  </div>
   <button class="btn-login" onclick="location.href='index.html'">Login</button>
 </div>
 
@@ -383,6 +448,39 @@
   const mobileNav = document.getElementById('nav-mobile')
   toggleBtn.addEventListener('click', () => mobileNav.classList.toggle('open'))
   mobileNav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => mobileNav.classList.remove('open')))
+
+  // Cotton price ticker (ICE Cotton No. 2 futures, same source as the internal dashboard)
+  async function loadCottonTicker() {
+    const yf = 'https://query1.finance.yahoo.com/v8/finance/chart/CT=F?interval=1d&range=5d'
+    const proxies = [
+      u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+      u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+    ]
+    let result = null
+    for (const mkProxy of proxies) {
+      try {
+        const res = await fetch(mkProxy(yf), { signal: AbortSignal.timeout(9000) })
+        if (!res.ok) continue
+        const body = await res.json()
+        const raw = body.contents !== undefined ? JSON.parse(body.contents) : body
+        result = raw?.chart?.result?.[0]
+        if (result) break
+      } catch (_) { continue }
+    }
+    if (!result) return
+    const meta = result.meta
+    const price = meta.regularMarketPrice
+    const closes = (result.indicators?.quote?.[0]?.close || []).filter(v => v != null)
+    const prev = meta.chartPreviousClose || meta.previousClose || closes[closes.length - 2] || price
+    const chg = price - prev, pct = prev ? (chg / prev) * 100 : 0
+    const dir = chg >= 0 ? 'up' : 'down'
+    const arrow = chg >= 0 ? '▲' : '▼'
+    const priceTxt = `${price.toFixed(2)}¢/lb`
+    const chgTxt = `${arrow} ${Math.abs(pct).toFixed(2)}%`
+    ;['ct-price', 'ct-price-m'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = priceTxt })
+    ;['ct-chg', 'ct-chg-m'].forEach(id => { const el = document.getElementById(id); if (el) { el.textContent = chgTxt; el.className = 't-chg ' + dir } })
+  }
+  loadCottonTicker()
 </script>
 
 </body>
