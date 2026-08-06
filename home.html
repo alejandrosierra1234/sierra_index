@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>SIERRA Textiles</title>
 <meta name="description" content="SIERRA — fibra, hilo, tela, químicos y confección para marcas globales." />
+<meta name="color-scheme" content="light" />
 <style>
   @font-face { font-family:"Replica"; src:url("Replica Light.otf") format("opentype"); font-weight:300; font-display:swap; }
   @font-face { font-family:"Replica"; src:url("Replica Regular.otf") format("opentype"); font-weight:400; font-display:swap; }
@@ -42,83 +43,132 @@
   a { color:inherit; text-decoration:none; }
   .wrap { max-width:1180px; margin:0 auto; padding:0 1.5rem; }
 
-  /* ── NAVBAR (two-tier, Repsol-style) ── */
-  .nav { position:sticky; top:0; z-index:50; background:var(--bg); }
+  /* ── NAVBAR (single row, Apple-style, mega menu) ── */
+  :root { --nav-h: 56px; }
+  .nav {
+    position:sticky; top:0; z-index:50;
+    background:color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    border-bottom:1px solid var(--border);
+    transition:box-shadow 0.2s ease;
+  }
+  .nav.scrolled { box-shadow:0 1px 0 var(--border), 0 8px 24px rgba(0,0,0,0.04); }
+  .nav-row {
+    max-width:1280px; margin:0 auto; padding:0 1.5rem;
+    height:var(--nav-h);
+    display:flex; align-items:center; gap:0.4rem;
+  }
+  .nav-logo { display:flex; align-items:center; margin-right:0.6rem; }
+  .nav-logo img { height:18px; display:block; }
   [data-theme="dark"] .nav-logo img,
   [data-theme="dark"] .f-logo img { filter:brightness(0) invert(1); }
 
-  /* Row 1 — utility bar: logo, region, cotton ticker, search/contact/login */
-  .nav-top {
-    border-bottom:1px solid var(--border);
+  .nav-items { display:flex; align-items:center; gap:0.1rem; height:100%; }
+  .nav-item-wrap { position:relative; height:100%; display:flex; align-items:center; }
+  .nav-item-btn {
+    background:none; border:none; cursor:pointer; height:100%;
+    display:flex; align-items:center; gap:0.3rem;
+    font-family:inherit; font-size:0.82rem; font-weight:500; color:var(--text-2);
+    padding:0 0.7rem; transition:color 0.15s;
   }
-  .nav-top-inner {
-    max-width:1180px; margin:0 auto; padding:0.55rem 1.5rem;
-    display:flex; align-items:center; gap:0.9rem;
-  }
-  .nav-logo { display:flex; align-items:center; }
-  .nav-logo img { height:20px; display:block; }
-  .nav-sep { width:1px; height:14px; background:var(--border); flex-shrink:0; }
-  .nav-region { font-size:0.78rem; color:var(--text-2); font-weight:500; flex-shrink:0; }
+  .nav-item-btn svg { transition:transform 0.18s ease; opacity:0.6; }
+  .nav-item-wrap:hover .nav-item-btn,
+  .nav-item-wrap.open .nav-item-btn { color:var(--text); }
+  .nav-item-wrap.open .nav-item-btn svg,
+  .nav-item-wrap:hover .nav-item-btn svg { transform:rotate(180deg); }
+
+  .nav-right { margin-left:auto; display:flex; align-items:center; gap:1rem; }
   .ticker {
-    display:flex; align-items:center; gap:0.4rem; font-size:0.78rem; font-weight:600; flex-shrink:0;
+    display:flex; align-items:center; gap:0.4rem; font-size:0.76rem; font-weight:600;
+    padding:0.32rem 0.7rem; border-radius:999px; background:var(--bg-alt2, color-mix(in srgb, var(--text) 5%, transparent));
+    flex-shrink:0;
   }
-  .ticker .t-lbl { color:var(--text-2); font-weight:500; }
+  .ticker .t-lbl { color:var(--text-3); font-weight:500; }
   .ticker .t-price { color:var(--text); }
   .ticker .t-chg { display:flex; align-items:center; gap:0.15rem; }
   .ticker .t-chg.up { color:var(--up); }
   .ticker .t-chg.down { color:var(--down); }
-  .nav-top-right { margin-left:auto; display:flex; align-items:center; gap:1.1rem; }
   .nav-icon-btn {
     background:none; border:none; color:var(--text-2); cursor:pointer;
-    padding:0.2rem; display:flex; align-items:center; transition:color 0.15s;
+    padding:0.3rem; display:flex; align-items:center; transition:color 0.15s;
   }
   .nav-icon-btn:hover { color:var(--text); }
-  .nav-contact {
-    display:flex; align-items:center; gap:0.4rem; font-size:0.8rem; font-weight:500;
-    color:var(--text-2); transition:color 0.15s;
-  }
-  .nav-contact:hover { color:var(--text); }
   .btn-login {
     display:flex; align-items:center; gap:0.4rem;
     font-size:0.8rem; font-weight:600; padding:0.42rem 1rem;
-    border-radius:999px; background:transparent; color:var(--text);
-    border:1px solid var(--border); transition:border-color 0.15s, transform 0.15s;
+    border-radius:999px; background:var(--text); color:var(--bg);
+    border:1px solid var(--text); transition:opacity 0.15s, transform 0.15s;
     cursor:pointer;
   }
-  .btn-login:hover { border-color:var(--text-3); transform:translateY(-1px); }
+  .btn-login:hover { opacity:0.82; transform:translateY(-1px); }
 
-  /* Row 2 — section nav, pipe-separated */
-  .nav-main { border-bottom:1px solid var(--border); }
-  .nav-main-inner {
-    max-width:1180px; margin:0 auto; padding:0.75rem 1.5rem;
-    display:flex; align-items:center; gap:1.3rem;
+  /* Mega menu panel — full width, appears under the nav */
+  .mega {
+    position:fixed; top:var(--nav-h); left:0; right:0; z-index:49;
+    background:color-mix(in srgb, var(--bg) 96%, transparent);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--border);
+    box-shadow:0 16px 32px rgba(0,0,0,0.06);
+    opacity:0; pointer-events:none; transform:translateY(-6px);
+    transition:opacity 0.16s ease, transform 0.16s ease;
   }
-  .nav-toggle {
-    display:flex; align-items:center; gap:0.4rem; background:none; border:none;
-    cursor:pointer; padding:0.2rem; color:var(--text); font-size:0.84rem; font-weight:600;
+  @media (hover:hover) {
+    .nav-item-wrap:hover .mega,
+    .nav-item-wrap:focus-within .mega { opacity:1; pointer-events:auto; transform:translateY(0); }
   }
-  .nav-links { display:flex; align-items:center; gap:1.3rem; list-style:none; margin:0; padding:0; flex-wrap:wrap; }
-  .nav-links li { display:flex; align-items:center; gap:1.3rem; }
-  .nav-links li:not(:last-child)::after { content:"|"; color:var(--border); }
-  .nav-links a { font-size:0.86rem; font-weight:500; color:var(--text-2); transition:color 0.15s; }
-  .nav-links a:hover { color:var(--text); }
+  .nav-item-wrap.open .mega { opacity:1; pointer-events:auto; transform:translateY(0); }
+  .mega-inner {
+    max-width:1280px; margin:0 auto; padding:2.2rem 1.5rem 2.4rem;
+    display:grid; grid-template-columns:1.1fr 2fr; gap:2.5rem;
+  }
+  .mega-intro-eyebrow {
+    font-size:0.7rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--accent); margin-bottom:0.5rem;
+  }
+  .mega-intro h4 { font-size:1.15rem; font-weight:700; margin:0 0 0.6rem; letter-spacing:-0.01em; }
+  .mega-intro p { font-size:0.86rem; color:var(--text-2); line-height:1.55; margin:0 0 1rem; max-width:32ch; }
+  .mega-intro a.mega-cta { font-size:0.82rem; font-weight:700; color:var(--text); display:inline-flex; align-items:center; gap:0.3rem; }
+  .mega-cols { display:grid; grid-template-columns:repeat(3, 1fr); gap:0.5rem 1.5rem; }
+  .mega-item {
+    display:flex; align-items:flex-start; gap:0.7rem; padding:0.6rem; border-radius:12px;
+    transition:background 0.15s;
+  }
+  .mega-item:hover { background:var(--surface); }
+  .mega-item-icon {
+    width:32px; height:32px; border-radius:9px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent);
+    font-size:0.8rem; font-weight:700;
+  }
+  .mega-item-icon img { width:16px; height:16px; filter:brightness(0) saturate(100%); opacity:0.8; }
+  .mega-item-txt .ttl { font-size:0.86rem; font-weight:600; color:var(--text); margin-bottom:0.15rem; }
+  .mega-item-txt .sub { font-size:0.76rem; color:var(--text-3); line-height:1.4; }
 
+  /* Mobile: nav items collapse behind a simple text trigger (necessary at
+     narrow widths — the mega menu can't fit — but it's plain text, not a
+     redundant icon sitting next to a full nav like before). */
+  .nav-menu-toggle { display:none; }
   .nav-mobile {
-    display:none; position:fixed; inset:0 0 auto 0; top:96px; z-index:49;
-    background:var(--bg); border-bottom:1px solid var(--border);
-    flex-direction:column; padding:1rem 1.5rem 1.5rem; gap:0.2rem;
-    max-height:calc(100vh - 96px); overflow-y:auto;
+    display:none; position:fixed; inset:var(--nav-h) 0 0 0; z-index:48;
+    background:var(--bg); overflow-y:auto; padding:0.5rem 1.5rem 2rem;
   }
-  .nav-mobile.open { display:flex; }
-  .nav-mobile a {
-    padding:0.85rem 0.2rem; font-size:0.98rem; font-weight:500;
-    border-bottom:1px solid var(--border); color:var(--text);
+  .nav-mobile.open { display:block; }
+  .nav-mobile-item { border-bottom:1px solid var(--border); }
+  .nav-mobile-item > a {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:1rem 0.1rem; font-size:1rem; font-weight:600; color:var(--text);
   }
-  .nav-mobile .btn-login { margin-top:1rem; justify-content:center; }
+  .nav-mobile-sub { display:flex; flex-direction:column; gap:0.1rem; padding:0 0.1rem 0.9rem; }
+  .nav-mobile-sub a { padding:0.5rem 0; font-size:0.86rem; color:var(--text-2); }
+  .nav-mobile .ticker { margin:1.3rem 0.1rem; width:fit-content; }
+  .nav-mobile .btn-login { margin:0.4rem 0.1rem; justify-content:center; }
 
-  @media (max-width: 860px) {
-    .nav-top .nav-region, .nav-top .ticker, .nav-top .nav-contact, .nav-top .nav-sep { display:none; }
-    .nav-main .nav-links { display:none; }
+  @media (max-width: 980px) {
+    .nav-items, .nav-right .ticker { display:none; }
+    .nav-menu-toggle {
+      display:flex; align-items:center; background:none; border:none; cursor:pointer;
+      font-family:inherit; font-size:0.84rem; font-weight:600; color:var(--text); padding:0.3rem 0.4rem;
+    }
   }
 
   /* ── HERO ── */
@@ -238,59 +288,160 @@
 </head>
 <body>
 
-<nav class="nav">
-  <div class="nav-top">
-    <div class="nav-top-inner">
-      <a class="nav-logo" href="#top"><img src="SIERRA_Primary_Blue02.svg" alt="SIERRA" /></a>
-      <div class="nav-sep"></div>
-      <div class="nav-region">Global</div>
-      <div class="nav-sep"></div>
+<nav class="nav" id="site-nav">
+  <div class="nav-row">
+    <a class="nav-logo" href="#top"><img src="SIERRA_Primary_Blue02.svg" alt="SIERRA" /></a>
+
+    <button class="nav-menu-toggle" id="nav-toggle-btn" aria-label="Menu">Menu</button>
+
+    <div class="nav-items" id="nav-items">
+
+      <div class="nav-item-wrap">
+        <button class="nav-item-btn">Company <svg width="10" height="10" viewBox="0 0 20 20" fill="none"><path d="M4 7l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="mega">
+          <div class="mega-inner">
+            <div class="mega-intro">
+              <div class="mega-intro-eyebrow">Company</div>
+              <h4>One integrated group</h4>
+              <p>Five divisions working as a single, accountable partner from fiber to finished garment.</p>
+              <a class="mega-cta" href="#company">Company overview →</a>
+            </div>
+            <div class="mega-cols">
+              <a class="mega-item" href="#company"><div class="mega-item-icon">5</div><div class="mega-item-txt"><div class="ttl">Integrated divisions</div><div class="sub">Fiber to garment, one group</div></div></a>
+              <a class="mega-item" href="#company"><div class="mega-item-icon">360°</div><div class="mega-item-txt"><div class="ttl">Full coverage</div><div class="sub">Every stage of the chain</div></div></a>
+              <a class="mega-item" href="#contact"><div class="mega-item-icon">✉</div><div class="mega-item-txt"><div class="ttl">Talk to us</div><div class="sub">Partnership inquiries</div></div></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-item-wrap">
+        <button class="nav-item-btn">Solutions <svg width="10" height="10" viewBox="0 0 20 20" fill="none"><path d="M4 7l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="mega">
+          <div class="mega-inner">
+            <div class="mega-intro">
+              <div class="mega-intro-eyebrow">Solutions</div>
+              <h4>What we produce</h4>
+              <p>Five divisions, one supply chain — independently or fully integrated.</p>
+              <a class="mega-cta" href="#solutions">Explore all solutions →</a>
+            </div>
+            <div class="mega-cols">
+              <a class="mega-item" href="#solutions"><div class="mega-item-icon"><img src="algodon.svg" alt="" /></div><div class="mega-item-txt"><div class="ttl">Fiber</div><div class="sub">Raw & blended sourcing</div></div></a>
+              <a class="mega-item" href="#solutions"><div class="mega-item-icon"><img src="hilo.svg" alt="" /></div><div class="mega-item-txt"><div class="ttl">Yarn</div><div class="sub">Spun for performance</div></div></a>
+              <a class="mega-item" href="#solutions"><div class="mega-item-icon"><img src="tela.svg" alt="" /></div><div class="mega-item-txt"><div class="ttl">Fabric</div><div class="sub">Knit & woven, all weights</div></div></a>
+              <a class="mega-item" href="#solutions"><div class="mega-item-icon"><img src="matraz.svg" alt="" /></div><div class="mega-item-txt"><div class="ttl">Chemicals</div><div class="sub">Dyeing & finishing</div></div></a>
+              <a class="mega-item" href="#solutions"><div class="mega-item-icon"><img src="camiseta.svg" alt="" /></div><div class="mega-item-txt"><div class="ttl">Apparel</div><div class="sub">Full-package manufacturing</div></div></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-item-wrap">
+        <button class="nav-item-btn">Manufacturing <svg width="10" height="10" viewBox="0 0 20 20" fill="none"><path d="M4 7l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="mega">
+          <div class="mega-inner">
+            <div class="mega-intro">
+              <div class="mega-intro-eyebrow">Manufacturing</div>
+              <h4>Built for scale and precision</h4>
+              <p>Fiber, yarn, fabric, chemical and garment production run side by side.</p>
+              <a class="mega-cta" href="#manufacturing">See how we produce →</a>
+            </div>
+            <div class="mega-cols">
+              <a class="mega-item" href="#manufacturing"><div class="mega-item-icon">⚙</div><div class="mega-item-txt"><div class="ttl">Integrated planning</div><div class="sub">Across all five divisions</div></div></a>
+              <a class="mega-item" href="#manufacturing"><div class="mega-item-icon">✓</div><div class="mega-item-txt"><div class="ttl">Quality control</div><div class="sub">Raw material to finished good</div></div></a>
+              <a class="mega-item" href="#manufacturing"><div class="mega-item-icon">▤</div><div class="mega-item-txt"><div class="ttl">Sample & dispatch</div><div class="sub">Tracked on every order</div></div></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-item-wrap">
+        <button class="nav-item-btn">Innovation <svg width="10" height="10" viewBox="0 0 20 20" fill="none"><path d="M4 7l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="mega">
+          <div class="mega-inner">
+            <div class="mega-intro">
+              <div class="mega-intro-eyebrow">Innovation</div>
+              <h4>Moves with the market</h4>
+              <p>Product development built for what's next, not just what's proven.</p>
+              <a class="mega-cta" href="#innovation">See our approach →</a>
+            </div>
+            <div class="mega-cols">
+              <a class="mega-item" href="#innovation"><div class="mega-item-icon">✦</div><div class="mega-item-txt"><div class="ttl">Construction & finish</div><div class="sub">Continuous development</div></div></a>
+              <a class="mega-item" href="#innovation"><div class="mega-item-icon">⏱</div><div class="mega-item-txt"><div class="ttl">Fast approval</div><div class="sub">Sample-to-approval cycles</div></div></a>
+              <a class="mega-item" href="#innovation"><div class="mega-item-icon">🤝</div><div class="mega-item-txt"><div class="ttl">Technical collaboration</div><div class="sub">With your design team</div></div></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-item-wrap">
+        <button class="nav-item-btn">Sustainability <svg width="10" height="10" viewBox="0 0 20 20" fill="none"><path d="M4 7l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="mega">
+          <div class="mega-inner">
+            <div class="mega-intro">
+              <div class="mega-intro-eyebrow">Sustainability</div>
+              <h4>Built into the process</h4>
+              <p>Traceability and resource efficiency, not an add-on.</p>
+              <a class="mega-cta" href="#sustainability">Our commitments →</a>
+            </div>
+            <div class="mega-cols">
+              <a class="mega-item" href="#sustainability"><div class="mega-item-icon">◈</div><div class="mega-item-txt"><div class="ttl">Traceable inputs</div><div class="sub">Fiber to finished product</div></div></a>
+              <a class="mega-item" href="#sustainability"><div class="mega-item-icon">⬡</div><div class="mega-item-txt"><div class="ttl">Cleaner chemistry</div><div class="sub">Ongoing process investment</div></div></a>
+              <a class="mega-item" href="#sustainability"><div class="mega-item-icon">↻</div><div class="mega-item-txt"><div class="ttl">Resource tracking</div><div class="sub">Waste & use, by facility</div></div></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-item-wrap">
+        <button class="nav-item-btn">Contact <svg width="10" height="10" viewBox="0 0 20 20" fill="none"><path d="M4 7l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="mega">
+          <div class="mega-inner">
+            <div class="mega-intro">
+              <div class="mega-intro-eyebrow">Contact</div>
+              <h4>Let's talk</h4>
+              <p>Sourcing, sampling or partnership inquiries.</p>
+              <a class="mega-cta" href="#contact">Go to contact →</a>
+            </div>
+            <div class="mega-cols">
+              <a class="mega-item" href="mailto:info@sierratextiles.com"><div class="mega-item-icon">✉</div><div class="mega-item-txt"><div class="ttl">Email us</div><div class="sub">info@sierratextiles.com</div></div></a>
+              <a class="mega-item" href="index.html"><div class="mega-item-icon">→</div><div class="mega-item-txt"><div class="ttl">Team login</div><div class="sub">Internal access</div></div></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="nav-right">
       <div class="ticker" id="cotton-ticker">
         <span class="t-lbl">Cotton</span>
         <span class="t-price" id="ct-price">—</span>
         <span class="t-chg" id="ct-chg"></span>
       </div>
-      <div class="nav-top-right">
-        <button class="nav-icon-btn" aria-label="Search" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M14 14l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        </button>
-        <a class="nav-contact" href="#contact">
-          <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="4.5" width="15" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 6l6.5 5 6.5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Contact
-        </a>
-        <button class="btn-login" onclick="location.href='index.html'">
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M4 17c0-3.3 2.7-5 6-5s6 1.7 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Login
-        </button>
-      </div>
-    </div>
-  </div>
-  <div class="nav-main">
-    <div class="nav-main-inner">
-      <button class="nav-toggle" id="nav-toggle-btn" aria-label="Menu">
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        <span class="nav-toggle-lbl">Menu</span>
+      <button class="nav-icon-btn" aria-label="Search" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M14 14l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
       </button>
-      <ul class="nav-links">
-        <li><a href="#company">Company</a></li>
-        <li><a href="#solutions">Solutions</a></li>
-        <li><a href="#manufacturing">Manufacturing</a></li>
-        <li><a href="#innovation">Innovation</a></li>
-        <li><a href="#sustainability">Sustainability</a></li>
-        <li><a href="#contact">Contact</a></li>
-      </ul>
+      <button class="btn-login" onclick="location.href='index.html'">Login</button>
     </div>
   </div>
 </nav>
 
 <div class="nav-mobile" id="nav-mobile">
-  <a href="#company">Company</a>
-  <a href="#solutions">Solutions</a>
-  <a href="#manufacturing">Manufacturing</a>
-  <a href="#innovation">Innovation</a>
-  <a href="#sustainability">Sustainability</a>
-  <a href="#contact">Contact</a>
-  <div class="ticker" style="margin-top:0.85rem">
+  <div class="nav-mobile-item">
+    <a href="#company">Company</a>
+  </div>
+  <div class="nav-mobile-item">
+    <a href="#solutions">Solutions</a>
+    <div class="nav-mobile-sub">
+      <a href="#solutions">Fiber</a><a href="#solutions">Yarn</a><a href="#solutions">Fabric</a><a href="#solutions">Chemicals</a><a href="#solutions">Apparel</a>
+    </div>
+  </div>
+  <div class="nav-mobile-item"><a href="#manufacturing">Manufacturing</a></div>
+  <div class="nav-mobile-item"><a href="#innovation">Innovation</a></div>
+  <div class="nav-mobile-item"><a href="#sustainability">Sustainability</a></div>
+  <div class="nav-mobile-item"><a href="#contact">Contact</a></div>
+  <div class="ticker">
     <span class="t-lbl">Cotton</span>
     <span class="t-price" id="ct-price-m">—</span>
     <span class="t-chg" id="ct-chg-m"></span>
@@ -435,10 +586,34 @@
 
 <script>
   document.getElementById('f-year').textContent = new Date().getFullYear()
+
+  // Mobile menu (only shown under the 980px breakpoint, where the mega
+  // menu can't fit inline)
   const toggleBtn = document.getElementById('nav-toggle-btn')
   const mobileNav = document.getElementById('nav-mobile')
   toggleBtn.addEventListener('click', () => mobileNav.classList.toggle('open'))
   mobileNav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => mobileNav.classList.remove('open')))
+
+  // Mega menu: hover handles pointer devices via CSS; click is the
+  // fallback for touch/tablet (toggle .open, close the rest, close on
+  // outside click / Escape).
+  const navWraps = Array.from(document.querySelectorAll('.nav-item-wrap'))
+  navWraps.forEach(wrap => {
+    const btn = wrap.querySelector('.nav-item-btn')
+    btn.addEventListener('click', e => {
+      const willOpen = !wrap.classList.contains('open')
+      navWraps.forEach(w => w.classList.remove('open'))
+      if (willOpen) { wrap.classList.add('open'); e.stopPropagation() }
+    })
+  })
+  document.addEventListener('click', () => navWraps.forEach(w => w.classList.remove('open')))
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') navWraps.forEach(w => w.classList.remove('open')) })
+
+  // Sticky nav elevation on scroll
+  const siteNav = document.getElementById('site-nav')
+  const onScroll = () => siteNav.classList.toggle('scrolled', window.scrollY > 4)
+  window.addEventListener('scroll', onScroll, { passive: true })
+  onScroll()
 
   // Cotton price ticker (ICE Cotton No. 2 futures, same source as the internal dashboard)
   async function loadCottonTicker() {
