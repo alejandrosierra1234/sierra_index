@@ -24,17 +24,12 @@
     --text-3: #8a8b8f;
     --shadow: 0 12px 34px rgba(0,0,0,0.06);
   }
+  /* Homepage is always light — no auto dark mode. (The [data-theme="dark"]
+     hook is left in place in case a manual toggle is added later.) */
   [data-theme="dark"] {
     --bg: #131315; --bg-alt: #131315; --surface: #1c1c1e;
     --border: #2e2e30; --text: #ececec; --text-2: #a8a9ad; --text-3: #6c6d70;
     --shadow: 0 16px 40px rgba(0,0,0,0.4);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #131315; --bg-alt: #131315; --surface: #1c1c1e;
-      --border: #2e2e30; --text: #ececec; --text-2: #a8a9ad; --text-3: #6c6d70;
-      --shadow: 0 16px 40px rgba(0,0,0,0.4);
-    }
   }
 
   * { box-sizing:border-box; }
@@ -51,10 +46,6 @@
   .nav { position:sticky; top:0; z-index:50; background:var(--bg); }
   [data-theme="dark"] .nav-logo img,
   [data-theme="dark"] .f-logo img { filter:brightness(0) invert(1); }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .nav-logo img,
-    :root:not([data-theme="light"]) .f-logo img { filter:brightness(0) invert(1); }
-  }
 
   /* Row 1 — utility bar: logo, region, cotton ticker, search/contact/login */
   .nav-top {
