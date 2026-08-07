@@ -2932,34 +2932,44 @@
       text-transform:uppercase; color:inherit; padding:0; cursor:pointer; width:88px;
     }
     .ws-deadline-input:focus { outline:none; }
-    /* Header action cluster — badge, avatar stack, ghost icon buttons.
-       Icon buttons carry no resting border/fill (a bordered circle per
-       control read as loose disconnected chrome); only the avatar ring
-       and the dashed "add" affordance keep a visible edge, so the group
-       reads as one cluster instead of four separate buttons. See
-       styleguide #sg-clusters. */
-    .ws-hdr-actions { display:flex; align-items:center; gap:0.15rem; flex-shrink:0; padding-top:0.15rem; }
-    .ws-avatar-stack { display:flex; align-items:center; position:relative; margin-right:0.35rem; }
+    /* Header action cluster — badge, people, ghost icon buttons, spaced
+       into three legible groups instead of one dense row. Icon buttons
+       carry no resting border/fill (a bordered circle per control reads
+       as loose disconnected chrome); only the avatar ring keeps a
+       visible edge, so each group reads as intentional rather than a
+       checklist of separate buttons. See styleguide #sg-clusters. */
+    .ws-hdr-actions { display:flex; align-items:center; gap:0.55rem; flex-shrink:0; padding-top:0.15rem; }
+    .ws-people-cluster { display:flex; align-items:center; gap:0.4rem; }
+    .ws-avatar-stack { display:flex; align-items:center; position:relative; }
     .ws-avatar {
-      width:28px; height:28px; border-radius:var(--r-pill); background:var(--surface2); border:2px solid var(--surface);
-      display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:700; color:var(--text-2);
-      margin-left:-8px; flex-shrink:0; overflow:hidden;
+      width:30px; height:30px; border-radius:var(--r-pill); background:var(--surface2); border:2px solid var(--surface);
+      display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:700; color:var(--text-2);
+      margin-left:-9px; flex-shrink:0; overflow:hidden;
     }
     .ws-avatar:first-child { margin-left:0; }
     .ws-avatar img { width:100%; height:100%; object-fit:cover; }
-    .ws-avatar-add {
-      background:var(--surface); border:1.5px dashed var(--border); color:var(--text-3); cursor:pointer; font-family:inherit;
-      transition:border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
-    }
-    .ws-avatar-add:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+    .ws-invite-wrap { position:relative; }
+    .ws-invite-btn svg { flex-shrink:0; }
     .ws-icon-btn {
-      width:32px; height:32px; border-radius:var(--r-pill); border:1px solid transparent; background:none; color:var(--text-3);
+      width:34px; height:34px; border-radius:var(--r-pill); border:1px solid transparent; background:none; color:var(--text-3);
       display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
       transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
     }
     .ws-icon-btn:hover { background:var(--surface2); color:var(--text); }
     .ws-icon-btn:active { background:var(--accent-light); color:var(--accent); }
     .ws-more-wrap { position:relative; }
+    .ws-invite-pop { width:270px; }
+    .ws-invite-pop .tl-search { width:100%; }
+    .ws-invite-results { display:flex; flex-direction:column; gap:0.1rem; margin-top:0.5rem; max-height:230px; overflow-y:auto; }
+    .ws-invite-row {
+      display:flex; align-items:center; gap:0.6rem; width:100%; text-align:left; background:none; border:none;
+      font-family:inherit; padding:0.4rem 0.45rem; border-radius:8px; cursor:pointer;
+    }
+    .ws-invite-row:hover { background:var(--surface2); }
+    .ws-invite-row .ws-avatar { width:26px; height:26px; margin-left:0; border-width:0; }
+    .ws-invite-row-info { display:flex; flex-direction:column; min-width:0; gap:0.05rem; }
+    .ws-invite-row-name { font-size:0.8rem; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ws-invite-row-sub { font-size:0.68rem; color:var(--text-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
     /* Generic popover shell — invite, "more" menu, price editor all use it */
     .ws-pop {
@@ -7152,7 +7162,7 @@ function showStyleGuide() {
             <div class="sg-radius-chip" style="border-radius:999px"><div class="sg-radius-name">pill · 999</div><div class="sg-radius-note">Avatars, toasts, count pills</div></div>
           </div>
           <div class="sg-usage">
-            <div class="sg-use"><b>Use</b>One border weight (1px, var(--border)) for all hairlines. Dashed borders only for "add a new one" / empty-slot affordances (upload targets, blank cards, the avatar-stack add button) — never for a real, populated control. Nested radii: inner = outer − 4.</div>
+            <div class="sg-use"><b>Use</b>One border weight (1px, var(--border)) for all hairlines. Dashed borders only for "add a new one" / empty-slot affordances (upload targets, blank cards) — never for a real, populated control. Nested radii: inner = outer − 4.</div>
             <div class="sg-nouse"><b>Don't</b>Introduce new radius values (5, 9, 11, 13, 14, 24px exist in legacy CSS — migrate them to the scale when touched). Don't mix radii within one component family, and don't put a resting border on every icon button in a cluster — see Header Action Clusters.</div>
           </div>
         </section>
@@ -7458,24 +7468,27 @@ function showStyleGuide() {
           </div>
           <div class="sg-canvas" style="justify-content:flex-end">
             <div class="ws-hdr-actions" style="padding-top:0">
-              <span class="smp-badge smp-draft" style="margin-right:0.6rem">Draft</span>
-              <div class="ws-avatar-stack">
-                <span class="ws-avatar" style="cursor:default">A</span>
-                <button type="button" class="ws-avatar ws-avatar-add" title="Invitar a alguien">
-                  <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <span class="smp-badge smp-draft">Draft</span>
+              <div class="ws-people-cluster">
+                <div class="ws-avatar-stack">
+                  <span class="ws-avatar" style="cursor:default">A</span>
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm ws-invite-btn" title="Invitar a alguien">
+                  <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 16c0-3 2.4-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M15.5 6.5v4M13.5 8.5h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                  Invitar
                 </button>
               </div>
               <button type="button" class="ws-icon-btn" title="Copiar link">
-                <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M8.5 11.5a2.8 2.8 0 004 0l2-2a2.8 2.8 0 00-4-4l-.6.6M11.5 8.5a2.8 2.8 0 00-4 0l-2 2a2.8 2.8 0 004 4l.6-.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M8.5 11.5a2.8 2.8 0 004 0l2-2a2.8 2.8 0 00-4-4l-.6.6M11.5 8.5a2.8 2.8 0 00-4 0l-2 2a2.8 2.8 0 004 4l.6-.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </button>
               <button type="button" class="ws-icon-btn" title="Más opciones">
-                <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><circle cx="4" cy="10" r="1.4" fill="currentColor"/><circle cx="10" cy="10" r="1.4" fill="currentColor"/><circle cx="16" cy="10" r="1.4" fill="currentColor"/></svg>
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="4" cy="10" r="1.4" fill="currentColor"/><circle cx="10" cy="10" r="1.4" fill="currentColor"/><circle cx="16" cy="10" r="1.4" fill="currentColor"/></svg>
               </button>
             </div>
           </div>
           <div class="sg-usage">
-            <div class="sg-use"><b>Use</b>this recipe whenever a record header needs status + people + a couple of quick actions in one row (collection workspace, and any future record header): one status badge, then the avatar stack (real people keep their border ring; the dashed circle is always the "add" affordance, never a real action), then icon-only buttons with <b>no resting border or fill</b> — <code>color:var(--text-3)</code>, <code>background:none</code> — that only reveal a <code>surface2</code> circle on hover/focus. A single visible border per cluster (the avatar ring) is what reads as intentional; a border on every circle reads as an unfinished checklist of disconnected buttons. Icons need a <code>title</code> — there's no label to fall back on.</div>
-            <div class="sg-nouse"><b>Don't</b>give every icon button its own resting <code>1px solid var(--border)</code> — that's the "just complies" look. Don't mix bordered and borderless icon buttons in the same cluster, and don't add more than 3–4 controls before the row needs to route into the overflow menu instead.</div>
+            <div class="sg-use"><b>Use</b>this recipe whenever a record header needs status + people + a couple of quick actions in one row (collection workspace, and any future record header): one status badge, then the people cluster (avatar stack + a labeled <code>btn btn-ghost btn-sm</code> "Invitar" — a named action is more discoverable than a bare icon for something as consequential as adding a person), then icon-only buttons with <b>no resting border or fill</b> — <code>color:var(--text-3)</code>, <code>background:none</code> — that only reveal a <code>surface2</code> circle on hover/focus. Group the three clusters with real gap (<code>0.55rem</code>+), not a single dense row — each group should read on its own before the eye moves to the next. Icons need a <code>title</code> — there's no label to fall back on. Any "add person" flow needs a live, visible result list as you type — never a blind type‑and‑hope‑it‑matched input.</div>
+            <div class="sg-nouse"><b>Don't</b>give every icon button its own resting <code>1px solid var(--border)</code> — that's the "just complies" look. Don't hide "Invite" behind an unlabeled icon, don't cram the clusters edge-to-edge, and don't add more than 3–4 controls before the row needs to route into the overflow menu instead.</div>
           </div>
         </section>
 
@@ -10607,25 +10620,29 @@ async function showCollectionRecord(collectionId, backTo) {
       </div>
       <div class="ws-hdr-actions">
         ${smpBadge(col.status)}
-        <div class="ws-avatar-stack">
-          ${peopleHtml}
-          <button type="button" class="ws-avatar ws-avatar-add" onclick="wsToggleInvite(event)" title="Invitar a alguien">
-            <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          </button>
-          <div class="ws-pop ws-invite-pop" id="ws-invite-pop">
-            ${!collaborators.length ? '<div class="ws-pop-hint">Nadie más invitado todavía.</div>' : ''}
-            <div style="display:flex;gap:0.5rem">
-              <input type="text" id="collab-invite-input" class="tl-search" style="flex:1" placeholder="Nombre o correo…" onkeydown="if(event.key==='Enter'){event.preventDefault();inviteCollaborator('${col.id}')}" />
-              <button class="btn btn-primary btn-sm" onclick="inviteCollaborator('${col.id}')">Invitar</button>
+        <div class="ws-people-cluster">
+          <div class="ws-avatar-stack">
+            ${peopleHtml}
+          </div>
+          <div class="ws-invite-wrap">
+            <button type="button" class="btn btn-ghost btn-sm ws-invite-btn" onclick="wsToggleInvite(event)" title="Invitar a alguien">
+              <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 16c0-3 2.4-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M15.5 6.5v4M13.5 8.5h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              Invitar
+            </button>
+            <div class="ws-pop ws-invite-pop" id="ws-invite-pop">
+              <input type="text" id="collab-invite-input" class="tl-search" placeholder="Nombre o correo…" oninput="wsInviteSearch('${col.id}', this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();document.querySelector('#ws-invite-results .ws-invite-row')?.click()}" autocomplete="off" />
+              <div class="ws-invite-results" id="ws-invite-results">
+                <div class="ws-pop-hint">Escribe un nombre o correo para buscar a alguien del equipo.</div>
+              </div>
             </div>
           </div>
         </div>
         <button type="button" class="ws-icon-btn" onclick="wsCopyLink('${col.id}')" title="Copiar link de la colección">
-          <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M8.5 11.5a2.8 2.8 0 004 0l2-2a2.8 2.8 0 00-4-4l-.6.6M11.5 8.5a2.8 2.8 0 00-4 0l-2 2a2.8 2.8 0 004 4l.6-.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M8.5 11.5a2.8 2.8 0 004 0l2-2a2.8 2.8 0 00-4-4l-.6.6M11.5 8.5a2.8 2.8 0 00-4 0l-2 2a2.8 2.8 0 004 4l.6-.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <div class="ws-more-wrap">
           <button type="button" class="ws-icon-btn" onclick="wsToggleMore(event)" title="Más opciones">
-            <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><circle cx="4" cy="10" r="1.4" fill="currentColor"/><circle cx="10" cy="10" r="1.4" fill="currentColor"/><circle cx="16" cy="10" r="1.4" fill="currentColor"/></svg>
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="4" cy="10" r="1.4" fill="currentColor"/><circle cx="10" cy="10" r="1.4" fill="currentColor"/><circle cx="16" cy="10" r="1.4" fill="currentColor"/></svg>
           </button>
           <div class="ws-pop ws-more-pop" id="ws-more-pop">${moreMenuItems.join('')}</div>
         </div>
@@ -10893,7 +10910,7 @@ function wsToggleMore(e) {
   if (!wasOpen) pop.classList.add('open')
 }
 document.addEventListener('click', e => {
-  if (!e.target.closest('.ws-pop') && !e.target.closest('.ws-avatar-add') && !e.target.closest('.ws-icon-btn')) wsClosePopovers()
+  if (!e.target.closest('.ws-pop') && !e.target.closest('.ws-invite-btn') && !e.target.closest('.ws-icon-btn')) wsClosePopovers()
 })
 
 function wsCopyLink(collectionId) {
@@ -11324,26 +11341,39 @@ async function updateCollectionStatus(id, status) {
   showCollectionRecord(id)
 }
 
-function wsToggleInvite() {
-  const form = document.getElementById('ws-invite-form')
-  if (!form) return
-  const show = form.style.display === 'none'
-  form.style.display = show ? 'flex' : 'none'
-  if (show) document.getElementById('collab-invite-input')?.focus()
+/* Live search-as-you-type for the invite popover — replaces the old
+   "type a name, hit Enter, hope it matched" flow with a visible list of
+   candidates so a miss is obvious instead of a silent no-op. */
+let _wsInviteSearchTimer = null
+function wsInviteSearch(collectionId, query) {
+  clearTimeout(_wsInviteSearchTimer)
+  const resultsEl = document.getElementById('ws-invite-results')
+  if (!resultsEl) return
+  const q = query.trim()
+  if (!q) { resultsEl.innerHTML = '<div class="ws-pop-hint">Escribe un nombre o correo para buscar a alguien del equipo.</div>'; return }
+  resultsEl.innerHTML = '<div class="ws-pop-hint">Buscando…</div>'
+  _wsInviteSearchTimer = setTimeout(async () => {
+    const { data, error } = await sb.from('profiles')
+      .select('id, full_name, email, avatar_url')
+      .or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
+      .limit(6)
+    if (error) { console.error('wsInviteSearch error:', error); resultsEl.innerHTML = '<div class="ws-pop-hint">No se pudo buscar. Intenta de nuevo.</div>'; return }
+    const matches = (data || []).filter(p => p.id !== me.id)
+    if (!matches.length) { resultsEl.innerHTML = '<div class="ws-pop-hint">Nadie encontrado con ese nombre o correo.</div>'; return }
+    resultsEl.innerHTML = matches.map(p => `
+      <button type="button" class="ws-invite-row" onclick="inviteCollaborator('${collectionId}','${p.id}')">
+        ${wsAvatarHtml(p)}
+        <span class="ws-invite-row-info">
+          <span class="ws-invite-row-name">${esc(p.full_name || p.email)}</span>
+          ${p.full_name ? `<span class="ws-invite-row-sub">${esc(p.email)}</span>` : ''}
+        </span>
+      </button>`).join('')
+  }, 220)
 }
 
-async function inviteCollaborator(collectionId) {
-  const input = document.getElementById('collab-invite-input')
-  const query = input?.value.trim()
-  if (!query) { toast('Type a name or email to invite'); return }
-
-  const { data: matches } = await sb.from('profiles')
-    .select('id, full_name, email')
-    .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`)
-    .limit(1)
-
-  const match = matches?.[0]
-  if (!match) { toast('No teammate found with that name or email'); return }
+async function inviteCollaborator(collectionId, userId) {
+  const { data: match } = await sb.from('profiles').select('id, full_name, email').eq('id', userId).single()
+  if (!match) { toast('No se pudo invitar a esa persona'); return }
 
   const { error } = await sb.from('collection_collaborators').insert({
     collection_id: collectionId, user_id: match.id, added_by: me.id,
