@@ -2527,7 +2527,7 @@
     #view-samples, #view-sample-detail { display:none; }
 
     /* Sample status badges */
-    .smp-badge { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.66rem; font-weight:600; padding:0.22rem 0.6rem; border-radius:20px; white-space:nowrap; }
+    .smp-badge { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.66rem; font-weight:600; padding:0.22rem 0.6rem; border-radius:var(--r-pill); white-space:nowrap; }
     .smp-draft      { background:rgba(255,120,36,0.10);  color:#a04800; border:1px dashed rgba(255,120,36,0.35); }
     .smp-requested  { background:rgba(170,170,170,0.12); color:#555; }
     .smp-approved   { background:rgba(15,168,156,0.10);  color:#0a7a72; }
@@ -2887,6 +2887,24 @@
     .ws-add-row { display:flex; align-items:center; gap:0.5rem; padding:0.45rem 0.3rem; border-radius:8px; cursor:pointer; font-size:0.8rem; }
     .ws-add-row:hover { background:var(--surface2); }
 
+    /* Collection workspace — Estadísticas tab */
+    .ws-view-tabs { max-width:280px; }
+    .ws-stat-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:0.75rem; margin-bottom:1.35rem; }
+    .ws-stat-tile { border:1px solid var(--border); border-radius:10px; padding:0.85rem 1rem; }
+    .ws-stat-tile-val { font-size:1.5rem; font-weight:700; letter-spacing:-0.02em; color:var(--text); }
+    .ws-stat-tile-lbl { font-size:0.65rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-3); margin-top:0.2rem; }
+    .ws-stat-panels { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; }
+    @media (max-width:720px) { .ws-stat-panels { grid-template-columns:1fr; } }
+    .ws-stat-panel { border:1px solid var(--border); border-radius:10px; padding:1.1rem 1.2rem; }
+    .ws-stat-panel-title { font-size:0.78rem; font-weight:700; color:var(--text); margin-bottom:0.9rem; }
+    .ws-stat-chart-wrap { height:190px; position:relative; margin-bottom:0.9rem; }
+    .ws-stat-legend { display:flex; flex-direction:column; gap:0.45rem; }
+    .ws-stat-legend-row { display:flex; align-items:center; gap:0.5rem; font-size:0.78rem; color:var(--text-2); }
+    .ws-stat-legend-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+    .ws-stat-legend-name { flex:1; }
+    .ws-stat-legend-count { font-weight:700; color:var(--text); }
+    .ws-stat-empty { font-size:0.8rem; color:var(--text-3); padding:1.5rem 0.5rem; text-align:center; }
+
     /* Price — one column, USD only (Sierra doesn't price in other
        currencies), click to edit MOQ/valid-until in a small popover. */
     .ws-price-wrap { position:relative; flex-shrink:0; }
@@ -2914,26 +2932,33 @@
       text-transform:uppercase; color:inherit; padding:0; cursor:pointer; width:88px;
     }
     .ws-deadline-input:focus { outline:none; }
-    .ws-hdr-actions { display:flex; align-items:center; gap:0.5rem; flex-shrink:0; padding-top:0.15rem; }
-    .ws-avatar-stack { display:flex; align-items:center; position:relative; }
+    /* Header action cluster — badge, avatar stack, ghost icon buttons.
+       Icon buttons carry no resting border/fill (a bordered circle per
+       control read as loose disconnected chrome); only the avatar ring
+       and the dashed "add" affordance keep a visible edge, so the group
+       reads as one cluster instead of four separate buttons. See
+       styleguide #sg-clusters. */
+    .ws-hdr-actions { display:flex; align-items:center; gap:0.15rem; flex-shrink:0; padding-top:0.15rem; }
+    .ws-avatar-stack { display:flex; align-items:center; position:relative; margin-right:0.35rem; }
     .ws-avatar {
-      width:28px; height:28px; border-radius:50%; background:var(--surface2); border:2px solid var(--surface);
+      width:28px; height:28px; border-radius:var(--r-pill); background:var(--surface2); border:2px solid var(--surface);
       display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:700; color:var(--text-2);
       margin-left:-8px; flex-shrink:0; overflow:hidden;
     }
     .ws-avatar:first-child { margin-left:0; }
     .ws-avatar img { width:100%; height:100%; object-fit:cover; }
     .ws-avatar-add {
-      background:none; border:1.5px dashed var(--border); color:var(--text-3); cursor:pointer; font-family:inherit;
-      transition:border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+      background:var(--surface); border:1.5px dashed var(--border); color:var(--text-3); cursor:pointer; font-family:inherit;
+      transition:border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
     }
-    .ws-avatar-add:hover { border-color:var(--accent); color:var(--accent); }
+    .ws-avatar-add:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
     .ws-icon-btn {
-      width:32px; height:32px; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--text-2);
+      width:32px; height:32px; border-radius:var(--r-pill); border:1px solid transparent; background:none; color:var(--text-3);
       display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
-      transition:border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+      transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
     }
-    .ws-icon-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+    .ws-icon-btn:hover { background:var(--surface2); color:var(--text); }
+    .ws-icon-btn:active { background:var(--accent-light); color:var(--accent); }
     .ws-more-wrap { position:relative; }
 
     /* Generic popover shell — invite, "more" menu, price editor all use it */
@@ -7127,8 +7152,8 @@ function showStyleGuide() {
             <div class="sg-radius-chip" style="border-radius:999px"><div class="sg-radius-name">pill · 999</div><div class="sg-radius-note">Avatars, toasts, count pills</div></div>
           </div>
           <div class="sg-usage">
-            <div class="sg-use"><b>Use</b>One border weight (1px, var(--border)) for all hairlines. Dashed borders only for upload/drop targets. Nested radii: inner = outer − 4.</div>
-            <div class="sg-nouse"><b>Don't</b>Introduce new radius values (5, 9, 11, 13, 14, 20, 24px exist in legacy CSS — migrate them to the scale when touched). Don't mix radii within one component family.</div>
+            <div class="sg-use"><b>Use</b>One border weight (1px, var(--border)) for all hairlines. Dashed borders only for "add a new one" / empty-slot affordances (upload targets, blank cards, the avatar-stack add button) — never for a real, populated control. Nested radii: inner = outer − 4.</div>
+            <div class="sg-nouse"><b>Don't</b>Introduce new radius values (5, 9, 11, 13, 14, 24px exist in legacy CSS — migrate them to the scale when touched). Don't mix radii within one component family, and don't put a resting border on every icon button in a cluster — see Header Action Clusters.</div>
           </div>
         </section>
 
@@ -7426,6 +7451,34 @@ function showStyleGuide() {
           </div>
         </section>
 
+        <section class="sg-section" id="sg-clusters">
+          <div class="sg-section-h">
+            <div class="sg-section-title">Header Action Clusters</div>
+            <div class="sg-section-note">Status · people · quick actions</div>
+          </div>
+          <div class="sg-canvas" style="justify-content:flex-end">
+            <div class="ws-hdr-actions" style="padding-top:0">
+              <span class="smp-badge smp-draft" style="margin-right:0.6rem">Draft</span>
+              <div class="ws-avatar-stack">
+                <span class="ws-avatar" style="cursor:default">A</span>
+                <button type="button" class="ws-avatar ws-avatar-add" title="Invitar a alguien">
+                  <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+              <button type="button" class="ws-icon-btn" title="Copiar link">
+                <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M8.5 11.5a2.8 2.8 0 004 0l2-2a2.8 2.8 0 00-4-4l-.6.6M11.5 8.5a2.8 2.8 0 00-4 0l-2 2a2.8 2.8 0 004 4l.6-.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button type="button" class="ws-icon-btn" title="Más opciones">
+                <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><circle cx="4" cy="10" r="1.4" fill="currentColor"/><circle cx="10" cy="10" r="1.4" fill="currentColor"/><circle cx="16" cy="10" r="1.4" fill="currentColor"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="sg-usage">
+            <div class="sg-use"><b>Use</b>this recipe whenever a record header needs status + people + a couple of quick actions in one row (collection workspace, and any future record header): one status badge, then the avatar stack (real people keep their border ring; the dashed circle is always the "add" affordance, never a real action), then icon-only buttons with <b>no resting border or fill</b> — <code>color:var(--text-3)</code>, <code>background:none</code> — that only reveal a <code>surface2</code> circle on hover/focus. A single visible border per cluster (the avatar ring) is what reads as intentional; a border on every circle reads as an unfinished checklist of disconnected buttons. Icons need a <code>title</code> — there's no label to fall back on.</div>
+            <div class="sg-nouse"><b>Don't</b>give every icon button its own resting <code>1px solid var(--border)</code> — that's the "just complies" look. Don't mix bordered and borderless icon buttons in the same cluster, and don't add more than 3–4 controls before the row needs to route into the overflow menu instead.</div>
+          </div>
+        </section>
+
         <section class="sg-section" id="sg-overlays">
           <div class="sg-section-h">
             <div class="sg-section-title">Modals, Sheets &amp; Panels</div>
@@ -7683,6 +7736,7 @@ function showStyleGuide() {
             <a href="#sg-tables">Tables &amp; Lists</a>
             <a href="#sg-cards">Card Family</a>
             <a href="#sg-avatars">Avatars</a>
+            <a href="#sg-clusters">Header Action Clusters</a>
             <a href="#sg-overlays">Modals &amp; Panels</a>
             <a href="#sg-palette">Command Palette</a>
             <a href="#sg-feedback">Feedback &amp; Loading</a>
@@ -10479,6 +10533,8 @@ async function cloneCollectionToDraft(sourceId) {
    record" view: same URL/entry points, richer surface. ── */
 async function showCollectionRecord(collectionId, backTo) {
   syncModule('muestras_productos')
+  Object.values(_wsStatCharts).forEach(c => { try { c.destroy() } catch {} })
+  _wsStatCharts = {}
   document.getElementById('div-toolbar').style.display = 'none'
   document.getElementById('view-products').style.display = 'none'
   document.getElementById('view-dashboard').style.display = 'none'
@@ -10618,6 +10674,7 @@ async function showCollectionRecord(collectionId, backTo) {
     </div>`
 
   const itemsHtml = categorizedItemsHtml(items, categories, col, isDraft)
+  _wsStatItems = items
 
   const commentsHtml = `
     <div class="srd-section-label">Comentarios</div>
@@ -10650,6 +10707,12 @@ async function showCollectionRecord(collectionId, backTo) {
 
     ${headerHtml}
 
+    <div class="pd-tabs ws-view-tabs">
+      <button class="pd-tab active" data-tab="board" onclick="switchWsTab('board')">Tablero</button>
+      <button class="pd-tab" data-tab="stats" onclick="switchWsTab('stats')">Estadísticas</button>
+    </div>
+
+    <div id="ws-tab-board">
     ${submitFormHtml}
 
     <div class="srd-section-label" style="display:flex;align-items:center;gap:0.5rem">
@@ -10679,11 +10742,123 @@ async function showCollectionRecord(collectionId, backTo) {
     </div>
 
     ${commentsHtml}
+    </div>
+
+    <div id="ws-tab-stats" style="display:none">${collectionStatsHtml(items)}</div>
   </div>`
 
   wsClosePopovers()
 }
 let _colWorkspaceBack = 'showCollectionsHub'
+let _wsStatCharts = {}
+let _wsStatItems = []
+
+/* ── Estadísticas tab — switches board/stats panels, lazily drawing the
+   charts on first entry (a canvas can't size itself while display:none). ── */
+function switchWsTab(tab) {
+  document.querySelectorAll('.ws-view-tabs .pd-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
+  const board = document.getElementById('ws-tab-board'), stats = document.getElementById('ws-tab-stats')
+  if (board) board.style.display = tab === 'board' ? 'block' : 'none'
+  if (stats) stats.style.display = tab === 'stats' ? 'block' : 'none'
+  if (tab === 'stats') wsRenderStatsCharts()
+}
+
+function collectionStatsHtml(items) {
+  const withProduct = items.filter(i => i.products)
+  const totalQty = items.reduce((t, i) => t + (i.quantity || 1), 0)
+  const divisionCount = new Set(withProduct.map(i => i.products.division)).size
+  const fabricItems = withProduct.filter(i => i.products.division === 'fabric')
+  const constructionCount = new Set(fabricItems.map(i => inferConstruction(i.products))).size
+
+  const tilesHtml = `
+    <div class="ws-stat-grid">
+      <div class="ws-stat-tile"><div class="ws-stat-tile-val">${items.length}</div><div class="ws-stat-tile-lbl">Muestras</div></div>
+      <div class="ws-stat-tile"><div class="ws-stat-tile-val">${totalQty}</div><div class="ws-stat-tile-lbl">Unidades</div></div>
+      <div class="ws-stat-tile"><div class="ws-stat-tile-val">${divisionCount}</div><div class="ws-stat-tile-lbl">Divisiones</div></div>
+      <div class="ws-stat-tile"><div class="ws-stat-tile-val">${constructionCount}</div><div class="ws-stat-tile-lbl">Tipos de tejido</div></div>
+    </div>`
+
+  if (!withProduct.length) return tilesHtml + '<div class="ws-stat-empty">Agrega muestras a la colección para ver estadísticas.</div>'
+
+  const divPanelHtml = `
+    <div class="ws-stat-panel">
+      <div class="ws-stat-panel-title">Muestras por división</div>
+      <div class="ws-stat-chart-wrap"><canvas id="ws-stat-div-chart"></canvas></div>
+      <div class="ws-stat-legend" id="ws-stat-div-legend"></div>
+    </div>`
+
+  const constPanelHtml = fabricItems.length ? `
+    <div class="ws-stat-panel">
+      <div class="ws-stat-panel-title">Materiales — construcción de tejido</div>
+      <div class="ws-stat-chart-wrap"><canvas id="ws-stat-const-chart"></canvas></div>
+    </div>` : `
+    <div class="ws-stat-panel">
+      <div class="ws-stat-panel-title">Materiales — construcción de tejido</div>
+      <div class="ws-stat-empty">Sin muestras de fabric en esta colección.</div>
+    </div>`
+
+  return `${tilesHtml}<div class="ws-stat-panels">${divPanelHtml}${constPanelHtml}</div>`
+}
+
+/* Draws both charts against the items from the last showCollectionRecord
+   render (_wsStatItems) — called lazily each time the tab opens, since a
+   canvas can't size itself correctly while its container is display:none. */
+function wsRenderStatsCharts() {
+  const items = _wsStatItems
+  const withProduct = items.filter(i => i.products)
+  Object.values(_wsStatCharts).forEach(c => { try { c.destroy() } catch {} })
+  _wsStatCharts = {}
+  if (!withProduct.length || typeof Chart === 'undefined') return
+
+  const divCounts = {}
+  withProduct.forEach(i => { const d = i.products.division || 'other'; divCounts[d] = (divCounts[d] || 0) + 1 })
+  const divKeys = Object.keys(divCounts).sort((a, b) => divCounts[b] - divCounts[a])
+  const divCanvas = document.getElementById('ws-stat-div-chart')
+  if (divCanvas && divKeys.length) {
+    const surface = getComputedStyle(document.body).getPropertyValue('--surface').trim() || '#fff'
+    _wsStatCharts.div = new Chart(divCanvas.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: divKeys.map(k => DIV_LBL[k] || k),
+        datasets: [{ data: divKeys.map(k => divCounts[k]), backgroundColor: divKeys.map(k => DIV_CLR[k] || '#aaa'), borderWidth: 2, borderColor: surface }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 300 }, cutout: '62%',
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } } },
+      },
+    })
+  }
+  const legendEl = document.getElementById('ws-stat-div-legend')
+  if (legendEl) {
+    legendEl.innerHTML = divKeys.map(k => `
+      <div class="ws-stat-legend-row">
+        <span class="ws-stat-legend-dot" style="background:${DIV_CLR[k] || '#aaa'}"></span>
+        <span class="ws-stat-legend-name">${esc(DIV_LBL[k] || k)}</span>
+        <span class="ws-stat-legend-count">${divCounts[k]}</span>
+      </div>`).join('')
+  }
+
+  const fabricItems = withProduct.filter(i => i.products.division === 'fabric')
+  const constCounts = {}
+  fabricItems.forEach(i => { const code = inferConstruction(i.products); constCounts[code] = (constCounts[code] || 0) + 1 })
+  const constKeys = Object.keys(constCounts).sort((a, b) => (CONST_META[a]?.order || 99) - (CONST_META[b]?.order || 99))
+  const constCanvas = document.getElementById('ws-stat-const-chart')
+  if (constCanvas && constKeys.length) {
+    const accent = getComputedStyle(document.body).getPropertyValue('--accent').trim() || '#0071e3'
+    _wsStatCharts.constr = new Chart(constCanvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: constKeys.map(k => CONST_META[k]?.label || k),
+        datasets: [{ data: constKeys.map(k => constCounts[k]), backgroundColor: accent, borderRadius: 4, maxBarThickness: 26 }],
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x} muestra${ctx.parsed.x !== 1 ? 's' : ''}` } } },
+        scales: { x: { beginAtZero: true, ticks: { precision: 0 }, grid: { display: false } }, y: { grid: { display: false } } },
+      },
+    })
+  }
+}
 
 /* ── Small avatar chip, used for the collaborator stack. Prefers a real
    photo (profiles.avatar_url) — falls back to initials so it never
