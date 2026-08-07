@@ -2820,9 +2820,17 @@
     .colh-avatar {
       width:22px; height:22px; border-radius:50%; background:var(--surface2); border:2px solid var(--surface);
       display:flex; align-items:center; justify-content:center; font-size:0.58rem; font-weight:700; color:var(--text-2);
-      margin-left:-7px;
+      margin-left:-7px; flex-shrink:0; overflow:hidden;
     }
     .colh-avatar:first-child { margin-left:0; }
+    .colh-avatar img { width:100%; height:100%; object-fit:cover; }
+    .colh-card-meta { display:flex; align-items:center; gap:0.5rem; font-size:0.68rem; color:var(--text-3); }
+    .colh-comment-chip { display:inline-flex; align-items:center; gap:0.25rem; color:var(--text-3); }
+    .colh-deadline {
+      display:inline-flex; align-items:center; gap:0.3rem; align-self:flex-start; font-size:0.68rem; font-weight:600;
+      background:var(--surface2); color:var(--text-2); border-radius:999px; padding:0.2rem 0.55rem;
+    }
+    .colh-deadline.overdue { background:rgba(192,57,43,0.12); color:#c0392b; }
     .colh-new-card {
       border:1.5px dashed var(--border); border-radius:16px; padding:1.1rem 1.15rem; min-height:118px;
       background:none; cursor:pointer; font-family:inherit; color:var(--text-3);
@@ -2898,7 +2906,14 @@
        overflow menu — one row instead of a card stack. */
     .ws-hdr { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.1rem; flex-wrap:wrap; }
     .ws-hdr-name { flex:1; min-width:200px; }
-    .ws-hdr-meta { font-size:0.7rem; color:var(--text-3); margin-top:0.15rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:600; }
+    .ws-hdr-meta { display:flex; align-items:center; gap:0.6rem; font-size:0.7rem; color:var(--text-3); margin-top:0.15rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:600; flex-wrap:wrap; }
+    .ws-deadline-wrap { display:inline-flex; align-items:center; gap:0.3rem; cursor:pointer; }
+    .ws-deadline-wrap.set { color:var(--accent); }
+    .ws-deadline-input {
+      background:none; border:none; font-family:inherit; font-size:0.68rem; font-weight:600; letter-spacing:0.06em;
+      text-transform:uppercase; color:inherit; padding:0; cursor:pointer; width:88px;
+    }
+    .ws-deadline-input:focus { outline:none; }
     .ws-hdr-actions { display:flex; align-items:center; gap:0.5rem; flex-shrink:0; padding-top:0.15rem; }
     .ws-avatar-stack { display:flex; align-items:center; position:relative; }
     .ws-avatar {
@@ -4210,6 +4225,8 @@ async function enterApp(user) {
     showStyleGuide(); return
   } else if (savedRoute === 'dashboard') {
     showDashboard(); return
+  } else if (savedRoute === 'collections' && moduleAccessible(MODULES.muestras_productos)) {
+    showCollectionsHub(); return
   } else if (savedRoute && savedRoute.startsWith('module:')) {
     showModuleTools(savedRoute.slice(7)); return
   }
@@ -9580,12 +9597,11 @@ async function pickNewCollectionForAdd() {
 }
 
 /* Single entry point for every "go to my collections" trigger (sidebar,
-   mobile topbar, dashboard quick action, quick-request). Jumps straight
-   into the collection you're actively working on if there is one;
-   otherwise lands on the hub where you can see everything or start new. */
+   mobile topbar, dashboard quick action, quick-request). Always lands
+   on the hub — the overview of every collection, not any one of them —
+   so you never lose your bearings after adding a quick sample. */
 function openCollectionsNav() {
-  if (draftCollectionId) showCollectionRecord(draftCollectionId, 'showCollectionsHub')
-  else showCollectionsHub()
+  showCollectionsHub()
 }
 
 async function openCart() {
@@ -10314,6 +10330,8 @@ async function showSampleRecord(sampleId) {
 async function showCollectionsHub() {
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
+  syncModule('muestras_productos')
+  sessionStorage.setItem('sierra_route', 'collections')
   document.getElementById('sec-title').textContent = 'Colecciones'
   document.getElementById('sec-sub').textContent = 'Arma pedidos de muestras en equipo — por cliente, visita o proyecto'
   document.getElementById('product-controls').style.display = 'none'
@@ -10341,8 +10359,8 @@ function colhSetTab(tab) { _colhTab = tab; showCollectionsHub() }
 
 async function myCollections() {
   const [{ data: own }, { data: collabRows }] = await Promise.all([
-    sb.from('sample_collections').select('id,collection_id,name,customer,status,created_at,requested_by'),
-    sb.from('collection_collaborators').select('collection_id, sample_collections!collection_id(id,collection_id,name,customer,status,created_at,requested_by)').eq('user_id', me.id),
+    sb.from('sample_collections').select('id,collection_id,name,customer,status,created_at,requested_by,deadline'),
+    sb.from('collection_collaborators').select('collection_id, sample_collections!collection_id(id,collection_id,name,customer,status,created_at,requested_by,deadline)').eq('user_id', me.id),
   ])
   const ownMine = (own || []).filter(c => c.requested_by === me.id)
   const invited = (collabRows || []).map(r => r.sample_collections).filter(Boolean)
@@ -10359,22 +10377,45 @@ async function colhRenderGrid(mine) {
   if (!grid) return
   const list = mine.filter(c => _colhTab === 'draft' ? c.status === 'draft' : c.status !== 'draft')
 
-  // Item counts + division dots + collaborator initials, fetched in bulk
+  // Everything a card needs to be self-explanatory at a glance — items,
+  // who's in it, who created it, how much discussion it has — fetched
+  // in bulk so the grid renders in one pass instead of N requests.
   const ids = list.map(c => c.id)
-  const [{ data: items }, { data: collabs }] = ids.length ? await Promise.all([
+  const requesterIds = [...new Set(list.map(c => c.requested_by).filter(Boolean))]
+  const [{ data: items }, { data: collabs }, { data: comments }, { data: requesters }] = ids.length ? await Promise.all([
     sb.from('samples').select('collection_id, products(division)').in('collection_id', ids),
-    sb.from('collection_collaborators').select('collection_id, profiles!user_id(full_name,email)').in('collection_id', ids),
-  ]) : [{ data: [] }, { data: [] }]
+    sb.from('collection_collaborators').select('collection_id, profiles!user_id(*)').in('collection_id', ids),
+    sb.from('collection_comments').select('collection_id').in('collection_id', ids),
+    requesterIds.length ? sb.from('profiles').select('*').in('id', requesterIds) : Promise.resolve({ data: [] }),
+  ]) : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }]
   const byCol = {}
   ;(items || []).forEach(i => { (byCol[i.collection_id] = byCol[i.collection_id] || []).push(i.products?.division) })
   const collabByCol = {}
   ;(collabs || []).forEach(c => { (collabByCol[c.collection_id] = collabByCol[c.collection_id] || []).push(c.profiles) })
+  const commentsByCol = {}
+  ;(comments || []).forEach(c => { commentsByCol[c.collection_id] = (commentsByCol[c.collection_id] || 0) + 1 })
+  const requesterById = {}
+  ;(requesters || []).forEach(p => { requesterById[p.id] = p })
 
+  const today = new Date(); today.setHours(0,0,0,0)
   const cards = list.map(c => {
     const divs = (byCol[c.id] || []).slice(0, 8)
     const n = (byCol[c.id] || []).length
-    const people = collabByCol[c.id] || []
+    const creator = requesterById[c.requested_by]
+    const people = [creator, ...(collabByCol[c.id] || [])].filter(Boolean)
+    const seenIds = new Set(); const uniquePeople = people.filter(p => { const k = p.id || p.email; if (seenIds.has(k)) return false; seenIds.add(k); return true })
+    const commentCount = commentsByCol[c.id] || 0
     const date = new Date(c.created_at).toLocaleDateString('es-GT', { day:'2-digit', month:'short' })
+    let deadlineChip = ''
+    if (c.deadline) {
+      const d = new Date(c.deadline + 'T00:00:00')
+      const overdue = d < today && c.status === 'draft'
+      const dLabel = d.toLocaleDateString('es-GT', { day:'2-digit', month:'short' })
+      deadlineChip = `<div class="colh-deadline${overdue ? ' overdue' : ''}">
+        <svg width="10" height="10" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 8h14" stroke="currentColor" stroke-width="1.5"/></svg>
+        ${overdue ? 'Venció' : 'Vence'} ${dLabel}
+      </div>`
+    }
     return `<button class="colh-card" onclick="showCollectionRecord('${c.id}','showCollectionsHub')">
       <div class="colh-card-hdr">
         <div>
@@ -10384,10 +10425,14 @@ async function colhRenderGrid(mine) {
         ${smpBadge(c.status)}
       </div>
       <div class="colh-card-dots">${divs.map(d => `<span class="colh-dot" style="background:${DIV_CLR[d]||'#ccc'}"></span>`).join('') || `<span style="font-size:0.7rem;color:var(--text-3)">Vacía</span>`}</div>
+      ${deadlineChip}
       <div class="colh-card-ftr">
-        <span style="font-size:0.68rem;color:var(--text-3)">${n} muestra${n!==1?'s':''} · ${date}</span>
+        <div class="colh-card-meta">
+          <span>${n} muestra${n!==1?'s':''} · ${date}</span>
+          ${commentCount ? `<span class="colh-comment-chip"><svg width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M3 4h14v9H8l-4 4V4z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>${commentCount}</span>` : ''}
+        </div>
         <div class="colh-avatars">
-          ${people.slice(0,4).map(p => `<div class="colh-avatar" title="${esc(p?.full_name||p?.email||'')}">${(p?.full_name||p?.email||'?')[0].toUpperCase()}</div>`).join('')}
+          ${uniquePeople.slice(0,4).map(p => `<div class="colh-avatar" title="${esc(p?.full_name||p?.email||'')}">${p?.avatar_url ? `<img src="${esc(p.avatar_url)}" alt="" />` : (p?.full_name||p?.email||'?')[0].toUpperCase()}</div>`).join('')}
         </div>
       </div>
     </button>`
@@ -10433,6 +10478,7 @@ async function cloneCollectionToDraft(sourceId) {
    search to keep adding items. Replaces the old flat "collection
    record" view: same URL/entry points, richer surface. ── */
 async function showCollectionRecord(collectionId, backTo) {
+  syncModule('muestras_productos')
   document.getElementById('div-toolbar').style.display = 'none'
   document.getElementById('view-products').style.display = 'none'
   document.getElementById('view-dashboard').style.display = 'none'
@@ -10495,7 +10541,13 @@ async function showCollectionRecord(collectionId, backTo) {
     <div class="ws-hdr">
       <div class="ws-hdr-name">
         <input class="ws-name-input" id="ws-name-input" value="${esc(col.name || '')}" placeholder="${esc(col.collection_id)} — sin nombre" onblur="saveCollectionName('${col.id}', this.value)" onkeydown="if(event.key==='Enter') this.blur()" />
-        <div class="ws-hdr-meta">${esc(col.collection_id)} · ${items.length} muestra${items.length!==1?'s':''} · ${totalQty} unidades</div>
+        <div class="ws-hdr-meta">
+          <span>${esc(col.collection_id)} · ${items.length} muestra${items.length!==1?'s':''} · ${totalQty} unidades</span>
+          <span class="ws-deadline-wrap${col.deadline ? ' set' : ''}" title="Fecha límite">
+            <svg width="11" height="11" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 8h14M7 2.5v3M13 2.5v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            <input type="date" class="ws-deadline-input" value="${col.deadline || ''}" onchange="wsSetDeadline('${col.id}', this.value)" />
+          </span>
+        </div>
       </div>
       <div class="ws-hdr-actions">
         ${smpBadge(col.status)}
@@ -10762,6 +10814,11 @@ async function saveCollectionName(collectionId, value) {
   const name = value.trim()
   const { error } = await sb.rpc('rename_collection', { p_id: collectionId, p_name: name })
   if (error) toast('No se pudo guardar el nombre: ' + error.message)
+}
+
+async function wsSetDeadline(collectionId, value) {
+  const { error } = await sb.rpc('set_collection_deadline', { p_id: collectionId, p_deadline: value || null })
+  if (error) toast('No se pudo guardar la fecha límite: ' + error.message)
 }
 
 /* ── BULK SELECTION — select several samples at once (checkbox per card,
