@@ -10446,9 +10446,9 @@ async function showCollectionRecord(collectionId, backTo) {
 
   setHash('#/collection/' + collectionId)
   const [colRes, itemsRes, collabRes, catRes, commentsRes] = await Promise.all([
-    sb.from('sample_collections').select('*, profiles!requested_by(full_name,email,avatar_url)').eq('id', collectionId).single(),
+    sb.from('sample_collections').select('*, profiles!requested_by(*)').eq('id', collectionId).single(),
     sb.from('samples').select('*, products(name,division,code)').eq('collection_id', collectionId).order('created_at', { ascending: true }),
-    sb.from('collection_collaborators').select('*, profiles!user_id(full_name,email,avatar_url)').eq('collection_id', collectionId),
+    sb.from('collection_collaborators').select('*, profiles!user_id(*)').eq('collection_id', collectionId),
     sb.from('collection_categories').select('*').eq('collection_id', collectionId).order('created_at', { ascending: true }),
     sb.from('collection_comments').select('*, profiles(full_name)').eq('collection_id', collectionId).order('created_at', { ascending: true }),
   ])
