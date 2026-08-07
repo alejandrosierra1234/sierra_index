@@ -2854,34 +2854,88 @@
       transition:border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
     }
     .ws-add-cat-btn:hover { border-color:var(--accent); color:var(--accent); }
-    .ws-item-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:0.6rem; }
-    .ws-item-card {
-      border:1px solid var(--border); border-radius:12px; padding:0.7rem 0.8rem; background:var(--surface);
-      transition:border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
-    }
-    .ws-item-card.selected { border-color:var(--accent); background:var(--accent-light); }
-    .ws-item-top { display:flex; align-items:center; gap:0.55rem; margin-bottom:0.55rem; }
-    .ws-item-ctrls { display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; }
-    .ws-item-ctrls select { min-width:0; flex:1; }
+    .ws-cat-hdr { cursor:pointer; user-select:none; }
+    .ws-cat-chevron { color:var(--text-3); flex-shrink:0; transition:transform var(--dur-fast) var(--ease-out); }
+    .ws-cat-chevron.collapsed { transform:rotate(-90deg); }
+    .ws-cat-body.collapsed { display:none; }
+
+    /* Board rows — one line per sample, all the fields you touch often
+       (type, qty, category, price) inline, like a Monday board row. */
+    .ws-row { display:flex; align-items:center; gap:0.55rem; padding:0.5rem 0.35rem; border-bottom:1px solid var(--border); font-size:0.83rem; flex-wrap:wrap; }
+    .ws-row:last-child { border-bottom:none; }
+    .ws-row-name { flex:1 1 140px; min-width:0; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ws-row-code { display:block; font-size:0.68rem; font-weight:500; color:var(--text-3); }
+    .ws-row-type { width:118px; flex-shrink:0; }
+    .ws-row-qty { flex-shrink:0; }
+    .ws-row-cat { width:126px; flex-shrink:0; }
     .ws-item-checkbox, .ws-select-all { width:15px; height:15px; flex-shrink:0; accent-color:var(--accent); cursor:pointer; }
+    .ws-row.selected { background:var(--accent-light); border-radius:8px; }
     .ws-bulk-bar {
       display:flex; align-items:center; gap:0.55rem; flex-wrap:wrap; background:var(--accent-light); border:1px solid var(--border);
       border-radius:10px; padding:0.55rem 0.75rem; margin-bottom:0.7rem; font-size:0.78rem; font-weight:600; color:var(--text);
     }
+    .ws-add-inline { display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.35rem; border-bottom:1px solid var(--border); margin-bottom:0.3rem; }
+    .ws-add-inline input { flex:1; border:none; background:none; font-family:inherit; font-size:0.85rem; color:var(--text); outline:none; }
     .ws-add-row { display:flex; align-items:center; gap:0.5rem; padding:0.45rem 0.3rem; border-radius:8px; cursor:pointer; font-size:0.8rem; }
     .ws-add-row:hover { background:var(--surface2); }
-    .ws-avatar-stack { display:flex; align-items:center; }
+
+    /* Price — one column, USD only (Sierra doesn't price in other
+       currencies), click to edit MOQ/valid-until in a small popover. */
+    .ws-price-wrap { position:relative; flex-shrink:0; }
+    .ws-price-btn {
+      background:none; border:1px solid transparent; border-radius:7px; padding:0.2rem 0.5rem; font-family:inherit;
+      font-size:0.8rem; font-weight:700; color:var(--text); cursor:pointer;
+      transition:border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+    }
+    .ws-price-btn:hover { background:var(--surface2); border-color:var(--border); }
+    .ws-price-empty { font-size:0.8rem; color:var(--text-3); padding:0.2rem 0.5rem; }
+    .ws-price-pop { width:200px; padding:0.75rem; right:0; }
+    .ws-price-pop label { display:block; font-size:0.66rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-3); margin:0.5rem 0 0.25rem; }
+    .ws-price-pop label:first-child { margin-top:0; }
+    .ws-price-pop input { width:100%; }
+
+    /* Compact board header — name, badge, avatars, invite, copy link,
+       overflow menu — one row instead of a card stack. */
+    .ws-hdr { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.1rem; flex-wrap:wrap; }
+    .ws-hdr-name { flex:1; min-width:200px; }
+    .ws-hdr-meta { font-size:0.7rem; color:var(--text-3); margin-top:0.15rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:600; }
+    .ws-hdr-actions { display:flex; align-items:center; gap:0.5rem; flex-shrink:0; padding-top:0.15rem; }
+    .ws-avatar-stack { display:flex; align-items:center; position:relative; }
     .ws-avatar {
       width:28px; height:28px; border-radius:50%; background:var(--surface2); border:2px solid var(--surface);
       display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:700; color:var(--text-2);
-      margin-left:-8px; flex-shrink:0;
+      margin-left:-8px; flex-shrink:0; overflow:hidden;
     }
     .ws-avatar:first-child { margin-left:0; }
+    .ws-avatar img { width:100%; height:100%; object-fit:cover; }
     .ws-avatar-add {
       background:none; border:1.5px dashed var(--border); color:var(--text-3); cursor:pointer; font-family:inherit;
       transition:border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
     }
     .ws-avatar-add:hover { border-color:var(--accent); color:var(--accent); }
+    .ws-icon-btn {
+      width:32px; height:32px; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--text-2);
+      display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+      transition:border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+    }
+    .ws-icon-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+    .ws-more-wrap { position:relative; }
+
+    /* Generic popover shell — invite, "more" menu, price editor all use it */
+    .ws-pop {
+      display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:40; min-width:220px;
+      background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-hover);
+      padding:0.6rem; animation:wsPopIn var(--dur-fast) var(--ease-out);
+    }
+    .ws-pop.open { display:block; }
+    @keyframes wsPopIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+    .ws-pop-hint { font-size:0.74rem; color:var(--text-3); margin-bottom:0.5rem; }
+    .ws-menu-item {
+      display:block; width:100%; text-align:left; background:none; border:none; font-family:inherit; font-size:0.82rem;
+      color:var(--text); padding:0.5rem 0.6rem; border-radius:8px; cursor:pointer;
+    }
+    .ws-menu-item:hover { background:var(--surface2); }
+    .ws-menu-danger { color:#c0392b; }
 
     .pick-col-row {
       display:flex; align-items:center; gap:0.6rem; width:100%; text-align:left; font-family:inherit;
@@ -3455,6 +3509,19 @@
         <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         Nueva colección
       </button>
+    </div>
+  </div>
+</div>
+<!-- ══ MODAL: COLLECTION QR CODE ══ -->
+<div class="overlay" id="m-ws-qr">
+  <div class="modal" style="width:280px">
+    <div class="modal-hdr">
+      <div class="modal-title">Código QR</div>
+      <button class="btn-icon" onclick="closeModal('m-ws-qr')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;align-items:center;gap:0.75rem">
+      <canvas id="ws-qr-canvas" width="180" height="180"></canvas>
+      <div id="ws-qr-label" style="font-size:0.78rem;color:var(--text-3);font-weight:700;letter-spacing:0.04em"></div>
     </div>
   </div>
 </div>
@@ -4414,13 +4481,19 @@ window.addEventListener('hashchange', () => {
 async function applyRoute(h) {
   const mProd = (h || '').match(/^#\/product\/([\w-]+)/)
   const mDiv = (h || '').match(/^#\/division\/([a-z]+)/)
-  if (!mProd && !mDiv) return false
+  const mCol = (h || '').match(/^#\/collection\/([\w-]+)/)
+  if (!mProd && !mDiv && !mCol) return false
   _routeApplying = true
   try {
     if (mDiv) {
       const el = document.getElementById('nav-' + mDiv[1])
       if (!el) return false
       setDiv(mDiv[1], el)
+      return true
+    }
+    if (mCol) {
+      syncModule('muestras_productos')
+      await showCollectionRecord(mCol[1], 'showCollectionsHub')
       return true
     }
     return await openProductRoute(mProd[1])
@@ -10371,10 +10444,11 @@ async function showCollectionRecord(collectionId, backTo) {
   vs.innerHTML = '<div style="padding:2rem 1.75rem;color:var(--text-3);font-size:0.85rem">Loading…</div>'
   _colWorkspaceBack = backTo || _colWorkspaceBack || 'showCollectionsHub'
 
+  setHash('#/collection/' + collectionId)
   const [colRes, itemsRes, collabRes, catRes, commentsRes] = await Promise.all([
-    sb.from('sample_collections').select('*, profiles!requested_by(full_name,email)').eq('id', collectionId).single(),
+    sb.from('sample_collections').select('*, profiles!requested_by(full_name,email,avatar_url)').eq('id', collectionId).single(),
     sb.from('samples').select('*, products(name,division,code)').eq('collection_id', collectionId).order('created_at', { ascending: true }),
-    sb.from('collection_collaborators').select('*, profiles!user_id(full_name,email)').eq('collection_id', collectionId),
+    sb.from('collection_collaborators').select('*, profiles!user_id(full_name,email,avatar_url)').eq('collection_id', collectionId),
     sb.from('collection_categories').select('*').eq('collection_id', collectionId).order('created_at', { ascending: true }),
     sb.from('collection_comments').select('*, profiles(full_name)').eq('collection_id', collectionId).order('created_at', { ascending: true }),
   ])
@@ -10397,19 +10471,52 @@ async function showCollectionRecord(collectionId, backTo) {
   const isReadyOrLater = ['ready','picked_up','shipped','delivered'].includes(col.status)
   const totalQty = items.reduce((t, i) => t + (i.quantity || 1), 0)
 
-  const collaboratorsHtml = `
-    <div class="srd-section-label">Colaboradores</div>
-    <div class="srd-card" style="margin-bottom:1.5rem">
-      <div class="ws-avatar-stack">
-        ${collaborators.map(c => `<div class="ws-avatar" title="${esc(c.profiles?.full_name || c.profiles?.email || '')}">${(c.profiles?.full_name||c.profiles?.email||'?')[0].toUpperCase()}</div>`).join('')}
-        <button type="button" class="ws-avatar ws-avatar-add" onclick="wsToggleInvite()" title="Invitar a alguien">
-          <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        </button>
+  const peopleHtml = [col.profiles, ...collaborators.map(c => c.profiles)]
+    .filter(Boolean).map(p => wsAvatarHtml(p)).join('')
+
+  const moreMenuItems = []
+  if (isReadyOrLater) {
+    moreMenuItems.push(`<button class="ws-menu-item" onclick="wsClosePopovers();printCollectionGuide('${col.id}')">Reimprimir guía de envío</button>`)
+  } else if (!isDraft && canDispatch) {
+    moreMenuItems.push(`<button class="ws-menu-item" onclick="wsClosePopovers();showDispatch('${col.id}')">Ir a Despacho</button>`)
+  }
+  moreMenuItems.push(`<button class="ws-menu-item" onclick="wsShowQr('${col.id}','${esc(col.collection_id).replace(/'/g,"\\'")}')">Ver código QR</button>`)
+  if (!isDraft) {
+    moreMenuItems.push(`<button class="ws-menu-item" onclick="wsClosePopovers();cloneCollectionToDraft('${col.id}')">Empezar borrador desde esta</button>`)
+  } else {
+    moreMenuItems.push(`<button class="ws-menu-item ws-menu-danger" onclick="wsClosePopovers();discardWorkspaceDraft('${col.id}')">Descartar borrador</button>`)
+  }
+
+  const headerHtml = `
+    <div class="ws-hdr">
+      <div class="ws-hdr-name">
+        <input class="ws-name-input" id="ws-name-input" value="${esc(col.name || '')}" placeholder="${esc(col.collection_id)} — sin nombre" onblur="saveCollectionName('${col.id}', this.value)" onkeydown="if(event.key==='Enter') this.blur()" />
+        <div class="ws-hdr-meta">${esc(col.collection_id)} · ${items.length} muestra${items.length!==1?'s':''} · ${totalQty} unidades</div>
       </div>
-      ${!collaborators.length ? '<div style="font-size:0.76rem;color:var(--text-3);margin-top:0.6rem">Nadie más invitado todavía — la estás armando solo.</div>' : ''}
-      <div id="ws-invite-form" style="display:none;gap:0.5rem;margin-top:0.75rem">
-        <input type="text" id="collab-invite-input" placeholder="Nombre o correo…" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;font-size:0.8rem;font-family:inherit;background:var(--surface2);color:var(--text)" onkeydown="if(event.key==='Enter'){event.preventDefault();inviteCollaborator('${col.id}')}" />
-        <button class="btn btn-ghost btn-sm" onclick="inviteCollaborator('${col.id}')">Invitar</button>
+      <div class="ws-hdr-actions">
+        ${smpBadge(col.status)}
+        <div class="ws-avatar-stack">
+          ${peopleHtml}
+          <button type="button" class="ws-avatar ws-avatar-add" onclick="wsToggleInvite(event)" title="Invitar a alguien">
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+          <div class="ws-pop ws-invite-pop" id="ws-invite-pop">
+            ${!collaborators.length ? '<div class="ws-pop-hint">Nadie más invitado todavía.</div>' : ''}
+            <div style="display:flex;gap:0.5rem">
+              <input type="text" id="collab-invite-input" class="tl-search" style="flex:1" placeholder="Nombre o correo…" onkeydown="if(event.key==='Enter'){event.preventDefault();inviteCollaborator('${col.id}')}" />
+              <button class="btn btn-primary btn-sm" onclick="inviteCollaborator('${col.id}')">Invitar</button>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="ws-icon-btn" onclick="wsCopyLink('${col.id}')" title="Copiar link de la colección">
+          <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M8.5 11.5a2.8 2.8 0 004 0l2-2a2.8 2.8 0 00-4-4l-.6.6M11.5 8.5a2.8 2.8 0 00-4 0l-2 2a2.8 2.8 0 004 4l.6-.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="ws-more-wrap">
+          <button type="button" class="ws-icon-btn" onclick="wsToggleMore(event)" title="Más opciones">
+            <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><circle cx="4" cy="10" r="1.4" fill="currentColor"/><circle cx="10" cy="10" r="1.4" fill="currentColor"/><circle cx="16" cy="10" r="1.4" fill="currentColor"/></svg>
+          </button>
+          <div class="ws-pop ws-more-pop" id="ws-more-pop">${moreMenuItems.join('')}</div>
+        </div>
       </div>
     </div>`
 
@@ -10454,13 +10561,6 @@ async function showCollectionRecord(collectionId, backTo) {
       ${statusActionsHtml}
     </div>`
 
-  const addProductHtml = isDraft ? `
-    <div class="srd-section-label">Agregar producto</div>
-    <div class="srd-card">
-      <input type="text" id="ws-add-input" class="tl-search" style="width:100%" placeholder="Buscar por nombre o código…" oninput="wsSearchProducts('${col.id}', this.value)" />
-      <div id="ws-add-results"></div>
-    </div>` : ''
-
   const itemsHtml = categorizedItemsHtml(items, categories, col, isDraft)
 
   const commentsHtml = `
@@ -10484,142 +10584,174 @@ async function showCollectionRecord(collectionId, backTo) {
     </div>`
 
   vs.innerHTML = `
-  <div style="padding:1.75rem 1.75rem 0">
-    <div style="margin-bottom:2rem">
+  <div style="padding:1.25rem 1.75rem 2rem">
+    <div style="margin-bottom:1rem">
       <button class="detail-back-btn" onclick="${_colWorkspaceBack}()">
         <span class="detail-back-dot" style="background:var(--accent)"></span>
         ${_colWorkspaceBack === 'showCollectionsHub' ? 'Colecciones' : 'Sample Center'}
       </button>
     </div>
 
-    <div class="srd-id-block" style="align-items:flex-start">
-      <div style="flex:1;min-width:0">
-        <input class="ws-name-input" id="ws-name-input" value="${esc(col.name || '')}" placeholder="${esc(col.collection_id)} — sin nombre" onblur="saveCollectionName('${col.id}', this.value)" onkeydown="if(event.key==='Enter') this.blur()" />
-        <div class="srd-id-sub">${esc(col.collection_id)} · ${items.length} muestra${items.length!==1?'s':''} · ${totalQty} unidades</div>
+    ${headerHtml}
+
+    ${submitFormHtml}
+
+    <div class="srd-section-label" style="display:flex;align-items:center;gap:0.5rem">
+      ${isDraft && items.length ? `<input type="checkbox" class="ws-select-all" onchange="wsToggleSelectAll(this.checked)" title="Seleccionar todo" />` : ''}
+      <span>Muestras</span>
+      ${isDraft ? `<button class="ws-add-cat-btn" onclick="wsAddCategory('${col.id}')">+ Categoría</button>` : ''}
+    </div>
+    ${isDraft && items.length ? `
+    <div class="ws-bulk-bar" id="ws-bulk-bar" style="display:none">
+      <span id="ws-bulk-count">0 seleccionadas</span>
+      <select class="grant-sel" id="ws-bulk-cat-sel">
+        <option value="">Mover a: Sin categoría</option>
+        ${categories.map(c => `<option value="${c.id}">Mover a: ${esc(c.name)}</option>`).join('')}
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="wsBulkMoveCategory('${col.id}')">Mover</button>
+      <button class="btn btn-ghost btn-sm" style="color:#c0392b" onclick="wsBulkRemove('${col.id}')">Quitar</button>
+      <button class="btn btn-ghost btn-sm" onclick="wsClearSelection()">Cancelar</button>
+    </div>` : ''}
+    <div class="srd-card">
+      ${isDraft ? `
+      <div class="ws-add-inline">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="color:var(--text-3);flex-shrink:0"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <input type="text" id="ws-add-input" placeholder="Agregar producto por nombre o código…" oninput="wsSearchProducts('${col.id}', this.value)" />
       </div>
-      ${smpBadge(col.status)}
+      <div id="ws-add-results"></div>` : ''}
+      ${itemsHtml || '<div style="font-size:0.82rem;color:var(--text-3);padding:0.4rem 0">No samples found.</div>'}
     </div>
 
-    <div class="srd-layout">
-      <div>
-        ${submitFormHtml}
-
-        ${collaboratorsHtml}
-
-        ${pricingCardHtml(col, items)}
-
-        ${addProductHtml}
-
-        <div class="srd-section-label" style="display:flex;align-items:center;gap:0.5rem">
-          ${isDraft && items.length ? `<input type="checkbox" class="ws-select-all" onchange="wsToggleSelectAll(this.checked)" title="Seleccionar todo" />` : ''}
-          <span>Muestras</span>
-          ${isDraft ? `<button class="ws-add-cat-btn" onclick="wsAddCategory('${col.id}')">+ Categoría</button>` : ''}
-        </div>
-        ${isDraft && items.length ? `
-        <div class="ws-bulk-bar" id="ws-bulk-bar" style="display:none">
-          <span id="ws-bulk-count">0 seleccionadas</span>
-          <select class="grant-sel" id="ws-bulk-cat-sel">
-            <option value="">Mover a: Sin categoría</option>
-            ${categories.map(c => `<option value="${c.id}">Mover a: ${esc(c.name)}</option>`).join('')}
-          </select>
-          <button class="btn btn-ghost btn-sm" onclick="wsBulkMoveCategory('${col.id}')">Mover</button>
-          <button class="btn btn-ghost btn-sm" style="color:#c0392b" onclick="wsBulkRemove('${col.id}')">Quitar</button>
-          <button class="btn btn-ghost btn-sm" onclick="wsClearSelection()">Cancelar</button>
-        </div>` : ''}
-        <div class="srd-card">
-          ${itemsHtml || '<div style="font-size:0.82rem;color:var(--text-3)">No samples found.</div>'}
-        </div>
-
-        ${commentsHtml}
-      </div>
-
-      <div class="srd-codes-panel">
-        <div class="srd-qr-card">
-          <div class="srd-qr-label">QR Code</div>
-          <canvas class="srd-qr-canvas" id="col-qr-${col.id}" width="160" height="160"></canvas>
-          <div class="srd-sample-id-code">${esc(col.collection_id)}</div>
-        </div>
-        ${isReadyOrLater ? `
-        <button class="btn btn-ghost btn-sm" style="width:100%" onclick="printCollectionGuide('${col.id}')">
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="14" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 9h14M10 6V3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-          Reprint Shipping Guide
-        </button>` : (!isDraft && canDispatch) ? `
-        <button class="btn btn-primary btn-sm" style="width:100%" onclick="showDispatch('${col.id}')">
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Go to Dispatch
-        </button>` : !isDraft ? `
-        <div style="font-size:0.72rem;color:var(--text-3);text-align:center;padding:0.5rem 0">Awaiting dispatch — the shipping guide prints once every item is verified.</div>` : ''}
-        ${!isDraft ? `
-        <button class="btn btn-ghost btn-sm" style="width:100%" onclick="cloneCollectionToDraft('${col.id}')">
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="4" y="4" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M7 4V2.5h9v9H14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Start a new draft from this
-        </button>` : `
-        <button class="btn btn-ghost btn-sm" style="width:100%;color:var(--text-3)" onclick="discardWorkspaceDraft('${col.id}')">Descartar borrador</button>`}
-      </div>
-    </div>
+    ${commentsHtml}
   </div>`
 
-  setTimeout(() => {
-    const qrCanvas = document.getElementById(`col-qr-${col.id}`)
-    if (qrCanvas && typeof QRCode !== 'undefined') {
-      try { QRCode.toCanvas(qrCanvas, col.collection_id, { width: 160, margin: 1, color: { dark: '#000000', light: '#ffffff' } }) } catch (e) {}
-    }
-  }, 80)
+  wsClosePopovers()
 }
 let _colWorkspaceBack = 'showCollectionsHub'
 
+/* ── Small avatar chip, used for the collaborator stack. Prefers a real
+   photo (profiles.avatar_url) — falls back to initials so it never
+   renders empty. ── */
+function wsAvatarHtml(person) {
+  const label = esc(person?.full_name || person?.email || '')
+  const initials = (person?.full_name || person?.email || '?')[0].toUpperCase()
+  return person?.avatar_url
+    ? `<div class="ws-avatar" title="${label}"><img src="${esc(person.avatar_url)}" alt="" /></div>`
+    : `<div class="ws-avatar" title="${label}">${initials}</div>`
+}
+
+/* ── Popovers (invite, "more" menu, per-item price) share one open/close
+   mechanic: toggle .open, and any other click on the page closes them. ── */
+function wsClosePopovers() {
+  document.querySelectorAll('.ws-pop.open').forEach(el => el.classList.remove('open'))
+}
+function wsToggleInvite(e) {
+  e?.stopPropagation()
+  const pop = document.getElementById('ws-invite-pop')
+  if (!pop) return
+  const wasOpen = pop.classList.contains('open')
+  wsClosePopovers()
+  if (!wasOpen) { pop.classList.add('open'); document.getElementById('collab-invite-input')?.focus() }
+}
+function wsToggleMore(e) {
+  e?.stopPropagation()
+  const pop = document.getElementById('ws-more-pop')
+  if (!pop) return
+  const wasOpen = pop.classList.contains('open')
+  wsClosePopovers()
+  if (!wasOpen) pop.classList.add('open')
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ws-pop') && !e.target.closest('.ws-avatar-add') && !e.target.closest('.ws-icon-btn')) wsClosePopovers()
+})
+
+function wsCopyLink(collectionId) {
+  const url = `${location.origin}${location.pathname}#/collection/${collectionId}`
+  const done = () => toast('Link de la colección copiado')
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(url).then(done).catch(() => toast('No se pudo copiar el link'))
+  } else {
+    toast('No se pudo copiar el link')
+  }
+}
+
+function wsShowQr(collectionId, ref) {
+  wsClosePopovers()
+  document.getElementById('ws-qr-label').textContent = ref
+  document.getElementById('m-ws-qr').classList.add('open')
+  setTimeout(() => {
+    const c = document.getElementById('ws-qr-canvas')
+    if (c && typeof QRCode !== 'undefined') {
+      try { QRCode.toCanvas(c, ref, { width: 180, margin: 1, color: { dark: '#000000', light: '#ffffff' } }) } catch (e) {}
+    }
+  }, 50)
+}
+
+/* Board-style row list, grouped by category the way Monday groups rows
+   by status — each group is collapsible (painpoint: long collections
+   forced a lot of scrolling), and every field a person edits often
+   (type, quantity, category, price) is inline in the row instead of
+   behind a separate "view" vs "categorize" vs "price" surface. */
+let _wsCollapsedCats = new Set()
+function wsToggleCategoryCollapse(catKey) {
+  if (_wsCollapsedCats.has(catKey)) _wsCollapsedCats.delete(catKey)
+  else _wsCollapsedCats.add(catKey)
+  document.querySelector(`.ws-cat-body[data-cat="${catKey}"]`)?.classList.toggle('collapsed', _wsCollapsedCats.has(catKey))
+  document.querySelector(`.ws-cat-chevron[data-cat="${catKey}"]`)?.classList.toggle('collapsed', _wsCollapsedCats.has(catKey))
+}
+
 function categorizedItemsHtml(items, categories, col, editable) {
-  const groups = categories.map(c => ({ id: c.id, name: c.name, items: items.filter(i => i.category_id === c.id) }))
+  const groups = categories.map(c => ({ key: c.id, id: c.id, name: c.name, items: items.filter(i => i.category_id === c.id) }))
   const uncategorized = items.filter(i => !i.category_id || !categories.some(c => c.id === i.category_id))
-  if (uncategorized.length || !groups.length) groups.push({ id: null, name: 'Sin categoría', items: uncategorized })
+  if (uncategorized.length || !groups.length) groups.push({ key: 'none', id: null, name: 'Sin categoría', items: uncategorized })
 
   const catOptions = (currentId) => `<option value="">Sin categoría</option>` +
     categories.map(c => `<option value="${c.id}" ${c.id===currentId?'selected':''}>${esc(c.name)}</option>`).join('')
 
-  return groups.map(g => `
+  return groups.map(g => {
+    const collapsed = _wsCollapsedCats.has(g.key)
+    const rows = g.items.map(it => {
+      const c = DIV_CLR[it.products?.division] || '#aaa'
+      return editable ? `
+        <div class="ws-row" data-item="${it.id}">
+          <input type="checkbox" class="ws-item-checkbox" data-item="${it.id}" onchange="wsToggleSelect('${it.id}', this.checked)" />
+          <span class="cart-item-dot" style="background:${c}"></span>
+          <div class="ws-row-name">${esc(it.products?.name||'—')}${it.products?.code?`<span class="ws-row-code">${esc(it.products.code)}</span>`:''}</div>
+          <select class="grant-sel ws-row-type" onchange="wsSetType('${it.id}','${col.id}',this.value)">
+            ${(DIV_SAMPLE_TYPES[it.products?.division]||['Sample']).map(t=>`<option ${t===it.sample_type?'selected':''}>${esc(t)}</option>`).join('')}
+          </select>
+          <div class="cart-stepper ws-row-qty">
+            <button class="cart-step-btn" onclick="wsSetQty('${it.id}','${col.id}',-1,${it.quantity||1})">−</button>
+            <span class="cart-step-qty">${it.quantity||1}</span>
+            <button class="cart-step-btn" onclick="wsSetQty('${it.id}','${col.id}',1,${it.quantity||1})">+</button>
+          </div>
+          <select class="grant-sel ws-row-cat" onchange="wsSetCategory('${it.id}','${col.id}',this.value)">${catOptions(it.category_id)}</select>
+          <div class="ws-price-wrap">${wsPriceCellHtml(it)}</div>
+          <button class="cart-item-remove" onclick="wsRemoveItem('${it.id}','${col.id}')" title="Quitar">
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>` : `
+        <div class="ws-row" onclick="showSampleRecord('${it.id}')" style="cursor:pointer">
+          <span class="cart-item-dot" style="background:${c}"></span>
+          <div class="ws-row-name">${esc(it.products?.name||'—')} <span class="ws-row-code" style="display:inline">· ${esc(it.sample_type)} · Qty ${it.quantity||1}</span></div>
+          <div class="ws-price-wrap">${wsPriceCellHtml(it)}</div>
+          ${smpBadge(it.status)}
+        </div>`
+    }).join('') || '<div style="font-size:0.78rem;color:var(--text-3);padding:0.5rem 0.3rem">Vacío</div>'
+
+    return `
     <div class="ws-cat-group">
-      <div class="ws-cat-hdr">
+      <div class="ws-cat-hdr" onclick="wsToggleCategoryCollapse('${g.key}')">
+        <svg class="ws-cat-chevron${collapsed?' collapsed':''}" data-cat="${g.key}" width="10" height="10" viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="ws-cat-name">${esc(g.name)}</span>
         <span class="ws-cat-count">${g.items.length}</span>
         ${editable && g.id ? `
-          <button class="ws-cat-action" onclick="wsRenameCategory('${g.id}','${col.id}','${esc(g.name).replace(/'/g,"\\'")}')" title="Renombrar">✎</button>
-          <button class="ws-cat-action" onclick="wsDeleteCategory('${g.id}','${col.id}')" title="Eliminar">✕</button>` : ''}
+          <button class="ws-cat-action" onclick="event.stopPropagation();wsRenameCategory('${g.id}','${col.id}','${esc(g.name).replace(/'/g,"\\'")}')" title="Renombrar">✎</button>
+          <button class="ws-cat-action" onclick="event.stopPropagation();wsDeleteCategory('${g.id}','${col.id}')" title="Eliminar">✕</button>` : ''}
       </div>
-      <div class="ws-item-grid">
-        ${g.items.map(it => {
-          const c = DIV_CLR[it.products?.division] || '#aaa'
-          return editable ? `
-            <div class="ws-item-card" data-item="${it.id}">
-              <div class="ws-item-top">
-                <input type="checkbox" class="ws-item-checkbox" data-item="${it.id}" onchange="wsToggleSelect('${it.id}', this.checked)" />
-                <span class="cart-item-dot" style="background:${c}"></span>
-                <div class="cart-item-name">${esc(it.products?.name||'—')}${it.products?.code?`<div class="cart-item-code">${esc(it.products.code)}</div>`:''}</div>
-                <button class="cart-item-remove" onclick="wsRemoveItem('${it.id}','${col.id}')" title="Quitar">
-                  <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                </button>
-              </div>
-              <div class="ws-item-ctrls">
-                <select class="grant-sel" onchange="wsSetType('${it.id}','${col.id}',this.value)">
-                  ${(DIV_SAMPLE_TYPES[it.products?.division]||['Sample']).map(t=>`<option ${t===it.sample_type?'selected':''}>${esc(t)}</option>`).join('')}
-                </select>
-                <div class="cart-stepper">
-                  <button class="cart-step-btn" onclick="wsSetQty('${it.id}','${col.id}',-1,${it.quantity||1})">−</button>
-                  <span class="cart-step-qty">${it.quantity||1}</span>
-                  <button class="cart-step-btn" onclick="wsSetQty('${it.id}','${col.id}',1,${it.quantity||1})">+</button>
-                </div>
-                <select class="grant-sel" onchange="wsSetCategory('${it.id}','${col.id}',this.value)">${catOptions(it.category_id)}</select>
-              </div>
-            </div>` : `
-            <div class="ws-item-card" onclick="showSampleRecord('${it.id}')" style="cursor:pointer">
-              <div class="ws-item-top" style="margin-bottom:0">
-                <span class="cart-item-dot" style="background:${c}"></span>
-                <div class="cart-item-name">${esc(it.products?.name||'—')} <span style="color:var(--text-3);font-weight:400">· ${esc(it.sample_type)} · Qty ${it.quantity||1}</span></div>
-                ${smpBadge(it.status)}
-              </div>
-            </div>`
-        }).join('') || '<div style="font-size:0.78rem;color:var(--text-3);padding:0.3rem 0">Vacío</div>'}
-      </div>
-    </div>`).join('')
+      <div class="ws-cat-body${collapsed?' collapsed':''}" data-cat="${g.key}">${rows}</div>
+    </div>`
+  }).join('')
 }
 
 async function saveCollectionName(collectionId, value) {
@@ -10636,7 +10768,7 @@ let _wsSelected = new Set()
 
 function wsToggleSelect(itemId, checked) {
   if (checked) _wsSelected.add(itemId); else _wsSelected.delete(itemId)
-  document.querySelector(`.ws-item-card[data-item="${itemId}"]`)?.classList.toggle('selected', checked)
+  document.querySelector(`.ws-row[data-item="${itemId}"]`)?.classList.toggle('selected', checked)
   wsUpdateBulkBar()
 }
 function wsToggleSelectAll(checked) {
@@ -10648,7 +10780,7 @@ function wsToggleSelectAll(checked) {
 function wsClearSelection() {
   _wsSelected.clear()
   document.querySelectorAll('.ws-item-checkbox').forEach(cb => { cb.checked = false })
-  document.querySelectorAll('.ws-item-card.selected').forEach(el => el.classList.remove('selected'))
+  document.querySelectorAll('.ws-row.selected').forEach(el => el.classList.remove('selected'))
   const selectAll = document.querySelector('.ws-select-all')
   if (selectAll) selectAll.checked = false
   wsUpdateBulkBar()
@@ -10830,59 +10962,52 @@ function fmtPrice(i) {
   return `${i.price_currency || 'USD'} ${Number(i.price).toFixed(2)}`
 }
 
-function pricingCardHtml(col, items) {
+/* Price lives inline as a column on each row now (Sierra only prices in
+   USD, so the currency selector that used to live in a whole separate
+   "Pricing" card is gone — one field, click to edit, click away to see
+   it as a column value like everything else in the table). */
+function wsPriceCellHtml(it) {
   const editable = canEditPricing()
-  const anyPrice = items.some(i => i.price != null)
-  if (!editable && !anyPrice) return ''
-  return `<div class="srd-section-label">Pricing <span style="font-weight:400;color:var(--text-3);text-transform:none;letter-spacing:0">· optional, owned by Customer Service</span></div>
-  <div class="srd-card">
-    ${items.map(i => `
-      <div style="display:grid;grid-template-columns:1fr repeat(4, minmax(70px, 110px));gap:0.4rem;align-items:center;padding:0.35rem 0;border-bottom:1px solid var(--border);font-size:0.76rem">
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.products?.name || '—')} <span style="color:var(--text-3)">${esc(i.sample_type)}</span></span>
-        ${editable ? `
-          <input type="number" min="0" step="0.01" class="tl-search" id="pr-${i.id}" value="${i.price ?? ''}" placeholder="Price" />
-          <select class="grant-sel" id="cur-${i.id}">${['USD','EUR','GTQ','HNL','MXN'].map(c => `<option ${(i.price_currency || 'USD') === c ? 'selected' : ''}>${c}</option>`).join('')}</select>
-          <input type="text" class="tl-search" id="moq-${i.id}" value="${esc(i.moq || '')}" placeholder="MOQ" />
-          <input type="date" class="tl-search" id="val-${i.id}" value="${i.price_valid_until || ''}" title="Valid until" />
-        ` : `
-          <span style="font-weight:700">${fmtPrice(i) || '—'}</span>
-          <span></span>
-          <span style="color:var(--text-3)">${i.moq ? 'MOQ ' + esc(i.moq) : ''}</span>
-          <span style="color:var(--text-3)">${i.price_valid_until ? 'until ' + i.price_valid_until : ''}</span>
-        `}
-      </div>`).join('')}
-    ${editable ? `
-      <input type="text" class="tl-search" id="pr-notes" style="width:100%;margin-top:0.5rem" placeholder="Pricing notes (optional)" value="${esc(col.pricing_notes || '')}" />
-      <button class="btn btn-primary btn-sm" style="margin-top:0.5rem" onclick="savePricing('${col.id}')">Save pricing</button>`
-    : col.pricing_notes ? `<div style="font-size:0.72rem;color:var(--text-3);margin-top:0.5rem">${esc(col.pricing_notes)}</div>` : ''}
-  </div>`
+  if (!editable && it.price == null) return '<span class="ws-price-empty">—</span>'
+  const label = it.price != null ? `$${Number(it.price).toFixed(2)}` : (editable ? '+ Precio' : '—')
+  if (!editable) return `<span class="ws-price-empty" style="color:var(--text)">${label}</span>`
+  return `
+    <button type="button" class="ws-price-btn" onclick="wsTogglePricePop(event,'${it.id}')">${label}</button>
+    <div class="ws-pop ws-price-pop" id="price-pop-${it.id}">
+      <label>Precio (USD)</label>
+      <input type="number" min="0" step="0.01" id="pr-${it.id}" class="tl-search" value="${it.price ?? ''}" placeholder="0.00" />
+      <label>MOQ</label>
+      <input type="text" id="moq-${it.id}" class="tl-search" value="${esc(it.moq || '')}" placeholder="Cantidad mínima" />
+      <label>Válido hasta</label>
+      <input type="date" id="val-${it.id}" class="tl-search" value="${it.price_valid_until || ''}" />
+      <button class="btn btn-primary btn-sm" style="width:100%;margin-top:0.5rem" onclick="wsSavePrice('${it.id}')">Guardar</button>
+    </div>`
 }
-
-async function savePricing(collectionId) {
-  const { data: items } = await sb.from('samples').select('id,price,price_currency,moq,price_valid_until,products(name)').eq('collection_id', collectionId)
-  const changes = []
-  for (const i of (items || [])) {
-    const priceRaw = document.getElementById('pr-' + i.id)?.value?.trim()
-    const price = priceRaw === '' || priceRaw == null ? null : parseFloat(priceRaw)
-    if (price != null && (Number.isNaN(price) || price < 0)) { toast(`Invalid price for ${i.products?.name}`); return }
-    const upd = {
-      price,
-      price_currency: document.getElementById('cur-' + i.id)?.value || 'USD',
-      moq: document.getElementById('moq-' + i.id)?.value?.trim() || null,
-      price_valid_until: document.getElementById('val-' + i.id)?.value || null,
-    }
-    const changed = ['price','price_currency','moq','price_valid_until'].filter(k => String(i[k] ?? '') !== String(upd[k] ?? ''))
-    if (!changed.length) continue
-    const { error } = await sb.from('samples').update(upd).eq('id', i.id)
-    if (error) { toast('Could not save pricing: ' + error.message); return }
-    changed.forEach(k => changes.push({ field: `${i.products?.name || 'item'} · ${k}`, from: i[k] ?? '', to: upd[k] ?? '' }))
+function wsTogglePricePop(e, itemId) {
+  e.stopPropagation()
+  const pop = document.getElementById('price-pop-' + itemId)
+  if (!pop) return
+  const wasOpen = pop.classList.contains('open')
+  wsClosePopovers()
+  if (!wasOpen) pop.classList.add('open')
+}
+async function wsSavePrice(itemId) {
+  const priceRaw = document.getElementById('pr-' + itemId)?.value?.trim()
+  const price = priceRaw === '' || priceRaw == null ? null : parseFloat(priceRaw)
+  if (price != null && (Number.isNaN(price) || price < 0)) { toast('Precio inválido'); return }
+  const upd = {
+    price, price_currency: 'USD',
+    moq: document.getElementById('moq-' + itemId)?.value?.trim() || null,
+    price_valid_until: document.getElementById('val-' + itemId)?.value || null,
   }
-  const notes = document.getElementById('pr-notes')?.value?.trim() || null
-  await sb.from('sample_collections').update({ pricing_notes: notes }).eq('id', collectionId)
-  if (changes.length) Audit.log('collection', collectionId, null, 'pricing_updated',
-    `Pricing updated (${changes.length} change${changes.length > 1 ? 's' : ''})`, changes)
-  toast('Pricing saved')
-  showCollectionRecord(collectionId)
+  const { data: before } = await sb.from('samples').select('collection_id,price,products(name)').eq('id', itemId).single()
+  const { error } = await sb.from('samples').update(upd).eq('id', itemId)
+  if (error) { toast('No se pudo guardar el precio: ' + error.message); return }
+  if (before?.collection_id) {
+    Audit.log('collection', before.collection_id, null, 'pricing_updated',
+      `Precio de ${before.products?.name || 'muestra'} actualizado`, [{ field: 'price', from: before.price ?? '', to: price ?? '' }])
+    showCollectionRecord(before.collection_id)
+  }
 }
 
 /* ── COMMERCIAL PRICE STICKER (separate from the base product label) ── */
