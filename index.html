@@ -2948,7 +2948,6 @@
     }
     .ws-avatar:first-child { margin-left:0; }
     .ws-avatar img { width:100%; height:100%; object-fit:cover; }
-    .ws-invite-wrap { position:relative; }
     .ws-invite-btn svg { flex-shrink:0; }
     .ws-icon-btn {
       width:34px; height:34px; border-radius:var(--r-pill); border:1px solid transparent; background:none; color:var(--text-3);
@@ -2958,18 +2957,34 @@
     .ws-icon-btn:hover { background:var(--surface2); color:var(--text); }
     .ws-icon-btn:active { background:var(--accent-light); color:var(--accent); }
     .ws-more-wrap { position:relative; }
-    .ws-invite-pop { width:270px; }
-    .ws-invite-pop .tl-search { width:100%; }
-    .ws-invite-results { display:flex; flex-direction:column; gap:0.1rem; margin-top:0.5rem; max-height:230px; overflow-y:auto; }
+
+    /* Manage-people modal (#m-ws-invite) — search results and the roster
+       of people already in the collection share one row shape; the
+       roster rows swap the hover/click affordance for a remove button. */
+    .ws-invite-results { display:flex; flex-direction:column; gap:0.1rem; max-height:200px; overflow-y:auto; }
+    .ws-invite-results:not(:empty) { margin-top:0.4rem; }
     .ws-invite-row {
-      display:flex; align-items:center; gap:0.6rem; width:100%; text-align:left; background:none; border:none;
-      font-family:inherit; padding:0.4rem 0.45rem; border-radius:8px; cursor:pointer;
+      display:flex; align-items:center; gap:0.65rem; width:100%; text-align:left; background:none; border:none;
+      font-family:inherit; padding:0.5rem 0.5rem; border-radius:9px;
     }
-    .ws-invite-row:hover { background:var(--surface2); }
-    .ws-invite-row .ws-avatar { width:26px; height:26px; margin-left:0; border-width:0; }
-    .ws-invite-row-info { display:flex; flex-direction:column; min-width:0; gap:0.05rem; }
-    .ws-invite-row-name { font-size:0.8rem; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .ws-invite-row-sub { font-size:0.68rem; color:var(--text-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    button.ws-invite-row { cursor:pointer; }
+    button.ws-invite-row:hover { background:var(--surface2); }
+    .ws-invite-row .ws-avatar { width:32px; height:32px; margin-left:0; border-width:0; font-size:0.74rem; }
+    .ws-invite-row-info { display:flex; flex-direction:column; min-width:0; gap:0.05rem; flex:1; }
+    .ws-invite-row-name { font-size:0.83rem; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ws-invite-row-sub { font-size:0.7rem; color:var(--text-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ws-invite-people-lbl { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin:1.1rem 0 0.5rem; }
+    .ws-invite-people-list { display:flex; flex-direction:column; gap:0.1rem; }
+    .ws-invite-owner-tag {
+      font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-3);
+      background:var(--surface2); border-radius:var(--r-pill); padding:0.22rem 0.6rem; flex-shrink:0;
+    }
+    .ws-invite-remove {
+      background:none; border:none; color:var(--text-3); cursor:pointer; font-size:0.8rem; line-height:1;
+      width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+      transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+    }
+    .ws-invite-remove:hover { background:rgba(192,57,43,0.1); color:#c0392b; }
 
     /* Generic popover shell — invite, "more" menu, price editor all use it */
     .ws-pop {
@@ -3573,6 +3588,16 @@
       <canvas id="ws-qr-canvas" width="180" height="180"></canvas>
       <div id="ws-qr-label" style="font-size:0.78rem;color:var(--text-3);font-weight:700;letter-spacing:0.04em"></div>
     </div>
+  </div>
+</div>
+<!-- ══ MODAL: MANAGE COLLECTION PEOPLE ══ -->
+<div class="overlay" id="m-ws-invite">
+  <div class="modal" style="width:420px">
+    <div class="modal-hdr">
+      <div class="modal-title">Invitar a la colección</div>
+      <button class="btn-icon" onclick="closeModal('m-ws-invite')">✕</button>
+    </div>
+    <div class="modal-body" id="ws-invite-modal-body"></div>
   </div>
 </div>
 <!-- ══ SAMPLE CART ══ -->
@@ -10624,18 +10649,10 @@ async function showCollectionRecord(collectionId, backTo) {
           <div class="ws-avatar-stack">
             ${peopleHtml}
           </div>
-          <div class="ws-invite-wrap">
-            <button type="button" class="btn btn-ghost btn-sm ws-invite-btn" onclick="wsToggleInvite(event)" title="Invitar a alguien">
-              <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 16c0-3 2.4-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M15.5 6.5v4M13.5 8.5h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-              Invitar
-            </button>
-            <div class="ws-pop ws-invite-pop" id="ws-invite-pop">
-              <input type="text" id="collab-invite-input" class="tl-search" placeholder="Nombre o correo…" oninput="wsInviteSearch('${col.id}', this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();document.querySelector('#ws-invite-results .ws-invite-row')?.click()}" autocomplete="off" />
-              <div class="ws-invite-results" id="ws-invite-results">
-                <div class="ws-pop-hint">Escribe un nombre o correo para buscar a alguien del equipo.</div>
-              </div>
-            </div>
-          </div>
+          <button type="button" class="btn btn-ghost btn-sm ws-invite-btn" onclick="wsOpenInvitePanel('${col.id}')" title="Invitar o gestionar personas">
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 16c0-3 2.4-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M15.5 6.5v4M13.5 8.5h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Invitar
+          </button>
         </div>
         <button type="button" class="ws-icon-btn" onclick="wsCopyLink('${col.id}')" title="Copiar link de la colección">
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M8.5 11.5a2.8 2.8 0 004 0l2-2a2.8 2.8 0 00-4-4l-.6.6M11.5 8.5a2.8 2.8 0 00-4 0l-2 2a2.8 2.8 0 004 4l.6-.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -10888,18 +10905,12 @@ function wsAvatarHtml(person) {
     : `<div class="ws-avatar" title="${label}">${initials}</div>`
 }
 
-/* ── Popovers (invite, "more" menu, per-item price) share one open/close
-   mechanic: toggle .open, and any other click on the page closes them. ── */
+/* ── Popovers ("more" menu, per-item price) share one open/close
+   mechanic: toggle .open, and any other click on the page closes them.
+   Invite/manage-people lives in its own modal (#m-ws-invite) instead —
+   removing a collaborator needs more room than a popover comfortably gives. ── */
 function wsClosePopovers() {
   document.querySelectorAll('.ws-pop.open').forEach(el => el.classList.remove('open'))
-}
-function wsToggleInvite(e) {
-  e?.stopPropagation()
-  const pop = document.getElementById('ws-invite-pop')
-  if (!pop) return
-  const wasOpen = pop.classList.contains('open')
-  wsClosePopovers()
-  if (!wasOpen) { pop.classList.add('open'); document.getElementById('collab-invite-input')?.focus() }
 }
 function wsToggleMore(e) {
   e?.stopPropagation()
@@ -10910,7 +10921,7 @@ function wsToggleMore(e) {
   if (!wasOpen) pop.classList.add('open')
 }
 document.addEventListener('click', e => {
-  if (!e.target.closest('.ws-pop') && !e.target.closest('.ws-invite-btn') && !e.target.closest('.ws-icon-btn')) wsClosePopovers()
+  if (!e.target.closest('.ws-pop') && !e.target.closest('.ws-icon-btn')) wsClosePopovers()
 })
 
 function wsCopyLink(collectionId) {
@@ -11341,16 +11352,69 @@ async function updateCollectionStatus(id, status) {
   showCollectionRecord(id)
 }
 
-/* Live search-as-you-type for the invite popover — replaces the old
-   "type a name, hit Enter, hope it matched" flow with a visible list of
-   candidates so a miss is obvious instead of a silent no-op. */
+/* ── Manage-people modal — mirrors the Monday "Invite to this board"
+   panel: a search box to add teammates plus a full list of who's already
+   in, each with a way to remove them. Lives outside #view-sample-detail
+   (static shell near the other modals) so re-rendering the workspace
+   underneath doesn't close it. ── */
+function wsOpenInvitePanel(collectionId) {
+  wsClosePopovers()
+  document.getElementById('m-ws-invite').classList.add('open')
+  wsRenderInvitePanel(collectionId)
+}
+
+async function wsRenderInvitePanel(collectionId) {
+  const body = document.getElementById('ws-invite-modal-body')
+  if (!body) return
+  body.innerHTML = '<div class="ws-pop-hint">Cargando…</div>'
+
+  const [colRes, collabRes] = await Promise.all([
+    sb.from('sample_collections').select('requested_by, profiles!requested_by(*)').eq('id', collectionId).single(),
+    sb.from('collection_collaborators').select('id, user_id, added_by, profiles!user_id(*)').eq('collection_id', collectionId),
+  ])
+  const owner = colRes.data?.profiles
+  const collaborators = collabRes.data || []
+  const canManage = can('manage_status', 'customer_service')
+
+  const peopleRows = [
+    owner ? wsInvitePersonRow(owner, { tag: 'Dueño' }) : '',
+    ...collaborators.map(c => wsInvitePersonRow(c.profiles, {
+      removable: canManage || c.added_by === me.id || c.user_id === me.id,
+      removeAction: `wsRemoveCollaborator('${c.id}','${collectionId}')`,
+    })),
+  ].join('')
+
+  body.innerHTML = `
+    <input type="text" id="ws-invite-modal-search" class="tl-search" style="width:100%" placeholder="Nombre o correo…" oninput="wsInviteSearch('${collectionId}', this.value)" autocomplete="off" />
+    <div class="ws-invite-results" id="ws-invite-results"></div>
+    <div class="ws-invite-people-lbl">Personas en la colección</div>
+    <div class="ws-invite-people-list">${peopleRows || '<div class="ws-pop-hint">Nadie más en esta colección todavía.</div>'}</div>`
+}
+
+function wsInvitePersonRow(person, opts = {}) {
+  if (!person) return ''
+  return `
+    <div class="ws-invite-row ws-invite-row-static">
+      ${wsAvatarHtml(person)}
+      <span class="ws-invite-row-info">
+        <span class="ws-invite-row-name">${esc(person.full_name || person.email)}</span>
+        ${person.full_name ? `<span class="ws-invite-row-sub">${esc(person.email)}</span>` : ''}
+      </span>
+      ${opts.tag ? `<span class="ws-invite-owner-tag">${esc(opts.tag)}</span>`
+        : opts.removable ? `<button type="button" class="ws-invite-remove" onclick="${opts.removeAction}" title="Quitar de la colección">✕</button>` : ''}
+    </div>`
+}
+
+/* Live search-as-you-type — replaces the old "type a name, hit Enter,
+   hope it matched" flow with a visible list of candidates so a miss is
+   obvious instead of a silent no-op. */
 let _wsInviteSearchTimer = null
 function wsInviteSearch(collectionId, query) {
   clearTimeout(_wsInviteSearchTimer)
   const resultsEl = document.getElementById('ws-invite-results')
   if (!resultsEl) return
   const q = query.trim()
-  if (!q) { resultsEl.innerHTML = '<div class="ws-pop-hint">Escribe un nombre o correo para buscar a alguien del equipo.</div>'; return }
+  if (!q) { resultsEl.innerHTML = ''; return }
   resultsEl.innerHTML = '<div class="ws-pop-hint">Buscando…</div>'
   _wsInviteSearchTimer = setTimeout(async () => {
     const { data, error } = await sb.from('profiles')
@@ -11395,6 +11459,15 @@ async function inviteCollaborator(collectionId, userId) {
   Audit.log('collection', collectionId, null, 'user_invited',
     `Invited ${match.full_name || match.email} as collaborator`)
   toast(`${match.full_name || match.email} added as collaborator`)
+  wsRenderInvitePanel(collectionId)
+  showCollectionRecord(collectionId)
+}
+
+async function wsRemoveCollaborator(collabId, collectionId) {
+  const { error } = await sb.from('collection_collaborators').delete().eq('id', collabId)
+  if (error) { console.error('wsRemoveCollaborator error:', error); toast('No se pudo quitar a esa persona'); return }
+  toast('Colaborador eliminado de la colección')
+  wsRenderInvitePanel(collectionId)
   showCollectionRecord(collectionId)
 }
 
