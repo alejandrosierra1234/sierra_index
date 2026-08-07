@@ -2800,6 +2800,79 @@
     .psh-meta { font-size:0.68rem; color:var(--text-3); }
     .psh-status { flex-shrink:0; }
 
+    /* ── Colecciones hub — card grid ── */
+    .colh-tabs { display:flex; gap:0.4rem; margin-bottom:1.5rem; }
+    .colh-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:0.9rem; }
+    .colh-card {
+      border:1px solid var(--border); border-radius:16px; padding:1.1rem 1.15rem;
+      background:var(--surface); cursor:pointer; text-align:left; font-family:inherit;
+      display:flex; flex-direction:column; gap:0.7rem;
+      transition:border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+    }
+    .colh-card:hover { border-color:var(--text-3); box-shadow:var(--shadow); transform:translateY(-1px); }
+    .colh-card-hdr { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+    .colh-card-name { font-size:0.95rem; font-weight:700; letter-spacing:-0.01em; color:var(--text); line-height:1.25; }
+    .colh-card-sub { font-size:0.7rem; color:var(--text-3); margin-top:0.2rem; }
+    .colh-card-dots { display:flex; gap:0.3rem; flex-wrap:wrap; }
+    .colh-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+    .colh-card-ftr { display:flex; align-items:center; justify-content:space-between; margin-top:auto; }
+    .colh-avatars { display:flex; }
+    .colh-avatar {
+      width:22px; height:22px; border-radius:50%; background:var(--surface2); border:2px solid var(--surface);
+      display:flex; align-items:center; justify-content:center; font-size:0.58rem; font-weight:700; color:var(--text-2);
+      margin-left:-7px;
+    }
+    .colh-avatar:first-child { margin-left:0; }
+    .colh-new-card {
+      border:1.5px dashed var(--border); border-radius:16px; padding:1.1rem 1.15rem; min-height:118px;
+      background:none; cursor:pointer; font-family:inherit; color:var(--text-3);
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.4rem;
+      transition:border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+    }
+    .colh-new-card:hover { border-color:var(--accent); color:var(--accent); }
+    .colh-empty { padding:3rem 1rem; text-align:center; color:var(--text-3); font-size:0.85rem; }
+
+    /* ── Collection workspace — editable name, categories, comments ── */
+    .ws-name-input {
+      font-size:1.6rem; font-weight:700; letter-spacing:-0.02em; color:var(--text); line-height:1.2;
+      background:none; border:1px solid transparent; border-radius:8px; padding:0.15rem 0.4rem; margin:-0.15rem -0.4rem;
+      font-family:inherit; width:100%; transition:background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+    }
+    .ws-name-input::placeholder { color:var(--text-3); font-weight:600; }
+    .ws-name-input:hover { background:var(--surface2); }
+    .ws-name-input:focus { outline:none; background:var(--surface2); border-color:var(--border); }
+    .ws-cat-group { margin-bottom:1.1rem; }
+    .ws-cat-group:last-child { margin-bottom:0; }
+    .ws-cat-hdr { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.6rem; }
+    .ws-cat-name { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-2); }
+    .ws-cat-count { font-size:0.68rem; color:var(--text-3); background:var(--surface2); border-radius:999px; padding:0.05rem 0.5rem; }
+    .ws-cat-action { background:none; border:none; color:var(--text-3); cursor:pointer; font-size:0.72rem; padding:0.1rem 0.3rem; margin-left:-0.2rem; }
+    .ws-cat-action:hover { color:var(--text); }
+    .ws-add-cat-btn {
+      background:none; border:1px dashed var(--border); border-radius:999px; color:var(--text-3);
+      font-family:inherit; font-size:0.68rem; font-weight:600; padding:0.15rem 0.65rem; cursor:pointer; margin-left:auto;
+      transition:border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+    }
+    .ws-add-cat-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .ws-item-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:0.6rem; }
+    .ws-item-card { border:1px solid var(--border); border-radius:12px; padding:0.7rem 0.8rem; background:var(--surface); }
+    .ws-item-top { display:flex; align-items:center; gap:0.55rem; margin-bottom:0.55rem; }
+    .ws-item-ctrls { display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; }
+    .ws-item-ctrls select { min-width:0; flex:1; }
+    .ws-add-row { display:flex; align-items:center; gap:0.5rem; padding:0.45rem 0.3rem; border-radius:8px; cursor:pointer; font-size:0.8rem; }
+    .ws-add-row:hover { background:var(--surface2); }
+
+    .pick-col-row {
+      display:flex; align-items:center; gap:0.6rem; width:100%; text-align:left; font-family:inherit;
+      border:1px solid var(--border); border-radius:10px; padding:0.65rem 0.8rem; margin-bottom:0.5rem;
+      background:var(--surface); cursor:pointer; color:var(--text);
+      transition:border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+    }
+    .pick-col-row:hover { border-color:var(--accent); background:var(--surface2); }
+    .pick-col-name { font-size:0.85rem; font-weight:600; }
+    .pick-col-sub { font-size:0.7rem; color:var(--text-3); margin-top:0.1rem; }
+    .pick-col-new { justify-content:center; gap:0.4rem; color:var(--accent); border-style:dashed; margin-bottom:0; }
+
     /* Home quick actions */
     .dash-actions-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; }
     .dash-action-btn {
@@ -3345,6 +3418,25 @@
 
 <!-- ══ NOTIFICATION PANEL ══ -->
 <div class="notif-backdrop" id="notif-backdrop" onclick="closeNotifications()"></div>
+<!-- ══ MODAL: WHICH COLLECTION? (shown only when several drafts are open at once) ══ -->
+<div class="overlay" id="m-pick-collection">
+  <div class="modal" style="width:420px">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-eyebrow" style="color:var(--text-3)">Colecciones</div>
+        <div class="modal-title">¿A cuál colección lo agregas?</div>
+      </div>
+      <button class="btn-icon" onclick="closeModal('m-pick-collection')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="pick-col-list"></div>
+      <button type="button" class="pick-col-row pick-col-new" onclick="pickNewCollectionForAdd()">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        Nueva colección
+      </button>
+    </div>
+  </div>
+</div>
 <!-- ══ SAMPLE CART ══ -->
 <div class="cart-backdrop" id="cart-backdrop" onclick="closeCart()"></div>
 <div class="cart-panel" id="cart-panel">
@@ -7550,6 +7642,13 @@ const MODULES = {
         icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/></svg>',
         run: 'showDashboard',
       },
+      {
+        id: 'colecciones',
+        label: 'Colecciones',
+        desc: 'Arma pedidos de muestras en equipo — por cliente, visita o proyecto',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M13.5 14.5h5M16 12v5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+        run: 'showCollectionsHub',
+      },
     ],
   },
   administracion: {
@@ -9291,18 +9390,49 @@ function updateCartFab() {
   }
 }
 
+/* Which draft is "add to cart" quick-adding into? If there's exactly one,
+   no question asked — same one-click feel as before. If there are several
+   in progress at once (the whole point of letting people run parallel
+   client collections) and none is already "current", ask which one. */
+let _myDraftsCache = null
+let _myDraftsCacheAt = 0
+async function myDraftCollections(force) {
+  if (!force && _myDraftsCache && Date.now() - _myDraftsCacheAt < 20000) return _myDraftsCache
+  const all = await myCollections()
+  _myDraftsCache = all.filter(c => c.status === 'draft')
+  _myDraftsCacheAt = Date.now()
+  return _myDraftsCache
+}
+function invalidateDraftsCache() { _myDraftsCache = null }
+
 async function addToCart(p) {
   if (!canRequestSample(p)) {
     toast(`${LIFECYCLE[lc(p)].label} products can't be requested as samples`)
     return
   }
-  if (!draftCollectionId) {
-    const { data, error } = await sb.rpc('create_draft_collection', {})
-    if (error || !data) { toast('Could not start a collection: ' + (error?.message || 'unknown error')); return }
-    draftCollectionId = data.collection_id
-    draftCollectionRef = data.collection_ref
-    try { localStorage.setItem('sierra_draft_collection_id', draftCollectionId) } catch {}
+  const drafts = await myDraftCollections()
+  const activeStillValid = draftCollectionId && drafts.some(d => d.id === draftCollectionId)
+  if (!activeStillValid) {
+    if (drafts.length === 0) {
+      const { data, error } = await sb.rpc('create_draft_collection', {})
+      if (error || !data) { toast('Could not start a collection: ' + (error?.message || 'unknown error')); return }
+      draftCollectionId = data.collection_id
+      draftCollectionRef = data.collection_ref
+      try { localStorage.setItem('sierra_draft_collection_id', draftCollectionId) } catch {}
+      invalidateDraftsCache()
+    } else if (drafts.length === 1) {
+      draftCollectionId = drafts[0].id
+      draftCollectionRef = drafts[0].collection_id
+      try { localStorage.setItem('sierra_draft_collection_id', draftCollectionId) } catch {}
+    } else {
+      openCollectionPicker(p, drafts)
+      return
+    }
   }
+  await addItemToActiveDraft(p)
+}
+
+async function addItemToActiveDraft(p) {
   const existing = sampleCart.find(i => i.product_id === p.id)
   if (existing) {
     const newQty = existing.qty + 1
@@ -9319,7 +9449,44 @@ async function addToCart(p) {
   }
   updateCartFab()
   renderCart()
-  toast(`${p.name} added to collection`)
+  toast(`${p.name} added to ${draftCollectionRef || 'collection'}`)
+}
+
+/* Modal: "which collection does this go into?" — only shown when it's
+   genuinely ambiguous (several drafts open, none currently active). */
+let _pendingCartProduct = null
+function openCollectionPicker(product, drafts) {
+  _pendingCartProduct = product
+  const list = document.getElementById('pick-col-list')
+  if (list) {
+    list.innerHTML = drafts.map(c => `
+      <button type="button" class="pick-col-row" onclick="pickCollectionForAdd('${c.id}','${esc(c.collection_id)}')">
+        <div>
+          <div class="pick-col-name">${esc(c.name || 'Colección sin nombre')}</div>
+          <div class="pick-col-sub">${esc(c.collection_id)}${c.customer ? ' · ' + esc(c.customer) : ''}</div>
+        </div>
+      </button>`).join('')
+  }
+  document.getElementById('m-pick-collection').classList.add('open')
+}
+async function pickCollectionForAdd(id, ref) {
+  closeModal('m-pick-collection')
+  draftCollectionId = id
+  draftCollectionRef = ref
+  try { localStorage.setItem('sierra_draft_collection_id', id) } catch {}
+  const p = _pendingCartProduct; _pendingCartProduct = null
+  if (p) await addItemToActiveDraft(p)
+}
+async function pickNewCollectionForAdd() {
+  closeModal('m-pick-collection')
+  const { data, error } = await sb.rpc('create_draft_collection', {})
+  if (error || !data) { toast('Could not start a collection: ' + (error?.message || 'unknown error')); return }
+  draftCollectionId = data.collection_id
+  draftCollectionRef = data.collection_ref
+  try { localStorage.setItem('sierra_draft_collection_id', draftCollectionId) } catch {}
+  invalidateDraftsCache()
+  const p = _pendingCartProduct; _pendingCartProduct = null
+  if (p) await addItemToActiveDraft(p)
 }
 
 async function openCart() {
@@ -9365,6 +9532,7 @@ async function discardDraftCart() {
   updateCartFab()
   closeCart()
   const { error } = await sb.rpc('discard_draft_collection', { p_id: id })
+  invalidateDraftsCache()
   if (error) console.error('discard_draft_collection error:', error)
   else toast('Draft discarded')
 }
@@ -9544,6 +9712,7 @@ async function submitCart() {
     .then(({ error: re }) => { if (re) console.error('reserve inventory:', re) })
   itemsSnapshot.forEach(i => Audit.log('product', i.product_id, i, 'sample_requested',
     `Sample requested (${i.type} × ${i.qty})`, [], { collection: collectionRef }))
+  invalidateDraftsCache()
 
   lastShipment = {
     ref: collectionRef, name, collectionId: collectionDbId, date: new Date(), customer, priority, delivery, recipient, address, notes,
@@ -9563,63 +9732,6 @@ async function submitCart() {
   document.getElementById('cart-notes').value = ''
   renderCartSuccess()
   toast(`Collection ${collectionRef} created — ${created.length} sample${created.length>1?'s':''}`)
-}
-
-/* ── "Start from an existing collection" — clone a past collection's
-   items into a brand-new draft the caller can then edit and invite
-   others into, instead of rebuilding a recurring order from scratch. */
-async function cloneCollectionToDraft(sourceId) {
-  const { data, error } = await sb.rpc('clone_collection_to_draft', { p_source_id: sourceId })
-  if (error || !data) { toast('Could not start from this collection: ' + (error?.message || 'unknown error')); return }
-  draftCollectionId = data.collection_id
-  draftCollectionRef = data.collection_ref
-  try { localStorage.setItem('sierra_draft_collection_id', draftCollectionId) } catch {}
-  Audit.log('collection', draftCollectionId, null, 'created',
-    `Draft ${draftCollectionRef} started from an existing collection`)
-  toast(`New draft ${draftCollectionRef} started — edit it freely before submitting`)
-  await openCart()
-}
-
-/* ── MY DRAFTS — resumable, in-progress collections (own or invited into) ── */
-async function renderMyDrafts() {
-  const [{ data: own }, { data: collabRows }] = await Promise.all([
-    sb.from('sample_collections').select('id,collection_id,name,customer,created_at').eq('status', 'draft').eq('requested_by', me.id),
-    sb.from('collection_collaborators').select('collection_id, sample_collections!collection_id(id,collection_id,name,customer,status,created_at)').eq('user_id', me.id),
-  ])
-  const invited = (collabRows || [])
-    .map(r => r.sample_collections)
-    .filter(c => c && c.status === 'draft')
-  const seen = new Set()
-  const drafts = [...(own || []), ...invited].filter(c => {
-    if (seen.has(c.id)) return false
-    seen.add(c.id); return true
-  })
-  if (!drafts.length) return ''
-  return `
-    <div class="srd-section-label" style="margin-top:0">My Drafts <span style="font-weight:400;color:var(--text-3);text-transform:none;letter-spacing:0">· in progress, not yet submitted</span></div>
-    <div class="smp-list" style="margin-bottom:2rem">
-      ${drafts.map(c => {
-        const date = new Date(c.created_at).toLocaleDateString('en-US', { day:'2-digit', month:'short', year:'numeric' })
-        return `<div class="smp-row" onclick="openDraftFromList('${c.id}')">
-          <div class="smp-row-id">${esc(c.collection_id)}</div>
-          <div class="smp-row-product">
-            <div class="smp-row-name">${esc(c.name || 'Untitled draft')}</div>
-            <div class="smp-row-meta"><span class="smp-id-inline">${esc(c.collection_id)} · </span>${c.customer ? esc(c.customer) : 'No customer set yet'}</div>
-          </div>
-          <div class="smp-row-type">Draft</div>
-          <div class="smp-row-right">
-            ${smpBadge('draft')}
-            <div class="smp-row-date">${date}</div>
-          </div>
-        </div>`
-      }).join('')}
-    </div>`
-}
-
-async function openDraftFromList(id) {
-  draftCollectionId = id
-  try { localStorage.setItem('sierra_draft_collection_id', id) } catch {}
-  await openCart()
 }
 
 /* ── SHIPPING GUIDE (internal package ID document) ── */
@@ -9826,7 +9938,7 @@ async function showSampleCenter() {
 
   if (!can('read', 'customer_service')) { q = q.eq('requested_by', me.id); colQ = colQ.eq('requested_by', me.id) }
 
-  const [{ data, error }, { data: collections }, draftsHtml] = await Promise.all([q, colQ, renderMyDrafts()])
+  const [{ data, error }, { data: collections }] = await Promise.all([q, colQ])
 
   if (error) {
     console.error('showSampleCenter error:', error)
@@ -9845,7 +9957,7 @@ async function showSampleCenter() {
   }
 
   if (!data?.length) {
-    pg.innerHTML = draftsHtml + `<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>No samples yet. Request one from any product page.</p></div>`
+    pg.innerHTML = `<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>No samples yet. Request one from any product page.</p></div>`
     return
   }
 
@@ -9853,13 +9965,13 @@ async function showSampleCenter() {
   const collectionCounts = {}
   data.forEach(s => { if (s.collection_id) collectionCounts[s.collection_id] = (collectionCounts[s.collection_id] || 0) + 1 })
 
-  const collectionsHtml = draftsHtml + (collections?.length ? `
+  const collectionsHtml = (collections?.length ? `
     <div class="srd-section-label" style="margin-top:0">Collections</div>
     <div class="smp-list" style="margin-bottom:2rem">
       ${collections.map(c => {
         const n = collectionCounts[c.id] || 0
         const date = new Date(c.created_at).toLocaleDateString('en-US', { day:'2-digit', month:'short', year:'numeric' })
-        return `<div class="smp-row" onclick="showCollectionRecord('${c.id}')">
+        return `<div class="smp-row" onclick="showCollectionRecord('${c.id}','showSampleCenter')">
           <div class="smp-row-id">${esc(c.collection_id)}</div>
           <div class="smp-row-product">
             <div class="smp-row-name">${esc(c.delivery_method||'Pickup')}${c.customer ? ' · ' + esc(c.customer) : ''}</div>
@@ -10096,8 +10208,132 @@ async function showSampleRecord(sampleId) {
   }, 80)
 }
 
-/* ── COLLECTION RECORD (a group of samples packed/shipped together) ── */
-async function showCollectionRecord(collectionId) {
+/* ── COLECCIONES HUB — every collection you own or were invited into,
+   as a visual card grid instead of a single hidden cart. Solves working
+   on several client collections in parallel: each is its own card, its
+   own workspace, its own room for collaborators to join. ── */
+async function showCollectionsHub() {
+  document.getElementById('div-toolbar').style.display = 'none'
+  leaveView()
+  document.getElementById('sec-title').textContent = 'Colecciones'
+  document.getElementById('sec-sub').textContent = 'Arma pedidos de muestras en equipo — por cliente, visita o proyecto'
+  document.getElementById('product-controls').style.display = 'none'
+  document.getElementById('add-btn').style.display = 'none'
+  document.getElementById('view-products').style.display = 'block'
+
+  const pg = document.getElementById('pg')
+  pg.style.display = 'block'
+  pg.innerHTML = '<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>Cargando colecciones…</p></div>'
+
+  const mine = await myCollections()
+  _colhTab = _colhTab || 'draft'
+  pg.innerHTML = `
+    <div class="colh-tabs">
+      <button class="div-toolbar-btn${_colhTab==='draft'?' active':''}" onclick="colhSetTab('draft')" style="${_colhTab==='draft'?'background:var(--surface2);color:var(--text)':''}">En progreso (${mine.filter(c=>c.status==='draft').length})</button>
+      <button class="div-toolbar-btn${_colhTab==='sent'?' active':''}" onclick="colhSetTab('sent')" style="${_colhTab==='sent'?'background:var(--surface2);color:var(--text)':''}">Enviadas (${mine.filter(c=>c.status!=='draft').length})</button>
+    </div>
+    <div class="colh-grid" id="colh-grid"></div>`
+  await colhRenderGrid(mine)
+}
+
+let _colhTab = 'draft'
+let _colhCache = []
+function colhSetTab(tab) { _colhTab = tab; showCollectionsHub() }
+
+async function myCollections() {
+  const [{ data: own }, { data: collabRows }] = await Promise.all([
+    sb.from('sample_collections').select('id,collection_id,name,customer,status,created_at,requested_by'),
+    sb.from('collection_collaborators').select('collection_id, sample_collections!collection_id(id,collection_id,name,customer,status,created_at,requested_by)').eq('user_id', me.id),
+  ])
+  const ownMine = (own || []).filter(c => c.requested_by === me.id)
+  const invited = (collabRows || []).map(r => r.sample_collections).filter(Boolean)
+  const seen = new Set()
+  return [...ownMine, ...invited].filter(c => {
+    if (seen.has(c.id)) return false
+    seen.add(c.id); return true
+  }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+}
+
+async function colhRenderGrid(mine) {
+  _colhCache = mine
+  const grid = document.getElementById('colh-grid')
+  if (!grid) return
+  const list = mine.filter(c => _colhTab === 'draft' ? c.status === 'draft' : c.status !== 'draft')
+
+  // Item counts + division dots + collaborator initials, fetched in bulk
+  const ids = list.map(c => c.id)
+  const [{ data: items }, { data: collabs }] = ids.length ? await Promise.all([
+    sb.from('samples').select('collection_id, products(division)').in('collection_id', ids),
+    sb.from('collection_collaborators').select('collection_id, profiles!user_id(full_name,email)').in('collection_id', ids),
+  ]) : [{ data: [] }, { data: [] }]
+  const byCol = {}
+  ;(items || []).forEach(i => { (byCol[i.collection_id] = byCol[i.collection_id] || []).push(i.products?.division) })
+  const collabByCol = {}
+  ;(collabs || []).forEach(c => { (collabByCol[c.collection_id] = collabByCol[c.collection_id] || []).push(c.profiles) })
+
+  const cards = list.map(c => {
+    const divs = (byCol[c.id] || []).slice(0, 8)
+    const n = (byCol[c.id] || []).length
+    const people = collabByCol[c.id] || []
+    const date = new Date(c.created_at).toLocaleDateString('es-GT', { day:'2-digit', month:'short' })
+    return `<button class="colh-card" onclick="showCollectionRecord('${c.id}','showCollectionsHub')">
+      <div class="colh-card-hdr">
+        <div>
+          <div class="colh-card-name">${esc(c.name || 'Colección sin nombre')}</div>
+          <div class="colh-card-sub">${esc(c.collection_id)}${c.customer ? ' · ' + esc(c.customer) : ''}</div>
+        </div>
+        ${smpBadge(c.status)}
+      </div>
+      <div class="colh-card-dots">${divs.map(d => `<span class="colh-dot" style="background:${DIV_CLR[d]||'#ccc'}"></span>`).join('') || `<span style="font-size:0.7rem;color:var(--text-3)">Vacía</span>`}</div>
+      <div class="colh-card-ftr">
+        <span style="font-size:0.68rem;color:var(--text-3)">${n} muestra${n!==1?'s':''} · ${date}</span>
+        <div class="colh-avatars">
+          ${people.slice(0,4).map(p => `<div class="colh-avatar" title="${esc(p?.full_name||p?.email||'')}">${(p?.full_name||p?.email||'?')[0].toUpperCase()}</div>`).join('')}
+        </div>
+      </div>
+    </button>`
+  }).join('')
+
+  grid.innerHTML = `
+    <button class="colh-new-card" onclick="startBlankDraft()">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      Nueva colección
+    </button>
+    ${cards}` + (list.length ? '' : `<div class="colh-empty" style="grid-column:1/-1">${_colhTab==='draft' ? 'No tienes colecciones en progreso. Empieza una desde aquí o agregando una muestra desde el catálogo.' : 'Aún no has enviado ninguna colección.'}</div>`)
+}
+
+async function startBlankDraft() {
+  const { data, error } = await sb.rpc('create_draft_collection', {})
+  if (error || !data) { toast('No se pudo crear la colección: ' + (error?.message || 'error desconocido')); return }
+  draftCollectionId = data.collection_id
+  draftCollectionRef = data.collection_ref
+  try { localStorage.setItem('sierra_draft_collection_id', draftCollectionId) } catch {}
+  invalidateDraftsCache()
+  showCollectionRecord(draftCollectionId, 'showCollectionsHub')
+}
+
+/* ── "Start from an existing collection" — clone a past collection's
+   items into a brand-new draft the caller can then edit and invite
+   others into, instead of rebuilding a recurring order from scratch. */
+async function cloneCollectionToDraft(sourceId) {
+  const { data, error } = await sb.rpc('clone_collection_to_draft', { p_source_id: sourceId })
+  if (error || !data) { toast('Could not start from this collection: ' + (error?.message || 'unknown error')); return }
+  draftCollectionId = data.collection_id
+  draftCollectionRef = data.collection_ref
+  try { localStorage.setItem('sierra_draft_collection_id', draftCollectionId) } catch {}
+  invalidateDraftsCache()
+  Audit.log('collection', draftCollectionId, null, 'created',
+    `Draft ${draftCollectionRef} started from an existing collection`)
+  toast(`New draft ${draftCollectionRef} started — edit it freely before submitting`)
+  showCollectionRecord(draftCollectionId, 'showCollectionsHub')
+}
+
+/* ── COLLECTION WORKSPACE — one collection, fully editable: name,
+   collaborators, categories that group its samples, a comment thread,
+   and (while still a draft) the submission form + a live product
+   search to keep adding items. Replaces the old flat "collection
+   record" view: same URL/entry points, richer surface. ── */
+async function showCollectionRecord(collectionId, backTo) {
   document.getElementById('div-toolbar').style.display = 'none'
   document.getElementById('view-products').style.display = 'none'
   document.getElementById('view-dashboard').style.display = 'none'
@@ -10107,11 +10343,14 @@ async function showCollectionRecord(collectionId) {
   const vs = document.getElementById('view-sample-detail')
   vs.style.display = 'block'
   vs.innerHTML = '<div style="padding:2rem 1.75rem;color:var(--text-3);font-size:0.85rem">Loading…</div>'
+  _colWorkspaceBack = backTo || _colWorkspaceBack || 'showCollectionsHub'
 
-  const [colRes, itemsRes, collabRes] = await Promise.all([
+  const [colRes, itemsRes, collabRes, catRes, commentsRes] = await Promise.all([
     sb.from('sample_collections').select('*, profiles!requested_by(full_name,email)').eq('id', collectionId).single(),
     sb.from('samples').select('*, products(name,division,code)').eq('collection_id', collectionId).order('created_at', { ascending: true }),
     sb.from('collection_collaborators').select('*, profiles!user_id(full_name,email)').eq('collection_id', collectionId),
+    sb.from('collection_categories').select('*').eq('collection_id', collectionId).order('created_at', { ascending: true }),
+    sb.from('collection_comments').select('*, profiles(full_name)').eq('collection_id', collectionId).order('created_at', { ascending: true }),
   ])
 
   if (colRes.error || !colRes.data) {
@@ -10122,6 +10361,9 @@ async function showCollectionRecord(collectionId) {
   const col = colRes.data
   const items = itemsRes.data || []
   const collaborators = collabRes.data || []
+  const categories = catRes.data || []
+  const comments = commentsRes.data || []
+  const isDraft = col.status === 'draft'
   const requesterName = col.profiles?.full_name || col.profiles?.email || '—'
   const dateStr = new Date(col.created_at).toLocaleDateString('en-US', { day:'2-digit', month:'long', year:'numeric' })
   const canEdit = can('manage_status', 'customer_service')
@@ -10130,80 +10372,125 @@ async function showCollectionRecord(collectionId) {
   const totalQty = items.reduce((t, i) => t + (i.quantity || 1), 0)
 
   const collaboratorsHtml = `
-    <div class="srd-section-label">Collaborators</div>
+    <div class="srd-section-label">Colaboradores</div>
     <div class="srd-card" style="margin-bottom:1.5rem">
       ${collaborators.length ? collaborators.map(c => `
         <div style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0">
           <div style="width:26px;height:26px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;flex-shrink:0">${(c.profiles?.full_name||c.profiles?.email||'?')[0].toUpperCase()}</div>
           <div style="font-size:0.82rem">${esc(c.profiles?.full_name || c.profiles?.email || '—')}</div>
-        </div>`).join('') : '<div style="font-size:0.78rem;color:var(--text-3)">No collaborators yet — you\'re building this alone.</div>'}
+        </div>`).join('') : '<div style="font-size:0.78rem;color:var(--text-3)">Nadie más invitado todavía — la estás armando solo.</div>'}
       <div style="display:flex;gap:0.5rem;margin-top:0.75rem">
-        <input type="text" id="collab-invite-input" placeholder="Name or email…" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;font-size:0.8rem;font-family:inherit;background:var(--surface2);color:var(--text)" />
-        <button class="btn btn-ghost btn-sm" onclick="inviteCollaborator('${col.id}')">Invite</button>
+        <input type="text" id="collab-invite-input" placeholder="Nombre o correo…" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;font-size:0.8rem;font-family:inherit;background:var(--surface2);color:var(--text)" />
+        <button class="btn btn-ghost btn-sm" onclick="inviteCollaborator('${col.id}')">Invitar</button>
       </div>
     </div>`
 
-  const nextStatuses = SMP_STATUS_ORDER.filter(st => st !== col.status).slice(0, 4)
+  const nextStatuses = SMP_STATUS_ORDER.filter(st => st !== col.status && st !== 'draft').slice(0, 4)
   const statusActionsHtml = canEdit ? `
     <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.75rem">
       ${nextStatuses.map(st => `<button class="btn btn-ghost btn-sm" onclick="updateCollectionStatus('${col.id}','${st}')">${SMP_STATUS_LABEL[st]}</button>`).join('')}
     </div>` : ''
 
-  const itemsHtml = items.map(it => {
-    const c = DIV_CLR[it.products?.division] || '#aaa'
-    return `<div class="psh-item" onclick="showSampleRecord('${it.id}')">
-      <div class="psh-top">
-        <div class="psh-id">${esc(it.sample_id)}</div>
-        <div class="psh-status">${smpBadge(it.status)}</div>
+  const submitFormHtml = isDraft ? `
+    <div class="srd-section-label" style="margin-top:0">Enviar colección</div>
+    <div class="srd-card">
+      <div class="cart-fg"><label>Cliente</label><input type="text" id="ws-customer" value="${esc(col.customer||'')}" placeholder="p. ej. Nike, Adidas" /></div>
+      <div class="cart-fg"><label>Prioridad</label>
+        <div class="cart-seg" id="ws-priority">
+          <button class="${col.priority!=='urgent'?'on':''}" data-v="normal" onclick="cartSeg(this)">Normal</button>
+          <button class="${col.priority==='urgent'?'on':''}" data-v="urgent" onclick="cartSeg(this)">Urgente</button>
+        </div>
       </div>
-      <div class="psh-type">${esc(it.products?.name||'—')} · ${esc(it.sample_type)}</div>
-      <div class="psh-meta"><span style="color:${c};font-weight:700;text-transform:uppercase;letter-spacing:0.06em;font-size:0.62rem">${DIV_LBL[it.products?.division]||''}</span>${it.products?.code ? ' · '+esc(it.products.code) : ''} · Qty ${it.quantity||1}</div>
+      <div class="cart-fg"><label>Entrega</label>
+        <div class="cart-seg" id="ws-delivery">
+          ${['Pickup','DHL','FedEx','Courier'].map(m => `<button class="${(col.delivery_method||'Pickup')===m?'on':''}" data-v="${m}" onclick="cartSeg(this);wsDeliveryChanged()">${m}</button>`).join('')}
+        </div>
+      </div>
+      <div class="cart-fg"><label id="ws-dest-label">${(col.delivery_method && col.delivery_method!=='Pickup') ? 'Destinatario' : 'Entregar a'}</label><input type="text" id="ws-recipient" value="${esc(col.recipient||'')}" placeholder="¿Quién recibe esta colección?" /></div>
+      <div class="cart-fg" id="ws-address-fg" style="display:${(col.delivery_method && col.delivery_method!=='Pickup')?'block':'none'}"><label>Dirección de envío</label><input type="text" id="ws-address" value="${esc(col.address||'')}" /></div>
+      <div class="cart-fg"><label>Notas</label><textarea id="ws-notes">${esc(col.notes||'')}</textarea></div>
+      <button class="cart-submit" id="ws-submit-btn" onclick="submitWorkspaceDraft('${col.id}')">Enviar colección</button>
+    </div>` : `
+    <div class="srd-section-label" style="margin-top:0">Delivery</div>
+    <div class="srd-card">
+      <div class="srd-grid">
+        <div class="srd-field"><div class="srd-field-lbl">Method</div><div class="srd-field-val">${esc(col.delivery_method||'Pickup')}</div></div>
+        <div class="srd-field"><div class="srd-field-lbl">Priority</div><div class="srd-field-val">${col.priority==='urgent' ? 'Urgent' : 'Normal'}</div></div>
+        <div class="srd-field"><div class="srd-field-lbl">Recipient</div><div class="srd-field-val">${esc(col.recipient||'—')}</div></div>
+        ${col.address ? `<div class="srd-field"><div class="srd-field-lbl">Address</div><div class="srd-field-val">${esc(col.address)}</div></div>` : ''}
+        ${col.customer ? `<div class="srd-field"><div class="srd-field-lbl">Customer</div><div class="srd-field-val">${esc(col.customer)}</div></div>` : ''}
+        <div class="srd-field"><div class="srd-field-lbl">Requested By</div><div class="srd-field-val">${esc(requesterName)}</div></div>
+        <div class="srd-field"><div class="srd-field-lbl">Request Date</div><div class="srd-field-val">${dateStr}</div></div>
+      </div>
+      ${col.notes ? `<div style="border-top:1px solid var(--border);margin-top:1rem;padding-top:1rem"><div class="srd-field-lbl" style="margin-bottom:0.35rem">Notes</div><div style="font-size:0.85rem;color:var(--text-2);line-height:1.6">${esc(col.notes)}</div></div>` : ''}
+      ${statusActionsHtml}
     </div>`
-  }).join('')
+
+  const addProductHtml = isDraft ? `
+    <div class="srd-section-label">Agregar producto</div>
+    <div class="srd-card">
+      <input type="text" id="ws-add-input" class="tl-search" style="width:100%" placeholder="Buscar por nombre o código…" oninput="wsSearchProducts('${col.id}', this.value)" />
+      <div id="ws-add-results"></div>
+    </div>` : ''
+
+  const itemsHtml = categorizedItemsHtml(items, categories, col, isDraft)
+
+  const commentsHtml = `
+    <div class="srd-section-label">Comentarios</div>
+    <div class="srd-card">
+      ${comments.length ? `<div class="comment-list">${comments.map(c => `
+        <div class="comment-item" data-cid="${c.id}">
+          <div class="comment-meta">
+            <span class="comment-author">${esc(c.profiles?.full_name || 'Usuario')}</span>
+            <span style="display:flex;align-items:center;gap:0.4rem">
+              ${new Date(c.created_at).toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'})}
+              ${(me.id === c.user_id || canEdit) ? `<button class="comment-del" onclick="deleteCollectionComment('${c.id}','${col.id}')">✕</button>` : ''}
+            </span>
+          </div>
+          <div class="comment-text">${esc(c.comment)}</div>
+        </div>`).join('')}</div>` : '<p style="font-size:0.8rem;color:var(--text-3);margin-bottom:0.75rem">Sin comentarios todavía.</p>'}
+      <div class="comment-form">
+        <input type="text" id="col-comment-input" placeholder="Escribe un comentario…" onkeydown="if(event.key==='Enter')submitCollectionComment('${col.id}')" autocomplete="off" />
+        <button class="btn btn-primary btn-sm" id="col-comment-btn" onclick="submitCollectionComment('${col.id}')">Publicar</button>
+      </div>
+    </div>`
 
   vs.innerHTML = `
   <div style="padding:1.75rem 1.75rem 0">
     <div style="margin-bottom:2rem">
-      <button class="detail-back-btn" onclick="showSampleCenter()">
+      <button class="detail-back-btn" onclick="${_colWorkspaceBack}()">
         <span class="detail-back-dot" style="background:var(--accent)"></span>
-        Sample Center
+        ${_colWorkspaceBack === 'showCollectionsHub' ? 'Colecciones' : 'Sample Center'}
       </button>
     </div>
 
-    <div class="srd-id-block">
-      <div>
-        <div class="srd-id-text">${esc(col.name || col.collection_id)}</div>
-        <div class="srd-id-sub">${col.name ? esc(col.collection_id)+' · ' : ''}${items.length} sample${items.length!==1?'s':''} · ${totalQty} total qty</div>
+    <div class="srd-id-block" style="align-items:flex-start">
+      <div style="flex:1;min-width:0">
+        <input class="ws-name-input" id="ws-name-input" value="${esc(col.name || '')}" placeholder="${esc(col.collection_id)} — sin nombre" onblur="saveCollectionName('${col.id}', this.value)" onkeydown="if(event.key==='Enter') this.blur()" />
+        <div class="srd-id-sub">${esc(col.collection_id)} · ${items.length} muestra${items.length!==1?'s':''} · ${totalQty} unidades</div>
       </div>
-      <div style="flex:1"></div>
       ${smpBadge(col.status)}
     </div>
 
     <div class="srd-layout">
       <div>
-        <div class="srd-section-label">Delivery</div>
-        <div class="srd-card">
-          <div class="srd-grid">
-            <div class="srd-field"><div class="srd-field-lbl">Method</div><div class="srd-field-val">${esc(col.delivery_method||'Pickup')}</div></div>
-            <div class="srd-field"><div class="srd-field-lbl">Priority</div><div class="srd-field-val">${col.priority==='urgent' ? 'Urgent' : 'Normal'}</div></div>
-            <div class="srd-field"><div class="srd-field-lbl">Recipient</div><div class="srd-field-val">${esc(col.recipient||'—')}</div></div>
-            ${col.address ? `<div class="srd-field"><div class="srd-field-lbl">Address</div><div class="srd-field-val">${esc(col.address)}</div></div>` : ''}
-            ${col.customer ? `<div class="srd-field"><div class="srd-field-lbl">Customer</div><div class="srd-field-val">${esc(col.customer)}</div></div>` : ''}
-            <div class="srd-field"><div class="srd-field-lbl">Requested By</div><div class="srd-field-val">${esc(requesterName)}</div></div>
-            <div class="srd-field"><div class="srd-field-lbl">Request Date</div><div class="srd-field-val">${dateStr}</div></div>
-          </div>
-          ${col.notes ? `<div style="border-top:1px solid var(--border);margin-top:1rem;padding-top:1rem"><div class="srd-field-lbl" style="margin-bottom:0.35rem">Notes</div><div style="font-size:0.85rem;color:var(--text-2);line-height:1.6">${esc(col.notes)}</div></div>` : ''}
-          ${statusActionsHtml}
-        </div>
+        ${submitFormHtml}
 
         ${collaboratorsHtml}
 
         ${pricingCardHtml(col, items)}
 
-        <div class="srd-section-label">Samples in this collection</div>
+        ${addProductHtml}
+
+        <div class="srd-section-label" style="display:flex;align-items:center;gap:0.5rem">
+          <span>Muestras</span>
+          ${isDraft ? `<button class="ws-add-cat-btn" onclick="wsAddCategory('${col.id}')">+ Categoría</button>` : ''}
+        </div>
         <div class="srd-card">
           ${itemsHtml || '<div style="font-size:0.82rem;color:var(--text-3)">No samples found.</div>'}
         </div>
+
+        ${commentsHtml}
       </div>
 
       <div class="srd-codes-panel">
@@ -10216,16 +10503,18 @@ async function showCollectionRecord(collectionId) {
         <button class="btn btn-ghost btn-sm" style="width:100%" onclick="printCollectionGuide('${col.id}')">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="14" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 9h14M10 6V3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           Reprint Shipping Guide
-        </button>` : canDispatch ? `
+        </button>` : (!isDraft && canDispatch) ? `
         <button class="btn btn-primary btn-sm" style="width:100%" onclick="showDispatch('${col.id}')">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M4 10.5l4 4 8-9" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Go to Dispatch
-        </button>` : `
-        <div style="font-size:0.72rem;color:var(--text-3);text-align:center;padding:0.5rem 0">Awaiting dispatch — the shipping guide prints once every item is verified.</div>`}
+        </button>` : !isDraft ? `
+        <div style="font-size:0.72rem;color:var(--text-3);text-align:center;padding:0.5rem 0">Awaiting dispatch — the shipping guide prints once every item is verified.</div>` : ''}
+        ${!isDraft ? `
         <button class="btn btn-ghost btn-sm" style="width:100%" onclick="cloneCollectionToDraft('${col.id}')">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="4" y="4" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M7 4V2.5h9v9H14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Start a new draft from this
-        </button>
+        </button>` : `
+        <button class="btn btn-ghost btn-sm" style="width:100%;color:var(--text-3)" onclick="discardWorkspaceDraft('${col.id}')">Descartar borrador</button>`}
       </div>
     </div>
   </div>`
@@ -10236,6 +10525,201 @@ async function showCollectionRecord(collectionId) {
       try { QRCode.toCanvas(qrCanvas, col.collection_id, { width: 160, margin: 1, color: { dark: '#000000', light: '#ffffff' } }) } catch (e) {}
     }
   }, 80)
+}
+let _colWorkspaceBack = 'showCollectionsHub'
+
+function categorizedItemsHtml(items, categories, col, editable) {
+  const groups = categories.map(c => ({ id: c.id, name: c.name, items: items.filter(i => i.category_id === c.id) }))
+  const uncategorized = items.filter(i => !i.category_id || !categories.some(c => c.id === i.category_id))
+  if (uncategorized.length || !groups.length) groups.push({ id: null, name: 'Sin categoría', items: uncategorized })
+
+  const catOptions = (currentId) => `<option value="">Sin categoría</option>` +
+    categories.map(c => `<option value="${c.id}" ${c.id===currentId?'selected':''}>${esc(c.name)}</option>`).join('')
+
+  return groups.map(g => `
+    <div class="ws-cat-group">
+      <div class="ws-cat-hdr">
+        <span class="ws-cat-name">${esc(g.name)}</span>
+        <span class="ws-cat-count">${g.items.length}</span>
+        ${editable && g.id ? `
+          <button class="ws-cat-action" onclick="wsRenameCategory('${g.id}','${col.id}','${esc(g.name).replace(/'/g,"\\'")}')" title="Renombrar">✎</button>
+          <button class="ws-cat-action" onclick="wsDeleteCategory('${g.id}','${col.id}')" title="Eliminar">✕</button>` : ''}
+      </div>
+      <div class="ws-item-grid">
+        ${g.items.map(it => {
+          const c = DIV_CLR[it.products?.division] || '#aaa'
+          return editable ? `
+            <div class="ws-item-card">
+              <div class="ws-item-top">
+                <span class="cart-item-dot" style="background:${c}"></span>
+                <div class="cart-item-name">${esc(it.products?.name||'—')}${it.products?.code?`<div class="cart-item-code">${esc(it.products.code)}</div>`:''}</div>
+                <button class="cart-item-remove" onclick="wsRemoveItem('${it.id}','${col.id}')" title="Quitar">
+                  <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+              <div class="ws-item-ctrls">
+                <select class="grant-sel" onchange="wsSetType('${it.id}','${col.id}',this.value)">
+                  ${(DIV_SAMPLE_TYPES[it.products?.division]||['Sample']).map(t=>`<option ${t===it.sample_type?'selected':''}>${esc(t)}</option>`).join('')}
+                </select>
+                <div class="cart-stepper">
+                  <button class="cart-step-btn" onclick="wsSetQty('${it.id}','${col.id}',-1,${it.quantity||1})">−</button>
+                  <span class="cart-step-qty">${it.quantity||1}</span>
+                  <button class="cart-step-btn" onclick="wsSetQty('${it.id}','${col.id}',1,${it.quantity||1})">+</button>
+                </div>
+                <select class="grant-sel" onchange="wsSetCategory('${it.id}','${col.id}',this.value)">${catOptions(it.category_id)}</select>
+              </div>
+            </div>` : `
+            <div class="ws-item-card" onclick="showSampleRecord('${it.id}')" style="cursor:pointer">
+              <div class="ws-item-top" style="margin-bottom:0">
+                <span class="cart-item-dot" style="background:${c}"></span>
+                <div class="cart-item-name">${esc(it.products?.name||'—')} <span style="color:var(--text-3);font-weight:400">· ${esc(it.sample_type)} · Qty ${it.quantity||1}</span></div>
+                ${smpBadge(it.status)}
+              </div>
+            </div>`
+        }).join('') || '<div style="font-size:0.78rem;color:var(--text-3);padding:0.3rem 0">Vacío</div>'}
+      </div>
+    </div>`).join('')
+}
+
+async function saveCollectionName(collectionId, value) {
+  const name = value.trim()
+  const { error } = await sb.rpc('rename_collection', { p_id: collectionId, p_name: name })
+  if (error) toast('No se pudo guardar el nombre: ' + error.message)
+}
+
+async function wsSetQty(itemId, collectionId, delta, currentQty) {
+  const q = Math.max(1, currentQty + delta)
+  const { error } = await sb.rpc('update_draft_item', { p_id: itemId, p_quantity: q })
+  if (error) { toast('No se pudo actualizar la cantidad: ' + error.message); return }
+  showCollectionRecord(collectionId)
+}
+async function wsSetType(itemId, collectionId, type) {
+  const { error } = await sb.rpc('update_draft_item', { p_id: itemId, p_sample_type: type })
+  if (error) { toast('No se pudo actualizar el tipo: ' + error.message); return }
+  showCollectionRecord(collectionId)
+}
+async function wsRemoveItem(itemId, collectionId) {
+  const { error } = await sb.rpc('remove_draft_item', { p_id: itemId })
+  if (error) { toast('No se pudo quitar el producto: ' + error.message); return }
+  showCollectionRecord(collectionId)
+}
+async function wsSetCategory(itemId, collectionId, categoryId) {
+  const { error } = await sb.rpc('set_item_category', { p_sample_id: itemId, p_category_id: categoryId || null })
+  if (error) { toast('No se pudo mover el producto: ' + error.message); return }
+  showCollectionRecord(collectionId)
+}
+async function wsAddCategory(collectionId) {
+  const name = (prompt('Nombre de la categoría (ej. Tops, Bottoms, Prioridad alta):') || '').trim()
+  if (!name) return
+  const { error } = await sb.from('collection_categories').insert({ collection_id: collectionId, name, created_by: me.id })
+  if (error) { toast('No se pudo crear la categoría: ' + error.message); return }
+  showCollectionRecord(collectionId)
+}
+async function wsRenameCategory(catId, collectionId, oldName) {
+  const name = (prompt('Nuevo nombre de la categoría:', oldName) || '').trim()
+  if (!name || name === oldName) return
+  const { error } = await sb.from('collection_categories').update({ name }).eq('id', catId)
+  if (error) { toast('No se pudo renombrar: ' + error.message); return }
+  showCollectionRecord(collectionId)
+}
+async function wsDeleteCategory(catId, collectionId) {
+  if (!confirm('¿Eliminar esta categoría? Las muestras dentro quedarán sin categoría.')) return
+  const { error } = await sb.from('collection_categories').delete().eq('id', catId)
+  if (error) { toast('No se pudo eliminar: ' + error.message); return }
+  showCollectionRecord(collectionId)
+}
+
+async function wsSearchProducts(collectionId, query) {
+  const el = document.getElementById('ws-add-results')
+  if (!el) return
+  const q = query.trim()
+  if (q.length < 2) { el.innerHTML = ''; return }
+  const { data } = await sb.from('products').select('id,name,code,division').or(`name.ilike.%${q}%,code.ilike.%${q}%`).limit(6)
+  if (!data?.length) { el.innerHTML = '<div style="font-size:0.76rem;color:var(--text-3);padding:0.5rem 0.3rem">Sin resultados</div>'; return }
+  el.innerHTML = data.map(p => `<div class="ws-add-row" onclick="wsAddProduct('${collectionId}','${p.id}','${p.division}')">
+    <span style="width:8px;height:8px;border-radius:50%;background:${DIV_CLR[p.division]||'#aaa'};flex-shrink:0"></span>
+    <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}${p.code ? ` <span style="color:var(--text-3)">${esc(p.code)}</span>` : ''}</span>
+  </div>`).join('')
+}
+async function wsAddProduct(collectionId, productId, division) {
+  const types = DIV_SAMPLE_TYPES[division] || ['Sample']
+  const { error } = await sb.rpc('add_draft_item', { p_collection_id: collectionId, p_product_id: productId, p_sample_type: types[0], p_quantity: 1 })
+  if (error) { toast('No se pudo agregar el producto: ' + error.message); return }
+  showCollectionRecord(collectionId)
+}
+
+function wsDeliveryChanged() {
+  const ship = (document.querySelector('#ws-delivery button.on')?.dataset.v || 'Pickup') !== 'Pickup'
+  document.getElementById('ws-address-fg').style.display = ship ? 'block' : 'none'
+  document.getElementById('ws-dest-label').textContent = ship ? 'Destinatario' : 'Entregar a'
+}
+
+async function submitWorkspaceDraft(collectionId) {
+  const customer = document.getElementById('ws-customer').value.trim()
+  const priority = document.querySelector('#ws-priority button.on')?.dataset.v || 'normal'
+  const delivery = document.querySelector('#ws-delivery button.on')?.dataset.v || 'Pickup'
+  const recipient = document.getElementById('ws-recipient').value.trim()
+  const address = document.getElementById('ws-address').value.trim()
+  const notes = document.getElementById('ws-notes').value.trim()
+  if (!recipient) { toast('Especifica quién recibe la colección'); return }
+  if (delivery !== 'Pickup' && !address) { toast('Agrega la dirección de envío'); return }
+
+  const btn = document.getElementById('ws-submit-btn')
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'
+  const { data, error } = await sb.rpc('submit_draft_collection', {
+    p_id: collectionId, p_customer: customer, p_priority: priority, p_delivery: delivery,
+    p_recipient: recipient, p_address: address, p_notes: notes, p_name: null,
+  })
+  btn.disabled = false; btn.innerHTML = 'Enviar colección'
+  if (error || !data) { toast('No se pudo enviar: ' + (error?.message || 'error desconocido')); return }
+
+  Audit.log('collection', collectionId, null, 'created', `Colección ${data.collection_ref} enviada`, [],
+    { customer, priority, delivery })
+  sb.rpc('reserve_collection_inventory', { p_collection: collectionId })
+    .then(({ error: re }) => { if (re) console.error('reserve inventory:', re) })
+  invalidateDraftsCache()
+
+  if (draftCollectionId === collectionId) {
+    draftCollectionId = null; draftCollectionRef = null
+    try { localStorage.removeItem('sierra_draft_collection_id') } catch {}
+    sampleCart = []; draftCollaborators = []
+    updateCartFab()
+  }
+  toast(`Colección ${data.collection_ref} enviada`)
+  showCollectionRecord(collectionId, _colWorkspaceBack)
+}
+
+async function discardWorkspaceDraft(collectionId) {
+  if (!confirm('¿Descartar esta colección y todo lo que tiene adentro? No se puede deshacer.')) return
+  const { error } = await sb.rpc('discard_draft_collection', { p_id: collectionId })
+  if (error) { toast('No se pudo descartar: ' + error.message); return }
+  invalidateDraftsCache()
+  if (draftCollectionId === collectionId) {
+    draftCollectionId = null; draftCollectionRef = null
+    try { localStorage.removeItem('sierra_draft_collection_id') } catch {}
+    sampleCart = []; draftCollaborators = []
+    updateCartFab()
+  }
+  toast('Colección descartada')
+  showCollectionsHub()
+}
+
+async function submitCollectionComment(collectionId) {
+  const input = document.getElementById('col-comment-input')
+  const text = input?.value?.trim()
+  if (!text) return
+  const btn = document.getElementById('col-comment-btn')
+  if (btn) { btn.disabled = true; btn.textContent = '...' }
+  const { error } = await sb.from('collection_comments').insert({ collection_id: collectionId, user_id: me.id, comment: text })
+  if (btn) { btn.disabled = false; btn.textContent = 'Publicar' }
+  if (error) { toast('Error: ' + error.message); return }
+  Audit.log('collection', collectionId, null, 'comment_added', 'Agregó un comentario', [], { preview: text.slice(0, 80) })
+  showCollectionRecord(collectionId)
+}
+async function deleteCollectionComment(commentId, collectionId) {
+  const { error } = await sb.from('collection_comments').delete().eq('id', commentId)
+  if (error) { toast('Error al eliminar el comentario'); return }
+  showCollectionRecord(collectionId)
 }
 
 /* ── COLLECTION PRICING (Customer Service owns it) ──
