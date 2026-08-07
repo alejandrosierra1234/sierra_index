@@ -10454,7 +10454,11 @@ async function showCollectionRecord(collectionId, backTo) {
   ])
 
   if (colRes.error || !colRes.data) {
-    vs.innerHTML = `<div style="padding:2rem 1.75rem"><p>Error loading collection.</p></div>`
+    console.error('showCollectionRecord error:', colRes.error)
+    vs.innerHTML = `<div style="padding:2rem 1.75rem">
+      <p>Error loading collection.</p>
+      <p style="font-size:0.7rem;color:var(--text-3);margin-top:0.5rem;font-family:monospace">${esc(colRes.error?.code || '')} — ${esc(colRes.error?.message || colRes.error?.hint || 'unknown error')}</p>
+    </div>`
     return
   }
 
