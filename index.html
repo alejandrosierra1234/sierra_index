@@ -2855,12 +2855,33 @@
     }
     .ws-add-cat-btn:hover { border-color:var(--accent); color:var(--accent); }
     .ws-item-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:0.6rem; }
-    .ws-item-card { border:1px solid var(--border); border-radius:12px; padding:0.7rem 0.8rem; background:var(--surface); }
+    .ws-item-card {
+      border:1px solid var(--border); border-radius:12px; padding:0.7rem 0.8rem; background:var(--surface);
+      transition:border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+    }
+    .ws-item-card.selected { border-color:var(--accent); background:var(--accent-light); }
     .ws-item-top { display:flex; align-items:center; gap:0.55rem; margin-bottom:0.55rem; }
     .ws-item-ctrls { display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; }
     .ws-item-ctrls select { min-width:0; flex:1; }
+    .ws-item-checkbox, .ws-select-all { width:15px; height:15px; flex-shrink:0; accent-color:var(--accent); cursor:pointer; }
+    .ws-bulk-bar {
+      display:flex; align-items:center; gap:0.55rem; flex-wrap:wrap; background:var(--accent-light); border:1px solid var(--border);
+      border-radius:10px; padding:0.55rem 0.75rem; margin-bottom:0.7rem; font-size:0.78rem; font-weight:600; color:var(--text);
+    }
     .ws-add-row { display:flex; align-items:center; gap:0.5rem; padding:0.45rem 0.3rem; border-radius:8px; cursor:pointer; font-size:0.8rem; }
     .ws-add-row:hover { background:var(--surface2); }
+    .ws-avatar-stack { display:flex; align-items:center; }
+    .ws-avatar {
+      width:28px; height:28px; border-radius:50%; background:var(--surface2); border:2px solid var(--surface);
+      display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:700; color:var(--text-2);
+      margin-left:-8px; flex-shrink:0;
+    }
+    .ws-avatar:first-child { margin-left:0; }
+    .ws-avatar-add {
+      background:none; border:1.5px dashed var(--border); color:var(--text-3); cursor:pointer; font-family:inherit;
+      transition:border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+    }
+    .ws-avatar-add:hover { border-color:var(--accent); color:var(--accent); }
 
     .pick-col-row {
       display:flex; align-items:center; gap:0.6rem; width:100%; text-align:left; font-family:inherit;
@@ -10379,13 +10400,15 @@ async function showCollectionRecord(collectionId, backTo) {
   const collaboratorsHtml = `
     <div class="srd-section-label">Colaboradores</div>
     <div class="srd-card" style="margin-bottom:1.5rem">
-      ${collaborators.length ? collaborators.map(c => `
-        <div style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0">
-          <div style="width:26px;height:26px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;flex-shrink:0">${(c.profiles?.full_name||c.profiles?.email||'?')[0].toUpperCase()}</div>
-          <div style="font-size:0.82rem">${esc(c.profiles?.full_name || c.profiles?.email || '—')}</div>
-        </div>`).join('') : '<div style="font-size:0.78rem;color:var(--text-3)">Nadie más invitado todavía — la estás armando solo.</div>'}
-      <div style="display:flex;gap:0.5rem;margin-top:0.75rem">
-        <input type="text" id="collab-invite-input" placeholder="Nombre o correo…" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;font-size:0.8rem;font-family:inherit;background:var(--surface2);color:var(--text)" />
+      <div class="ws-avatar-stack">
+        ${collaborators.map(c => `<div class="ws-avatar" title="${esc(c.profiles?.full_name || c.profiles?.email || '')}">${(c.profiles?.full_name||c.profiles?.email||'?')[0].toUpperCase()}</div>`).join('')}
+        <button type="button" class="ws-avatar ws-avatar-add" onclick="wsToggleInvite()" title="Invitar a alguien">
+          <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      ${!collaborators.length ? '<div style="font-size:0.76rem;color:var(--text-3);margin-top:0.6rem">Nadie más invitado todavía — la estás armando solo.</div>' : ''}
+      <div id="ws-invite-form" style="display:none;gap:0.5rem;margin-top:0.75rem">
+        <input type="text" id="collab-invite-input" placeholder="Nombre o correo…" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;font-size:0.8rem;font-family:inherit;background:var(--surface2);color:var(--text)" onkeydown="if(event.key==='Enter'){event.preventDefault();inviteCollaborator('${col.id}')}" />
         <button class="btn btn-ghost btn-sm" onclick="inviteCollaborator('${col.id}')">Invitar</button>
       </div>
     </div>`
@@ -10488,9 +10511,21 @@ async function showCollectionRecord(collectionId, backTo) {
         ${addProductHtml}
 
         <div class="srd-section-label" style="display:flex;align-items:center;gap:0.5rem">
+          ${isDraft && items.length ? `<input type="checkbox" class="ws-select-all" onchange="wsToggleSelectAll(this.checked)" title="Seleccionar todo" />` : ''}
           <span>Muestras</span>
           ${isDraft ? `<button class="ws-add-cat-btn" onclick="wsAddCategory('${col.id}')">+ Categoría</button>` : ''}
         </div>
+        ${isDraft && items.length ? `
+        <div class="ws-bulk-bar" id="ws-bulk-bar" style="display:none">
+          <span id="ws-bulk-count">0 seleccionadas</span>
+          <select class="grant-sel" id="ws-bulk-cat-sel">
+            <option value="">Mover a: Sin categoría</option>
+            ${categories.map(c => `<option value="${c.id}">Mover a: ${esc(c.name)}</option>`).join('')}
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="wsBulkMoveCategory('${col.id}')">Mover</button>
+          <button class="btn btn-ghost btn-sm" style="color:#c0392b" onclick="wsBulkRemove('${col.id}')">Quitar</button>
+          <button class="btn btn-ghost btn-sm" onclick="wsClearSelection()">Cancelar</button>
+        </div>` : ''}
         <div class="srd-card">
           ${itemsHtml || '<div style="font-size:0.82rem;color:var(--text-3)">No samples found.</div>'}
         </div>
@@ -10554,8 +10589,9 @@ function categorizedItemsHtml(items, categories, col, editable) {
         ${g.items.map(it => {
           const c = DIV_CLR[it.products?.division] || '#aaa'
           return editable ? `
-            <div class="ws-item-card">
+            <div class="ws-item-card" data-item="${it.id}">
               <div class="ws-item-top">
+                <input type="checkbox" class="ws-item-checkbox" data-item="${it.id}" onchange="wsToggleSelect('${it.id}', this.checked)" />
                 <span class="cart-item-dot" style="background:${c}"></span>
                 <div class="cart-item-name">${esc(it.products?.name||'—')}${it.products?.code?`<div class="cart-item-code">${esc(it.products.code)}</div>`:''}</div>
                 <button class="cart-item-remove" onclick="wsRemoveItem('${it.id}','${col.id}')" title="Quitar">
@@ -10590,6 +10626,62 @@ async function saveCollectionName(collectionId, value) {
   const name = value.trim()
   const { error } = await sb.rpc('rename_collection', { p_id: collectionId, p_name: name })
   if (error) toast('No se pudo guardar el nombre: ' + error.message)
+}
+
+/* ── BULK SELECTION — select several samples at once (checkbox per card,
+   "select all" in the section header) and act on all of them together:
+   move to a category or remove. Selection is local UI state; it clears
+   whenever the workspace re-renders (i.e. right after a bulk action). ── */
+let _wsSelected = new Set()
+
+function wsToggleSelect(itemId, checked) {
+  if (checked) _wsSelected.add(itemId); else _wsSelected.delete(itemId)
+  document.querySelector(`.ws-item-card[data-item="${itemId}"]`)?.classList.toggle('selected', checked)
+  wsUpdateBulkBar()
+}
+function wsToggleSelectAll(checked) {
+  document.querySelectorAll('.ws-item-checkbox').forEach(cb => {
+    cb.checked = checked
+    wsToggleSelect(cb.dataset.item, checked)
+  })
+}
+function wsClearSelection() {
+  _wsSelected.clear()
+  document.querySelectorAll('.ws-item-checkbox').forEach(cb => { cb.checked = false })
+  document.querySelectorAll('.ws-item-card.selected').forEach(el => el.classList.remove('selected'))
+  const selectAll = document.querySelector('.ws-select-all')
+  if (selectAll) selectAll.checked = false
+  wsUpdateBulkBar()
+}
+function wsUpdateBulkBar() {
+  const bar = document.getElementById('ws-bulk-bar')
+  if (!bar) return
+  const n = _wsSelected.size
+  bar.style.display = n ? 'flex' : 'none'
+  const countEl = document.getElementById('ws-bulk-count')
+  if (countEl) countEl.textContent = `${n} muestra${n !== 1 ? 's' : ''} seleccionada${n !== 1 ? 's' : ''}`
+}
+async function wsBulkMoveCategory(collectionId) {
+  if (!_wsSelected.size) return
+  const categoryId = document.getElementById('ws-bulk-cat-sel')?.value || null
+  const ids = [..._wsSelected]
+  for (const id of ids) {
+    const { error } = await sb.rpc('set_item_category', { p_sample_id: id, p_category_id: categoryId })
+    if (error) { toast('No se pudo mover: ' + error.message); break }
+  }
+  _wsSelected.clear()
+  showCollectionRecord(collectionId)
+}
+async function wsBulkRemove(collectionId) {
+  if (!_wsSelected.size) return
+  if (!confirm(`¿Quitar ${_wsSelected.size} muestra${_wsSelected.size !== 1 ? 's' : ''} de la colección?`)) return
+  const ids = [..._wsSelected]
+  for (const id of ids) {
+    const { error } = await sb.rpc('remove_draft_item', { p_id: id })
+    if (error) { toast('No se pudo quitar: ' + error.message); break }
+  }
+  _wsSelected.clear()
+  showCollectionRecord(collectionId)
 }
 
 async function wsSetQty(itemId, collectionId, delta, currentQty) {
@@ -10869,6 +10961,14 @@ async function updateCollectionStatus(id, status) {
   }
   toast(`Collection status: ${SMP_STATUS_LABEL[status]}`)
   showCollectionRecord(id)
+}
+
+function wsToggleInvite() {
+  const form = document.getElementById('ws-invite-form')
+  if (!form) return
+  const show = form.style.display === 'none'
+  form.style.display = show ? 'flex' : 'none'
+  if (show) document.getElementById('collab-invite-input')?.focus()
 }
 
 async function inviteCollaborator(collectionId) {
