@@ -1012,30 +1012,6 @@
     [data-theme="dark"] .badge-shipped  { background:rgba(0,159,255,0.12);   color:#60a5fa; }
     [data-theme="dark"] .badge-rejected { background:rgba(232,0,0,0.12);     color:#f87171; }
 
-    /* Status picker */
-    .status-wrap { position:relative; display:inline-block; }
-    .status-btn { all:unset; cursor:pointer; display:inline-flex; align-items:center; gap:0.3rem; }
-    .status-btn .status-chevron { opacity:0.45; transition:opacity 0.12s; }
-    .status-btn:hover .status-chevron { opacity:0.8; }
-    .status-menu {
-      display:none; position:fixed; z-index:600;
-      background:var(--surface); border:1px solid var(--border);
-      border-radius:10px; padding:0.3rem; min-width:130px;
-      box-shadow:0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
-    }
-    .status-menu.open { display:block; }
-    .status-opt {
-      display:flex; align-items:center; gap:0.5rem; padding:0.45rem 0.65rem;
-      border-radius:7px; cursor:pointer; font-size:0.78rem; font-weight:500;
-      color:var(--text-2); transition:background 0.1s;
-    }
-    .status-opt:hover { background:var(--surface2); color:var(--text); }
-    .status-opt.current { color:var(--text); font-weight:600; }
-    .status-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-    .dot-pending  { background:#e6a800; }
-    .dot-approved { background:#0fa89c; }
-    .dot-shipped  { background:#0070c9; }
-    .dot-rejected { background:#c0392b; }
 
     /* ── ADD FORM ── */
     .two-col { display:grid; grid-template-columns:1fr 1fr; gap:0.85rem; }
@@ -2646,19 +2622,6 @@
     .srd-barcode-svg { max-width:100%; }
     .srd-sample-id-code { font-size:0.75rem; font-weight:700; letter-spacing:0.08em; color:var(--text-3); text-align:center; }
 
-    /* Sample Request modal v2 */
-    .req-type-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.1rem; }
-    .req-type-opt {
-      border:1px solid var(--border); border-radius:9px; padding:0.75rem 0.85rem;
-      cursor:pointer; transition:border-color 0.12s, background 0.12s;
-      font-size:0.82rem; font-weight:500; color:var(--text-2); background:none;
-      font-family:inherit; text-align:left; display:flex; align-items:center; gap:0.5rem;
-    }
-    .req-type-opt:hover { border-color:var(--text-3); color:var(--text); }
-    .req-type-opt.selected { border-color:var(--accent); background:var(--accent-light); color:var(--text); }
-    .req-type-dot { width:7px; height:7px; border-radius:50%; background:var(--border); flex-shrink:0; transition:background 0.12s; }
-    .req-type-opt.selected .req-type-dot { background:var(--accent); }
-
     /* Notification center */
     .notif-btn { position:relative; }
     .notif-badge {
@@ -3231,8 +3194,6 @@
         <button class="nav-item" id="nav-insights" data-tip="Insights" style="--item-color:#9e00cb;display:none" onclick="showInsights()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M4 16V9M10 16V4M16 16v-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="nav-label">Insights</span></button>
         <button class="nav-item cart-nav-item" id="nav-cart" data-tip="Collections" style="--item-color:#16cdbe" onclick="openCollectionsNav()"><span class="n-icon" style="position:relative"><svg viewBox="0 0 20 20" fill="none"><path d="M3 4h2l1.6 9.5a1 1 0 0 0 1 .8h7.3a1 1 0 0 0 1-.75L17.5 8H5.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="17" r="1.1" fill="currentColor"/><circle cx="14.5" cy="17" r="1.1" fill="currentColor"/></svg><span class="cart-nav-badge" id="cart-nav-badge">0</span></span><span class="nav-label">Collections</span><span class="cart-nav-count" id="cart-nav-count">0</span></button>
         <button class="nav-item" id="nav-scan" data-tip="Scan" style="--item-color:#009fff" onclick="openScanMode()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Scan</span></button>
-        <button class="nav-item" id="nav-req" data-tip="My requests" style="--item-color:#ffc529" onclick="showRequests()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M4 5h12M4 10h8M4 15h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-label">My requests</span></button>
-        <button class="nav-item" id="nav-all-req" data-tip="All requests" style="--item-color:#ff7824;display:none" onclick="showAllRequests()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M4 5h12M4 10h12M4 15h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-label">All requests</span></button>
       </div>
       <div class="mod-scope" data-scope="almacen">
         <span class="s-label" style="margin-top:0.5rem">Almacén</span>
@@ -3412,45 +3373,6 @@
   </div>
 </div>
 
-<!-- ══ MODAL: REQUEST SAMPLE v2 ══ -->
-<div class="overlay" id="m-req">
-  <div class="modal" style="width:460px">
-    <div class="modal-hdr">
-      <div>
-        <div class="modal-eyebrow" style="color:var(--text-3)">Request Sample</div>
-        <div class="modal-title" id="r-name"></div>
-      </div>
-      <button class="btn-icon" onclick="closeModal('m-req')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="fg">
-        <label>Sample Type</label>
-        <div class="req-type-grid" id="r-type-grid"></div>
-      </div>
-      <div class="fg"><label>Quantity</label><input type="text" id="r-qty" placeholder="e.g. 1 hanger, 2 yards, 500g" /></div>
-      <div class="fg"><label>Customer</label><input type="text" id="r-customer" placeholder="e.g. Nike, Adidas (optional)" /></div>
-      <div class="fg"><label>Shipping Destination</label><input type="text" id="r-destination" placeholder="e.g. New York office, Mexico City" /></div>
-      <div class="fg"><label>Reason</label><select id="r-reason">
-        <option value="">Select reason…</option>
-        <option value="Sales presentation">Sales presentation</option>
-        <option value="Customer approval">Customer approval</option>
-        <option value="Quality evaluation">Quality evaluation</option>
-        <option value="Product development">Product development</option>
-        <option value="Trade show">Trade show</option>
-        <option value="Internal reference">Internal reference</option>
-        <option value="Other">Other</option>
-      </select></div>
-      <div class="fg"><label>Notes</label><textarea id="r-notes" placeholder="Any additional details, urgency, special instructions…"></textarea></div>
-    </div>
-    <div class="modal-ftr">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('m-req')">Cancel</button>
-      <button class="btn btn-primary btn-sm" onclick="submitReq()">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        Request Sample
-      </button>
-    </div>
-  </div>
-</div>
 
 <!-- ══ MODAL: ADD / EDIT PRODUCT ══ -->
 <div class="overlay" id="m-add">
@@ -3527,19 +3449,18 @@
   <div class="modal" style="width:480px">
     <div class="modal-hdr">
       <div>
-        <div class="modal-eyebrow" style="color:var(--text-3)">Bulk Sample Request</div>
-        <div class="modal-title" id="bulk-title">Request samples</div>
+        <div class="modal-eyebrow" style="color:var(--text-3)">Colecciones</div>
+        <div class="modal-title" id="bulk-title">Agregar productos a una colección</div>
       </div>
       <button class="btn-icon" onclick="closeModal('m-bulk')">✕</button>
     </div>
     <div class="modal-body">
-      <div id="bulk-product-list" style="margin-bottom:1rem;display:flex;flex-direction:column;gap:0.35rem;max-height:160px;overflow-y:auto"></div>
-      <div class="fg"><label>Quantity / unit</label><input type="text" id="bulk-qty" placeholder="e.g. 500g, 2 rolls, 1 meter" /></div>
-      <div class="fg"><label>Notes</label><textarea id="bulk-notes" placeholder="Target customer, end use, required date…"></textarea></div>
+      <div id="bulk-product-list" style="margin-bottom:0.5rem;display:flex;flex-direction:column;gap:0.35rem;max-height:220px;overflow-y:auto"></div>
+      <p style="font-size:0.72rem;color:var(--text-3);margin:0">Cada producto entra con cantidad 1 — ajusta cantidad, tipo de muestra y notas después, desde la colección.</p>
     </div>
     <div class="modal-ftr">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('m-bulk')">Cancel</button>
-      <button class="btn btn-primary btn-sm" onclick="submitBulkReq()">Send requests</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('m-bulk')">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="submitBulkReq()">Agregar a la colección</button>
     </div>
   </div>
 </div>
@@ -3548,7 +3469,7 @@
 <div id="select-bar">
   <span id="select-count">0 selected</span>
   <button class="btn btn-ghost btn-sm" onclick="clearSelection()" style="color:var(--bg);border-color:rgba(255,255,255,0.25)">Cancel</button>
-  <button class="btn btn-primary btn-sm" onclick="openBulkReq()">Request selected</button>
+  <button class="btn btn-primary btn-sm" onclick="openBulkReq()">Agregar a colección</button>
 </div>
 
 <!-- ══ SCAN OVERLAY ══ -->
@@ -3860,8 +3781,8 @@ const I18N = {
   en: {
     'nav.search':'Search…', 'nav.dashboard':'Dashboard', 'nav.styleGuide':'Style Guide', 'nav.divisions':'Divisions',
     'nav.allProducts':'All products', 'nav.myActivity':'My activity', 'nav.sampleCenter':'Sample Center',
-    'nav.insights':'Insights', 'nav.collection':'Collections', 'nav.scan':'Scan', 'nav.myRequests':'My requests',
-    'nav.allRequests':'All requests', 'nav.accessLogs':'Access logs', 'nav.team':'Team',
+    'nav.insights':'Insights', 'nav.collection':'Collections', 'nav.scan':'Scan',
+    'nav.accessLogs':'Access logs', 'nav.team':'Team',
     'nav.notifications':'Notifications', 'nav.appearance':'Appearance', 'nav.profile':'Profile',
     'catalog.subtitle':'Browse technical sheets and request samples', 'catalog.noProducts':'No products in this division yet.',
     'catalog.noArchived':'No archived products here.', 'catalog.noResults':'No results for "{query}".',
@@ -3913,8 +3834,8 @@ const I18N = {
   es: {
     'nav.search':'Buscar…', 'nav.dashboard':'Panel', 'nav.styleGuide':'Guía de estilo', 'nav.divisions':'Divisiones',
     'nav.allProducts':'Todos los productos', 'nav.myActivity':'Mi actividad', 'nav.sampleCenter':'Centro de muestras',
-    'nav.insights':'Insights', 'nav.collection':'Colecciones', 'nav.scan':'Escanear', 'nav.myRequests':'Mis solicitudes',
-    'nav.allRequests':'Todas las solicitudes', 'nav.accessLogs':'Registros de acceso', 'nav.team':'Equipo',
+    'nav.insights':'Insights', 'nav.collection':'Colecciones', 'nav.scan':'Escanear',
+    'nav.accessLogs':'Registros de acceso', 'nav.team':'Equipo',
     'nav.notifications':'Notificaciones', 'nav.appearance':'Apariencia', 'nav.profile':'Perfil',
     'catalog.subtitle':'Explora fichas técnicas y solicita muestras', 'catalog.noProducts':'No hay productos en esta división.',
     'catalog.noArchived':'No hay productos archivados aquí.', 'catalog.noResults':'Sin resultados para "{query}".',
@@ -3997,8 +3918,6 @@ function applyLanguage(opts = {}) {
   setText('#nav-insights .nav-label', tx('nav.insights'))
   setText('#nav-cart .nav-label', tx('nav.collection'))
   setText('#nav-scan .nav-label', tx('nav.scan'))
-  setText('#nav-req .nav-label', tx('nav.myRequests'))
-  setText('#nav-all-req .nav-label', tx('nav.allRequests'))
   setText('#nav-logs .nav-label', tx('nav.accessLogs'))
   setText('#nav-users .nav-label', tx('nav.team'))
   setText('#notif-btn .nav-label', tx('nav.notifications'))
@@ -4368,7 +4287,6 @@ async function enterApp(user) {
   document.getElementById('sb-nm').textContent = name
   document.getElementById('sb-role').textContent = roleLabel
   if (canEditDiv('all')) document.getElementById('add-btn').style.display = 'flex'
-  if (can('read', 'customer_service')) document.getElementById('nav-all-req').style.display = 'flex'
   if (can('admin', 'platform')) {
     document.getElementById('nav-logs').style.display = 'flex'
     const nu = document.getElementById('nav-users')
@@ -4403,12 +4321,8 @@ async function enterApp(user) {
     const divKey = savedRoute.slice(4)
     const navEl = document.getElementById('nav-' + divKey)
     if (navEl) { setDiv(divKey, navEl); return }
-  } else if (savedRoute === 'requests') {
-    showRequests(); return
   } else if (savedRoute === 'insights' && insightsSections().length) {
     showInsights(); return
-  } else if (savedRoute === 'all-requests' && can('read', 'customer_service')) {
-    showAllRequests(); return
   } else if (savedRoute === 'style-guide') {
     showStyleGuide(); return
   } else if (savedRoute === 'dashboard') {
@@ -5508,7 +5422,7 @@ function updateSelectBar() {
 
 function openBulkReq() {
   if (!selectedProducts.length) return
-  document.getElementById('bulk-title').textContent = `Request ${selectedProducts.length} product${selectedProducts.length > 1 ? 's' : ''}`
+  document.getElementById('bulk-title').textContent = `Agregar ${selectedProducts.length} producto${selectedProducts.length > 1 ? 's' : ''} a una colección`
   document.getElementById('bulk-product-list').innerHTML = selectedProducts.map(p => {
     const c = DIV_CLR[p.division] || '#aaa'
     return `<div style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0.5rem;background:var(--surface2);border-radius:7px">
@@ -5516,23 +5430,28 @@ function openBulkReq() {
       <span style="font-size:0.82rem;font-weight:500">${esc(p.name)}</span>
     </div>`
   }).join('')
-  document.getElementById('bulk-qty').value = ''
-  document.getElementById('bulk-notes').value = ''
   document.getElementById('m-bulk').classList.add('open')
 }
 
+/* Adds every selected product to the active draft collection — same
+   mechanism as clicking "Add sample" on each card one at a time (canRequestSample,
+   qty/type default to 1, refined later in the collection workspace). Bulk-select
+   used to write to the retired sample_requests table; this is its replacement. */
 async function submitBulkReq() {
-  const qty = document.getElementById('bulk-qty').value.trim()
-  if (!qty) { toast('Please specify the quantity'); return }
-  const notes = document.getElementById('bulk-notes').value.trim()
-  const rows = selectedProducts.map(p => ({
-    product_id: p.id, requested_by: me.id, quantity: qty, notes, status: 'pending'
-  }))
-  const { error } = await sb.from('sample_requests').insert(rows)
-  if (error) { toast('Error sending requests'); return }
+  const products = selectedProducts.filter(canRequestSample)
+  if (!products.length) { toast('Ninguno de los productos seleccionados puede solicitarse como muestra'); return }
+  const drafts = await myDraftCollections()
+  const activeStillValid = draftCollectionId && drafts.some(d => d.id === draftCollectionId)
+  if (!activeStillValid && drafts.length > 1) {
+    toast('Tienes varias colecciones abiertas — activa una desde Colecciones antes de agregar en lote')
+    return
+  }
+  await addToCart(products[0])
+  for (const p of products.slice(1)) await addItemToActiveDraft(p)
   closeModal('m-bulk')
-  toast(`${rows.length} request${rows.length > 1 ? 's' : ''} sent`)
   clearSelection()
+  toast(`${products.length} producto${products.length > 1 ? 's' : ''} agregado${products.length > 1 ? 's' : ''} a ${draftCollectionRef || 'la colección'}`)
+  openCart()
 }
 
 /* ── COMMENTS ── */
@@ -5968,170 +5887,6 @@ function downloadPDF() {
   setTimeout(() => printLabel(), 300)
 }
 
-/* ── SAMPLE REQUEST ── */
-function openReq() {
-  if (!selected) return
-  document.getElementById('r-name').textContent = selected.name
-  document.getElementById('r-qty').value = ''
-  document.getElementById('r-notes').value = ''
-  document.getElementById('m-req').classList.add('open')
-}
-
-function quickReq(p) { selected = p; openReq() }
-
-async function submitReq() {
-  const qty = document.getElementById('r-qty').value.trim()
-  if (!qty) { toast('Please specify the quantity'); return }
-  const { error } = await sb.from('sample_requests').insert({
-    product_id: selected.id, requested_by: me.id,
-    quantity: qty, notes: document.getElementById('r-notes').value.trim(), status: 'pending'
-  })
-  if (error) { toast('Error sending request'); return }
-  closeModal('m-req'); toast('Request sent')
-}
-
-/* ── MY REQUESTS ── */
-async function showRequests() {
-  syncModule('muestras_productos')
-  sessionStorage.setItem('sierra_route', 'requests')
-  document.getElementById('div-toolbar').style.display = 'none'
-  leaveView()
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-req').classList.add('active')
-  document.getElementById('sec-title').textContent = 'My requests'
-  document.getElementById('sec-sub').textContent = 'Sample request history'
-  document.getElementById('tb-section').textContent = 'My requests'
-  document.getElementById('add-btn').style.display = 'none'
-  document.getElementById('product-controls').style.display = 'none'
-  clearSelection()
-
-  const pg = document.getElementById('pg')
-  pg.style.display = 'block'; pg.innerHTML = ''
-
-  const { data, error } = await sb.from('sample_requests')
-    .select('*, products(name,division,code)')
-    .eq('requested_by', me.id)
-    .order('created_at', { ascending: false })
-
-  if (error) { toast('Error loading requests'); return }
-
-  if (!data?.length) {
-    pg.innerHTML = `<div class="empty"><div class="empty-icon">◻</div><p>No requests yet.</p></div>`
-    return
-  }
-
-  const statusLabel = { pending:'Pending', approved:'Approved', shipped:'Shipped', rejected:'Rejected' }
-
-  pg.innerHTML = `<div style="overflow-x:auto"><table class="data-table" style="min-width:560px">
-    <thead><tr><th>Product</th><th>Division</th><th>Quantity</th><th>Notes</th><th>Status</th><th>Date</th></tr></thead>
-    <tbody>${data.map(r => {
-      const c = DIV_CLR[r.products?.division] || '#aaa'
-      return `<tr>
-        <td style="font-weight:500">${r.products?.name || '–'}</td>
-        <td><span style="color:${c};font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em">${r.products?.division || '–'}</span></td>
-        <td style="color:var(--text-2)">${r.quantity}</td>
-        <td style="color:var(--text-2);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.notes || '–'}</td>
-        <td><span class="badge badge-${r.status}">${statusLabel[r.status]}</span></td>
-        <td style="color:var(--text-3)">${new Date(r.created_at).toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'})}</td>
-      </tr>`
-    }).join('')}</tbody>
-  </table></div>`
-}
-
-/* ── ALL REQUESTS (editor) ── */
-async function showAllRequests() {
-  syncModule('muestras_productos')
-  sessionStorage.setItem('sierra_route', 'all-requests')
-  document.getElementById('div-toolbar').style.display = 'none'
-  leaveView()
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-all-req').classList.add('active')
-  document.getElementById('sec-title').textContent = 'All requests'
-  document.getElementById('sec-sub').textContent = 'Manage sample requests from all collaborators'
-  document.getElementById('tb-section').textContent = 'All requests'
-  if (canEditDiv(division)) {
-    document.getElementById('add-btn').style.display = 'flex'
-    const impBtn = document.getElementById('import-btn'); if (impBtn) impBtn.style.display = 'flex'
-  }
-  document.getElementById('product-controls').style.display = 'none'
-  clearSelection()
-
-  const pg = document.getElementById('pg')
-  pg.style.display = 'block'; pg.innerHTML = ''
-
-  const { data, error } = await sb.from('sample_requests')
-    .select('*, products(name,division,code), profiles(full_name,email)')
-    .order('created_at', { ascending: false })
-
-  if (error) { toast('Error loading requests — make sure the editor RLS policy is applied'); return }
-  if (!data?.length) {
-    pg.innerHTML = `<div class="empty"><div class="empty-icon">◻</div><p>No requests yet.</p></div>`
-    return
-  }
-
-  const statusLabel = { pending:'Pending', approved:'Approved', shipped:'Shipped', rejected:'Rejected' }
-  pg.innerHTML = `<div style="overflow-x:auto"><table class="data-table" style="min-width:580px">
-    <thead><tr><th>Product</th><th>Requested by</th><th>Qty</th><th>Notes</th><th>Status</th><th>Date</th></tr></thead>
-    <tbody>${data.map(r => {
-      const c = DIV_CLR[r.products?.division] || '#aaa'
-      return `<tr>
-        <td style="font-weight:500">${r.products?.name || '–'}<br><span style="color:${c};font-size:0.65rem;font-weight:700;text-transform:uppercase">${r.products?.division||''}</span></td>
-        <td style="font-size:0.8rem;color:var(--text-2)">${r.profiles?.full_name || r.profiles?.email || '–'}</td>
-        <td style="color:var(--text-2)">${r.quantity}</td>
-        <td style="color:var(--text-2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.notes || '–'}</td>
-        <td>
-          <div class="status-wrap" id="sw-${r.id}">
-            <button class="status-btn" onclick="toggleStatusMenu('${r.id}', event)">
-              <span class="badge badge-${r.status}" id="sbadge-${r.id}">${statusLabel[r.status]}</span>
-              <svg class="status-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-            <div class="status-menu" id="smenu-${r.id}">
-              ${['pending','approved','shipped','rejected'].map(s =>
-                `<div class="status-opt${s===r.status?' current':''}" onclick="pickStatus('${r.id}','${s}',event)">
-                  <span class="status-dot dot-${s}"></span>${statusLabel[s]}
-                </div>`).join('')}
-            </div>
-          </div>
-        </td>
-        <td style="color:var(--text-3)">${new Date(r.created_at).toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'})}</td>
-      </tr>`
-    }).join('')}</tbody>
-  </table></div>`
-}
-
-const STATUS_LABEL = { pending:'Pending', approved:'Approved', shipped:'Shipped', rejected:'Rejected' }
-
-function toggleStatusMenu(id, e) {
-  e.stopPropagation()
-  const menu = document.getElementById('smenu-' + id)
-  const isOpen = menu.classList.contains('open')
-  document.querySelectorAll('.status-menu.open').forEach(m => m.classList.remove('open'))
-  if (!isOpen) {
-    menu.classList.add('open')
-    const btn = menu.previousElementSibling
-    const rect = btn.getBoundingClientRect()
-    menu.style.top = (rect.bottom + 4) + 'px'
-    menu.style.left = rect.left + 'px'
-  }
-}
-
-async function pickStatus(id, status, e) {
-  e.stopPropagation()
-  document.querySelectorAll('.status-menu.open').forEach(m => m.classList.remove('open'))
-  const { error } = await sb.from('sample_requests').update({ status }).eq('id', id)
-  if (error) { toast('Error updating status'); return }
-  const badge = document.getElementById('sbadge-' + id)
-  if (badge) { badge.className = 'badge badge-' + status; badge.textContent = STATUS_LABEL[status] }
-  const menu = document.getElementById('smenu-' + id)
-  if (menu) menu.querySelectorAll('.status-opt').forEach(o => {
-    o.classList.toggle('current', o.textContent.trim() === STATUS_LABEL[status])
-  })
-  toast('Status updated')
-}
-
-document.addEventListener('click', () => {
-  document.querySelectorAll('.status-menu.open').forEach(m => m.classList.remove('open'))
-})
 
 /* ── ADD PRODUCT ── */
 const FABRIC_FIELDS = `
@@ -10247,75 +10002,6 @@ function printShippingGuide() {
 /* ── SAMPLE REQUEST ENTRY POINTS (route into cart) ── */
 async function openReq() { if (selected) { await addToCart(selected); openCart() } }
 async function quickReq(p) { await addToCart(p) }
-
-function selectReqType(btn, type) {
-  document.querySelectorAll('#r-type-grid .req-type-opt').forEach(b => b.classList.remove('selected'))
-  btn.classList.add('selected')
-}
-
-async function submitReq() {
-  const typeBtn = document.querySelector('#r-type-grid .req-type-opt.selected')
-  const sampleType = typeBtn?.dataset?.type
-  if (!sampleType) { toast('Select a sample type'); return }
-  const qty = document.getElementById('r-qty').value.trim()
-  if (!qty) { toast('Please specify the quantity'); return }
-  const customer = document.getElementById('r-customer').value.trim()
-  const destination = document.getElementById('r-destination').value.trim()
-  const reason = document.getElementById('r-reason').value.trim()
-  const notes = document.getElementById('r-notes').value.trim()
-  const userName = profile?.full_name || me?.email?.split('@')[0] || 'User'
-
-  const btn = document.querySelector('#m-req .btn-primary')
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>' }
-
-  let result = null
-  try {
-    const { data, error } = await sb.rpc('create_sample', {
-      p_product_id:  selected.id,
-      p_sample_type: sampleType,
-      p_quantity:    parseInt(qty) || 1,
-      p_customer:    customer,
-      p_destination: destination,
-      p_reason:      reason,
-      p_notes:       notes,
-      p_user_id:     me.id,
-      p_user_name:   userName,
-    })
-    if (!error) result = data
-  } catch {}
-
-  // Fallback: direct insert if RPC not available yet
-  if (!result) {
-    const year = new Date().getFullYear()
-    const { data: last } = await sb.from('samples').select('sample_id').like('sample_id', `SMP-${year}-%`).order('sample_id', { ascending: false }).limit(1)
-    const lastNum = last?.[0]?.sample_id ? parseInt(last[0].sample_id.split('-')[2]) : 0
-    const newId = `SMP-${year}-${String(lastNum + 1).padStart(6, '0')}`
-    const { data: ins, error: insErr } = await sb.from('samples').insert({
-      sample_id: newId, product_id: selected.id, sample_type: sampleType,
-      quantity: parseInt(qty) || 1, customer, destination, reason, notes,
-      status: 'requested', requested_by: me.id,
-    }).select().single()
-    if (!insErr && ins) {
-      await sb.from('sample_events').insert({
-        sample_id: ins.id, event_type: 'status_change',
-        event_label: `Requested by ${userName}`,
-        event_data: { status: 'requested' }, created_by: me.id,
-      })
-      result = { sample_id: newId, id: ins.id }
-    }
-  }
-
-  if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Request Sample' }
-
-  if (!result) { toast('Error sending request — run samples_schema.sql in Supabase'); return }
-  closeModal('m-req')
-  toast(`Sample requested — ${result.sample_id}`)
-
-  // Refresh sample history on product page if visible
-  if (selected && document.getElementById('view-detail').style.display !== 'none') {
-    loadProductSampleHistory(selected.id)
-  }
-}
 
 /* ── SAMPLE CENTER VIEW ── */
 async function showSampleCenter() {
