@@ -8985,13 +8985,17 @@ async function showUserManagement() {
     { value: 'owner', label: tx('team.level.owner') },
   ]
   const roleOpts = ['admin', 'editor', 'dispatcher', 'user'].map(r => ({ value: r, label: roleLabel(r) }))
+  // "Viewer" on platform is genuinely read-only (bundleCaps gives it only
+  // 'read', not 'admin') — anyone below full admin gets a look-but-not-touch
+  // Team: no create/grant/revoke/role controls, just the roster and chips.
+  const canManagePlatform = can('admin', 'platform')
 
   pg.innerHTML = `
   <div style="display:flex;justify-content:flex-end;margin-bottom:0.85rem">
-    <button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">
+    ${canManagePlatform ? `<button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
       ${tx('team.createAccount')}
-    </button>
+    </button>` : ''}
   </div>
   <div class="team-list">
     ${data.map(u => {
@@ -9009,15 +9013,15 @@ async function showUserManagement() {
         <div class="team-row-access">
           ${_teamGrants === null
             ? `<span class="team-migration-note">${tx('team.needsMigration')}</span>`
-            : `<div class="team-chips" id="grants-${u.id}">${renderGrantChips(u.id)}</div>
-               <div class="team-add-access">
+            : `<div class="team-chips" id="grants-${u.id}">${renderGrantChips(u.id, canManagePlatform)}</div>
+               ${canManagePlatform ? `<div class="team-add-access">
                  ${pdSelect(`gd-${u.id}`, domainOpts, domainOpts[0]?.value || '', '', '', '')}
                  ${pdSelect(`gl-${u.id}`, levelOpts, 'viewer', '', '', '')}
                  <button class="btn btn-ghost btn-sm" onclick="addGrant('${u.id}')">${tx('team.addAccess')}</button>
-               </div>`}
+               </div>` : ''}`}
         </div>
         <div class="team-row-role">
-          ${isSelf
+          ${isSelf || !canManagePlatform
             ? `<div class="team-row-role-static">${esc(roleLabel(u.role))}</div><div class="team-row-role-note">${tx('team.role')}</div>`
             : pdSelect(`role-${u.id}`, roleOpts, u.role || 'user', '', 'teamRoleChanged')}
         </div>
@@ -9031,7 +9035,8 @@ async function showUserManagement() {
    bundles exist only in this UI; enforcement always checks single capabilities. */
 let _teamGrants = null
 function bundleCaps(domain, level) {
-  if (domain === 'platform') return level === 'owner' ? ['admin','grant'] : ['admin']
+  if (domain === 'platform')
+    return level === 'owner' ? ['read','admin','grant'] : level === 'editor' ? ['read','admin'] : ['read']
   if (domain === 'warehouse')
     return level === 'owner' ? ['read','dispatch','grant'] : level === 'editor' ? ['read','dispatch'] : ['read']
   if (domain === 'customer_service')
@@ -9045,7 +9050,7 @@ function grantLevelOf(caps) {
   if (caps.includes('write') || caps.includes('dispatch') || caps.includes('admin')) return tx('team.level.editor')
   return tx('team.level.viewer')
 }
-function renderGrantChips(uid) {
+function renderGrantChips(uid, canManage = true) {
   const byDomain = {}
   _teamGrants.filter(g => g.user_id === uid).forEach(g => {
     (byDomain[g.domain] = byDomain[g.domain] || []).push(g.capability)
@@ -9056,7 +9061,7 @@ function renderGrantChips(uid) {
     const lvl = d === 'platform' && byDomain[d].includes('admin') ? tx('team.level.admin') : grantLevelOf(byDomain[d])
     return `<span class="team-chip" title="${esc(byDomain[d].join(', '))}">
       ${esc(domainLabel(d))} · ${esc(lvl)}
-      <button class="team-chip-revoke" onclick="revokeDomainGrants('${uid}','${d}')" title="${esc(tx('team.revoke'))}">×</button>
+      ${canManage ? `<button class="team-chip-revoke" onclick="revokeDomainGrants('${uid}','${d}')" title="${esc(tx('team.revoke'))}">×</button>` : ''}
     </span>`
   }).join('')
 }
