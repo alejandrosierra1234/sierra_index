@@ -4058,6 +4058,7 @@ const Audit = {
 let editingProductId = null, editingImageUrls = [], pendingImgFiles = [], _editOriginal = null
 let allProducts = [], searchQuery = '', selectMode = false, selectedProducts = []
 let fabricFilter = null // active construction type key, null = all
+let smpStatusFilter = 'all', smpDivFilter = 'all' // Sample Center filter state
 
 function getProductBarcode(p) {
   return p.code || p.specs?.barcode || null
@@ -10193,6 +10194,17 @@ async function showSampleCenter() {
       }).join('')}
     </div>` : '')
 
+  // Group by division
+  const DIV_ORDER = ['fiber','yarn','fabric','chemicals','garment']
+  const divGroups = {}
+  DIV_ORDER.forEach(d => { divGroups[d] = [] })
+  data.forEach(s => {
+    const d = s.products?.division
+    if (d && divGroups[d]) divGroups[d].push(s)
+    else (divGroups['other'] = divGroups['other'] || []).push(s)
+  })
+  const activeDivs = DIV_ORDER.filter(d => divGroups[d]?.length)
+
   // Group by status
   const statusGroups = {}
   const ORDER = ['requested','approved','preparing','ready','picked_up','shipped','delivered','returned','damaged','archived']
@@ -10200,9 +10212,15 @@ async function showSampleCenter() {
   data.forEach(s => { (statusGroups[s.status] || (statusGroups['requested'] = statusGroups['requested'] || [])).push(s) })
 
   // Filter tabs
+  smpStatusFilter = 'all'; smpDivFilter = 'all'
   const activeStatuses = ORDER.filter(s => statusGroups[s]?.length)
   let html = collectionsHtml + `
     <div class="srd-section-label" style="${collectionsHtml ? '' : 'margin-top:0'}">Individual Samples</div>
+    ${activeDivs.length > 1 ? `
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.6rem" id="smp-div-tabs">
+      <button class="div-toolbar-btn active" id="smp-divtab-all" onclick="filterSampleDivision('all',this)" style="background:var(--surface2);color:var(--text)">All divisions (${data.length})</button>
+      ${activeDivs.map(d => `<button class="div-toolbar-btn" id="smp-divtab-${d}" onclick="filterSampleDivision('${d}',this)"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${DIV_CLR[d]};margin-right:0.35rem"></span>${DIV_LBL[d]} (${divGroups[d].length})</button>`).join('')}
+    </div>` : ''}
     <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:1.5rem" id="smp-filter-tabs">
       <button class="div-toolbar-btn active" id="smp-tab-all" onclick="filterSampleRows('all',this)" style="background:var(--surface2);color:var(--text)">All (${data.length})</button>
       ${activeStatuses.map(s => `<button class="div-toolbar-btn" id="smp-tab-${s}" onclick="filterSampleRows('${s}',this)">${SMP_STATUS_LABEL[s]} (${statusGroups[s].length})</button>`).join('')}
@@ -10216,7 +10234,7 @@ async function showSampleCenter() {
     const div = s.products?.division ? DIV_LBL[s.products.division] : '—'
     const requester = s.profiles?.full_name || '—'
     const date = new Date(s.created_at).toLocaleDateString('en-US', { day:'2-digit', month:'short', year:'numeric' })
-    html += `<div class="smp-row" data-status="${s.status}" onclick="showSampleRecord('${s.id}')">
+    html += `<div class="smp-row" data-status="${s.status}" data-division="${esc(s.products?.division || '')}" onclick="showSampleRecord('${s.id}')">
       <div class="smp-row-id">${esc(s.sample_id)}</div>
       <div class="smp-row-product">
         <div class="smp-row-name">${esc(name)}</div>
@@ -10233,7 +10251,16 @@ async function showSampleCenter() {
   pg.innerHTML = html
 }
 
+function applySmpFilters() {
+  document.querySelectorAll('.smp-row').forEach(row => {
+    const statusOk = smpStatusFilter === 'all' || row.dataset.status === smpStatusFilter
+    const divOk = smpDivFilter === 'all' || row.dataset.division === smpDivFilter
+    row.style.display = (statusOk && divOk) ? 'flex' : 'none'
+  })
+}
+
 function filterSampleRows(status, btn) {
+  smpStatusFilter = status
   document.querySelectorAll('#smp-filter-tabs button').forEach(b => {
     b.classList.remove('active')
     b.style.background = 'none'
@@ -10242,9 +10269,20 @@ function filterSampleRows(status, btn) {
   btn.classList.add('active')
   btn.style.background = 'var(--surface2)'
   btn.style.color = 'var(--text)'
-  document.querySelectorAll('.smp-row').forEach(row => {
-    row.style.display = (status === 'all' || row.dataset.status === status) ? 'flex' : 'none'
+  applySmpFilters()
+}
+
+function filterSampleDivision(div, btn) {
+  smpDivFilter = div
+  document.querySelectorAll('#smp-div-tabs button').forEach(b => {
+    b.classList.remove('active')
+    b.style.background = 'none'
+    b.style.color = 'var(--text-2)'
   })
+  btn.classList.add('active')
+  btn.style.background = 'var(--surface2)'
+  btn.style.color = 'var(--text)'
+  applySmpFilters()
 }
 
 /* ── SAMPLE RECORD (full detail page) ── */
