@@ -3237,6 +3237,7 @@
       <div class="mod-scope" data-scope="almacen">
         <span class="s-label" style="margin-top:0.5rem">Almacén</span>
         <button class="nav-item" id="nav-dispatch-queue" data-tip="Cola de despacho" style="--item-color:#9c6b1f" onclick="showDispatchQueue()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
+        <button class="nav-item" id="nav-wh-inventory" data-tip="Inventario" style="--item-color:#9c6b1f" onclick="showWarehouseInventory()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Inventario</span></button>
       </div>
       <div class="mod-scope" data-scope="talento_humano">
         <span class="s-label" style="margin-top:0.5rem">Talento Humano</span>
@@ -8003,6 +8004,13 @@ const MODULES = {
         icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
         run: 'showDispatchQueue',
       },
+      {
+        id: 'inventario',
+        label: 'Inventario',
+        desc: 'Existencias, rotación y movimientos en todas las ubicaciones',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        run: 'showWarehouseInventory',
+      },
     ],
   },
   administracion: {
@@ -12754,6 +12762,100 @@ async function submitInvMove() {
   loadPdInventory(p)
 }
 
+/* ── WAREHOUSE INVENTORY OVERVIEW — Almacén's own screen. Was a tab inside
+   Insights (shared with Muestras); moved here since the data (stock levels,
+   turnover, fast/slow movers) is warehouse's, not customer service's. ── */
+function renderInventoryOverview(D, P) {
+  const pname = id => D.productById[id]?.name || '—'
+  const pdiv = id => D.productById[id]?.division
+  const locName = id => D.locations.find(l => l.id === id)?.name || '—'
+  const availBy = keyFn => {
+    const m = {}
+    D.stocks.forEach(s => { const k = keyFn(s); if (k) m[k] = (m[k] || 0) + (s.qty - s.reserved) })
+    return Object.entries(m).sort((a, b) => b[1] - a[1])
+  }
+  const low = D.stocks.filter(s => s.min_qty > 0 && (s.qty - s.reserved) <= s.min_qty && (s.qty - s.reserved) > 0)
+  const out = D.stocks.filter(s => (s.qty - s.reserved) <= 0)
+  const moved = insCount(D.movements.filter(m => insIn(m, P) && ['dispatched','picked'].includes(m.movement_type)), m => pname(m.product_id))
+  const requestedIds = new Set(D.samples.map(s => s.product_id))
+  const never = D.products.filter(p => !requestedIds.has(p.id))
+  const stockedIds = new Set(D.stocks.filter(s => s.qty - s.reserved > 0).map(s => s.product_id))
+  const reqButUnavailable = [...requestedIds].filter(id => D.productById[id] && D.stocks.some(s => s.product_id === id) && !stockedIds.has(id))
+  const totalAvail = D.stocks.reduce((t, s) => t + s.qty - s.reserved, 0)
+  const dispatched = D.movements.filter(m => insIn(m, P) && m.movement_type === 'dispatched').reduce((t, m) => t + m.qty, 0)
+  return `<div class="ins-grid">
+      ${insCard('Low inventory', low.length, 'formats below minimum')}
+      ${insCard('Out of stock', out.length, 'formats at zero')}
+      ${insCard('Inventory turnover', totalAvail ? (dispatched / totalAvail * 100).toFixed(0) + '%' : '—', `dispatched vs stock · ${P}d`)}
+      ${insCard('Requested, unavailable', reqButUnavailable.length, 'demand without stock')}
+      ${insCard('Never requested', never.length, 'products with zero requests')}
+    </div>
+    <div class="ins-cols">
+      ${insList('Inventory by location', availBy(s => locName(s.location_id)))}
+      ${insList('Inventory by division', availBy(s => DIV_LBL[pdiv(s.product_id)] || '—'))}
+      ${insList('Inventory by format', availBy(s => s.format))}
+      ${insList('Fast moving', moved, { click: "insOpenProduct('%K%')" })}
+      ${insList('Slow moving (stocked, no dispatches)', availBy(s => stockedIds.has(s.product_id) && !moved.some(([k]) => k === pname(s.product_id)) ? pname(s.product_id) : null), { click: "insOpenProduct('%K%')" })}
+    </div>`
+}
+
+let _whInvPeriod = 30
+async function showWarehouseInventory() {
+  syncModule('almacen')
+  document.getElementById('div-toolbar').style.display = 'none'
+  leaveView()
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+  document.getElementById('nav-wh-inventory').classList.add('active')
+  document.getElementById('tb-section').textContent = 'Inventario'
+  document.getElementById('product-controls').style.display = 'none'
+  document.getElementById('sec-title').textContent = 'Inventario'
+  document.getElementById('sec-sub').textContent = 'Existencias, rotación y movimientos en todas las ubicaciones'
+
+  const pg = document.getElementById('pg')
+  pg.style.display = 'block'
+  pg.innerHTML = `
+    <div class="srd-card" style="margin-bottom:1.5rem;max-width:480px">
+      <label style="display:block;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-3);margin-bottom:0.4rem">Registrar movimiento</label>
+      <input type="text" id="wh-inv-search" class="tl-search" style="width:100%" placeholder="Buscar producto por nombre o código…" oninput="whInvSearchProducts(this.value)" />
+      <div id="wh-inv-search-results"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:0.85rem">
+      <select class="grant-sel" onchange="whInvSetPeriod(this.value)">
+        ${[[7,'7 días'],[30,'30 días'],[90,'90 días'],[365,'12 meses']].map(([v, l]) => `<option value="${v}" ${_whInvPeriod === v ? 'selected' : ''}>${l}</option>`).join('')}
+      </select>
+    </div>
+    <div id="wh-inv-body"><div class="empty"><div class="empty-icon">⌛</div><p>Cargando…</p></div></div>`
+
+  const D = await insightsData()
+  document.getElementById('wh-inv-body').innerHTML = renderInventoryOverview(D, _whInvPeriod)
+}
+async function whInvSetPeriod(v) {
+  _whInvPeriod = parseInt(v, 10)
+  const D = await insightsData()
+  document.getElementById('wh-inv-body').innerHTML = renderInventoryOverview(D, _whInvPeriod)
+}
+let _whInvSearchTimer = null
+function whInvSearchProducts(q) {
+  clearTimeout(_whInvSearchTimer)
+  _whInvSearchTimer = setTimeout(() => _whInvSearchRun(q.trim()), 200)
+}
+async function _whInvSearchRun(q) {
+  const el = document.getElementById('wh-inv-search-results')
+  if (!el) return
+  if (!q) { el.innerHTML = ''; return }
+  const { data } = await sb.from('products').select('id,name,code,division')
+    .or(`name.ilike.%${q}%,code.ilike.%${q}%`).limit(8)
+  const matches = (data || []).filter(lifecycleVisible)
+  el.innerHTML = matches.map(p => {
+    const c = DIV_CLR[p.division] || '#aaa'
+    return `<div class="rel-result" onclick="navToProduct('${p.id}')">
+      <span class="rel-result-icon" style="color:${c};background:${c}12;border-color:${c}24">${DIV_ICON[p.division] || DIV_ICON.all}</span>
+      <span class="rel-result-name">${esc(p.name)}</span>
+      <span class="rel-result-code">${esc(p.code || '')}</span>
+    </div>`
+  }).join('') || '<div style="font-size:0.74rem;color:var(--text-3);padding:0.4rem 0">Sin resultados.</div>'
+}
+
 /* ── INVENTORY DASHBOARD WIDGETS (reusable — Executive Dashboard later) ──
    renderInventoryWidget(key, container) mounts any of these anywhere. */
 const INV_WIDGETS = {
@@ -12926,11 +13028,10 @@ function insightsSections() {
   if (cs || isAdmin()) S.push('demand')
   if (cs || wh || isAdmin()) S.push('operations')
   if (cs || isAdmin()) S.push('customers', 'trends')
-  if (wh || isAdmin()) S.push('inventory')
   if (anyDiv || isAdmin()) S.push('health')
   return S
 }
-const INS_LABELS = { overview:'Overview', demand:'Demand', operations:'Operations', inventory:'Inventory', customers:'Customers', health:'Product Health', trends:'Trends' }
+const INS_LABELS = { overview:'Overview', demand:'Demand', operations:'Operations', customers:'Customers', health:'Product Health', trends:'Trends' }
 
 async function showInsights() {
   syncModule('muestras_productos')
@@ -13006,7 +13107,7 @@ async function renderInsSection() {
     html = `<div class="ins-grid">
       ${insCard('Pending dispatches', pending.length, urgent.length ? `${urgent.length} urgent` : 'all normal priority', "insSwitch('operations')")}
       ${insCard('Urgent collections', urgent.length, 'awaiting action', "insSwitch('operations')")}
-      ${insCard('Low sample inventory', lowStock.length, 'formats below minimum', "insSwitch('inventory')")}
+      ${insCard('Low sample inventory', lowStock.length, 'formats below minimum', "showWarehouseInventory()")}
       ${insCard('Products missing info', missing.length, 'no image or no specs', "insSwitch('health')")}
       ${insCard('Waiting approval', D.collections.filter(c => c.status === 'requested').length, 'collections in queue', "insSwitch('operations')")}
       ${insCard('Avg dispatch time', insFmtH(dispatchH), `last ${P} days`)}
@@ -13057,38 +13158,6 @@ async function renderInsSection() {
     rows.push(['kpi','value'], ['avg dispatch h', insAvgHours(cAll, 'ready')?.toFixed(1) || ''], ['late', late.length], ['urgent', urgent.length])
   }
 
-  else if (_insSection === 'inventory') {
-    const locName = id => D.locations.find(l => l.id === id)?.name || '—'
-    const availBy = keyFn => {
-      const m = {}
-      D.stocks.forEach(s => { const k = keyFn(s); if (k) m[k] = (m[k] || 0) + (s.qty - s.reserved) })
-      return Object.entries(m).sort((a, b) => b[1] - a[1])
-    }
-    const low = D.stocks.filter(s => s.min_qty > 0 && (s.qty - s.reserved) <= s.min_qty && (s.qty - s.reserved) > 0)
-    const out = D.stocks.filter(s => (s.qty - s.reserved) <= 0)
-    const moved = insCount(D.movements.filter(m => insIn(m, P) && ['dispatched','picked'].includes(m.movement_type)), m => pname(m.product_id))
-    const requestedIds = new Set(D.samples.map(s => s.product_id))
-    const never = D.products.filter(p => !requestedIds.has(p.id))
-    const stockedIds = new Set(D.stocks.filter(s => s.qty - s.reserved > 0).map(s => s.product_id))
-    const reqButUnavailable = [...requestedIds].filter(id => D.productById[id] && D.stocks.some(s => s.product_id === id) && !stockedIds.has(id))
-    const totalAvail = D.stocks.reduce((t, s) => t + s.qty - s.reserved, 0)
-    const dispatched = D.movements.filter(m => insIn(m, P) && m.movement_type === 'dispatched').reduce((t, m) => t + m.qty, 0)
-    html = `<div class="ins-grid">
-      ${insCard('Low inventory', low.length, 'formats below minimum')}
-      ${insCard('Out of stock', out.length, 'formats at zero')}
-      ${insCard('Inventory turnover', totalAvail ? (dispatched / totalAvail * 100).toFixed(0) + '%' : '—', `dispatched vs stock · ${P}d`)}
-      ${insCard('Requested, unavailable', reqButUnavailable.length, 'demand without stock')}
-      ${insCard('Never requested', never.length, 'products with zero requests')}
-    </div>
-    <div class="ins-cols">
-      ${insList('Inventory by location', availBy(s => locName(s.location_id)))}
-      ${insList('Inventory by division', availBy(s => DIV_LBL[pdiv(s.product_id)] || '—'))}
-      ${insList('Inventory by format', availBy(s => s.format))}
-      ${insList('Fast moving', moved, { click: "insOpenProduct('%K%')" })}
-      ${insList('Slow moving (stocked, no dispatches)', availBy(s => stockedIds.has(s.product_id) && !moved.some(([k]) => k === pname(s.product_id)) ? pname(s.product_id) : null), { click: "insOpenProduct('%K%')" })}
-    </div>`
-    rows.push(['location','available'], ...availBy(s => locName(s.location_id)))
-  }
 
   else if (_insSection === 'customers') {
     const custSmps = _insQuery ? smps.filter(s => insMatch(s.customer)) : smps
