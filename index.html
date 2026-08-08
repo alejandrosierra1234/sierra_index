@@ -3600,6 +3600,36 @@
     <div class="modal-body" id="ws-invite-modal-body"></div>
   </div>
 </div>
+<!-- ══ MODAL: CREATE TEAM ACCOUNT ══ -->
+<div class="overlay" id="m-create-user">
+  <div class="modal" style="width:420px">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-eyebrow" style="color:var(--text-3)">Team</div>
+        <div class="modal-title">Crear cuenta</div>
+      </div>
+      <button class="btn-icon" onclick="closeModal('m-create-user')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg"><label>Nombre completo</label><input type="text" id="cu-name" placeholder="e.g. Margarita López" /></div>
+      <div class="fg"><label>Correo</label><input type="email" id="cu-email" placeholder="nombre@sierratextiles.com" /></div>
+      <div class="fg"><label>Rol inicial</label><select id="cu-role">
+        <option value="user" selected>User</option>
+        <option value="dispatcher">Dispatcher</option>
+        <option value="editor">Editor</option>
+        <option value="admin">Admin</option>
+      </select></div>
+      <p style="font-size:0.7rem;color:var(--text-3);margin:0">
+        Se le envía un correo de invitación para que defina su propia contraseña.
+        Los permisos por división se asignan después, desde esta misma pantalla.
+      </p>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('m-create-user')">Cancelar</button>
+      <button class="btn btn-primary btn-sm" id="cu-submit-btn" onclick="submitCreateUser()">Enviar invitación</button>
+    </div>
+  </div>
+</div>
 <!-- ══ SAMPLE CART ══ -->
 <div class="cart-backdrop" id="cart-backdrop" onclick="closeCart()"></div>
 <div class="cart-panel" id="cart-panel">
@@ -9062,6 +9092,12 @@ async function showUserManagement() {
   const domainOpts = AUTH_DOMAINS.map(d => `<option value="${d}">${domainLabel[d]}</option>`).join('')
 
   pg.innerHTML = `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:0.85rem">
+    <button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Crear cuenta
+    </button>
+  </div>
   <div style="overflow-x:auto">
     <table class="data-table" style="min-width:680px">
       <thead><tr><th>User</th><th>Email</th><th>Domain access</th><th>Legacy role</th></tr></thead>
@@ -9170,6 +9206,36 @@ async function revokeDomainGrants(uid, domain) {
   Audit.log('user', uid, null, 'permissions_updated', `Revoked ${domain.replace('_',' ')} access`,
     [{ field: domain, from: 'granted', to: 'revoked' }])
   toast(`Revoked ${domain.replace('_',' ')} access`)
+  showUserManagement()
+}
+
+function openCreateUserModal() {
+  document.getElementById('cu-name').value = ''
+  document.getElementById('cu-email').value = ''
+  document.getElementById('cu-role').value = 'user'
+  document.getElementById('m-create-user').classList.add('open')
+}
+async function submitCreateUser() {
+  const full_name = document.getElementById('cu-name').value.trim()
+  const email = document.getElementById('cu-email').value.trim()
+  const role = document.getElementById('cu-role').value
+  if (!full_name || !email) { toast('Nombre y correo son obligatorios'); return }
+
+  const btn = document.getElementById('cu-submit-btn')
+  btn.disabled = true
+  btn.textContent = 'Enviando…'
+  const { data, error } = await sb.functions.invoke('create-user', { body: { email, full_name, role } })
+  btn.disabled = false
+  btn.textContent = 'Enviar invitación'
+
+  if (error || data?.error) {
+    toast('No se pudo crear la cuenta: ' + (data?.error || error.message))
+    return
+  }
+  Audit.log('user', data.user.id, null, 'account_created', `Cuenta creada para ${email}`,
+    [{ field: 'email', from: '', to: email }])
+  toast(`Invitación enviada a ${email}`)
+  closeModal('m-create-user')
   showUserManagement()
 }
 
