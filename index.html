@@ -3234,6 +3234,10 @@
         <button class="nav-item" id="nav-req" data-tip="My requests" style="--item-color:#ffc529" onclick="showRequests()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M4 5h12M4 10h8M4 15h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-label">My requests</span></button>
         <button class="nav-item" id="nav-all-req" data-tip="All requests" style="--item-color:#ff7824;display:none" onclick="showAllRequests()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M4 5h12M4 10h12M4 15h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-label">All requests</span></button>
       </div>
+      <div class="mod-scope" data-scope="almacen">
+        <span class="s-label" style="margin-top:0.5rem">Almacén</span>
+        <button class="nav-item" id="nav-dispatch-queue" data-tip="Cola de despacho" style="--item-color:#9c6b1f" onclick="showDispatchQueue()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
+      </div>
       <div class="mod-scope" data-scope="talento_humano">
         <span class="s-label" style="margin-top:0.5rem">Talento Humano</span>
         <button class="nav-item" id="nav-gafetes" data-tip="Creador de Gafetes" style="--item-color:#9e00cb" onclick="showGafetes()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="4" y="2.5" width="12" height="15" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="8" r="2.2" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 14.5c0-1.7 1.6-2.7 3.5-2.7s3.5 1 3.5 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span class="nav-label">Gafetes</span></button>
@@ -7986,6 +7990,21 @@ const MODULES = {
       },
     ],
   },
+  almacen: {
+    label: 'Almacén',
+    domains: ['warehouse'],
+    color: '#9c6b1f',
+    icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+    tools: [
+      {
+        id: 'despacho',
+        label: 'Cola de despacho',
+        desc: 'Colecciones listas para verificar, excluir y despachar',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+        run: 'showDispatchQueue',
+      },
+    ],
+  },
   administracion: {
     label: 'Administración',
     domains: ['platform'],
@@ -11712,7 +11731,56 @@ async function loadProductById(id) {
    didn't. */
 let _dispatchCol = null, _dispatchItems = []
 
+/* ── DISPATCH QUEUE — every collection past customer-service handoff and
+   not yet ready/shipped, across all customers. Warehouse's entry point;
+   before this the only way in was a link handed off from inside one
+   specific collection ("Ir a Despacho"), with no way to see what's
+   waiting overall. ── */
+const DISPATCH_QUEUE_STATUSES = ['requested', 'approved', 'preparing']
+async function showDispatchQueue() {
+  syncModule('almacen')
+  document.getElementById('div-toolbar').style.display = 'none'
+  leaveView()
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+  document.getElementById('nav-dispatch-queue').classList.add('active')
+  document.getElementById('tb-section').textContent = 'Cola de despacho'
+  document.getElementById('product-controls').style.display = 'none'
+  document.getElementById('sec-title').textContent = 'Cola de despacho'
+  document.getElementById('sec-sub').textContent = 'Colecciones listas para verificar, excluir y despachar'
+
+  const pg = document.getElementById('pg')
+  pg.style.display = 'block'
+  pg.innerHTML = '<div class="empty"><div class="empty-icon">⌛</div><p>Cargando…</p></div>'
+
+  const { data: cols, error } = await sb.from('sample_collections')
+    .select('id,collection_id,name,customer,priority,status,created_at,requested_by')
+    .in('status', DISPATCH_QUEUE_STATUSES).order('created_at', { ascending: true })
+  if (error) { pg.innerHTML = `<div class="empty"><p>Error: ${esc(error.message)}</p></div>`; return }
+  if (!cols.length) { pg.innerHTML = '<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>No hay colecciones esperando despacho.</p></div>'; return }
+
+  const { data: items } = await sb.from('samples').select('collection_id, products(division)').in('collection_id', cols.map(c => c.id))
+  const divsByCol = {}
+  ;(items || []).forEach(i => { (divsByCol[i.collection_id] = divsByCol[i.collection_id] || []).push(i.products?.division) })
+
+  pg.innerHTML = `<div class="smp-list">${cols.map(c => {
+    const divs = [...new Set((divsByCol[c.id] || []).filter(Boolean))]
+    const date = new Date(c.created_at).toLocaleDateString('es-GT', { day:'2-digit', month:'short' })
+    return `<div class="smp-row" onclick="showDispatch('${c.id}')">
+      <div class="smp-row-id">${esc(c.collection_id)}</div>
+      <div class="smp-row-product">
+        <div class="smp-row-name">${esc(c.name || 'Colección sin nombre')}${c.customer ? ' · ' + esc(c.customer) : ''}</div>
+        <div class="smp-row-meta">${divs.map(d => `<span style="color:${DIV_CLR[d]||'#aaa'};font-weight:700;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em">${esc(DIV_LBL[d]||d)}</span>`).join(' · ') || 'Sin muestras'}${c.priority === 'urgent' ? ' · Urgente' : ''}</div>
+      </div>
+      <div class="smp-row-right">
+        ${smpBadge(c.status)}
+        <div class="smp-row-date">${date}</div>
+      </div>
+    </div>`
+  }).join('')}</div>`
+}
+
 async function showDispatch(collectionId) {
+  syncModule('almacen')
   document.getElementById('div-toolbar').style.display = 'none'
   document.getElementById('view-products').style.display = 'none'
   document.getElementById('view-dashboard').style.display = 'none'
