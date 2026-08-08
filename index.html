@@ -12923,7 +12923,9 @@ function insightsSections() {
   const cs = can('read', 'customer_service'), wh = can('read', 'warehouse') || can('dispatch', 'warehouse')
   const anyDiv = AUTH_DIVISIONS.some(d => can('write', d))
   if (cs || wh || anyDiv || isAdmin()) S.push('overview')
-  if (cs || isAdmin()) S.push('demand', 'operations', 'customers', 'trends')
+  if (cs || isAdmin()) S.push('demand')
+  if (cs || wh || isAdmin()) S.push('operations')
+  if (cs || isAdmin()) S.push('customers', 'trends')
   if (wh || isAdmin()) S.push('inventory')
   if (anyDiv || isAdmin()) S.push('health')
   return S
