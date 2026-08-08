@@ -960,6 +960,48 @@
     .data-table th { text-align:left; padding:0.45rem 0.9rem; font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); border-bottom:1px solid var(--border); }
     .data-table td { padding:0.8rem 0.9rem; border-bottom:1px solid var(--border); vertical-align:middle; }
     .data-table tr:last-child td { border-bottom:none; }
+
+    /* Team — Settings-style account list (replaces the old data-table) */
+    .team-list { border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--surface); }
+    .team-row {
+      display:flex; align-items:flex-start; gap:1.25rem; padding:1rem 1.15rem;
+      border-bottom:1px solid var(--border);
+    }
+    .team-row:last-child { border-bottom:none; }
+    .team-row-id { display:flex; align-items:center; gap:0.65rem; flex:0 0 220px; min-width:0; }
+    .team-avatar {
+      width:34px; height:34px; border-radius:50%; background:var(--accent); color:#fff;
+      font-size:0.7rem; font-weight:700; display:flex; align-items:center; justify-content:center;
+      flex-shrink:0; letter-spacing:0.02em;
+    }
+    .team-row-who { min-width:0; }
+    .team-row-name { font-size:0.85rem; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .team-row-you { font-size:0.68rem; font-weight:400; color:var(--text-3); }
+    .team-row-email { font-size:0.72rem; color:var(--text-3); margin-top:0.1rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .team-row-access { flex:1; min-width:0; }
+    .team-chips { display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center; min-height:1.6rem; }
+    .team-chip {
+      display:inline-flex; align-items:center; gap:0.35rem; font-size:0.68rem; font-weight:600;
+      padding:0.24rem 0.35rem 0.24rem 0.65rem; border-radius:20px; background:var(--surface2);
+      border:1px solid var(--border); color:var(--text-2); white-space:nowrap;
+    }
+    .team-chip-revoke {
+      display:flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%;
+      border:none; background:none; color:var(--text-3); cursor:pointer; font-size:0.72rem; line-height:1; padding:0;
+      transition:background 0.12s, color 0.12s;
+    }
+    .team-chip-revoke:hover { background:rgba(192,57,43,0.12); color:#c0392b; }
+    .team-add-access { display:flex; gap:0.4rem; align-items:center; margin-top:0.55rem; flex-wrap:wrap; }
+    .team-row-role { flex:0 0 150px; text-align:right; }
+    .team-row-role-static { font-size:0.78rem; font-weight:600; color:var(--text-2); }
+    .team-row-role-note { font-size:0.62rem; color:var(--text-3); margin-top:0.15rem; }
+    .team-migration-note { font-size:0.72rem; color:var(--text-3); }
+    @media (max-width:760px) {
+      .team-row { flex-direction:column; gap:0.75rem; }
+      .team-row-id, .team-row-role { flex:1 1 auto; width:100%; }
+      .team-row-role { text-align:left; }
+    }
+
     .badge { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.66rem; font-weight:600; padding:0.22rem 0.6rem; border-radius:7px; white-space:nowrap; }
     .badge-pending  { background:rgba(255,197,41,0.13); color:#8a6d00; }
     .badge-approved { background:rgba(15,168,156,0.10); color:#0a7a72; }
@@ -3600,6 +3642,23 @@
     <div class="modal-body" id="ws-invite-modal-body"></div>
   </div>
 </div>
+<!-- ══ MODAL: CREATE TEAM ACCOUNT ══ -->
+<div class="overlay" id="m-create-user">
+  <div class="modal" style="width:420px">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-eyebrow" style="color:var(--text-3)" id="cu-eyebrow"></div>
+        <div class="modal-title" id="cu-title"></div>
+      </div>
+      <button class="btn-icon" onclick="closeModal('m-create-user')">✕</button>
+    </div>
+    <div class="modal-body" id="cu-modal-body"></div>
+    <div class="modal-ftr">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('m-create-user')" id="cu-cancel-btn"></button>
+      <button class="btn btn-primary btn-sm" id="cu-submit-btn" onclick="submitCreateUser()"></button>
+    </div>
+  </div>
+</div>
 <!-- ══ SAMPLE CART ══ -->
 <div class="cart-backdrop" id="cart-backdrop" onclick="closeCart()"></div>
 <div class="cart-panel" id="cart-panel">
@@ -3801,6 +3860,24 @@ const I18N = {
     'toast.profileSaved':'Profile saved', 'toast.passwordUpdated':'Password updated',
     'lifecycle.draft':'Draft', 'lifecycle.development':'Under Development', 'lifecycle.available':'Available',
     'lifecycle.reserved':'Reserved', 'lifecycle.discontinued':'Discontinued', 'lifecycle.archived':'Archived',
+    'team.title':'Team', 'team.subtitle':'Manage domain access for every account',
+    'team.createAccount':'Create account', 'team.noGrants':'No access granted',
+    'team.addAccess':'Add access', 'team.needsMigration':'Run the capability migration to manage access',
+    'team.legacyNote':'Domain access is the source of truth going forward. The legacy role keeps older behavior working during the transition and will be removed once every account has explicit access.',
+    'team.you':'you', 'team.role':'Role', 'team.revoke':'Revoke',
+    'team.level.viewer':'Viewer', 'team.level.editor':'Editor', 'team.level.owner':'Data Owner', 'team.level.admin':'Admin',
+    'team.role.admin':'Admin', 'team.role.editor':'Editor', 'team.role.dispatcher':'Dispatcher', 'team.role.user':'User',
+    'team.domain.fiber':'Fiber', 'team.domain.yarn':'Yarn', 'team.domain.fabric':'Fabric', 'team.domain.chemicals':'Chemicals',
+    'team.domain.garment':'Apparel', 'team.domain.warehouse':'Warehouse', 'team.domain.customer_service':'Customer Service',
+    'team.domain.talento_humano':'Talento Humano', 'team.domain.platform':'Platform',
+    'team.toast.granted':'Granted {domain} {level}', 'team.toast.revoked':'Revoked {domain} access',
+    'team.toast.revokeFailed':'Could not revoke access: {msg}', 'team.toast.roleFailed':'Could not update role: {msg}',
+    'team.modal.eyebrow':'Team', 'team.modal.title':'Create account', 'team.modal.fullName':'Full name',
+    'team.modal.fullNamePh':'e.g. Margarita López', 'team.modal.email':'Email', 'team.modal.emailPh':'name@sierratextiles.com',
+    'team.modal.initialRole':'Initial role', 'team.modal.note':'They get an email invite to set their own password. Domain access is assigned afterward, from this same screen.',
+    'team.modal.cancel':'Cancel', 'team.modal.submit':'Send invite', 'team.modal.sending':'Sending…',
+    'team.toast.required':'Name and email are required', 'team.toast.createFailed':'Could not create account: {msg}',
+    'team.toast.invited':'Invite sent to {email}',
   },
   es: {
     'nav.search':'Buscar…', 'nav.dashboard':'Panel', 'nav.styleGuide':'Guía de estilo', 'nav.divisions':'Divisiones',
@@ -3836,6 +3913,24 @@ const I18N = {
     'toast.profileSaved':'Perfil guardado', 'toast.passwordUpdated':'Contraseña actualizada',
     'lifecycle.draft':'Borrador', 'lifecycle.development':'En desarrollo', 'lifecycle.available':'Disponible',
     'lifecycle.reserved':'Reservado', 'lifecycle.discontinued':'Descontinuado', 'lifecycle.archived':'Archivado',
+    'team.title':'Equipo', 'team.subtitle':'Gestiona el acceso por división de cada cuenta',
+    'team.createAccount':'Crear cuenta', 'team.noGrants':'Sin acceso otorgado',
+    'team.addAccess':'Agregar acceso', 'team.needsMigration':'Corre la migración de permisos para gestionar accesos',
+    'team.legacyNote':'El acceso por división es la fuente de verdad a partir de ahora. El rol antiguo mantiene el comportamiento previo funcionando durante la transición, y se eliminará una vez que cada cuenta tenga acceso explícito.',
+    'team.you':'tú', 'team.role':'Rol', 'team.revoke':'Revocar',
+    'team.level.viewer':'Solo lectura', 'team.level.editor':'Editor', 'team.level.owner':'Propietario', 'team.level.admin':'Admin',
+    'team.role.admin':'Admin', 'team.role.editor':'Editor', 'team.role.dispatcher':'Despachador', 'team.role.user':'Usuario',
+    'team.domain.fiber':'Fibra', 'team.domain.yarn':'Hilo', 'team.domain.fabric':'Tela', 'team.domain.chemicals':'Químicos',
+    'team.domain.garment':'Confección', 'team.domain.warehouse':'Almacén', 'team.domain.customer_service':'Servicio al cliente',
+    'team.domain.talento_humano':'Talento Humano', 'team.domain.platform':'Plataforma',
+    'team.toast.granted':'Acceso otorgado: {domain} · {level}', 'team.toast.revoked':'Acceso revocado: {domain}',
+    'team.toast.revokeFailed':'No se pudo revocar el acceso: {msg}', 'team.toast.roleFailed':'No se pudo actualizar el rol: {msg}',
+    'team.modal.eyebrow':'Equipo', 'team.modal.title':'Crear cuenta', 'team.modal.fullName':'Nombre completo',
+    'team.modal.fullNamePh':'Ej. Margarita López', 'team.modal.email':'Correo', 'team.modal.emailPh':'nombre@sierratextiles.com',
+    'team.modal.initialRole':'Rol inicial', 'team.modal.note':'Se le envía un correo de invitación para que defina su propia contraseña. El acceso por división se asigna después, desde esta misma pantalla.',
+    'team.modal.cancel':'Cancelar', 'team.modal.submit':'Enviar invitación', 'team.modal.sending':'Enviando…',
+    'team.toast.required':'Nombre y correo son obligatorios', 'team.toast.createFailed':'No se pudo crear la cuenta: {msg}',
+    'team.toast.invited':'Invitación enviada a {email}',
   }
 }
 
@@ -5646,7 +5741,7 @@ function pickPdSelect(e, id, value, label, onChange) {
     e.currentTarget.classList.add('is-active')
   }
   closePdSelects()
-  if (onChange && typeof window[onChange] === 'function') window[onChange](value)
+  if (onChange && typeof window[onChange] === 'function') window[onChange](value, id)
 }
 window.addEventListener('resize', () => document.querySelectorAll('.pd-select.open input').forEach(i => positionPdSelect(i.id)))
 document.addEventListener('scroll', e => {
@@ -9030,16 +9125,19 @@ async function showAccessLogs() {
   </div>`
 }
 
+function domainLabel(d) { return tx('team.domain.' + d) }
+function roleLabel(r) { return tx('team.role.' + (r || 'user')) }
+
 async function showUserManagement() {
   syncModule('administracion')
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
   document.getElementById('nav-users').classList.add('active')
-  document.getElementById('tb-section').textContent = 'Team'
+  document.getElementById('tb-section').textContent = tx('team.title')
   document.getElementById('product-controls').style.display = 'none'
-  document.getElementById('sec-title').textContent = 'Team'
-  document.getElementById('sec-sub').textContent = 'Manage domain access for all users'
+  document.getElementById('sec-title').textContent = tx('team.title')
+  document.getElementById('sec-sub').textContent = tx('team.subtitle')
 
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
@@ -9049,70 +9147,59 @@ async function showUserManagement() {
     sb.from('profiles').select('id,full_name,email,role,created_at').order('created_at', { ascending: true }),
     sb.from('capability_grants').select('id,user_id,domain,capability,resource_id,expires_at'),
   ])
-  if (profRes.error) { pg.innerHTML = `<div class="empty"><p>Error: ${profRes.error.message}</p></div>`; return }
+  if (profRes.error) { pg.innerHTML = `<div class="empty"><p>Error: ${esc(profRes.error.message)}</p></div>`; return }
   const data = profRes.data
   if (!data.length) { pg.innerHTML = '<div class="empty"><p>No users yet.</p></div>'; return }
   // grants table may not be migrated yet — render legacy-only view in that case
   _teamGrants = grantRes.error ? null : (grantRes.data || []).filter(g => !g.resource_id)
 
-  const domainLabel = {
-    fiber:'Fiber', yarn:'Yarn', fabric:'Fabric', chemicals:'Chemicals', garment:'Apparel',
-    warehouse:'Warehouse', customer_service:'Customer Service', talento_humano:'Talento Humano', platform:'Platform',
-  }
-  const domainOpts = AUTH_DOMAINS.map(d => `<option value="${d}">${domainLabel[d]}</option>`).join('')
+  const domainOpts = AUTH_DOMAINS.map(d => ({ value: d, label: domainLabel(d) }))
+  const levelOpts = [
+    { value: 'viewer', label: tx('team.level.viewer') },
+    { value: 'editor', label: tx('team.level.editor') },
+    { value: 'owner', label: tx('team.level.owner') },
+  ]
+  const roleOpts = ['admin', 'editor', 'dispatcher', 'user'].map(r => ({ value: r, label: roleLabel(r) }))
 
   pg.innerHTML = `
-  <div style="overflow-x:auto">
-    <table class="data-table" style="min-width:680px">
-      <thead><tr><th>User</th><th>Email</th><th>Domain access</th><th>Legacy role</th></tr></thead>
-      <tbody>
-        ${data.map(u => {
-          const name = u.full_name || (u.email||'?').split('@')[0]
-          const initials = name[0].toUpperCase()
-          const isSelf = u.id === me?.id
-          return `<tr>
-            <td>
-              <div style="display:flex;align-items:center;gap:0.5rem">
-                <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${initials}</div>
-                <span style="font-size:0.82rem;font-weight:500">${esc(name)}${isSelf ? ' <span style="font-size:0.65rem;color:var(--text-3)">(you)</span>' : ''}</span>
-              </div>
-            </td>
-            <td style="font-size:0.78rem;color:var(--text-2)">${esc(u.email||'—')}</td>
-            <td>
-              ${_teamGrants === null
-                ? '<span style="font-size:0.72rem;color:var(--text-3)">Run the capability migration to manage grants</span>'
-                : `<div id="grants-${u.id}" style="display:flex;flex-wrap:wrap;gap:0.3rem;align-items:center">${renderGrantChips(u.id)}</div>
-                   <div style="display:flex;gap:0.3rem;margin-top:0.35rem;align-items:center">
-                     <select id="gd-${u.id}" class="grant-sel">${domainOpts}</select>
-                     <select id="gl-${u.id}" class="grant-sel">
-                       <option value="viewer">Viewer</option>
-                       <option value="editor">Editor</option>
-                       <option value="owner">Data Owner</option>
-                     </select>
-                     <button class="btn btn-ghost btn-sm" onclick="addGrant('${u.id}')">Add</button>
-                   </div>`}
-            </td>
-            <td>
-              <select class="role-select" data-uid="${u.id}" style="font-size:0.78rem;padding:0.3rem 0.5rem;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;cursor:pointer" ${isSelf ? 'disabled title="Cannot change your own role"' : ''}>
-                ${['admin','editor','dispatcher','user'].map(r => `<option value="${r}" ${(u.role||'user')===r?'selected':''}>${r.charAt(0).toUpperCase()+r.slice(1)}</option>`).join('')}
-              </select>
-            </td>
-          </tr>`
-        }).join('')}
-      </tbody>
-    </table>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:0.85rem">
+    <button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      ${tx('team.createAccount')}
+    </button>
   </div>
-  <p style="font-size:0.7rem;color:var(--text-3);margin-top:0.75rem;max-width:60ch">
-    Domain access is the source of truth going forward. The legacy role keeps
-    older behavior working during the transition and will be removed once every
-    user has explicit grants.
-  </p>`
-
-  pg.querySelectorAll('.role-select').forEach(sel => {
-    sel.addEventListener('change', async e => {
-      await setUserRole(e.target.dataset.uid, e.target.value)
-    })
-  })
+  <div class="team-list">
+    ${data.map(u => {
+      const name = u.full_name || (u.email||'?').split('@')[0]
+      const initials = name[0].toUpperCase()
+      const isSelf = u.id === me?.id
+      return `<div class="team-row">
+        <div class="team-row-id">
+          <div class="team-avatar">${esc(initials)}</div>
+          <div class="team-row-who">
+            <div class="team-row-name">${esc(name)}${isSelf ? ` <span class="team-row-you">(${tx('team.you')})</span>` : ''}</div>
+            <div class="team-row-email">${esc(u.email||'—')}</div>
+          </div>
+        </div>
+        <div class="team-row-access">
+          ${_teamGrants === null
+            ? `<span class="team-migration-note">${tx('team.needsMigration')}</span>`
+            : `<div class="team-chips" id="grants-${u.id}">${renderGrantChips(u.id)}</div>
+               <div class="team-add-access">
+                 ${pdSelect(`gd-${u.id}`, domainOpts, domainOpts[0]?.value || '', '', '', '')}
+                 ${pdSelect(`gl-${u.id}`, levelOpts, 'viewer', '', '', '')}
+                 <button class="btn btn-ghost btn-sm" onclick="addGrant('${u.id}')">${tx('team.addAccess')}</button>
+               </div>`}
+        </div>
+        <div class="team-row-role">
+          ${isSelf
+            ? `<div class="team-row-role-static">${esc(roleLabel(u.role))}</div><div class="team-row-role-note">${tx('team.role')}</div>`
+            : pdSelect(`role-${u.id}`, roleOpts, u.role || 'user', '', 'teamRoleChanged')}
+        </div>
+      </div>`
+    }).join('')}
+  </div>
+  <p class="team-migration-note" style="margin-top:0.85rem;max-width:60ch">${tx('team.legacyNote')}</p>`
 }
 
 /* Grants management (Team screen). Levels expand to capability bundles —
@@ -9129,9 +9216,9 @@ function bundleCaps(domain, level) {
   return level === 'owner' ? ['read','write','delete','publish','grant'] : level === 'editor' ? ['read','write','publish'] : ['read']
 }
 function grantLevelOf(caps) {
-  if (caps.includes('grant')) return 'Data Owner'
-  if (caps.includes('write') || caps.includes('dispatch') || caps.includes('admin')) return 'Editor'
-  return 'Viewer'
+  if (caps.includes('grant')) return tx('team.level.owner')
+  if (caps.includes('write') || caps.includes('dispatch') || caps.includes('admin')) return tx('team.level.editor')
+  return tx('team.level.viewer')
 }
 function renderGrantChips(uid) {
   const byDomain = {}
@@ -9139,12 +9226,12 @@ function renderGrantChips(uid) {
     (byDomain[g.domain] = byDomain[g.domain] || []).push(g.capability)
   })
   const domains = Object.keys(byDomain)
-  if (!domains.length) return '<span style="font-size:0.72rem;color:var(--text-3)">No grants</span>'
+  if (!domains.length) return `<span class="team-migration-note">${tx('team.noGrants')}</span>`
   return domains.map(d => {
-    const lvl = d === 'platform' && byDomain[d].includes('admin') ? 'Admin' : grantLevelOf(byDomain[d])
-    return `<span style="display:inline-flex;align-items:center;gap:0.3rem;font-size:0.68rem;font-weight:600;padding:0.2rem 0.5rem;border-radius:20px;background:var(--surface2);border:1px solid var(--border)" title="${byDomain[d].join(', ')}">
-      ${d.replace('_',' ')} · ${lvl}
-      <button onclick="revokeDomainGrants('${uid}','${d}')" title="Revoke" style="border:none;background:none;color:var(--text-3);cursor:pointer;font-size:0.75rem;line-height:1;padding:0">×</button>
+    const lvl = d === 'platform' && byDomain[d].includes('admin') ? tx('team.level.admin') : grantLevelOf(byDomain[d])
+    return `<span class="team-chip" title="${esc(byDomain[d].join(', '))}">
+      ${esc(domainLabel(d))} · ${esc(lvl)}
+      <button class="team-chip-revoke" onclick="revokeDomainGrants('${uid}','${d}')" title="${esc(tx('team.revoke'))}">×</button>
     </span>`
   }).join('')
 }
@@ -9161,22 +9248,63 @@ async function addGrant(uid) {
   }
   Audit.log('user', uid, null, 'permissions_updated', `Granted ${domain.replace('_',' ')} ${level}`,
     [{ field: domain, from: '', to: level }])
-  toast(`Granted ${domain.replace('_',' ')} ${level}`)
+  toast(tx('team.toast.granted', { domain: domainLabel(domain), level: grantLevelOf(bundleCaps(domain, level)) }))
   showUserManagement()
 }
 async function revokeDomainGrants(uid, domain) {
   const { error } = await sb.from('capability_grants').delete().eq('user_id', uid).eq('domain', domain).is('resource_id', null)
-  if (error) { toast('Failed to revoke: ' + error.message); return }
+  if (error) { toast(tx('team.toast.revokeFailed', { msg: error.message })); return }
   Audit.log('user', uid, null, 'permissions_updated', `Revoked ${domain.replace('_',' ')} access`,
     [{ field: domain, from: 'granted', to: 'revoked' }])
-  toast(`Revoked ${domain.replace('_',' ')} access`)
+  toast(tx('team.toast.revoked', { domain: domainLabel(domain) }))
   showUserManagement()
 }
 
+function openCreateUserModal() {
+  document.getElementById('cu-eyebrow').textContent = tx('team.modal.eyebrow')
+  document.getElementById('cu-title').textContent = tx('team.modal.title')
+  document.getElementById('cu-cancel-btn').textContent = tx('team.modal.cancel')
+  document.getElementById('cu-submit-btn').textContent = tx('team.modal.submit')
+  const roleOpts = ['user', 'dispatcher', 'editor', 'admin'].map(r => ({ value: r, label: roleLabel(r) }))
+  document.getElementById('cu-modal-body').innerHTML = `
+    <div class="fg"><label>${tx('team.modal.fullName')}</label><input type="text" id="cu-name" placeholder="${escAttr(tx('team.modal.fullNamePh'))}" /></div>
+    <div class="fg"><label>${tx('team.modal.email')}</label><input type="email" id="cu-email" placeholder="${escAttr(tx('team.modal.emailPh'))}" /></div>
+    <div class="fg"><label>${tx('team.modal.initialRole')}</label>${pdSelect('cu-role', roleOpts, 'user')}</div>
+    <p style="font-size:0.7rem;color:var(--text-3);margin:0">${tx('team.modal.note')}</p>`
+  document.getElementById('m-create-user').classList.add('open')
+}
+async function submitCreateUser() {
+  const full_name = document.getElementById('cu-name').value.trim()
+  const email = document.getElementById('cu-email').value.trim()
+  const role = document.getElementById('cu-role').value
+  if (!full_name || !email) { toast(tx('team.toast.required')); return }
+
+  const btn = document.getElementById('cu-submit-btn')
+  btn.disabled = true
+  btn.textContent = tx('team.modal.sending')
+  const { data, error } = await sb.functions.invoke('create-user', { body: { email, full_name, role } })
+  btn.disabled = false
+  btn.textContent = tx('team.modal.submit')
+
+  if (error || data?.error) {
+    toast(tx('team.toast.createFailed', { msg: data?.error || error.message }))
+    return
+  }
+  Audit.log('user', data.user.id, null, 'account_created', `Account created for ${email}`,
+    [{ field: 'email', from: '', to: email }])
+  toast(tx('team.toast.invited', { email }))
+  closeModal('m-create-user')
+  showUserManagement()
+}
+
+async function teamRoleChanged(role, id) {
+  const userId = id.replace(/^role-/, '')
+  await setUserRole(userId, role)
+}
 async function setUserRole(userId, role) {
   const { error } = await sb.from('profiles').update({ role }).eq('id', userId)
   if (error) {
-    alert('Failed to update role: ' + error.message)
+    toast(tx('team.toast.roleFailed', { msg: error.message }))
     showUserManagement()
     return
   }
