@@ -3218,7 +3218,6 @@
       </div>
 
       <button class="nav-item" id="nav-dash" data-tip="Dashboard" style="--item-color:#16cdbe" onclick="showDashboard()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3L3 8.5V17h5v-4h4v4h5V8.5L10 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Dashboard</span></button>
-      <button class="nav-item" id="nav-styleguide" data-tip="Style Guide" style="--item-color:#16cdbe" onclick="showStyleGuide()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M5 4h8.5A1.5 1.5 0 0 1 15 5.5V16H6.5A1.5 1.5 0 0 1 5 14.5V4Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 7h4M8 10h4M8 13h2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Style Guide</span></button>
       <div class="mod-scope" data-scope="muestras_productos">
         <span class="s-label" style="margin-top:0.5rem">Divisions</span>
         <button class="nav-item" id="nav-all" data-tip="All products" style="--item-color:#009fff" onclick="setDiv('all',this)"><span class="n-icon" id="icon-all"></span><span class="nav-label">All products</span></button>
@@ -3243,6 +3242,7 @@
         <span class="s-label" style="margin-top:0.5rem">Administración</span>
         <button class="nav-item" id="nav-logs" data-tip="Access logs" style="--item-color:#e80000" onclick="showAccessLogs()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M10 6v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Access logs</span></button>
         <button class="nav-item" id="nav-users" data-tip="Team" style="--item-color:#9e00cb" onclick="showUserManagement()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 17c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M15 6v4M17 8h-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Team</span></button>
+        <button class="nav-item" id="nav-styleguide" data-tip="Style Guide" style="--item-color:#16cdbe" onclick="showStyleGuide()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M5 4h8.5A1.5 1.5 0 0 1 15 5.5V16H6.5A1.5 1.5 0 0 1 5 14.5V4Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 7h4M8 10h4M8 13h2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Style Guide</span></button>
       </div>
       <div class="sidebar-spacer"></div>
       <div class="sidebar-bottom">
@@ -3794,6 +3794,32 @@ const SB_KEY = 'sb_publishable_9g8UJRbV3NxOlmQgPxjDqg_Xw6hFB0f'
 const sb = supabase.createClient(SB_URL, SB_KEY)
 
 const DIV_CLR = { fiber:'#7b2fa6', yarn:'#2e9e1f', fabric:'#0071e3', chemicals:'#d4601a', garment:'#0f9d90' }
+
+/* Per-person avatar color — deterministic pick from the brand palette so the
+   same person always lands on the same color (stable across renders/reloads),
+   not visually random per paint. Text color flips for contrast per swatch. */
+const AVATAR_PALETTE = [
+  '#efefaf','#c4c412','#827e00','#cffffb','#16cdbe','#007d73',
+  '#d1ffbe','#3ed600','#2a9200','#c5e9ff','#009fff','#004a86',
+  '#f6d8ff','#9e00cb','#670084','#fff0af','#ffc529','#bb9800',
+  '#ffe3d2','#ff7824','#cd4f00','#ffc7c7','#e80000','#b40b0b',
+]
+function avatarTextColor(hex) {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16)
+  return (0.299*r + 0.587*g + 0.114*b) / 255 > 0.6 ? '#0b0b0b' : '#ffffff'
+}
+function avatarColor(seed) {
+  const s = String(seed || '')
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+  const bg = AVATAR_PALETTE[h % AVATAR_PALETTE.length]
+  return { bg, fg: avatarTextColor(bg) }
+}
+function avatarStyle(seed) {
+  const { bg, fg } = avatarColor(seed)
+  return `background:${bg};color:${fg}`
+}
 const DIV_ACCENT = {
   all:       { accent:'#0f9d90', dark:'#0c7d73', light:'rgba(15,157,144,0.08)' },
   fiber:     { accent:'#7b2fa6', dark:'#612485', light:'rgba(123,47,166,0.08)' },
@@ -4332,6 +4358,7 @@ async function enterApp(user) {
     sbAv.innerHTML = `<img src="${p.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
   } else {
     sbAv.textContent = initials
+    sbAv.setAttribute('style', sbAv.getAttribute('style') + ';' + avatarStyle(user.id))
   }
   document.getElementById('sb-nm').textContent = name
   document.getElementById('sb-role').textContent = roleLabel
@@ -7080,6 +7107,7 @@ const NEWS_SOURCES_CFG = [
 ]
 
 function showStyleGuide() {
+  syncModule('administracion')
   sessionStorage.setItem('sierra_route', 'style-guide')
   document.getElementById('div-toolbar').style.display = 'none'
   closeDrawer()
@@ -7144,6 +7172,13 @@ function showStyleGuide() {
             <div class="sg-swatch"><div class="sg-swatch-chip" style="background:#009fff"></div><div class="sg-swatch-body"><div class="sg-swatch-name">Fiber</div><div class="sg-swatch-val">#009fff</div></div></div>
             <div class="sg-swatch"><div class="sg-swatch-chip" style="background:#9e00cb"></div><div class="sg-swatch-body"><div class="sg-swatch-name">Yarn</div><div class="sg-swatch-val">#9e00cb</div></div></div>
             <div class="sg-swatch"><div class="sg-swatch-chip" style="background:#ff7824"></div><div class="sg-swatch-body"><div class="sg-swatch-name">Chemicals</div><div class="sg-swatch-val">#ff7824</div></div></div>
+          </div>
+
+          <div class="sg-canvas" style="margin-top:0.8rem">
+            <div class="sg-canvas-label">Avatar palette — AVATAR_PALETTE, deterministic per person</div>
+            <div class="sg-swatches">
+              ${AVATAR_PALETTE.map(hex => `<div class="sg-swatch"><div class="sg-swatch-chip" style="background:${hex}"></div><div class="sg-swatch-body"><div class="sg-swatch-name" style="font-family:monospace;font-weight:600">${hex}</div></div></div>`).join('')}
+            </div>
           </div>
 
           <div class="sg-canvas" style="margin-top:0.8rem">
@@ -7571,14 +7606,15 @@ function showStyleGuide() {
           </div>
           <div class="sg-canvas">
             <div class="sg-demo-row" style="align-items:center">
-              <span class="u-avatar" style="cursor:default">AT</span>
-              <span class="u-avatar" style="width:40px;height:40px;font-size:0.78rem;cursor:default">AT</span>
-              <span class="profile-avatar-lg" style="width:64px;height:64px;font-size:1.2rem;cursor:default">AT</span>
+              <span class="u-avatar" style="cursor:default;${avatarStyle('Alejandro Torres')}">AT</span>
+              <span class="u-avatar" style="width:40px;height:40px;font-size:0.78rem;cursor:default;${avatarStyle('Margarita López')}">ML</span>
+              <span class="profile-avatar-lg" style="width:64px;height:64px;font-size:1.2rem;cursor:default;${avatarStyle('Gina Ramírez')}">GR</span>
+              <span class="u-avatar" style="width:40px;height:40px;font-size:0.78rem;cursor:default;${avatarStyle('Olga Sánchez')}">OS</span>
             </div>
           </div>
           <div class="sg-usage">
-            <div class="sg-use"><b>Use</b>Circle, photo cover-fit or two-letter initials on a solid fill (accent for self, neutral for others). Sizes: 28 chrome, 40 lists/comments, 88 profile.</div>
-            <div class="sg-nouse"><b>Don't</b>Use squares, random per-user rainbow fills, or avatars as the only author identification — pair with a name.</div>
+            <div class="sg-use"><b>Use</b>Circle, photo cover-fit or two-letter initials on a solid fill from the brand palette (avatarColor(id) — deterministic per person, same color every render/reload). Text flips black/white per swatch for contrast. Sizes: 28 chrome, 40 lists/comments, 88 profile.</div>
+            <div class="sg-nouse"><b>Don't</b>Use squares, re-roll the color on every render (it must stay stable per person), use division colors for identity, or use avatars as the only author identification — pair with a name.</div>
           </div>
         </section>
 
@@ -7969,6 +8005,13 @@ const MODULES = {
         desc: 'Historial de accesos a la plataforma',
         icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M10 6v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
         run: 'showAccessLogs',
+      },
+      {
+        id: 'styleguide',
+        label: 'Style Guide',
+        desc: 'Referencia de componentes, color y tipografía de la plataforma',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M5 4h8.5A1.5 1.5 0 0 1 15 5.5V16H6.5A1.5 1.5 0 0 1 5 14.5V4Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 7h4M8 10h4M8 13h2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+        run: 'showStyleGuide',
       },
     ],
   },
@@ -9104,7 +9147,7 @@ async function showAccessLogs() {
             </td>
             <td>
               <div style="display:flex;align-items:center;gap:0.5rem">
-                <div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:0.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${initials}</div>
+                <div style="width:24px;height:24px;border-radius:50%;${avatarStyle(r.user_id || r.email)};font-size:0.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${initials}</div>
                 <div>
                   <div style="font-size:0.78rem;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.email||'—'}</div>
                   <div style="font-size:0.65rem;color:var(--text-3)">${byUser[r.email]||1} visit${byUser[r.email]>1?'s':''}</div>
@@ -9175,7 +9218,7 @@ async function showUserManagement() {
       const isSelf = u.id === me?.id
       return `<div class="team-row">
         <div class="team-row-id">
-          <div class="team-avatar">${esc(initials)}</div>
+          <div class="team-avatar" style="${avatarStyle(u.id)}">${esc(initials)}</div>
           <div class="team-row-who">
             <div class="team-row-name">${esc(name)}${isSelf ? ` <span class="team-row-you">(${tx('team.you')})</span>` : ''}</div>
             <div class="team-row-email">${esc(u.email||'—')}</div>
@@ -9365,6 +9408,8 @@ function openProfile() {
   document.getElementById('prof-display-name').textContent = name || me?.email?.split('@')[0] || '–'
   document.getElementById('prof-email-display').textContent = me?.email || ''
   document.getElementById('prof-av-init').textContent = initials
+  const profAvLg = document.getElementById('prof-av-lg')
+  profAvLg.setAttribute('style', (profAvLg.getAttribute('style') || '') + ';' + avatarStyle(me?.id))
   document.getElementById('prof-pw1').value = ''
   document.getElementById('prof-pw2').value = ''
   pendingAvatarFile = null
@@ -9426,9 +9471,9 @@ async function saveProfile() {
   const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
   const imgHtml = avatar_url ? `<img src="${avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : null
   const uav = document.getElementById('u-av')
-  if (uav) { uav.innerHTML = imgHtml || ''; if (!imgHtml) uav.textContent = initials }
+  if (uav) { uav.innerHTML = imgHtml || ''; if (!imgHtml) { uav.textContent = initials; uav.setAttribute('style', avatarStyle(me.id)) } }
   const sbAv = document.getElementById('sb-av')
-  if (sbAv) { sbAv.innerHTML = imgHtml || ''; if (!imgHtml) sbAv.textContent = initials }
+  if (sbAv) { sbAv.innerHTML = imgHtml || ''; if (!imgHtml) { sbAv.textContent = initials; sbAv.setAttribute('style', sbAv.getAttribute('style') + ';' + avatarStyle(me.id)) } }
   const sbNm = document.getElementById('sb-nm')
   if (sbNm) sbNm.textContent = name
   const dn = document.getElementById('prof-display-name')
@@ -10690,7 +10735,7 @@ async function colhRenderGrid(mine) {
           ${commentCount ? `<span class="colh-comment-chip"><svg width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M3 4h14v9H8l-4 4V4z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>${commentCount}</span>` : ''}
         </div>
         <div class="colh-avatars">
-          ${uniquePeople.slice(0,4).map(p => `<div class="colh-avatar" title="${esc(p?.full_name||p?.email||'')}">${p?.avatar_url ? `<img src="${esc(p.avatar_url)}" alt="" />` : (p?.full_name||p?.email||'?')[0].toUpperCase()}</div>`).join('')}
+          ${uniquePeople.slice(0,4).map(p => `<div class="colh-avatar" title="${esc(p?.full_name||p?.email||'')}" style="${p?.avatar_url ? '' : avatarStyle(p?.id || p?.email)}">${p?.avatar_url ? `<img src="${esc(p.avatar_url)}" alt="" />` : (p?.full_name||p?.email||'?')[0].toUpperCase()}</div>`).join('')}
         </div>
       </div>
     </button>`
@@ -11068,7 +11113,7 @@ function wsAvatarHtml(person) {
   const initials = (person?.full_name || person?.email || '?')[0].toUpperCase()
   return person?.avatar_url
     ? `<div class="ws-avatar" title="${label}"><img src="${esc(person.avatar_url)}" alt="" /></div>`
-    : `<div class="ws-avatar" title="${label}">${initials}</div>`
+    : `<div class="ws-avatar" title="${label}" style="${avatarStyle(person?.id || person?.email)}">${initials}</div>`
 }
 
 /* ── Popovers ("more" menu, per-item price) share one open/close
