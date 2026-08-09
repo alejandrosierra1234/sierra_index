@@ -62,8 +62,10 @@ in the Samples fulfillment screens; do not reintroduce it.
 | `--section-gap` | 24px (`--sp-5`) | vertical rhythm between page sections |
 | `--panel-gap` | 16px (`--sp-4`) | spacing between stacked panels/rows |
 | `--context-pane-width` | 340px | ContextPane fixed column width |
-| `--control-h-sm` | 2rem | compact toolbar controls |
-| `--control-h-md` | 2.5rem | standard buttons/inputs |
+| `--control-h` | 36px | **THE** control height — see §24 |
+| `--control-h-sm` | 32px | compact secondary contexts only |
+| `--control-h-lg` | 40px | full-width form submits / modal footers |
+| `--control-h-md` | alias of `--control-h` | legacy name |
 | `--panel-radius` / `--panel-border` / `--panel-padding` | `--r-md` / `1px solid var(--border)` / `1.25rem 1.4rem` | `.panel` |
 
 These sit alongside the pre-existing scales already used throughout
@@ -213,20 +215,16 @@ panels.
 
 ## 9. Buttons
 
-Already standardized app-wide via `.btn` + modifiers — reuse, don't
-recreate:
+See **§23 Button hierarchy** for the full contract. Summary: four
+variants (`.btn-primary`, `.btn-secondary`, `.btn-ghost`,
+`.btn-danger`), one height (`--control-h`, 36px), one radius, one type
+size. A button never sets its own height.
 
-- Types: `.btn-primary`, `.btn-ghost`, (destructive = `.btn-ghost` with
-  `color:var(--danger)`, as used for Exclude/Archive actions)
-- Sizes: default and `.btn-sm`
-- Heights come from `--control-h-md` (toolbar/sticky-bar buttons,
-  40px) and `--control-h-sm` (inline table/row actions, 32px) — don't
-  pick a one-off height per screen.
-
-Primary action placement: **top-right of the PageHeader** for
-navigational/creation actions ("Create collection"), or **the
-WorkflowActionBar** for a workflow's next step. Never place a lone
-primary button floating under a table with no bar around it.
+Primary action placement: **the ObjectHeader's action group** on a
+record screen, **top-right of the PageHeader** for navigational/creation
+actions ("Create collection"), or **the WorkflowActionBar** for a
+workflow's next step. Never place a lone primary button floating under a
+table with no bar around it. One primary per screen.
 
 ## 10. WorkflowActionBar
 
@@ -458,13 +456,12 @@ list, reach for `overflowMenuHtml()` first.
 
 ## 13. Form controls
 
-Inputs/selects share one look app-wide: `1px solid var(--border)`,
-`var(--surface2)` background, `var(--r-sm)` radius, `0.76–0.85rem`
-font. Compact toolbar controls (`.page-toolbar input`,
-`.page-toolbar select`) are `--control-h-sm` (32px); standalone form
-fields elsewhere in the app run slightly taller — don't shrink those
-to match a toolbar, and don't stretch toolbar controls to match a
-form.
+Inputs/selects share one look app-wide. A control that can sit next to
+a button — `.control-input` (alias `.tl-search`), `.pd-select`,
+`.completeness-control`, `.icon-btn` — is `--control-h` tall with a
+`--border-strong` border, `--control-radius` corners and 14px type. See
+**§24 Control heights**. Compact contexts (`.page-toolbar`, table rows,
+popovers) use `--control-h-sm`, and never mix the two in one group.
 
 ## 14. Responsive rules
 
@@ -693,325 +690,325 @@ currency/unit columns exist on `products` yet), so it's shown verbatim
 rather than reformatted into a fabricated canonical `$X / lb` string —
 do that reformatting once pricing becomes structured data, not before.
 
-## 19. Product detail — identity/media proportion fix (superseded by §20)
 
-Historical record of an earlier, smaller pass — kept for context. The
-`.pd-layout`/`.pd-identity-col`/`.pd-specs-col`/`.pd-panel`/`.pd-row`/
-`.pd-k`/`.pd-v`/`.pd-complete*` classes it describes were replaced
-outright in §20's ERP master-record rebuild; none of them exist in
-the codebase anymore. Read §20 for the current architecture.
+## 19. Typography & text contrast
 
-`showProductDetail()` (`#view-detail`) used a bespoke 3-column
-`.pd-layout` (identity | Technical Profile | media), each its own
-sticky `.pd-panel`. With no image the media column rendered a ~260px
-empty square — as wide as the identity column but holding nothing —
-which read as disproportionate and unfinished rather than a technical
-product master.
+The single biggest reason the app read as "everything is gray" was
+`--text-3: #aaaaaa` — 2.3:1 on white, below any accessible threshold,
+used for 300+ pieces of genuinely useful information. The text system
+is now a four-step ladder with a defined job per step, and nothing a
+user must read sits below WCAG AA.
 
-Fix: media now renders **inside** the identity panel
-(`.pd-media-inline`, top of `.pd-identity-card`) at a fixed compact
-height (150px, not `aspect-ratio:1`) instead of as its own column.
-`.pd-layout` is back to two columns — identity+media (fixed
-240-280px) | Technical Profile (flexible) — matching the MainPane/
-ContextPane shape from §6, just with page-specific class names kept
-(`.pd-identity-col`/`.pd-specs-col`) rather than a full rewrite onto
-`.content-grid` in this pass. The Composition block inside Technical
-Profile was also normalized to the same `.pd-row`/`.pd-k`/`.pd-v` type
-scale as every other spec row (it previously rendered ~12% larger,
-which is what made the panel read as inconsistent rather than one
-data table). Comments/Activity/Versions still render inline below the
-Technical Profile, not yet in the Drawer — same gap noted in §12c,
-unchanged by this pass.
+| Token | Light | Contrast on `--bg` | Job |
+|---|---|---|---|
+| `--text-primary` (`--text`) | `#0b0b0b` | 19.6:1 | Titles, field values, active nav |
+| `--text-secondary` (`--text-2`) | `#45454a` | 9.2:1 | Body, **inactive tabs**, metadata, block titles |
+| `--text-muted` (`--text-3`) | `#6b6b73` | 5.6:1 | Field labels, timestamps, captions, empty values |
+| `--text-disabled` | `#a5a5ab` | 2.5:1 | **Disabled controls only** |
 
-## 20. Product Detail — ERP master-record rebuild
+`--text-2` / `--text-3` are the historical aliases every screen already
+uses; they now point at the ladder, so the fix applied app-wide rather
+than to one screen. Dark mode re-measures the same four steps against
+`#1c1c1e`.
 
-`showProductDetail()` was rebuilt from a tall vertical product profile
-(one full-width row per attribute, a permanent identity sidebar, a
-sticky bottom action bar) into a dense ERP master record: **ProductHeader
-→ RecordTabs → tab content**, built from new reusable primitives that
-now live in the design system, not page-specific CSS. Acceptance target
-(§21 of the product brief): at 1440px+ a user sees identity, status,
-completeness, primary actions, gallery, and the full fabric key-data set
-(composition/construction/color/lot/country/dye method/width/GSM/
-diameter/gauge/needles/route type) without scrolling.
+Rules:
 
-### DataField / DataFieldGrid (new, generic — `dataFieldHtml()`/`dataFieldGridHtml()`)
+- Never style navigation or useful data with `--text-disabled`. If it
+  looks disabled it must *be* disabled.
+- Inactive tabs are `--text-secondary`, not muted.
+- Labels may be quiet (`--text-muted`) but never faint.
 
-The one reusable attribute-display primitive for any record screen —
-Product Detail is the first consumer, not the only intended one.
+Minimum readable scale (desktop):
 
-```js
-dataFieldGridHtml([
-  { label: 'Width', value: specs.Width, copy: true },
-  { label: 'Composition', html: compBlockHtml(specs.Composition), span: 2 },
-])
+| Token | Value | Used for |
+|---|---|---|
+| `--title-size` | 28px | Record title |
+| `--section-title-size` | 16px | Primary section title |
+| `--block-title-size` | 12px | Uppercase DataBlock heading |
+| `--field-value-size` | 14px | Field value |
+| `--field-value-size-lg` | 18px | Prominent field value |
+| `--field-label-size` | 11px | Uppercase field label |
+| `--body-size` | 14px | Body, menu rows, comments |
+| `--meta-size` | 13px | Metadata, breadcrumb, timestamps |
+| `--tab-size` | 14px | Tabs |
+| `--control-font-size` | 14px | Buttons, inputs, dropdowns |
+
+10px text is not used for ERP information. 11px is reserved for
+uppercase field labels.
+
+## 20. Design tokens added for record screens
+
+These are the non-negotiable tokens; a record screen references them
+and never hardcodes an equivalent value:
+
+```
+record-grid-columns   record-grid-gap     record-section-gap   record-column-gap
+record-field-gap      record-label-gap
+control-h             control-h-sm        control-h-lg
+control-padding-x     control-radius      control-gap          icon-size-control
+text-primary          text-secondary      text-muted           text-disabled
+surface-default       surface-subtle      surface-hover
+border-default        border-strong
+tab-height            tab-gap             subtab-height
+title-size            section-title-size  block-title-size
+field-label-size      field-value-size    field-value-size-lg
+body-size             meta-size           tab-size             control-font-size
 ```
 
-`.field-grid` is a **fixed** 4/3/2/1-column grid at deterministic
-breakpoints (1100px/900px/767px) — not `auto-fit`, because an unbounded
-auto-fit grid inside a 1480px-capped page would produce 6-9 columns on
-a wide monitor instead of the "3-4 fields per row" the brief calls for.
-`field-span-2` doubles a field's width (used by Composition). Groups of
-fields sit inside `fieldSectionHtml(title, innerHtml)` — a subtle
-top-border separator, never a card per attribute, never a card per
-group. A field with no value renders `—` rather than disappearing,
-except when the whole group has zero populated fields, in which case
-`dataFieldGridHtml`/`fieldSectionHtml` both return `''` and the
-section doesn't render at all (replaces the old per-section `if
-(hasPhysical)`/`if (commFields.length)` guards with the same
-behavior, generically).
+---
 
-**Copy behavior (§17 of the brief)**: the old "tap any row to copy"
-pattern made every spec row look interactive just for copying. Copyable
-fields now show a small `.field-copy` icon that's invisible until the
-field is hovered (`opacity:0` → `1` on `.field:hover`) — explicit,
-low-noise. Composition is the one exception: its whole block stays
-click-to-copy (a multi-value string, not a single copyable value),
-matching how it worked before.
+# Record Detail Architecture (§21–§30)
 
-### ProductGallery / ImageLightbox (new, generic)
+Product Detail was rebuilt from the grid upward. Everything in this
+part of the document is **shared design-system law**, not a Product
+Detail page style: the same primitives are what any future
+single-record screen (sample record, collection record, order record)
+must be assembled from.
 
-`pdGalleryHtml(p)` renders a compact hero (`.pgal-hero`, capped
-`max-height:300px`) + horizontally-scrolling thumbnail strip
-(`.pgal-thumbs`/`.pgal-thumb`) — never every image at full size at
-once. Clicking any image calls the **generic, reusable**
-`openImageLightbox(images, startIndex)` (`#lightbox-overlay` in the
-static markup, next to the Drawer overlay) — prev/next, counter
-(`2 / 6`), thumbnail nav, Escape/arrow-key handling, click-outside to
-close. Any future gallery in the app should call this instead of
-building a second lightbox.
+The two rules everything else follows from:
 
-Multi-image was already supported at the data level (`products.
-image_urls`, a plain array — `image_url` stays as the legacy single-
-image fallback for old rows). What Product Detail lacked was
-management UI outside the big Edit modal. It now has inline,
-progressive-disclosure controls on hover/via a small overflow trigger
-on the hero (`pdSetPrimary`/`pdMoveImage`/`pdEditCaption`/
-`pdRemoveImage`/`pdTriggerAddImages` → `pdHandleAddFiles`, all funneling
-through one `pdPersistImages()` save call that updates `products` and
-logs to `Audit`), gated by `canEditDiv(p.division) && !isArchived(p)`.
-Reordering is move-earlier/move-later (not full drag-and-drop) — a
-deliberate scope cut, not an oversight.
+1. **Nothing is positioned by hand.** Every block on a record is a
+   span on one 12-column grid. No percentages, no per-section widths,
+   no "put it where there's space".
+2. **Related data reads vertically.** A user scans DOWN a column of
+   related fields, not ACROSS a row of unrelated ones. Horizontal
+   space is used to place *domains* side by side, never to spread one
+   domain's fields apart.
 
-**Captions are new** and persist in `specs.image_captions` (an object
-keyed by image URL), *not* by changing `image_urls` from `string[]` to
-`{url,caption}[]`. Dozens of existing read sites across the app
-(Catalog table/cards/drawer, Collection Cards view, the label editor,
-the bulk-add modal) treat `image_urls` as a plain string array; reshaping
-it would have meant touching all of them for one additive feature. This
-is the deliberate, lower-risk path — if per-image structured data grows
-beyond captions, revisit the schema then, not before.
+## 21. Record Detail — screen shape
 
-### CompletenessIndicator (new, generic — `completenessChipHtml()`)
+```
+.detail-view-inner              PageContainer (§2 — width cap, page margins)
+  .object-header                ONE header block, three fixed layers (§22)
+    .object-breadcrumb            L1 — where am I
+    .object-header-main           L2 — identity | status + completeness + actions
+    .record-tabs                  L3 — record navigation (§25)
+  .record-toolbar               optional contextual toolbar for the current tab
+  .record-grid                  the 12-column grid (§26)
+    .rg-4 / .rg-8 / …             column spans
+      .data-column                a vertical reading column
+        .data-block               a titled group of related fields
+          .data-fields
+            .data-field           LABEL over value
+```
 
-Replaces the old permanent `.pd-complete` card (score + caption + a
-progress bar, always on screen) with a compact ring chip in the header
-(`82% complete`) that opens a popover listing the actual missing field
-labels on click (`pdCompleteness(p)` returns `{pct, done, total,
-missing[]}`) — actionable without a permanent block of screen. Built on
-the same self-toggled popover primitive as everything else (§12b); its
-trigger class `.completeness-chip` was added to the shared outside-click
-allowlist next to `.cat-tb-btn`/`.ws-icon-btn`.
+A tab's body is a `.record-grid`. A region inside it that needs its
+own columns uses `.record-subgrid` (3-up by default, `.cols-2` for
+two, `.equal` when the blocks carry a surface and should share a row
+height).
 
-### RecordTabs — Overview / Technical / Samples & Inventory / Documents / Activity
+## 22. ObjectHeader
 
-`#pd-record-tabs` is `.pd-tabs.pd-tabs-inline` — the same ViewTabs
-primitive as Catalog's Table/Cards switch and saved views, not a new
-tab component. `switchPdRecordTab()` toggles five `#pd-view-*`
-containers. The pre-existing Activity/Versions sub-tabs inside the
-Activity tab still use `.pd-tabs`/`switchPdTab()`, now scoped to
-`#pd-activity-subtabs .pd-tab` specifically — it used to query `.pd-tab`
-unscoped, which would have also toggled the new top-level RecordTabs
-the moment both existed on the same page.
+`.object-header` — sticky, full-bleed to the page edge and re-padded by
+the same amount, so its divider spans the content width while its text
+still aligns exactly with the grid beneath it. Three layers, always in
+this order, never more:
 
-- **Overview** — gallery + the fields a user needs most often
-  (composition, construction, color, lot, country, dye method, then
-  width/GSM/diameter/gauge/needles/route type) — mirrors §5 of the brief
-  exactly.
-- **Technical** — the complete spec, grouped into real ERP sections
-  (Construction / Material / Physical / Dyeing & Finishing / Commercial
-  / Identification / Notes / Tags) via `fieldSectionHtml` +
-  `dataFieldGridHtml`. Real fields only: there is no Machine, Yarn
-  Count, Fiber/Blend, Shrinkage, or Finish column in `products`/`specs`
-  today, so those brief examples are intentionally omitted rather than
-  faked — Yarn 01/02/03 (real) stand in for "yarn composition," and Dye
-  Method (real) is the closest thing to "Finish."
-- **Samples & Inventory** — Sample Availability (`#pd-avail`, filled by
-  the existing `loadPdInventory()`), Available As format chips, the
-  existing warehouse stock/movements blocks (`#pd-inventory`/`#pd-inv-*`,
-  untouched logic, just relocated), and Related Products
-  (`#pd-related`, product-knowledge-graph links) — operationally
-  adjacent, not explicitly named in the brief's tab list but preserved
-  here rather than dropped.
-- **Documents** — a `.doc-list` (new, generic `DocumentList` pattern:
-  icon + name/meta + an action, one row per document, no spreadsheet-
-  style table for a handful of files). Technical Sheet and Label are
-  synthetic "documents" here (Open triggers the existing
-  `generateTechnicalSheet()`/`openLabel()`) alongside real URLs an
-  editor pasted into `specs.Documents`.
-- **Activity** — Comments (`#ficha-comments-inner`) + the existing
-  Activity/Versions timeline, relocated as-is; still not migrated onto
-  the canonical Drawer (§12c) — same known gap as before, unchanged by
-  this pass.
+| Layer | Contains |
+|---|---|
+| L1 | `.object-breadcrumb` — one level up ("‹ SIERRA Fabric") |
+| L2 | `.object-identity` (title + `.object-meta`) on the left; `.object-header-aside` (StatusControl, CompletenessIndicator, `.object-header-divider`, `.object-header-actions`) on the right |
+| L3 | `.record-tabs` |
 
-### ProductHeader / action hierarchy (§20 of the brief)
+Rules:
 
-The sticky bottom `.detail-toolbar` (WorkflowActionBar) is gone from
-Product Detail specifically — "this screen is a record, not a
-multi-step workflow," per the brief, and removing it also reclaims a
-full row of vertical space toward the one-viewport acceptance target.
-`.detail-toolbar` itself is untouched and still canonical for screens
-that *are* workflows (Collection workspace, Dispatch/order workspace —
-§10). All Product Detail actions now live in `.pd-header-actions`,
-ranked explicitly:
+- The metadata line does **not** repeat what the breadcrumb already
+  said. `S-238 · LOT NT25-BS425`, not `S-238 · SIERRA Fabric · LOT …`.
+- Every control in L2 is `--control-h` tall. A 32px button next to a
+  40px one is a bug, not a style choice.
+- Exactly **one** primary action (`Request Sample`), one secondary
+  (`Edit`), and one `•••`. Technical Sheet, Label, Share, Duplicate and
+  Archive live in the overflow menu — a permanently visible unlabeled
+  square icon is not an acceptable home for a named action (§28).
+- Status appears **once**, as one control (§29). Never a read-only pill
+  plus a separate "change status" dropdown.
+- `.detail-back-btn` is the same primitive as `.object-breadcrumb`
+  under its historical name; the Sample record, Collection workspace
+  and Dispatch workspace use it, so breadcrumbs stay identical.
 
-- **Primary** — Request Sample (`.btn-primary`)
-- **Secondary** — Edit (`.btn-ghost`, only if `canEditDiv` and not archived)
-- **Contextual** — Technical Sheet / Print Label / Share as icon-only
-  `.pd-header-icon-btn`s (34×34, tooltip via `title`) — visible to
-  everyone, not buried, but visually quieter than Edit
-- **Advanced** — `•••` (`overflowMenuHtml()`): Duplicate, jump-to-
-  edit-section shortcuts, Archive — gated by edit/delete permission
+## 23. Button hierarchy
 
-**Status vs. Availability (§19 of the brief)** are kept as genuinely
-separate concepts, not merged: Status is the lifecycle value in the
-header, next to identity. Sample Availability is a Samples & Inventory
-DataField (and, since §21, an Overview summary line too) sourced from
-the existing warehouse-stock computation (`invStatusOf()`), not the
-lifecycle value. **How Status itself renders changed in §21** — see
-StatusControl there; the pill and the picker used to be two adjacent
-controls for the same value, which is now one.
+Four variants. Every button in the app is one of them, and a screen
+never writes button CSS.
 
-## 21. Product Detail — density without hostility
+| Variant | Look | Use |
+|---|---|---|
+| `.btn-primary` | Accent fill, white label, optional leading icon | The one main action per screen |
+| `.btn-secondary` | Surface fill, visible `--border-strong`, near-black label | The default non-primary button |
+| `.btn-ghost` | No border, no fill | Tertiary/contextual only, inside an already-framed surface |
+| `.btn-danger` | Danger tint → solid on hover | Destructive, always behind a confirm |
 
-§20's rebuild solved information density and lost usability in the
-same motion: every field carried identical visual weight, RecordTabs
-read as five disabled gray buttons, Status was one concept rendered as
-two adjacent controls, raw `0`s and ISO-ish date strings leaked
-through as if they were real values, and empty sections were a single
-gray sentence floating in a mostly blank panel. This pass is the
-correction, and it names the principle so it doesn't regress:
+`.icon-btn` is the square IconButton at `--control-h`. Icon-only is
+allowed **only** for universally recognizable actions (back, close,
+more, search) and always carries a `title`/`aria-label` (§28).
 
-> **Density without hostility.** A SIERRA ERP screen may expose
-> significant operational depth, but a non-technical user must be able
-> to read it in seconds — via grouping, typographic hierarchy and
-> human-readable formatting, not by adding cards or removing fields.
+`.btn-sm` / `.icon-btn-sm` exist for genuinely compact secondary
+surfaces (table rows, popovers, inline editors). Never mix them with
+full-height controls in one action group.
 
-Nothing here reduces the field count from §20. Every change is either
-a rendering change to an existing primitive or a new, generic
-primitive — Product Detail is the first consumer, not a special case.
+Every variant has a visible hover, a visible focus ring and a distinct
+disabled state, so no control needs to be hovered to look interactive
+(§30).
 
-### DataField — prominent values, human formatting (§4–§5 of the brief)
+> `.btn-ghost` used to mean "bordered secondary". It was renamed
+> app-wide to `.btn-secondary` and `.btn-ghost` now means the real
+> borderless ghost. Don't reintroduce the old meaning.
 
-`dataFieldHtml()` gained three opt-in flags, all backward compatible
-(every existing call site with none of them renders exactly as before):
+## 24. Control heights
 
-- **`lg`** — value renders large/bold (`.field-lg`), label stays quiet.
-  Not every field is equally important; Overview's Construction/
-  Weight/Width/Color use it so they read first, before the reader has
-  to parse the rest of the grid.
-- **`date`** — formats the value through `fmtHumanDate()` ("Aug 9,
-  2026" instead of a raw `2026-08-09`/timestamp string). Falls back to
-  the original string unchanged if it isn't a parseable date, so it's
-  safe on free-text fields that sometimes hold a date and sometimes
-  don't.
-- **`zeroAsEmpty`** — a field whose value is `0`/`'0'` renders "Not
-  specified" instead of the misleading bare digit, while a genuinely
-  missing value still renders "—". Opt-in per field (not a global
-  DataField behavior) because some numeric fields — inventory counts,
-  reserved quantities — treat `0` as real data; only fields where 0
-  means "never entered" (GSM, Width, Gauge, Diameter, Sample Qty, …)
-  set it.
+**One** height for anything that can sit next to something else:
 
-### StatusControl — one control, not two (§17 of the brief)
+| Token | Value | Applies to |
+|---|---|---|
+| `--control-h` | 36px | `.btn`, `.icon-btn`, `.pd-select`, `.pd-status-select`, `.status-static`, `.completeness-control`, `.control-input`, `.comment-form input` |
+| `--control-h-sm` | 32px | `.btn-sm`, `.icon-btn-sm`, `.pd-select-sm`, `.page-toolbar` controls |
+| `--control-h-lg` | 40px | full-width form submits, modal footers |
+| `--control-padding-x` | 14px | horizontal padding inside a control |
+| `--control-radius` | 8px | control corners |
+| `--control-gap` | 8px | gap between controls in one group |
+| `--icon-size-control` | 16px | **the** icon size inside a control |
 
-The header used to render `lcPill(p)` (a read-only colored pill) *and*,
-for editors, a separate `pdSelect()` "Change status" dropdown right
-next to it — the same concept represented twice. `.pd-status-select`
-retints the existing `pd-select` primitive (no new dropdown component)
-to look like the pill itself: colored dot, tinted fill, its own label
-*is* the current status, and it only grows a chevron/opens options when
-the viewer can actually change it. Read-only viewers still see the
-plain `lcPill()`.
+Never set a height on a button, select or input inside a screen. Never
+mix two heights inside one toolbar or action group. Icons inside
+controls are 16px — not 14, 17, 20 and 22 depending on where they came
+from.
 
-### RecordTabs — navigation, not five buttons (§19 of the brief)
+## 25. Tab architecture
 
-`.pd-tabs-nav` is a new modifier composed on top of the existing
-`.pd-tabs-inline` primitive (same DOM, same `switchPdRecordTab()`) —
-it does not replace ViewTabs. Catalog's Table/Cards switch and the
-saved-views bar are genuine mode switches and correctly keep the pill
-track; RecordTabs is navigation between views of one record, so
-`#pd-record-tabs` alone gets `.pd-tabs-nav`: plain text, quiet
-`--text-3`, a 2px accent underline that scales in on the active tab.
-Inactive tabs no longer read as disabled buttons because they were
-never buttons visually to begin with.
+| Component | Job |
+|---|---|
+| `.record-tabs` / `.record-tab` | Navigation between the views of ONE record. 44px tall, `--tab-gap` 28px, plain text on a shared bottom divider, 2px accent underline exactly as wide as the active tab. Lives inside the ObjectHeader. |
+| `.sub-tabs` / `.sub-tab` | The same architecture one level down (Activity / Comments / Versions), 34px / 13px. |
+| `.pd-tabs` / `.pd-tab` | Segmented control — a MODE switch inside a bounded box (Board/Cards/Table). **Not** navigation. |
 
-### CompletenessIndicator gets an action (§18 of the brief)
+Inactive tabs use `--text-secondary` and stay fully readable: they are
+navigation, not disabled controls. No gray pills, no large rounded
+backgrounds, no segmented container the width of the page around three
+sub-views.
 
-`completenessChipHtml(complete, popId, editAction)` takes an optional
-third argument — when present, the missing-fields popover ends with a
-"Complete product information" button wired to `editAction` (opens the
-edit modal). Omitted (`null`) for read-only viewers, who see the list
-with no action, same as before.
+## 26. RecordGrid, DataColumn, DataBlock, DataField
 
-### EmptyState (new, generic — `emptyStateHtml()`)
+```
+--record-grid-columns  12
+--record-grid-gap      24px   gutter between grid columns
+--record-column-gap    32px   gutter between vertical data columns
+--record-section-gap   28px   vertical rhythm between record sections
+--record-field-gap     18px   field → field inside a column
+--record-label-gap     5px    label → value
+```
 
-The one compact "nothing here yet" primitive: small icon in a tinted
-square + one-line title + one line of context + an optional action, in
-a single row that hugs its content. This is deliberately **not**
-`.empty` (the existing whole-page/whole-list empty state — 4rem of
-padding, 1.8rem icon) — that primitive is correct for "this entire list
-has zero rows" (Catalog, Samples list) and stays as-is. `.empty-compact`
-is for a *section* of an otherwise-populated record having nothing yet
-(no sample inventory, no related products, no comments, no versions,
-no sample requests) — using the page-scale empty state there is what
-produced the "huge blank area" the brief calls out. Any record screen
-with sub-sections can reuse it.
+- `.record-grid` — 12 equal columns. Spans: `.rg-3 .rg-4 .rg-5 .rg-6
+  .rg-7 .rg-8 .rg-9 .rg-12`.
+- `.record-subgrid` — a nested equal-column region (3-up default,
+  `.cols-2`, `.equal` for shared row heights).
+- `.data-column` — a vertical stack of blocks. **The unit of reading.**
+- `.data-block` (`dataBlockHtml(title, inner, {surface, aside})`) — a
+  titled group. A rule under the title, not a card around the group.
+  `surface:true` opts into Surface 1 where several blocks sit side by
+  side and grouping must be visible at a glance (Technical).
+- `.data-field` (`dataFieldHtml()`), `.data-fields` /
+  `dataFieldsHtml()` — LABEL over value, stacked. `{cols:2|3}` exists
+  for genuinely parallel short values and is the exception.
 
-### Samples & Inventory — an operational summary, not just a list (§10)
+Field typography:
 
-The tab opens with a `Sample Availability` DataField row — Available
-Formats / Inventory (available count, `lg`) / Reserved / Warehouse /
-Last movement — computed in `renderPdSamplesSummary()` alongside the
-existing `loadPdInventory()` stock fetch (one extra lightweight query
-for the most recent `inventory_movements` row). Overview also gets a
-compact two-field "Sample Availability" section (status chip +
-Available As chips) so "is a sample available?" is answerable without
-leaving Overview — both slots (`#pd-avail-ov` in Overview, the summary
-in Samples & Inventory) are kept in sync from the same `loadPdInventory()`
-call, not two separate fetches.
+| Part | Size | Weight | Color |
+|---|---|---|---|
+| `.data-field-label` | `--field-label-size` 11px, uppercase, 0.06em | 700 | `--text-muted` |
+| `.data-field-value` | `--field-value-size` 14px | 500 | `--text-primary` |
+| `.data-field-lg` value | `--field-value-size-lg` 18px | 650 | `--text-primary` |
+| `.data-block-title` | `--block-title-size` 12px, uppercase | 700 | `--text-secondary` |
+| `.record-section-title` | `--section-title-size` 16px | 650 | `--text-primary` |
+| `.object-title` | `--title-size` 28px | 750 | `--text-primary` |
 
-### Documents — a document manager, not two floating links (§12)
+A missing value renders as `Not specified` in `--text-muted` — never a
+raw DB null, never an empty cell, never disabled-gray. Copy is a
+hover-revealed enhancement on top of an always-readable value.
 
-`.doc-list` gained a header row (title + "+ Add document" for editors,
-routed through the existing `openEdit(selected,'extras')` specs
-editor — no new upload flow) and a `.doc-badge`: **Generated**
-(tinted accent) for the synthetic Technical Sheet/Label rows that are
-always current, **Uploaded** (neutral) for URLs an editor pasted into
-`specs.Documents`. Future document types (a real upload/attachment
-flow, say) slot into the same `.doc-row` shape without touching this
-markup.
+**Uppercase** is only for `.data-block-title` and `.data-field-label`.
+Never for navigation, never for long labels. Hierarchy comes from
+weight, alignment and grouping — not from making things tiny, gray and
+uppercase.
 
-### Activity — three purposes, not one page (§13–§15)
+## 27. Surface hierarchy
 
-`#pd-activity-subtabs` (still the existing `.pd-tabs`/`switchPdTab()`
-segmented control, scoped as before) now has three entries — Activity /
-Comments / Versions — instead of two, and the permanent comment box
-that used to sit above the sub-tabs (eating vertical space on every
-visit regardless of whether anyone needed it) moved into its own
-`#pd-tab-comments` pane, hidden unless selected. `switchPdTab()` toggles
-all three panes generically instead of hardcoding two. Comments
-(`loadFichaComments()`) also gained a small initials avatar per
-comment (`.comment-avatar`) so the list reads as a conversation, not an
-audit log with a name column.
+| Token | Role |
+|---|---|
+| `--surface-default` | Surface 0 — page/card ground |
+| `--surface-subtle` | Surface 1 — a grouped information block (`.data-block-surface`), a compact empty state |
+| `--surface-hover` | Surface 2 — hover, selected, contextual emphasis |
+| `--border-default` | hairline separators |
+| `--border-strong` | **control** borders — must be visible without hovering |
 
-### Field-section rhythm — tighter, stronger, still no cards (§7–§8)
+Separation on a record comes from a deliberate mix of 1px separators,
+Surface 1 blocks, column alignment, typography and spacing. Whitespace
+alone is not structure. Neither is a border box around every field.
 
-`.field-section` padding and `.field-grid` row gap were both reduced
-slightly (denser vertical rhythm inside a group, matching "tighter
-vertical spacing inside groups" from the brief) and
-`.field-section-title` got heavier weight + darker color (`--text-2`
-instead of `--text-3`, `800` instead of `700`) so group boundaries read
-as intentional structure while scanning quickly, without adding a
-border-per-group or a card-per-group — still one subtle top-border
-separator between sections, unchanged from §20.
+## 28. Icon rules
+
+Icons aid recognition, not decoration. One size inside controls:
+`--icon-size-control` (16px). Every icon-only control needs a
+`title`/`aria-label`. An action with a name the user must read
+(Technical Sheet, Label, Share) is either a labeled button with a
+leading icon or a row in the `•••` menu — never a bare square.
+
+## 29. StatusControl & CompletenessIndicator
+
+- **StatusControl** — `.pd-status-select` wrapping `pdSelect()`: dot +
+  label + chevron in one `--control-h` control, tinted by the
+  lifecycle color. Read-only users get `.status-static`: identical
+  footprint, no chevron, so the header keeps its rhythm and nothing
+  pretends to be clickable. Status is represented **once**.
+- **CompletenessIndicator** — `.completeness-control` +
+  `completenessChipHtml()`: a control (border, hover, control height),
+  because it opens a popover listing the missing fields and a
+  "Complete product" action. A clickable chip must not look like a
+  static one.
+
+## 30. Affordance rules
+
+- Primary and secondary actions look actionable **before** hover.
+- Dropdown triggers always show a chevron.
+- Tabs look like navigation without hover.
+- Values are readable without hover; only enhancements (copy, delete,
+  reorder) may be hover-revealed.
+- Operational actions (Adjust inventory, Add document, Link product)
+  are visible buttons in their block header or context rail, not
+  affordances discovered by hovering a section.
+- Loading and empty states use `.pd-loading` and `emptyStateHtml()` —
+  readable neutral text and a compact bordered block sized to its
+  section. An empty section is allowed to be small; the page is not
+  obliged to fill the viewport.
+
+## 31. Per-tab composition (Product Detail as the reference)
+
+| Tab | Composition |
+|---|---|
+| Overview | `.rg-4` media column (ProductGallery + Sample availability summary) + `.rg-8` `.record-subgrid` of three domain columns: **Product** / **Physical** / **Color & Production**. Fits the first desktop viewport. |
+| Technical | One `.record-subgrid.equal` of surfaced blocks per engineering domain: Construction, Material, Physical, Dyeing & Finishing, Commercial, Identification (+ Notes/Tags at `.rg-6`). |
+| Samples & Inventory | `.rg-8` operational area (inventory DataTable, movement timeline, sample request DataTable) + `.rg-4` rail (Availability summary, formats, **Adjust inventory**, Related products). |
+| Documents | `.record-table-hdr` + `.erp-table` with Document / Type / Source / Updated / Owner / Actions. Two documents means a two-row table. |
+| Activity | `.sub-tabs` → Activity (`.record-toolbar` search + event filter, then `.timeline`), Comments (`.comment-list` + composer), Versions. |
+
+**ActivityTimeline** (`.timeline`): a rail with one dot per event; the
+event title, then actor and timestamp directly beneath it. The
+timestamp belongs to the event and never floats to the far right of a
+1400px row. Change chips (`.tl-change`) hug their content.
+
+**CommentsPanel**: avatar · author · time · message, capped at a
+readable 720px, with an avatar + input + **Send** composer. Deliberately
+not the audit-row shape used by the timeline.
+
+## 32. Anti-patterns removed (do not reintroduce)
+
+- Tiny low-contrast labels; `--text-3` as a 2.3:1 whisper.
+- Inactive navigation styled to look disabled.
+- Mixed button heights inside one action group.
+- Unexplained square icon buttons between labeled actions.
+- Unrelated fields spread horizontally across the viewport.
+- A giant segmented control for three sub-views.
+- Duplicated status UI (pill + separate change-status dropdown).
+- Full-width sections holding two lines of content.
+- Per-screen spacing, widths and button CSS.
+- Interaction discoverable only on hover.
+- Decorative whitespace standing in for structural grouping.
