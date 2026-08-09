@@ -47,6 +47,24 @@
       --r-xs: 4px; --r-sm: 7px; --r-md: 10px; --r-lg: 12px; --r-xl: 16px; --r-2xl: 18px; --r-pill: 999px;
       /* Spacing scale — base-4 */
       --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
+      /* ── PAGE GRID / LAYOUT TOKENS ──
+         Single source of truth for every screen's outer geometry. New
+         screens reference these — never hardcode 1.75rem, 340px, etc.
+         See SIERRA_DESIGN_SYSTEM.md. */
+      --sidebar-width: 200px;
+      --sidebar-width-collapsed: 52px;
+      --page-padding-x: 1.75rem;      /* .content's horizontal inset — the one guide every page aligns to */
+      --page-padding-y: 1.75rem;
+      --page-max-width: 1480px;       /* matches .detail-view-inner, the existing single-record page container */
+      --content-gap: var(--sp-6);     /* MainPane ↔ ContextPane grid gap */
+      --section-gap: var(--sp-5);     /* vertical rhythm between page sections (header→toolbar→content) */
+      --panel-gap: var(--sp-4);       /* spacing between stacked panels within a section */
+      --context-pane-width: 340px;    /* ContextPane fixed width, within the 320–380px range */
+      --control-h-sm: 2rem;           /* compact toolbar controls (search, select, filter chips) */
+      --control-h-md: 2.5rem;         /* standard buttons / primary inputs */
+      --panel-radius: var(--r-md);
+      --panel-border: 1px solid var(--border);
+      --panel-padding: 1.25rem 1.4rem;
       /* Motion */
       --dur-fast: 0.12s; --dur-base: 0.16s; --dur-slow: 0.28s;
       --ease-out: cubic-bezier(0.22,1,0.36,1); --ease-spring: cubic-bezier(0.34,1.56,0.64,1);
@@ -411,14 +429,14 @@
 
     /* ── SIDEBAR ── */
     .sidebar {
-      width:200px; background:var(--bg); border-right:1px solid var(--border);
+      width:var(--sidebar-width); background:var(--bg); border-right:1px solid var(--border);
       padding:0.9rem 0.65rem 0.65rem; display:flex; flex-direction:column; gap:1px;
       flex-shrink:0; overflow-y:auto; overflow-x:hidden; position:relative;
       transition:width 0.32s cubic-bezier(0.22,1,0.36,1), padding 0.32s cubic-bezier(0.22,1,0.36,1);
       will-change:width;
     }
     .sidebar.collapsed {
-      width:52px; overflow:visible;
+      width:var(--sidebar-width-collapsed); overflow:visible;
       padding-left:0; padding-right:0;
       align-items:center;
     }
@@ -667,7 +685,7 @@
     .mob-topbar-search svg { width:20px; height:20px; }
 
     /* ── CONTENT ── */
-    .content { flex:1; overflow-y:auto; padding:1.75rem 1.75rem; background:var(--bg); }
+    .content { flex:1; overflow-y:auto; padding:var(--page-padding-y) var(--page-padding-x); background:var(--bg); }
     .content-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; gap:1rem; flex-wrap:wrap; }
     .content-hdr-l h2 { font-size:2rem; font-weight:700; letter-spacing:-0.035em; line-height:1.1; }
     .content-hdr-l p { font-size:0.8rem; color:var(--text-2); margin-top:0.2rem; }
@@ -1599,10 +1617,16 @@
     /* ── PRODUCT DETAIL ── */
     #view-detail { display:none; }
 
-    /* .content already provides horizontal padding — only add bottom clearance for toolbar */
+    /* ── PageContainer ──
+       .content already provides horizontal padding (--page-padding-x) —
+       this only adds bottom clearance for a sticky WorkflowActionBar and
+       caps line length at --page-max-width. This is the ONE container
+       every single-record / workspace screen must wrap its content in
+       (sample record, collection workspace, dispatch/order workspace,
+       product detail). Never re-add horizontal padding inside it. */
     .detail-view-inner {
       padding:0 0 88px;
-      max-width:1480px;
+      max-width:var(--page-max-width);
       margin:0 auto;
     }
     /* Remove .content bottom padding when detail is active so toolbar truly sticks to viewport edge */
@@ -1793,6 +1817,11 @@
     .detail-comments-lbl { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.85rem; }
 
     /* ── STICKY TOOLBAR ── */
+    /* ── WorkflowActionBar ── sticky bottom action bar shared by every
+       workflow/detail screen. The negative margin bleeds it out to
+       .content's true edge, then repads to --page-padding-x so its
+       buttons align with the page's title, table and panel above —
+       never hardcode this bleed math per screen. */
     .detail-toolbar {
       position:sticky; bottom:0;
       background:rgba(255,255,255,0.76);
@@ -1800,8 +1829,8 @@
       box-shadow:0 -12px 40px rgba(0,0,0,0.08);
       backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
       z-index:100;
-      margin:0 -1.75rem;
-      padding:0 1.75rem;
+      margin:0 calc(var(--page-padding-x) * -1);
+      padding:0 var(--page-padding-x);
     }
     [data-theme="dark"] .detail-toolbar { background:rgba(15,15,17,0.82); box-shadow:0 -14px 42px rgba(0,0,0,0.46); }
     .detail-toolbar-inner {
@@ -2606,76 +2635,78 @@
     [data-theme="dark"] .smp-damaged    { background:rgba(239,68,68,0.12);  color:#f87171; }
     [data-theme="dark"] .smp-archived   { background:rgba(150,150,150,0.08);color:#888; }
 
-    /* ── Dispatch Queue — dense operational table ──
-       ERP density: small counters (not stat cards), a compact filter row,
-       and a real table instead of a card-per-row list. Reuses the
-       existing .smp-badge status system so colors stay consistent with
-       every other status pill in the app. */
-    .dq-meta { font-size:0.74rem; color:var(--text-3); margin:-0.3rem 0 1rem; }
-    .dq-counters { display:flex; gap:0.5rem; margin-bottom:0.9rem; flex-wrap:wrap; }
-    .dq-counter {
+    /* ── PageMetrics ── compact inline counters that double as quick
+       filters. Never oversized "dashboard cards". .page-metrics/.page-metric
+       are canonical; .dq-counters/.dq-counter kept as aliases. */
+    .page-metrics, .dq-counters { display:flex; gap:var(--sp-2); margin-bottom:var(--panel-gap); flex-wrap:wrap; }
+    .page-metric, .dq-counter {
       display:flex; align-items:baseline; gap:0.4rem; padding:0.4rem 0.75rem;
-      border:1px solid var(--border); border-radius:8px; background:var(--surface2);
+      border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface2);
       font-size:0.72rem; color:var(--text-2); cursor:pointer; user-select:none;
       transition:border-color var(--dur-fast) var(--ease-out);
     }
-    .dq-counter:hover { border-color:var(--text-3); }
-    .dq-counter.active { border-color:var(--accent); color:var(--text); }
-    .dq-counter b { font-size:1rem; color:var(--text); font-weight:700; font-variant-numeric:tabular-nums; }
-    .dq-counter.overdue b { color:#c0392b; }
-    .dq-toolbar { display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.9rem; align-items:center; }
+    .page-metric:hover, .dq-counter:hover { border-color:var(--text-3); }
+    .page-metric.active, .dq-counter.active { border-color:var(--accent); color:var(--text); }
+    .page-metric b, .dq-counter b { font-size:1rem; color:var(--text); font-weight:700; font-variant-numeric:tabular-nums; }
+    .page-metric.overdue b, .dq-counter.overdue b { color:var(--danger); }
+
+    /* ── PageToolbar ── compact filter row shared by every list/queue
+       screen. .page-toolbar is canonical; .dq-toolbar kept as an alias. */
+    .page-toolbar, .dq-toolbar { display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-bottom:var(--panel-gap); align-items:center; }
+    .page-toolbar input[type=text], .page-toolbar select,
     .dq-toolbar input[type=text], .dq-toolbar select {
-      border:1px solid var(--border); border-radius:7px; background:var(--surface2); color:var(--text);
-      font-family:inherit; font-size:0.76rem; padding:0.4rem 0.55rem; height:2rem; box-sizing:border-box;
+      border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface2); color:var(--text);
+      font-family:inherit; font-size:0.76rem; padding:0.4rem 0.55rem; height:var(--control-h-sm); box-sizing:border-box;
     }
-    .dq-toolbar input[type=text] { min-width:170px; flex:1; max-width:260px; }
-    .dq-toolbar-sep { width:1px; height:1.3rem; background:var(--border); }
-    .dq-table-wrap { border:1px solid var(--border); border-radius:10px; overflow:auto; }
-    .dq-table { width:100%; border-collapse:collapse; font-size:0.79rem; min-width:760px; }
-    .dq-table th {
+    .page-toolbar input[type=text], .dq-toolbar input[type=text] { min-width:170px; flex:1; max-width:260px; }
+    .page-toolbar-sep, .dq-toolbar-sep { width:1px; height:1.3rem; background:var(--border); }
+
+    /* ── ERP table ── the ONE dense operational table used by every
+       queue/picking screen (Dispatch Queue, Picking). Sticky header,
+       compact row height, right-aligned numerics via [data-num]. */
+    .erp-table-wrap, .dq-table-wrap { border:1px solid var(--border); border-radius:var(--panel-radius); overflow:auto; }
+    .erp-table, .dq-table, .pick-table { width:100%; border-collapse:collapse; font-size:0.79rem; }
+    .erp-table th, .dq-table th, .pick-table th {
       text-align:left; font-size:0.62rem; text-transform:uppercase; letter-spacing:0.06em;
       color:var(--text-3); font-weight:600; padding:0.55rem 0.7rem; border-bottom:1px solid var(--border);
       background:var(--surface2); white-space:nowrap; position:sticky; top:0;
     }
-    .dq-table td { padding:0.5rem 0.7rem; border-bottom:1px solid var(--border); vertical-align:middle; }
-    .dq-table tbody tr:last-child td { border-bottom:none; }
-    .dq-table tbody tr { cursor:pointer; transition:background var(--dur-fast) var(--ease-out); }
-    .dq-table tbody tr:hover { background:var(--surface2); }
+    .erp-table td, .dq-table td, .pick-table td { padding:0.5rem 0.7rem; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .erp-table tbody tr:last-child td, .dq-table tbody tr:last-child td, .pick-table tbody tr:last-child td { border-bottom:none; }
+    .erp-table tbody tr.is-clickable, .dq-table tbody tr { cursor:pointer; transition:background var(--dur-fast) var(--ease-out); }
+    .erp-table tbody tr.is-clickable:hover, .dq-table tbody tr:hover { background:var(--surface2); }
+    .erp-table [data-num], .dq-table [data-num] { text-align:right; font-variant-numeric:tabular-nums; }
     .dq-row-id { font-weight:700; font-variant-numeric:tabular-nums; font-size:0.76rem; white-space:nowrap; }
     .dq-row-kind { font-size:0.6rem; color:var(--text-3); text-transform:uppercase; letter-spacing:0.05em; margin-top:0.1rem; }
     .dq-row-name { font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
     .dq-next { color:var(--accent); font-weight:600; white-space:nowrap; }
-    .dq-overdue-dot { width:6px; height:6px; border-radius:50%; background:#c0392b; display:inline-block; margin-right:0.4rem; flex-shrink:0; }
-    .dq-empty { padding:2.5rem 1rem; text-align:center; color:var(--text-3); font-size:0.85rem; }
+    .dq-overdue-dot { width:6px; height:6px; border-radius:50%; background:var(--danger); display:inline-block; margin-right:0.4rem; flex-shrink:0; }
+    .page-empty, .dq-empty { padding:2.5rem 1rem; text-align:center; color:var(--text-3); font-size:0.85rem; }
 
-    /* ── Order workspace (picking/packing) ──
-       Reuses .srd-layout's main+340px sidebar split so it matches every
-       other detail screen in the app instead of inventing a new pattern. */
-    .ord-hdr-row { display:flex; flex-wrap:wrap; gap:0.35rem 1.5rem; font-size:0.78rem; color:var(--text-2); margin-bottom:0.5rem; }
+    /* ── Order workspace (picking/packing) ── composed from ContentGrid
+       (main + ContextPane) and the shared ERP table above — no bespoke
+       layout of its own. */
+    .ord-hdr-row { display:flex; flex-wrap:wrap; gap:0.35rem 1.5rem; font-size:0.78rem; color:var(--text-2); margin-bottom:var(--panel-gap); }
     .ord-hdr-row b { color:var(--text); font-weight:600; }
-    .ord-steps { display:flex; align-items:center; flex-wrap:wrap; gap:0.25rem; margin:0.85rem 0 1.4rem; }
-    .ord-step { font-size:0.66rem; font-weight:600; color:var(--text-3); padding:0.32rem 0.65rem; border-radius:999px; background:var(--surface2); white-space:nowrap; }
+    /* ── WorkflowStepper ── */
+    .ord-steps { display:flex; align-items:center; flex-wrap:wrap; gap:0.25rem; margin-bottom:var(--section-gap); }
+    .ord-step { font-size:0.66rem; font-weight:600; color:var(--text-3); padding:0.32rem 0.65rem; border-radius:var(--r-pill); background:var(--surface2); white-space:nowrap; }
     .ord-step.current { color:var(--accent-ink); background:var(--accent); }
     .ord-step.done { color:var(--text-2); }
     .ord-arrow { color:var(--text-3); font-size:0.65rem; }
-    .pick-table { width:100%; border-collapse:collapse; font-size:0.79rem; }
-    .pick-table th {
-      text-align:left; font-size:0.62rem; text-transform:uppercase; letter-spacing:0.06em;
-      color:var(--text-3); font-weight:600; padding:0.5rem 0.6rem; border-bottom:1px solid var(--border);
-    }
-    .pick-table td { padding:0.45rem 0.6rem; border-bottom:1px solid var(--border); vertical-align:middle; }
-    .pick-table tbody tr:last-child td { border-bottom:none; }
     .pick-scan-dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
     .pick-scan-dot.pending { background:var(--text-3); opacity:0.4; }
-    .pick-scan-dot.confirmed { background:#1a8a5c; }
-    .pick-scan-dot.unavailable { background:#c0392b; }
-    .ord-side-stat { display:flex; justify-content:space-between; align-items:baseline; font-size:0.79rem; padding:0.28rem 0; }
-    .ord-side-stat b { font-variant-numeric:tabular-nums; }
-    .ord-side-stat.warn b { color:#c0392b; }
-    .ord-side-sep { height:1px; background:var(--border); margin:0.75rem 0; }
-    .ord-side-lbl { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); margin-bottom:0.4rem; }
-    .ord-side-line { font-size:0.8rem; color:var(--text); margin-bottom:0.15rem; }
-    .ord-side-line.muted { color:var(--text-3); font-size:0.74rem; }
+    .pick-scan-dot.confirmed { background:var(--success); }
+    .pick-scan-dot.unavailable { background:var(--danger); }
+    /* ── ContextPane content template — label/value rows + dividers,
+       shared by every right-side panel (reconciliation, delivery, notes). ── */
+    .ctx-stat { display:flex; justify-content:space-between; align-items:baseline; font-size:0.79rem; padding:0.28rem 0; }
+    .ctx-stat b { font-variant-numeric:tabular-nums; }
+    .ctx-stat.warn b { color:var(--danger); }
+    .ctx-sep { height:1px; background:var(--border); margin:var(--panel-gap) 0; }
+    .ctx-lbl { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); margin-bottom:0.4rem; }
+    .ctx-line { font-size:0.8rem; color:var(--text); margin-bottom:0.15rem; }
+    .ctx-line.muted { color:var(--text-3); font-size:0.74rem; }
 
     /* Sample list */
     .smp-list { display:flex; flex-direction:column; gap:0; }
@@ -2698,14 +2729,21 @@
     .smp-row-date { font-size:0.68rem; color:var(--text-3); }
     .smp-id-inline { display:none; font-weight:700; color:var(--text-3); letter-spacing:0.04em; }
 
-    /* Sample record (detail page) */
-    .srd-layout { display:grid; grid-template-columns:1fr 340px; gap:3rem; align-items:start; }
-    @media (max-width:900px) { .srd-layout { grid-template-columns:1fr; gap:1.5rem; } }
-    .srd-id-block { display:flex; align-items:center; gap:1.1rem; margin-bottom:2.5rem; padding-bottom:2.5rem; border-bottom:1px solid var(--border); }
-    .srd-id-text { font-size:1.6rem; font-weight:700; letter-spacing:-0.02em; color:var(--text); line-height:1; }
-    .srd-id-sub { font-size:0.7rem; color:var(--text-3); margin-top:0.25rem; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; }
-    .srd-section-label { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-top:1.75rem; margin-bottom:0.75rem; }
-    .srd-card { border:1px solid var(--border); border-radius:10px; padding:1.25rem 1.4rem; }
+    /* ── ContentGrid ── MainPane + ContextPane, the ONE split layout for
+       every operational/record screen (sample record, collection
+       workspace, order workspace). .content-grid is the canonical name;
+       .srd-layout is kept as an alias so existing call sites keep working. */
+    .content-grid, .srd-layout { display:grid; grid-template-columns:minmax(0,1fr) var(--context-pane-width); gap:var(--content-gap); align-items:start; }
+    @media (max-width:900px) { .content-grid, .srd-layout { grid-template-columns:1fr; gap:var(--section-gap); } }
+    /* ── PageHeader ── title/eyebrow + status + actions in one composition.
+       .page-header is canonical; .srd-id-block kept as an alias. */
+    .page-header, .srd-id-block { display:flex; align-items:center; gap:1.1rem; margin-bottom:var(--section-gap); padding-bottom:var(--section-gap); border-bottom:1px solid var(--border); }
+    .page-header-title, .srd-id-text { font-size:1.6rem; font-weight:700; letter-spacing:-0.02em; color:var(--text); line-height:1; }
+    .page-header-meta, .srd-id-sub { font-size:0.7rem; color:var(--text-3); margin-top:0.25rem; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; }
+    /* Section label — 13px/uppercase, the one heading style below page-title level */
+    .page-section-label, .srd-section-label { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-top:var(--section-gap); margin-bottom:var(--panel-gap); }
+    /* ── Panel ── the one card/panel primitive. .panel is canonical; .srd-card kept as an alias. */
+    .panel, .srd-card { border:var(--panel-border); border-radius:var(--panel-radius); padding:var(--panel-padding); }
     .srd-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; }
     @media (max-width:480px) { .srd-grid { grid-template-columns:1fr; } }
     .srd-field { display:flex; flex-direction:column; gap:0.2rem; }
@@ -10407,8 +10445,9 @@ async function showSampleRecord(sampleId) {
   document.getElementById('view-detail').style.display = 'none'
   document.getElementById('view-samples').style.display = 'none'
   const vs = document.getElementById('view-sample-detail')
+  document.getElementById('content').classList.add('detail-active')
   vs.style.display = 'block'
-  vs.innerHTML = '<div style="padding:2rem 1.75rem;color:var(--text-3);font-size:0.85rem">Loading…</div>'
+  vs.innerHTML = '<div class="detail-view-inner" style="color:var(--text-3);font-size:0.85rem">Loading…</div>'
 
   // Load sample + events + product
   const [smpRes, evtRes] = await Promise.all([
@@ -10417,7 +10456,7 @@ async function showSampleRecord(sampleId) {
   ])
 
   if (smpRes.error || !smpRes.data) {
-    vs.innerHTML = `<div style="padding:2rem 1.75rem"><p>Error loading sample record.</p></div>`
+    vs.innerHTML = `<div class="detail-view-inner"><p>Error loading sample record.</p></div>`
     return
   }
 
@@ -10451,9 +10490,9 @@ async function showSampleRecord(sampleId) {
   }).join('')
 
   vs.innerHTML = `
-  <div style="padding:1.75rem 1.75rem 0">
+  <div class="detail-view-inner">
     <!-- Back button -->
-    <div style="margin-bottom:2rem">
+    <div style="margin-bottom:var(--section-gap)">
       <button class="detail-back-btn" onclick="showSampleCenter()">
         <span class="detail-back-dot" style="background:var(--accent)"></span>
         Sample Center
@@ -10731,8 +10770,9 @@ async function showCollectionRecord(collectionId, backTo) {
   document.getElementById('view-detail').style.display = 'none'
   document.getElementById('view-samples').style.display = 'none'
   const vs = document.getElementById('view-sample-detail')
+  document.getElementById('content').classList.add('detail-active')
   vs.style.display = 'block'
-  vs.innerHTML = '<div style="padding:2rem 1.75rem;color:var(--text-3);font-size:0.85rem">Loading…</div>'
+  vs.innerHTML = '<div class="detail-view-inner" style="color:var(--text-3);font-size:0.85rem">Loading…</div>'
   _colWorkspaceBack = backTo || _colWorkspaceBack || 'showCollectionsHub'
 
   setHash('#/collection/' + collectionId)
@@ -10746,7 +10786,7 @@ async function showCollectionRecord(collectionId, backTo) {
 
   if (colRes.error || !colRes.data) {
     console.error('showCollectionRecord error:', colRes.error)
-    vs.innerHTML = `<div style="padding:2rem 1.75rem">
+    vs.innerHTML = `<div class="detail-view-inner">
       <p>Error loading collection.</p>
       <p style="font-size:0.7rem;color:var(--text-3);margin-top:0.5rem;font-family:monospace">${esc(colRes.error?.code || '')} — ${esc(colRes.error?.message || colRes.error?.hint || 'unknown error')}</p>
     </div>`
@@ -10883,7 +10923,7 @@ async function showCollectionRecord(collectionId, backTo) {
     </div>`
 
   vs.innerHTML = `
-  <div style="padding:1.25rem 1.75rem 2rem">
+  <div class="detail-view-inner" style="padding-bottom:2rem">
     <div style="margin-bottom:1rem">
       <button class="detail-back-btn" onclick="${_colWorkspaceBack}()">
         <span class="detail-back-dot" style="background:var(--accent)"></span>
@@ -11754,14 +11794,14 @@ function renderDispatchQueueScreen() {
 
   pg.innerHTML = `
     <div class="dq-meta">${esc(WAREHOUSE_LOCATION_LBL[div] || ALMACEN_DIV_LBL[div])} · ${rows.length} order${rows.length!==1?'s':''} in queue</div>
-    <div class="dq-counters">
-      <div class="dq-counter ${_dqFilters.status==='' && !_dqFilters.overdue ? 'active':''}" onclick="dqSetQuickFilter('')"><b>${rows.length}</b> All</div>
-      <div class="dq-counter ${_dqFilters.status==='pending' ? 'active':''}" onclick="dqSetQuickFilter('pending')"><b>${pendingN}</b> Pending</div>
-      <div class="dq-counter ${_dqFilters.status==='preparing' ? 'active':''}" onclick="dqSetQuickFilter('preparing')"><b>${preparingN}</b> In preparation</div>
-      <div class="dq-counter ${_dqFilters.status==='ready' ? 'active':''}" onclick="dqSetQuickFilter('ready')"><b>${readyN}</b> Ready</div>
-      <div class="dq-counter overdue ${_dqFilters.overdue ? 'active':''}" onclick="dqSetQuickFilter('overdue')"><b>${overdueN}</b> Overdue</div>
+    <div class="page-metrics">
+      <div class="page-metric ${_dqFilters.status==='' && !_dqFilters.overdue ? 'active':''}" onclick="dqSetQuickFilter('')"><b>${rows.length}</b> All</div>
+      <div class="page-metric ${_dqFilters.status==='pending' ? 'active':''}" onclick="dqSetQuickFilter('pending')"><b>${pendingN}</b> Pending</div>
+      <div class="page-metric ${_dqFilters.status==='preparing' ? 'active':''}" onclick="dqSetQuickFilter('preparing')"><b>${preparingN}</b> In preparation</div>
+      <div class="page-metric ${_dqFilters.status==='ready' ? 'active':''}" onclick="dqSetQuickFilter('ready')"><b>${readyN}</b> Ready</div>
+      <div class="page-metric overdue ${_dqFilters.overdue ? 'active':''}" onclick="dqSetQuickFilter('overdue')"><b>${overdueN}</b> Overdue</div>
     </div>
-    <div class="dq-toolbar">
+    <div class="page-toolbar">
       <input type="text" id="dq-search" placeholder="Search order, customer, requester…" value="${esc(_dqFilters.q)}" oninput="dqFilterChange('q', this.value)" />
       <select id="dq-customer" onchange="dqFilterChange('customer', this.value)">
         <option value="">Customer: All</option>
@@ -11818,10 +11858,10 @@ function dqRenderTable() {
   })
 
   if (!rows.length) {
-    slot.innerHTML = `<div class="dq-empty">No orders match these filters.</div>`
+    slot.innerHTML = `<div class="page-empty">No orders match these filters.</div>`
     return
   }
-  slot.innerHTML = `<div class="dq-table-wrap"><table class="dq-table">
+  slot.innerHTML = `<div class="erp-table-wrap"><table class="erp-table">
     <thead><tr>
       <th>Order</th><th>Collection / Request</th><th>Customer</th><th>Requester</th>
       <th>Items</th><th>Delivery</th><th>Requested</th><th>Status</th><th>Next action</th>
@@ -11857,14 +11897,15 @@ async function showDispatch(collectionId) {
   document.getElementById('view-detail').style.display = 'none'
   document.getElementById('view-samples').style.display = 'none'
   const vs = document.getElementById('view-sample-detail')
+  document.getElementById('content').classList.add('detail-active')
   vs.style.display = 'block'
-  vs.innerHTML = '<div style="padding:2rem 1.75rem;color:var(--text-3);font-size:0.85rem">Loading…</div>'
+  vs.innerHTML = '<div class="detail-view-inner" style="color:var(--text-3);font-size:0.85rem">Loading…</div>'
 
   const [colRes, itemsRes] = await Promise.all([
     sb.from('sample_collections').select('*, profiles!requested_by(full_name)').eq('id', collectionId).single(),
     sb.from('samples').select('*, products(name,division,code)').eq('collection_id', collectionId).order('created_at', { ascending: true }),
   ])
-  if (colRes.error || !colRes.data) { vs.innerHTML = `<div style="padding:2rem 1.75rem"><p>Error loading collection.</p></div>`; return }
+  if (colRes.error || !colRes.data) { vs.innerHTML = `<div class="detail-view-inner"><p>Error loading collection.</p></div>`; return }
   _dispatchCol = colRes.data
   _dispatchItems = itemsRes.data || []
   // Scope the sidebar to whichever division this collection's items belong
@@ -11945,19 +11986,23 @@ function renderDispatchScreen() {
   const stage = orderStageIndex(col.status)
   const nextActionLbl = stage <= 1 ? 'Finalize Picking' : col.delivery_method === 'Pickup' ? 'Mark Picked Up' : 'Ship Order'
   const vs = document.getElementById('view-sample-detail')
+  document.getElementById('content').classList.add('detail-active')
+  // Left side of the WorkflowActionBar: a validation summary, never a
+  // silent disabled button — the user should always know WHY.
+  const validationMsg = allResolved ? '' : `${pending} item${pending!==1?'s':''} still pending`
   vs.innerHTML = `
-  <div style="padding:1.5rem 1.75rem 0">
-    <div style="margin-bottom:1rem">
+  <div class="detail-view-inner">
+    <div style="margin-bottom:var(--panel-gap)">
       <button class="detail-back-btn" onclick="showCollectionRecord('${col.id}')">
         <span class="detail-back-dot" style="background:var(--accent)"></span>
         ${esc(col.name || 'Cola de despacho')}
       </button>
     </div>
 
-    <div class="srd-id-block" style="margin-bottom:0;padding-bottom:0.5rem;border-bottom:none">
+    <div class="page-header">
       <div>
-        <div class="srd-id-text">${esc(col.collection_id)}</div>
-        <div class="srd-id-sub">${col.name ? esc(col.name) : 'Quick request'}</div>
+        <div class="page-header-title">${esc(col.collection_id)}</div>
+        <div class="page-header-meta">${col.name ? esc(col.name) : 'Quick request'}</div>
       </div>
       <div style="flex:1"></div>
       ${smpBadge(col.status)}
@@ -11970,58 +12015,73 @@ function renderDispatchScreen() {
     </div>
     <div class="ord-steps">${orderStepperHtml(col.status)}</div>
 
-    <div class="srd-layout">
+    <div class="content-grid">
       <div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem">
-          <div class="srd-section-label" style="margin:0">Picking (${items.length})</div>
-          <button class="btn btn-ghost btn-sm" onclick="openScanMode('dispatch')">
-            <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-            Scan
-          </button>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--panel-gap)">
+          <div class="page-section-label" style="margin-top:0">Picking (${items.length})</div>
+          <div style="display:flex;gap:var(--sp-2)">
+            <button class="btn btn-ghost btn-sm" onclick="dispatchToggleAddProduct()">
+              <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              Add product
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="openScanMode('dispatch')">
+              <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              Scan
+            </button>
+          </div>
         </div>
-        <div class="dq-table-wrap" style="margin-bottom:1rem">
-          <table class="pick-table">
-            <thead><tr><th></th><th>Code</th><th>Product</th><th style="text-align:center">Req.</th><th style="text-align:center">Scanned</th><th>Status</th><th>Action</th></tr></thead>
+        <div id="dispatch-add-product" style="display:none;margin-bottom:var(--panel-gap)">
+          <input type="text" id="dispatch-search" placeholder="Search products to add…" oninput="dispatchSearchProducts(this.value)"
+            style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:var(--r-sm);padding:0.45rem 0.6rem;font-family:inherit;font-size:0.8rem;background:var(--surface2);color:var(--text)" />
+          <div id="dispatch-search-results"></div>
+        </div>
+        <div class="erp-table-wrap">
+          <table class="erp-table">
+            <thead><tr><th></th><th>Code</th><th>Product</th><th data-num>Req.</th><th data-num>Scanned</th><th>Status</th><th>Action</th></tr></thead>
             <tbody>${items.map(dispatchRowHtml).join('') || `<tr><td colspan="7" style="color:var(--text-3);padding:1rem 0.6rem">No items yet.</td></tr>`}</tbody>
           </table>
         </div>
-        <div class="srd-section-label">Add a product</div>
-        <div class="srd-card" style="margin-bottom:1.5rem">
-          <input type="text" id="dispatch-search" placeholder="Search products to add…" oninput="dispatchSearchProducts(this.value)"
-            style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.65rem;font-family:inherit;font-size:0.82rem;background:var(--surface2);color:var(--text)" />
-          <div id="dispatch-search-results"></div>
-        </div>
       </div>
 
-      <div class="srd-card">
-        <div class="ord-side-lbl">Reconciliation</div>
-        <div class="ord-side-stat"><span>Requested</span><b>${requestedQty}</b></div>
-        <div class="ord-side-stat"><span>Scanned</span><b>${scannedQty}</b></div>
-        <div class="ord-side-stat ${pending ? 'warn' : ''}"><span>Pending</span><b>${pending}</b></div>
-        <div class="ord-side-stat ${unavailable ? 'warn' : ''}"><span>Unavailable</span><b>${unavailable}</b></div>
-        <div class="ord-side-sep"></div>
-        <div class="ord-side-lbl">Delivery</div>
-        <div class="ord-side-line">${esc(col.delivery_method || '—')}${col.priority==='urgent' ? ' · Urgent' : ''}</div>
-        <div class="ord-side-line muted">${esc(col.recipient || 'No recipient on file')}</div>
-        ${col.address ? `<div class="ord-side-line muted">${esc(col.address)}</div>` : ''}
-        ${col.notes ? `<div class="ord-side-sep"></div><div class="ord-side-lbl">Notes</div><div class="ord-side-line muted">${esc(col.notes)}</div>` : ''}
+      <div class="panel">
+        <div class="ctx-lbl">Reconciliation</div>
+        <div class="ctx-stat"><span>Requested</span><b>${requestedQty}</b></div>
+        <div class="ctx-stat"><span>Scanned</span><b>${scannedQty}</b></div>
+        <div class="ctx-stat ${pending ? 'warn' : ''}"><span>Pending</span><b>${pending}</b></div>
+        <div class="ctx-stat ${unavailable ? 'warn' : ''}"><span>Unavailable</span><b>${unavailable}</b></div>
+        <div class="ctx-sep"></div>
+        <div class="ctx-lbl">Delivery</div>
+        <div class="ctx-line">${esc(col.delivery_method || '—')}${col.priority==='urgent' ? ' · Urgent' : ''}</div>
+        <div class="ctx-line muted">${esc(col.recipient || 'No recipient on file')}</div>
+        ${col.address ? `<div class="ctx-line muted">${esc(col.address)}</div>` : ''}
+        ${col.notes ? `<div class="ctx-sep"></div><div class="ctx-lbl">Notes</div><div class="ctx-line muted">${esc(col.notes)}</div>` : ''}
       </div>
     </div>
   </div>
   <div class="detail-toolbar">
     <div class="detail-toolbar-inner">
+      <span style="font-size:0.78rem;color:var(--text-3)">${esc(validationMsg)}</span>
+      <div class="detail-toolbar-spacer"></div>
       ${stage <= 1 ? `
       <button class="btn btn-primary" id="dispatch-print-btn" onclick="finalizeDispatch()" ${allResolved ? '' : 'disabled'}
         title="${allResolved ? '' : 'Resolve every item first — scan it present or mark it unavailable'}">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="14" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 9h14M10 6V3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
         ${esc(nextActionLbl)}
       </button>` : stage === 2 ? `
-      <button class="btn btn-primary" onclick="advanceOrderStatus('${col.delivery_method === 'Pickup' ? 'picked_up' : 'shipped'}')">${esc(nextActionLbl)}</button>
-      <button class="btn btn-ghost btn-sm" onclick="printShippingGuide()">Reprint manifest</button>` : stage === 3 ? `
+      <button class="btn btn-ghost btn-sm" onclick="printShippingGuide()">Reprint manifest</button>
+      <button class="btn btn-primary" onclick="advanceOrderStatus('${col.delivery_method === 'Pickup' ? 'picked_up' : 'shipped'}')">${esc(nextActionLbl)}</button>` : stage === 3 ? `
       <button class="btn btn-primary" onclick="advanceOrderStatus('delivered')">Mark Delivered</button>` : `
       <span style="font-size:0.8rem;color:var(--text-3)">Order completed</span>`}
     </div>
   </div>`
+}
+
+function dispatchToggleAddProduct() {
+  const el = document.getElementById('dispatch-add-product')
+  if (!el) return
+  const show = el.style.display === 'none'
+  el.style.display = show ? 'block' : 'none'
+  if (show) document.getElementById('dispatch-search')?.focus()
 }
 
 async function advanceOrderStatus(status) {
