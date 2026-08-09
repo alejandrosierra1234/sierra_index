@@ -3208,10 +3208,30 @@
         <button class="nav-item cart-nav-item" id="nav-cart" data-tip="Collections" style="--item-color:#16cdbe" onclick="openCollectionsNav()"><span class="n-icon" style="position:relative"><svg viewBox="0 0 20 20" fill="none"><path d="M3 4h2l1.6 9.5a1 1 0 0 0 1 .8h7.3a1 1 0 0 0 1-.75L17.5 8H5.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="17" r="1.1" fill="currentColor"/><circle cx="14.5" cy="17" r="1.1" fill="currentColor"/></svg><span class="cart-nav-badge" id="cart-nav-badge">0</span></span><span class="nav-label">Collections</span><span class="cart-nav-count" id="cart-nav-count">0</span></button>
         <button class="nav-item" id="nav-scan" data-tip="Scan" style="--item-color:#009fff" onclick="openScanMode()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Scan</span></button>
       </div>
-      <div class="mod-scope" data-scope="almacen">
-        <span class="s-label" style="margin-top:0.5rem">Almacén</span>
-        <button class="nav-item" id="nav-dispatch-queue" data-tip="Cola de despacho" style="--item-color:#9c6b1f" onclick="showDispatchQueue()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
-        <button class="nav-item" id="nav-wh-inventory" data-tip="Inventario" style="--item-color:#9c6b1f" onclick="showWarehouseInventory()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Inventario</span></button>
+      <div class="mod-scope" data-scope="almacen_fiber">
+        <span class="s-label" style="margin-top:0.5rem">Almacén · Fibra</span>
+        <button class="nav-item" id="nav-dispatch-queue-fiber" data-tip="Cola de despacho" style="--item-color:#9e00cb" onclick="showDispatchQueueFiber()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
+        <button class="nav-item" id="nav-wh-inventory-fiber" data-tip="Inventario" style="--item-color:#9e00cb" onclick="showWarehouseInventoryFiber()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Inventario</span></button>
+      </div>
+      <div class="mod-scope" data-scope="almacen_yarn">
+        <span class="s-label" style="margin-top:0.5rem">Almacén · Hilo</span>
+        <button class="nav-item" id="nav-dispatch-queue-yarn" data-tip="Cola de despacho" style="--item-color:#3ed600" onclick="showDispatchQueueYarn()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
+        <button class="nav-item" id="nav-wh-inventory-yarn" data-tip="Inventario" style="--item-color:#3ed600" onclick="showWarehouseInventoryYarn()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Inventario</span></button>
+      </div>
+      <div class="mod-scope" data-scope="almacen_fabric">
+        <span class="s-label" style="margin-top:0.5rem">Almacén · Tela</span>
+        <button class="nav-item" id="nav-dispatch-queue-fabric" data-tip="Cola de despacho" style="--item-color:#009fff" onclick="showDispatchQueueFabric()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
+        <button class="nav-item" id="nav-wh-inventory-fabric" data-tip="Inventario" style="--item-color:#009fff" onclick="showWarehouseInventoryFabric()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Inventario</span></button>
+      </div>
+      <div class="mod-scope" data-scope="almacen_chemicals">
+        <span class="s-label" style="margin-top:0.5rem">Almacén · Químicos</span>
+        <button class="nav-item" id="nav-dispatch-queue-chemicals" data-tip="Cola de despacho" style="--item-color:#ff7824" onclick="showDispatchQueueChemicals()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
+        <button class="nav-item" id="nav-wh-inventory-chemicals" data-tip="Inventario" style="--item-color:#ff7824" onclick="showWarehouseInventoryChemicals()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Inventario</span></button>
+      </div>
+      <div class="mod-scope" data-scope="almacen_garment">
+        <span class="s-label" style="margin-top:0.5rem">Almacén · Confección</span>
+        <button class="nav-item" id="nav-dispatch-queue-garment" data-tip="Cola de despacho" style="--item-color:#16cdbe" onclick="showDispatchQueueGarment()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
+        <button class="nav-item" id="nav-wh-inventory-garment" data-tip="Inventario" style="--item-color:#16cdbe" onclick="showWarehouseInventoryGarment()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Inventario</span></button>
       </div>
       <div class="mod-scope" data-scope="talento_humano">
         <span class="s-label" style="margin-top:0.5rem">Talento Humano</span>
@@ -3835,6 +3855,9 @@ const I18N = {
     'team.domain.fiber':'Fiber', 'team.domain.yarn':'Yarn', 'team.domain.fabric':'Fabric', 'team.domain.chemicals':'Chemicals',
     'team.domain.garment':'Apparel', 'team.domain.warehouse':'Warehouse', 'team.domain.customer_service':'Customer Service',
     'team.domain.talento_humano':'Talento Humano', 'team.domain.platform':'Platform',
+    'team.domain.warehouse_fiber':'Warehouse · Fiber', 'team.domain.warehouse_yarn':'Warehouse · Yarn',
+    'team.domain.warehouse_fabric':'Warehouse · Fabric', 'team.domain.warehouse_chemicals':'Warehouse · Chemicals',
+    'team.domain.warehouse_garment':'Warehouse · Apparel',
     'team.toast.granted':'Granted {domain} {level}', 'team.toast.revoked':'Revoked {domain} access',
     'team.toast.revokeFailed':'Could not revoke access: {msg}', 'team.toast.roleFailed':'Could not update role: {msg}',
     'team.modal.eyebrow':'Team', 'team.modal.title':'Create account', 'team.modal.fullName':'Full name',
@@ -3888,6 +3911,9 @@ const I18N = {
     'team.domain.fiber':'Fibra', 'team.domain.yarn':'Hilo', 'team.domain.fabric':'Tela', 'team.domain.chemicals':'Químicos',
     'team.domain.garment':'Confección', 'team.domain.warehouse':'Almacén', 'team.domain.customer_service':'Servicio al cliente',
     'team.domain.talento_humano':'Talento Humano', 'team.domain.platform':'Plataforma',
+    'team.domain.warehouse_fiber':'Almacén de Muestras · Fibra', 'team.domain.warehouse_yarn':'Almacén de Muestras · Hilo',
+    'team.domain.warehouse_fabric':'Almacén de Muestras · Tela', 'team.domain.warehouse_chemicals':'Almacén de Muestras · Químicos',
+    'team.domain.warehouse_garment':'Almacén de Muestras · Confección',
     'team.toast.granted':'Acceso otorgado: {domain} · {level}', 'team.toast.revoked':'Acceso revocado: {domain}',
     'team.toast.revokeFailed':'No se pudo revocar el acceso: {msg}', 'team.toast.roleFailed':'No se pudo actualizar el rol: {msg}',
     'team.modal.eyebrow':'Equipo', 'team.modal.title':'Crear cuenta', 'team.modal.fullName':'Nombre completo',
@@ -3957,8 +3983,22 @@ function applyLanguage(opts = {}) {
    can() falls back to the legacy profiles.role mapping so users keep their
    current access until grants exist — mirror of authorize()'s fallback. */
 const AUTH_DIVISIONS = ['fiber','yarn','fabric','chemicals','garment']
-const AUTH_DOMAINS = [...AUTH_DIVISIONS, 'warehouse', 'customer_service', 'talento_humano', 'platform']
+const AUTH_WAREHOUSES = AUTH_DIVISIONS.map(d => 'warehouse_' + d)
+const AUTH_DOMAINS = [...AUTH_DIVISIONS, ...AUTH_WAREHOUSES, 'customer_service', 'talento_humano', 'platform']
 let myGrants = []
+
+// Each division has its own warehouse domain (warehouse_<division>) — this
+// checks a specific one when given a division, or "any warehouse at all"
+// when not, always also accepting the legacy shared 'warehouse' domain so
+// nobody loses access before their grant is migrated to the specific one.
+function canDispatchDiv(division) {
+  if (division) return can('dispatch', 'warehouse_' + division) || can('dispatch', 'warehouse')
+  return AUTH_WAREHOUSES.some(d => can('dispatch', d)) || can('dispatch', 'warehouse')
+}
+function hasWarehouseAccess(division) {
+  if (division) return can('read', 'warehouse_' + division) || can('dispatch', 'warehouse_' + division) || can('read', 'warehouse') || can('dispatch', 'warehouse')
+  return AUTH_WAREHOUSES.some(d => can('read', d) || can('dispatch', d)) || can('read', 'warehouse') || can('dispatch', 'warehouse')
+}
 
 async function loadGrants() {
   myGrants = []
@@ -3999,14 +4039,14 @@ function authRoleLabel() {
   if (can('admin', 'platform')) return 'Admin'
   if (AUTH_DOMAINS.some(d => can('grant', d))) return 'Data Owner'
   if (canEditDiv('all')) return 'Editor'
-  if (can('dispatch', 'warehouse')) return 'Dispatcher'
+  if (canDispatchDiv()) return 'Dispatcher'
   return 'Viewer'
 }
 
 // Deprecated shims — legacy call sites only; new code should call can()
 function isAdmin()  { return can('admin', 'platform') }
 function isEditor() { return canEditDiv('all') }
-function isDispatcher() { return can('dispatch', 'warehouse') }
+function isDispatcher() { return canDispatchDiv() }
 
 /* ── PRODUCT LIFECYCLE ──
    draft/development are internal (division editors only); discontinued stays
@@ -7723,6 +7763,37 @@ function showStyleGuide() {
    authorization domain (capability_grants) — an editor/Data Owner grants
    it from the Team screen exactly like any other domain grant. Each
    módulo lists its herramientas; clicking one navigates into it. */
+const ALMACEN_DIV_LBL = { fiber:'Fibra', yarn:'Hilo', fabric:'Tela', chemicals:'Químicos', garment:'Confección' }
+// Each division has its own physical sample warehouse (confirmed by the
+// business), so Almacén is 5 modules keyed on warehouse_<division> —
+// not the old shared 'warehouse' domain — same shape as almacenModule
+// produces for each. Keeps the 5 blocks in MODULES from being five
+// hand-copied literals that could drift out of sync with each other.
+function almacenModule(division, color) {
+  const lbl = ALMACEN_DIV_LBL[division]
+  return {
+    label: `Almacén de Muestras · ${lbl}`,
+    domains: ['warehouse_' + division],
+    color,
+    icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+    tools: [
+      {
+        id: 'despacho',
+        label: `Cola de despacho · ${lbl}`,
+        desc: `Colecciones de ${lbl} listas para verificar, excluir y despachar`,
+        icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+        run: 'showDispatchQueue' + division[0].toUpperCase() + division.slice(1),
+      },
+      {
+        id: 'inventario',
+        label: `Inventario · ${lbl}`,
+        desc: `Existencias, rotación y movimientos de ${lbl}`,
+        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        run: 'showWarehouseInventory' + division[0].toUpperCase() + division.slice(1),
+      },
+    ],
+  }
+}
 const MODULES = {
   talento_humano: {
     label: 'Talento Humano',
@@ -7826,28 +7897,11 @@ const MODULES = {
       },
     ],
   },
-  almacen: {
-    label: 'Almacén',
-    domains: ['warehouse'],
-    color: '#9c6b1f',
-    icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
-    tools: [
-      {
-        id: 'despacho',
-        label: 'Cola de despacho',
-        desc: 'Colecciones listas para verificar, excluir y despachar',
-        icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
-        run: 'showDispatchQueue',
-      },
-      {
-        id: 'inventario',
-        label: 'Inventario',
-        desc: 'Existencias, rotación y movimientos en todas las ubicaciones',
-        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-        run: 'showWarehouseInventory',
-      },
-    ],
-  },
+  almacen_fiber:     almacenModule('fiber', '#9e00cb'),
+  almacen_yarn:      almacenModule('yarn', '#3ed600'),
+  almacen_fabric:    almacenModule('fabric', '#009fff'),
+  almacen_chemicals: almacenModule('chemicals', '#ff7824'),
+  almacen_garment:   almacenModule('garment', '#16cdbe'),
   administracion: {
     label: 'Administración',
     domains: ['platform'],
@@ -9117,7 +9171,7 @@ let _teamGrants = null
 function bundleCaps(domain, level) {
   if (domain === 'platform')
     return level === 'owner' ? ['read','admin','grant'] : level === 'editor' ? ['read','admin'] : ['read']
-  if (domain === 'warehouse')
+  if (domain === 'warehouse' || domain.startsWith('warehouse_'))
     return level === 'owner' ? ['read','dispatch','grant'] : level === 'editor' ? ['read','dispatch'] : ['read']
   if (domain === 'customer_service')
     return level === 'owner' ? ['read','write','manage_status','grant'] : level === 'editor' ? ['read','write','manage_status'] : ['read']
@@ -9673,6 +9727,11 @@ async function addToCart(p) {
 }
 
 async function addItemToActiveDraft(p) {
+  const otherDiv = sampleCart.find(i => i.division !== p.division)
+  if (otherDiv) {
+    toast(`Esta colección ya tiene muestras de ${DIV_LBL[otherDiv.division] || otherDiv.division} — cada colección es de una sola división. Empieza una nueva para ${DIV_LBL[p.division] || p.division}.`)
+    return
+  }
   const existing = sampleCart.find(i => i.product_id === p.id)
   if (existing) {
     const newQty = existing.qty + 1
@@ -10621,7 +10680,8 @@ async function showCollectionRecord(collectionId, backTo) {
   const requesterName = col.profiles?.full_name || col.profiles?.email || '—'
   const dateStr = new Date(col.created_at).toLocaleDateString('en-US', { day:'2-digit', month:'long', year:'numeric' })
   const canEdit = can('manage_status', 'customer_service')
-  const canDispatch = can('dispatch', 'warehouse')
+  const colDivision = items.find(i => i.products?.division)?.products?.division
+  const canDispatch = canDispatchDiv(colDivision)
   const isReadyOrLater = ['ready','picked_up','shipped','delivered'].includes(col.status)
   const totalQty = items.reduce((t, i) => t + (i.quantity || 1), 0)
 
@@ -11145,6 +11205,12 @@ async function wsSearchProducts(collectionId, query) {
   </div>`).join('')
 }
 async function wsAddProduct(collectionId, productId, division) {
+  const { data: existing } = await sb.from('samples').select('products(division)').eq('collection_id', collectionId).limit(1)
+  const otherDiv = existing?.[0]?.products?.division
+  if (otherDiv && otherDiv !== division) {
+    toast(`Esta colección ya tiene muestras de ${DIV_LBL[otherDiv] || otherDiv} — cada colección es de una sola división.`)
+    return
+  }
   const types = DIV_SAMPLE_TYPES[division] || ['Sample']
   const { error } = await sb.rpc('add_draft_item', { p_collection_id: collectionId, p_product_id: productId, p_sample_type: types[0], p_quantity: 1 })
   if (error) { toast('No se pudo agregar el producto: ' + error.message); return }
@@ -11517,26 +11583,37 @@ let _dispatchCol = null, _dispatchItems = []
    specific collection ("Ir a Despacho"), with no way to see what's
    waiting overall. ── */
 const DISPATCH_QUEUE_STATUSES = ['requested', 'approved', 'preparing']
-async function showDispatchQueue() {
-  syncModule('almacen')
+async function showDispatchQueue(division) {
+  syncModule('almacen_' + division)
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-dispatch-queue').classList.add('active')
-  document.getElementById('tb-section').textContent = 'Cola de despacho'
+  document.getElementById('nav-dispatch-queue-' + division)?.classList.add('active')
+  const title = `Cola de despacho · ${ALMACEN_DIV_LBL[division]}`
+  document.getElementById('tb-section').textContent = title
   document.getElementById('product-controls').style.display = 'none'
-  document.getElementById('sec-title').textContent = 'Cola de despacho'
+  document.getElementById('sec-title').textContent = title
   document.getElementById('sec-sub').textContent = 'Colecciones listas para verificar, excluir y despachar'
 
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
   pg.innerHTML = '<div class="empty"><div class="empty-icon">⌛</div><p>Cargando…</p></div>'
 
+  // Collections are single-division going forward, but this is derived from
+  // the samples themselves (not a column on sample_collections) so a legacy
+  // mixed collection still surfaces correctly to every division it touches.
+  const { data: divSamples, error: divErr } = await sb.from('samples')
+    .select('collection_id, products!inner(division)').eq('products.division', division)
+    .not('collection_id', 'is', null)
+  if (divErr) { pg.innerHTML = `<div class="empty"><p>Error: ${esc(divErr.message)}</p></div>`; return }
+  const colIds = [...new Set((divSamples || []).map(s => s.collection_id))]
+  if (!colIds.length) { pg.innerHTML = `<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>No hay colecciones de ${ALMACEN_DIV_LBL[division]} esperando despacho.</p></div>`; return }
+
   const { data: cols, error } = await sb.from('sample_collections')
     .select('id,collection_id,name,customer,priority,status,created_at,requested_by')
-    .in('status', DISPATCH_QUEUE_STATUSES).order('created_at', { ascending: true })
+    .in('id', colIds).in('status', DISPATCH_QUEUE_STATUSES).order('created_at', { ascending: true })
   if (error) { pg.innerHTML = `<div class="empty"><p>Error: ${esc(error.message)}</p></div>`; return }
-  if (!cols.length) { pg.innerHTML = '<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>No hay colecciones esperando despacho.</p></div>'; return }
+  if (!cols.length) { pg.innerHTML = `<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>No hay colecciones de ${ALMACEN_DIV_LBL[division]} esperando despacho.</p></div>`; return }
 
   const { data: items } = await sb.from('samples').select('collection_id, products(division)').in('collection_id', cols.map(c => c.id))
   const divsByCol = {}
@@ -11558,9 +11635,13 @@ async function showDispatchQueue() {
     </div>`
   }).join('')}</div>`
 }
+function showDispatchQueueFiber()     { showDispatchQueue('fiber') }
+function showDispatchQueueYarn()      { showDispatchQueue('yarn') }
+function showDispatchQueueFabric()    { showDispatchQueue('fabric') }
+function showDispatchQueueChemicals() { showDispatchQueue('chemicals') }
+function showDispatchQueueGarment()   { showDispatchQueue('garment') }
 
 async function showDispatch(collectionId) {
-  syncModule('almacen')
   document.getElementById('div-toolbar').style.display = 'none'
   document.getElementById('view-products').style.display = 'none'
   document.getElementById('view-dashboard').style.display = 'none'
@@ -11578,6 +11659,11 @@ async function showDispatch(collectionId) {
   if (colRes.error || !colRes.data) { vs.innerHTML = `<div style="padding:2rem 1.75rem"><p>Error loading collection.</p></div>`; return }
   _dispatchCol = colRes.data
   _dispatchItems = itemsRes.data || []
+  // Scope the sidebar to whichever division this collection's items belong
+  // to (single-division going forward — falls back to the first one found
+  // if an older mixed collection still exists).
+  const firstDiv = _dispatchItems.find(i => i.products?.division)?.products?.division
+  syncModule(firstDiv ? 'almacen_' + firstDiv : null)
   renderDispatchScreen()
 }
 
@@ -11717,7 +11803,8 @@ function dispatchSearchProducts(query) {
   if (!query.trim()) { el.innerHTML = ''; return }
   const q = query.toLowerCase()
   const already = new Set(_dispatchItems.map(i => i.product_id))
-  const matches = allProducts.filter(p => !already.has(p.id) && canRequestSample(p) && (p.name.toLowerCase().includes(q) || (p.code||'').toLowerCase().includes(q))).slice(0, 6)
+  const colDiv = _dispatchItems.find(i => i.products?.division)?.products?.division
+  const matches = allProducts.filter(p => !already.has(p.id) && canRequestSample(p) && (!colDiv || p.division === colDiv) && (p.name.toLowerCase().includes(q) || (p.code||'').toLowerCase().includes(q))).slice(0, 6)
   el.innerHTML = matches.map(p => `<div style="padding:0.5rem 0;border-top:1px solid var(--border);cursor:pointer;font-size:0.82rem" onclick="dispatchAddProduct('${p.id}')">${esc(p.name)} <span style="color:var(--text-3);font-size:0.7rem">${esc(p.code||'')}</span></div>`).join('')
     || `<div style="padding:0.5rem 0;border-top:1px solid var(--border);font-size:0.78rem;color:var(--text-3)">No matches.</div>`
 }
@@ -12375,7 +12462,9 @@ async function loadInvLocations() {
   return _invLocations
 }
 function canAdjustLoc(loc) {
-  return can('write', loc.owner_domain) || can('dispatch', 'warehouse') || isAdmin()
+  return can('write', loc.owner_domain)
+    || canDispatchDiv(AUTH_DIVISIONS.includes(loc.owner_domain) ? loc.owner_domain : null)
+    || isAdmin()
 }
 
 // Availability rollup: Out of Stock < Low Stock < Reserved < Available
@@ -12541,24 +12630,31 @@ async function submitInvMove() {
 /* ── WAREHOUSE INVENTORY OVERVIEW — Almacén's own screen. Was a tab inside
    Insights (shared with Muestras); moved here since the data (stock levels,
    turnover, fast/slow movers) is warehouse's, not customer service's. ── */
-function renderInventoryOverview(D, P) {
+function renderInventoryOverview(D, P, division) {
   const pname = id => D.productById[id]?.name || '—'
   const pdiv = id => D.productById[id]?.division
   const locName = id => D.locations.find(l => l.id === id)?.name || '—'
+  // Each warehouse only sees its own division's stock/movements/products —
+  // scoped here rather than at the query level since insightsData() is a
+  // single shared cache reused across screens.
+  const stocks = division ? D.stocks.filter(s => pdiv(s.product_id) === division) : D.stocks
+  const movements = division ? D.movements.filter(m => pdiv(m.product_id) === division) : D.movements
+  const products = division ? D.products.filter(p => p.division === division) : D.products
+  const samples = division ? D.samples.filter(s => pdiv(s.product_id) === division) : D.samples
   const availBy = keyFn => {
     const m = {}
-    D.stocks.forEach(s => { const k = keyFn(s); if (k) m[k] = (m[k] || 0) + (s.qty - s.reserved) })
+    stocks.forEach(s => { const k = keyFn(s); if (k) m[k] = (m[k] || 0) + (s.qty - s.reserved) })
     return Object.entries(m).sort((a, b) => b[1] - a[1])
   }
-  const low = D.stocks.filter(s => s.min_qty > 0 && (s.qty - s.reserved) <= s.min_qty && (s.qty - s.reserved) > 0)
-  const out = D.stocks.filter(s => (s.qty - s.reserved) <= 0)
-  const moved = insCount(D.movements.filter(m => insIn(m, P) && ['dispatched','picked'].includes(m.movement_type)), m => pname(m.product_id))
-  const requestedIds = new Set(D.samples.map(s => s.product_id))
-  const never = D.products.filter(p => !requestedIds.has(p.id))
-  const stockedIds = new Set(D.stocks.filter(s => s.qty - s.reserved > 0).map(s => s.product_id))
-  const reqButUnavailable = [...requestedIds].filter(id => D.productById[id] && D.stocks.some(s => s.product_id === id) && !stockedIds.has(id))
-  const totalAvail = D.stocks.reduce((t, s) => t + s.qty - s.reserved, 0)
-  const dispatched = D.movements.filter(m => insIn(m, P) && m.movement_type === 'dispatched').reduce((t, m) => t + m.qty, 0)
+  const low = stocks.filter(s => s.min_qty > 0 && (s.qty - s.reserved) <= s.min_qty && (s.qty - s.reserved) > 0)
+  const out = stocks.filter(s => (s.qty - s.reserved) <= 0)
+  const moved = insCount(movements.filter(m => insIn(m, P) && ['dispatched','picked'].includes(m.movement_type)), m => pname(m.product_id))
+  const requestedIds = new Set(samples.map(s => s.product_id))
+  const never = products.filter(p => !requestedIds.has(p.id))
+  const stockedIds = new Set(stocks.filter(s => s.qty - s.reserved > 0).map(s => s.product_id))
+  const reqButUnavailable = [...requestedIds].filter(id => D.productById[id] && stocks.some(s => s.product_id === id) && !stockedIds.has(id))
+  const totalAvail = stocks.reduce((t, s) => t + s.qty - s.reserved, 0)
+  const dispatched = movements.filter(m => insIn(m, P) && m.movement_type === 'dispatched').reduce((t, m) => t + m.qty, 0)
   return `<div class="ins-grid">
       ${insCard('Low inventory', low.length, 'formats below minimum')}
       ${insCard('Out of stock', out.length, 'formats at zero')}
@@ -12568,31 +12664,33 @@ function renderInventoryOverview(D, P) {
     </div>
     <div class="ins-cols">
       ${insList('Inventory by location', availBy(s => locName(s.location_id)))}
-      ${insList('Inventory by division', availBy(s => DIV_LBL[pdiv(s.product_id)] || '—'))}
+      ${division ? '' : insList('Inventory by division', availBy(s => DIV_LBL[pdiv(s.product_id)] || '—'))}
       ${insList('Inventory by format', availBy(s => s.format))}
       ${insList('Fast moving', moved, { click: "insOpenProduct('%K%')" })}
       ${insList('Slow moving (stocked, no dispatches)', availBy(s => stockedIds.has(s.product_id) && !moved.some(([k]) => k === pname(s.product_id)) ? pname(s.product_id) : null), { click: "insOpenProduct('%K%')" })}
     </div>`
 }
 
-let _whInvPeriod = 30
-async function showWarehouseInventory() {
-  syncModule('almacen')
+let _whInvPeriod = 30, _whInvDivision = null
+async function showWarehouseInventory(division) {
+  _whInvDivision = division
+  syncModule('almacen_' + division)
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-wh-inventory').classList.add('active')
-  document.getElementById('tb-section').textContent = 'Inventario'
+  document.getElementById('nav-wh-inventory-' + division)?.classList.add('active')
+  const title = `Inventario · ${ALMACEN_DIV_LBL[division]}`
+  document.getElementById('tb-section').textContent = title
   document.getElementById('product-controls').style.display = 'none'
-  document.getElementById('sec-title').textContent = 'Inventario'
-  document.getElementById('sec-sub').textContent = 'Existencias, rotación y movimientos en todas las ubicaciones'
+  document.getElementById('sec-title').textContent = title
+  document.getElementById('sec-sub').textContent = `Existencias, rotación y movimientos de ${ALMACEN_DIV_LBL[division]}`
 
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
   pg.innerHTML = `
     <div class="srd-card" style="margin-bottom:1.5rem;max-width:480px">
       <label style="display:block;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-3);margin-bottom:0.4rem">Registrar movimiento</label>
-      <input type="text" id="wh-inv-search" class="tl-search" style="width:100%" placeholder="Buscar producto por nombre o código…" oninput="whInvSearchProducts(this.value)" />
+      <input type="text" id="wh-inv-search" class="tl-search" style="width:100%" placeholder="Buscar producto de ${esc(ALMACEN_DIV_LBL[division])} por nombre o código…" oninput="whInvSearchProducts(this.value)" />
       <div id="wh-inv-search-results"></div>
     </div>
     <div style="display:flex;justify-content:flex-end;margin-bottom:0.85rem">
@@ -12603,12 +12701,17 @@ async function showWarehouseInventory() {
     <div id="wh-inv-body"><div class="empty"><div class="empty-icon">⌛</div><p>Cargando…</p></div></div>`
 
   const D = await insightsData()
-  document.getElementById('wh-inv-body').innerHTML = renderInventoryOverview(D, _whInvPeriod)
+  document.getElementById('wh-inv-body').innerHTML = renderInventoryOverview(D, _whInvPeriod, _whInvDivision)
 }
+function showWarehouseInventoryFiber()     { showWarehouseInventory('fiber') }
+function showWarehouseInventoryYarn()      { showWarehouseInventory('yarn') }
+function showWarehouseInventoryFabric()    { showWarehouseInventory('fabric') }
+function showWarehouseInventoryChemicals() { showWarehouseInventory('chemicals') }
+function showWarehouseInventoryGarment()   { showWarehouseInventory('garment') }
 async function whInvSetPeriod(v) {
   _whInvPeriod = parseInt(v, 10)
   const D = await insightsData()
-  document.getElementById('wh-inv-body').innerHTML = renderInventoryOverview(D, _whInvPeriod)
+  document.getElementById('wh-inv-body').innerHTML = renderInventoryOverview(D, _whInvPeriod, _whInvDivision)
 }
 let _whInvSearchTimer = null
 function whInvSearchProducts(q) {
@@ -12620,7 +12723,7 @@ async function _whInvSearchRun(q) {
   if (!el) return
   if (!q) { el.innerHTML = ''; return }
   const { data } = await sb.from('products').select('id,name,code,division')
-    .or(`name.ilike.%${q}%,code.ilike.%${q}%`).limit(8)
+    .or(`name.ilike.%${q}%,code.ilike.%${q}%`).eq('division', _whInvDivision).limit(8)
   const matches = (data || []).filter(lifecycleVisible)
   el.innerHTML = matches.map(p => {
     const c = DIV_CLR[p.division] || '#aaa'
@@ -12798,7 +12901,7 @@ function insList(title, pairs, opts = {}) {
    registry entry. */
 function insightsSections() {
   const S = []
-  const cs = can('read', 'customer_service'), wh = can('read', 'warehouse') || can('dispatch', 'warehouse')
+  const cs = can('read', 'customer_service'), wh = hasWarehouseAccess()
   const anyDiv = AUTH_DIVISIONS.some(d => can('write', d))
   if (cs || wh || anyDiv || isAdmin()) S.push('overview')
   if (cs || isAdmin()) S.push('demand')
