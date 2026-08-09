@@ -1012,3 +1012,159 @@ not the audit-row shape used by the timeline.
 - Per-screen spacing, widths and button CSS.
 - Interaction discoverable only on hover.
 - Decorative whitespace standing in for structural grouping.
+
+---
+
+# Document & Label Editors (§33–§40)
+
+Product Detail's Label Builder is the reference implementation. Anything
+that edits a document destined for paper — a label, a technical sheet, a
+shipping guide — is built from the pieces below, not from a bespoke
+modal.
+
+The governing distinction: **the editor is an app surface, the document
+is print stock.** They use different design systems and must never share
+one. An editor in dark mode still previews a white label.
+
+## 33. Editor shell
+
+`.lbl-dr` — a centred workspace dialog, three regions:
+
+| Region | Contains |
+|---|---|
+| `.lbl-dr-hdr` | Document type + record name, save-state chip, validation chip, then `Save` / `PDF` / `Print` and close. One `--control-h` across every control. |
+| `.lbl-dr-editor` | 400px editor rail: `.sub-tabs` (Content / Layout / Codes / Print) over a scrolling body. |
+| `.lbl-dr-preview` | `.lbl-pv-bar` (sheet dimensions + zoom) over `.lbl-pv-stage` → `.lbl-dr-paper` → the document. |
+
+The rail is 400px because the form inside it must hold a 14px input plus
+a label, a source badge and a visibility toggle on one line without
+wrapping. Do not narrow it below 360px.
+
+## 34. Editor form density
+
+- `.lbl-acc` — accordion section. Identity / Material / Physical open by
+  default; open state is remembered for the editing session.
+- `.lbl-fld` — one field: name, source badge, reset, visibility toggle,
+  then the input. Rows share one grid; **a field never gets its own
+  card**.
+- `.lbl-fld-pair` — two-up for short parallel values (Width/GSM,
+  DIA/Gauge). The source badge is suppressed here so the field name is
+  never truncated.
+- `.lbl-vis` — the VisibilityToggle: a real switch with `aria-pressed`,
+  never a bare checkbox floated to the right of a card.
+- Type: section heading 14px/650, field label 13px/650, input 14px,
+  helper 12px. Nothing in an editor is 10px.
+
+## 35. Field source model
+
+A label field knows where its value comes from; it does not own a copy
+of it.
+
+```
+LABEL_FIELDS[key] = { label, section, read(product), long?, required? }
+LabelConfig       = { template, overrides{}, hidden[], order[], qr{}, barcode{} }
+```
+
+`read()` pulls from the product record. `overrides[key]` exists **only**
+where a user deliberately typed something else. Resolution is one
+function (`lbValue`), used by both the editor and the renderer.
+
+Three consequences, all required:
+
+1. Editing a label never writes to product master data. The save payload
+   is `{ specs: { …existing, label_config } }` — no master column is in
+   it.
+2. A later correction to the product record flows into every label that
+   has not explicitly overridden that field.
+3. Typing the product's own value back **removes** the override rather
+   than freezing a duplicate.
+
+The editor shows which is in play (`Product data` / `Label override`)
+and offers a per-field reset.
+
+## 36. Live preview
+
+One renderer produces both the preview and the printed sheet from the
+same config; the only differences are passed in:
+
+```
+renderLabel(product, config, { interactive })  // preview
+renderLabel(product, config, { assets })       // print
+```
+
+Every mutation re-renders immediately — there is no Preview button and
+nothing needs saving first. Typing does not re-render the editor row
+(focus and caret would be lost); only the source badge is synced.
+
+**Preview → editor**: every value on the document carries
+`data-lf="<field>"` and a `.lbl-region` hit area. Clicking it selects the
+field, opens its accordion section, scrolls the row into view and
+focuses the input. This is the single most useful affordance in the
+builder — a new user learns the whole editor by clicking the document.
+
+## 37. Print-safe layout
+
+- Document geometry is **millimetres**, never pixels or rem. The preview
+  changes only its CSS `transform`; zoom (Fit / 100 / 125 / 150) never
+  touches the document's metrics.
+- The `@page` size is written from the *measured* sheet at print time, so
+  preview and paper are the same size. On continuous media the sheet is
+  cut to content; a format's `maxHeightMm` is the practical handling
+  limit, not a printer limit.
+- Never invent printer geometry. 62mm is the QL-800's real media width;
+  formats differ in what they carry, not in what medium they claim.
+- Machine-readable zones get fixed boxes (the barcode is a 12mm band with
+  `preserveAspectRatio="none"`). Deriving their height from the
+  generator's intrinsic ratio makes the document's height depend on the
+  payload, which silently changes the sheet.
+- Print CSS collapses the ink ramp to solid black (thermal printing is
+  1-bit) and strips every preview affordance.
+
+## 38. Machine-readable codes
+
+`QRConfigurator` / `BarcodeConfigurator` live in the **Codes** tab:
+
+| Control | Rule |
+|---|---|
+| QR enabled + destination | Product record (default) or a custom URL. A custom URL must be a full `https://` address — a malformed destination is unrecoverable once printed. |
+| Barcode enabled + encoded field | Chosen from the fields the stack can actually encode (Mill article / Lot / Product ID). Symbology is stated, not invented: only what the bundled encoder supports is offered. |
+
+The editor always shows the exact payload that will be encoded.
+
+## 39. Validation
+
+`.lbl-issues` — two severities, one rule:
+
+- **error** blocks printing. Missing required field, barcode with no
+  data, unsupported characters for the symbology, invalid QR
+  destination.
+- **warn** does not. Content past the format's practical length, which
+  will be scaled down.
+
+Every issue carries an actionable fix where one exists ("Hide Yarn 01",
+"Use the compact format") — never a bare complaint. Overflow is measured
+from the rendered DOM, not guessed from string lengths, because the
+document reflows.
+
+The header's validation chip is the always-visible summary and is a
+button: it takes you to the Print tab where the issues live.
+
+## 40. Templates, permissions, audit
+
+- **Templates** define fields, section order, geometry and default
+  visibility. Product data fills them. A new division gets a template
+  entry, not a new screen.
+- **Permissions**: editing overrides and layout requires write on the
+  product's division; printing does not. UI hiding is not authorization
+  — the save is an `update` on `products`, governed by RLS.
+- **Audit**: log committed actions only — config saved (with a
+  field-level diff of overrides), label printed, PDF downloaded, builder
+  opened. Never log a keystroke.
+
+## 41. Label design acceptance
+
+A SIERRA label is not acceptable if the brand hierarchy is weak, the QR
+or barcode dominates, long yarn values overflow, technical values shrink
+below the readable floor (1.8mm), sections are boxed rather than
+separated by hairlines, or safe margins are inconsistent. The print type
+ramp is fixed: title 6.2mm, values 2.9mm, metadata 2.4mm, keys 1.8mm.
