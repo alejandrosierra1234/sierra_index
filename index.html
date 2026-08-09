@@ -1655,180 +1655,106 @@
     .detail-back-btn svg { flex-shrink:0; }
     .detail-back-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
 
-    /* Identity nav row: back (left) + share icon (right) — mirrors the
-       standard back/action navigation-bar pattern instead of a full-width
-       Share button competing with the sticky toolbar's CTAs below. */
-    .pd-id-nav { display:flex; align-items:center; justify-content:space-between; gap:0.75rem; margin:0 0 1.05rem -0.35rem; min-height:34px; }
-    .pd-share-icon-btn {
-      width:30px; height:30px; border-radius:7px; border:1px solid var(--border);
-      background:none; color:var(--text-3); display:flex; align-items:center; justify-content:center;
+    /* ── ProductHeader ── compact ERP record header: identity + status +
+       completeness + action hierarchy in one row, replacing the old tall
+       vertical identity sidebar (name/SKU/division/status/completeness each
+       its own block). Canonical for any single-record screen from here on
+       — see SIERRA_DESIGN_SYSTEM.md "ProductHeader". */
+    .pd-header { margin-bottom:0.9rem; }
+    .pd-header-main { display:flex; align-items:flex-start; justify-content:space-between; gap:1.5rem; flex-wrap:wrap; }
+    .pd-header-id { min-width:0; }
+    .pd-header-name {
+      font-size:1.5rem; font-weight:750; letter-spacing:-0.025em; line-height:1.15;
+      color:var(--text); margin:0 0 0.3rem; overflow-wrap:anywhere; display:flex; align-items:center; flex-wrap:wrap; gap:0.5rem;
+    }
+    .pd-header-meta { font-size:0.78rem; color:var(--text-3); display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; }
+    .pd-header-meta b { color:var(--text-2); font-weight:600; }
+    .pd-header-meta .sep { opacity:0.5; }
+    .pd-header-meta-copy {
+      background:none; border:none; padding:0; margin:0; color:var(--text-3); cursor:pointer;
+      display:inline-flex; opacity:0; transition:opacity 0.12s; vertical-align:middle;
+    }
+    .pd-header-meta:hover .pd-header-meta-copy { opacity:1; }
+    .pd-header-meta-copy:hover { color:var(--text); }
+    .pd-header-status { display:flex; align-items:center; gap:0.5rem; flex-shrink:0; margin-top:0.15rem; }
+    .pd-header-actions { display:flex; align-items:center; gap:0.4rem; flex-shrink:0; margin-top:0.15rem; }
+    .pd-header-icon-btn {
+      width:34px; height:34px; border-radius:8px; border:1px solid var(--border);
+      background:none; color:var(--text-2); display:flex; align-items:center; justify-content:center;
       cursor:pointer; transition:all 0.12s; flex-shrink:0;
     }
-    .pd-share-icon-btn:hover { color:var(--text); border-color:var(--text-3); background:var(--surface2); }
+    .pd-header-icon-btn:hover { color:var(--text); border-color:var(--text-3); background:var(--surface2); }
 
-    /* ── PRODUCT DETAIL LAYOUT — ERP MainPane + ContextPane (§6 content-grid),
-       not a page-specific 3/4-column shape. ContextPane (left, fixed width)
-       carries identity + media together as ONE panel — media used to be a
-       separate sticky column the same width as identity, which looked huge
-       and empty whenever a product had no image. MainPane (right, flexible)
-       is the Technical Profile — the dominant, data-first surface. */
-    .pd-layout {
-      display:grid; grid-template-columns:minmax(240px,280px) minmax(0,1fr);
-      grid-template-rows:auto auto;
-      gap:1.25rem 2rem; align-items:start;
+    /* CompletenessIndicator — compact chip + popover, not a permanent card */
+    .completeness-chip {
+      display:inline-flex; align-items:center; gap:0.4rem; font-family:inherit;
+      border:1px solid var(--border); border-radius:var(--r-pill); background:var(--surface2);
+      padding:0.28rem 0.55rem 0.28rem 0.4rem; cursor:pointer; font-size:0.72rem; color:var(--text-2);
+      transition:border-color 0.12s, background 0.12s;
     }
-    .pd-identity-col { grid-column:1; grid-row:1; position:sticky; top:1.5rem; min-width:0; }
-    .pd-specs-col { grid-column:2; grid-row:1; min-width:0; }
-    .pd-comments-col { grid-column:2; grid-row:2; min-width:0; }
+    .completeness-chip:hover { border-color:var(--text-3); background:var(--surface); }
+    .completeness-ring { width:15px; height:15px; flex-shrink:0; transform:rotate(-90deg); }
+    .completeness-ring circle { fill:none; stroke-width:2.5; }
+    .completeness-ring .track { stroke:var(--border); }
+    .completeness-ring .fill { stroke:var(--accent); stroke-linecap:round; transition:stroke-dashoffset 0.3s; }
+    .completeness-chip b { font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
+    .completeness-pop { min-width:220px; }
+    .completeness-pop-hd { font-size:0.72rem; color:var(--text-2); padding:0.2rem 0.5rem 0.5rem; border-bottom:1px solid var(--border); margin-bottom:0.3rem; }
+    .completeness-pop-hd b { color:var(--text); }
+    .completeness-missing-row { display:flex; align-items:center; gap:0.5rem; padding:0.3rem 0.5rem; font-size:0.78rem; color:var(--text-2); }
+    .completeness-missing-row svg { flex-shrink:0; color:var(--warning-text,#92600a); }
+    .completeness-pop-ok { padding:0.4rem 0.5rem; font-size:0.78rem; color:var(--success,#34c759); }
 
-    /* Media, inlined at the top of the identity panel instead of its own
-       column — fixed compact height (not aspect-ratio:1, which produced a
-       ~260px empty square) so it reads as an identity thumbnail, not a
-       product-page hero image. */
-    .pd-media-inline { margin:-0.05rem -0.05rem 0.9rem; }
-    .pd-media-inline .ficha-gallery-hero { aspect-ratio:auto; height:150px; }
-    .pd-media-inline .pd-no-img { aspect-ratio:auto; height:150px; }
-    .pd-media-inline .pd-media-label { padding:0 0.1rem 0.5rem; }
+    /* RecordTabs is .pd-tabs.pd-tabs-inline (already canonical, see Catalog
+       ViewTabs) — no separate tab component for this screen. */
+    #pd-record-tabs { margin-bottom:1.1rem; }
 
-    .pd-panel {
-      border:1px solid color-mix(in srgb, var(--border) 82%, transparent);
-      border-radius:12px;
-      background:var(--surface);
-      box-shadow:0 8px 24px rgba(0,0,0,0.035);
-    }
-    [data-theme="dark"] .pd-panel {
-      background:var(--surface);
-      box-shadow:0 12px 32px rgba(0,0,0,0.24);
-    }
-    .pd-identity-card {
-      padding:1rem;
-      position:relative;
-      overflow:hidden;
-    }
-    .pd-section-card { padding:1rem 1rem 0.95rem; }
-    .pd-section-title {
-      display:flex; align-items:baseline; justify-content:space-between; gap:1rem;
-      padding:0.05rem 0 0.85rem;
-      border-bottom:1px solid var(--border);
-      margin-bottom:0.2rem;
-    }
-    .pd-section-title strong {
-      font-size:0.95rem; letter-spacing:-0.02em; color:var(--text);
-    }
-    .pd-section-title span {
+    /* field-section / field-grid / field — the ERP DataField system.
+       Subtle top-border separators between sections, never a card per
+       attribute and never one full-width row per attribute. */
+    .field-section { padding:1.1rem 0; border-top:1px solid var(--border); }
+    .field-section:first-child { padding-top:0; border-top:none; }
+    .field-section-title {
       font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em;
-      color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      color:var(--text-3); margin-bottom:0.85rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;
     }
-    .pd-media-label {
-      display:flex; align-items:center; justify-content:space-between; gap:0.75rem;
-      padding:0.2rem 0.2rem 0.65rem;
-      font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em;
-      color:var(--text-3);
+    .field-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:1rem 1.5rem; }
+    .field-grid.cols-3 { grid-template-columns:repeat(3, minmax(0,1fr)); }
+    .field { min-width:0; }
+    .field-span-2 { grid-column:span 2; }
+    .field-label { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); margin-bottom:0.28rem; }
+    .field-value {
+      display:inline-flex; align-items:baseline; gap:0.3rem; max-width:100%;
+      font-size:0.85rem; font-weight:500; color:var(--text); line-height:1.4;
     }
-    .pd-media-label span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-
-    /* Image */
-    .pd-no-img {
-      display:flex; align-items:center; justify-content:center; flex-direction:column;
-      gap:0.65rem; border:1px dashed color-mix(in srgb, var(--border) 82%, var(--text-3) 18%); border-radius:12px;
-      aspect-ratio:1; color:var(--text-3); background:var(--surface2);
-      transition:border-color 0.14s, background 0.14s, box-shadow 0.14s;
+    .field-value-text { overflow-wrap:break-word; min-width:0; }
+    .field-copy {
+      background:none; border:none; padding:0; margin:0; cursor:pointer; color:var(--text-3);
+      display:inline-flex; opacity:0; transition:opacity 0.12s; flex-shrink:0; transform:translateY(1px);
     }
-    .pd-no-img-hint { font-size:0.68rem; color:var(--text-3); }
-    .pd-no-img.drag-over { border-color:var(--accent); background:var(--accent-light); }
-
-    /* Identity column */
-    .pd-name {
-      font-size:2rem; font-weight:750; letter-spacing:-0.035em;
-      line-height:1.08; color:var(--text); margin:0 0 0.9rem;
-      text-wrap:balance; overflow-wrap:anywhere;
-    }
-    .pd-name .product-name-lang-tag { margin-left:0; margin-top:0.45rem; transform:none; display:flex; width:max-content; }
-    .pd-sku-box {
-      display:inline-flex; align-items:center; gap:0.4rem;
-      font-size:0.72rem; font-weight:600; letter-spacing:0.04em;
-      color:var(--text-2); cursor:pointer; user-select:none;
-      background:var(--surface2); border:1px solid var(--border); border-radius:8px;
-      padding:0.42rem 0.62rem; transition:border-color 0.12s, background 0.12s, box-shadow 0.12s;
-      margin-bottom:1.35rem;
-    }
-    .pd-sku-box:hover { border-color:var(--text-3); background:var(--surface); box-shadow:0 3px 12px rgba(0,0,0,0.04); }
-    .pd-sku-box svg { color:var(--text-3); flex-shrink:0; }
-    .pd-id-block { margin-bottom:1rem; }
-    .pd-id-label {
-      font-size:0.58rem; font-weight:700; text-transform:uppercase;
-      letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.4rem;
-    }
-    .pd-id-value {
-      font-size:0.85rem; font-weight:500; color:var(--text);
-      display:flex; align-items:center; gap:0.45rem;
-      min-width:0;
-    }
-    .pd-division-icon {
-      width:22px; height:22px; border-radius:7px; flex-shrink:0;
-      display:inline-flex; align-items:center; justify-content:center;
-      color:var(--accent); background:var(--accent-light);
-      border:1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
-    }
-    .pd-division-icon svg { width:14px; height:14px; display:block; }
-    .pd-division-main { min-width:0; display:flex; flex-direction:column; gap:0.08rem; }
-    .pd-division-name { color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .pd-division-meta { font-size:0.68rem; color:var(--text-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .field:hover .field-copy { opacity:1; }
+    .field-copy:hover { color:var(--text); }
+    .field-empty .field-value { color:var(--text-3); }
+    .field-multiline .field-value { display:block; white-space:pre-line; }
     .pd-format-chips { display:flex; flex-wrap:wrap; gap:0.38rem; }
     .pd-format-chip {
       font-size:0.68rem; font-weight:500; color:var(--text-2);
       border:1px solid var(--border); border-radius:8px; padding:0.34rem 0.58rem; background:var(--surface2);
     }
-    .pd-complete {
-      width:100%; display:flex; flex-direction:column; gap:0.38rem;
-      border:1px solid var(--border); border-radius:10px;
-      padding:0.7rem 0.75rem; background:var(--surface2);
-    }
-    .pd-complete-top { display:flex; align-items:baseline; justify-content:space-between; gap:0.75rem; }
-    .pd-complete-score { font-size:0.82rem; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
-    .pd-complete-caption { font-size:0.66rem; color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .pd-complete-track { height:4px; border-radius:4px; background:var(--border); overflow:hidden; }
-    .pd-complete-fill { height:100%; border-radius:4px; background:var(--accent); transition:width 0.24s cubic-bezier(0.22,1,0.36,1); }
 
-    /* ── SPEC TABLE — single unified data list ── */
-    .pd-specs { width:100%; }
-    .pd-hd {
-      font-size:0.58rem; font-weight:700; text-transform:uppercase;
-      letter-spacing:0.1em; color:var(--text-3);
-      padding:1.05rem 0.7rem 0.45rem; border-top:1px solid var(--border); margin-top:0.2rem;
-    }
-    .pd-hd:first-child { border-top:none; padding-top:0; margin-top:0; }
-    .pd-row {
-      display:flex; gap:1rem; padding:0.68rem 0.7rem;
-      cursor:pointer; transition:background 0.16s, opacity 0.16s, box-shadow 0.16s; align-items:baseline;
-      border-radius:10px;
-    }
-    .pd-row + .pd-row { border-top:1px solid color-mix(in srgb, var(--border) 82%, transparent); }
-    .pd-row:hover { background:var(--surface2); opacity:1; box-shadow:0 1px 0 rgba(255,255,255,0.4) inset; }
-    .pd-k {
-      font-size:0.68rem; font-weight:650; color:var(--text-3);
-      width:118px; flex-shrink:0; line-height:1.45;
-      text-transform:uppercase; letter-spacing:0.045em;
-    }
-    .pd-v {
-      font-size:0.85rem; font-weight:500; color:var(--text);
-      flex:1; line-height:1.45; overflow-wrap:break-word; min-width:0;
-    }
-    /* Composition reads as the same key/value row list as everything else
-       below it — it used to render at a visibly larger scale (0.95rem vs
-       the 0.85rem of every other .pd-v), which is what made the panel feel
-       like a marketing spec sheet instead of one consistent ERP data table. */
-    .pd-comp-block {
-      padding:0.68rem 0.7rem;
-      border-bottom:1px solid color-mix(in srgb, var(--border) 82%, transparent);
-      cursor:pointer; transition:background 0.16s, opacity 0.16s; border-radius:10px;
-    }
-    .pd-comp-block:hover { background:var(--surface2); opacity:1; }
-    .pd-comp-line { font-size:0.85rem; font-weight:500; color:var(--text); line-height:1.5; }
-    .pd-comp-pct { font-weight:700; font-variant-numeric:tabular-nums; }
+    /* Composition — compact multi-value display with an optional subtle
+       proportion bar, never a full vertical card. */
+    .comp-bar { display:flex; height:5px; border-radius:4px; overflow:hidden; margin-bottom:0.55rem; background:var(--border); }
+    .comp-bar span { height:100%; }
+    .comp-bar span:nth-child(4n+1) { background:var(--accent); }
+    .comp-bar span:nth-child(4n+2) { background:color-mix(in srgb, var(--accent) 55%, var(--text-3)); }
+    .comp-bar span:nth-child(4n+3) { background:color-mix(in srgb, var(--accent) 30%, var(--border)); }
+    .comp-bar span:nth-child(4n+4) { background:var(--text-3); }
+    .comp-list { display:flex; flex-wrap:wrap; gap:0.3rem 1.1rem; }
+    .comp-item { font-size:0.85rem; color:var(--text); white-space:nowrap; }
+    .comp-item b { font-weight:700; font-variant-numeric:tabular-nums; margin-right:0.3rem; }
 
     .detail-desc { font-size:0.83rem; color:var(--text-2); line-height:1.75; margin:0; }
-    .detail-actions { display:none; }
 
     .detail-comments-section {
       border:1px solid color-mix(in srgb, var(--border) 82%, transparent);
@@ -1842,6 +1768,91 @@
     }
     .detail-comments-section:first-child { margin-top:0; }
     .detail-comments-lbl { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.85rem; }
+
+    /* Overview tab: gallery (fixed width) + key DataFieldGrid (flexible) side
+       by side — MainPane/ContextPane shape, mirrors §6 content-grid but with
+       the compact column on the left since media leads Overview. */
+    .pd-overview-grid { display:grid; grid-template-columns:minmax(220px,300px) minmax(0,1fr); gap:1.75rem; align-items:start; }
+    .pd-overview-gallery { min-width:0; }
+
+    /* ── ProductGallery — compact primary preview + thumbnail strip. Click
+       any image to open the shared ImageLightbox. Never renders every
+       image at full size at once. */
+    .pgal-hero {
+      position:relative; width:100%; aspect-ratio:4/3; max-height:300px; border-radius:12px; overflow:hidden;
+      background:var(--surface2); cursor:zoom-in; border:1px solid var(--border);
+    }
+    .pgal-hero img { width:100%; height:100%; object-fit:cover; display:block; }
+    .pgal-hero-actions { position:absolute; top:0.5rem; right:0.5rem; z-index:2; }
+    .pgal-caption { font-size:0.72rem; color:var(--text-3); margin-top:0.4rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .pgal-thumbs { display:flex; gap:0.4rem; margin-top:0.5rem; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; }
+    .pgal-thumbs::-webkit-scrollbar { display:none; }
+    .pgal-thumb {
+      position:relative; width:52px; height:52px; border-radius:8px; overflow:hidden; flex-shrink:0;
+      cursor:pointer; border:1.5px solid transparent; opacity:0.65; transition:opacity 0.12s, border-color 0.12s;
+    }
+    .pgal-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+    .pgal-thumb:hover { opacity:1; }
+    .pgal-thumb.active { opacity:1; border-color:var(--accent); }
+    .pgal-thumb-primary { position:absolute; bottom:2px; left:2px; width:12px; height:12px; color:#ffc21f; filter:drop-shadow(0 1px 1px rgba(0,0,0,0.5)); }
+    .pgal-thumb-rm {
+      position:absolute; top:2px; right:2px; width:15px; height:15px; border-radius:50%;
+      background:rgba(0,0,0,0.6); color:#fff; border:none; display:flex; align-items:center; justify-content:center;
+      font-size:0.6rem; line-height:1; cursor:pointer; opacity:0; transition:opacity 0.12s;
+    }
+    .pgal-thumb:hover .pgal-thumb-rm { opacity:1; }
+    .pgal-add {
+      width:52px; height:52px; border-radius:8px; border:1px dashed color-mix(in srgb, var(--border) 82%, var(--text-3) 18%);
+      background:none; color:var(--text-3); display:flex; align-items:center; justify-content:center;
+      cursor:pointer; flex-shrink:0; transition:border-color 0.12s, color 0.12s;
+    }
+    .pgal-add:hover { border-color:var(--accent); color:var(--accent); }
+    .pd-no-img {
+      display:flex; align-items:center; justify-content:center; flex-direction:column;
+      gap:0.65rem; border:1px dashed color-mix(in srgb, var(--border) 82%, var(--text-3) 18%); border-radius:12px;
+      width:100%; aspect-ratio:4/3; max-height:300px; color:var(--text-3); background:var(--surface2);
+      transition:border-color 0.14s, background 0.14s, box-shadow 0.14s;
+    }
+    .pd-no-img-hint { font-size:0.68rem; color:var(--text-3); }
+    .pd-no-img.drag-over { border-color:var(--accent); background:var(--accent-light); }
+
+    /* ── ImageLightbox — generic, reusable overlay (not product-detail-only) ── */
+    .lightbox-overlay {
+      display:none; position:fixed; inset:0; z-index:900; background:rgba(10,10,12,0.92);
+      align-items:center; justify-content:center; flex-direction:column;
+    }
+    .lightbox-overlay.open { display:flex; }
+    .lightbox-stage { position:relative; flex:1; width:100%; display:flex; align-items:center; justify-content:center; min-height:0; padding:3.5rem 4.5rem; box-sizing:border-box; }
+    .lightbox-stage img { max-width:100%; max-height:100%; object-fit:contain; border-radius:4px; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
+    .lightbox-close, .lightbox-nav {
+      position:absolute; display:flex; align-items:center; justify-content:center;
+      width:40px; height:40px; border-radius:50%; border:none; cursor:pointer;
+      background:rgba(255,255,255,0.08); color:#fff; transition:background 0.12s;
+    }
+    .lightbox-close:hover, .lightbox-nav:hover { background:rgba(255,255,255,0.18); }
+    .lightbox-close { top:1.1rem; right:1.1rem; }
+    .lightbox-prev { left:1.1rem; top:50%; transform:translateY(-50%); }
+    .lightbox-next { right:1.1rem; top:50%; transform:translateY(-50%); }
+    .lightbox-counter { position:absolute; top:1.25rem; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.75); font-size:0.78rem; font-variant-numeric:tabular-nums; }
+    .lightbox-thumbs { display:flex; gap:0.5rem; padding:0 1rem 1.25rem; overflow-x:auto; scrollbar-width:none; max-width:100%; box-sizing:border-box; }
+    .lightbox-thumbs::-webkit-scrollbar { display:none; }
+    .lightbox-thumbs .pgal-thumb { width:46px; height:46px; }
+
+    /* ── DocumentList ── compact list, not a spreadsheet-style table for
+       a handful of files */
+    .doc-list { display:flex; flex-direction:column; }
+    .doc-row {
+      display:flex; align-items:center; gap:0.75rem; padding:0.65rem 0.2rem;
+      border-top:1px solid color-mix(in srgb, var(--border) 82%, transparent);
+    }
+    .doc-row:first-child { border-top:none; }
+    .doc-icon {
+      width:32px; height:32px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+      background:var(--surface2); color:var(--text-3);
+    }
+    .doc-main { flex:1; min-width:0; }
+    .doc-name { font-size:0.84rem; font-weight:500; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .doc-meta { font-size:0.7rem; color:var(--text-3); }
 
     /* ── STICKY TOOLBAR ── */
     /* ── WorkflowActionBar ── sticky bottom action bar shared by every
@@ -1877,36 +1888,27 @@
     .detail-toolbar-sep { width:1px; height:18px; background:var(--border); margin:0 0.25rem; flex-shrink:0; }
     .detail-toolbar-spacer { flex:1; }
 
-    /* ── DETAIL RESPONSIVE ── */
-    @media (max-width:1200px) {
-      .pd-layout { grid-template-columns:230px 1fr; gap:0 2rem; }
-      .pd-name { font-size:1.55rem; }
+    /* ── DETAIL RESPONSIVE ──
+       DataFieldGrid: 4 cols desktop → 3 cols medium desktop/tablet (§22 of
+       the ERP product-master brief) → 2 cols small tablet → 1 col phone.
+       Overview gallery+fields: side-by-side down to tablet, stacked below. */
+    @media (max-width:1100px) {
+      .field-grid { grid-template-columns:repeat(3, minmax(0,1fr)); }
     }
     @media (max-width:900px) {
-      .pd-layout { grid-template-columns:minmax(180px,220px) minmax(0,1fr); grid-template-rows:auto; gap:1.5rem; }
-      .pd-identity-col { grid-column:1; grid-row:1; }
-      .pd-specs-col { grid-column:2; grid-row:1; }
-      .pd-comments-col { grid-column:1 / -1; grid-row:2; margin-top:0.75rem; max-width:680px; }
+      .pd-overview-grid { grid-template-columns:1fr; }
+      .pd-overview-gallery { max-width:360px; }
+      .field-grid, .field-grid.cols-3 { grid-template-columns:repeat(2, minmax(0,1fr)); }
     }
 
-    /* Mobile: single column — identity (incl. media), specs, comments (via order) */
+    /* Mobile: header stacks, single-column fields */
     @media (max-width:767px) {
-      /* Layout */
-      .pd-layout { grid-template-columns:1fr; grid-template-rows:none; gap:0; }
-      .pd-identity-col, .pd-specs-col, .pd-comments-col {
-        grid-column:1; grid-row:auto; position:static; min-width:0;
-      }
-      .pd-identity-col { order:1; margin-bottom:1.25rem; }
-      .pd-specs-col { order:2; }
-      .pd-comments-col { order:3; margin-top:1.5rem; }
-      .pd-name { font-size:1.5rem; margin-top:0.5rem; }
-      .pd-identity-card, .pd-section-card { padding:0.9rem; }
-      .pd-section-title { flex-direction:column; gap:0.18rem; align-items:flex-start; }
-      .pd-section-title span { max-width:100%; }
-      .pd-media-label { align-items:flex-start; }
-      .pd-k { width:88px; }
-      .pd-hd { padding:0.85rem 0 0.35rem; }
-      .pd-row { padding:0.58rem 0; }
+      .pd-header-name { font-size:1.28rem; }
+      .pd-header-main { flex-direction:column; gap:0.75rem; }
+      .pd-header-status, .pd-header-actions { margin-top:0; }
+      .field-grid, .field-grid.cols-3 { grid-template-columns:1fr; }
+      .field-span-2 { grid-column:span 1; }
+      .pd-overview-gallery { max-width:100%; }
       .detail-comments-section { margin-top:0.85rem; padding:0.9rem; border-radius:12px; }
       .tl-controls { flex-direction:column; align-items:stretch; }
       #pd-rel-add > div { flex-direction:column; align-items:stretch; }
@@ -3305,8 +3307,9 @@
     .smp-lbl-foot { font-size:1.8mm; color:#888; }
   </style>
   <style>
-/* ── DETAIL HERO LAYOUT (replaces 2-column detail-layout) ── */
-/* legacy detail-hero stubs — layout replaced by .pd-layout */
+/* legacy detail-hero stubs — pre-date the current ProductHeader/RecordTabs
+   layout (§ SIERRA_DESIGN_SYSTEM.md "Product Detail"); kept only in case
+   any cached/inline markup still references these class names. */
 .detail-hero, .pd-identity-block, .pd-gallery-block { display:contents; }
 
 /* ── PUBLIC PRODUCT PAGE ── */
@@ -3821,6 +3824,23 @@
     <div class="sd-tabs" id="sd-tabs" style="display:none"></div>
     <div class="sd-body" id="sd-body"></div>
   </div>
+</div>
+<!-- ══ IMAGE LIGHTBOX (canonical, generic — any gallery can call openImageLightbox) ══ -->
+<div class="lightbox-overlay" id="lightbox-overlay" onclick="if(event.target===this)closeImageLightbox()">
+  <button class="lightbox-close" onclick="closeImageLightbox()" title="Close (Esc)">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 12M14 2L2 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+  </button>
+  <div class="lightbox-counter" id="lightbox-counter"></div>
+  <div class="lightbox-stage">
+    <button class="lightbox-nav lightbox-prev" id="lightbox-prev" onclick="lightboxNav(-1)" title="Previous">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3l-5 5 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <img id="lightbox-img" src="" alt="" />
+    <button class="lightbox-nav lightbox-next" id="lightbox-next" onclick="lightboxNav(1)" title="Next">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+  <div class="lightbox-thumbs" id="lightbox-thumbs"></div>
 </div>
 <!-- ══ MODAL: MANAGE COLLECTION PEOPLE ══ -->
 <div class="overlay" id="m-ws-invite">
@@ -5486,16 +5506,287 @@ function shareProduct(p) {
   copyToClipboard(url)
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   DataField / DataFieldGrid — the one reusable ERP attribute-display
+   primitive (SIERRA_DESIGN_SYSTEM.md "DataField"). Renders LABEL/value,
+   optional hover-only copy icon, never a full-width row per attribute.
+   Any screen with a technical/record attribute list should build it
+   from these two helpers instead of hand-rolling a spec table. ══════ */
+const FIELD_COPY_ICON = `<svg width="11" height="11" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" stroke="currentColor" stroke-width="1.4"/></svg>`
+
+// opts: { label, value, html (pre-rendered value markup, overrides value),
+//         copy (bool|string — string copies that instead of the text value),
+//         span (2 = double-width), multiline (bool) }
+function dataFieldHtml(opts) {
+  const { label, value, html, copy, span, multiline } = opts
+  const hasValue = html != null || (value !== null && value !== undefined && String(value) !== '')
+  if (!hasValue && !opts.always) return ''
+  const copyVal = copy === true ? String(value ?? '') : (typeof copy === 'string' ? copy : null)
+  return `<div class="field${span === 2 ? ' field-span-2' : ''}${multiline ? ' field-multiline' : ''}${hasValue ? '' : ' field-empty'}">
+    <div class="field-label">${esc(label)}</div>
+    <div class="field-value">
+      <span class="field-value-text">${html != null ? html : (hasValue ? esc(String(value)) : '—')}</span>
+      ${copyVal ? `<button type="button" class="field-copy" onclick="event.stopPropagation();copyToClipboard('${jsStr(copyVal)}')" title="Copy">${FIELD_COPY_ICON}</button>` : ''}
+    </div>
+  </div>`
+}
+// fields: array of dataFieldHtml() opts objects (or raw HTML strings, passed through)
+function dataFieldGridHtml(fields, opts = {}) {
+  const rows = fields.map(f => typeof f === 'string' ? f : dataFieldHtml(f)).filter(Boolean)
+  if (!rows.length) return ''
+  return `<div class="field-grid${opts.cols3 ? ' cols-3' : ''}">${rows.join('')}</div>`
+}
+// A titled field-section wrapper — the subtle top-border separator between
+// groups (Construction / Material / Physical / …), never a card per group.
+function fieldSectionHtml(title, innerHtml, opts = {}) {
+  if (!innerHtml) return ''
+  return `<div class="field-section">
+    <div class="field-section-title"><span>${esc(title)}</span>${opts.aside || ''}</div>
+    ${innerHtml}
+  </div>`
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ImageLightbox — generic full-screen image viewer (SIERRA_DESIGN_
+   SYSTEM.md "ImageLightbox"). Any gallery in the app can call
+   openImageLightbox(urls, startIndex) — not product-detail-only. ══ */
+let _lightboxImages = [], _lightboxIdx = 0
+function openImageLightbox(images, startIndex = 0) {
+  _lightboxImages = images || []
+  if (!_lightboxImages.length) return
+  _lightboxIdx = Math.max(0, Math.min(startIndex, _lightboxImages.length - 1))
+  document.getElementById('lightbox-overlay').classList.add('open')
+  document.body.style.overflow = 'hidden'
+  renderLightbox()
+}
+function closeImageLightbox() {
+  document.getElementById('lightbox-overlay').classList.remove('open')
+  document.body.style.overflow = ''
+}
+function lightboxNav(delta) {
+  if (!_lightboxImages.length) return
+  _lightboxIdx = (_lightboxIdx + delta + _lightboxImages.length) % _lightboxImages.length
+  renderLightbox()
+}
+function renderLightbox() {
+  const img = document.getElementById('lightbox-img')
+  img.src = _lightboxImages[_lightboxIdx]
+  const multi = _lightboxImages.length > 1
+  document.getElementById('lightbox-counter').textContent = multi ? `${_lightboxIdx + 1} / ${_lightboxImages.length}` : ''
+  document.getElementById('lightbox-prev').style.display = multi ? 'flex' : 'none'
+  document.getElementById('lightbox-next').style.display = multi ? 'flex' : 'none'
+  const thumbs = document.getElementById('lightbox-thumbs')
+  thumbs.style.display = multi ? 'flex' : 'none'
+  if (multi) {
+    thumbs.innerHTML = _lightboxImages.map((u, i) =>
+      `<div class="pgal-thumb${i === _lightboxIdx ? ' active' : ''}" onclick="event.stopPropagation();_lightboxIdx=${i};renderLightbox()"><img src="${u}"/></div>`
+    ).join('')
+  }
+}
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox-overlay')?.classList.contains('open')) return
+  if (e.key === 'Escape') closeImageLightbox()
+  else if (e.key === 'ArrowLeft') lightboxNav(-1)
+  else if (e.key === 'ArrowRight') lightboxNav(1)
+})
+
+/* ══════════════════════════════════════════════════════════════════
+   CompletenessIndicator — compact ring chip + popover listing missing
+   fields (SIERRA_DESIGN_SYSTEM.md "CompletenessIndicator"). Reusable
+   anywhere a record has a completeness score; product detail is the
+   first consumer. ══════════════════════════════════════════════════ */
+function completenessChipHtml(complete, popId) {
+  const r = 6, c = 2 * Math.PI * r
+  const offset = c * (1 - complete.pct / 100)
+  return `<div style="position:relative">
+    <button type="button" class="completeness-chip" onclick="catTogglePop(event,'${popId}')">
+      <svg class="completeness-ring" viewBox="0 0 16 16"><circle class="track" cx="8" cy="8" r="${r}"/><circle class="fill" cx="8" cy="8" r="${r}" stroke-dasharray="${c}" stroke-dashoffset="${offset}"/></svg>
+      <b>${complete.pct}%</b> complete
+    </button>
+    <div class="ws-pop completeness-pop" id="${popId}">
+      ${complete.missing.length
+        ? `<div class="completeness-pop-hd"><b>${complete.done}/${complete.total}</b> fields complete</div>
+           ${complete.missing.map(m => `<div class="completeness-missing-row"><svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M10 3L2 17h16L10 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 8.5v3.5M10 14.5v.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>${esc(m)}</div>`).join('')}`
+        : `<div class="completeness-pop-ok">✓ All key fields complete</div>`}
+    </div>
+  </div>`
+}
+
+// Product completeness — real fields only, extracted to a top-level
+// function (was a closure inside showProductDetail) so the gallery can
+// recompute it after an inline image change without a full re-render.
+function pdCompleteness(p) {
+  const ne = v => v !== null && v !== undefined && v !== '' && v !== '0' && v !== 0
+  const specs = p.specs || {}
+  const imgs = pdGalleryImages(p)
+  const checks = [
+    ['Name', p.name], ['Code', p.code], ['Division', p.division],
+    ['Country', p.country], ['Lifecycle status', lc(p)], ['Image', imgs.length ? 'x' : ''],
+  ]
+  if (p.division === 'fabric') {
+    checks.push(['Composition', specs.Composition], ['Color', specs.Color], ['Width', specs.Width], ['GSM', specs.GSM], ['Mill Article code', specs['Mill Article']])
+  } else {
+    checks.push(['Description', p.description], ...Object.entries(specs).slice(0, 4).map(([k, v]) => [k, v]))
+  }
+  const total = Math.max(checks.length, 1)
+  const missing = checks.filter(([, v]) => !ne(v)).map(([label]) => label)
+  const done = total - missing.length
+  return { pct: Math.round((done / total) * 100), done, total, missing }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ProductGallery — compact primary preview + thumbnail strip, inline
+   add/delete/set-primary/reorder/caption for authorized editors
+   (SIERRA_DESIGN_SYSTEM.md "ProductGallery"). Captions persist in
+   specs.image_captions (keyed by URL) rather than changing the shape
+   of image_urls, which dozens of other render sites across the app
+   (Catalog table/cards, drawer, label editor, Collection cards) read
+   as a plain string array — see design doc note for why. ══════════ */
+function pdGalleryImages(p) {
+  return (p?.image_urls && p.image_urls.length) ? p.image_urls : (p?.image_url ? [p.image_url] : [])
+}
+let _pdGalleryActive = 0
+function pdGalleryHtml(p) {
+  const imgs = pdGalleryImages(p)
+  const canEdit = canEditDiv(p.division) && !isArchived(p)
+  const captions = p.specs?.image_captions || {}
+  const fileInput = canEdit ? `<input type="file" id="pd-gallery-file-input" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple style="display:none" onchange="pdHandleAddFiles(this.files)" />` : ''
+
+  if (!imgs.length) {
+    return `<div class="pd-no-img"${canEdit ? `
+      ondragover="event.preventDefault(); this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="event.preventDefault(); this.classList.remove('drag-over'); pdHandleAddFiles(event.dataTransfer.files)"` : ''}>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="opacity:0.35"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.4"/><circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      ${canEdit ? `<button class="btn btn-ghost btn-sm" onclick="pdTriggerAddImages()">Add image</button>` : `<span class="pd-no-img-hint">No image</span>`}
+    </div>${fileInput}`
+  }
+
+  const activeIdx = Math.min(_pdGalleryActive, imgs.length - 1)
+  const activeUrl = imgs[activeIdx]
+  const caption = captions[activeUrl]
+  const heroMenu = overflowMenuHtml([
+    { label: 'Download', onClick: `downloadImg('${jsStr(activeUrl)}','${jsStr(p.name)}')` },
+    ...(canEdit ? [
+      ...(activeIdx !== 0 ? [{ label: 'Set as primary', onClick: `pdSetPrimary(${activeIdx})` }] : []),
+      ...(activeIdx > 0 ? [{ label: 'Move earlier', onClick: `pdMoveImage(${activeIdx},-1)` }] : []),
+      ...(activeIdx < imgs.length - 1 ? [{ label: 'Move later', onClick: `pdMoveImage(${activeIdx},1)` }] : []),
+      { label: caption ? 'Edit caption' : 'Add caption', onClick: `pdEditCaption(${activeIdx})` },
+      { label: 'Delete image', onClick: `pdRemoveImage(${activeIdx})`, danger: true },
+    ] : []),
+  ], { dots: `<svg viewBox="0 0 20 20" fill="#fff" width="14" height="14"><circle cx="5" cy="10" r="1.4"/><circle cx="10" cy="10" r="1.4"/><circle cx="15" cy="10" r="1.4"/></svg>`, style: 'width:28px;height:28px;padding:0;justify-content:center;background:rgba(0,0,0,0.45);border-radius:50%;border:none' })
+
+  return `
+    <div class="pgal-hero" onclick="openImageLightbox(pdGalleryImages(selected), ${activeIdx})">
+      <img src="${activeUrl}" alt="${esc(p.name)}" loading="lazy" />
+      ${heroMenu ? `<div class="pgal-hero-actions" onclick="event.stopPropagation()">${heroMenu}</div>` : ''}
+    </div>
+    ${caption ? `<div class="pgal-caption">${esc(caption)}</div>` : ''}
+    ${imgs.length > 1 || canEdit ? `<div class="pgal-thumbs">
+      ${imgs.map((u, i) => `<div class="pgal-thumb${i === activeIdx ? ' active' : ''}" onclick="pdSetActiveImage(${i})">
+        <img src="${u}" loading="lazy" />
+        ${i === 0 ? `<svg class="pgal-thumb-primary" viewBox="0 0 20 20" fill="currentColor"><path d="M10 1l2.5 5.6 6.1.6-4.6 4.1 1.3 5.9L10 14.2 4.7 17.2l1.3-5.9L1.4 7.2l6.1-.6z"/></svg>` : ''}
+        ${canEdit ? `<button type="button" class="pgal-thumb-rm" onclick="event.stopPropagation();pdRemoveImage(${i})" title="Remove">✕</button>` : ''}
+      </div>`).join('')}
+      ${canEdit ? `<button type="button" class="pgal-add" onclick="pdTriggerAddImages()" title="Add image">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>` : ''}
+    </div>` : ''}
+    ${fileInput}`
+}
+function refreshPdOverviewGallery() {
+  const gal = document.getElementById('pd-gallery-slot')
+  if (gal) gal.innerHTML = pdGalleryHtml(selected)
+  const comp = document.getElementById('pd-completeness-slot')
+  if (comp) comp.outerHTML = completenessChipHtml(pdCompleteness(selected), 'pd-completeness-pop')
+}
+function pdSetActiveImage(i) { _pdGalleryActive = i; refreshPdOverviewGallery() }
+function pdTriggerAddImages() { document.getElementById('pd-gallery-file-input')?.click() }
+
+async function pdPersistImages(newUrls, newCaptions, auditSummary) {
+  const p = selected
+  if (!p) return false
+  const before = JSON.parse(JSON.stringify(p))
+  const specs = { ...(p.specs || {}) }
+  if (newCaptions && Object.keys(newCaptions).length) specs.image_captions = newCaptions
+  else delete specs.image_captions
+  const payload = { image_urls: newUrls, image_url: newUrls[0] || null, specs }
+  const { error } = await sb.from('products').update(payload).eq('id', p.id)
+  if (error) { toast('Could not update images: ' + error.message); return false }
+  Object.assign(p, payload)
+  const cached = allProducts.find(x => x.id === p.id)
+  if (cached) Object.assign(cached, payload)
+  Audit.log('product', p.id, p, 'image_updated', auditSummary || 'Images updated', Audit.diff(before, payload))
+  return true
+}
+async function pdRemoveImage(i) {
+  const p = selected, imgs = pdGalleryImages(p)
+  if (!confirm('Remove this image?')) return
+  const removedUrl = imgs[i]
+  const newUrls = imgs.filter((_, idx) => idx !== i)
+  const newCaptions = { ...(p.specs?.image_captions || {}) }
+  delete newCaptions[removedUrl]
+  if (await pdPersistImages(newUrls, newCaptions, 'Image removed')) { _pdGalleryActive = 0; refreshPdOverviewGallery() }
+}
+async function pdSetPrimary(i) {
+  const p = selected, imgs = pdGalleryImages(p)
+  if (i === 0) return
+  const newUrls = [imgs[i], ...imgs.filter((_, idx) => idx !== i)]
+  if (await pdPersistImages(newUrls, p.specs?.image_captions, 'Primary image changed')) { _pdGalleryActive = 0; refreshPdOverviewGallery() }
+}
+async function pdMoveImage(i, dir) {
+  const p = selected, imgs = [...pdGalleryImages(p)]
+  const j = i + dir
+  if (j < 0 || j >= imgs.length) return
+  ;[imgs[i], imgs[j]] = [imgs[j], imgs[i]]
+  if (await pdPersistImages(imgs, p.specs?.image_captions, 'Images reordered')) { _pdGalleryActive = j; refreshPdOverviewGallery() }
+}
+function pdEditCaption(i) {
+  const p = selected, imgs = pdGalleryImages(p)
+  const url = imgs[i]
+  const current = (p.specs?.image_captions || {})[url] || ''
+  const val = prompt('Caption for this image:', current)
+  if (val === null) return
+  const newCaptions = { ...(p.specs?.image_captions || {}) }
+  if (val.trim()) newCaptions[url] = val.trim(); else delete newCaptions[url]
+  pdPersistImages(imgs, newCaptions, 'Image caption updated').then(ok => { if (ok) refreshPdOverviewGallery() })
+}
+async function pdHandleAddFiles(fileList) {
+  const p = selected, imgs = pdGalleryImages(p)
+  const files = Array.from(fileList || [])
+  const room = IMG_MAX_COUNT - imgs.length
+  const rejected = []
+  const valid = files.filter(f => {
+    if (!IMG_TYPES.includes(f.type)) { rejected.push(`${f.name}: unsupported type`); return false }
+    if (f.size > IMG_MAX_MB * 1024 * 1024) { rejected.push(`${f.name}: larger than ${IMG_MAX_MB} MB`); return false }
+    return true
+  }).slice(0, Math.max(room, 0))
+  if (rejected.length) toast(rejected[0])
+  if (!valid.length) return
+  toast('Uploading…')
+  const newUrls = []
+  for (const file of valid) {
+    const ext = file.name.split('.').pop()
+    const path = `${me.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const { error: upErr } = await sb.storage.from('product-images').upload(path, file, { contentType: file.type, upsert: false })
+    if (upErr) { toast('Upload error: ' + upErr.message); continue }
+    const { data: urlData } = sb.storage.from('product-images').getPublicUrl(path)
+    newUrls.push(urlData.publicUrl)
+  }
+  if (!newUrls.length) return
+  if (await pdPersistImages([...imgs, ...newUrls], p.specs?.image_captions, 'Image added')) { _pdGalleryActive = imgs.length; refreshPdOverviewGallery() }
+}
+
 function showProductDetail(p) {
   setHash('#/product/' + p.id)
   document.getElementById('div-toolbar').style.display = 'none'
   selected = p
+  _pdGalleryActive = 0
   trackRecentlyViewed(p)
-  const c = DIV_CLR[p.division] || '#aaa'
   const sku = p.code || p.id.slice(0,6).toUpperCase()
   const backLabel = division === 'all' ? tx('nav.allProducts') : DIV_LBL[division]
   const specs = p.specs || {}
-  const imgs = (p.image_urls && p.image_urls.length) ? p.image_urls : (p.image_url ? [p.image_url] : [])
+  const canEdit = canEditDiv(p.division) && !isArchived(p)
 
   document.getElementById('view-dashboard').style.display = 'none'
   document.getElementById('view-styleguide').style.display = 'none'
@@ -5507,161 +5798,100 @@ function showProductDetail(p) {
   document.getElementById('content').classList.add('detail-active')
   document.getElementById('tb-section').textContent = p.name
 
-  const copyIcon = `<svg width="11" height="11" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" stroke="currentColor" stroke-width="1.4"/></svg>`
+  const cp = v => String(v).replace(/'/g, "\\'")
 
-  function notEmpty(v) { return v !== null && v !== undefined && v !== '' && v !== '0' && v !== 0 }
-  function cp(v) { return String(v).replace(/'/g, "\\'") }
-  function specRow(k, v) {
-    if (!notEmpty(v)) return ''
-    return `<div class="pd-row" onclick="copyToClipboard('${cp(String(v))}')" title="Copy">
-      <div class="pd-k">${k}</div><div class="pd-v">${esc(String(v))}</div>
-    </div>`
-  }
-  function specHead(t) { return `<div class="pd-hd">${t}</div>` }
-  function parseComp(str) {
-    if (!str) return []
-    // Match each "NN% material" group. Splitting on a lookahead broke multi-digit
-    // percentages (100% → "1","0","0%") because \d+% also matches inside them.
-    const groups = str.trim().match(/\d+%[^\d]*/g)
-    return (groups || [str.trim()]).map(s => s.trim()).filter(Boolean)
-  }
-  function detailCompleteness() {
-    const base = [p.name, p.code, p.division, p.country || countryVal, lc(p)]
-    const image = [imgs.length ? 'image' : '']
-    const divisionFields = p.division === 'fabric'
-      ? [specs.Composition, specs.Color, specs.Width, specs.GSM, specs['Mill Article']]
-      : [p.description, ...Object.values(specs).slice(0, 4)]
-    const fields = [...base, ...image, ...divisionFields]
-    const total = Math.max(fields.length, 1)
-    const done = fields.filter(notEmpty).length
-    return { pct: Math.round((done / total) * 100), done, total }
-  }
+  /* ── Overview: the fields a user needs most frequently (§5) ── */
+  const overviewFieldsHtml = p.division === 'fabric'
+    ? dataFieldGridHtml([
+        { label: 'Composition', html: compBlockHtml(specs.Composition), span: 2 },
+        { label: 'Construction', value: CONST_META[inferConstruction(p)]?.label },
+        { label: 'Color', value: specs.Color, copy: true },
+        { label: 'Lot', value: p.lot, copy: true },
+        { label: 'Country', value: p.country || 'Honduras' },
+        { label: 'Dye Method', value: specs['Dyed Method'] },
+      ])
+    + dataFieldGridHtml([
+        { label: 'Width', value: specs.Width, copy: true },
+        { label: 'GSM', value: specs.GSM, copy: true },
+        { label: 'Diameter', value: specs.DIA },
+        { label: 'Gauge', value: specs.Gauge },
+        { label: 'Needles', value: specs.Needles },
+        { label: 'Route Type', value: specs['Route Type'] },
+      ])
+    : dataFieldGridHtml([
+        { label: 'Description', value: p.description, span: 2, multiline: true },
+        ...Object.entries(specs).filter(([k]) => !['Documents','Sample Formats','image_captions'].includes(k)).slice(0, 6).map(([k, v]) => ({ label: k, value: v, copy: true })),
+      ])
 
-  // Gallery
-  let galleryHtml = ''
-  if (imgs.length) {
-    const thumbs = imgs.length > 1
-      ? `<div class="ficha-thumbs" style="margin-top:0.5rem">${imgs.map((u,i) =>
-          `<div class="ficha-thumb${i===0?' active':''}" onclick="switchFichaImg(this,'${u}')"><img src="${u}"/></div>`).join('')}</div>` : ''
-    galleryHtml = `<div class="ficha-gallery-hero" id="ficha-hero">
-      <img id="ficha-hero-img" src="${imgs[0]}" alt="${esc(p.name)}"/>
-      <button class="img-dl-btn" onclick="downloadImg('${imgs[0]}','${esc(p.name)}')">↓ Download</button>
-    </div>${thumbs}`
-  } else {
-    galleryHtml = `<div class="pd-no-img"${canEditDiv(p.division) ? `
-      ondragover="event.preventDefault(); this.classList.add('drag-over')"
-      ondragleave="this.classList.remove('drag-over')"
-      ondrop="event.preventDefault(); this.classList.remove('drag-over'); openEditWithFiles(selected, event.dataTransfer.files)"` : ''}>
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="opacity:0.35"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.4"/><circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-      ${canEditDiv(p.division)
-        ? `<button class="btn btn-ghost btn-sm" onclick="openEdit(selected)">Add image</button>`
-        : `<span class="pd-no-img-hint">No image</span>`}
-    </div>`
-  }
-
-  let infoHtml = '<div class="pd-specs">'
-
+  /* ── Technical: complete spec, grouped into real ERP sections (§12) ── */
+  let technicalHtml = ''
   if (p.division === 'fabric') {
-    const compParts = parseComp(specs.Composition)
-
-    // Composition
-    infoHtml += specHead('Composition')
-    if (compParts.length) {
-      const lines = compParts.map(part =>
-        `<div class="pd-comp-line">${part.replace(/^(\d+%)/, '<span class="pd-comp-pct">$1</span> ')}</div>`
-      ).join('')
-      infoHtml += `<div class="pd-comp-block" onclick="copyToClipboard('${cp(specs.Composition || '')}')" title="Copy">${lines}</div>`
-    }
-    infoHtml += specRow('Color', specs.Color)
-    infoHtml += specRow('Country', p.country || (notEmpty(specs.Color) ? 'Honduras' : null))
-    infoHtml += specRow('Lot', p.lot)
-    infoHtml += specRow('Mill Article', specs['Mill Article'])
-    infoHtml += specRow('Dye Method', specs['Dyed Method'])
-
-    // Physical
-    const hasPhysical = [specs.Width, specs.GSM, specs.DIA, specs.Gauge].some(notEmpty)
-    if (hasPhysical) {
-      infoHtml += specHead('Physical')
-      infoHtml += specRow('Width', specs.Width)
-      infoHtml += specRow('GSM', specs.GSM)
-      infoHtml += specRow('Diameter', specs.DIA)
-      infoHtml += specRow('Gauge', specs.Gauge)
-      infoHtml += specRow('Needles', specs.Needles)
-      infoHtml += specRow('Route Type', specs['Route Type'])
-    }
-
-    // Tolerance
-    const rw = specs['Req Width'], rg = specs['Req GSM'], sw = specs['Std Width'], sg = specs['Std GSM']
-    if ([rw, rg, sw, sg].some(notEmpty)) {
-      infoHtml += specHead('Tolerance')
-      infoHtml += specRow('Req Width', rw)
-      infoHtml += specRow('Req GSM', rg)
-      infoHtml += specRow('Std Width', sw)
-      infoHtml += specRow('Std GSM', sg)
-    }
-
-    // Yarns
-    const yarns = [specs['Yarn 01'], specs['Yarn 02'], specs['Yarn 03']].filter(notEmpty)
-    if (yarns.length) {
-      infoHtml += specHead('Yarn Composition')
-      yarns.forEach((y, i) => {
-        infoHtml += `<div class="pd-row" onclick="copyToClipboard('${cp(y)}')" title="Copy">
-          <div class="pd-k">${String(i+1).padStart(2,'0')}</div><div class="pd-v">${esc(y)}</div>
-        </div>`
-      })
-    }
-
-    // Commercial
-    const commFields = [
-      ['Vendor', specs.Vendor], ['Buyer', specs.Buyer],
-      ['Sample Qty', specs['Sample Qty']], ['Rec Date', specs['Rec Date']],
-    ].filter(([,v]) => notEmpty(v))
-    if (commFields.length) {
-      infoHtml += specHead('Commercial')
-      commFields.forEach(([k,v]) => { infoHtml += specRow(k, v) })
-    }
-
-    // Notes
-    if (specs.Comments) {
-      infoHtml += specHead('Notes')
-      infoHtml += `<div class="pd-row" style="cursor:default">
-        <div class="pd-k"></div><div class="pd-v detail-desc">${esc(specs.Comments)}</div>
-      </div>`
-    }
-
+    technicalHtml += fieldSectionHtml('Construction', dataFieldGridHtml([
+      { label: 'Construction', value: CONST_META[inferConstruction(p)]?.label },
+      { label: 'Gauge', value: specs.Gauge },
+      { label: 'Diameter', value: specs.DIA },
+      { label: 'Needles', value: specs.Needles },
+      { label: 'Route Type', value: specs['Route Type'] },
+    ]))
+    technicalHtml += fieldSectionHtml('Material', dataFieldGridHtml([
+      { label: 'Composition', html: compBlockHtml(specs.Composition), span: 2 },
+      { label: 'Yarn 01', value: specs['Yarn 01'] },
+      { label: 'Yarn 02', value: specs['Yarn 02'] },
+      { label: 'Yarn 03', value: specs['Yarn 03'] },
+    ]))
+    technicalHtml += fieldSectionHtml('Physical', dataFieldGridHtml([
+      { label: 'Width', value: specs.Width, copy: true },
+      { label: 'GSM', value: specs.GSM, copy: true },
+      { label: 'Req Width', value: specs['Req Width'] },
+      { label: 'Req GSM', value: specs['Req GSM'] },
+      { label: 'Std Width', value: specs['Std Width'] },
+      { label: 'Std GSM', value: specs['Std GSM'] },
+    ]))
+    technicalHtml += fieldSectionHtml('Dyeing / Finishing', dataFieldGridHtml([
+      { label: 'Color', value: specs.Color, copy: true },
+      { label: 'Dye Method', value: specs['Dyed Method'] },
+    ]))
+    technicalHtml += fieldSectionHtml('Commercial', dataFieldGridHtml([
+      { label: 'Vendor', value: specs.Vendor },
+      { label: 'Buyer', value: specs.Buyer },
+      { label: 'Sample Qty', value: specs['Sample Qty'] },
+      { label: 'Rec Date', value: specs['Rec Date'] },
+    ]))
+    technicalHtml += fieldSectionHtml('Identification', dataFieldGridHtml([
+      { label: 'Product Code', value: p.code, copy: true },
+      { label: 'Lot', value: p.lot, copy: true },
+      { label: 'Mill Article', value: specs['Mill Article'], copy: true },
+      { label: 'Division', value: DIV_LBL[p.division] || p.division },
+      { label: 'Country', value: p.country || 'Honduras' },
+      { label: 'Created', value: p.created_at ? dqRelTime(p.created_at) : null },
+      { label: 'Updated', value: p.updated_at ? dqRelTime(p.updated_at) : null },
+    ]))
+    if (specs.Comments) technicalHtml += fieldSectionHtml('Notes', `<div class="detail-desc">${esc(specs.Comments)}</div>`)
+    if (p.tags?.length) technicalHtml += fieldSectionHtml('Tags', `<div class="tags">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>`)
   } else {
-    if (p.description) {
-      infoHtml += `<div class="pd-row" style="cursor:default"><div class="pd-v detail-desc">${esc(p.description)}</div></div>`
-    }
-    const entries = Object.entries(specs).filter(([k, v]) => notEmpty(v) && !['Documents','Sample Formats'].includes(k))
-    entries.forEach(([k,v]) => { infoHtml += specRow(k, v) })
+    technicalHtml += fieldSectionHtml('Specifications', dataFieldGridHtml([
+      { label: 'Description', value: p.description, span: 2, multiline: true },
+      ...Object.entries(specs).filter(([k]) => !['Documents','Sample Formats','image_captions'].includes(k)).map(([k, v]) => ({ label: k, value: v, copy: true })),
+    ]))
+    technicalHtml += fieldSectionHtml('Identification', dataFieldGridHtml([
+      { label: 'Product Code', value: p.code, copy: true },
+      { label: 'Lot', value: p.lot, copy: true },
+      { label: 'Division', value: DIV_LBL[p.division] || p.division },
+      { label: 'Country', value: p.country || 'Honduras' },
+      { label: 'Created', value: p.created_at ? dqRelTime(p.created_at) : null },
+      { label: 'Updated', value: p.updated_at ? dqRelTime(p.updated_at) : null },
+    ]))
+    if (p.tags?.length) technicalHtml += fieldSectionHtml('Tags', `<div class="tags">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>`)
   }
 
-  if (specs.Documents) {
-    infoHtml += `<div style="padding:0.75rem 0 0"><div class="pd-id-label" style="margin-bottom:0.3rem">Documents</div>
-      ${specs.Documents.split('\n').map(u => u.trim()).filter(Boolean).map(u =>
-        `<a href="${esc(u)}" target="_blank" rel="noopener" style="display:block;font-size:0.76rem;color:var(--accent);text-decoration:none;padding:0.15rem 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(u)}</a>`).join('')}
-    </div>`
-  }
-
-  if (p.tags?.length) {
-    infoHtml += `<div style="padding:1rem 0 0">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</div>`
-  }
-
-  infoHtml += '</div>'
-
+  /* ── Samples & Inventory (§13) — availability, formats, stock, related ── */
   const formatTypes = specs['Sample Formats']
     ? specs['Sample Formats'].split(',').map(s => s.trim()).filter(Boolean)
     : (DIV_SAMPLE_TYPES[p.division] || [])
-  const formatChipsHtml = formatTypes.length ? `<div class="pd-id-block">
-    <div class="pd-id-label">${tx('product.availableAs')}</div>
-    <div class="pd-format-chips">${formatTypes.map(t => `<span class="pd-format-chip">${esc(t)}</span>`).join('')}</div>
-  </div>` : ''
-  const countryVal = p.country || 'Honduras'
-  const complete = detailCompleteness()
-  const completeCaption = complete.pct >= 90 ? tx('product.ready')
-    : complete.pct >= 70 ? tx('product.almost')
-    : tx('product.needsDetail')
+  const formatChipsHtml = formatTypes.length
+    ? `<div class="pd-format-chips">${formatTypes.map(t => `<span class="pd-format-chip">${esc(t)}</span>`).join('')}</div>` : '—'
+
+  const complete = pdCompleteness(p)
   const statusOptions = Object.entries(LIFECYCLE)
     .filter(([k]) => k !== lc(p))
     .map(([value, m]) => ({ value, label: tx('lifecycle.' + value), color: m.color }))
@@ -5676,162 +5906,185 @@ function showProductDetail(p) {
     { value:'restored', label:tx('product.restores') },
   ]
 
-  const toolbarHtml = `<div class="detail-toolbar">
-    <div class="detail-toolbar-inner">
-      <button class="btn btn-primary" onclick="openReq()" ${canRequestSample(p) ? '' : `disabled title="${tx('lifecycle.' + lc(p))} products can't be requested"`}>
-        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M10 3v14M3 10h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <span class="btn-lbl">${tx('product.requestSample')}</span>
-      </button>
-      <button class="btn btn-ghost" onclick="generateTechnicalSheet()" title="${tx('product.technicalSheet')}">
-        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M5 3h7l4 4v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 3v4h4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-        <span class="btn-lbl">${tx('product.technicalSheet')}</span>
-      </button>
-      <button class="btn btn-ghost" onclick="openLabel()" title="${tx('product.printLabel')}">
-        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 8h6M7 11h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-        <span class="btn-lbl">${tx('product.printLabel')}</span>
-      </button>
-      <div class="detail-toolbar-spacer"></div>
-      ${canEditDiv(p.division) && !isArchived(p) ? `<button class="btn btn-ghost" onclick="openEdit(selected)" title="${tx('product.edit')}">
-        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.5 3.5l2 2L6 16H4v-2L14.5 3.5z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span class="btn-lbl">${tx('product.edit')}</span>
-      </button>
-      ${overflowMenuHtml([
-        { label: 'Duplicate product', onClick: 'duplicateProduct(selected)' },
-        { label: 'Edit technical specs', onClick: `openEdit(selected,'specs')` },
-        { label: 'Edit images', onClick: `openEdit(selected,'images')` },
-        { label: 'Edit documents & formats', onClick: `openEdit(selected,'extras')` },
-        { label: 'Edit lifecycle status', onClick: `document.querySelector('.pd-id-value .grant-sel')?.focus()` },
-      ], { style: 'width:auto;padding:0 0.6rem', title: tx('product.quickActions') })}
-      <div class="detail-toolbar-sep"></div>` : ''}
-      ${canDeleteDiv(p.division) && !isArchived(p) ? `<button class="btn btn-ghost" style="color:#b47107;border-color:rgba(255,159,10,0.25)" onclick="confirmArchive(selected)" title="${tx('product.archive')}">
-        <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4.5 8v7a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V8M8 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-        <span class="btn-lbl">${tx('product.archive')}</span>
-      </button>` : ''}
+  /* ── Documents (§14) — technical sheet / label as quick-generate rows,
+     plus any URLs an editor attached in specs.Documents ── */
+  const docIcon = `<svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M5 3h7l4 4v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 3v4h4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>`
+  const linkIcon = `<svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M8 12l4-4M7 14l-2 2a3 3 0 01-4-4l3-3a3 3 0 014 0M13 6l2-2a3 3 0 014 4l-3 3a3 3 0 01-4 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`
+  const docsHtml = `<div class="doc-list">
+    <div class="doc-row">
+      <div class="doc-icon">${docIcon}</div>
+      <div class="doc-main"><div class="doc-name">Technical Sheet</div><div class="doc-meta">Generated from current specifications</div></div>
+      <button class="btn btn-ghost btn-sm" onclick="generateTechnicalSheet()">Open</button>
     </div>
+    <div class="doc-row">
+      <div class="doc-icon">${docIcon}</div>
+      <div class="doc-main"><div class="doc-name">Label</div><div class="doc-meta">QR / barcode print label</div></div>
+      <button class="btn btn-ghost btn-sm" onclick="openLabel()">Open</button>
+    </div>
+    ${(specs.Documents || '').split('\n').map(u => u.trim()).filter(Boolean).map(u => `
+    <div class="doc-row">
+      <div class="doc-icon">${linkIcon}</div>
+      <div class="doc-main"><div class="doc-name">${esc(u.split('/').pop() || u)}</div><div class="doc-meta">${esc(u)}</div></div>
+      <a class="btn btn-ghost btn-sm" href="${esc(u)}" target="_blank" rel="noopener">Open</a>
+    </div>`).join('')}
   </div>`
 
+  /* ── ProductHeader (§3) — identity, status, completeness and the full
+     action hierarchy (§20) in one compact row. Replaces the old sticky
+     bottom WorkflowActionBar entirely: this is a record, not a multi-step
+     workflow (§20), so its actions live at the top with the identity. ── */
+  const headerActionsHtml = `
+    <button class="btn btn-primary btn-sm" onclick="openReq()" ${canRequestSample(p) ? '' : `disabled title="${esc(tx('lifecycle.' + lc(p)))} products can't be requested"`}>${tx('product.requestSample')}</button>
+    ${canEdit ? `<button class="btn btn-ghost btn-sm" onclick="openEdit(selected)">${tx('product.edit')}</button>` : ''}
+    <button class="pd-header-icon-btn" onclick="generateTechnicalSheet()" title="${tx('product.technicalSheet')}">${docIcon}</button>
+    <button class="pd-header-icon-btn" onclick="openLabel()" title="${tx('product.printLabel')}">
+      <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 8h6M7 11h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    </button>
+    <button class="pd-header-icon-btn" onclick="shareProduct(selected)" title="Share">
+      <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><circle cx="15" cy="5" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="5" cy="10" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="15" cy="15" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 9l6-3M7 11l6 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </button>
+    ${overflowMenuHtml([
+      ...(canEdit ? [
+        { label: 'Duplicate product', onClick: 'duplicateProduct(selected)' },
+        { label: 'Edit technical specs', onClick: `openEdit(selected,'specs')` },
+        { label: 'Edit documents & formats', onClick: `openEdit(selected,'extras')` },
+      ] : []),
+      ...(canDeleteDiv(p.division) && !isArchived(p) ? [{ label: tx('product.archive'), onClick: 'confirmArchive(selected)', danger: true }] : []),
+    ], { style: 'width:34px;height:34px;padding:0;justify-content:center', title: tx('product.quickActions') })}`
+
   vd.innerHTML = `<div class="detail-view-inner">
-    <div class="pd-layout">
-      <div class="pd-identity-col">
-        <div class="pd-id-nav">
-          <button class="detail-back-btn" onclick="backToProducts()">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3.5L4.5 8l5.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            ${backLabel}
-          </button>
-          <button class="pd-share-icon-btn" onclick="shareProduct(selected)" title="Share">
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="15" cy="5" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="5" cy="10" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="15" cy="15" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 9l6-3M7 11l6 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-          </button>
-        </div>
-        <div class="pd-panel pd-identity-card">
-          <div class="pd-media-inline">
-            <div class="pd-media-label"><span>${tx('product.media')}</span><span>${imgs.length ? `${imgs.length} ${tx(imgs.length > 1 ? 'product.images' : 'product.image')}` : tx('product.noImage')}</span></div>
-            ${galleryHtml}
-          </div>
-          <div class="pd-name">${esc(p.name)}${productNameTag()}</div>
-          <div class="pd-sku-box" onclick="copyToClipboard('${cp(sku)}')" title="Click to copy">
-            <span>${esc(sku)}</span>${copyIcon}
-          </div>
-          <div class="pd-id-block">
-            <div class="pd-id-label">${tx('product.division')}</div>
-            <div class="pd-id-value">
-              <span class="pd-division-icon">${DIV_ICON[p.division] || DIV_ICON.all}</span>
-              <span class="pd-division-main">
-                <span class="pd-division-name">${DIV_LBL[p.division] || p.division || 'Division'}</span>
-                ${specs.Construction ? `<span class="pd-division-meta">${CONST_META[specs.Construction]?.label || specs.Construction}</span>` : ''}
-              </span>
-            </div>
-          </div>
-          <div class="pd-id-block">
-            <div class="pd-id-label">${tx('product.availability')}</div>
-            <div class="pd-id-value" id="pd-avail"><span style="font-size:0.72rem;color:var(--text-3)">—</span></div>
-          </div>
-          <div class="pd-id-block">
-            <div class="pd-id-label">${tx('product.status')}</div>
-            <div class="pd-id-value" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
-              ${lcPill(p)}
-              ${canEditDiv(p.division) ? pdSelect('pd-lifecycle', statusOptions, '', tx('product.changeStatus'), 'changeLifecycle') : ''}
-            </div>
-          </div>
-          <div class="pd-id-block">
-            <div class="pd-id-label">${tx('product.completeness')}</div>
-            <div class="pd-complete" aria-label="Product completeness ${complete.pct}%">
-              <div class="pd-complete-top">
-                <span class="pd-complete-score">${complete.pct}%</span>
-                <span class="pd-complete-caption">${completeCaption}</span>
-              </div>
-              <div class="pd-complete-track"><div class="pd-complete-fill" style="width:${complete.pct}%"></div></div>
-            </div>
-          </div>
-          ${formatChipsHtml}
-          <div class="pd-id-block">
-            <div class="pd-id-label">${tx('product.country')}</div>
-            <div class="pd-id-value">${esc(countryVal)}</div>
+    <button class="detail-back-btn" onclick="backToProducts()">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3.5L4.5 8l5.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      ${backLabel}
+    </button>
+
+    <div class="pd-header">
+      <div class="pd-header-main">
+        <div class="pd-header-id">
+          <div class="pd-header-name">${esc(p.name)}${productNameTag()}</div>
+          <div class="pd-header-meta">
+            <b>${esc(sku)}</b>
+            <button type="button" class="pd-header-meta-copy" onclick="copyToClipboard('${cp(sku)}')" title="Copy code">${FIELD_COPY_ICON}</button>
+            <span class="sep">·</span><span>${esc(DIV_LBL[p.division] || p.division)}</span>
+            ${p.lot ? `<span class="sep">·</span><span>LOT ${esc(p.lot)}</span>` : ''}
           </div>
         </div>
-      </div>
-      <div class="pd-specs-col">
-        <div class="pd-panel pd-section-card">
-          <div class="pd-section-title"><strong>${tx('product.technicalProfile')}</strong><span>${tx('product.tapRows')}</span></div>
-          ${infoHtml}
+        <div class="pd-header-status">
+          ${lcPill(p)}
+          ${canEdit ? pdSelect('pd-lifecycle', statusOptions, '', tx('product.changeStatus'), 'changeLifecycle') : ''}
+          <span id="pd-completeness-slot">${completenessChipHtml(complete, 'pd-completeness-pop')}</span>
         </div>
-        <div class="detail-comments-section" style="margin-top:1.25rem">
-          <div class="detail-comments-lbl" style="display:flex;justify-content:space-between;align-items:center">
-            ${tx('product.related')}
-            ${canEditDiv(p.division) ? `<button class="btn btn-ghost btn-sm" onclick="toggleRelAdd()">+ Link</button>` : ''}
-          </div>
-          <div id="pd-rel-add" style="display:none">
-            <div style="display:flex;gap:0.4rem;margin:0.5rem 0">
-              ${pdSelect('rel-type', linkTypeOptions, 'related', tx('product.relationship'))}
-              <input type="text" class="tl-search" id="rel-search" placeholder="${tx('product.searchProducts')}" oninput="relSearch(this.value)" />
-            </div>
-            <div id="rel-search-results"></div>
-          </div>
-          <div id="pd-related"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
-        </div>
-        <div class="detail-comments-section" style="margin-top:1.25rem">
-          <div class="detail-comments-lbl" style="display:flex;justify-content:space-between;align-items:center">
-            ${tx('product.sampleInventory')}
-            <span id="pd-inv-actions"></span>
-          </div>
-          <div id="pd-inv-adjust" style="display:none"></div>
-          <div id="pd-inventory"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
-          <div id="pd-inv-movements"></div>
-        </div>
-      </div>
-      <div class="pd-comments-col">
-        <div class="detail-comments-section">
-          <div class="detail-comments-lbl">${tx('product.comments')}</div>
-          <div id="ficha-comments-inner"></div>
-        </div>
-        <div class="detail-comments-section">
-          <div class="detail-comments-lbl">${tx('product.sampleHistory')}</div>
-          <div id="pd-sample-history"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
-        </div>
-        <div class="detail-comments-section">
-          <div class="pd-tabs">
-            <button class="pd-tab active" data-tab="activity" onclick="switchPdTab('activity')">${tx('product.activity')}</button>
-            <button class="pd-tab" data-tab="versions" onclick="switchPdTab('versions')">${tx('product.versions')}</button>
-          </div>
-          <div id="pd-tab-activity">
-            <div class="tl-controls">
-              <input type="text" class="tl-search" placeholder="${tx('product.searchActivity')}" oninput="pdActivityFilter(this.value, null)" />
-              ${pdSelect('pd-activity-filter', activityFilterOptions, '', tx('product.allEvents'), 'pdActivitySelectFilter')}
-            </div>
-            <div id="pd-timeline"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
-            <button id="pd-timeline-more" class="btn btn-ghost btn-sm" style="display:none;margin-top:0.6rem;width:100%" onclick="loadPdActivity(false)">${tx('product.loadMore')}</button>
-          </div>
-          <div id="pd-tab-versions" style="display:none"></div>
-        </div>
+        <div class="pd-header-actions">${headerActionsHtml}</div>
       </div>
     </div>
-  </div>
-  ${toolbarHtml}`
+
+    <div class="pd-tabs pd-tabs-inline" id="pd-record-tabs">
+      <button class="pd-tab active" data-tab="overview" onclick="switchPdRecordTab('overview')">Overview</button>
+      <button class="pd-tab" data-tab="technical" onclick="switchPdRecordTab('technical')">Technical</button>
+      <button class="pd-tab" data-tab="samples" onclick="switchPdRecordTab('samples')">Samples &amp; Inventory</button>
+      <button class="pd-tab" data-tab="documents" onclick="switchPdRecordTab('documents')">Documents</button>
+      <button class="pd-tab" data-tab="activity" onclick="switchPdRecordTab('activity')">Activity</button>
+    </div>
+
+    <div id="pd-view-overview">
+      <div class="pd-overview-grid">
+        <div class="pd-overview-gallery" id="pd-gallery-slot">${pdGalleryHtml(p)}</div>
+        <div class="pd-overview-fields">${overviewFieldsHtml}</div>
+      </div>
+    </div>
+
+    <div id="pd-view-technical" style="display:none">${technicalHtml}</div>
+
+    <div id="pd-view-samples" style="display:none">
+      ${fieldSectionHtml('Availability', dataFieldGridHtml([
+        { label: 'Sample Availability', html: `<span id="pd-avail"><span style="font-size:0.78rem;color:var(--text-3)">—</span></span>`, always: true },
+        { label: 'Available As', html: formatChipsHtml, always: true },
+      ]))}
+      <div class="field-section">
+        <div class="field-section-title"><span>${tx('product.sampleInventory')}</span><span id="pd-inv-actions"></span></div>
+        <div id="pd-inv-adjust" style="display:none"></div>
+        <div id="pd-inventory"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
+        <div id="pd-inv-movements"></div>
+      </div>
+      <div class="field-section">
+        <div class="field-section-title">
+          <span>${tx('product.related')}</span>
+          ${canEdit ? `<button class="btn btn-ghost btn-sm" onclick="toggleRelAdd()">+ Link</button>` : ''}
+        </div>
+        <div id="pd-rel-add" style="display:none">
+          <div style="display:flex;gap:0.4rem;margin:0.5rem 0">
+            ${pdSelect('rel-type', linkTypeOptions, 'related', tx('product.relationship'))}
+            <input type="text" class="tl-search" id="rel-search" placeholder="${tx('product.searchProducts')}" oninput="relSearch(this.value)" />
+          </div>
+          <div id="rel-search-results"></div>
+        </div>
+        <div id="pd-related"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
+      </div>
+      <div class="field-section">
+        <div class="field-section-title">${tx('product.sampleHistory')}</div>
+        <div id="pd-sample-history"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
+      </div>
+    </div>
+
+    <div id="pd-view-documents" style="display:none">${docsHtml}</div>
+
+    <div id="pd-view-activity" style="display:none">
+      <div class="field-section">
+        <div class="field-section-title">${tx('product.comments')}</div>
+        <div id="ficha-comments-inner"></div>
+      </div>
+      <div class="field-section">
+        <div class="pd-tabs" id="pd-activity-subtabs">
+          <button class="pd-tab active" data-tab="activity" onclick="switchPdTab('activity')">${tx('product.activity')}</button>
+          <button class="pd-tab" data-tab="versions" onclick="switchPdTab('versions')">${tx('product.versions')}</button>
+        </div>
+        <div id="pd-tab-activity">
+          <div class="tl-controls">
+            <input type="text" class="tl-search" placeholder="${tx('product.searchActivity')}" oninput="pdActivityFilter(this.value, null)" />
+            ${pdSelect('pd-activity-filter', activityFilterOptions, '', tx('product.allEvents'), 'pdActivitySelectFilter')}
+          </div>
+          <div id="pd-timeline"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
+          <button id="pd-timeline-more" class="btn btn-ghost btn-sm" style="display:none;margin-top:0.6rem;width:100%" onclick="loadPdActivity(false)">${tx('product.loadMore')}</button>
+        </div>
+        <div id="pd-tab-versions" style="display:none"></div>
+      </div>
+    </div>
+  </div>`
 
   loadFichaComments(p.id)
   loadProductSampleHistory(p.id)
   initPdAudit(p)
   loadPdRelated(p)
   loadPdInventory(p)
+}
+
+// RecordTabs (§4) — Overview / Technical / Samples & Inventory / Documents /
+// Activity. Scoped to #pd-record-tabs so it never collides with the nested
+// Activity/Versions sub-tabs (switchPdTab, scoped to #pd-activity-subtabs)
+// or any other .pd-tabs instance on the page.
+function switchPdRecordTab(tab) {
+  document.querySelectorAll('#pd-record-tabs .pd-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
+  ;['overview','technical','samples','documents','activity'].forEach(t => {
+    const el = document.getElementById('pd-view-' + t)
+    if (el) el.style.display = t === tab ? 'block' : 'none'
+  })
+}
+
+// Composition — compact multi-value display with a subtle proportion bar
+// (SIERRA_DESIGN_SYSTEM.md "DataField: composition"), never a tall block.
+function compBlockHtml(str) {
+  if (!str) return '—'
+  // Match each "NN% material" group. Splitting on a lookahead broke multi-digit
+  // percentages (100% → "1","0","0%") because \d+% also matches inside them.
+  const groups = str.trim().match(/\d+%[^\d]*/g) || [str.trim()]
+  const parsed = groups.map(g => g.trim()).filter(Boolean).map(seg => {
+    const m = seg.match(/^(\d+)%\s*(.*)$/)
+    return m ? { pct: parseInt(m[1], 10), name: m[2] } : { pct: 0, name: seg }
+  })
+  const hasPct = parsed.some(x => x.pct)
+  const bar = hasPct ? `<div class="comp-bar">${parsed.map(x => `<span style="width:${x.pct}%"></span>`).join('')}</div>` : ''
+  const list = `<div class="comp-list">${parsed.map(x => `<div class="comp-item">${x.pct ? `<b>${x.pct}%</b>` : ''}${esc(x.name)}</div>`).join('')}</div>`
+  return `<div onclick="event.stopPropagation();copyToClipboard('${str.replace(/'/g, "\\'")}')" title="Copy" style="cursor:pointer">${bar}${list}</div>`
 }
 
 function backToProducts() {
@@ -8099,13 +8352,17 @@ function showStyleGuide() {
             </table>
           </div>
           <div class="sg-canvas">
-            <div class="sg-canvas-label">Spec list (key–value)</div>
-            <div class="pd-row" style="cursor:default"><div class="pd-k">Weight</div><div class="pd-v">180 g/m²</div></div>
-            <div class="pd-row" style="cursor:default;border-top:1px solid var(--border)"><div class="pd-k">Width</div><div class="pd-v">160 cm</div></div>
+            <div class="sg-canvas-label">DataFieldGrid (product master records)</div>
+            <div style="max-width:420px">${dataFieldGridHtml([
+              { label: 'Weight (GSM)', value: '180', copy: true },
+              { label: 'Width', value: '160 cm', copy: true },
+              { label: 'Color', value: 'Ultra Coral' },
+              { label: 'Lot', value: 'NT25-BS425', copy: true },
+            ])}</div>
           </div>
           <div class="sg-usage">
-            <div class="sg-use"><b>Use</b>Uppercase micro-label column headers, hairline row separators, 44px-ish row height, numbers right-ready with tabular figures. Key–value spec lists for records; tables for comparable collections. Every table needs empty, loading, and error states.</div>
-            <div class="sg-nouse"><b>Don't</b>Use zebra striping, vertical grid lines, center-aligned text columns, or tables for layouts that are really cards.</div>
+            <div class="sg-use"><b>Use</b>DataField/DataFieldGrid (<code>dataFieldHtml()</code>/<code>dataFieldGridHtml()</code>) for any record's technical attributes — 3–4 per row on desktop, uppercase micro-labels, hover-only copy icon. Group related fields under a <code>field-section</code> title with a subtle top-border, never a card per attribute. Tables remain for comparable collections (many rows, same shape); DataFieldGrid is for one record's own attributes.</div>
+            <div class="sg-nouse"><b>Don't</b>Go back to one full-width row per attribute, make every value row "tap to copy" (use the hover icon instead), or wrap each field in its own bordered box.</div>
           </div>
         </section>
 
@@ -8235,10 +8492,7 @@ function showStyleGuide() {
               <div class="skeleton" style="height:14px;width:70%"></div>
               <div class="skeleton" style="height:14px;width:45%"></div>
             </div>
-            <div class="pd-complete" style="max-width:280px">
-              <div class="pd-complete-top"><span class="pd-complete-score">72%</span><span class="pd-complete-caption">Data completeness</span></div>
-              <div class="pd-complete-track"><div class="pd-complete-fill" style="width:72%"></div></div>
-            </div>
+            ${completenessChipHtml({ pct: 72, done: 13, total: 18, missing: ['Product image', 'Yarn count', 'Tolerance'] }, 'sg-completeness-demo')}
             <div class="empty" style="padding:1rem"><p>No samples yet. Request one from any product page.</p></div>
             <div class="sg-demo-row"><button class="btn btn-ghost btn-sm" type="button" onclick="toast('Saved to collection')">Show toast</button></div>
           </div>
@@ -11837,7 +12091,7 @@ function wsToggleMore(e) {
   if (!wasOpen) pop.classList.add('open')
 }
 document.addEventListener('click', e => {
-  if (!e.target.closest('.ws-pop') && !e.target.closest('.ws-icon-btn') && !e.target.closest('.cat-tb-btn')) wsClosePopovers()
+  if (!e.target.closest('.ws-pop') && !e.target.closest('.ws-icon-btn') && !e.target.closest('.cat-tb-btn') && !e.target.closest('.completeness-chip')) wsClosePopovers()
 })
 
 function wsCopyLink(collectionId) {
@@ -13200,7 +13454,7 @@ function initPdAudit(p) {
 }
 
 function switchPdTab(tab) {
-  document.querySelectorAll('.pd-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
+  document.querySelectorAll('#pd-activity-subtabs .pd-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
   const act = document.getElementById('pd-tab-activity'), ver = document.getElementById('pd-tab-versions')
   if (act) act.style.display = tab === 'activity' ? 'block' : 'none'
   if (ver) ver.style.display = tab === 'versions' ? 'block' : 'none'

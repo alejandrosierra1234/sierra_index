@@ -693,7 +693,13 @@ currency/unit columns exist on `products` yet), so it's shown verbatim
 rather than reformatted into a fabricated canonical `$X / lb` string —
 do that reformatting once pricing becomes structured data, not before.
 
-## 19. Product detail — identity/media proportion fix
+## 19. Product detail — identity/media proportion fix (superseded by §20)
+
+Historical record of an earlier, smaller pass — kept for context. The
+`.pd-layout`/`.pd-identity-col`/`.pd-specs-col`/`.pd-panel`/`.pd-row`/
+`.pd-k`/`.pd-v`/`.pd-complete*` classes it describes were replaced
+outright in §20's ERP master-record rebuild; none of them exist in
+the codebase anymore. Read §20 for the current architecture.
 
 `showProductDetail()` (`#view-detail`) used a bespoke 3-column
 `.pd-layout` (identity | Technical Profile | media), each its own
@@ -716,3 +722,160 @@ which is what made the panel read as inconsistent rather than one
 data table). Comments/Activity/Versions still render inline below the
 Technical Profile, not yet in the Drawer — same gap noted in §12c,
 unchanged by this pass.
+
+## 20. Product Detail — ERP master-record rebuild
+
+`showProductDetail()` was rebuilt from a tall vertical product profile
+(one full-width row per attribute, a permanent identity sidebar, a
+sticky bottom action bar) into a dense ERP master record: **ProductHeader
+→ RecordTabs → tab content**, built from new reusable primitives that
+now live in the design system, not page-specific CSS. Acceptance target
+(§21 of the product brief): at 1440px+ a user sees identity, status,
+completeness, primary actions, gallery, and the full fabric key-data set
+(composition/construction/color/lot/country/dye method/width/GSM/
+diameter/gauge/needles/route type) without scrolling.
+
+### DataField / DataFieldGrid (new, generic — `dataFieldHtml()`/`dataFieldGridHtml()`)
+
+The one reusable attribute-display primitive for any record screen —
+Product Detail is the first consumer, not the only intended one.
+
+```js
+dataFieldGridHtml([
+  { label: 'Width', value: specs.Width, copy: true },
+  { label: 'Composition', html: compBlockHtml(specs.Composition), span: 2 },
+])
+```
+
+`.field-grid` is a **fixed** 4/3/2/1-column grid at deterministic
+breakpoints (1100px/900px/767px) — not `auto-fit`, because an unbounded
+auto-fit grid inside a 1480px-capped page would produce 6-9 columns on
+a wide monitor instead of the "3-4 fields per row" the brief calls for.
+`field-span-2` doubles a field's width (used by Composition). Groups of
+fields sit inside `fieldSectionHtml(title, innerHtml)` — a subtle
+top-border separator, never a card per attribute, never a card per
+group. A field with no value renders `—` rather than disappearing,
+except when the whole group has zero populated fields, in which case
+`dataFieldGridHtml`/`fieldSectionHtml` both return `''` and the
+section doesn't render at all (replaces the old per-section `if
+(hasPhysical)`/`if (commFields.length)` guards with the same
+behavior, generically).
+
+**Copy behavior (§17 of the brief)**: the old "tap any row to copy"
+pattern made every spec row look interactive just for copying. Copyable
+fields now show a small `.field-copy` icon that's invisible until the
+field is hovered (`opacity:0` → `1` on `.field:hover`) — explicit,
+low-noise. Composition is the one exception: its whole block stays
+click-to-copy (a multi-value string, not a single copyable value),
+matching how it worked before.
+
+### ProductGallery / ImageLightbox (new, generic)
+
+`pdGalleryHtml(p)` renders a compact hero (`.pgal-hero`, capped
+`max-height:300px`) + horizontally-scrolling thumbnail strip
+(`.pgal-thumbs`/`.pgal-thumb`) — never every image at full size at
+once. Clicking any image calls the **generic, reusable**
+`openImageLightbox(images, startIndex)` (`#lightbox-overlay` in the
+static markup, next to the Drawer overlay) — prev/next, counter
+(`2 / 6`), thumbnail nav, Escape/arrow-key handling, click-outside to
+close. Any future gallery in the app should call this instead of
+building a second lightbox.
+
+Multi-image was already supported at the data level (`products.
+image_urls`, a plain array — `image_url` stays as the legacy single-
+image fallback for old rows). What Product Detail lacked was
+management UI outside the big Edit modal. It now has inline,
+progressive-disclosure controls on hover/via a small overflow trigger
+on the hero (`pdSetPrimary`/`pdMoveImage`/`pdEditCaption`/
+`pdRemoveImage`/`pdTriggerAddImages` → `pdHandleAddFiles`, all funneling
+through one `pdPersistImages()` save call that updates `products` and
+logs to `Audit`), gated by `canEditDiv(p.division) && !isArchived(p)`.
+Reordering is move-earlier/move-later (not full drag-and-drop) — a
+deliberate scope cut, not an oversight.
+
+**Captions are new** and persist in `specs.image_captions` (an object
+keyed by image URL), *not* by changing `image_urls` from `string[]` to
+`{url,caption}[]`. Dozens of existing read sites across the app
+(Catalog table/cards/drawer, Collection Cards view, the label editor,
+the bulk-add modal) treat `image_urls` as a plain string array; reshaping
+it would have meant touching all of them for one additive feature. This
+is the deliberate, lower-risk path — if per-image structured data grows
+beyond captions, revisit the schema then, not before.
+
+### CompletenessIndicator (new, generic — `completenessChipHtml()`)
+
+Replaces the old permanent `.pd-complete` card (score + caption + a
+progress bar, always on screen) with a compact ring chip in the header
+(`82% complete`) that opens a popover listing the actual missing field
+labels on click (`pdCompleteness(p)` returns `{pct, done, total,
+missing[]}`) — actionable without a permanent block of screen. Built on
+the same self-toggled popover primitive as everything else (§12b); its
+trigger class `.completeness-chip` was added to the shared outside-click
+allowlist next to `.cat-tb-btn`/`.ws-icon-btn`.
+
+### RecordTabs — Overview / Technical / Samples & Inventory / Documents / Activity
+
+`#pd-record-tabs` is `.pd-tabs.pd-tabs-inline` — the same ViewTabs
+primitive as Catalog's Table/Cards switch and saved views, not a new
+tab component. `switchPdRecordTab()` toggles five `#pd-view-*`
+containers. The pre-existing Activity/Versions sub-tabs inside the
+Activity tab still use `.pd-tabs`/`switchPdTab()`, now scoped to
+`#pd-activity-subtabs .pd-tab` specifically — it used to query `.pd-tab`
+unscoped, which would have also toggled the new top-level RecordTabs
+the moment both existed on the same page.
+
+- **Overview** — gallery + the fields a user needs most often
+  (composition, construction, color, lot, country, dye method, then
+  width/GSM/diameter/gauge/needles/route type) — mirrors §5 of the brief
+  exactly.
+- **Technical** — the complete spec, grouped into real ERP sections
+  (Construction / Material / Physical / Dyeing & Finishing / Commercial
+  / Identification / Notes / Tags) via `fieldSectionHtml` +
+  `dataFieldGridHtml`. Real fields only: there is no Machine, Yarn
+  Count, Fiber/Blend, Shrinkage, or Finish column in `products`/`specs`
+  today, so those brief examples are intentionally omitted rather than
+  faked — Yarn 01/02/03 (real) stand in for "yarn composition," and Dye
+  Method (real) is the closest thing to "Finish."
+- **Samples & Inventory** — Sample Availability (`#pd-avail`, filled by
+  the existing `loadPdInventory()`), Available As format chips, the
+  existing warehouse stock/movements blocks (`#pd-inventory`/`#pd-inv-*`,
+  untouched logic, just relocated), and Related Products
+  (`#pd-related`, product-knowledge-graph links) — operationally
+  adjacent, not explicitly named in the brief's tab list but preserved
+  here rather than dropped.
+- **Documents** — a `.doc-list` (new, generic `DocumentList` pattern:
+  icon + name/meta + an action, one row per document, no spreadsheet-
+  style table for a handful of files). Technical Sheet and Label are
+  synthetic "documents" here (Open triggers the existing
+  `generateTechnicalSheet()`/`openLabel()`) alongside real URLs an
+  editor pasted into `specs.Documents`.
+- **Activity** — Comments (`#ficha-comments-inner`) + the existing
+  Activity/Versions timeline, relocated as-is; still not migrated onto
+  the canonical Drawer (§12c) — same known gap as before, unchanged by
+  this pass.
+
+### ProductHeader / action hierarchy (§20 of the brief)
+
+The sticky bottom `.detail-toolbar` (WorkflowActionBar) is gone from
+Product Detail specifically — "this screen is a record, not a
+multi-step workflow," per the brief, and removing it also reclaims a
+full row of vertical space toward the one-viewport acceptance target.
+`.detail-toolbar` itself is untouched and still canonical for screens
+that *are* workflows (Collection workspace, Dispatch/order workspace —
+§10). All Product Detail actions now live in `.pd-header-actions`,
+ranked explicitly:
+
+- **Primary** — Request Sample (`.btn-primary`)
+- **Secondary** — Edit (`.btn-ghost`, only if `canEditDiv` and not archived)
+- **Contextual** — Technical Sheet / Print Label / Share as icon-only
+  `.pd-header-icon-btn`s (34×34, tooltip via `title`) — visible to
+  everyone, not buried, but visually quieter than Edit
+- **Advanced** — `•••` (`overflowMenuHtml()`): Duplicate, jump-to-
+  edit-section shortcuts, Archive — gated by edit/delete permission
+
+**Status vs. Availability (§19 of the brief)** are kept as genuinely
+separate concepts, not merged: Status is the lifecycle pill (`lcPill()`
++ `pdSelect()` picker) in the header, next to identity. Sample
+Availability is a Samples & Inventory DataField sourced from the
+existing warehouse-stock computation (`invStatusOf()`), not the
+lifecycle value.
