@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [claude/basic-website-html-qexj5j]
+    branches: [claude/basic-website-html-qexj5j, claude/sierra-technical-sheet-redesign-pkshxb]
   workflow_dispatch:
 
 permissions:
