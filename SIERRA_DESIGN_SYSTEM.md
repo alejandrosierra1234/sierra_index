@@ -410,6 +410,52 @@ product feature, not yet a hardened security boundary — tightening RLS
 to match every capability is flagged as future work, not silently
 assumed done.
 
+## 12e. Overflow (•••) menu
+
+Canonical helper: `overflowMenuHtml(items, opts)` in `index.html` (next
+to `toggleCardMore`). Every object-level ••• menu should be built by
+calling it, not by hand-writing `.card-more-btn`/`.card-more-menu`
+markup — that duplication (the Catalog card and product-detail quick
+actions each hard-coded their own menu HTML, and `.card-more-menu` had
+its own copy of the popover shell CSS instead of composing `.ws-pop`)
+is exactly what this pass removed.
+
+```js
+overflowMenuHtml([
+  { label: 'Duplicate product', onClick: 'duplicateProduct(selected)' },
+  { label: 'Delete', onClick: `deleteThing('${id}')`, danger: true },
+], { title: 'Quick actions', style: 'width:auto;padding:0 0.6rem' /* optional trigger override */ })
+```
+
+`items[].icon` accepts a raw inline SVG string when the row needs one
+(Catalog card's "View sheet"/"Print label" rows do; plain text-only rows
+like the product quick-actions menu can omit it). The generated trigger
+button reuses `toggleCardMore()` for open/close — self-toggled on the
+trigger, same mechanic family as `.ws-pop` (§12b).
+
+**Two reference implementations, deliberately not force-merged into one
+JS function:**
+- **Catalog card / product detail quick actions** — `overflowMenuHtml()`,
+  single ••• trigger per object, toggled via `toggleCardMore()`.
+- **Collection workspace ObjectHeader** (`#ws-more-pop`) — still built
+  from a conditional `moreMenuItems` array (its items depend on
+  collection status/division in ways a flat list doesn't capture as
+  cleanly) and toggled via `wsToggleMore()`/`wsClosePopovers()` — the
+  same "close every open `.ws-pop` on outside click" mechanic that also
+  serves the per-row price popover and the invite panel. Its rows
+  already render through `.ws-menu-item`, which is aliased into the
+  same `.pop-menu-item` base styling as `overflowMenuHtml()`'s rows
+  (§12b) — so both are visually and structurally the *same component*
+  even though the JS entry point differs. Don't rewrite `#ws-more-pop`
+  to force it through `overflowMenuHtml()`; the toggle mechanism, not
+  the visual, is what differs, and `wsClosePopovers()` needs to keep
+  coordinating multiple simultaneous `.ws-pop` instances on one screen
+  (more-menu, price editor, invite) that a single-button helper doesn't
+  need to handle.
+
+If a new entity needs a ••• menu with a fixed, non-conditional item
+list, reach for `overflowMenuHtml()` first.
+
 ## 13. Form controls
 
 Inputs/selects share one look app-wide: `1px solid var(--border)`,
@@ -441,6 +487,24 @@ reserved for true overlays (modals, popovers like `.bu-switch-pop`/
 screens had no absolute-positioned layout to begin with; if you find
 one while touching another screen, replace it with the grid/flex
 primitives above.
+
+**Full-codebase audit (this pass)**: every `position:absolute` rule in
+`index.html` was reviewed, not just the Samples screens. Result: all 29
+CSS rules are legitimate anchored elements — badges pinned to a
+card/icon corner (`.card-check`, `.ws-icon-badge`, `.cart-nav-badge`),
+popovers/dropdown menus (`.ws-pop` family, §12b), tooltips, an
+avatar-stack overlap effect, and the QR/camera-scan viewfinder's
+decorative corner brackets. Zero inline `style="position:absolute"` in
+any JS-generated markup, and zero page-container `margin-left`/
+`width:calc(...)` hacks (the pattern §2 explicitly forbids) anywhere in
+the file — `width:calc(...)` only shows up twice, both sizing a
+self-contained floating widget (mobile bulk-action bar, camera-overlay
+button) against its own margin, not recreating `.content`'s padding.
+Conclusion: this codebase was already clean on layout hacks going into
+this pass (the prior design-system pass had already fixed the real
+instances) — nothing further to remove here. If a future screen
+introduces one, treat it as a regression against this audit, not a
+pre-existing pattern to match.
 
 ## 16. Applying this to a new screen
 

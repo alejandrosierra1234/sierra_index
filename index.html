@@ -545,15 +545,15 @@
        not add a new popover implementation — extend the shared shell rule
        (below) and .pop-menu-item. Documented in SIERRA_DESIGN_SYSTEM.md
        §Popover / Dropdown Menu. */
-    .pop-menu-item, .ws-menu-item {
+    .pop-menu-item, .ws-menu-item, .card-more-item {
       display:flex; align-items:center; gap:0.55rem; width:100%; text-align:left;
       background:none; border:none; font-family:inherit; padding:0.42rem 0.5rem; border-radius:7px;
       cursor:pointer; font-size:0.8rem; color:var(--text-2);
       transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
     }
-    .pop-menu-item:hover, .ws-menu-item:hover { background:var(--surface2); color:var(--text); }
+    .pop-menu-item:hover, .ws-menu-item:hover, .card-more-item:hover { background:var(--surface2); color:var(--text); }
     .pop-menu-item.current { color:var(--text); font-weight:600; }
-    .pop-menu-item.danger, .ws-menu-danger { color:#c0392b; }
+    .pop-menu-item.danger, .ws-menu-danger, .card-more-item.danger { color:#c0392b; }
     .pop-menu-item .pop-menu-dot { width:16px; height:16px; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
     .pop-menu-item .pop-menu-dot svg { width:10px; height:10px; }
     .pop-menu-sep { height:1px; background:var(--border); margin:0.3rem 0.2rem; }
@@ -972,12 +972,17 @@
     .card-req-btn:active { transform:scale(0.98); }
     .card-more-btn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-3); cursor:pointer; flex-shrink:0; transition:background 0.12s, color 0.12s, border-color 0.12s; position:relative; }
     .card-more-btn:hover { background:var(--surface2); color:var(--text); }
-    .card-more-menu { display:none; position:absolute; bottom:calc(100% + 6px); right:0; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.1); min-width:148px; overflow:hidden; z-index:50; }
-    .card-more-btn.open .card-more-menu { display:block; }
-    .card-more-item { display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.9rem; font-size:0.78rem; color:var(--text); cursor:pointer; border:none; background:none; width:100%; text-align:left; font-family:inherit; transition:background 0.1s; }
+    /* Overflow (•••) menu — positioning variant of the shared flyout
+       popover (.ws-pop, see "POPOVER / DROPDOWN MENU PRIMITIVE"): opens
+       upward since its trigger usually sits near a card's bottom edge.
+       Shell/item visuals come from .ws-pop/.pop-menu-item — this block
+       only overrides position + ancestor-driven open (vs .ws-pop's
+       self-toggled .open). Built via overflowMenuHtml(), the one
+       canonical way to construct a •••  menu — see §12e. */
+    .card-more-menu { position:absolute; bottom:calc(100% + 6px); right:0; top:auto; min-width:170px; }
+    .card-more-btn.open .card-more-menu.ws-pop { display:block; }
     .card-more-item + .card-more-item { border-top:1px solid var(--border); }
-    .card-more-item:hover { background:var(--surface2); }
-    .card-more-item svg { width:14px; height:14px; color:var(--text-3); flex-shrink:0; }
+    .card-more-item svg, .pop-menu-item svg { width:14px; height:14px; color:var(--text-3); flex-shrink:0; }
 
     /* ── MODAL ──
        The whole dialog is a flex column capped at max-height; only
@@ -4794,17 +4799,12 @@ function cardHTML(p) {
       <div class="tags">${tags}</div>
       <div class="card-actions" onclick="event.stopPropagation()">
         <button class="card-req-btn" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p) ? '' : `disabled title="${tx('lifecycle.' + lc(p))} products can't be requested"`}>${tx('catalog.addSample')}</button>
-        <div class="card-more-btn" onclick="toggleCardMore(event,this)">
-          <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15"><circle cx="5" cy="10" r="1.4"/><circle cx="10" cy="10" r="1.4"/><circle cx="15" cy="10" r="1.4"/></svg>
-          <div class="card-more-menu">
-            <button class="card-more-item" onclick="openFicha(dec('${ep}'))">
-              <svg viewBox="0 0 20 20" fill="none"><path d="M4 5h12M4 9h8M4 13h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>${tx('catalog.viewSheet')}
-            </button>
-            <button class="card-more-item" onclick="quickLabel(dec('${ep}'))">
-              <svg viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 6V5a3 3 0 016 0v1" stroke="currentColor" stroke-width="1.4"/></svg>${tx('catalog.printLabel')}
-            </button>
-          </div>
-        </div>
+        ${overflowMenuHtml([
+          { label: tx('catalog.viewSheet'), onClick: `openFicha(dec('${ep}'))`,
+            icon: `<svg viewBox="0 0 20 20" fill="none"><path d="M4 5h12M4 9h8M4 13h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>` },
+          { label: tx('catalog.printLabel'), onClick: `quickLabel(dec('${ep}'))`,
+            icon: `<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 6V5a3 3 0 016 0v1" stroke="currentColor" stroke-width="1.4"/></svg>` },
+        ])}
       </div>
     </div>
     <div class="card-check">${isSelected ? '✓' : ''}</div>
@@ -5316,16 +5316,13 @@ function showProductDetail(p) {
         <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M14.5 3.5l2 2L6 16H4v-2L14.5 3.5z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="btn-lbl">${tx('product.edit')}</span>
       </button>
-      <div class="card-more-btn" style="width:auto;padding:0 0.6rem" onclick="toggleCardMore(event,this)" title="${tx('product.quickActions')}">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15"><circle cx="5" cy="10" r="1.4"/><circle cx="10" cy="10" r="1.4"/><circle cx="15" cy="10" r="1.4"/></svg>
-        <div class="card-more-menu">
-          <button class="card-more-item" onclick="duplicateProduct(selected)">Duplicate product</button>
-          <button class="card-more-item" onclick="openEdit(selected,'specs')">Edit technical specs</button>
-          <button class="card-more-item" onclick="openEdit(selected,'images')">Edit images</button>
-          <button class="card-more-item" onclick="openEdit(selected,'extras')">Edit documents &amp; formats</button>
-          <button class="card-more-item" onclick="document.querySelector('.pd-id-value .grant-sel')?.focus()">Edit lifecycle status</button>
-        </div>
-      </div>
+      ${overflowMenuHtml([
+        { label: 'Duplicate product', onClick: 'duplicateProduct(selected)' },
+        { label: 'Edit technical specs', onClick: `openEdit(selected,'specs')` },
+        { label: 'Edit images', onClick: `openEdit(selected,'images')` },
+        { label: 'Edit documents & formats', onClick: `openEdit(selected,'extras')` },
+        { label: 'Edit lifecycle status', onClick: `document.querySelector('.pd-id-value .grant-sel')?.focus()` },
+      ], { style: 'width:auto;padding:0 0.6rem', title: tx('product.quickActions') })}
       <div class="detail-toolbar-sep"></div>` : ''}
       ${canDeleteDiv(p.division) && !isArchived(p) ? `<button class="btn btn-ghost" style="color:#b47107;border-color:rgba(255,159,10,0.25)" onclick="confirmArchive(selected)" title="${tx('product.archive')}">
         <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4.5 8v7a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V8M8 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
@@ -5750,6 +5747,25 @@ function toggleCardMore(e, btn) {
 document.addEventListener('click', () => {
   document.querySelectorAll('.card-more-btn.open').forEach(b => b.classList.remove('open'))
 })
+
+/* ── Overflow (•••) menu — the one canonical way to build one ──
+   Declarative helper over the shared popover primitive: pass a list of
+   {label, icon, onClick, danger} rows, get back a trigger button + menu.
+   Positioned to open upward from the trigger (works for cards near the
+   bottom of a grid, still fine on a header trigger). Don't hand-write a
+   new ••• menu's markup — every object-level overflow menu (Catalog
+   card, product detail quick actions, and any future entity that needs
+   one) should render through this. See SIERRA_DESIGN_SYSTEM.md §12e. */
+function overflowMenuHtml(items, opts = {}) {
+  const btnClass = ['card-more-btn', opts.btnClass].filter(Boolean).join(' ')
+  const dots = opts.dots || `<svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15"><circle cx="5" cy="10" r="1.4"/><circle cx="10" cy="10" r="1.4"/><circle cx="15" cy="10" r="1.4"/></svg>`
+  const rows = items.map(it => `<button type="button" class="card-more-item${it.danger ? ' danger' : ''}" onclick="${it.onClick}">${it.icon || ''}${esc(it.label)}</button>`).join('')
+  return `
+    <div class="${btnClass}" ${opts.style ? `style="${opts.style}"` : ''} onclick="toggleCardMore(event,this)" ${opts.title ? `title="${esc(opts.title)}"` : ''}>
+      ${dots}
+      <div class="card-more-menu ws-pop">${rows}</div>
+    </div>`
+}
 
 function toggleSelectMode() {
   selectMode = !selectMode
