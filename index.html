@@ -3194,6 +3194,11 @@
       transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
     }
     .ws-invite-remove:hover { background:rgba(192,57,43,0.1); color:#c0392b; }
+    .ws-invite-row-form { flex-wrap:wrap; }
+    .ws-invite-role-sel { flex-shrink:0; width:auto; }
+    .ws-cap-checklist { padding:0.2rem 0.5rem 0.65rem 3.15rem; }
+    .ws-cap-row { display:flex; align-items:center; gap:0.5rem; font-size:0.78rem; color:var(--text-2); padding:0.2rem 0; }
+    .ws-cap-row input { accent-color:var(--accent); }
 
     /* Self-toggled flyout variant of the shared popover primitive (see
        "POPOVER / DROPDOWN MENU PRIMITIVE" above) — invite, "more" menu and
@@ -9890,6 +9895,64 @@ function smpBadge(status) {
   return `<span class="smp-badge smp-${status}">${SMP_STATUS_LABEL[status] || status}</span>`
 }
 
+/* ── COLLABORATOR ROLE PRESETS — single source of truth ──
+   Complex permissions must feel simple to the user (invite-flow brief):
+   an inviter picks one of five presets, or "Custom" to expose the full
+   capability matrix. Every capability check in the workspace reads
+   through wsCapsForRole()/wsMyCapabilities() below, never a bespoke
+   role string comparison. See update17.sql for the persisted columns
+   and its note on enforcement being UI-level in this pass. */
+const COLLAB_ROLE_PRESETS = {
+  viewer:             { label: 'Viewer',            caps: { manage_samples: false, comment: false, edit_pricing: false, edit_protected_specs: false, submit: false, manage_people: false } },
+  contributor:        { label: 'Contributor',       caps: { manage_samples: true,  comment: true,  edit_pricing: false, edit_protected_specs: false, submit: false, manage_people: false } },
+  technical_editor:   { label: 'Technical Editor',  caps: { manage_samples: true,  comment: true,  edit_pricing: false, edit_protected_specs: true,  submit: false, manage_people: false } },
+  commercial_editor:  { label: 'Commercial Editor', caps: { manage_samples: true,  comment: true,  edit_pricing: true,  edit_protected_specs: false, submit: false, manage_people: false } },
+  collection_manager: { label: 'Collection Manager',caps: { manage_samples: true,  comment: true,  edit_pricing: true,  edit_protected_specs: true,  submit: true,  manage_people: true  } },
+  custom:             { label: 'Custom',            caps: null },
+}
+const COLLAB_CAP_LABEL = {
+  manage_samples: 'Add/remove samples, organize groups',
+  comment: 'Comment',
+  edit_pricing: 'Edit pricing',
+  edit_protected_specs: 'Edit protected technical fields',
+  submit: 'Submit the collection',
+  manage_people: 'Invite/remove collaborators',
+}
+function wsCapsForRole(role, capabilities) {
+  if (role === 'custom') return capabilities || COLLAB_ROLE_PRESETS.viewer.caps
+  return (COLLAB_ROLE_PRESETS[role] || COLLAB_ROLE_PRESETS.contributor).caps
+}
+// Owner and anyone with the platform-level customer_service write
+// permission bypass the preset system entirely (same "admin overrides
+// everything" pattern already used elsewhere in the app, e.g. isAdmin()).
+function wsMyCapabilities(col, collaborators) {
+  if (col.requested_by === me.id) return COLLAB_ROLE_PRESETS.collection_manager.caps
+  if (can('manage_status', 'customer_service')) return COLLAB_ROLE_PRESETS.collection_manager.caps
+  const mine = collaborators.find(c => c.user_id === me.id)
+  if (!mine) return COLLAB_ROLE_PRESETS.viewer.caps
+  return wsCapsForRole(mine.role, mine.capabilities)
+}
+function wsCapChecklistHtml(idPrefix, caps) {
+  const c = caps || {}
+  return Object.entries(COLLAB_CAP_LABEL).map(([key, label]) => `
+    <label class="ws-cap-row">
+      <input type="checkbox" id="${idPrefix}-${key}" ${c[key] ? 'checked' : ''} />
+      <span>${esc(label)}</span>
+    </label>`).join('')
+}
+function wsReadCapChecklist(idPrefix) {
+  const caps = {}
+  Object.keys(COLLAB_CAP_LABEL).forEach(key => { caps[key] = !!document.getElementById(`${idPrefix}-${key}`)?.checked })
+  return caps
+}
+function wsRoleSelectOptionsHtml(selected) {
+  return Object.entries(COLLAB_ROLE_PRESETS).map(([k, r]) => `<option value="${k}" ${k === selected ? 'selected' : ''}>${esc(r.label)}</option>`).join('')
+}
+function wsToggleCustomCaps(personId, role) {
+  const box = document.getElementById('inv-caps-' + personId)
+  if (box) box.style.display = role === 'custom' ? 'block' : 'none'
+}
+
 /* ── SAMPLE CART — a collaborative draft collection ──
    The cart is not a local scratchpad: the moment the first product is
    added it becomes a real sample_collections row with status='draft'
@@ -10940,6 +11003,11 @@ async function showCollectionRecord(collectionId, backTo) {
   const requesterName = col.profiles?.full_name || col.profiles?.email || '—'
   const dateStr = new Date(col.created_at).toLocaleDateString('en-US', { day:'2-digit', month:'long', year:'numeric' })
   const canEdit = can('manage_status', 'customer_service')
+  // Per-collaborator role preset (§Roles) — gates the finer-grained
+  // actions (manage samples/pricing/submit/people) on top of the
+  // broader platform-level canEdit check above.
+  const myCap = wsMyCapabilities(col, collaborators)
+  _wsMyCap = myCap
   const colDivision = items.find(i => i.products?.division)?.products?.division
   const canDispatch = canDispatchDiv(colDivision)
   const isReadyOrLater = ['ready','picked_up','shipped','delivered'].includes(col.status)
@@ -11009,7 +11077,7 @@ async function showCollectionRecord(collectionId, backTo) {
       ${nextStatuses.map(st => `<button class="btn btn-ghost btn-sm" onclick="updateCollectionStatus('${col.id}','${st}')">${SMP_STATUS_LABEL[st]}</button>`).join('')}
     </div>` : ''
 
-  const submitFormHtml = isDraft ? `
+  const submitFormHtml = isDraft && myCap.submit ? `
     <div class="srd-section-label" style="margin-top:0">Enviar colección</div>
     <div class="srd-card">
       <div class="cart-fg"><label>Cliente</label><input type="text" id="ws-customer" value="${esc(col.customer||'')}" placeholder="p. ej. Nike, Adidas" /></div>
@@ -11044,7 +11112,7 @@ async function showCollectionRecord(collectionId, backTo) {
       ${statusActionsHtml}
     </div>`
 
-  const itemsHtml = categorizedItemsHtml(items, categories, col, isDraft)
+  const itemsHtml = categorizedItemsHtml(items, categories, col, isDraft && myCap.manage_samples)
   _wsStatItems = items
 
   // Comments render inside the side Drawer (§Drawer), not permanently on
@@ -11091,11 +11159,11 @@ async function showCollectionRecord(collectionId, backTo) {
     ${submitFormHtml}
 
     <div class="srd-section-label" style="display:flex;align-items:center;gap:0.5rem">
-      ${isDraft && items.length ? `<input type="checkbox" class="ws-select-all" onchange="wsToggleSelectAll(this.checked)" title="Seleccionar todo" />` : ''}
+      ${isDraft && myCap.manage_samples && items.length ? `<input type="checkbox" class="ws-select-all" onchange="wsToggleSelectAll(this.checked)" title="Seleccionar todo" />` : ''}
       <span>Muestras</span>
-      ${isDraft ? `<button class="ws-add-cat-btn" onclick="wsAddCategory('${col.id}')">+ Categoría</button>` : ''}
+      ${isDraft && myCap.manage_samples ? `<button class="ws-add-cat-btn" onclick="wsAddCategory('${col.id}')">+ Categoría</button>` : ''}
     </div>
-    ${isDraft && items.length ? `
+    ${isDraft && myCap.manage_samples && items.length ? `
     <div class="ws-bulk-bar" id="ws-bulk-bar" style="display:none">
       <span id="ws-bulk-count">0 seleccionadas</span>
       <select class="grant-sel" id="ws-bulk-cat-sel">
@@ -11107,7 +11175,7 @@ async function showCollectionRecord(collectionId, backTo) {
       <button class="btn btn-ghost btn-sm" onclick="wsClearSelection()">Cancelar</button>
     </div>` : ''}
     <div class="srd-card">
-      ${isDraft ? `
+      ${isDraft && myCap.manage_samples ? `
       <div class="ws-add-inline">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="color:var(--text-3);flex-shrink:0"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         <input type="text" id="ws-add-input" placeholder="Agregar producto por nombre o código…" oninput="wsSearchProducts('${col.id}', this.value)" />
@@ -11128,6 +11196,7 @@ let _colWorkspaceBack = 'showCollectionsHub'
 let _wsStatCharts = {}
 let _wsStatItems = []
 let _wsDrawerState = { colId: null, commentsHtml: '', commentCount: 0 }
+let _wsMyCap = COLLAB_ROLE_PRESETS.viewer.caps
 
 /* ── Collection Activity / Comments drawer ── uses the canonical Drawer
    (openSideDrawer) instead of a permanent inline block. Activity reuses
@@ -11691,7 +11760,7 @@ function fmtPrice(i) {
    "Pricing" card is gone — one field, click to edit, click away to see
    it as a column value like everything else in the table). */
 function wsPriceCellHtml(it) {
-  const editable = canEditPricing()
+  const editable = canEditPricing() || _wsMyCap.edit_pricing
   if (!editable && it.price == null) return '<span class="ws-price-empty">—</span>'
   const label = it.price != null ? `$${Number(it.price).toFixed(2)}` : (editable ? '+ Precio' : '—')
   if (!editable) return `<span class="ws-price-empty" style="color:var(--text)">${label}</span>`
@@ -11830,29 +11899,41 @@ async function wsRenderInvitePanel(collectionId) {
 
   const [colRes, collabRes] = await Promise.all([
     sb.from('sample_collections').select('requested_by, profiles!requested_by(*)').eq('id', collectionId).single(),
-    sb.from('collection_collaborators').select('id, user_id, added_by, profiles!user_id(*)').eq('collection_id', collectionId),
+    sb.from('collection_collaborators').select('id, user_id, added_by, role, capabilities, profiles!user_id(*)').eq('collection_id', collectionId),
   ])
   const owner = colRes.data?.profiles
+  const isOwner = colRes.data?.requested_by === me.id
   const collaborators = collabRes.data || []
-  const canManage = can('manage_status', 'customer_service')
+  const canManagePlatform = can('manage_status', 'customer_service')
+  const mine = collaborators.find(c => c.user_id === me.id)
+  const myCaps = isOwner ? COLLAB_ROLE_PRESETS.collection_manager.caps
+    : mine ? wsCapsForRole(mine.role, mine.capabilities) : COLLAB_ROLE_PRESETS.viewer.caps
+  const canManagePeople = canManagePlatform || isOwner || myCaps.manage_people
 
   const peopleRows = [
     owner ? wsInvitePersonRow(owner, { tag: 'Dueño' }) : '',
     ...collaborators.map(c => wsInvitePersonRow(c.profiles, {
-      removable: canManage || c.added_by === me.id || c.user_id === me.id,
+      removable: canManagePlatform || c.added_by === me.id || c.user_id === me.id,
       removeAction: `wsRemoveCollaborator('${c.id}','${collectionId}')`,
+      role: c.role || 'contributor', capabilities: c.capabilities,
+      collabId: c.id, collectionId, roleEditable: canManagePeople,
     })),
   ].join('')
 
   body.innerHTML = `
+    ${canManagePeople ? `
     <input type="text" id="ws-invite-modal-search" class="tl-search" style="width:100%" placeholder="Nombre o correo…" oninput="wsInviteSearch('${collectionId}', this.value)" autocomplete="off" />
-    <div class="ws-invite-results" id="ws-invite-results"></div>
+    <div class="ws-invite-results" id="ws-invite-results"></div>` : ''}
     <div class="ws-invite-people-lbl">Personas en la colección</div>
     <div class="ws-invite-people-list">${peopleRows || '<div class="ws-pop-hint">Nadie más en esta colección todavía.</div>'}</div>`
 }
 
 function wsInvitePersonRow(person, opts = {}) {
   if (!person) return ''
+  const roleTag = opts.roleEditable
+    ? `<select class="grant-sel ws-invite-role-sel" onchange="wsSetCollaboratorRole('${opts.collabId}','${opts.collectionId}',this.value)">${wsRoleSelectOptionsHtml(opts.role)}</select>`
+    : opts.role ? `<span class="ws-invite-owner-tag">${esc(COLLAB_ROLE_PRESETS[opts.role]?.label || opts.role)}</span>` : ''
+  const showCustomChecklist = opts.roleEditable && opts.role === 'custom'
   return `
     <div class="ws-invite-row ws-invite-row-static">
       ${wsAvatarHtml(person)}
@@ -11860,14 +11941,22 @@ function wsInvitePersonRow(person, opts = {}) {
         <span class="ws-invite-row-name">${esc(person.full_name || person.email)}</span>
         ${person.full_name ? `<span class="ws-invite-row-sub">${esc(person.email)}</span>` : ''}
       </span>
-      ${opts.tag ? `<span class="ws-invite-owner-tag">${esc(opts.tag)}</span>`
-        : opts.removable ? `<button type="button" class="ws-invite-remove" onclick="${opts.removeAction}" title="Quitar de la colección">✕</button>` : ''}
-    </div>`
+      ${opts.tag ? `<span class="ws-invite-owner-tag">${esc(opts.tag)}</span>` : roleTag}
+      ${opts.removable ? `<button type="button" class="ws-invite-remove" onclick="${opts.removeAction}" title="Quitar de la colección">✕</button>` : ''}
+    </div>
+    ${showCustomChecklist ? `
+    <div class="ws-cap-checklist">
+      ${wsCapChecklistHtml('collab-caps-' + opts.collabId, opts.capabilities)}
+      <button type="button" class="btn btn-ghost btn-sm" style="margin-top:0.3rem" onclick="wsSaveCollaboratorCapabilities('${opts.collabId}','${opts.collectionId}')">Guardar permisos</button>
+    </div>` : ''}`
 }
 
 /* Live search-as-you-type — replaces the old "type a name, hit Enter,
    hope it matched" flow with a visible list of candidates so a miss is
-   obvious instead of a silent no-op. */
+   obvious instead of a silent no-op. Each result carries its own role
+   preset select (defaults Contributor) — "Complex permissions must feel
+   simple": presets cover the common cases, Custom reveals the full
+   capability checklist only when picked. */
 let _wsInviteSearchTimer = null
 function wsInviteSearch(collectionId, query) {
   clearTimeout(_wsInviteSearchTimer)
@@ -11885,13 +11974,16 @@ function wsInviteSearch(collectionId, query) {
     const matches = (data || []).filter(p => p.id !== me.id)
     if (!matches.length) { resultsEl.innerHTML = '<div class="ws-pop-hint">Nadie encontrado con ese nombre o correo.</div>'; return }
     resultsEl.innerHTML = matches.map(p => `
-      <button type="button" class="ws-invite-row" onclick="inviteCollaborator('${collectionId}','${p.id}')">
+      <div class="ws-invite-row ws-invite-row-form">
         ${wsAvatarHtml(p)}
         <span class="ws-invite-row-info">
           <span class="ws-invite-row-name">${esc(p.full_name || p.email)}</span>
           ${p.full_name ? `<span class="ws-invite-row-sub">${esc(p.email)}</span>` : ''}
         </span>
-      </button>`).join('')
+        <select class="grant-sel ws-invite-role-sel" id="inv-role-${p.id}" onchange="wsToggleCustomCaps('${p.id}', this.value)">${wsRoleSelectOptionsHtml('contributor')}</select>
+        <button type="button" class="btn btn-primary btn-sm" onclick="inviteCollaborator('${collectionId}','${p.id}')">Invitar</button>
+      </div>
+      <div class="ws-cap-checklist" id="inv-caps-${p.id}" style="display:none">${wsCapChecklistHtml('inv-caps-' + p.id, null)}</div>`).join('')
   }, 220)
 }
 
@@ -11899,8 +11991,11 @@ async function inviteCollaborator(collectionId, userId) {
   const { data: match } = await sb.from('profiles').select('id, full_name, email').eq('id', userId).single()
   if (!match) { toast('No se pudo invitar a esa persona'); return }
 
+  const role = document.getElementById('inv-role-' + userId)?.value || 'contributor'
+  const capabilities = role === 'custom' ? wsReadCapChecklist('inv-caps-' + userId) : null
+
   const { error } = await sb.from('collection_collaborators').insert({
-    collection_id: collectionId, user_id: match.id, added_by: me.id,
+    collection_id: collectionId, user_id: match.id, added_by: me.id, role, capabilities,
   })
   if (error) {
     console.error('inviteCollaborator error:', error)
@@ -11912,13 +12007,32 @@ async function inviteCollaborator(collectionId, userId) {
   await sb.from('notifications').insert({
     user_id: match.id, type: 'collection_invite',
     title: `You were added to collection ${col?.collection_id || ''}`,
-    body: `${profile?.full_name || 'A teammate'} invited you to help build and track this collection.`,
+    body: `${profile?.full_name || 'A teammate'} invited you to help build and track this collection as ${COLLAB_ROLE_PRESETS[role]?.label || role}.`,
     resource_type: 'collection', resource_id: collectionId,
   })
 
   Audit.log('collection', collectionId, null, 'user_invited',
-    `Invited ${match.full_name || match.email} as collaborator`)
-  toast(`${match.full_name || match.email} added as collaborator`)
+    `Invited ${match.full_name || match.email} as ${COLLAB_ROLE_PRESETS[role]?.label || role}`)
+  toast(`${match.full_name || match.email} added as ${COLLAB_ROLE_PRESETS[role]?.label || role}`)
+  wsRenderInvitePanel(collectionId)
+  showCollectionRecord(collectionId)
+}
+
+async function wsSetCollaboratorRole(collabId, collectionId, role) {
+  const upd = { role }
+  if (role !== 'custom') upd.capabilities = null
+  const { error } = await sb.from('collection_collaborators').update(upd).eq('id', collabId)
+  if (error) { toast('No se pudo actualizar el rol: ' + error.message); return }
+  Audit.log('collection', collectionId, null, 'role_changed', `Rol de colaborador actualizado a ${COLLAB_ROLE_PRESETS[role]?.label || role}`)
+  wsRenderInvitePanel(collectionId)
+  showCollectionRecord(collectionId)
+}
+
+async function wsSaveCollaboratorCapabilities(collabId, collectionId) {
+  const capabilities = wsReadCapChecklist('collab-caps-' + collabId)
+  const { error } = await sb.from('collection_collaborators').update({ capabilities }).eq('id', collabId)
+  if (error) { toast('No se pudo guardar los permisos: ' + error.message); return }
+  toast('Permisos guardados')
   wsRenderInvitePanel(collectionId)
   showCollectionRecord(collectionId)
 }

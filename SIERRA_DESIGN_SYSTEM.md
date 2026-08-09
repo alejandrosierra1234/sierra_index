@@ -364,6 +364,52 @@ open (`wsLoadActivity`) against the same `activity_events` table used by
 the product detail audit tab, rendered with the existing `.tl-item`
 timeline markup — no new timeline component was created.
 
+## 12d. Collaborator role presets (invite flow)
+
+Single source of truth: `COLLAB_ROLE_PRESETS` in `index.html` (next to
+`SMP_STATUS_LABEL`, same "one registry, not a scattered string
+comparison" pattern). Six presets — Viewer, Contributor, Technical
+Editor, Commercial Editor, Collection Manager, Custom — each mapping to
+a fixed capability set (`manage_samples`, `comment`, `edit_pricing`,
+`edit_protected_specs`, `submit`, `manage_people`). Custom is the only
+preset with `caps: null`; its actual capabilities live per-row in the
+`capabilities` jsonb column (see `update17.sql`), edited through an
+inline checklist (`wsCapChecklistHtml`) that only appears when Custom is
+selected — "complex permissions must feel simple" means the other five
+presets never show the matrix at all.
+
+**Where it's read:**
+- `wsCapsForRole(role, capabilities)` — resolves one collaborator's caps.
+- `wsMyCapabilities(col, collaborators)` — resolves the signed-in user's
+  caps for a given collection; the collection owner and anyone with the
+  platform-level `manage_status`/`customer_service` permission bypass the
+  preset system entirely (same "admin overrides everything" pattern as
+  `isAdmin()` elsewhere).
+- The workspace render computes this once per render into `myCap` (and
+  mirrors it to `_wsMyCap` for helpers like `wsPriceCellHtml` that don't
+  receive it as a parameter) and gates: Board's add/remove/category
+  controls on `manage_samples`, the price popover on `edit_pricing`, the
+  submit form on `submit`, and the invite search/role controls on
+  `manage_people`.
+
+**Invite flow UI**: a search result row carries its own role `<select>`
+(defaults Contributor) next to the "Invitar" button; an existing
+collaborator's row gets the same select if the viewer has
+`manage_people`, otherwise a read-only role tag. Reuses `.grant-sel` for
+the select and the existing `.ws-invite-row` shape — no new form control
+or row component.
+
+**Honesty about enforcement**: this pass gates the *UI* — the same level
+most of the app's existing role/permission checks already operate at
+(`can()`, `canEditDiv()`, etc.). `update17.sql` adds one real RLS policy
+(collaborator role/capabilities UPDATE, which had no policy at all
+before — that gap is now closed) but does not add per-capability RLS
+for every sample/pricing write; those still go through the table-level
+policies that existed before this pass. Treat the role preset as a real
+product feature, not yet a hardened security boundary — tightening RLS
+to match every capability is flagged as future work, not silently
+assumed done.
+
 ## 13. Form controls
 
 Inputs/selects share one look app-wide: `1px solid var(--border)`,
