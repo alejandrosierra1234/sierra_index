@@ -4937,7 +4937,7 @@ function renderBuSwitcher() {
     dot.innerHTML = ''
   }
   document.getElementById('bu-switch-pop').innerHTML = divs.map(d => `
-    <div class="bu-switch-item ${d === cur ? 'current' : ''}" onclick="setDiv('${d}'); toggleBuSwitch(false)">
+    <div class="pop-menu-item bu-switch-item ${d === cur ? 'current' : ''}" onclick="setDiv('${d}'); toggleBuSwitch(false)">
       <span class="bu-switch-dot" style="background:${(DIV_ACCENT[d]||DIV_ACCENT.all).accent}1f;color:${(DIV_ACCENT[d]||DIV_ACCENT.all).accent}">${DIV_ICON[d] || ''}</span>
       <span>${esc(DIV_LBL[d] || d)}</span>
     </div>`).join('')
@@ -8128,12 +8128,12 @@ function renderModuleSwitcher() {
     : ''
 
   document.getElementById('mod-switch-pop').innerHTML = mods.map(([key, m]) => `
-    <div class="mod-switch-item ${key === activeModule ? 'current' : ''}" onclick="enterModule('${key}'); toggleModSwitch(false)">
+    <div class="pop-menu-item mod-switch-item ${key === activeModule ? 'current' : ''}" onclick="enterModule('${key}'); toggleModSwitch(false)">
       <span class="mod-switch-dot" style="background:${m.color}1f;color:${m.color}">${m.icon}</span>
       <span>${esc(m.label)}</span>
     </div>`).join('') + `
-    <div class="mod-switch-sep"></div>
-    <div class="mod-switch-item" onclick="showModuleHub(); toggleModSwitch(false)">Todos los módulos</div>`
+    <div class="pop-menu-sep"></div>
+    <div class="pop-menu-item mod-switch-item" onclick="showModuleHub(); toggleModSwitch(false)">Todos los módulos</div>`
 }
 
 function toggleModSwitch(force) {
