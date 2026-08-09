@@ -319,6 +319,51 @@ place as direct-access affordances; the account menu is an additional,
 structured entry point layered on top, not a replacement requiring a
 sidebar-footer rewrite.
 
+## 12c. Drawer (canonical right-side panel)
+
+Canonical shell: `#sd-overlay` / `.sd-panel` / `.sd-hdr` / `.sd-tabs` /
+`.sd-body` — one instance in the page markup, filled and opened through a
+generic JS API, not a component you re-render per feature:
+
+```js
+openSideDrawer({
+  eyebrow: 'Colección',            // small label above the title
+  title: 'Actividad',
+  tabs: [{ key: 'activity', label: 'Actividad' }, { key: 'comments', label: 'Comentarios (3)' }],
+  activeTab: 'activity',
+  onTab: (key) => { /* fill #sd-body for this tab */ },
+})
+closeSideDrawer()
+```
+
+Use the Drawer — not a permanent inline block, not a new modal, not a
+navigate-away page — for secondary context that should stay anchored to
+the object you're already looking at: Activity, Comments, Permissions,
+audit history (§17/§23 of the ERP evolution brief). Visual language
+matches `.modal` (same surface/border/radius/shadow scale) so it reads as
+the same system, just anchored to the right edge instead of centered,
+with ESC and backdrop-click both wired to `closeSideDrawer()`.
+
+**When to reach for what:**
+- **Popover** (§12b) — a small anchored list of actions/options, closes on
+  any outside click, no independent scroll region.
+- **Drawer** (this section) — secondary *content* (a feed, a form, a
+  timeline) the user reads/scrolls while keeping the object's main view
+  visible behind it.
+- **Modal** — a focused task that blocks the rest of the page until it's
+  resolved (invite, destructive confirmation, multi-field create flow).
+
+**Reference implementation**: Collection workspace ObjectHeader (§10) —
+the Activity and Comments icon buttons (`wsOpenDrawer('activity'|'comments')`
+in the `.ws-hdr` actions row) open the same drawer instance with tabs.
+Comments used to render as a permanent `.srd-card` block at the bottom of
+the Board tab; that block is gone — comments only exist inside the
+drawer now (`_wsDrawerState.commentsHtml`, filled once per workspace
+render, kept out of the main work surface). Activity is fetched on tab
+open (`wsLoadActivity`) against the same `activity_events` table used by
+the product detail audit tab, rendered with the existing `.tl-item`
+timeline markup — no new timeline component was created.
+
 ## 13. Form controls
 
 Inputs/selects share one look app-wide: `1px solid var(--border)`,
@@ -393,6 +438,16 @@ that role.
 Popover/dropdown menus across the whole app were consolidated onto one
 primitive this pass (§12b) — no screen should introduce a new one-off
 popover shell.
+
+A canonical Drawer primitive (§12c) now exists — `#sd-overlay`/`.sd-panel`
++ `openSideDrawer()`/`closeSideDrawer()`/`switchDrawerTab()`. First (and
+so far only) consumer: Collection workspace Activity + Comments, reached
+from two icon buttons in the ObjectHeader. Comments moved out of a
+permanent inline block into the drawer as part of this change. Sample
+record, product detail, dispatch/order workspace still render their
+Activity/Comments/history inline or in tabs — not yet migrated to the
+Drawer; do that the next time one of those screens is touched, rather
+than inventing another local panel.
 
 Not yet audited to this system: Team/Access Logs list screens, and the
 public product page. Apply the same §16 checklist when touching them.

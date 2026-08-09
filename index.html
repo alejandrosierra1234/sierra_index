@@ -1003,6 +1003,48 @@
       flex-shrink:0; border-top:1px solid var(--border);
     }
 
+    /* ── DRAWER (canonical right-side panel) ──
+       Secondary context that should stay anchored to the object you're
+       looking at — Activity, Comments, Permissions, audit history — uses
+       this instead of a permanent inline block or a full navigation away
+       from the page (§23 of the ERP evolution brief). One implementation
+       for the whole app: sd-overlay/sd-panel here, generic open/close/tab
+       JS API below (openSideDrawer/closeSideDrawer/switchDrawerTab). Do
+       not build a second drawer per feature — add a caller instead. Visual
+       language matches .modal (surface/border/radius scale, same shadow
+       direction) so it reads as "the same system," just anchored right
+       instead of centered. */
+    .sd-overlay {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,0.28); z-index:220;
+    }
+    .sd-overlay.open { display:block; }
+    .sd-panel {
+      position:fixed; top:0; right:0; bottom:0; width:420px; max-width:92vw;
+      background:var(--surface); border-left:1px solid var(--border);
+      box-shadow:-24px 0 80px rgba(0,0,0,0.18);
+      display:flex; flex-direction:column;
+      transform:translateX(100%); transition:transform var(--dur-base) var(--ease-out);
+    }
+    .sd-overlay.open .sd-panel { transform:translateX(0); }
+    .sd-hdr {
+      padding:1.1rem 1.3rem; display:flex; align-items:flex-start; justify-content:space-between;
+      flex-shrink:0; border-bottom:1px solid var(--border);
+    }
+    .sd-eyebrow { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.25rem; }
+    .sd-title { font-size:1rem; font-weight:600; letter-spacing:-0.01em; }
+    .sd-tabs { display:flex; gap:1.1rem; padding:0 1.3rem; border-bottom:1px solid var(--border); flex-shrink:0; }
+    .sd-tab {
+      padding:0.6rem 0.05rem; font-size:0.78rem; font-weight:600; color:var(--text-3);
+      background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; font-family:inherit;
+      transition:color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+    }
+    .sd-tab:hover { color:var(--text); }
+    .sd-tab.active { color:var(--text); border-bottom-color:var(--accent); }
+    .sd-body { padding:1.1rem 1.3rem; overflow-y:auto; flex:1; min-height:0; }
+    @media (max-width:640px) {
+      .sd-panel { width:100%; max-width:100%; }
+    }
+
     /* ── FICHA LAYOUT ── */
     .ficha-img { width:100%; height:200px; object-fit:cover; border-radius:10px; margin-bottom:1rem; background:var(--surface2); display:flex; align-items:center; justify-content:center; overflow:hidden; }
     .ficha-img img { width:100%; height:100%; object-fit:cover; }
@@ -3117,6 +3159,12 @@
     }
     .ws-icon-btn:hover { background:var(--surface2); color:var(--text); }
     .ws-icon-btn:active { background:var(--accent-light); color:var(--accent); }
+    .ws-icon-badge {
+      position:absolute; top:1px; right:1px; min-width:15px; height:15px;
+      background:var(--accent); color:#fff; border:2px solid var(--surface); border-radius:8px;
+      font-size:0.58rem; font-weight:700; display:flex; align-items:center; justify-content:center;
+      padding:0 3px; font-variant-numeric:tabular-nums; line-height:1;
+    }
     .ws-more-wrap { position:relative; }
 
     /* Manage-people modal (#m-ws-invite) — search results and the roster
@@ -3715,6 +3763,20 @@
       <canvas id="ws-qr-canvas" width="180" height="180"></canvas>
       <div id="ws-qr-label" style="font-size:0.78rem;color:var(--text-3);font-weight:700;letter-spacing:0.04em"></div>
     </div>
+  </div>
+</div>
+<!-- ══ DRAWER (canonical right-side panel — Activity/Comments/Permissions etc.) ══ -->
+<div class="sd-overlay" id="sd-overlay" onclick="if(event.target===this)closeSideDrawer()">
+  <div class="sd-panel">
+    <div class="sd-hdr">
+      <div>
+        <div class="sd-eyebrow" id="sd-eyebrow"></div>
+        <div class="sd-title" id="sd-title"></div>
+      </div>
+      <button class="modal-close" onclick="closeSideDrawer()">✕</button>
+    </div>
+    <div class="sd-tabs" id="sd-tabs" style="display:none"></div>
+    <div class="sd-body" id="sd-body"></div>
   </div>
 </div>
 <!-- ══ MODAL: MANAGE COLLECTION PEOPLE ══ -->
@@ -9601,8 +9663,41 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return
   const drawer = document.getElementById('m-label')
   if (drawer && drawer.classList.contains('open')) { closeModal('m-label'); return }
+  const sd = document.getElementById('sd-overlay')
+  if (sd && sd.classList.contains('open')) { closeSideDrawer(); return }
   document.querySelectorAll('.overlay.open').forEach(el => el.classList.remove('open'))
 })
+
+/* ── DRAWER (canonical) ──
+   Generic open/close/tab API over the single #sd-overlay shell declared in
+   the page markup. A caller supplies eyebrow/title, an optional list of
+   tabs ({key,label}) with an onTab(key) callback that fills #sd-body, and
+   an initial tab. Every "Activity"/"Comments"/"Permissions" surface in the
+   app should go through this instead of building its own panel. */
+let _sdOnTab = null
+function openSideDrawer({ eyebrow = '', title = '', tabs = null, activeTab = null, onTab }) {
+  document.getElementById('sd-eyebrow').textContent = eyebrow
+  document.getElementById('sd-title').textContent = title
+  _sdOnTab = onTab
+  const tabsEl = document.getElementById('sd-tabs')
+  if (tabs && tabs.length) {
+    tabsEl.style.display = 'flex'
+    tabsEl.innerHTML = tabs.map(t => `<button class="sd-tab${t.key === activeTab ? ' active' : ''}" data-tab="${t.key}" onclick="switchDrawerTab('${t.key}')">${esc(t.label)}</button>`).join('')
+  } else {
+    tabsEl.style.display = 'none'
+    tabsEl.innerHTML = ''
+  }
+  document.getElementById('sd-overlay').classList.add('open')
+  if (onTab) onTab(activeTab)
+}
+function switchDrawerTab(key) {
+  document.querySelectorAll('#sd-tabs .sd-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === key))
+  if (_sdOnTab) _sdOnTab(key)
+}
+function closeSideDrawer() {
+  document.getElementById('sd-overlay').classList.remove('open')
+  _sdOnTab = null
+}
 function toast(msg) {
   const t = document.getElementById('toast')
   t.textContent = msg; t.classList.add('show')
@@ -10892,6 +10987,13 @@ async function showCollectionRecord(collectionId, backTo) {
         <button type="button" class="ws-icon-btn" onclick="wsCopyLink('${col.id}')" title="Copiar link de la colección">
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M8.5 11.5a2.8 2.8 0 004 0l2-2a2.8 2.8 0 00-4-4l-.6.6M11.5 8.5a2.8 2.8 0 00-4 0l-2 2a2.8 2.8 0 004 4l.6-.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
+        <button type="button" class="ws-icon-btn" onclick="wsOpenDrawer('activity')" title="Actividad">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M10 6v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+        <button type="button" class="ws-icon-btn" style="position:relative" onclick="wsOpenDrawer('comments')" title="Comentarios">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M3 5.5A1.5 1.5 0 0 1 4.5 4h11A1.5 1.5 0 0 1 17 5.5v6A1.5 1.5 0 0 1 15.5 13H9l-3.5 3v-3H4.5A1.5 1.5 0 0 1 3 11.5v-6Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          ${comments.length ? `<span class="ws-icon-badge">${comments.length}</span>` : ''}
+        </button>
         <div class="ws-more-wrap">
           <button type="button" class="ws-icon-btn" onclick="wsToggleMore(event)" title="Más opciones">
             <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="4" cy="10" r="1.4" fill="currentColor"/><circle cx="10" cy="10" r="1.4" fill="currentColor"/><circle cx="16" cy="10" r="1.4" fill="currentColor"/></svg>
@@ -10945,25 +11047,27 @@ async function showCollectionRecord(collectionId, backTo) {
   const itemsHtml = categorizedItemsHtml(items, categories, col, isDraft)
   _wsStatItems = items
 
-  const commentsHtml = `
-    <div class="srd-section-label">Comentarios</div>
-    <div class="srd-card">
-      ${comments.length ? `<div class="comment-list">${comments.map(c => `
-        <div class="comment-item" data-cid="${c.id}">
-          <div class="comment-meta">
-            <span class="comment-author">${esc(c.profiles?.full_name || 'Usuario')}</span>
-            <span style="display:flex;align-items:center;gap:0.4rem">
-              ${new Date(c.created_at).toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'})}
-              ${(me.id === c.user_id || canEdit) ? `<button class="comment-del" onclick="deleteCollectionComment('${c.id}','${col.id}')">✕</button>` : ''}
-            </span>
-          </div>
-          <div class="comment-text">${esc(c.comment)}</div>
-        </div>`).join('')}</div>` : '<p style="font-size:0.8rem;color:var(--text-3);margin-bottom:0.75rem">Sin comentarios todavía.</p>'}
-      <div class="comment-form">
-        <input type="text" id="col-comment-input" placeholder="Escribe un comentario…" onkeydown="if(event.key==='Enter')submitCollectionComment('${col.id}')" autocomplete="off" />
-        <button class="btn btn-primary btn-sm" id="col-comment-btn" onclick="submitCollectionComment('${col.id}')">Publicar</button>
-      </div>
+  // Comments render inside the side Drawer (§Drawer), not permanently on
+  // the work surface — §17/§23 of the ERP brief: secondary context belongs
+  // in a drawer, never a permanent inline block competing with the table.
+  _wsDrawerState.colId = col.id
+  _wsDrawerState.commentsHtml = `
+    ${comments.length ? `<div class="comment-list">${comments.map(c => `
+      <div class="comment-item" data-cid="${c.id}">
+        <div class="comment-meta">
+          <span class="comment-author">${esc(c.profiles?.full_name || 'Usuario')}</span>
+          <span style="display:flex;align-items:center;gap:0.4rem">
+            ${new Date(c.created_at).toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'})}
+            ${(me.id === c.user_id || canEdit) ? `<button class="comment-del" onclick="deleteCollectionComment('${c.id}','${col.id}')">✕</button>` : ''}
+          </span>
+        </div>
+        <div class="comment-text">${esc(c.comment)}</div>
+      </div>`).join('')}</div>` : '<p style="font-size:0.8rem;color:var(--text-3);margin-bottom:0.75rem">Sin comentarios todavía.</p>'}
+    <div class="comment-form">
+      <input type="text" id="col-comment-input" placeholder="Escribe un comentario…" onkeydown="if(event.key==='Enter')submitCollectionComment('${col.id}')" autocomplete="off" />
+      <button class="btn btn-primary btn-sm" id="col-comment-btn" onclick="submitCollectionComment('${col.id}')">Publicar</button>
     </div>`
+  _wsDrawerState.commentCount = comments.length
 
   vs.innerHTML = `
   <div class="detail-view-inner" style="padding-bottom:2rem">
@@ -11010,8 +11114,6 @@ async function showCollectionRecord(collectionId, backTo) {
       <div id="ws-add-results"></div>` : ''}
       ${itemsHtml || '<div style="font-size:0.82rem;color:var(--text-3);padding:0.4rem 0">No samples found.</div>'}
     </div>
-
-    ${commentsHtml}
     </div>
 
     <div id="ws-tab-table" style="display:none">${wsTableViewHtml(items, categories)}</div>
@@ -11023,6 +11125,51 @@ async function showCollectionRecord(collectionId, backTo) {
 let _colWorkspaceBack = 'showCollectionsHub'
 let _wsStatCharts = {}
 let _wsStatItems = []
+let _wsDrawerState = { colId: null, commentsHtml: '', commentCount: 0 }
+
+/* ── Collection Activity / Comments drawer ── uses the canonical Drawer
+   (openSideDrawer) instead of a permanent inline block. Activity reuses
+   the same activity_events table + tl-item timeline markup as the product
+   detail page's audit tab (see loadPdActivity/renderPdTimeline). */
+function wsOpenDrawer(tab) {
+  openSideDrawer({
+    eyebrow: 'Colección',
+    title: tab === 'comments' ? 'Comentarios' : 'Actividad',
+    tabs: [{ key: 'activity', label: 'Actividad' }, { key: 'comments', label: `Comentarios${_wsDrawerState.commentCount ? ` (${_wsDrawerState.commentCount})` : ''}` }],
+    activeTab: tab,
+    onTab: wsRenderDrawerTab,
+  })
+}
+function wsRenderDrawerTab(tab) {
+  document.getElementById('sd-title').textContent = tab === 'comments' ? 'Comentarios' : 'Actividad'
+  const body = document.getElementById('sd-body')
+  if (tab === 'comments') {
+    body.innerHTML = _wsDrawerState.commentsHtml || '<div style="font-size:0.78rem;color:var(--text-3)">Sin comentarios todavía.</div>'
+  } else {
+    body.innerHTML = '<div style="font-size:0.78rem;color:var(--text-3)">Cargando…</div>'
+    wsLoadActivity(_wsDrawerState.colId)
+  }
+}
+async function wsLoadActivity(colId) {
+  let events = []
+  try {
+    const { data } = await sb.from('activity_events')
+      .select('event_type,summary,changes,metadata,actor,created_at')
+      .eq('entity_type', 'collection').eq('entity_id', String(colId))
+      .order('created_at', { ascending: false }).limit(40)
+    events = data || []
+  } catch (_) {}
+  await resolveNames(events.map(e => e.actor))
+  const body = document.getElementById('sd-body')
+  if (!body) return
+  body.innerHTML = events.length ? events.map(e => {
+    const who = _nameCache[e.actor] || '—'
+    return `<div class="tl-item"><div class="tl-dot"></div><div class="tl-body">
+      <div class="tl-head"><span class="tl-actor">${esc(who)}</span><span class="tl-time">${tlWhen(e.created_at)}</span></div>
+      <div class="tl-summary">${esc(e.summary)}</div>
+    </div></div>`
+  }).join('') : '<div style="font-size:0.78rem;color:var(--text-3)">Sin actividad todavía.</div>'
+}
 
 /* ── Estadísticas tab — switches board/stats panels, lazily drawing the
    charts on first entry (a canvas can't size itself while display:none). ── */
