@@ -874,8 +874,144 @@ ranked explicitly:
   edit-section shortcuts, Archive — gated by edit/delete permission
 
 **Status vs. Availability (§19 of the brief)** are kept as genuinely
-separate concepts, not merged: Status is the lifecycle pill (`lcPill()`
-+ `pdSelect()` picker) in the header, next to identity. Sample
-Availability is a Samples & Inventory DataField sourced from the
-existing warehouse-stock computation (`invStatusOf()`), not the
-lifecycle value.
+separate concepts, not merged: Status is the lifecycle value in the
+header, next to identity. Sample Availability is a Samples & Inventory
+DataField (and, since §21, an Overview summary line too) sourced from
+the existing warehouse-stock computation (`invStatusOf()`), not the
+lifecycle value. **How Status itself renders changed in §21** — see
+StatusControl there; the pill and the picker used to be two adjacent
+controls for the same value, which is now one.
+
+## 21. Product Detail — density without hostility
+
+§20's rebuild solved information density and lost usability in the
+same motion: every field carried identical visual weight, RecordTabs
+read as five disabled gray buttons, Status was one concept rendered as
+two adjacent controls, raw `0`s and ISO-ish date strings leaked
+through as if they were real values, and empty sections were a single
+gray sentence floating in a mostly blank panel. This pass is the
+correction, and it names the principle so it doesn't regress:
+
+> **Density without hostility.** A SIERRA ERP screen may expose
+> significant operational depth, but a non-technical user must be able
+> to read it in seconds — via grouping, typographic hierarchy and
+> human-readable formatting, not by adding cards or removing fields.
+
+Nothing here reduces the field count from §20. Every change is either
+a rendering change to an existing primitive or a new, generic
+primitive — Product Detail is the first consumer, not a special case.
+
+### DataField — prominent values, human formatting (§4–§5 of the brief)
+
+`dataFieldHtml()` gained three opt-in flags, all backward compatible
+(every existing call site with none of them renders exactly as before):
+
+- **`lg`** — value renders large/bold (`.field-lg`), label stays quiet.
+  Not every field is equally important; Overview's Construction/
+  Weight/Width/Color use it so they read first, before the reader has
+  to parse the rest of the grid.
+- **`date`** — formats the value through `fmtHumanDate()` ("Aug 9,
+  2026" instead of a raw `2026-08-09`/timestamp string). Falls back to
+  the original string unchanged if it isn't a parseable date, so it's
+  safe on free-text fields that sometimes hold a date and sometimes
+  don't.
+- **`zeroAsEmpty`** — a field whose value is `0`/`'0'` renders "Not
+  specified" instead of the misleading bare digit, while a genuinely
+  missing value still renders "—". Opt-in per field (not a global
+  DataField behavior) because some numeric fields — inventory counts,
+  reserved quantities — treat `0` as real data; only fields where 0
+  means "never entered" (GSM, Width, Gauge, Diameter, Sample Qty, …)
+  set it.
+
+### StatusControl — one control, not two (§17 of the brief)
+
+The header used to render `lcPill(p)` (a read-only colored pill) *and*,
+for editors, a separate `pdSelect()` "Change status" dropdown right
+next to it — the same concept represented twice. `.pd-status-select`
+retints the existing `pd-select` primitive (no new dropdown component)
+to look like the pill itself: colored dot, tinted fill, its own label
+*is* the current status, and it only grows a chevron/opens options when
+the viewer can actually change it. Read-only viewers still see the
+plain `lcPill()`.
+
+### RecordTabs — navigation, not five buttons (§19 of the brief)
+
+`.pd-tabs-nav` is a new modifier composed on top of the existing
+`.pd-tabs-inline` primitive (same DOM, same `switchPdRecordTab()`) —
+it does not replace ViewTabs. Catalog's Table/Cards switch and the
+saved-views bar are genuine mode switches and correctly keep the pill
+track; RecordTabs is navigation between views of one record, so
+`#pd-record-tabs` alone gets `.pd-tabs-nav`: plain text, quiet
+`--text-3`, a 2px accent underline that scales in on the active tab.
+Inactive tabs no longer read as disabled buttons because they were
+never buttons visually to begin with.
+
+### CompletenessIndicator gets an action (§18 of the brief)
+
+`completenessChipHtml(complete, popId, editAction)` takes an optional
+third argument — when present, the missing-fields popover ends with a
+"Complete product information" button wired to `editAction` (opens the
+edit modal). Omitted (`null`) for read-only viewers, who see the list
+with no action, same as before.
+
+### EmptyState (new, generic — `emptyStateHtml()`)
+
+The one compact "nothing here yet" primitive: small icon in a tinted
+square + one-line title + one line of context + an optional action, in
+a single row that hugs its content. This is deliberately **not**
+`.empty` (the existing whole-page/whole-list empty state — 4rem of
+padding, 1.8rem icon) — that primitive is correct for "this entire list
+has zero rows" (Catalog, Samples list) and stays as-is. `.empty-compact`
+is for a *section* of an otherwise-populated record having nothing yet
+(no sample inventory, no related products, no comments, no versions,
+no sample requests) — using the page-scale empty state there is what
+produced the "huge blank area" the brief calls out. Any record screen
+with sub-sections can reuse it.
+
+### Samples & Inventory — an operational summary, not just a list (§10)
+
+The tab opens with a `Sample Availability` DataField row — Available
+Formats / Inventory (available count, `lg`) / Reserved / Warehouse /
+Last movement — computed in `renderPdSamplesSummary()` alongside the
+existing `loadPdInventory()` stock fetch (one extra lightweight query
+for the most recent `inventory_movements` row). Overview also gets a
+compact two-field "Sample Availability" section (status chip +
+Available As chips) so "is a sample available?" is answerable without
+leaving Overview — both slots (`#pd-avail-ov` in Overview, the summary
+in Samples & Inventory) are kept in sync from the same `loadPdInventory()`
+call, not two separate fetches.
+
+### Documents — a document manager, not two floating links (§12)
+
+`.doc-list` gained a header row (title + "+ Add document" for editors,
+routed through the existing `openEdit(selected,'extras')` specs
+editor — no new upload flow) and a `.doc-badge`: **Generated**
+(tinted accent) for the synthetic Technical Sheet/Label rows that are
+always current, **Uploaded** (neutral) for URLs an editor pasted into
+`specs.Documents`. Future document types (a real upload/attachment
+flow, say) slot into the same `.doc-row` shape without touching this
+markup.
+
+### Activity — three purposes, not one page (§13–§15)
+
+`#pd-activity-subtabs` (still the existing `.pd-tabs`/`switchPdTab()`
+segmented control, scoped as before) now has three entries — Activity /
+Comments / Versions — instead of two, and the permanent comment box
+that used to sit above the sub-tabs (eating vertical space on every
+visit regardless of whether anyone needed it) moved into its own
+`#pd-tab-comments` pane, hidden unless selected. `switchPdTab()` toggles
+all three panes generically instead of hardcoding two. Comments
+(`loadFichaComments()`) also gained a small initials avatar per
+comment (`.comment-avatar`) so the list reads as a conversation, not an
+audit log with a name column.
+
+### Field-section rhythm — tighter, stronger, still no cards (§7–§8)
+
+`.field-section` padding and `.field-grid` row gap were both reduced
+slightly (denser vertical rhythm inside a group, matching "tighter
+vertical spacing inside groups" from the brief) and
+`.field-section-title` got heavier weight + darker color (`--text-2`
+instead of `--text-3`, `800` instead of `700`) so group boundaries read
+as intentional structure while scanning quickly, without adding a
+border-per-group or a card-per-group — still one subtle top-border
+separator between sections, unchanged from §20.
