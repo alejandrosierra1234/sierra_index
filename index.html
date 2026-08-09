@@ -4583,7 +4583,9 @@ async function enterApp(user) {
   }
   document.getElementById('sb-nm').textContent = name
   document.getElementById('sb-role').textContent = roleLabel
-  if (canEditDiv('all')) document.getElementById('add-btn').style.display = 'flex'
+  // "+ New product" is now rendered per-division inside #product-controls
+  // by renderCatalogHeaderActions() (called from setDiv) — no standalone
+  // #add-btn element exists anymore.
   if (can('admin', 'platform')) {
     document.getElementById('nav-logs').style.display = 'flex'
     const nu = document.getElementById('nav-users')
@@ -10859,7 +10861,6 @@ async function showSampleCenter() {
   document.getElementById('sec-title').textContent = 'Sample Center'
   document.getElementById('sec-sub').textContent = 'Track every physical sample from request to archive'
   document.getElementById('product-controls').style.display = 'none'
-  document.getElementById('add-btn').style.display = 'none'
   document.getElementById('view-products').style.display = 'block'
 
   const pg = document.getElementById('pg')
@@ -11199,7 +11200,6 @@ async function showCollectionsHub() {
   document.getElementById('sec-title').textContent = 'Colecciones'
   document.getElementById('sec-sub').textContent = 'Arma pedidos de muestras en equipo — por cliente, visita o proyecto'
   document.getElementById('product-controls').style.display = 'none'
-  document.getElementById('add-btn').style.display = 'none'
   document.getElementById('view-products').style.display = 'block'
 
   const pg = document.getElementById('pg')
