@@ -3091,7 +3091,7 @@
     .ws-add-row:hover { background:var(--surface2); }
 
     /* Collection workspace — Estadísticas tab */
-    .ws-view-tabs { max-width:280px; }
+    .ws-view-tabs { max-width:360px; }
     .ws-stat-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:0.75rem; margin-bottom:1.35rem; }
     .ws-stat-tile { border:1px solid var(--border); border-radius:10px; padding:0.85rem 1rem; }
     .ws-stat-tile-val { font-size:1.5rem; font-weight:700; letter-spacing:-0.02em; color:var(--text); }
@@ -11082,6 +11082,7 @@ async function showCollectionRecord(collectionId, backTo) {
 
     <div class="pd-tabs ws-view-tabs">
       <button class="pd-tab active" data-tab="board" onclick="switchWsTab('board')">Tablero</button>
+      <button class="pd-tab" data-tab="cards" onclick="switchWsTab('cards')">Tarjetas</button>
       <button class="pd-tab" data-tab="table" onclick="switchWsTab('table')">Tabla</button>
       <button class="pd-tab" data-tab="stats" onclick="switchWsTab('stats')">Estadísticas</button>
     </div>
@@ -11116,6 +11117,7 @@ async function showCollectionRecord(collectionId, backTo) {
     </div>
     </div>
 
+    <div id="ws-tab-cards" style="display:none">${wsCardsViewHtml(items, categories)}</div>
     <div id="ws-tab-table" style="display:none">${wsTableViewHtml(items, categories)}</div>
     <div id="ws-tab-stats" style="display:none">${collectionStatsHtml(items)}</div>
   </div>`
@@ -11175,8 +11177,9 @@ async function wsLoadActivity(colId) {
    charts on first entry (a canvas can't size itself while display:none). ── */
 function switchWsTab(tab) {
   document.querySelectorAll('.ws-view-tabs .pd-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
-  const board = document.getElementById('ws-tab-board'), table = document.getElementById('ws-tab-table'), stats = document.getElementById('ws-tab-stats')
+  const board = document.getElementById('ws-tab-board'), cards = document.getElementById('ws-tab-cards'), table = document.getElementById('ws-tab-table'), stats = document.getElementById('ws-tab-stats')
   if (board) board.style.display = tab === 'board' ? 'block' : 'none'
+  if (cards) cards.style.display = tab === 'cards' ? 'block' : 'none'
   if (table) table.style.display = tab === 'table' ? 'block' : 'none'
   if (stats) stats.style.display = tab === 'stats' ? 'block' : 'none'
   if (tab === 'stats') wsRenderStatsCharts()
@@ -11209,6 +11212,43 @@ function wsTableViewHtml(items, categories) {
       <tbody>${rows}</tbody>
     </table>
   </div>`
+}
+
+/* ── Cards view ── same collection dataset as Board/Table, distinct
+   *visual* view: a photo-forward grid for browsing, not for editing.
+   Board stays the working surface (grouped, inline-editable, drag-style
+   category moves); Cards is read-only, click opens the sample record —
+   same interaction as a non-editable Board row / a Table row. Reuses the
+   catalog's card primitives (.pg-grid/.card/.card-img/.card-div-pill/
+   .card-meta-side) instead of inventing a second card component. */
+function wsCardsViewHtml(items, categories) {
+  if (!items.length) return '<div class="srd-card" style="font-size:0.82rem;color:var(--text-3);padding:0.9rem">No samples in this collection yet.</div>'
+  const catName = id => categories.find(c => c.id === id)?.name || 'Uncategorized'
+  const tiles = items.map(it => {
+    const p = it.products || {}
+    const c = DIV_CLR[p.division] || '#aaa'
+    const thumb = (p.image_urls && p.image_urls[0]) || p.image_url || null
+    const imgEl = thumb
+      ? `<div class="card-img"><img src="${thumb}" alt="${esc(p.name||'')}" loading="lazy" /></div>`
+      : `<div class="card-img-placeholder"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--border)" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="1.5" stroke="var(--text-3)" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--text-3)" stroke-width="1.2" stroke-linecap="round"/></svg></div>`
+    return `
+    <div class="card" style="cursor:pointer" onclick="showSampleRecord('${it.id}')">
+      ${imgEl}
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="card-div-pill" style="background:${c}12;color:${c};border-color:${c}20">
+            <span class="card-div-icon">${DIV_ICON[p.division] || ''}</span>
+            <span>${esc(p.code || '—')}</span>
+          </span>
+          <span class="card-meta-side">${smpBadge(it.status)}</span>
+        </div>
+        <div class="card-name">${esc(p.name || '—')}</div>
+        <div class="card-desc">${esc(catName(it.category_id))} · ${esc(it.sample_type || '—')} · Qty ${it.quantity || 1}</div>
+        <div style="margin-top:0.5rem">${wsPriceCellHtml(it)}</div>
+      </div>
+    </div>`
+  }).join('')
+  return `<div class="pg-grid">${tiles}</div>`
 }
 
 function collectionStatsHtml(items) {

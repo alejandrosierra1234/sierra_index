@@ -426,14 +426,23 @@ primitives reasonably well and were left as-is beyond the shared token
 changes (which apply automatically since they're aliases, not
 rewrites).
 
-Collection workspace now has three view tabs over the **same dataset**
+Collection workspace now has four view tabs over the **same dataset**
 (§11 — views must not duplicate data): Board (editable/draft or
-read-only card rows, grouped by category with collapse/expand — already
-existed), **Table** (new — flat `.erp-table` over the identical `items`
-array, sorted by category then name, row click opens the sample record;
-see `wsTableViewHtml()`), and Stats. Cards-as-a-distinct-view and a
-Board-native Insights tab are not yet split out — Stats currently covers
-that role.
+read-only rows, grouped by category with collapse/expand — already
+existed), **Cards** (new — photo-forward `.pg-grid` of `.card` tiles,
+read-only, click opens the sample record; see `wsCardsViewHtml()`),
+**Table** (new — flat `.erp-table` over the identical `items` array,
+sorted by category then name, row click opens the sample record; see
+`wsTableViewHtml()`), and Stats. A Board-native Insights tab is not yet
+split out — Stats currently covers that role.
+
+Cards deliberately reuses the Catalog's card primitives
+(`.pg-grid`/`.card`/`.card-img`/`.card-img-placeholder`/`.card-div-pill`/
+`.card-meta-side`/`.card-name`/`.card-desc`) rather than a second card
+component — the only new markup is the body content (category · sample
+type · qty, price, status badge) swapped in for the catalog card's
+quick-request/print actions, which don't apply to an item already inside
+a collection.
 
 Popover/dropdown menus across the whole app were consolidated onto one
 primitive this pass (§12b) — no screen should introduce a new one-off
