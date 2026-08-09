@@ -280,6 +280,45 @@ row, `.warn` modifier for an exception count), `.ctx-line` /
 This is the one template for every right-side panel — reconciliation,
 delivery info, notes, permissions summaries, etc.
 
+## 12b. Popover / Dropdown Menu (canonical, single implementation)
+
+Before this pass, the module switcher (`.mod-switch-pop`) and business-unit
+switcher (`.bu-switch-pop`) were byte-for-byte duplicated CSS, and the
+workspace "more"/price/invite flyout (`.ws-pop`) was a third, separately
+maintained popover shell. All three now compose one shared rule set —
+`.pop-menu-item` / `.pop-menu-sep` / `.pop-menu-hint` for rows, plus a
+shared shell (background/border/radius/shadow/padding) applied via a
+combined selector on `.mod-switch-pop, .bu-switch-pop, .acct-menu-pop`
+(ancestor-driven open state) and on `.ws-pop` (self-toggled open state via
+`.ws-pop.open`). **Do not create a new popover CSS block** — a new
+anchored menu should render `.pop-menu-item` rows inside either an
+ancestor-driven `.pop-menu-…` wrapper (switcher-style, lives in a labeled
+parent that owns `.open`) or a self-toggled `.ws-pop` (icon-button
+flyout), never a bespoke shell.
+
+Two open mechanics, by design, not accidentally:
+- **Ancestor-driven**: parent element (`.mod-switch`, `.bu-switch`,
+  `.acct-menu`) toggles its own `.open` class; the popover fades via a
+  descendant-combinator rule. Used by switcher-style triggers.
+- **Self-toggled**: the popover element toggles `.open` on itself
+  (`.ws-pop.open`); any other click closes all open `.ws-pop`s
+  (`wsClosePopovers()`). Used by icon-button flyouts (more menu, price
+  editor, invite).
+
+### Account menu
+
+Sidebar identity click (`#acct-menu`) now opens a structured popover
+(`renderAcctMenu()` / `toggleAcctMenu()`) instead of jumping straight to
+the profile modal — §25 of the ERP evolution brief. Rows: My profile,
+Notifications, Appearance (shows current Light/Dark), Administration
+(Team, Access logs — only rendered when `isAdmin()`), Help, Log out
+(`.pop-menu-item.danger`). Content is rebuilt on every open so it always
+reflects live theme/role state. The existing standalone sidebar-footer
+shortcuts (Website, Notifications, Appearance nav items) are left in
+place as direct-access affordances; the account menu is an additional,
+structured entry point layered on top, not a replacement requiring a
+sidebar-footer rewrite.
+
 ## 13. Form controls
 
 Inputs/selects share one look app-wide: `1px solid var(--border)`,
@@ -342,6 +381,18 @@ primitives reasonably well and were left as-is beyond the shared token
 changes (which apply automatically since they're aliases, not
 rewrites).
 
-Not yet audited to this system: Collection Board/Cards/Table/Insights
-sub-views, Team/Access Logs, and the public product page. Apply the
-same §16 checklist when touching them.
+Collection workspace now has three view tabs over the **same dataset**
+(§11 — views must not duplicate data): Board (editable/draft or
+read-only card rows, grouped by category with collapse/expand — already
+existed), **Table** (new — flat `.erp-table` over the identical `items`
+array, sorted by category then name, row click opens the sample record;
+see `wsTableViewHtml()`), and Stats. Cards-as-a-distinct-view and a
+Board-native Insights tab are not yet split out — Stats currently covers
+that role.
+
+Popover/dropdown menus across the whole app were consolidated onto one
+primitive this pass (§12b) — no screen should introduce a new one-off
+popover shell.
+
+Not yet audited to this system: Team/Access Logs list screens, and the
+public product page. Apply the same §16 checklist when touching them.

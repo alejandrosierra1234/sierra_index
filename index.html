@@ -534,13 +534,34 @@
     /* Sidebar toggle is the brand mark; keep the bottom rail for user actions. */
     .sidebar-toggle-btn { display:none !important; }
 
+    /* ── POPOVER / DROPDOWN MENU PRIMITIVE ──
+       Canonical shell + menu-row styling for every anchored popover in the
+       app: module switcher, business-unit switcher, account menu, and the
+       workspace "more"/price/invite flyouts (.ws-pop, see §ws-pop below).
+       Two open mechanics both compose this shell rather than redefining
+       it: ancestor-driven (".xxx.open .xxx-pop", used by switcher-style
+       triggers that live inside a labeled wrapper — mod/bu/account menus)
+       and self-toggled (".ws-pop.open", used by icon-button flyouts). Do
+       not add a new popover implementation — extend the shared shell rule
+       (below) and .pop-menu-item. Documented in SIERRA_DESIGN_SYSTEM.md
+       §Popover / Dropdown Menu. */
+    .pop-menu-item, .ws-menu-item {
+      display:flex; align-items:center; gap:0.55rem; width:100%; text-align:left;
+      background:none; border:none; font-family:inherit; padding:0.42rem 0.5rem; border-radius:7px;
+      cursor:pointer; font-size:0.8rem; color:var(--text-2);
+      transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+    }
+    .pop-menu-item:hover, .ws-menu-item:hover { background:var(--surface2); color:var(--text); }
+    .pop-menu-item.current { color:var(--text); font-weight:600; }
+    .pop-menu-item.danger, .ws-menu-danger { color:#c0392b; }
+    .pop-menu-item .pop-menu-dot { width:16px; height:16px; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .pop-menu-item .pop-menu-dot svg { width:10px; height:10px; }
+    .pop-menu-sep { height:1px; background:var(--border); margin:0.3rem 0.2rem; }
+    .pop-menu-hint { font-size:0.74rem; color:var(--text-3); margin:0.1rem 0.3rem 0.5rem; }
+
     /* ── MODULE SWITCHER — iCloud.com-style: current module as a
        button, click opens a small popover to jump to another module.
-       Hidden entirely when the user only has one module (or none).
-       Radii and motion follow the documented scale (sg-radius /
-       sg-motion in the Style Guide): sm(7) for controls and menu rows,
-       lg(12) for the dropdown panel itself, --dur-fast/--ease-out for
-       all transitions. */
+       Hidden entirely when the user only has one module (or none). */
     .mod-scope { display:none; }
     .mod-switch { position:relative; margin:0.3rem 0 0.2rem; display:none; }
     .mod-switch.has-modules { display:block; }
@@ -556,23 +577,18 @@
     .mod-switch-lbl { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .mod-switch-chev { color:var(--text-3); flex-shrink:0; transition:transform var(--dur-fast) var(--ease-out); }
     .mod-switch.open .mod-switch-chev { transform:rotate(180deg); }
-    .mod-switch-pop {
-      position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:150;
+    .mod-switch-pop, .bu-switch-pop, .acct-menu-pop {
+      position:absolute; top:calc(100% + 4px); left:0; right:0;
       background:var(--surface); border:1px solid var(--border); border-radius:12px;
-      box-shadow:var(--shadow-hover); padding:0.3rem;
+      box-shadow:var(--shadow-hover); padding:0.3rem; z-index:150;
       opacity:0; pointer-events:none; transform:translateY(-4px) scale(0.98);
       transition:opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
     }
-    .mod-switch.open .mod-switch-pop { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
-    .mod-switch-item {
-      display:flex; align-items:center; gap:0.55rem; padding:0.42rem 0.5rem; border-radius:7px;
-      cursor:pointer; font-size:0.8rem; color:var(--text-2); transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
-    }
-    .mod-switch-item:hover { background:var(--surface2); color:var(--text); }
-    .mod-switch-item.current { color:var(--text); font-weight:600; }
-    .mod-switch-item .mod-switch-dot { width:16px; height:16px; }
-    .mod-switch-item .mod-switch-dot svg { width:10px; height:10px; }
-    .mod-switch-sep { height:1px; background:var(--border); margin:0.3rem 0.2rem; }
+    .mod-switch.open .mod-switch-pop,
+    .bu-switch.open .bu-switch-pop,
+    .acct-menu.open .acct-menu-pop { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
+    .mod-switch-item .mod-switch-dot, .bu-switch-item .bu-switch-dot { width:16px; height:16px; }
+    .mod-switch-item .mod-switch-dot svg, .bu-switch-item .bu-switch-dot svg { width:10px; height:10px; }
     .sidebar.collapsed .mod-switch { display:none !important; }
     /* ── Business-unit switcher ──
        Lives inside the Samples mod-scope. Unlike .mod-switch (which jumps
@@ -595,23 +611,16 @@
     .bu-switch-lbl { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); font-size:0.78rem; text-transform:none; letter-spacing:0; font-weight:600; }
     .bu-switch-chev { color:var(--text-3); flex-shrink:0; transition:transform var(--dur-fast) var(--ease-out); }
     .bu-switch.open .bu-switch-chev { transform:rotate(180deg); }
-    .bu-switch-pop {
-      position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:150;
-      background:var(--surface); border:1px solid var(--border); border-radius:12px;
-      box-shadow:var(--shadow-hover); padding:0.3rem;
-      opacity:0; pointer-events:none; transform:translateY(-4px) scale(0.98);
-      transition:opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
-    }
-    .bu-switch.open .bu-switch-pop { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
-    .bu-switch-item {
-      display:flex; align-items:center; gap:0.55rem; padding:0.42rem 0.5rem; border-radius:7px;
-      cursor:pointer; font-size:0.8rem; color:var(--text-2); transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
-    }
-    .bu-switch-item:hover { background:var(--surface2); color:var(--text); }
-    .bu-switch-item.current { color:var(--text); font-weight:600; }
-    .bu-switch-item .bu-switch-dot { width:16px; height:16px; }
-    .bu-switch-item .bu-switch-dot svg { width:10px; height:10px; }
     .sidebar.collapsed .bu-switch { display:none !important; }
+
+    /* ── Account menu ──
+       Sidebar identity click opens this instead of jumping straight to the
+       profile modal — structured entry point for Profile / Notifications /
+       Appearance / Administration / Help / Log out. Same ancestor-driven
+       open mechanic as the switchers above. */
+    .acct-menu { position:relative; }
+    .acct-menu-pop { left:0.6rem; right:0.6rem; bottom:calc(100% + 6px); top:auto; min-width:200px; }
+    .sidebar.collapsed .acct-menu-pop { display:none; }
 
 
     .s-label { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); padding:0.7rem 0.55rem 0.3rem; }
@@ -3138,21 +3147,18 @@
     }
     .ws-invite-remove:hover { background:rgba(192,57,43,0.1); color:#c0392b; }
 
-    /* Generic popover shell — invite, "more" menu, price editor all use it */
+    /* Self-toggled flyout variant of the shared popover primitive (see
+       "POPOVER / DROPDOWN MENU PRIMITIVE" above) — invite, "more" menu and
+       price-editor popovers all use this. Item rows compose .pop-menu-item;
+       .ws-menu-item is kept only as an alias for existing call sites. */
     .ws-pop {
       display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:40; min-width:220px;
       background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-hover);
-      padding:0.6rem; animation:wsPopIn var(--dur-fast) var(--ease-out);
+      padding:0.3rem; animation:wsPopIn var(--dur-fast) var(--ease-out);
     }
     .ws-pop.open { display:block; }
     @keyframes wsPopIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
-    .ws-pop-hint { font-size:0.74rem; color:var(--text-3); margin-bottom:0.5rem; }
-    .ws-menu-item {
-      display:block; width:100%; text-align:left; background:none; border:none; font-family:inherit; font-size:0.82rem;
-      color:var(--text); padding:0.5rem 0.6rem; border-radius:8px; cursor:pointer;
-    }
-    .ws-menu-item:hover { background:var(--surface2); }
-    .ws-menu-danger { color:#c0392b; }
+    .ws-pop-hint { font-size:0.74rem; color:var(--text-3); margin:0.1rem 0.3rem 0.5rem; }
 
     .pick-col-row {
       display:flex; align-items:center; gap:0.6rem; width:100%; text-align:left; font-family:inherit;
@@ -3379,8 +3385,8 @@
           <span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3.5A6.5 6.5 0 1 0 16.5 10 6 6 0 0 1 10 3.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></span>
           <span class="nav-label">Appearance</span>
         </button>
-        <div class="sidebar-user-row">
-          <div class="sidebar-user" data-tip="Profile" onclick="openProfile(); closeDrawer()">
+        <div class="sidebar-user-row acct-menu" id="acct-menu">
+          <div class="sidebar-user" data-tip="Account" onclick="toggleAcctMenu()">
             <span class="sidebar-profile-icon">
               <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="7" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M4 17c0-3.1 2.7-5 6-5s6 1.9 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
             </span>
@@ -3390,6 +3396,7 @@
               <div class="sidebar-user-role" id="sb-role">–</div>
             </div>
           </div>
+          <div class="acct-menu-pop" id="acct-menu-pop"></div>
         </div>
       </div>
     </div>
@@ -4943,6 +4950,42 @@ function toggleBuSwitch(force) {
 document.addEventListener('click', e => {
   const sw = document.getElementById('bu-switch')
   if (sw && !sw.contains(e.target)) sw.classList.remove('open')
+})
+
+/* ── Account menu ── §25: sidebar identity click opens a structured
+   popover (My profile / Notifications / Appearance / Administration /
+   Help / Log out) instead of jumping straight into the profile modal.
+   Content is built fresh on open so it always reflects the current
+   theme/role/admin state without needing a separate re-render hook. */
+function renderAcctMenu() {
+  const pop = document.getElementById('acct-menu-pop')
+  if (!pop) return
+  const dark = document.documentElement.getAttribute('data-theme') !== 'light'
+  const admin = isAdmin()
+  const items = []
+  items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); openProfile()">My profile</button>`)
+  items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); toggleNotifications()">Notifications</button>`)
+  items.push(`<button class="pop-menu-item" onclick="toggleTheme(); renderAcctMenu()"><span style="flex:1">Appearance</span><span style="color:var(--text-3);font-size:0.72rem">${dark ? 'Dark' : 'Light'}</span></button>`)
+  if (admin) {
+    items.push(`<div class="pop-menu-sep"></div>`)
+    items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); showUserManagement()">Team</button>`)
+    items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); showAccessLogs()">Access logs</button>`)
+  }
+  items.push(`<div class="pop-menu-sep"></div>`)
+  items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); toast('Help — coming soon')">Help</button>`)
+  items.push(`<button class="pop-menu-item danger" onclick="toggleAcctMenu(false); logout()">Log out</button>`)
+  pop.innerHTML = items.join('')
+}
+function toggleAcctMenu(force) {
+  const wrap = document.getElementById('acct-menu')
+  if (!wrap) return
+  const willOpen = force !== undefined ? force : !wrap.classList.contains('open')
+  if (willOpen) renderAcctMenu()
+  wrap.classList.toggle('open', willOpen)
+}
+document.addEventListener('click', e => {
+  const am = document.getElementById('acct-menu')
+  if (am && !am.contains(e.target)) am.classList.remove('open')
 })
 
 /* ── Fulfillment nav (Cola de despacho / Inventario) ──
@@ -10935,6 +10978,7 @@ async function showCollectionRecord(collectionId, backTo) {
 
     <div class="pd-tabs ws-view-tabs">
       <button class="pd-tab active" data-tab="board" onclick="switchWsTab('board')">Tablero</button>
+      <button class="pd-tab" data-tab="table" onclick="switchWsTab('table')">Tabla</button>
       <button class="pd-tab" data-tab="stats" onclick="switchWsTab('stats')">Estadísticas</button>
     </div>
 
@@ -10970,6 +11014,7 @@ async function showCollectionRecord(collectionId, backTo) {
     ${commentsHtml}
     </div>
 
+    <div id="ws-tab-table" style="display:none">${wsTableViewHtml(items, categories)}</div>
     <div id="ws-tab-stats" style="display:none">${collectionStatsHtml(items)}</div>
   </div>`
 
@@ -10983,10 +11028,40 @@ let _wsStatItems = []
    charts on first entry (a canvas can't size itself while display:none). ── */
 function switchWsTab(tab) {
   document.querySelectorAll('.ws-view-tabs .pd-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
-  const board = document.getElementById('ws-tab-board'), stats = document.getElementById('ws-tab-stats')
+  const board = document.getElementById('ws-tab-board'), table = document.getElementById('ws-tab-table'), stats = document.getElementById('ws-tab-stats')
   if (board) board.style.display = tab === 'board' ? 'block' : 'none'
+  if (table) table.style.display = tab === 'table' ? 'block' : 'none'
   if (stats) stats.style.display = tab === 'stats' ? 'block' : 'none'
   if (tab === 'stats') wsRenderStatsCharts()
+}
+
+/* ── Table view ── same collection dataset as the Board tab (§11: views
+   represent the SAME dataset, never a duplicate). Read-focused: click a
+   row to open the sample record, same as a non-editable board row. */
+function wsTableViewHtml(items, categories) {
+  if (!items.length) return '<div class="srd-card" style="font-size:0.82rem;color:var(--text-3);padding:0.9rem">No samples in this collection yet.</div>'
+  const catName = id => categories.find(c => c.id === id)?.name || 'Uncategorized'
+  const sorted = [...items].sort((a, b) => catName(a.category_id).localeCompare(catName(b.category_id)) || (a.products?.name||'').localeCompare(b.products?.name||''))
+  const rows = sorted.map(it => {
+    const c = DIV_CLR[it.products?.division] || '#aaa'
+    return `
+    <tr class="is-clickable" onclick="showSampleRecord('${it.id}')">
+      <td><span class="cart-item-dot" style="background:${c};margin-right:0.5rem"></span>${esc(it.products?.name || '—')}</td>
+      <td>${esc(it.products?.code || '—')}</td>
+      <td>${esc(catName(it.category_id))}</td>
+      <td>${esc(it.sample_type || '—')}</td>
+      <td data-num>${it.quantity || 1}</td>
+      <td>${wsPriceCellHtml(it)}</td>
+      <td>${smpBadge(it.status)}</td>
+    </tr>`
+  }).join('')
+  return `
+  <div class="erp-table-wrap">
+    <table class="erp-table">
+      <thead><tr><th>Sample</th><th>Code</th><th>Category</th><th>Type</th><th data-num>Qty</th><th>Price</th><th>Status</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`
 }
 
 function collectionStatsHtml(items) {
