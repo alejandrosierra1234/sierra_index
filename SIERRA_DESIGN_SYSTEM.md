@@ -530,11 +530,12 @@ packing, delivery) — the explicit test case for this pass, including
 fixing the double-padding bug described in §2. **Sample record** and
 **Collection workspace** had the same double-padding bug and were
 fixed at the container level (now use `.detail-view-inner`) without a
-full visual rewrite. **Catalog**, **Insights**, and **Warehouse
-Inventory** already used the pre-existing `.content-hdr`/`.srd-*`
-primitives reasonably well and were left as-is beyond the shared token
-changes (which apply automatically since they're aliases, not
-rewrites).
+full visual rewrite. **Insights** and **Warehouse Inventory** already
+used the pre-existing `.content-hdr`/`.srd-*` primitives reasonably
+well and were left as-is beyond the shared token changes (which apply
+automatically since they're aliases, not rewrites). **Catalog** was
+later rebuilt from a product-gallery screen into the ERP list-screen
+shape from §3 — see §18.
 
 Collection workspace now has four view tabs over the **same dataset**
 (§11 — views must not duplicate data): Board (editable/draft or
@@ -570,3 +571,124 @@ than inventing another local panel.
 
 Not yet audited to this system: Team/Access Logs list screens, and the
 public product page. Apply the same §16 checklist when touching them.
+
+## 18. Catalog (ERP product master)
+
+Catalog was rebuilt from a photo-forward product gallery (permanent
+large construction-type buttons, giant cards, an oversized "Add
+sample" CTA on every tile, cards-only) into the standard §3
+list-screen shape: PageHeader → ViewTabs → saved views → DataToolbar →
+DataTable/Cards. It is now **data-first, Table by default**; images
+are secondary. Every new primitive below composes existing shared
+components — no page-specific toolbar or card system was introduced.
+
+**Header** — unchanged `.content-hdr` (`#sec-title`/`#sec-sub`,
+`DIV_LBL[division]` / "Technical product catalog"), with the primary
+action moved into `#product-controls` (top-right, per §9): `+ New
+product` when the signed-in user can edit that division
+(`renderCatalogHeaderActions()`).
+
+**ViewTabs (Table | Cards)** — `#cat-view-tabs`, `.pd-tabs
+.pd-tabs-inline`. `.pd-tabs-inline` is a new modifier on the existing
+`.pd-tabs`/`.pd-tab` segmented control (§ "Collection workspace"
+Board/Cards/Table/Stats tabs): the base component stretches every tab
+to equal width via `flex:1`, which is wrong for a tab strip that
+should hug its content. `.pd-tabs-inline` keeps the same pill-track/
+lifted-active visual language without the stretch — use it for any
+future 2-4-item view switch or compact tab row; don't build a second
+tabs component. `setCatalogView()` persists the choice
+(`localStorage: sierra_catalog_view`) and re-renders the same filtered
+dataset through the other view — Table and Cards are never two data
+paths.
+
+**Saved views (fabric only)** — `#fab-filter-bar`, also rendered as
+`.pd-tabs-inline` (`renderCatalogSavedViews()`), replacing the old
+permanent large `.fab-chip` category buttons. `CAT_SAVED_VIEWS` is a
+fixed list (All Fabrics / Jersey / Rib / Interlock / Sustainable);
+`Sustainable` matches the real `tags` field (substring `sustain`), not
+an invented attribute. Construction/type is otherwise reached through
+Filter and Group by, per the brief — no other division shows this row.
+
+**DataToolbar** — `#cat-toolbar`, `.page-toolbar`
+(`renderCatalogToolbar()`): Search, Filter, Sort, Group by, Hide
+columns (Table view only), spacer, `•••`. One toolbar for the whole
+screen — there is no separate custom Catalog toolbar. Filter/Sort/
+Group by/Hide-columns are each a trigger button (`.cat-tb-btn`) next
+to a `.ws-pop` popover filled with `.cat-pop-row` checklist/list rows —
+this is the **filter/column-visibility popover pattern**, new to the
+design system, composed entirely from the existing self-toggled
+popover primitive (§12b) rather than a bespoke dropdown. Because
+`.ws-pop`'s outside-click-closes behavior only recognized
+`.ws-icon-btn` triggers, the shared listener in `index.html` (next to
+`wsClosePopovers()`) was extended to also recognize `.cat-tb-btn` —
+reuse that class on any future text-label popover trigger instead of
+special-casing another one. The old floating `#div-toolbar` action
+pill (Search/Select/Import/New product, shown only while Catalog was
+active) is retired — the element is kept empty in the DOM only because
+many unrelated screens null-check-free `getElementById('div-toolbar')`
+on their way in.
+
+**Filters** — `catFacetValues()`/`catApplyFacetFilters()` build
+checklists from real fields only: Construction (fabric), Availability
+(lifecycle), Composition, Color. No fake attributes (Yarn Count,
+Finish, Warehouse/Location) are surfaced — they don't exist on
+`products`/`specs` today. "Finish" in the columns list is the closest
+real field, Dyed Method, labeled accordingly.
+
+**Grouping** — `CAT_GROUP_DEFS` (Construction / Composition /
+Availability) + `catGroup()`, one function shared by both Table
+(`catTableHtml`) and Cards (`catCardsHtml`) — never a per-view
+grouping implementation (§11). Groups are collapsible
+(`.cat-group-row`/`catToggleGroup()`); the collapsed set persists only
+for the current session (`_catCollapsedGroups`).
+
+**DataTable** — `.erp-table` (§7) extended with a checkbox column
+(`.cat-td-select`/`.cat-th-select`), sticky header (inherited from
+`.erp-table th { position:sticky }`, wrapped in `.erp-table-wrap` with
+`max-height:calc(100vh - 320px)` so the table scrolls internally
+rather than growing the page), and a configurable column set
+(`CAT_COLUMNS`, hidden columns persisted to
+`localStorage: sierra_catalog_hidden_cols`). Row click opens the
+product quick-view Drawer; the last cell is row actions — a subtle
+`.cat-req-btn` "Request sample" (outline, not a filled CTA) plus the
+canonical `•••` (`overflowMenuHtml()`, §12e) for View full record /
+Print label. Column resizing is not implemented — flagged as future
+work, not faked with a non-functional drag handle.
+
+**Cards** — same filtered/sorted/grouped dataset as Table, rendered
+through `.pg-grid.cat-cards-dense`, a density modifier on the existing
+card primitives (not a second card component): shorter image (84px vs
+128px), tighter body padding, single-line name/description, tags
+hidden. Quick action is the same `.cat-req-btn` as the table row, not
+the old filled `.card-req-btn` CTA (removed).
+
+**Row/card selection** is always on — there is no "select mode"
+toggle to turn on first (the old `toggleSelectMode()`/`#select-btn`
+were removed as dead code once selection became a permanent table/card
+affordance, matching how selection works everywhere else in the app).
+Selecting rows shows the existing **BulkActionBar** (`#select-bar`,
+already the canonical bulk bar — same shell reused, not rebuilt): the
+new `bulkRequestSamples()` action adds every selected product straight
+to the active draft collection (same mechanism as the per-row Request
+sample button — "the current sample request/cart", per the product
+brief), and the pre-existing `openBulkReq()`/`#m-bulk` flow is relabeled
+"Add to Collection" for the confirm-first path.
+
+**Product quick-view Drawer** — clicking a row/card calls
+`openCatalogDrawer(p)`, filling the canonical Drawer (§12c,
+`#sd-overlay`) with code/lifecycle, construction, and the same
+technical fields as the table columns via the `.ctx-*` template
+(§12), plus Request sample / Add to selection / **Open full record**.
+"Open full record" still routes to the existing full-page product
+detail (`openFicha`/`showProductDetail`) for the deep specs/documents/
+history view that doesn't belong in a quick-glance panel — the Drawer
+is a quick-view layer in front of it, not a replacement for it.
+
+**Pricing** — `canSeeCatalogPricing()` gates the Price column/drawer
+row behind the existing `edit_pricing`-style capability
+(`canEditPricing()`, i.e. `can('write','customer_service')`) plus
+admin, the same permission already used for sample/collection pricing
+elsewhere. `specs.Price` is still a free-text field (no structured
+currency/unit columns exist on `products` yet), so it's shown verbatim
+rather than reformatted into a fabricated canonical `$X / lb` string —
+do that reformatting once pricing becomes structured data, not before.
