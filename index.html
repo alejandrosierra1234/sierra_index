@@ -556,6 +556,44 @@
     .mod-switch-item .mod-switch-dot svg { width:10px; height:10px; }
     .mod-switch-sep { height:1px; background:var(--border); margin:0.3rem 0.2rem; }
     .sidebar.collapsed .mod-switch { display:none !important; }
+    /* ── Business-unit switcher ──
+       Lives inside the Samples mod-scope. Unlike .mod-switch (which jumps
+       between whole módulos), this only changes the `division` CONTEXT —
+       catalog, requests, dispatch and inventory all stay on screen, just
+       re-scoped to the newly selected business unit. Hidden when the user
+       is authorized for a single business unit (nothing to switch to). */
+    .bu-switch { position:relative; margin:0.5rem 0 0.15rem; display:none; }
+    .bu-switch.has-multi { display:block; }
+    .bu-switch-btn {
+      display:flex; align-items:center; gap:0.5rem; width:100%; padding:0.4rem 0.5rem;
+      border-radius:7px; border:1px solid transparent; background:transparent;
+      color:var(--text-3); font-family:inherit; font-size:0.68rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.04em; cursor:pointer; text-align:left;
+      transition:border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+    }
+    .bu-switch-btn:hover { background:var(--surface2); }
+    .bu-switch-btn .bu-switch-dot { width:16px; height:16px; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .bu-switch-btn .bu-switch-dot svg { width:10px; height:10px; }
+    .bu-switch-lbl { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); font-size:0.78rem; text-transform:none; letter-spacing:0; font-weight:600; }
+    .bu-switch-chev { color:var(--text-3); flex-shrink:0; transition:transform var(--dur-fast) var(--ease-out); }
+    .bu-switch.open .bu-switch-chev { transform:rotate(180deg); }
+    .bu-switch-pop {
+      position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:150;
+      background:var(--surface); border:1px solid var(--border); border-radius:12px;
+      box-shadow:var(--shadow-hover); padding:0.3rem;
+      opacity:0; pointer-events:none; transform:translateY(-4px) scale(0.98);
+      transition:opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+    }
+    .bu-switch.open .bu-switch-pop { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
+    .bu-switch-item {
+      display:flex; align-items:center; gap:0.55rem; padding:0.42rem 0.5rem; border-radius:7px;
+      cursor:pointer; font-size:0.8rem; color:var(--text-2); transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+    }
+    .bu-switch-item:hover { background:var(--surface2); color:var(--text); }
+    .bu-switch-item.current { color:var(--text); font-weight:600; }
+    .bu-switch-item .bu-switch-dot { width:16px; height:16px; }
+    .bu-switch-item .bu-switch-dot svg { width:10px; height:10px; }
+    .sidebar.collapsed .bu-switch { display:none !important; }
 
 
     .s-label { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); padding:0.7rem 0.55rem 0.3rem; }
@@ -3181,57 +3219,26 @@
       </div>
 
       <button class="nav-item" id="nav-dash" data-tip="Dashboard" style="--item-color:#16cdbe" onclick="showDashboard()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3L3 8.5V17h5v-4h4v4h5V8.5L10 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Dashboard</span></button>
-      <div class="mod-scope" data-scope="muestras_fiber">
-        <span class="s-label" style="margin-top:0.5rem">SIERRA Fiber</span>
-        <button class="nav-item" id="nav-fiber" data-tip="SIERRA Fiber" style="--item-color:#9e00cb" onclick="setDiv('fiber',this)"><span class="n-icon" id="icon-fiber"></span><span class="nav-label">SIERRA Fiber</span></button>
-      </div>
-      <div class="mod-scope" data-scope="muestras_yarn">
-        <span class="s-label" style="margin-top:0.5rem">SIERRA Yarn</span>
-        <button class="nav-item" id="nav-yarn" data-tip="SIERRA Yarn" style="--item-color:#3ed600" onclick="setDiv('yarn',this)"><span class="n-icon" id="icon-yarn"></span><span class="nav-label">SIERRA Yarn</span></button>
-      </div>
-      <div class="mod-scope" data-scope="muestras_fabric">
-        <span class="s-label" style="margin-top:0.5rem">SIERRA Fabric</span>
-        <button class="nav-item" id="nav-fabric" data-tip="SIERRA Fabric" style="--item-color:#009fff" onclick="setDiv('fabric',this)"><span class="n-icon" id="icon-fabric"></span><span class="nav-label">SIERRA Fabric</span></button>
-      </div>
-      <div class="mod-scope" data-scope="muestras_chemicals">
-        <span class="s-label" style="margin-top:0.5rem">SIERRA Chemicals</span>
-        <button class="nav-item" id="nav-chemicals" data-tip="SIERRA Chemicals" style="--item-color:#ff7824" onclick="setDiv('chemicals',this)"><span class="n-icon" id="icon-chemicals"></span><span class="nav-label">SIERRA Chemicals</span></button>
-      </div>
-      <div class="mod-scope" data-scope="muestras_garment">
-        <span class="s-label" style="margin-top:0.5rem">SIERRA Apparel</span>
-        <button class="nav-item" id="nav-garment" data-tip="SIERRA Apparel" style="--item-color:#16cdbe" onclick="setDiv('garment',this)"><span class="n-icon" id="icon-garment"></span><span class="nav-label">SIERRA Apparel</span></button>
-      </div>
-      <div class="mod-scope" data-scope="comercial">
-        <span class="s-label" style="margin-top:0.5rem">Comercial</span>
-        <button class="nav-item" id="nav-samples" data-tip="Sample Center" style="--item-color:#16cdbe" onclick="showSampleCenter()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="10" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="10" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M13.5 13.5v-1M13.5 16.5v-1M11.5 14.5h1M15.5 14.5h1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Sample Center</span></button>
+      <div class="mod-scope" data-scope="samples">
+        <span class="s-label" style="margin-top:0.5rem">Muestras</span>
+        <!-- Business-unit switcher: changes CONTEXT (division), not module.
+             Hidden automatically when the user is only authorized for one
+             business unit — see renderBuSwitcher(). -->
+        <div class="bu-switch" id="bu-switch">
+          <button class="bu-switch-btn" id="bu-switch-btn" onclick="toggleBuSwitch()">
+            <span class="bu-switch-dot" id="bu-switch-dot"></span>
+            <span class="bu-switch-lbl" id="bu-switch-lbl">Muestras</span>
+            <svg class="bu-switch-chev" width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="bu-switch-pop" id="bu-switch-pop"></div>
+        </div>
+        <button class="nav-item" id="nav-catalog" data-tip="Catálogo" style="--item-color:#16cdbe" onclick="showSamplesCatalog()"><span class="n-icon" id="icon-catalog"></span><span class="nav-label">Catálogo</span></button>
+        <button class="nav-item" id="nav-samples" data-tip="Solicitudes" style="--item-color:#16cdbe;display:none" onclick="showSampleCenter()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="10" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="10" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M13.5 13.5v-1M13.5 16.5v-1M11.5 14.5h1M15.5 14.5h1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Solicitudes</span></button>
+        <button class="nav-item cart-nav-item" id="nav-cart" data-tip="Colecciones" style="--item-color:#16cdbe;display:none" onclick="openCollectionsNav()"><span class="n-icon" style="position:relative"><svg viewBox="0 0 20 20" fill="none"><path d="M3 4h2l1.6 9.5a1 1 0 0 0 1 .8h7.3a1 1 0 0 0 1-.75L17.5 8H5.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="17" r="1.1" fill="currentColor"/><circle cx="14.5" cy="17" r="1.1" fill="currentColor"/></svg><span class="cart-nav-badge" id="cart-nav-badge">0</span></span><span class="nav-label">Colecciones</span><span class="cart-nav-count" id="cart-nav-count">0</span></button>
         <button class="nav-item" id="nav-insights" data-tip="Insights" style="--item-color:#9e00cb;display:none" onclick="showInsights()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M4 16V9M10 16V4M16 16v-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="nav-label">Insights</span></button>
-        <button class="nav-item cart-nav-item" id="nav-cart" data-tip="Collections" style="--item-color:#16cdbe" onclick="openCollectionsNav()"><span class="n-icon" style="position:relative"><svg viewBox="0 0 20 20" fill="none"><path d="M3 4h2l1.6 9.5a1 1 0 0 0 1 .8h7.3a1 1 0 0 0 1-.75L17.5 8H5.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="17" r="1.1" fill="currentColor"/><circle cx="14.5" cy="17" r="1.1" fill="currentColor"/></svg><span class="cart-nav-badge" id="cart-nav-badge">0</span></span><span class="nav-label">Collections</span><span class="cart-nav-count" id="cart-nav-count">0</span></button>
-        <button class="nav-item" id="nav-scan" data-tip="Scan" style="--item-color:#009fff" onclick="openScanMode()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Scan</span></button>
-      </div>
-      <div class="mod-scope" data-scope="almacen_fiber">
-        <span class="s-label" style="margin-top:0.5rem">Almacén · Fibra</span>
-        <button class="nav-item" id="nav-dispatch-queue-fiber" data-tip="Cola de despacho" style="--item-color:#9e00cb" onclick="showDispatchQueueFiber()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
-        <button class="nav-item" id="nav-wh-inventory-fiber" data-tip="Inventario" style="--item-color:#9e00cb" onclick="showWarehouseInventoryFiber()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Inventario</span></button>
-      </div>
-      <div class="mod-scope" data-scope="almacen_yarn">
-        <span class="s-label" style="margin-top:0.5rem">Almacén · Hilo</span>
-        <button class="nav-item" id="nav-dispatch-queue-yarn" data-tip="Cola de despacho" style="--item-color:#3ed600" onclick="showDispatchQueueYarn()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
-        <button class="nav-item" id="nav-wh-inventory-yarn" data-tip="Inventario" style="--item-color:#3ed600" onclick="showWarehouseInventoryYarn()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Inventario</span></button>
-      </div>
-      <div class="mod-scope" data-scope="almacen_fabric">
-        <span class="s-label" style="margin-top:0.5rem">Almacén · Tela</span>
-        <button class="nav-item" id="nav-dispatch-queue-fabric" data-tip="Cola de despacho" style="--item-color:#009fff" onclick="showDispatchQueueFabric()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
-        <button class="nav-item" id="nav-wh-inventory-fabric" data-tip="Inventario" style="--item-color:#009fff" onclick="showWarehouseInventoryFabric()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Inventario</span></button>
-      </div>
-      <div class="mod-scope" data-scope="almacen_chemicals">
-        <span class="s-label" style="margin-top:0.5rem">Almacén · Químicos</span>
-        <button class="nav-item" id="nav-dispatch-queue-chemicals" data-tip="Cola de despacho" style="--item-color:#ff7824" onclick="showDispatchQueueChemicals()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
-        <button class="nav-item" id="nav-wh-inventory-chemicals" data-tip="Inventario" style="--item-color:#ff7824" onclick="showWarehouseInventoryChemicals()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Inventario</span></button>
-      </div>
-      <div class="mod-scope" data-scope="almacen_garment">
-        <span class="s-label" style="margin-top:0.5rem">Almacén · Confección</span>
-        <button class="nav-item" id="nav-dispatch-queue-garment" data-tip="Cola de despacho" style="--item-color:#16cdbe" onclick="showDispatchQueueGarment()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
-        <button class="nav-item" id="nav-wh-inventory-garment" data-tip="Inventario" style="--item-color:#16cdbe" onclick="showWarehouseInventoryGarment()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Inventario</span></button>
+        <button class="nav-item" id="nav-scan" data-tip="Scan" style="--item-color:#009fff;display:none" onclick="openScanMode()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Scan</span></button>
+        <button class="nav-item" id="nav-dispatch-queue" data-tip="Cola de despacho" style="--item-color:#16cdbe;display:none" onclick="showDispatchQueueCurrent()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
+        <button class="nav-item" id="nav-wh-inventory" data-tip="Inventario" style="--item-color:#16cdbe;display:none" onclick="showWarehouseInventoryCurrent()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Inventario</span></button>
       </div>
       <div class="mod-scope" data-scope="talento_humano">
         <span class="s-label" style="margin-top:0.5rem">Talento Humano</span>
@@ -4344,16 +4351,14 @@ async function enterApp(user) {
   }
   if (insightsSections().length) document.getElementById('nav-insights').style.display = 'flex'
   renderModuleSwitcher()
+  renderBuSwitcher()
+  renderSamplesFulfillmentNav()
+  renderSamplesCommercialNav()
   loadDraftCart()
   // Store email in profiles for admin view
   if (p && !p.email) {
     sb.from('profiles').update({ email: user.email }).eq('id', user.id).then(() => {})
   }
-  // Inject division icons into sidebar
-  Object.entries(DIV_ICON).forEach(([key, svg]) => {
-    const el = document.getElementById(`icon-${key}`)
-    if (el) el.innerHTML = svg
-  })
   hideLoadingScreen()
   document.getElementById('auth-screen').style.display = 'none'
   document.getElementById('app').style.display = 'flex'
@@ -4369,18 +4374,19 @@ async function enterApp(user) {
   const savedRoute = sessionStorage.getItem('sierra_route')
   if (savedRoute && savedRoute.startsWith('div:')) {
     const divKey = savedRoute.slice(4)
-    const navEl = document.getElementById('nav-' + divKey)
-    if (navEl) { setDiv(divKey, navEl); return }
+    if (divKey === 'all' || can('read', divKey)) { setDiv(divKey); return }
   } else if (savedRoute === 'insights' && insightsSections().length) {
     showInsights(); return
   } else if (savedRoute === 'style-guide') {
     showStyleGuide(); return
   } else if (savedRoute === 'dashboard') {
     showDashboard(); return
-  } else if (savedRoute === 'collections' && moduleAccessible(MODULES.comercial)) {
+  } else if (savedRoute === 'collections' && can('read', 'customer_service')) {
     showCollectionsHub(); return
   } else if (savedRoute && savedRoute.startsWith('module:')) {
-    showModuleTools(savedRoute.slice(7)); return
+    const key = savedRoute.slice(7)
+    if (key === 'samples') { showSamplesHome(); return }
+    showModuleTools(key); return
   }
   showModuleHub()
 }
@@ -4655,13 +4661,12 @@ async function applyRoute(h) {
   _routeApplying = true
   try {
     if (mDiv) {
-      const el = document.getElementById('nav-' + mDiv[1])
-      if (!el) return false
-      setDiv(mDiv[1], el)
+      if (!AUTH_DIVISIONS.includes(mDiv[1]) || !can('read', mDiv[1])) return false
+      setDiv(mDiv[1])
       return true
     }
     if (mCol) {
-      syncModule('comercial')
+      syncModule('samples')
       await showCollectionRecord(mCol[1], 'showCollectionsHub')
       return true
     }
@@ -4677,8 +4682,7 @@ async function openProductRoute(id) {
   }
   if (!p || !lifecycleVisible(p)) { renderProductNotFound(); return true }
   // load the product's division behind the detail so Back has somewhere to go
-  const navEl = document.getElementById('nav-' + p.division)
-  if (navEl && division !== p.division) setDiv(p.division, navEl)
+  if (can('read', p.division) && division !== p.division) setDiv(p.division)
   selected = p
   showProductDetail(p)
   return true
@@ -4737,14 +4741,20 @@ function closeDrawer() {
 function mobileSearch() { openSpotlight() }
 function focusSearch() { openSpotlight() }
 
-function setDiv(d, el) {
-  syncModule(d === 'all' ? null : 'muestras_' + d)
+// Switches the CONTEXT (business unit) inside the one Muestras módulo.
+// Never creates or enters a separate módulo per division — catalog,
+// requests and (if authorized) that division's warehouse tools all stay
+// on screen, just re-scoped. Divisions never merge: switching context
+// re-queries products/inventory scoped to the new division, it doesn't
+// union anything.
+function setDiv(d) {
+  syncModule('samples')
   sessionStorage.setItem('sierra_route', 'div:' + d)
   setHash('#/division/' + d)
   document.getElementById('div-toolbar').style.display = 'flex'
   leaveView(true)
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  el?.classList.add('active')
+  document.getElementById('nav-catalog')?.classList.add('active')
   division = d
   applyDivisionAccent(d)
   fabricFilter = null // reset construction filter when switching division
@@ -4756,15 +4766,101 @@ function setDiv(d, el) {
   }
   document.getElementById('product-controls').style.display = 'flex'
   loadProducts()
+  renderBuSwitcher()
+  renderSamplesFulfillmentNav()
 }
-// One named entry point per division so each muestras_<division> module
-// can point its single tool at a real function (module tools are invoked
-// as window[run]() with no arguments — setDiv alone needs a nav element).
-function showCatalogFiber()     { setDiv('fiber', document.getElementById('nav-fiber')) }
-function showCatalogYarn()      { setDiv('yarn', document.getElementById('nav-yarn')) }
-function showCatalogFabric()    { setDiv('fabric', document.getElementById('nav-fabric')) }
-function showCatalogChemicals() { setDiv('chemicals', document.getElementById('nav-chemicals')) }
-function showCatalogGarment()   { setDiv('garment', document.getElementById('nav-garment')) }
+
+// Divisions the signed-in user can read, in the app's fixed display order.
+function authorizedDivisions() { return AUTH_DIVISIONS.filter(d => can('read', d)) }
+function firstAuthDivision() { return authorizedDivisions()[0] || null }
+
+// Entry point for the "Catálogo" sidebar item and for the Módulos hub —
+// opens the active business-unit context (or the user's first authorized
+// one) instead of a hardcoded division.
+function showSamplesCatalog() {
+  const d = authorizedDivisions().includes(division) ? division : (firstAuthDivision() || division)
+  setDiv(d)
+}
+
+// Landing spot for the Muestras módulo: catalog for a sales/CS/admin user,
+// falling back to Solicitudes or the warehouse queue for a pure warehouse
+// user with no division read access, so nobody lands on a blank screen.
+function showSamplesHome() {
+  const d = firstAuthDivision()
+  if (d) { setDiv(d); return }
+  if (can('read', 'customer_service')) { showSampleCenter(); return }
+  const wd = AUTH_DIVISIONS.find(x => hasWarehouseAccess(x))
+  if (wd) { showDispatchQueue(wd); return }
+  showModuleHub()
+}
+
+/* ── Business-unit switcher ──
+   "Samples / Fabric ▾" — the ONE place a user changes which business
+   unit's catalog/requests/warehouse they're looking at. Only lists
+   divisions the signed-in user is actually authorized to read; picking
+   one re-scopes the current screen (catalog stays on catalog, dispatch
+   queue stays on dispatch queue) instead of bouncing to a different
+   módulo. Auto-hidden when the user has access to a single business
+   unit — nothing to switch between. */
+function renderBuSwitcher() {
+  const wrap = document.getElementById('bu-switch')
+  if (!wrap) return
+  const divs = authorizedDivisions()
+  wrap.classList.toggle('has-multi', divs.length > 1)
+  const cur = divs.includes(division) ? division : divs[0]
+  const lbl = document.getElementById('bu-switch-lbl')
+  const dot = document.getElementById('bu-switch-dot')
+  if (cur) {
+    lbl.textContent = DIV_LBL[cur] || cur
+    const c = (DIV_ACCENT[cur] || DIV_ACCENT.all).accent
+    dot.innerHTML = `<span style="width:100%;height:100%;border-radius:inherit;display:flex;align-items:center;justify-content:center;background:${c}1f;color:${c}">${DIV_ICON[cur] || ''}</span>`
+  } else {
+    lbl.textContent = 'Muestras'
+    dot.innerHTML = ''
+  }
+  document.getElementById('bu-switch-pop').innerHTML = divs.map(d => `
+    <div class="bu-switch-item ${d === cur ? 'current' : ''}" onclick="setDiv('${d}'); toggleBuSwitch(false)">
+      <span class="bu-switch-dot" style="background:${(DIV_ACCENT[d]||DIV_ACCENT.all).accent}1f;color:${(DIV_ACCENT[d]||DIV_ACCENT.all).accent}">${DIV_ICON[d] || ''}</span>
+      <span>${esc(DIV_LBL[d] || d)}</span>
+    </div>`).join('')
+  const icon = document.getElementById('icon-catalog')
+  if (icon && cur) icon.innerHTML = DIV_ICON[cur] || ''
+}
+function toggleBuSwitch(force) {
+  document.getElementById('bu-switch')?.classList.toggle('open', force)
+}
+document.addEventListener('click', e => {
+  const sw = document.getElementById('bu-switch')
+  if (sw && !sw.contains(e.target)) sw.classList.remove('open')
+})
+
+/* ── Fulfillment nav (Cola de despacho / Inventario) ──
+   Shown only when the signed-in user has warehouse access to the
+   business unit currently in context — never for every division at
+   once, and never merged across divisions. Re-evaluated on every
+   context switch (setDiv / showDispatchQueue / showWarehouseInventory). */
+function renderSamplesFulfillmentNav() {
+  const dq = document.getElementById('nav-dispatch-queue')
+  const wi = document.getElementById('nav-wh-inventory')
+  const showDispatch = canDispatchDiv(division)
+  const showInv = hasWarehouseAccess(division)
+  if (dq) dq.style.display = showDispatch ? 'flex' : 'none'
+  if (wi) wi.style.display = showInv ? 'flex' : 'none'
+}
+
+// Requests/Collections lifecycle (customer_service) is its own domain, not
+// tied to any one division — a Fiber-only user with no customer_service
+// grant shouldn't see Solicitudes/Colecciones/Scan at all. Not
+// division-dependent, so this only needs to run once at login.
+function renderSamplesCommercialNav() {
+  const show = can('read', 'customer_service') ? 'flex' : 'none'
+  const samplesBtn = document.getElementById('nav-samples')
+  const cartBtn = document.getElementById('nav-cart')
+  const scanBtn = document.getElementById('nav-scan')
+  if (samplesBtn) samplesBtn.style.display = show
+  if (cartBtn) cartBtn.style.display = show
+  if (scanBtn) scanBtn.style.display = show
+}
 
 function updateSectionTitle() {
   const title = division === 'all' ? tx('nav.allProducts') : DIV_LBL[division]
@@ -7762,38 +7858,14 @@ function showStyleGuide() {
    user works with. Access to a módulo mirrors read access to its
    authorization domain (capability_grants) — an editor/Data Owner grants
    it from the Team screen exactly like any other domain grant. Each
-   módulo lists its herramientas; clicking one navigates into it. */
+   módulo lists its herramientas; clicking one navigates into it.
+
+   Muestras is ONE módulo, not one per business unit. Business units
+   (fiber/yarn/fabric/chemicals/garment) and their warehouses are a
+   CONTEXT switched inside the módulo (see bu-switch / setDiv()) — never
+   separate sidebar módulos, so authorized access to a second business
+   unit never merges its catalog, requests or inventory with the first. */
 const ALMACEN_DIV_LBL = { fiber:'Fibra', yarn:'Hilo', fabric:'Tela', chemicals:'Químicos', garment:'Confección' }
-// Each division has its own physical sample warehouse (confirmed by the
-// business), so Almacén is 5 modules keyed on warehouse_<division> —
-// not the old shared 'warehouse' domain — same shape as almacenModule
-// produces for each. Keeps the 5 blocks in MODULES from being five
-// hand-copied literals that could drift out of sync with each other.
-function almacenModule(division, color) {
-  const lbl = ALMACEN_DIV_LBL[division]
-  return {
-    label: `Almacén de Muestras · ${lbl}`,
-    domains: ['warehouse_' + division],
-    color,
-    icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
-    tools: [
-      {
-        id: 'despacho',
-        label: `Cola de despacho · ${lbl}`,
-        desc: `Colecciones de ${lbl} listas para verificar, excluir y despachar`,
-        icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
-        run: 'showDispatchQueue' + division[0].toUpperCase() + division.slice(1),
-      },
-      {
-        id: 'inventario',
-        label: `Inventario · ${lbl}`,
-        desc: `Existencias, rotación y movimientos de ${lbl}`,
-        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-        run: 'showWarehouseInventory' + division[0].toUpperCase() + division.slice(1),
-      },
-    ],
-  }
-}
 const MODULES = {
   talento_humano: {
     label: 'Talento Humano',
@@ -7810,98 +7882,22 @@ const MODULES = {
       },
     ],
   },
-  muestras_fiber: {
-    label: 'SIERRA Fiber',
-    domains: ['fiber'],
-    color: '#9e00cb',
-    icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 10a7 7 0 0114 0v3.5a1.5 1.5 0 01-1.5 1.5H14v-5h3a5 5 0 00-10 0h3v5H4.5A1.5 1.5 0 013 13.5V10z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
-    tools: [{
-      id: 'catalogo', label: 'Catálogo Fibra', desc: 'Explora el catálogo de Fibra y gestiona solicitudes de muestra',
-      icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/></svg>',
-      run: 'showCatalogFiber',
-    }],
-  },
-  muestras_yarn: {
-    label: 'SIERRA Yarn',
-    domains: ['yarn'],
-    color: '#3ed600',
-    icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 10a7 7 0 0114 0v3.5a1.5 1.5 0 01-1.5 1.5H14v-5h3a5 5 0 00-10 0h3v5H4.5A1.5 1.5 0 013 13.5V10z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
-    tools: [{
-      id: 'catalogo', label: 'Catálogo Hilo', desc: 'Explora el catálogo de Hilo y gestiona solicitudes de muestra',
-      icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/></svg>',
-      run: 'showCatalogYarn',
-    }],
-  },
-  muestras_fabric: {
-    label: 'SIERRA Fabric',
-    domains: ['fabric'],
-    color: '#009fff',
-    icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 10a7 7 0 0114 0v3.5a1.5 1.5 0 01-1.5 1.5H14v-5h3a5 5 0 00-10 0h3v5H4.5A1.5 1.5 0 013 13.5V10z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
-    tools: [{
-      id: 'catalogo', label: 'Catálogo Tela', desc: 'Explora el catálogo de Tela y gestiona solicitudes de muestra',
-      icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/></svg>',
-      run: 'showCatalogFabric',
-    }],
-  },
-  muestras_chemicals: {
-    label: 'SIERRA Chemicals',
-    domains: ['chemicals'],
-    color: '#ff7824',
-    icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 10a7 7 0 0114 0v3.5a1.5 1.5 0 01-1.5 1.5H14v-5h3a5 5 0 00-10 0h3v5H4.5A1.5 1.5 0 013 13.5V10z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
-    tools: [{
-      id: 'catalogo', label: 'Catálogo Químicos', desc: 'Explora el catálogo de Químicos y gestiona solicitudes de muestra',
-      icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/></svg>',
-      run: 'showCatalogChemicals',
-    }],
-  },
-  muestras_garment: {
-    label: 'SIERRA Apparel',
-    domains: ['garment'],
+  samples: {
+    label: 'Muestras',
+    // One módulo for every business unit. fiber/yarn/fabric/chemicals/
+    // garment (catalog+requests) and warehouse_<division> (dispatch+
+    // inventory) are all listed here so the módulo is visible the moment
+    // a user holds ANY of them — but which ones render in the sidebar,
+    // and which business-unit context is active, is decided at render
+    // time (renderSamplesNav/renderBuSwitcher), never by forking into a
+    // separate módulo per division. customer_service (requests/collections
+    // lifecycle) is intentionally cross-division: a Collection can mix
+    // Fabric and Garment items headed to the same NT warehouse.
+    domains: [...AUTH_DIVISIONS, ...AUTH_WAREHOUSES, 'customer_service'],
     color: '#16cdbe',
     icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 10a7 7 0 0114 0v3.5a1.5 1.5 0 01-1.5 1.5H14v-5h3a5 5 0 00-10 0h3v5H4.5A1.5 1.5 0 013 13.5V10z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
-    tools: [{
-      id: 'catalogo', label: 'Catálogo Confección', desc: 'Explora el catálogo de Confección y gestiona solicitudes de muestra',
-      icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/></svg>',
-      run: 'showCatalogGarment',
-    }],
+    tools: [], // contextual — Muestras jumps straight into showSamplesHome(), see enterModule()
   },
-  comercial: {
-    label: 'Comercial',
-    // Cross-division on purpose: a collection can mix items from every
-    // division in one shipment, so this is the one module that isn't
-    // scoped to a single material domain.
-    domains: ['customer_service'],
-    color: '#ff7824',
-    icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M13.5 14.5h5M16 12v5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
-    tools: [
-      {
-        id: 'colecciones',
-        label: 'Colecciones',
-        desc: 'Arma pedidos de muestras en equipo — por cliente, visita o proyecto',
-        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M13.5 14.5h5M16 12v5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
-        run: 'showCollectionsHub',
-      },
-      {
-        id: 'muestras',
-        label: 'Sample Center',
-        desc: 'Rastrea cada muestra física, de la solicitud al archivo',
-        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="10" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="10" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M13.5 13.5v-1M13.5 16.5v-1M11.5 14.5h1M15.5 14.5h1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
-        run: 'showSampleCenter',
-      },
-      {
-        id: 'insights',
-        label: 'Insights',
-        desc: 'Demanda, clientes y tendencias de las solicitudes de muestra',
-        icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M4 16V9M10 16V4M16 16v-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
-        run: 'showInsights',
-      },
-    ],
-  },
-  almacen_fiber:     almacenModule('fiber', '#9e00cb'),
-  almacen_yarn:      almacenModule('yarn', '#3ed600'),
-  almacen_fabric:    almacenModule('fabric', '#009fff'),
-  almacen_chemicals: almacenModule('chemicals', '#ff7824'),
-  almacen_garment:   almacenModule('garment', '#16cdbe'),
   administracion: {
     label: 'Administración',
     domains: ['platform'],
@@ -7964,7 +7960,7 @@ function renderModuleSwitcher() {
   const wrap = document.getElementById('mod-switch')
   const mods = accessibleModules()
   const mobCart = document.getElementById('mob-cart-btn')
-  if (mobCart) mobCart.style.display = moduleAccessible(MODULES.comercial) ? 'flex' : 'none'
+  if (mobCart) mobCart.style.display = can('read', 'customer_service') ? 'flex' : 'none'
   // Shown for anyone with at least one module — it's the only way back to
   // the Módulos hub now that the sidebar doesn't also carry a separate
   // "Módulos" button (that was a second, redundant path to the same place).
@@ -8001,8 +7997,21 @@ function enterModule(key) {
   const m = MODULES[key]
   if (!m || !moduleAccessible(m)) { showModuleHub(); return }
   syncModule(key)
+  if (key === 'samples') { showSamplesHome(); return }
   if (m.tools.length === 1) window[m.tools[0].run]()
   else showModuleTools(key)
+}
+
+// One line per business unit/role surface the user actually has, purely
+// for the Módulos hub card — never used to route (enterModule short-
+// circuits 'samples' into showSamplesHome() before this matters).
+function samplesModuleDesc() {
+  const parts = []
+  const divs = AUTH_DIVISIONS.filter(d => can('read', d))
+  if (divs.length) parts.push(divs.length === 1 ? DIV_LBL[divs[0]] : `${divs.length} business units`)
+  if (can('read', 'customer_service')) parts.push('Requests & Collections')
+  if (AUTH_WAREHOUSES.some(d => can('read', d) || can('dispatch', d))) parts.push('Fulfillment')
+  return parts.join(' · ') || 'Muestras'
 }
 
 function showModuleHub() {
@@ -8025,7 +8034,7 @@ function showModuleHub() {
       <div class="card" onclick="enterModule('${key}')" style="cursor:pointer;padding:1.25rem">
         <div style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:${m.color}14;color:${m.color};margin-bottom:0.85rem">${m.icon}</div>
         <div class="card-name" style="font-size:1rem">${esc(m.label)}</div>
-        <div class="card-desc">${m.tools.length} herramienta${m.tools.length !== 1 ? 's' : ''}</div>
+        <div class="card-desc">${key === 'samples' ? esc(samplesModuleDesc()) : `${m.tools.length} herramienta${m.tools.length !== 1 ? 's' : ''}`}</div>
       </div>
     </div>`).join('')}</div>`
 }
@@ -8466,7 +8475,7 @@ function tickClocksCompact() {
 
 const DASH_TIPS = [
   { type:'scan', label:'Workflow', text:'Scan any physical barcode to instantly pull up a product in the catalog.', action:'Try scanning', fn:"openScanMode()" },
-  { type:'label', label:'Production', text:'Print thermal labels directly from any product sheet to organize samples cleanly.', action:'Open catalog', fn:"setDiv('fabric',document.getElementById('nav-fabric'))" },
+  { type:'label', label:'Production', text:'Print thermal labels directly from any product sheet to organize samples cleanly.', action:'Open catalog', fn:"showSamplesCatalog()" },
   { type:'samples', label:'Samples', text:'Track sample requests in real time from the Sample Center, from approval to delivery.', action:'Open samples', fn:"showSampleCenter()" },
   { type:'search', label:'Search', text:'Use command search to find products by color, weight, construction, lot, or code.', action:'Try search', fn:"openSpotlight()" },
   { type:'market', label:'Market', text:'Tap a market row to review a 30-day price history for input cost context.', action:'', fn:"" },
@@ -9588,7 +9597,7 @@ function spotlightRunSearch(q) {
   closeSpotlight()
   onSearch(q)
   if (document.getElementById('view-products').style.display === 'none') {
-    setDiv('all', document.getElementById('nav-all'))
+    setDiv('all')
   }
 }
 
@@ -10149,7 +10158,7 @@ async function quickReq(p) { await addToCart(p) }
 
 /* ── SAMPLE CENTER VIEW ── */
 async function showSampleCenter() {
-  syncModule('comercial')
+  syncModule('samples')
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
@@ -10491,7 +10500,7 @@ async function showSampleRecord(sampleId) {
 async function showCollectionsHub() {
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
-  syncModule('comercial')
+  syncModule('samples')
   sessionStorage.setItem('sierra_route', 'collections')
   document.getElementById('sec-title').textContent = 'Colecciones'
   document.getElementById('sec-sub').textContent = 'Arma pedidos de muestras en equipo — por cliente, visita o proyecto'
@@ -10639,7 +10648,7 @@ async function cloneCollectionToDraft(sourceId) {
    search to keep adding items. Replaces the old flat "collection
    record" view: same URL/entry points, richer surface. ── */
 async function showCollectionRecord(collectionId, backTo) {
-  syncModule('comercial')
+  syncModule('samples')
   Object.values(_wsStatCharts).forEach(c => { try { c.destroy() } catch {} })
   _wsStatCharts = {}
   document.getElementById('div-toolbar').style.display = 'none'
@@ -11583,13 +11592,17 @@ let _dispatchCol = null, _dispatchItems = []
    specific collection ("Ir a Despacho"), with no way to see what's
    waiting overall. ── */
 const DISPATCH_QUEUE_STATUSES = ['requested', 'approved', 'preparing']
-async function showDispatchQueue(division) {
-  syncModule('almacen_' + division)
+async function showDispatchQueue(div) {
+  syncModule('samples')
+  division = div // keep the bu-switch context in sync with the warehouse queue being viewed
+  applyDivisionAccent(div)
+  renderBuSwitcher()
+  renderSamplesFulfillmentNav()
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-dispatch-queue-' + division)?.classList.add('active')
-  const title = `Cola de despacho · ${ALMACEN_DIV_LBL[division]}`
+  document.getElementById('nav-dispatch-queue')?.classList.add('active')
+  const title = `Cola de despacho · ${ALMACEN_DIV_LBL[div]}`
   document.getElementById('tb-section').textContent = title
   document.getElementById('product-controls').style.display = 'none'
   document.getElementById('sec-title').textContent = title
@@ -11603,17 +11616,17 @@ async function showDispatchQueue(division) {
   // the samples themselves (not a column on sample_collections) so a legacy
   // mixed collection still surfaces correctly to every division it touches.
   const { data: divSamples, error: divErr } = await sb.from('samples')
-    .select('collection_id, products!inner(division)').eq('products.division', division)
+    .select('collection_id, products!inner(division)').eq('products.division', div)
     .not('collection_id', 'is', null)
   if (divErr) { pg.innerHTML = `<div class="empty"><p>Error: ${esc(divErr.message)}</p></div>`; return }
   const colIds = [...new Set((divSamples || []).map(s => s.collection_id))]
-  if (!colIds.length) { pg.innerHTML = `<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>No hay colecciones de ${ALMACEN_DIV_LBL[division]} esperando despacho.</p></div>`; return }
+  if (!colIds.length) { pg.innerHTML = `<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>No hay colecciones de ${ALMACEN_DIV_LBL[div]} esperando despacho.</p></div>`; return }
 
   const { data: cols, error } = await sb.from('sample_collections')
     .select('id,collection_id,name,customer,priority,status,created_at,requested_by')
     .in('id', colIds).in('status', DISPATCH_QUEUE_STATUSES).order('created_at', { ascending: true })
   if (error) { pg.innerHTML = `<div class="empty"><p>Error: ${esc(error.message)}</p></div>`; return }
-  if (!cols.length) { pg.innerHTML = `<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>No hay colecciones de ${ALMACEN_DIV_LBL[division]} esperando despacho.</p></div>`; return }
+  if (!cols.length) { pg.innerHTML = `<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>No hay colecciones de ${ALMACEN_DIV_LBL[div]} esperando despacho.</p></div>`; return }
 
   const { data: items } = await sb.from('samples').select('collection_id, products(division)').in('collection_id', cols.map(c => c.id))
   const divsByCol = {}
@@ -11635,11 +11648,13 @@ async function showDispatchQueue(division) {
     </div>`
   }).join('')}</div>`
 }
-function showDispatchQueueFiber()     { showDispatchQueue('fiber') }
-function showDispatchQueueYarn()      { showDispatchQueue('yarn') }
-function showDispatchQueueFabric()    { showDispatchQueue('fabric') }
-function showDispatchQueueChemicals() { showDispatchQueue('chemicals') }
-function showDispatchQueueGarment()   { showDispatchQueue('garment') }
+// Sidebar entry point — dispatches into whichever business unit is
+// currently in context (see bu-switch), falling back to the user's first
+// warehouse-authorized division.
+function showDispatchQueueCurrent() {
+  const d = hasWarehouseAccess(division) ? division : AUTH_DIVISIONS.find(x => hasWarehouseAccess(x))
+  if (d) showDispatchQueue(d)
+}
 
 async function showDispatch(collectionId) {
   document.getElementById('div-toolbar').style.display = 'none'
@@ -12672,25 +12687,29 @@ function renderInventoryOverview(D, P, division) {
 }
 
 let _whInvPeriod = 30, _whInvDivision = null
-async function showWarehouseInventory(division) {
-  _whInvDivision = division
-  syncModule('almacen_' + division)
+async function showWarehouseInventory(div) {
+  _whInvDivision = div
+  division = div // keep the bu-switch context in sync with the warehouse inventory being viewed
+  syncModule('samples')
+  applyDivisionAccent(div)
+  renderBuSwitcher()
+  renderSamplesFulfillmentNav()
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-wh-inventory-' + division)?.classList.add('active')
-  const title = `Inventario · ${ALMACEN_DIV_LBL[division]}`
+  document.getElementById('nav-wh-inventory')?.classList.add('active')
+  const title = `Inventario · ${ALMACEN_DIV_LBL[div]}`
   document.getElementById('tb-section').textContent = title
   document.getElementById('product-controls').style.display = 'none'
   document.getElementById('sec-title').textContent = title
-  document.getElementById('sec-sub').textContent = `Existencias, rotación y movimientos de ${ALMACEN_DIV_LBL[division]}`
+  document.getElementById('sec-sub').textContent = `Existencias, rotación y movimientos de ${ALMACEN_DIV_LBL[div]}`
 
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
   pg.innerHTML = `
     <div class="srd-card" style="margin-bottom:1.5rem;max-width:480px">
       <label style="display:block;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-3);margin-bottom:0.4rem">Registrar movimiento</label>
-      <input type="text" id="wh-inv-search" class="tl-search" style="width:100%" placeholder="Buscar producto de ${esc(ALMACEN_DIV_LBL[division])} por nombre o código…" oninput="whInvSearchProducts(this.value)" />
+      <input type="text" id="wh-inv-search" class="tl-search" style="width:100%" placeholder="Buscar producto de ${esc(ALMACEN_DIV_LBL[div])} por nombre o código…" oninput="whInvSearchProducts(this.value)" />
       <div id="wh-inv-search-results"></div>
     </div>
     <div style="display:flex;justify-content:flex-end;margin-bottom:0.85rem">
@@ -12703,11 +12722,12 @@ async function showWarehouseInventory(division) {
   const D = await insightsData()
   document.getElementById('wh-inv-body').innerHTML = renderInventoryOverview(D, _whInvPeriod, _whInvDivision)
 }
-function showWarehouseInventoryFiber()     { showWarehouseInventory('fiber') }
-function showWarehouseInventoryYarn()      { showWarehouseInventory('yarn') }
-function showWarehouseInventoryFabric()    { showWarehouseInventory('fabric') }
-function showWarehouseInventoryChemicals() { showWarehouseInventory('chemicals') }
-function showWarehouseInventoryGarment()   { showWarehouseInventory('garment') }
+// Sidebar entry point — same "current business unit" pattern as
+// showDispatchQueueCurrent().
+function showWarehouseInventoryCurrent() {
+  const d = hasWarehouseAccess(division) ? division : AUTH_DIVISIONS.find(x => hasWarehouseAccess(x))
+  if (d) showWarehouseInventory(d)
+}
 async function whInvSetPeriod(v) {
   _whInvPeriod = parseInt(v, 10)
   const D = await insightsData()
@@ -12913,7 +12933,7 @@ function insightsSections() {
 const INS_LABELS = { overview:'Overview', demand:'Demand', operations:'Operations', customers:'Customers', health:'Product Health', trends:'Trends' }
 
 async function showInsights() {
-  syncModule('comercial')
+  syncModule('samples')
   sessionStorage.setItem('sierra_route', 'insights')
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
