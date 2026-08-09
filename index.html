@@ -348,6 +348,22 @@
     .lc-pill { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.66rem; font-weight:600; padding:0.18rem 0.5rem; border-radius:7px; border:1px solid transparent; white-space:nowrap; }
     .lc-pill-sm { font-size:0.6rem; padding:0.1rem 0.4rem; }
     .lc-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+    /* ── StatusControl (§17) — one interactive control for lifecycle status,
+       not a read-only pill next to a separate "Change status" dropdown. The
+       pd-select primitive is reused wholesale; this just retints its button
+       to look like an .lc-pill (colored dot + tinted fill) instead of the
+       generic gray field-select chrome, so it reads as "this pill IS the
+       control" rather than two controls for one concept. */
+    .pd-status-select .pd-select { min-width:0; }
+    .pd-status-select .pd-select-btn {
+      min-height:auto; width:auto; gap:0.32rem; padding:0.18rem 0.45rem 0.18rem 0.5rem;
+      border-radius:7px; font-size:0.66rem; font-weight:600;
+      background:color-mix(in srgb, var(--sc) 15%, transparent);
+      color:var(--sc); border-color:color-mix(in srgb, var(--sc) 30%, transparent);
+    }
+    .pd-status-select .pd-select-btn:hover { background:color-mix(in srgb, var(--sc) 22%, transparent); }
+    .pd-status-select .pd-select-btn::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--sc); flex-shrink:0; }
+    .pd-status-select .pd-select-chev { width:11px; height:11px; color:var(--sc); opacity:0.75; }
     .grant-sel { font-size:0.72rem; padding:0.25rem 0.4rem; border-radius:7px; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:inherit; cursor:pointer; }
     #view-detail select { display:none !important; }
     .pd-select { position:relative; display:inline-flex; min-width:118px; max-width:100%; vertical-align:middle; }
@@ -855,9 +871,17 @@
     #select-count { font-weight:600; }
 
     /* ── COMMENTS ── */
-    .comment-list { display:flex; flex-direction:column; gap:0.65rem; margin-bottom:1rem; }
-    .comment-item { background:none; border:1px solid var(--border); border-radius:9px; padding:0.65rem 0.85rem; }
-    .comment-meta { font-size:0.68rem; color:var(--text-3); margin-bottom:0.25rem; display:flex; justify-content:space-between; align-items:center; }
+    .comment-list { display:flex; flex-direction:column; gap:0.85rem; margin-bottom:1rem; }
+    /* Comments read as collaboration (§15 of the brief) — an avatar next to
+       name/text/timestamp, like a conversation, not a database log row. */
+    .comment-item { display:flex; gap:0.6rem; }
+    .comment-avatar {
+      width:26px; height:26px; border-radius:50%; flex-shrink:0; margin-top:0.1rem;
+      display:flex; align-items:center; justify-content:center;
+      background:var(--accent-light); color:var(--accent); font-size:0.68rem; font-weight:700;
+    }
+    .comment-body { flex:1; min-width:0; }
+    .comment-meta { font-size:0.68rem; color:var(--text-3); margin-bottom:0.15rem; display:flex; justify-content:space-between; align-items:center; }
     .comment-author { font-weight:600; color:var(--text-2); }
     .comment-text { font-size:0.82rem; color:var(--text); line-height:1.5; }
     .comment-del { background:none; border:none; cursor:pointer; color:var(--text-3); font-size:0.7rem; padding:0.1rem 0.3rem; border-radius:4px; }
@@ -1704,6 +1728,7 @@
     .completeness-missing-row { display:flex; align-items:center; gap:0.5rem; padding:0.3rem 0.5rem; font-size:0.78rem; color:var(--text-2); }
     .completeness-missing-row svg { flex-shrink:0; color:var(--warning-text,#92600a); }
     .completeness-pop-ok { padding:0.4rem 0.5rem; font-size:0.78rem; color:var(--success,#34c759); }
+    .completeness-pop-action { width:100%; margin-top:0.35rem; justify-content:center; }
 
     /* RecordTabs is .pd-tabs.pd-tabs-inline (already canonical, see Catalog
        ViewTabs) — no separate tab component for this screen. */
@@ -1712,13 +1737,14 @@
     /* field-section / field-grid / field — the ERP DataField system.
        Subtle top-border separators between sections, never a card per
        attribute and never one full-width row per attribute. */
-    .field-section { padding:1.1rem 0; border-top:1px solid var(--border); }
+    .field-section { padding:0.95rem 0; border-top:1px solid var(--border); }
     .field-section:first-child { padding-top:0; border-top:none; }
     .field-section-title {
-      font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em;
-      color:var(--text-3); margin-bottom:0.85rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;
+      font-size:0.66rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em;
+      color:var(--text-2); margin-bottom:0.7rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;
     }
-    .field-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:1rem 1.5rem; }
+    .pd-tab-count-inline { font-weight:600; color:var(--text-3); margin-left:0.35rem; text-transform:none; letter-spacing:normal; }
+    .field-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:0.8rem 1.5rem; }
     .field-grid.cols-3 { grid-template-columns:repeat(3, minmax(0,1fr)); }
     .field { min-width:0; }
     .field-span-2 { grid-column:span 2; }
@@ -1736,6 +1762,25 @@
     .field-copy:hover { color:var(--text); }
     .field-empty .field-value { color:var(--text-3); }
     .field-multiline .field-value { display:block; white-space:pre-line; }
+    /* Prominent value fields (§4 of the brief) — the handful of Overview
+       values a user needs first (Construction/Weight/Width/Color) get a
+       visually dominant value over a quiet label, instead of every
+       label/value pair carrying identical weight. */
+    .field-lg .field-label { font-size:0.64rem; }
+    .field-lg .field-value { font-size:1.2rem; font-weight:700; letter-spacing:-0.01em; }
+    /* ── EmptyState, compact variant (§6 of the brief) ── icon + one line of
+       title/context + optional action, in a single row that hugs its
+       content instead of filling the section height. Never the giant
+       centered .empty block (illustration-scale icon, 4rem padding) used
+       for whole-page empty states. */
+    .empty-compact { display:flex; align-items:center; gap:0.75rem; padding:0.85rem 0; color:var(--text-3); }
+    .empty-compact-icon {
+      width:30px; height:30px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+      background:var(--surface2); color:var(--text-3);
+    }
+    .empty-compact-body { flex:1; min-width:0; }
+    .empty-compact-title { font-size:0.8rem; font-weight:600; color:var(--text-2); }
+    .empty-compact-desc { font-size:0.72rem; color:var(--text-3); margin-top:0.1rem; line-height:1.4; }
     .pd-format-chips { display:flex; flex-wrap:wrap; gap:0.38rem; }
     .pd-format-chip {
       font-size:0.68rem; font-weight:500; color:var(--text-2);
@@ -1839,7 +1884,12 @@
     .lightbox-thumbs .pgal-thumb { width:46px; height:46px; }
 
     /* ── DocumentList ── compact list, not a spreadsheet-style table for
-       a handful of files */
+       a handful of files. Feels like a document manager (§12 of the
+       brief): a header row with the primary action, and a badge that
+       tells generated documents (Technical Sheet/Label, always current)
+       apart from files an editor uploaded/pasted a link to. */
+    .doc-list-hdr { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:0.5rem; }
+    .doc-list-hdr > span { font-size:0.66rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-2); }
     .doc-list { display:flex; flex-direction:column; }
     .doc-row {
       display:flex; align-items:center; gap:0.75rem; padding:0.65rem 0.2rem;
@@ -1851,8 +1901,11 @@
       background:var(--surface2); color:var(--text-3);
     }
     .doc-main { flex:1; min-width:0; }
-    .doc-name { font-size:0.84rem; font-weight:500; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .doc-name { font-size:0.84rem; font-weight:500; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:0.45rem; }
     .doc-meta { font-size:0.7rem; color:var(--text-3); }
+    .doc-badge { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; padding:0.08rem 0.4rem; border-radius:5px; flex-shrink:0; }
+    .doc-badge-gen { background:var(--accent-light); color:var(--accent); }
+    .doc-badge-up { background:var(--surface2); color:var(--text-3); }
 
     /* ── STICKY TOOLBAR ── */
     /* ── WorkflowActionBar ── sticky bottom action bar shared by every
@@ -2724,6 +2777,26 @@
     .pd-tabs-inline .pd-tab { flex:none; background:var(--surface2); border:1px solid transparent; white-space:nowrap; }
     .pd-tabs-inline .pd-tab.active { background:var(--accent-light,var(--surface)); border-color:var(--border); box-shadow:none; color:var(--accent-ink,var(--text)); }
     .pd-tabs-inline .pd-tab-count { margin-left:0.35rem; opacity:0.65; font-weight:500; }
+
+    /* ── RecordTabs, navigation variant (.pd-tabs-nav) ── RecordTabs (Product
+       Detail's Overview/Technical/Samples & Inventory/Documents/Activity) is
+       navigation between views of one record, not a mode switch like Catalog's
+       Table|Cards — it should read as plain text links with a quiet active
+       underline, not a row of pill buttons that look disabled when inactive
+       (SIERRA_DESIGN_SYSTEM.md §20 RecordTabs). Composes on top of
+       .pd-tabs-inline rather than replacing it — same DOM, same JS. */
+    .pd-tabs-nav { border-bottom:1px solid var(--border); gap:1.3rem; padding-bottom:0; }
+    .pd-tabs-nav .pd-tab {
+      background:none; border:none; border-radius:0; color:var(--text-3); font-weight:500;
+      padding:0.5rem 0.05rem 0.65rem; position:relative; box-shadow:none;
+    }
+    .pd-tabs-nav .pd-tab::after {
+      content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px; border-radius:2px;
+      background:var(--accent); transform:scaleX(0); transition:transform 0.15s var(--ease-out,ease);
+    }
+    .pd-tabs-nav .pd-tab:hover { color:var(--text); }
+    .pd-tabs-nav .pd-tab.active { background:none; color:var(--text); font-weight:700; }
+    .pd-tabs-nav .pd-tab.active::after { transform:scaleX(1); }
 
     /* ── Catalog DataToolbar ── one shared toolbar row for the Catalog list
        screen (§ SIERRA_DESIGN_SYSTEM.md "Catalog"): + New product / Search /
@@ -5514,18 +5587,35 @@ function shareProduct(p) {
    from these two helpers instead of hand-rolling a spec table. ══════ */
 const FIELD_COPY_ICON = `<svg width="11" height="11" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" stroke="currentColor" stroke-width="1.4"/></svg>`
 
+// Human-friendly value formatting (SIERRA_DESIGN_SYSTEM.md §5 of the brief):
+// never show raw DB shapes (ISO timestamps, meaningless "0") when a
+// human-readable representation exists. zeroAsEmpty is opt-in per field —
+// most numeric ERP fields treat 0 as "not entered", but a handful (counts,
+// reserved quantities) treat 0 as real data, so callers decide explicitly.
+function fmtHumanDate(v) {
+  if (v === null || v === undefined || v === '') return null
+  const d = new Date(v)
+  if (isNaN(d.getTime())) return String(v) // free text that isn't a date — pass through
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 // opts: { label, value, html (pre-rendered value markup, overrides value),
 //         copy (bool|string — string copies that instead of the text value),
-//         span (2 = double-width), multiline (bool) }
+//         span (2 = double-width), multiline (bool), lg (bool — prominent
+//         value, quiet label, for the handful of fields a user needs most),
+//         date (bool — format value as a human date), zeroAsEmpty (bool) }
 function dataFieldHtml(opts) {
-  const { label, value, html, copy, span, multiline } = opts
-  const hasValue = html != null || (value !== null && value !== undefined && String(value) !== '')
-  if (!hasValue && !opts.always) return ''
+  const { label, value, html, copy, span, multiline, lg, date, zeroAsEmpty } = opts
+  const isZeroEmpty = zeroAsEmpty && (value === 0 || value === '0')
+  const rawHasValue = html != null || (value !== null && value !== undefined && String(value) !== '')
+  const hasValue = rawHasValue && !isZeroEmpty
+  if (!hasValue && !opts.always && !zeroAsEmpty) return ''
   const copyVal = copy === true ? String(value ?? '') : (typeof copy === 'string' ? copy : null)
-  return `<div class="field${span === 2 ? ' field-span-2' : ''}${multiline ? ' field-multiline' : ''}${hasValue ? '' : ' field-empty'}">
+  const displayVal = html != null ? html : (hasValue ? esc(date ? (fmtHumanDate(value) ?? String(value)) : String(value)) : (isZeroEmpty ? 'Not specified' : '—'))
+  return `<div class="field${span === 2 ? ' field-span-2' : ''}${multiline ? ' field-multiline' : ''}${lg ? ' field-lg' : ''}${hasValue ? '' : ' field-empty'}">
     <div class="field-label">${esc(label)}</div>
     <div class="field-value">
-      <span class="field-value-text">${html != null ? html : (hasValue ? esc(String(value)) : '—')}</span>
+      <span class="field-value-text">${displayVal}</span>
       ${copyVal ? `<button type="button" class="field-copy" onclick="event.stopPropagation();copyToClipboard('${jsStr(copyVal)}')" title="Copy">${FIELD_COPY_ICON}</button>` : ''}
     </div>
   </div>`
@@ -5543,6 +5633,25 @@ function fieldSectionHtml(title, innerHtml, opts = {}) {
   return `<div class="field-section">
     <div class="field-section-title"><span>${esc(title)}</span>${opts.aside || ''}</div>
     ${innerHtml}
+  </div>`
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   EmptyState — compact, standardized "nothing here yet" block (§6 of the
+   brief). Replaces ad-hoc one-line "No X yet." placeholders sitting in
+   hundreds of pixels of blank space: icon + title + one line of context +
+   an optional action, sized to the section it lives in, never a full-page
+   illustration. Reusable anywhere in the app that lists records — Product
+   Detail's sub-panels are the first consumer. ══════════════════════════ */
+function emptyStateHtml(opts) {
+  const { icon, title, desc, actionLabel, actionOnClick } = opts
+  return `<div class="empty-compact">
+    <div class="empty-compact-icon">${icon || '<svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="3" stroke="currentColor" stroke-width="1.4"/></svg>'}</div>
+    <div class="empty-compact-body">
+      <div class="empty-compact-title">${esc(title)}</div>
+      ${desc ? `<div class="empty-compact-desc">${esc(desc)}</div>` : ''}
+    </div>
+    ${actionLabel ? `<button type="button" class="btn btn-ghost btn-sm" onclick="${escAttr(actionOnClick || '')}">${esc(actionLabel)}</button>` : ''}
   </div>`
 }
 
@@ -5595,7 +5704,7 @@ document.addEventListener('keydown', e => {
    fields (SIERRA_DESIGN_SYSTEM.md "CompletenessIndicator"). Reusable
    anywhere a record has a completeness score; product detail is the
    first consumer. ══════════════════════════════════════════════════ */
-function completenessChipHtml(complete, popId) {
+function completenessChipHtml(complete, popId, editAction) {
   const r = 6, c = 2 * Math.PI * r
   const offset = c * (1 - complete.pct / 100)
   return `<div style="position:relative">
@@ -5606,7 +5715,8 @@ function completenessChipHtml(complete, popId) {
     <div class="ws-pop completeness-pop" id="${popId}">
       ${complete.missing.length
         ? `<div class="completeness-pop-hd"><b>${complete.done}/${complete.total}</b> fields complete</div>
-           ${complete.missing.map(m => `<div class="completeness-missing-row"><svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M10 3L2 17h16L10 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 8.5v3.5M10 14.5v.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>${esc(m)}</div>`).join('')}`
+           ${complete.missing.map(m => `<div class="completeness-missing-row"><svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M10 3L2 17h16L10 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 8.5v3.5M10 14.5v.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>${esc(m)}</div>`).join('')}
+           ${editAction ? `<button type="button" class="btn btn-ghost btn-sm completeness-pop-action" onclick="${escAttr(editAction)}">Complete product information</button>` : ''}`
         : `<div class="completeness-pop-ok">✓ All key fields complete</div>`}
     </div>
   </div>`
@@ -5698,7 +5808,7 @@ function refreshPdOverviewGallery() {
   const gal = document.getElementById('pd-gallery-slot')
   if (gal) gal.innerHTML = pdGalleryHtml(selected)
   const comp = document.getElementById('pd-completeness-slot')
-  if (comp) comp.outerHTML = completenessChipHtml(pdCompleteness(selected), 'pd-completeness-pop')
+  if (comp) comp.outerHTML = completenessChipHtml(pdCompleteness(selected), 'pd-completeness-pop', canEditDiv(selected.division) && !isArchived(selected) ? `openEdit(selected)` : null)
 }
 function pdSetActiveImage(i) { _pdGalleryActive = i; refreshPdOverviewGallery() }
 function pdTriggerAddImages() { document.getElementById('pd-gallery-file-input')?.click() }
@@ -5800,37 +5910,43 @@ function showProductDetail(p) {
 
   const cp = v => String(v).replace(/'/g, "\\'")
 
-  /* ── Overview: the fields a user needs most frequently (§5) ── */
+  /* ── Overview: the executive summary, not a condensed technical sheet
+     (§3–§4 of the brief). The four values a user reaches for first
+     (Construction/Weight/Width/Color) render large and bold — quiet label,
+     dominant value — everything else is normal-weight secondary detail. A
+     zero GSM/Diameter/Gauge/Needles reads as "not entered", never as a
+     meaningful measurement of zero (§5). ── */
+  const gsmLabel = specs.GSM && String(specs.GSM) !== '0' ? `${esc(String(specs.GSM))} GSM` : null
   const overviewFieldsHtml = p.division === 'fabric'
-    ? dataFieldGridHtml([
-        { label: 'Composition', html: compBlockHtml(specs.Composition), span: 2 },
-        { label: 'Construction', value: CONST_META[inferConstruction(p)]?.label },
-        { label: 'Color', value: specs.Color, copy: true },
-        { label: 'Lot', value: p.lot, copy: true },
-        { label: 'Country', value: p.country || 'Honduras' },
-        { label: 'Dye Method', value: specs['Dyed Method'] },
-      ])
-    + dataFieldGridHtml([
-        { label: 'Width', value: specs.Width, copy: true },
-        { label: 'GSM', value: specs.GSM, copy: true },
-        { label: 'Diameter', value: specs.DIA },
-        { label: 'Gauge', value: specs.Gauge },
-        { label: 'Needles', value: specs.Needles },
-        { label: 'Route Type', value: specs['Route Type'] },
-      ])
-    : dataFieldGridHtml([
+    ? fieldSectionHtml('Product Essentials',
+        dataFieldGridHtml([
+          { label: 'Construction', value: CONST_META[inferConstruction(p)]?.label, lg: true, always: true },
+          { label: 'Weight', html: gsmLabel, lg: true, always: true },
+          { label: 'Width', value: specs.Width, lg: true, copy: true, always: true },
+          { label: 'Color', value: specs.Color, lg: true, copy: true, always: true },
+        ])
+        + dataFieldGridHtml([
+          { label: 'Composition', html: compBlockHtml(specs.Composition), span: 2 },
+          { label: 'Dye Method', value: specs['Dyed Method'] },
+          { label: 'Lot', value: p.lot, copy: true },
+          { label: 'Country', value: p.country || 'Honduras' },
+          { label: 'Diameter', value: specs.DIA, zeroAsEmpty: true },
+          { label: 'Gauge', value: specs.Gauge, zeroAsEmpty: true },
+          { label: 'Route Type', value: specs['Route Type'] },
+        ]))
+    : fieldSectionHtml('Product Essentials', dataFieldGridHtml([
         { label: 'Description', value: p.description, span: 2, multiline: true },
         ...Object.entries(specs).filter(([k]) => !['Documents','Sample Formats','image_captions'].includes(k)).slice(0, 6).map(([k, v]) => ({ label: k, value: v, copy: true })),
-      ])
+      ]))
 
   /* ── Technical: complete spec, grouped into real ERP sections (§12) ── */
   let technicalHtml = ''
   if (p.division === 'fabric') {
     technicalHtml += fieldSectionHtml('Construction', dataFieldGridHtml([
       { label: 'Construction', value: CONST_META[inferConstruction(p)]?.label },
-      { label: 'Gauge', value: specs.Gauge },
-      { label: 'Diameter', value: specs.DIA },
-      { label: 'Needles', value: specs.Needles },
+      { label: 'Gauge', value: specs.Gauge, zeroAsEmpty: true },
+      { label: 'Diameter', value: specs.DIA, zeroAsEmpty: true },
+      { label: 'Needles', value: specs.Needles, zeroAsEmpty: true },
       { label: 'Route Type', value: specs['Route Type'] },
     ]))
     technicalHtml += fieldSectionHtml('Material', dataFieldGridHtml([
@@ -5840,12 +5956,12 @@ function showProductDetail(p) {
       { label: 'Yarn 03', value: specs['Yarn 03'] },
     ]))
     technicalHtml += fieldSectionHtml('Physical', dataFieldGridHtml([
-      { label: 'Width', value: specs.Width, copy: true },
-      { label: 'GSM', value: specs.GSM, copy: true },
-      { label: 'Req Width', value: specs['Req Width'] },
-      { label: 'Req GSM', value: specs['Req GSM'] },
-      { label: 'Std Width', value: specs['Std Width'] },
-      { label: 'Std GSM', value: specs['Std GSM'] },
+      { label: 'Width', value: specs.Width, copy: true, zeroAsEmpty: true },
+      { label: 'GSM', value: specs.GSM, copy: true, zeroAsEmpty: true },
+      { label: 'Req Width', value: specs['Req Width'], zeroAsEmpty: true },
+      { label: 'Req GSM', value: specs['Req GSM'], zeroAsEmpty: true },
+      { label: 'Std Width', value: specs['Std Width'], zeroAsEmpty: true },
+      { label: 'Std GSM', value: specs['Std GSM'], zeroAsEmpty: true },
     ]))
     technicalHtml += fieldSectionHtml('Dyeing / Finishing', dataFieldGridHtml([
       { label: 'Color', value: specs.Color, copy: true },
@@ -5854,8 +5970,8 @@ function showProductDetail(p) {
     technicalHtml += fieldSectionHtml('Commercial', dataFieldGridHtml([
       { label: 'Vendor', value: specs.Vendor },
       { label: 'Buyer', value: specs.Buyer },
-      { label: 'Sample Qty', value: specs['Sample Qty'] },
-      { label: 'Rec Date', value: specs['Rec Date'] },
+      { label: 'Sample Qty', value: specs['Sample Qty'], zeroAsEmpty: true },
+      { label: 'Received', value: specs['Rec Date'], date: true },
     ]))
     technicalHtml += fieldSectionHtml('Identification', dataFieldGridHtml([
       { label: 'Product Code', value: p.code, copy: true },
@@ -5910,21 +6026,27 @@ function showProductDetail(p) {
      plus any URLs an editor attached in specs.Documents ── */
   const docIcon = `<svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M5 3h7l4 4v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 3v4h4" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>`
   const linkIcon = `<svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M8 12l4-4M7 14l-2 2a3 3 0 01-4-4l3-3a3 3 0 014 0M13 6l2-2a3 3 0 014 4l-3 3a3 3 0 01-4 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`
-  const docsHtml = `<div class="doc-list">
+  const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const docsHtml = `
+    <div class="doc-list-hdr">
+      <span>Documents</span>
+      ${canEdit ? `<button class="btn btn-ghost btn-sm" onclick="openEdit(selected,'extras')">+ Add document</button>` : ''}
+    </div>
+    <div class="doc-list">
     <div class="doc-row">
       <div class="doc-icon">${docIcon}</div>
-      <div class="doc-main"><div class="doc-name">Technical Sheet</div><div class="doc-meta">Generated from current specifications</div></div>
+      <div class="doc-main"><div class="doc-name">Technical Sheet<span class="doc-badge doc-badge-gen">Generated</span></div><div class="doc-meta">Updated ${today} · from current specifications</div></div>
       <button class="btn btn-ghost btn-sm" onclick="generateTechnicalSheet()">Open</button>
     </div>
     <div class="doc-row">
       <div class="doc-icon">${docIcon}</div>
-      <div class="doc-main"><div class="doc-name">Label</div><div class="doc-meta">QR / barcode print label</div></div>
+      <div class="doc-main"><div class="doc-name">Label<span class="doc-badge doc-badge-gen">Generated</span></div><div class="doc-meta">Updated ${today} · QR / barcode print label</div></div>
       <button class="btn btn-ghost btn-sm" onclick="openLabel()">Open</button>
     </div>
     ${(specs.Documents || '').split('\n').map(u => u.trim()).filter(Boolean).map(u => `
     <div class="doc-row">
       <div class="doc-icon">${linkIcon}</div>
-      <div class="doc-main"><div class="doc-name">${esc(u.split('/').pop() || u)}</div><div class="doc-meta">${esc(u)}</div></div>
+      <div class="doc-main"><div class="doc-name">${esc(u.split('/').pop() || u)}<span class="doc-badge doc-badge-up">Uploaded</span></div><div class="doc-meta">${esc(u)}</div></div>
       <a class="btn btn-ghost btn-sm" href="${esc(u)}" target="_blank" rel="noopener">Open</a>
     </div>`).join('')}
   </div>`
@@ -5970,15 +6092,16 @@ function showProductDetail(p) {
           </div>
         </div>
         <div class="pd-header-status">
-          ${lcPill(p)}
-          ${canEdit ? pdSelect('pd-lifecycle', statusOptions, '', tx('product.changeStatus'), 'changeLifecycle') : ''}
-          <span id="pd-completeness-slot">${completenessChipHtml(complete, 'pd-completeness-pop')}</span>
+          ${canEdit
+            ? `<span class="pd-status-select" style="--sc:${LIFECYCLE[lc(p)].color}">${pdSelect('pd-lifecycle', statusOptions, lc(p), tx('lifecycle.' + lc(p)), 'changeLifecycle')}</span>`
+            : lcPill(p)}
+          <span id="pd-completeness-slot">${completenessChipHtml(complete, 'pd-completeness-pop', canEdit ? `openEdit(selected)` : null)}</span>
         </div>
         <div class="pd-header-actions">${headerActionsHtml}</div>
       </div>
     </div>
 
-    <div class="pd-tabs pd-tabs-inline" id="pd-record-tabs">
+    <div class="pd-tabs pd-tabs-inline pd-tabs-nav" id="pd-record-tabs">
       <button class="pd-tab active" data-tab="overview" onclick="switchPdRecordTab('overview')">Overview</button>
       <button class="pd-tab" data-tab="technical" onclick="switchPdRecordTab('technical')">Technical</button>
       <button class="pd-tab" data-tab="samples" onclick="switchPdRecordTab('samples')">Samples &amp; Inventory</button>
@@ -5989,16 +6112,25 @@ function showProductDetail(p) {
     <div id="pd-view-overview">
       <div class="pd-overview-grid">
         <div class="pd-overview-gallery" id="pd-gallery-slot">${pdGalleryHtml(p)}</div>
-        <div class="pd-overview-fields">${overviewFieldsHtml}</div>
+        <div class="pd-overview-fields">
+          ${overviewFieldsHtml}
+          ${fieldSectionHtml('Sample Availability', dataFieldGridHtml([
+            { label: 'Status', html: `<span id="pd-avail-ov"><span style="font-size:0.78rem;color:var(--text-3)">—</span></span>`, always: true },
+            { label: 'Available As', html: formatChipsHtml, always: true },
+          ]))}
+        </div>
       </div>
     </div>
 
     <div id="pd-view-technical" style="display:none">${technicalHtml}</div>
 
     <div id="pd-view-samples" style="display:none">
-      ${fieldSectionHtml('Availability', dataFieldGridHtml([
-        { label: 'Sample Availability', html: `<span id="pd-avail"><span style="font-size:0.78rem;color:var(--text-3)">—</span></span>`, always: true },
-        { label: 'Available As', html: formatChipsHtml, always: true },
+      ${fieldSectionHtml('Sample Availability', dataFieldGridHtml([
+        { label: 'Available Formats', html: formatChipsHtml, always: true },
+        { label: 'Inventory', html: `<span id="pd-sa-inv"><span style="font-size:0.78rem;color:var(--text-3)">—</span></span>`, always: true, lg: true },
+        { label: 'Reserved', html: `<span id="pd-sa-res"><span style="font-size:0.78rem;color:var(--text-3)">—</span></span>`, always: true },
+        { label: 'Warehouse', html: `<span id="pd-sa-loc"><span style="font-size:0.78rem;color:var(--text-3)">—</span></span>`, always: true },
+        { label: 'Last movement', html: `<span id="pd-sa-move"><span style="font-size:0.78rem;color:var(--text-3)">—</span></span>`, always: true },
       ]))}
       <div class="field-section">
         <div class="field-section-title"><span>${tx('product.sampleInventory')}</span><span id="pd-inv-actions"></span></div>
@@ -6008,7 +6140,7 @@ function showProductDetail(p) {
       </div>
       <div class="field-section">
         <div class="field-section-title">
-          <span>${tx('product.related')}</span>
+          <span>${tx('product.related')}<span id="pd-related-count" class="pd-tab-count-inline"></span></span>
           ${canEdit ? `<button class="btn btn-ghost btn-sm" onclick="toggleRelAdd()">+ Link</button>` : ''}
         </div>
         <div id="pd-rel-add" style="display:none">
@@ -6030,12 +6162,12 @@ function showProductDetail(p) {
 
     <div id="pd-view-activity" style="display:none">
       <div class="field-section">
-        <div class="field-section-title">${tx('product.comments')}</div>
-        <div id="ficha-comments-inner"></div>
-      </div>
-      <div class="field-section">
+        <!-- Activity / Comments / Versions (§13) — three distinct purposes,
+             never all on screen together. No permanent comment box eating
+             Activity's space; Comments is one click away, not the default. -->
         <div class="pd-tabs" id="pd-activity-subtabs">
           <button class="pd-tab active" data-tab="activity" onclick="switchPdTab('activity')">${tx('product.activity')}</button>
+          <button class="pd-tab" data-tab="comments" onclick="switchPdTab('comments')">${tx('product.comments')}</button>
           <button class="pd-tab" data-tab="versions" onclick="switchPdTab('versions')">${tx('product.versions')}</button>
         </div>
         <div id="pd-tab-activity">
@@ -6045,6 +6177,9 @@ function showProductDetail(p) {
           </div>
           <div id="pd-timeline"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
           <button id="pd-timeline-more" class="btn btn-ghost btn-sm" style="display:none;margin-top:0.6rem;width:100%" onclick="loadPdActivity(false)">${tx('product.loadMore')}</button>
+        </div>
+        <div id="pd-tab-comments" style="display:none">
+          <div id="ficha-comments-inner"></div>
         </div>
         <div id="pd-tab-versions" style="display:none"></div>
       </div>
@@ -6496,18 +6631,27 @@ async function loadFichaComments(productId) {
   }
   const items = (data || []).map(c => {
     const canDel = me.id === c.user_id || canEditDiv(selected?.division)
+    const name = c.profiles?.full_name || 'Unknown'
+    const initials = name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'
     return `<div class="comment-item" data-cid="${c.id}">
-      <div class="comment-meta">
-        <span class="comment-author">${esc(c.profiles?.full_name || 'Unknown')}</span>
-        <span style="display:flex;align-items:center;gap:0.4rem">
-          ${new Date(c.created_at).toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'})}
-          ${canDel ? `<button class="comment-del" onclick="deleteComment('${c.id}','${productId}')">✕</button>` : ''}
-        </span>
+      <div class="comment-avatar">${esc(initials)}</div>
+      <div class="comment-body">
+        <div class="comment-meta">
+          <span class="comment-author">${esc(name)}</span>
+          <span style="display:flex;align-items:center;gap:0.4rem">
+            ${new Date(c.created_at).toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'})}
+            ${canDel ? `<button class="comment-del" onclick="deleteComment('${c.id}','${productId}')">✕</button>` : ''}
+          </span>
+        </div>
+        <div class="comment-text">${esc(c.comment)}</div>
       </div>
-      <div class="comment-text">${esc(c.comment)}</div>
     </div>`
   }).join('')
-  el.innerHTML = `${items ? `<div class="comment-list">${items}</div>` : `<p style="font-size:0.8rem;color:var(--text-3);margin-bottom:0.75rem">No comments yet. Be the first.</p>`}
+  el.innerHTML = `${items ? `<div class="comment-list">${items}</div>` : emptyStateHtml({
+    icon: '<svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M3 5.5A2.5 2.5 0 0 1 5.5 3h9A2.5 2.5 0 0 1 17 5.5v6A2.5 2.5 0 0 1 14.5 14H9l-4 3v-3H5.5A2.5 2.5 0 0 1 3 11.5v-6z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+    title: 'No comments yet',
+    desc: 'Be the first to leave a note on this product.',
+  })}
     <div class="comment-form">
       <input type="text" id="comment-input" placeholder="Write a comment…" onkeydown="if(event.key==='Enter')submitComment('${productId}')" autocomplete="off" />
       <button class="btn btn-primary btn-sm" id="comment-post-btn" onclick="submitComment('${productId}')">Post</button>
@@ -13372,7 +13516,13 @@ async function loadProductSampleHistory(productId) {
   if (error) console.error('loadProductSampleHistory error:', error)
 
   if (error || !data?.length) {
-    el.innerHTML = `<div style="font-size:0.78rem;color:var(--text-3)">${error ? `Unavailable: ${esc(error.message || 'unknown error')}` : 'No samples requested yet.'}</div>`
+    el.innerHTML = error
+      ? `<div style="font-size:0.78rem;color:var(--text-3)">Unavailable: ${esc(error.message || 'unknown error')}</div>`
+      : emptyStateHtml({
+          icon: '<svg width="15" height="15" viewBox="0 0 20 20" fill="none"><path d="M6 3h8l3 3v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+          title: 'No samples requested yet',
+          desc: 'Requests made from this product will show up here.',
+        })
     return
   }
 
@@ -13455,9 +13605,10 @@ function initPdAudit(p) {
 
 function switchPdTab(tab) {
   document.querySelectorAll('#pd-activity-subtabs .pd-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
-  const act = document.getElementById('pd-tab-activity'), ver = document.getElementById('pd-tab-versions')
-  if (act) act.style.display = tab === 'activity' ? 'block' : 'none'
-  if (ver) ver.style.display = tab === 'versions' ? 'block' : 'none'
+  ;['activity', 'comments', 'versions'].forEach(t => {
+    const el = document.getElementById('pd-tab-' + t)
+    if (el) el.style.display = t === tab ? 'block' : 'none'
+  })
   if (tab === 'versions' && _pdAudit.versions === null) loadPdVersions() // lazy
 }
 
@@ -13558,7 +13709,7 @@ function renderPdTimeline() {
       ${changesHtml}
     </div></div>`
   }).join('') + createdEntry)
-    || '<div style="font-size:0.78rem;color:var(--text-3)">No activity yet.</div>'
+    || emptyStateHtml({ title: 'No activity yet', desc: 'Edits, status changes and sample requests on this product will show up here.' })
 
   const more = document.getElementById('pd-timeline-more')
   if (more) more.style.display = _pdAudit.done ? 'none' : 'block'
@@ -13586,7 +13737,7 @@ function renderPdVersions() {
   if (!el) return
   const vs = _pdAudit.versions || []
   if (!vs.length) {
-    el.innerHTML = '<div style="font-size:0.78rem;color:var(--text-3)">No versions yet — a version is recorded every time the product is saved.</div>'
+    el.innerHTML = emptyStateHtml({ title: 'No versions yet', desc: 'A version is recorded every time the product is saved.' })
     return
   }
   const canRestore = canEditDiv(_pdAudit.p.division) || isAdmin()
@@ -13669,6 +13820,11 @@ const LINK_TYPES = {
 }
 let _pdLinks = []
 
+const REL_EMPTY_HTML = emptyStateHtml({
+  icon: '<svg width="15" height="15" viewBox="0 0 20 20" fill="none"><circle cx="6" cy="10" r="2.4" stroke="currentColor" stroke-width="1.4"/><circle cx="14" cy="10" r="2.4" stroke="currentColor" stroke-width="1.4"/><path d="M8.4 10h3.2" stroke="currentColor" stroke-width="1.4"/></svg>',
+  title: 'No related products yet',
+  desc: 'Link alternatives, replacements or products in the same collection.',
+})
 async function loadPdRelated(p) {
   const el = document.getElementById('pd-related')
   if (!el) return
@@ -13680,11 +13836,13 @@ async function loadPdRelated(p) {
     _pdLinks = data || []
   } catch (_) {
     _pdLinks = []
-    el.innerHTML = '<div style="font-size:0.78rem;color:var(--text-3)">No related products yet.</div>'
+    el.innerHTML = REL_EMPTY_HTML
+    setPdSaSlot('pd-related-count', '')
     return
   }
+  setPdSaSlot('pd-related-count', _pdLinks.length ? ` (${_pdLinks.length})` : '')
   if (!_pdLinks.length) {
-    el.innerHTML = '<div style="font-size:0.78rem;color:var(--text-3)">No related products yet.</div>'
+    el.innerHTML = REL_EMPTY_HTML
     return
   }
   // one query for all linked products
@@ -13829,6 +13987,39 @@ function invStatusOf(stocks) {
   return { label: 'Available', color: '#34c759' }
 }
 
+// Samples & Inventory operational summary (§10 of the brief) — Inventory
+// available / Reserved / Warehouse / Last movement, the numbers a user
+// actually needs before scrolling into the per-location breakdown.
+function setPdSaSlot(id, html) { const el = document.getElementById(id); if (el) el.innerHTML = html }
+async function renderPdSamplesSummary(p, locs) {
+  const stocks = _pdStocks
+  if (!stocks.length) {
+    setPdSaSlot('pd-sa-inv', '0')
+    setPdSaSlot('pd-sa-res', '0')
+    setPdSaSlot('pd-sa-loc', '<span style="font-size:0.78rem;color:var(--text-3)">—</span>')
+    setPdSaSlot('pd-sa-move', '<span style="font-size:0.78rem;color:var(--text-3)">—</span>')
+    return
+  }
+  const totalAvail = stocks.reduce((t, s) => t + (s.qty - s.reserved), 0)
+  const totalReserved = stocks.reduce((t, s) => t + s.reserved, 0)
+  const locNames = [...new Set(stocks.map(s => s.location_id))]
+    .map(id => locs.find(l => l.id === id)?.name).filter(Boolean)
+  setPdSaSlot('pd-sa-inv', `${totalAvail} available`)
+  setPdSaSlot('pd-sa-res', totalReserved ? String(totalReserved) : '<span style="font-size:0.78rem;color:var(--text-3)">None</span>')
+  setPdSaSlot('pd-sa-loc', esc(locNames.join(', ') || '—'))
+  try {
+    const { data } = await sb.from('inventory_movements')
+      .select('created_at').eq('product_id', p.id)
+      .order('created_at', { ascending: false }).limit(1)
+    setPdSaSlot('pd-sa-move', data?.[0] ? esc(fmtHumanDate(data[0].created_at)) : '<span style="font-size:0.78rem;color:var(--text-3)">—</span>')
+  } catch (_) { setPdSaSlot('pd-sa-move', '<span style="font-size:0.78rem;color:var(--text-3)">—</span>') }
+}
+
+const INV_EMPTY_HTML = emptyStateHtml({
+  icon: '<svg width="15" height="15" viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M3 9h14M7 6V4.5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 13 4.5V6" stroke="currentColor" stroke-width="1.4"/></svg>',
+  title: 'No sample inventory yet',
+  desc: 'Inventory will appear here once samples are received or adjusted.',
+})
 async function loadPdInventory(p) {
   const el = document.getElementById('pd-inventory')
   if (!el) return
@@ -13841,16 +14032,21 @@ async function loadPdInventory(p) {
     _pdStocks = data || []
   } catch (_) {
     _pdStocks = []
-    el.innerHTML = '<div style="font-size:0.78rem;color:var(--text-3)">No inventory tracked yet.</div>'
+    el.innerHTML = INV_EMPTY_HTML
+    renderPdSamplesSummary(p, locs)
     return
   }
 
-  // Availability chip in the identity column
-  const avEl = document.getElementById('pd-avail')
+  // Availability chip, shown compactly in Overview (§3 of the brief: "Is a
+  // sample available?" should be answerable there, not just in its own tab)
+  // — the equivalent status also feeds the Inventory number in the Samples
+  // & Inventory summary below, via renderPdSamplesSummary.
   const st = invStatusOf(_pdStocks)
-  if (avEl) avEl.innerHTML = st
+  const availChipHtml = st
     ? `<span class="lc-pill" style="background:${st.color}15;color:${st.color};border-color:${st.color}30"><span class="lc-dot" style="background:${st.color}"></span>${st.label}</span>`
     : '<span style="font-size:0.72rem;color:var(--text-3)">Not tracked</span>'
+  setPdSaSlot('pd-avail-ov', availChipHtml)
+  renderPdSamplesSummary(p, locs)
 
   // Adjust button for authorized users
   const actEl = document.getElementById('pd-inv-actions')
@@ -13858,7 +14054,7 @@ async function loadPdInventory(p) {
     ? `<button class="btn btn-ghost btn-sm" onclick="toggleInvAdjust()">Adjust</button>` : ''
 
   if (!_pdStocks.length) {
-    el.innerHTML = '<div style="font-size:0.78rem;color:var(--text-3)">No inventory tracked yet.</div>'
+    el.innerHTML = INV_EMPTY_HTML
     renderInvMovements(p)
     return
   }
