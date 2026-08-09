@@ -1666,16 +1666,29 @@
     }
     .pd-share-icon-btn:hover { color:var(--text); border-color:var(--text-3); background:var(--surface2); }
 
-    /* ── PRODUCT DETAIL LAYOUT — 3 columns: identity | specs | media ── */
+    /* ── PRODUCT DETAIL LAYOUT — ERP MainPane + ContextPane (§6 content-grid),
+       not a page-specific 3/4-column shape. ContextPane (left, fixed width)
+       carries identity + media together as ONE panel — media used to be a
+       separate sticky column the same width as identity, which looked huge
+       and empty whenever a product had no image. MainPane (right, flexible)
+       is the Technical Profile — the dominant, data-first surface. */
     .pd-layout {
-      display:grid; grid-template-columns:minmax(230px,270px) minmax(0,1fr) minmax(240px,280px);
+      display:grid; grid-template-columns:minmax(240px,280px) minmax(0,1fr);
       grid-template-rows:auto auto;
       gap:1.25rem 2rem; align-items:start;
     }
     .pd-identity-col { grid-column:1; grid-row:1; position:sticky; top:1.5rem; min-width:0; }
     .pd-specs-col { grid-column:2; grid-row:1; min-width:0; }
-    .pd-gallery-col { grid-column:3; grid-row:1; position:sticky; top:1.5rem; min-width:0; }
     .pd-comments-col { grid-column:2; grid-row:2; min-width:0; }
+
+    /* Media, inlined at the top of the identity panel instead of its own
+       column — fixed compact height (not aspect-ratio:1, which produced a
+       ~260px empty square) so it reads as an identity thumbnail, not a
+       product-page hero image. */
+    .pd-media-inline { margin:-0.05rem -0.05rem 0.9rem; }
+    .pd-media-inline .ficha-gallery-hero { aspect-ratio:auto; height:150px; }
+    .pd-media-inline .pd-no-img { aspect-ratio:auto; height:150px; }
+    .pd-media-inline .pd-media-label { padding:0 0.1rem 0.5rem; }
 
     .pd-panel {
       border:1px solid color-mix(in srgb, var(--border) 82%, transparent);
@@ -1706,7 +1719,6 @@
       font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em;
       color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
-    .pd-media-card { padding:0.55rem; }
     .pd-media-label {
       display:flex; align-items:center; justify-content:space-between; gap:0.75rem;
       padding:0.2rem 0.2rem 0.65rem;
@@ -1802,14 +1814,18 @@
       font-size:0.85rem; font-weight:500; color:var(--text);
       flex:1; line-height:1.45; overflow-wrap:break-word; min-width:0;
     }
+    /* Composition reads as the same key/value row list as everything else
+       below it — it used to render at a visibly larger scale (0.95rem vs
+       the 0.85rem of every other .pd-v), which is what made the panel feel
+       like a marketing spec sheet instead of one consistent ERP data table. */
     .pd-comp-block {
-      padding:0.78rem 0.7rem 0.95rem;
+      padding:0.68rem 0.7rem;
       border-bottom:1px solid color-mix(in srgb, var(--border) 82%, transparent);
-      margin-bottom:0.15rem; cursor:pointer; transition:background 0.12s, opacity 0.12s; border-radius:8px;
+      cursor:pointer; transition:background 0.16s, opacity 0.16s; border-radius:10px;
     }
     .pd-comp-block:hover { background:var(--surface2); opacity:1; }
-    .pd-comp-line { font-size:0.95rem; font-weight:500; color:var(--text); line-height:1.75; }
-    .pd-comp-pct { font-weight:700; }
+    .pd-comp-line { font-size:0.85rem; font-weight:500; color:var(--text); line-height:1.5; }
+    .pd-comp-pct { font-weight:700; font-variant-numeric:tabular-nums; }
 
     .detail-desc { font-size:0.83rem; color:var(--text-2); line-height:1.75; margin:0; }
     .detail-actions { display:none; }
@@ -1863,28 +1879,26 @@
 
     /* ── DETAIL RESPONSIVE ── */
     @media (max-width:1200px) {
-      .pd-layout { grid-template-columns:230px 1fr 240px; gap:0 2rem; }
+      .pd-layout { grid-template-columns:230px 1fr; gap:0 2rem; }
       .pd-name { font-size:1.55rem; }
     }
     @media (max-width:900px) {
       .pd-layout { grid-template-columns:minmax(180px,220px) minmax(0,1fr); grid-template-rows:auto; gap:1.5rem; }
       .pd-identity-col { grid-column:1; grid-row:1; }
       .pd-specs-col { grid-column:2; grid-row:1; }
-      .pd-gallery-col { grid-column:1 / -1; grid-row:2; position:static; margin-top:0.5rem; max-width:320px; }
-      .pd-comments-col { grid-column:1 / -1; grid-row:3; margin-top:0.75rem; max-width:680px; }
+      .pd-comments-col { grid-column:1 / -1; grid-row:2; margin-top:0.75rem; max-width:680px; }
     }
 
-    /* Mobile: single column — identity, image, specs, comments (via order) */
+    /* Mobile: single column — identity (incl. media), specs, comments (via order) */
     @media (max-width:767px) {
       /* Layout */
       .pd-layout { grid-template-columns:1fr; grid-template-rows:none; gap:0; }
-      .pd-identity-col, .pd-specs-col, .pd-gallery-col, .pd-comments-col {
+      .pd-identity-col, .pd-specs-col, .pd-comments-col {
         grid-column:1; grid-row:auto; position:static; min-width:0;
       }
       .pd-identity-col { order:1; margin-bottom:1.25rem; }
-      .pd-gallery-col { order:2; margin-bottom:1.5rem; }
-      .pd-specs-col { order:3; }
-      .pd-comments-col { order:4; margin-top:1.5rem; }
+      .pd-specs-col { order:2; }
+      .pd-comments-col { order:3; margin-top:1.5rem; }
       .pd-name { font-size:1.5rem; margin-top:0.5rem; }
       .pd-identity-card, .pd-section-card { padding:0.9rem; }
       .pd-section-title { flex-direction:column; gap:0.18rem; align-items:flex-start; }
@@ -5709,6 +5723,10 @@ function showProductDetail(p) {
           </button>
         </div>
         <div class="pd-panel pd-identity-card">
+          <div class="pd-media-inline">
+            <div class="pd-media-label"><span>${tx('product.media')}</span><span>${imgs.length ? `${imgs.length} ${tx(imgs.length > 1 ? 'product.images' : 'product.image')}` : tx('product.noImage')}</span></div>
+            ${galleryHtml}
+          </div>
           <div class="pd-name">${esc(p.name)}${productNameTag()}</div>
           <div class="pd-sku-box" onclick="copyToClipboard('${cp(sku)}')" title="Click to copy">
             <span>${esc(sku)}</span>${copyIcon}
@@ -5778,12 +5796,6 @@ function showProductDetail(p) {
           <div id="pd-inv-adjust" style="display:none"></div>
           <div id="pd-inventory"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
           <div id="pd-inv-movements"></div>
-        </div>
-      </div>
-      <div class="pd-gallery-col">
-        <div class="pd-panel pd-media-card">
-          <div class="pd-media-label"><span>${tx('product.media')}</span><span>${imgs.length ? `${imgs.length} ${tx(imgs.length > 1 ? 'product.images' : 'product.image')}` : tx('product.noImage')}</span></div>
-          ${galleryHtml}
         </div>
       </div>
       <div class="pd-comments-col">

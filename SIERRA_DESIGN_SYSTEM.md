@@ -692,3 +692,27 @@ elsewhere. `specs.Price` is still a free-text field (no structured
 currency/unit columns exist on `products` yet), so it's shown verbatim
 rather than reformatted into a fabricated canonical `$X / lb` string —
 do that reformatting once pricing becomes structured data, not before.
+
+## 19. Product detail — identity/media proportion fix
+
+`showProductDetail()` (`#view-detail`) used a bespoke 3-column
+`.pd-layout` (identity | Technical Profile | media), each its own
+sticky `.pd-panel`. With no image the media column rendered a ~260px
+empty square — as wide as the identity column but holding nothing —
+which read as disproportionate and unfinished rather than a technical
+product master.
+
+Fix: media now renders **inside** the identity panel
+(`.pd-media-inline`, top of `.pd-identity-card`) at a fixed compact
+height (150px, not `aspect-ratio:1`) instead of as its own column.
+`.pd-layout` is back to two columns — identity+media (fixed
+240-280px) | Technical Profile (flexible) — matching the MainPane/
+ContextPane shape from §6, just with page-specific class names kept
+(`.pd-identity-col`/`.pd-specs-col`) rather than a full rewrite onto
+`.content-grid` in this pass. The Composition block inside Technical
+Profile was also normalized to the same `.pd-row`/`.pd-k`/`.pd-v` type
+scale as every other spec row (it previously rendered ~12% larger,
+which is what made the panel read as inconsistent rather than one
+data table). Comments/Activity/Versions still render inline below the
+Technical Profile, not yet in the Drawer — same gap noted in §12c,
+unchanged by this pass.
