@@ -2574,410 +2574,413 @@
       .pg-grid { grid-template-columns: 1fr; }
     }
 
-    /* ════════════════════════════════════════
-       LABEL — 62mm thermal (QL-800)
-       3 sizes only:
-         A = 6mm   → product name (headline)
-         B = 2.8mm → all spec values, dimensions, yarns
-         C = 1.8mm → keys, codes, meta, hints
-       Font: Arial — industrial, universal, max legibility
-    ════════════════════════════════════════ */
+    /* ══════════════════════════════════════════════════════════════════
+       PRINTED LABEL — SIERRA technical textile label
+       ------------------------------------------------------------------
+       This block is the PRINT design system and is deliberately isolated
+       from the app's theme: it uses literal ink values (#000 / grays /
+       one restrained SIERRA teal), never var(--text) or var(--surface).
+       Editor dark mode must never leak onto a label that is going to be
+       printed on white stock.
+
+       All geometry is in millimetres so the on-screen preview and the
+       printed sheet are the same layout at different scales — the
+       preview only ever changes its CSS transform, never its metrics.
+
+       Type ramp (mm, print-safe minimums for a 300dpi thermal printer):
+         TITLE  6.2mm   product name
+         VALUE  2.9mm   primary values (composition, color, specs, yarns)
+         META   2.4mm   operational metadata values
+         KEY    1.8mm   uppercase field labels
+       Nothing on a SIERRA label is smaller than 1.8mm.
+       See SIERRA_DESIGN_SYSTEM.md "Document & Label Editors".
+       ══════════════════════════════════════════════════════════════════ */
     .lbl {
+      --ink:        #000000;   /* primary print ink */
+      --ink-2:      #3d3d3d;   /* secondary values */
+      --ink-3:      #6b6b6b;   /* keys / metadata */
+      --rule:       #d0d0d0;   /* thin separators */
+      --rule-strong:#000000;   /* the one strong rule, above the barcode */
+      --teal:       #0f9d90;   /* restrained SIERRA accent */
+      --lbl-pad-x:  3.5mm;
+      --lbl-pad-t:  3mm;
+      --lbl-pad-b:  2.5mm;
       width: 62mm;
-      padding: 3mm 3.5mm 2.5mm;
+      padding: var(--lbl-pad-t) var(--lbl-pad-x) var(--lbl-pad-b);
       display: flex;
       flex-direction: column;
       font-family: Arial, Helvetica, sans-serif;
-      color: #000;
+      color: var(--ink);
       background: #fff;
-      gap: 0;
       box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
     }
+    /* Compact format — same design, tighter rhythm and a smaller title */
+    .lbl.lbl-compact {
+      --lbl-pad-t: 2.4mm; --lbl-pad-b: 2mm;
+    }
+    .lbl.lbl-compact .lbl-title { font-size: 5mm; }
+    .lbl.lbl-compact .lbl-title.len-2 { font-size: 4.4mm; }
+    .lbl.lbl-compact .lbl-title.len-3 { font-size: 3.8mm; }
+    .lbl.lbl-compact .lbl-block { margin-top: 1.8mm; padding-top: 1.8mm; }
+    .lbl.lbl-compact .lbl-kv + .lbl-kv { margin-top: 1mm; }
 
-    /* ── TOP ROW: SIERRA logo left · QR right ── */
+    /* ── HEADER: SIERRA logo left · QR right ────────────────────────── */
     .lbl-hdr {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 3mm;
-      margin-bottom: 2.5mm;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 3mm; margin-bottom: 2.2mm;
     }
     .lbl-hdr-logo { flex: 1; min-width: 0; display: flex; align-items: flex-start; }
-    .lbl-hdr-logo svg { height: 5.5mm; width: auto; max-width: 100%; display: block; }
-    .lbl-hdr-qr {
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.7mm;
-    }
+    .lbl-hdr-logo svg { height: 5mm; width: auto; max-width: 100%; display: block; }
+    .lbl-hdr-qr { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 0.6mm; }
+    /* The QR's quiet zone is baked into the generated image (margin:3
+       modules); this box only sizes it. 13mm at 300dpi is ~154px, well
+       above the scanner minimum for a UUID payload at ECC level L. */
     .lbl-hdr-qr canvas, .lbl-hdr-qr img {
       width: 13mm; height: 13mm; display: block; image-rendering: pixelated;
     }
     .lbl-qr-hint {
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 1.6mm; /* SIZE C */
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: #000;
-      opacity: 0.38;
-      text-align: center;
-      line-height: 1;
+      font-size: 1.8mm; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.14em; color: var(--ink-3); text-align: center; line-height: 1;
     }
 
-    /* ── PRODUCT NAME — SIZE A ── */
+    /* ── IDENTITY: product name + origin ────────────────────────────── */
     .lbl-title {
-      font-size: 6mm;
-      font-weight: 900;
-      text-transform: uppercase;
-      color: #000;
-      line-height: 0.92;
-      letter-spacing: -0.01em;
-      overflow-wrap: break-word;
-      margin-bottom: 1.5mm;
+      font-size: 6.2mm; font-weight: 900; text-transform: uppercase;
+      color: var(--ink); line-height: 0.94; letter-spacing: -0.012em;
+      overflow-wrap: break-word; hyphens: auto;
     }
-
-    /* ── IDENTITY: Mill Article · LOT · Country ── */
-    .lbl-identity-codes {
-      font-size: 1.8mm; /* SIZE C */
-      font-weight: 700;
-      color: #000;
-      letter-spacing: 0.04em;
-      line-height: 1.5;
-    }
-    .lbl-identity-sep { margin: 0 0.9mm; opacity: 0.3; font-weight: 400; }
+    /* Long names step down rather than overflowing — bounded, never
+       below the readable floor (§18: no unreadable primary text). */
+    .lbl-title.len-2 { font-size: 5.4mm; }
+    .lbl-title.len-3 { font-size: 4.6mm; }
     .lbl-origin {
-      font-size: 1.8mm; /* SIZE C */
-      font-weight: 400;
-      color: #000;
-      opacity: 0.55;
+      font-size: 2.4mm; font-weight: 600; color: var(--ink-3);
+      letter-spacing: 0.02em; margin-top: 1.1mm; line-height: 1.2;
     }
 
-    /* ── SECTION HAIRLINE (between content zones) ── */
-    .lbl-sep {
-      height: 0.25mm;
-      background: #000;
-      opacity: 0.12;
-      margin: 2mm 0;
-      flex-shrink: 0;
+    /* ── BLOCK: a titled group separated by a thin rule ─────────────── */
+    .lbl-block {
+      margin-top: 2.2mm; padding-top: 2.2mm;
+      border-top: 0.2mm solid var(--rule);
     }
+    .lbl-block:first-of-type { border-top: none; }
 
-    /* ── SPECS: KV table ── */
-    .lbl-kv-table { display: flex; flex-direction: column; gap: 1.2mm; }
-    .lbl-kv { display: flex; align-items: baseline; gap: 0; min-width: 0; }
+    /* ── KEY / VALUE rows (composition, color, dye) ─────────────────── */
+    .lbl-kv { display: flex; align-items: baseline; gap: 2mm; min-width: 0; }
+    .lbl-kv + .lbl-kv { margin-top: 1.4mm; }
     .lbl-kv-k {
-      font-size: 1.8mm; /* SIZE C */
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #000;
-      width: 16mm;
-      flex-shrink: 0;
+      font-size: 1.8mm; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--ink-3);
+      width: 15mm; flex-shrink: 0; line-height: 1.35;
     }
     .lbl-kv-v {
-      font-size: 2.8mm; /* SIZE B */
-      font-weight: 600;
-      color: #000;
-      flex: 1;
-      line-height: 1.2;
-      overflow-wrap: break-word;
-      min-width: 0;
+      font-size: 2.9mm; font-weight: 700; color: var(--ink);
+      flex: 1; min-width: 0; line-height: 1.2; overflow-wrap: break-word;
     }
 
-    /* ── DIMENSIONS: inline grid ── */
-    .lbl-dims { display: flex; gap: 0; }
-    .lbl-dim { flex: 1; }
-    .lbl-dim-k {
-      font-size: 1.8mm; /* SIZE C */
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #000;
-      display: block;
-      margin-bottom: 0.5mm;
+    /* ── PHYSICAL SPEC STRIP: equal columns, hairline dividers ──────── */
+    .lbl-specs { display: flex; align-items: stretch; }
+    .lbl-spec {
+      flex: 1 1 0; min-width: 0; padding: 0 1.6mm;
+      border-left: 0.2mm solid var(--rule);
     }
-    .lbl-dim-v {
-      font-size: 2.8mm; /* SIZE B */
-      font-weight: 700;
-      color: #000;
-      line-height: 1;
-      display: block;
+    .lbl-spec:first-child { padding-left: 0; border-left: none; }
+    .lbl-spec:last-child { padding-right: 0; }
+    .lbl-spec-k {
+      font-size: 1.8mm; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--ink-3); display: block; margin-bottom: 0.7mm;
+    }
+    .lbl-spec-v {
+      font-size: 2.9mm; font-weight: 800; color: var(--ink);
+      line-height: 1; display: block; overflow-wrap: break-word;
     }
 
-    /* ── YARNS ── */
-    .lbl-yarns { display: flex; flex-direction: column; gap: 1.2mm; }
-    .lbl-yarn { display: flex; align-items: baseline; gap: 0; }
+    /* ── YARNS: long technical strings, wrapped never truncated ─────── */
+    .lbl-yarn { display: flex; align-items: baseline; gap: 2mm; }
+    .lbl-yarn + .lbl-yarn { margin-top: 1.3mm; }
     .lbl-yarn-k {
-      font-size: 1.8mm; /* SIZE C */
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #000;
-      width: 10mm;
-      flex-shrink: 0;
+      font-size: 1.8mm; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--ink-3);
+      width: 11mm; flex-shrink: 0; line-height: 1.35;
     }
     .lbl-yarn-v {
-      font-size: 2.8mm; /* SIZE B */
-      font-weight: 600;
-      color: #000;
-      line-height: 1.25;
-      overflow-wrap: break-word;
-      flex: 1;
-      min-width: 0;
+      font-size: 2.6mm; font-weight: 600; color: var(--ink-2);
+      flex: 1; min-width: 0; line-height: 1.25; overflow-wrap: break-word;
     }
 
-    /* ── RULE before barcode — solid, full weight ── */
-    .lbl-rule {
-      height: 0.4mm;
-      background: #000;
-      margin: 2.5mm 0 2mm;
-      flex-shrink: 0;
+    /* ── OPERATIONAL METADATA: quiet 3-column grid ──────────────────── */
+    .lbl-meta { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 1.6mm 2mm; }
+    .lbl-meta.cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .lbl-meta-k {
+      font-size: 1.8mm; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--ink-3); display: block; margin-bottom: 0.5mm;
+    }
+    .lbl-meta-v {
+      font-size: 2.4mm; font-weight: 600; color: var(--ink-2);
+      line-height: 1.15; display: block; overflow-wrap: break-word;
     }
 
-    /* ── BARCODE ── */
-    .lbl-bc-wrap { flex-shrink: 0; }
-    .lbl-bc-wrap svg { width: 100%; height: auto; min-height: 13mm; display: block; }
-    .lbl-bc-wrap img { width: 100%; height: auto; display: block; }
-
-    /* Footer: code only (no duplicate logo) */
+    /* ── BARCODE FOOTER ─────────────────────────────────────────────── */
+    .lbl-rule { height: 0.4mm; background: var(--rule-strong); margin: 2.6mm 0 2mm; flex-shrink: 0; }
+    .lbl-bc-wrap { flex-shrink: 0; height: 12mm; }
+    .lbl-bc-wrap svg, .lbl-bc-wrap img { width: 100%; height: 100%; display: block; }
     .lbl-bc-footer {
-      margin-top: 1.2mm;
+      display: flex; align-items: baseline; justify-content: space-between;
+      gap: 2mm; margin-top: 1.2mm;
     }
     .lbl-bc-id {
-      font-size: 1.8mm; /* SIZE C */
-      font-weight: 700;
-      color: #000;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      font-size: 2mm; font-weight: 700; color: var(--ink);
+      letter-spacing: 0.08em; text-transform: uppercase; min-width: 0; overflow-wrap: break-word;
     }
-    .lbl-logo { display: none; }
-
-    /* Legacy compat */
-    .lbl-band { display:contents; }
-    .lbl-zone { display:contents; }
-    .lbl-bc-zone { display:contents; }
-    .lbl-hdr-right { display:none; }
-    .lbl-hdr-left { display:none; }
-    .lbl-divider { display:none; }
-    .lbl-thin { display:none; }
-    .lbl-spec-k, .lbl-key, .lbl-yarn-tag { display:none; }
-    .lbl-spec-v, .lbl-val { display:none; }
-    .lbl-specs, .lbl-spec-kv, .lbl-spec-row-2 { display:none; }
-    .lbl-grid, .lbl-block { display:none; }
-    .lbl-notes, .lbl-note-kv { display:none; }
-
-    /* ── LABEL PREVIEW (base) ── */
-    #label-preview { display: inline-block; }
-
-    /* ══════════════════════════════════════
-       LABEL DRAWER — Right-side print studio
-    ══════════════════════════════════════ */
-
-    /* Wrapper: covers viewport, pointer-events off when closed */
-    .lbl-dr-wrap {
-      position: fixed;
-      inset: 0;
-      z-index: 1200;
-      pointer-events: none;
+    .lbl-bc-site {
+      font-size: 1.8mm; font-weight: 700; color: var(--teal);
+      letter-spacing: 0.1em; text-transform: uppercase; flex-shrink: 0; white-space: nowrap;
     }
+
+    /* Preview-only: click-to-select regions. Stripped from print output
+       by the @media print block — a printed label has no affordances. */
+    .lbl-region { position: relative; cursor: pointer; }
+    .lbl-region::after {
+      content: ''; position: absolute; inset: -0.8mm -1mm; border-radius: 0.8mm;
+      background: rgba(15,157,144,0.09); border: 0.25mm solid rgba(15,157,144,0.5);
+      opacity: 0; transition: opacity 0.12s; pointer-events: none;
+    }
+    .lbl-region:hover::after { opacity: 0.55; }
+    .lbl-region.is-selected::after { opacity: 1; }
+
+    /* Logo prints mono */
+    .lbl .lc1 { fill: var(--teal); }
+    .lbl .lc2 { fill: #141512; }
+
+    /* ══════════════════════════════════════════════════════════════════
+       LABEL BUILDER — the editor shell (screen only)
+       ------------------------------------------------------------------
+       Three regions: a document header across the top, a fixed-width
+       editor rail on the left, and the preview canvas filling the rest.
+       Every control inside is a standard SIERRA control at --control-h.
+       ══════════════════════════════════════════════════════════════════ */
+    .lbl-dr-wrap { position: fixed; inset: 0; z-index: 1200; pointer-events: none; }
     .lbl-dr-wrap.open { pointer-events: auto; }
-
-    /* Backdrop — Apple-style blur + dim */
     .lbl-dr-backdrop {
-      position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.28);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-      opacity: 0;
-      transition: opacity 0.26s ease;
-      cursor: pointer;
+      position: absolute; inset: 0; background: rgba(0,0,0,0.34);
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      opacity: 0; transition: opacity 0.26s ease; cursor: pointer;
     }
     .lbl-dr-wrap.open .lbl-dr-backdrop { opacity: 1; }
 
-    /* The drawer panel — Apple spring easing, rounded left edge */
     .lbl-dr {
-      position: absolute;
-      top: 0; right: 0; bottom: 0;
-      width: 78vw;
-      background: var(--surface);
-      display: flex;
-      flex-direction: column;
-      transform: translateX(calc(100% + 60px));
-      transition: transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-      box-shadow: -12px 0 48px rgba(0,0,0,0.18), -1px 0 0 var(--border);
-      border-radius: 14px 0 0 14px;
-      overflow: hidden;
-    }
-    .lbl-dr-wrap.open .lbl-dr { transform: translateX(0); }
-
-    /* Header bar */
-    .lbl-dr-hdr {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 1.25rem 0 1.5rem;
-      height: 56px;
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-      gap: 1rem;
-    }
-    .lbl-dr-meta { display: flex; flex-direction: column; gap: 0.1rem; }
-    .lbl-dr-eyebrow {
-      font-size: 0.6rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--text-3);
-    }
-    .lbl-dr-name {
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--text);
-      letter-spacing: -0.01em;
-      line-height: 1.2;
-    }
-    .lbl-dr-actions {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      flex-shrink: 0;
-    }
-    /* Divider between actions and close */
-    .lbl-dr-actions-sep {
-      width: 1px;
-      height: 18px;
-      background: var(--border);
-      margin: 0 0.2rem;
-    }
-
-    /* Body: two columns */
-    .lbl-dr-body {
-      flex: 1;
-      display: flex;
-      min-height: 0;
-    }
-
-    /* LEFT: editor column — bg-alt like sidebar sections */
-    .lbl-dr-editor {
-      width: 300px;
-      flex-shrink: 0;
-      border-right: 1px solid var(--border);
-      overflow-y: auto;
-      padding: 0.25rem 0 2rem;
-      background: var(--bg-alt);
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-    .lbl-dr-editor::-webkit-scrollbar { width: 4px; }
-    .lbl-dr-editor::-webkit-scrollbar-track { background: transparent; }
-    .lbl-dr-editor::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-    /* Section label — matches sidebar .s-label exactly */
-    .lbl-sec-hdr {
-      font-size: 0.62rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-3);
-      padding: 1rem 1.15rem 0.3rem;
-    }
-    .lbl-sec-hdr:first-child { padding-top: 0.5rem; }
-
-    /* Inset grouped card — iOS Settings pattern */
-    .lbl-sec-group {
-      background: var(--surface);
+      position: absolute; inset: 2.5vh 2vw; margin: 0 auto; max-width: 1600px;
+      background: var(--bg); display: flex; flex-direction: column;
+      border-radius: var(--r-xl); overflow: hidden;
       border: 1px solid var(--border);
-      border-radius: 10px;
-      margin: 0 0.75rem 0.15rem;
-      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.28);
+      transform: translateY(18px) scale(0.985); opacity: 0;
+      transition: transform 0.28s var(--ease-out), opacity 0.2s ease;
     }
+    .lbl-dr-wrap.open .lbl-dr { transform: none; opacity: 1; }
 
-    /* Per-field rows — full-width inside the card */
-    .lbl-fld-row {
-      padding: 0.6rem 0.9rem;
-      cursor: pointer;
-      user-select: none;
-      border-top: 1px solid var(--border);
-      transition: background 0.1s;
+    /* ── Document header ── identity left, actions right, one height ── */
+    .lbl-dr-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: var(--record-column-gap); padding: 0 16px 0 20px;
+      min-height: 60px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+      background: var(--surface);
     }
-    .lbl-fld-row:first-child { border-top: none; }
-    .lbl-fld-row:hover { background: var(--surface2); }
+    .lbl-dr-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .lbl-dr-eyebrow {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-muted);
+    }
+    .lbl-dr-name-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .lbl-dr-name {
+      font-size: 17px; font-weight: 650; color: var(--text-primary);
+      letter-spacing: -0.01em; line-height: 1.2;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .lbl-dr-actions { display: flex; align-items: center; gap: var(--control-gap); flex-shrink: 0; }
+    .lbl-dr-actions-sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
 
-    /* Label row: text left, checkbox right */
+    /* Save state + validation chips */
+    .lbl-chip {
+      display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+      height: 24px; padding: 0 9px; border-radius: var(--r-pill);
+      font-size: 12px; font-weight: 650; white-space: nowrap;
+      border: 1px solid transparent;
+    }
+    .lbl-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+    .lbl-chip-saved { background: var(--surface2); color: var(--text-secondary); border-color: var(--border); }
+    .lbl-chip-dirty { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); }
+    .lbl-chip-ok    { background: var(--success-bg); color: var(--success); border-color: color-mix(in srgb, var(--success) 30%, transparent); }
+    .lbl-chip-warn  { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); }
+    .lbl-chip-err   { background: var(--danger-bg); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 30%, transparent); }
+    button.lbl-chip { cursor: pointer; font-family: inherit; }
+    button.lbl-chip:hover { filter: brightness(0.97); }
+
+    /* ── Body: editor rail + preview canvas ── */
+    .lbl-dr-body { flex: 1; display: flex; min-height: 0; }
+
+    .lbl-dr-editor {
+      width: 400px; flex-shrink: 0; border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; min-height: 0; background: var(--surface);
+    }
+    .lbl-ed-tabs { padding: 0 16px; flex-shrink: 0; }
+    .lbl-ed-tabs .sub-tabs { margin-bottom: 0; }
+    .lbl-ed-scroll {
+      flex: 1; overflow-y: auto; padding: 16px 16px 32px;
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    }
+    .lbl-ed-scroll::-webkit-scrollbar { width: 8px; }
+    .lbl-ed-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* Accordion section */
+    .lbl-acc + .lbl-acc { margin-top: 8px; }
+    .lbl-acc-hd {
+      display: flex; align-items: center; gap: 8px; width: 100%;
+      height: 38px; padding: 0 10px; border: none; border-radius: var(--r-sm);
+      background: none; cursor: pointer; font-family: inherit; text-align: left;
+      font-size: 14px; font-weight: 650; color: var(--text-primary);
+      transition: background var(--dur-fast) var(--ease-out);
+    }
+    .lbl-acc-hd:hover { background: var(--surface-hover); }
+    .lbl-acc-chev {
+      width: 14px; height: 14px; flex-shrink: 0; color: var(--text-muted);
+      transition: transform var(--dur-base) var(--ease-out);
+    }
+    .lbl-acc.open .lbl-acc-chev { transform: rotate(90deg); }
+    .lbl-acc-count {
+      margin-left: auto; font-size: 12px; font-weight: 600; color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .lbl-acc-body { display: none; padding: 6px 10px 10px; }
+    .lbl-acc.open .lbl-acc-body { display: block; }
+
+    /* ── Field row — aligned grid, never a card per field ── */
+    .lbl-fld { padding: 9px 0; border-top: 1px solid var(--border); }
+    .lbl-fld:first-child { border-top: none; padding-top: 2px; }
+    .lbl-fld.is-selected { box-shadow: -10px 0 0 -8px var(--accent); }
     .lbl-fld-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 0.32rem;
+      display: flex; align-items: center; gap: 8px; margin-bottom: 5px; min-height: 20px;
     }
     .lbl-fld-key {
-      font-size: 0.68rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--text-3);
-      transition: color 0.15s;
+      font-size: 13px; font-weight: 650; color: var(--text-primary);
+      min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .lbl-fld-row.fld-on .lbl-fld-key { color: var(--text-2); }
+    .lbl-fld-src {
+      font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: var(--r-xs);
+      background: var(--surface2); color: var(--text-muted); flex-shrink: 0;
+    }
+    .lbl-fld-src.is-override { background: var(--accent-light); color: var(--accent-dark); }
+    .lbl-fld-reset {
+      background: none; border: none; padding: 2px; margin: 0; cursor: pointer;
+      color: var(--text-muted); display: inline-flex; border-radius: var(--r-xs); flex-shrink: 0;
+    }
+    .lbl-fld-reset:hover { color: var(--text-primary); background: var(--surface-hover); }
+    .lbl-fld-reset svg { width: 14px; height: 14px; }
+    .lbl-fld-inputs { display: flex; align-items: center; gap: 8px; }
+    .lbl-fld-inputs .control-input { flex: 1; min-width: 0; }
+    .lbl-fld textarea.control-input {
+      height: auto; min-height: 60px; padding: 8px var(--control-padding-x);
+      line-height: 1.45; resize: vertical;
+    }
+    .lbl-fld.is-hidden .lbl-fld-inputs { opacity: 0.45; }
+    .lbl-fld-hint { font-size: 12px; color: var(--text-muted); margin-top: 5px; line-height: 1.4; }
+    .lbl-fld-hint.is-warn { color: var(--warning-text); }
+    /* Two-up rows for short parallel values (Width/GSM, DIA/Gauge). The
+       source badge is dropped here — at half width it truncates the field
+       name, which matters more. Override state still shows via the reset
+       control and the accent rail on the selected row. */
+    .lbl-fld-pair { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0 12px; }
+    .lbl-fld-pair > .lbl-fld { border-top: none; }
+    .lbl-fld-pair .lbl-fld-src { display: none; }
+    .lbl-fld-pair .lbl-fld-key { flex: 1; }
 
-    /* Checkbox */
-    .lbl-fld-chk {
-      width: 15px; height: 15px;
-      border: 1.5px solid var(--border);
-      border-radius: 4px;
-      flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      transition: background 0.15s, border-color 0.15s;
+    /* ── VisibilityToggle — a real switch, not a stray checkbox ── */
+    .lbl-vis {
+      position: relative; flex-shrink: 0; width: 34px; height: 20px; border-radius: var(--r-pill);
+      border: 1px solid var(--border-strong); background: var(--surface2); cursor: pointer;
+      padding: 0; transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
     }
-    .lbl-fld-row.fld-on .lbl-fld-chk { background: var(--accent); border-color: var(--accent); }
-    .lbl-fld-chk-mark {
-      width: 7px; height: 5px; fill: none; stroke: #fff;
-      stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
-      opacity: 0; transition: opacity 0.12s;
+    .lbl-vis::after {
+      content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
+      border-radius: 50%; background: var(--text-muted);
+      transition: transform var(--dur-base) var(--ease-out), background var(--dur-fast) var(--ease-out);
     }
-    .lbl-fld-row.fld-on .lbl-fld-chk-mark { opacity: 1; }
+    .lbl-vis[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); }
+    .lbl-vis[aria-pressed="true"]::after { transform: translateX(14px); background: #fff; }
+    .lbl-vis:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-    /* Input — borderless inside the card, focus ring only */
-    .lbl-fld-val {
-      width: 100%;
-      background: transparent;
-      border: none;
-      border-radius: 6px;
-      padding: 0.42rem 0.55rem;
-      font-size: 0.82rem;
-      font-family: inherit;
-      color: var(--text);
-      outline: none;
-      transition: background 0.12s, opacity 0.15s;
-      box-sizing: border-box;
-      resize: none;
-      line-height: 1.45;
-      display: block;
+    /* ── Layout tab: orderable sections ── */
+    .lbl-ord { display: flex; flex-direction: column; gap: 6px; }
+    .lbl-ord-row {
+      display: flex; align-items: center; gap: 10px; padding: 0 10px;
+      height: 44px; border: 1px solid var(--border); border-radius: var(--r-sm);
+      background: var(--surface);
     }
-    .lbl-fld-val:focus { background: var(--surface2); }
-    .lbl-fld-row.fld-off .lbl-fld-val { opacity: 0.32; pointer-events: none; }
-    .lbl-fld-row.fld-off .lbl-fld-key { opacity: 0.4; }
+    .lbl-ord-row.is-hidden { background: var(--surface2); }
+    .lbl-ord-grip { color: var(--text-muted); flex-shrink: 0; display: flex; cursor: grab; }
+    .lbl-ord-grip svg { width: 14px; height: 14px; }
+    .lbl-ord-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: var(--text-primary); }
+    .lbl-ord-row.is-hidden .lbl-ord-name { color: var(--text-muted); }
+    .lbl-ord-btns { display: flex; gap: 2px; flex-shrink: 0; }
+    .lbl-ord-row.dragging { opacity: 0.4; }
+    .lbl-ord-row.drop-target { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
 
-    /* RIGHT: preview column */
+    /* ── Editor helper text / group label ── */
+    .lbl-ed-label {
+      font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-muted); margin-bottom: 8px;
+    }
+    .lbl-ed-note { font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-top: 8px; }
+    .lbl-ed-group + .lbl-ed-group { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--border); }
+    .lbl-ed-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; }
+    .lbl-ed-row-label { font-size: 14px; color: var(--text-primary); font-weight: 500; }
+
+    /* ── Validation list ── */
+    .lbl-issues { display: flex; flex-direction: column; gap: 8px; }
+    .lbl-issue {
+      display: flex; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm);
+      border: 1px solid var(--border); background: var(--surface-subtle);
+    }
+    .lbl-issue-icon { flex-shrink: 0; margin-top: 1px; }
+    .lbl-issue-icon svg { width: 15px; height: 15px; display: block; }
+    .lbl-issue.sev-error .lbl-issue-icon { color: var(--danger); }
+    .lbl-issue.sev-warn .lbl-issue-icon { color: var(--warning-text); }
+    .lbl-issue-body { min-width: 0; }
+    .lbl-issue-title { font-size: 13px; font-weight: 650; color: var(--text-primary); }
+    .lbl-issue-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; line-height: 1.45; }
+    .lbl-issue-fixes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+    /* ── Preview canvas ── */
     .lbl-dr-preview {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg-alt);
-      overflow: auto;
-      padding: 3rem 2.5rem;
+      flex: 1; min-width: 0; display: flex; flex-direction: column;
+      background: var(--bg-alt); overflow: hidden;
+    }
+    .lbl-pv-bar {
+      display: flex; align-items: center; gap: var(--control-gap); flex-wrap: wrap;
+      padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+      background: var(--surface);
+    }
+    .lbl-pv-dims { font-size: 12px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+    .lbl-pv-stage {
+      flex: 1; min-height: 0; overflow: auto; display: flex;
+      align-items: flex-start; justify-content: center; padding: 32px 24px 48px;
     }
     .lbl-dr-paper {
-      display: inline-block;
-      filter: drop-shadow(0 4px 16px rgba(0,0,0,0.12)) drop-shadow(0 1px 3px rgba(0,0,0,0.08));
+      display: inline-block; background: #fff;
+      filter: drop-shadow(0 6px 24px rgba(0,0,0,0.16)) drop-shadow(0 1px 3px rgba(0,0,0,0.10));
     }
-    #label-preview { transform-origin: top center; }
+    #label-preview { transform-origin: top left; }
+    /* The preview paper is print stock — it stays white in dark mode. */
+    [data-theme="dark"] .lbl-dr-paper { filter: drop-shadow(0 6px 24px rgba(0,0,0,0.5)); }
 
-    /* Label content: logo always mono (overrides SVG fill) */
-    .lbl .lc1 { fill: #141512; }
+    @media (max-width: 1100px) {
+      .lbl-dr { inset: 0; border-radius: 0; max-width: none; }
+      .lbl-dr-body { flex-direction: column; }
+      .lbl-dr-editor { width: auto; border-right: none; border-bottom: 1px solid var(--border); max-height: 52%; }
+      .lbl-dr-hdr { flex-wrap: wrap; padding: 10px 12px; }
+      .lbl-dr-actions { width: 100%; justify-content: flex-end; }
+    }
 
     /* ════════════════════════════
        PRINT STYLES — QL-800 62mm
@@ -2989,20 +2992,34 @@
       @page { size:62mm auto; margin:0; }
       /* Reset preview transform */
       #print-root #label-preview { zoom:unset !important; transform:none !important; transform-origin:unset !important; }
-      /* Mono logo for thermal printing */
-      #print-root .lc1 { fill:#000 !important; }
       /* Hide any canvas/video elements outside print-root (preview QR, scan camera, etc.) */
       canvas, video { display:none !important; }
       #print-root canvas { display:block !important; }
 
-      /* Full opacity for thermal — CSS opacity:0.5 on keys must print as solid black */
-      #print-root .lbl-kv-k,
-      #print-root .lbl-dim-k,
-      #print-root .lbl-yarn-k,
-      #print-root .lbl-identity-codes,
-      #print-root .lbl-identity-sep,
+      /* A printed label has no affordances: the preview's click-to-select
+         regions must leave no trace on paper. */
+      #print-root .lbl-region { cursor:auto !important; }
+      #print-root .lbl-region::after { display:none !important; }
+
+      /* Thermal printing is 1-bit: every ink step collapses to solid
+         black so no key or metadata value prints as a faint gray. */
+      #print-root .lbl {
+        --ink:#000 !important; --ink-2:#000 !important; --ink-3:#000 !important;
+        --rule:#000 !important;
+      }
+      #print-root .lbl-qr-hint,
       #print-root .lbl-origin,
+      #print-root .lbl-kv-k,
+      #print-root .lbl-spec-k,
+      #print-root .lbl-yarn-k,
+      #print-root .lbl-meta-k,
       #print-root .lbl-bc-id { opacity:1 !important; }
+      /* Hairlines stay hairlines but must actually mark the paper */
+      #print-root .lbl-block { border-top-color:#000 !important; }
+      #print-root .lbl-spec { border-left-color:#000 !important; }
+      /* Logo and the single teal accent print mono */
+      #print-root .lbl .lc1, #print-root .lbl .lc2 { fill:#000 !important; }
+      #print-root .lbl-bc-site { color:#000 !important; }
     }
 
     #print-root { display:none; }
@@ -3990,54 +4007,71 @@
 </div>
 
 <!-- ══ MODAL: LABEL ══ -->
+<!-- ══ LABEL BUILDER ══ document header + editor rail + preview canvas.
+     Every control inside is a standard SIERRA control; the printed label
+     inside .lbl-dr-paper is rendered by its own print design system and
+     never inherits the editor's theme. ══ -->
 <div id="m-label" class="lbl-dr-wrap">
-  <!-- Backdrop closes the drawer -->
-  <div class="lbl-dr-backdrop" onclick="closeModal('m-label')"></div>
+  <div class="lbl-dr-backdrop" onclick="closeLabel()"></div>
 
-  <!-- Drawer panel -->
-  <div class="lbl-dr">
+  <div class="lbl-dr" role="dialog" aria-modal="true" aria-label="Label builder">
 
-    <!-- Header -->
+    <!-- Document header -->
     <div class="lbl-dr-hdr">
       <div class="lbl-dr-meta">
-        <div class="lbl-dr-eyebrow">Technical Label</div>
-        <div class="lbl-dr-name" id="lbl-title"></div>
+        <div class="lbl-dr-eyebrow">Technical label</div>
+        <div class="lbl-dr-name-row">
+          <span class="lbl-dr-name" id="lbl-title"></span>
+          <span class="lbl-chip lbl-chip-saved" id="lbl-state-chip"><span class="lbl-chip-dot"></span>Saved</span>
+        </div>
       </div>
       <div class="lbl-dr-actions">
-        <button class="btn btn-secondary btn-sm" onclick="downloadPDF()">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 13h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-          Save PDF
+        <button class="lbl-chip lbl-chip-ok" id="lbl-valid-chip" onclick="lbSwitchTab('print')"><span class="lbl-chip-dot"></span>Ready to print</button>
+        <div class="lbl-dr-actions-sep"></div>
+        <button class="btn btn-secondary" id="lbl-save-btn" onclick="lbSave()">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M4 4h9l3 3v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 4v4h6V4M6.5 17v-4.5h7V17" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          Save
         </button>
-        <button class="btn btn-primary btn-sm" onclick="printLabel()">
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="3" y="1" width="10" height="7" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M3 8H2a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1h-1" stroke="currentColor" stroke-width="1.3"/><rect x="3" y="10" width="10" height="5" rx="1" stroke="currentColor" stroke-width="1.3"/></svg>
-          Print QL-800
+        <button class="btn btn-secondary" onclick="downloadPDF()">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 15.5h13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          PDF
+        </button>
+        <button class="btn btn-primary" id="lbl-print-btn" onclick="printLabel()">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M5.5 7.5V3h9v4.5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><rect x="2.5" y="7.5" width="15" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 12h9v5h-9z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          Print
         </button>
         <div class="lbl-dr-actions-sep"></div>
-        <button class="btn-icon" onclick="closeModal('m-label')" title="Close (Esc)" aria-label="Close">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <button class="icon-btn icon-btn-quiet" onclick="closeLabel()" title="Close (Esc)" aria-label="Close">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
         </button>
       </div>
     </div>
 
-    <!-- No-code warning banner -->
-    <div id="lbl-no-code-banner" style="display:none;align-items:center;gap:0.6rem;padding:0.6rem 1.25rem;background:var(--warning-bg,#fff8ed);border-bottom:1px solid var(--warning-border,#fde9b8);font-size:0.75rem;color:var(--warning-text,#92600a);">
-      <svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="flex-shrink:0"><path d="M10 3L2 17h16L10 3z" stroke="#f59e0b" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 9v4M10 14.5v.5" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/></svg>
-      <span>This product has no Mill Article code — the barcode section will be blank and printing will be blocked until a code is assigned.</span>
-    </div>
-
-    <!-- Body: editor + preview -->
     <div class="lbl-dr-body">
-
-      <!-- LEFT: editor panel -->
-      <div class="lbl-dr-editor" id="lbl-editor-panel"></div>
+      <!-- LEFT: editor -->
+      <div class="lbl-dr-editor">
+        <div class="lbl-ed-tabs" id="lbl-ed-tabs"></div>
+        <div class="lbl-ed-scroll" id="lbl-ed-body"></div>
+      </div>
 
       <!-- RIGHT: live preview -->
       <div class="lbl-dr-preview">
-        <div class="lbl-dr-paper">
-          <div id="label-preview"></div>
+        <div class="lbl-pv-bar">
+          <span class="lbl-pv-dims" id="lbl-pv-dims"></span>
+          <span style="flex:1 1 auto"></span>
+          <span id="lbl-zoom" style="display:flex;gap:4px">
+            <button class="btn btn-secondary btn-sm active" data-z="fit" onclick="lbSetZoom('fit')">Fit</button>
+            <button class="btn btn-secondary btn-sm" data-z="100" onclick="lbSetZoom(100)">100%</button>
+            <button class="btn btn-secondary btn-sm" data-z="125" onclick="lbSetZoom(125)">125%</button>
+            <button class="btn btn-secondary btn-sm" data-z="150" onclick="lbSetZoom(150)">150%</button>
+          </span>
+        </div>
+        <div class="lbl-pv-stage">
+          <div class="lbl-dr-paper">
+            <div id="label-preview"></div>
+          </div>
         </div>
       </div>
-
     </div>
   </div>
 </div>
@@ -4914,7 +4948,7 @@ function hideLoadingScreen() {
   setTimeout(() => ls.remove(), 350)
 }
 
-window.addEventListener('resize', fitLabelPreview)
+// (the Label Builder registers its own resize handler alongside lbFitPreview)
 window.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search)
   const pubId = params.get('pub')
@@ -6802,162 +6836,680 @@ function fichaBody(p) {
   return html
 }
 
-/* ── LABEL FIELD STATE ── */
-let labelFieldState = []
+/* ══════════════════════════════════════════════════════════════════════
+   LABEL BUILDER
+   ----------------------------------------------------------------------
+   A document editor, not a print preview. Three models, kept separate on
+   purpose:
 
-const LABEL_SECTION_DEFS = [
-  { key: 'identity',    label: 'Reference',   fields: ['Mill Article', 'LOT'] },
-  { key: 'origin',      label: 'Origin',      fields: ['Manufactured In'] },
-  { key: 'composition', label: 'Composition', fields: ['Composition'] },
-  { key: 'color',       label: 'Color',       fields: ['Color', 'Dyed Method'] },
-  { key: 'dimensions',  label: 'Dimensions',  fields: ['Width', 'GSM', 'DIA', 'Gauge'] },
-  { key: 'yarns',       label: 'Yarns',       fields: ['Yarn 01', 'Yarn 02', 'Yarn 03'] },
-]
-let lblSections = {}
+     LABEL_FIELDS     what a label field IS — its human name, which
+                      section it belongs to, and how to READ it from the
+                      product record. Never holds a value.
+     LABEL_TEMPLATES  which fields a label has, in what order, and the
+                      physical geometry it prints at.
+     LabelConfig      what THIS product's label overrides — only the
+                      deltas: overridden values, hidden fields, section
+                      order, QR/barcode settings, template choice.
 
-const LBL_PROP_GROUPS = [
-  { group: 'Identity',   fields: ['Mill Article', 'LOT', 'Manufactured In'] },
-  { group: 'Product',    fields: ['Product Name'] },
-  { group: 'Material',   fields: ['Composition', 'Color', 'Dyed Method'] },
-  { group: 'Dimensions', fields: ['Width', 'GSM', 'DIA', 'Gauge'] },
-  { group: 'Yarns',      fields: ['Yarn 01', 'Yarn 02', 'Yarn 03'] },
-  { group: 'Notes',      fields: ['Price', 'Comments'] },
-]
+   The product record is the single source of truth for values. A config
+   stores an override only where the user deliberately typed one, so a
+   later edit to the product master flows through to the label
+   everywhere it has not been explicitly overridden. Saving a label NEVER
+   writes to product master columns — the config lives in its own
+   `specs.label_config` key, the same pattern as `specs.image_captions`.
+   See SIERRA_DESIGN_SYSTEM.md "Document & Label Editors".
+   ══════════════════════════════════════════════════════════════════════ */
 
-const LABEL_FIELD_GROUPS = [
-  { group: 'Header',      fields: ['Mill Article', 'LOT', 'Manufactured In'] },
-  { group: 'Identity',    fields: ['Product Name'] },
-  { group: 'Material',    fields: ['Composition'] },
-  { group: 'Color & Dye', fields: ['Color', 'Dyed Method'] },
-  { group: 'Dimensions',  fields: ['Width', 'GSM', 'DIA', 'Gauge'] },
-  { group: 'Yarns',       fields: ['Yarn 01', 'Yarn 02', 'Yarn 03'] },
-  { group: 'Notes',       fields: ['Comments'] },
-]
-
-function buildLabelFieldState(p) {
-  const specs = p.specs || {}
-  const allValues = {
-    'Mill Article':    p.code || null,
-    'LOT':             p.lot || null,
-    'Manufactured In': p.country || 'Honduras',
-    'Product Name':    p.name,
-    'Composition':     specs.Composition || null,
-    'Color':           specs.Color || null,
-    'Dyed Method':     specs['Dyed Method'] || null,
-    'Width':           specs.Width || null,
-    'GSM':             specs.GSM || null,
-    'DIA':             specs.DIA || null,
-    'Gauge':           specs.Gauge || null,
-    'Yarn 01':         specs['Yarn 01'] || null,
-    'Yarn 02':         specs['Yarn 02'] || null,
-    'Yarn 03':         specs['Yarn 03'] || null,
-    'Price':           specs.Price || null,
-    'Comments':        specs.Comments || null,
-  }
-  if (p.division !== 'fabric') {
-    Object.entries(specs).forEach(([k, v]) => {
-      if (v && !(k in allValues)) allValues[k] = v
-    })
-  }
-  const ALWAYS_PRESENT = new Set(['Price', 'Comments'])
-  labelFieldState = Object.entries(allValues)
-    .filter(([k, v]) => (v !== null && v !== '') || ALWAYS_PRESENT.has(k))
-    .map(([key, value]) => ({
-      key,
-      value: value ?? '',
-      enabled: value !== null && value !== ''
-    }))
+/* ── Field definitions ── `read` maps product master → label value. ── */
+const LABEL_FIELDS = {
+  productName: { label: 'Product name',    section: 'identity', required: true,  read: p => p.name },
+  origin:      { label: 'Manufactured in', section: 'identity', read: p => p.country || 'Honduras' },
+  composition: { label: 'Composition',     section: 'material', long: true, read: p => p.specs?.Composition },
+  color:       { label: 'Color',           section: 'color',    read: p => p.specs?.Color },
+  dyeMethod:   { label: 'Dye method',      section: 'color',    read: p => p.specs?.['Dyed Method'] },
+  width:       { label: 'Width',           section: 'physical', short: true, read: p => p.specs?.Width },
+  gsm:         { label: 'GSM',             section: 'physical', short: true, read: p => p.specs?.GSM },
+  dia:         { label: 'DIA',             section: 'physical', short: true, read: p => p.specs?.DIA },
+  gauge:       { label: 'Gauge',           section: 'physical', short: true, read: p => p.specs?.Gauge },
+  yarn01:      { label: 'Yarn 01',         section: 'yarns',    long: true, read: p => p.specs?.['Yarn 01'] },
+  yarn02:      { label: 'Yarn 02',         section: 'yarns',    long: true, read: p => p.specs?.['Yarn 02'] },
+  yarn03:      { label: 'Yarn 03',         section: 'yarns',    long: true, read: p => p.specs?.['Yarn 03'] },
+  millArticle: { label: 'Mill article',    section: 'meta',     read: p => p.code },
+  lot:         { label: 'Lot',             section: 'meta',     read: p => p.lot },
+  routeType:   { label: 'Route type',      section: 'meta',     read: p => p.specs?.['Route Type'] },
+  updated:     { label: 'Updated',         section: 'meta',     read: p => p.updated_at ? fmtHumanDate(p.updated_at) : null },
+  updatedBy:   { label: 'Updated by',      section: 'meta',     read: () => profile?.full_name || null },
+  footer:      { label: 'Footer text',     section: 'footer',   read: () => 'SIERRAFABRIC.COM' },
 }
 
-function fieldGroup(key) {
-  for (const g of LABEL_FIELD_GROUPS) if (g.fields.includes(key)) return g.group
-  return 'Other'
+const LABEL_SECTIONS = {
+  identity: { label: 'Identity',  fields: ['productName', 'origin'] },
+  material: { label: 'Material',  fields: ['composition'] },
+  color:    { label: 'Color & dye', fields: ['color', 'dyeMethod'] },
+  physical: { label: 'Physical',  fields: ['width', 'gsm', 'dia', 'gauge'] },
+  yarns:    { label: 'Yarns',     fields: ['yarn01', 'yarn02', 'yarn03'] },
+  meta:     { label: 'Metadata',  fields: ['millArticle', 'lot', 'routeType', 'updated', 'updatedBy'] },
+  footer:   { label: 'Barcode & footer', fields: ['footer'] },
 }
 
-const LBL_EDITOR_SECTIONS = [
-  { title: 'Header',       fields: ['Mill Article', 'LOT', 'Manufactured In'] },
-  { title: 'Identity',     fields: ['Product Name'] },
-  { title: 'Material',     fields: ['Composition'] },
-  { title: 'Color & Dye',  fields: ['Color', 'Dyed Method'] },
-  { title: 'Dimensions',   fields: ['Width', 'GSM', 'DIA', 'Gauge'] },
-  { title: 'Yarns',        fields: ['Yarn 01', 'Yarn 02', 'Yarn 03'] },
-  { title: 'Price',        fields: ['Price'] },
-  { title: 'Comments',     fields: ['Comments'] },
-]
+/* ── Templates ── geometry is physical; the preview only ever scales. ── */
+const LABEL_TEMPLATES = {
+  'fabric-technical': {
+    name: 'Standard Technical Label',
+    divisions: ['fabric', 'yarn', 'fiber', 'chemicals', 'garment'],
+    // 62mm is the physical media WIDTH (DK-22205 continuous tape) and is
+    // fixed. Length on continuous media is not: the sheet is cut to the
+    // content, so a full technical label is never silently scaled down to
+    // fit an arbitrary sheet. maxHeightMm is the point past which a label
+    // stops being practical to handle, not a printer limit.
+    widthMm: 62, maxHeightMm: 200, variant: '',
+    order: ['identity', 'material', 'color', 'physical', 'yarns', 'meta', 'footer'],
+    defaultHidden: ['updatedBy', 'updated'],
+  },
+  'fabric-compact': {
+    name: 'Compact Technical Label',
+    divisions: ['fabric', 'yarn', 'fiber', 'chemicals', 'garment'],
+    // Same 62mm continuous tape, deliberately carrying less: no yarns, no
+    // operational metadata, tighter vertical rhythm. It is "compact"
+    // because it prints a shorter label, not because it is a different
+    // physical medium.
+    widthMm: 62, maxHeightMm: 120, variant: 'lbl-compact',
+    order: ['identity', 'material', 'color', 'physical', 'footer'],
+    defaultHidden: ['yarn01', 'yarn02', 'yarn03', 'routeType', 'updated', 'updatedBy'],
+  },
+}
+// Measured height of the rendered label, in whole millimetres.
+const LBL_PX_PER_MM = 96 / 25.4
+function lbMeasuredMm(el) { return el ? Math.ceil(el.offsetHeight / LBL_PX_PER_MM) : 0 }
+// The exact sheet a config prints on. Both formats run on 62mm
+// continuous tape, so the sheet is cut to the measured content — that is
+// what makes the preview and the printed sheet the same size (§16).
+// maxHeightMm is the practical handling limit, not a printer limit.
+function lbSheetMm(measuredMm) {
+  return Math.min(Math.max(measuredMm || 0, 40), lbTemplate().maxHeightMm)
+}
+const LABEL_DEFAULT_TEMPLATE = 'fabric-technical'
 
-function renderEditor() {
-  const el = document.getElementById('lbl-editor-panel')
-  if (!el) return
-  let html = ''
-  LBL_EDITOR_SECTIONS.forEach(sec => {
-    const secFields = sec.fields.filter(k => labelFieldState.find(f => f.key === k))
-    if (!secFields.length) return
-    html += `<div class="lbl-sec-hdr">${sec.title}</div>`
-    html += `<div class="lbl-sec-group">`
-    secFields.forEach(key => {
-      const f = labelFieldState.find(f => f.key === key)
-      if (!f) return
-      const safeKey = key.replace(/'/g, "\\'")
-      const safeVal = String(f.value ?? '').replace(/"/g, '&quot;')
-      const isOn = f.enabled
-      const isTextarea = key === 'Comments'
-      const inputEl = isTextarea
-        ? `<textarea class="lbl-fld-val" rows="2" placeholder="Optional note…"
-            onclick="event.stopPropagation()"
-            oninput="setLabelFieldValue('${safeKey}',this.value)"
-            ${isOn ? '' : 'disabled'}>${esc(f.value ?? '')}</textarea>`
-        : `<input class="lbl-fld-val" type="text" value="${safeVal}"
-            placeholder="${key === 'Price' ? 'e.g. USD 12.50' : ''}"
-            onclick="event.stopPropagation()"
-            oninput="setLabelFieldValue('${safeKey}',this.value)"
-            ${isOn ? '' : 'disabled'} />`
-      html += `<div class="lbl-fld-row ${isOn ? 'fld-on' : 'fld-off'}" data-key="${key}"
-        onclick="toggleLblField(event,'${safeKey}')">
-        <div class="lbl-fld-top">
-          <span class="lbl-fld-key">${esc(key)}</span>
-          <div class="lbl-fld-chk">
-            <svg class="lbl-fld-chk-mark" viewBox="0 0 10 8"><polyline points="1,4 3.5,6.5 9,1"/></svg>
-          </div>
-        </div>
-        ${inputEl}
-      </div>`
-    })
-    html += `</div>`
+/* Barcode sources the printing stack can actually encode. CODE128 is the
+   only symbology the bundled JsBarcode build is configured for here, so
+   the selector does not offer symbologies we cannot render (§15). */
+const BARCODE_SOURCES = {
+  millArticle: { label: 'Mill article', read: p => p.code },
+  lot:         { label: 'Lot',          read: p => p.lot },
+  productId:   { label: 'Product ID',   read: p => p.id },
+}
+
+function labelDefaultConfig(templateId = LABEL_DEFAULT_TEMPLATE) {
+  const t = LABEL_TEMPLATES[templateId] || LABEL_TEMPLATES[LABEL_DEFAULT_TEMPLATE]
+  return {
+    template: templateId,
+    overrides: {},
+    hidden: [...(t.defaultHidden || [])],
+    order: [...t.order],
+    qr: { enabled: true, target: 'product', url: '' },
+    barcode: { enabled: true, format: 'CODE128', source: 'millArticle' },
+  }
+}
+
+/* Merge a stored config over the template defaults so a template gaining
+   a section later doesn't silently disappear from existing labels. */
+function labelNormalizeConfig(raw, templateId) {
+  const base = labelDefaultConfig(templateId || raw?.template || LABEL_DEFAULT_TEMPLATE)
+  if (!raw || typeof raw !== 'object') return base
+  const t = LABEL_TEMPLATES[base.template]
+  const storedOrder = Array.isArray(raw.order) ? raw.order.filter(k => t.order.includes(k)) : []
+  return {
+    template: base.template,
+    overrides: (raw.overrides && typeof raw.overrides === 'object') ? { ...raw.overrides } : {},
+    hidden: Array.isArray(raw.hidden) ? [...raw.hidden] : base.hidden,
+    order: [...storedOrder, ...t.order.filter(k => !storedOrder.includes(k))],
+    qr: { ...base.qr, ...(raw.qr || {}) },
+    barcode: { ...base.barcode, ...(raw.barcode || {}) },
+  }
+}
+
+/* ── Runtime state ─────────────────────────────────────────────────── */
+let LB = null   // { p, cfg, saved, tab, open:{}, selected, zoom, issues }
+
+function lbClone(o) { return JSON.parse(JSON.stringify(o)) }
+
+// The value a field resolves to: label override if one exists, else the
+// product master value. This is the ONLY place the two are combined.
+function lbValue(key) {
+  const def = LABEL_FIELDS[key]
+  if (!def) return ''
+  const ov = LB.cfg.overrides[key]
+  if (ov !== undefined && ov !== null) return String(ov)
+  const v = def.read(LB.p)
+  return v === null || v === undefined ? '' : String(v)
+}
+function lbIsOverridden(key) { return LB.cfg.overrides[key] !== undefined }
+function lbProductValue(key) {
+  const v = LABEL_FIELDS[key]?.read(LB.p)
+  return v === null || v === undefined ? '' : String(v)
+}
+function lbVisible(key) {
+  return !LB.cfg.hidden.includes(key) && lbValue(key).trim() !== ''
+}
+function lbTemplate() { return LABEL_TEMPLATES[LB.cfg.template] || LABEL_TEMPLATES[LABEL_DEFAULT_TEMPLATE] }
+function lbDirty() { return JSON.stringify(LB.cfg) !== JSON.stringify(LB.saved) }
+
+/* Who may do what. UI hiding is not authorization — the actual write is
+   an `update` on products, which RLS governs; this only keeps the editor
+   honest about what this user can commit (§40). */
+function lbCanEdit()      { return canEditDiv(LB?.p?.division) && !isArchived(LB.p) }
+function lbCanManageTpl() { return isAdmin() }
+
+/* ── QR / barcode payloads ─────────────────────────────────────────── */
+function lbQrPayload() {
+  const q = LB.cfg.qr
+  if (!q.enabled) return null
+  if (q.target === 'custom') return (q.url || '').trim()
+  return getProductPublicUrl(LB.p)
+}
+function lbBarcodePayload() {
+  const b = LB.cfg.barcode
+  if (!b.enabled) return null
+  const src = BARCODE_SOURCES[b.source] || BARCODE_SOURCES.millArticle
+  const v = src.read(LB.p)
+  return v ? String(v) : null
+}
+
+/* ══ Validation ══ Machine-readable codes are the hard gate: a label
+   whose barcode or QR cannot be produced must not reach a printer.
+   Everything else is a warning the user may knowingly print through. ══ */
+function lbValidate() {
+  const issues = []
+  const t = lbTemplate()
+
+  for (const [key, def] of Object.entries(LABEL_FIELDS)) {
+    if (def.required && !LB.cfg.hidden.includes(key) && !lbValue(key).trim()) {
+      issues.push({ sev: 'error', field: key, title: `${def.label} is empty`,
+        desc: 'A required label field has no value from the product record and no override.' })
+    }
+  }
+
+  if (LB.cfg.barcode.enabled) {
+    const payload = lbBarcodePayload()
+    const srcLabel = (BARCODE_SOURCES[LB.cfg.barcode.source] || {}).label || 'source'
+    if (!payload) {
+      issues.push({ sev: 'error', field: null, title: 'Barcode has no data',
+        desc: `The barcode is set to encode ${srcLabel}, which is empty on this product.`,
+        fixes: [{ label: 'Turn the barcode off', act: `lbSet('barcode.enabled', false)` }] })
+    } else if (/[^\x20-\x7E]/.test(payload)) {
+      issues.push({ sev: 'error', field: null, title: 'Barcode data has unsupported characters',
+        desc: 'CODE128 encodes printable ASCII only. Choose another source or clean the value on the product record.' })
+    }
+  }
+
+  if (LB.cfg.qr.enabled) {
+    const payload = lbQrPayload()
+    if (!payload) {
+      issues.push({ sev: 'error', field: null, title: 'QR destination is empty',
+        desc: 'A custom QR destination was selected but no URL was entered.' })
+    } else if (LB.cfg.qr.target === 'custom' && !/^https?:\/\/[^\s]+\.[^\s]{2,}/i.test(payload)) {
+      issues.push({ sev: 'error', field: null, title: 'QR destination is not a valid URL',
+        desc: 'Enter a full https:// address, or point the QR back at the product record.',
+        fixes: [{ label: 'Use the product record', act: `lbSet('qr.target','product')` }] })
+    }
+  }
+
+  // Overflow is measured from the rendered preview, not guessed from
+  // string lengths — the label reflows, so only the DOM knows the truth.
+  const el = document.querySelector('#label-preview .lbl')
+  if (el) {
+    const hMm = lbMeasuredMm(el)
+    if (hMm > t.maxHeightMm) {
+      const longest = ['yarn01', 'yarn02', 'yarn03', 'composition']
+        .filter(k => lbVisible(k))
+        .sort((a, b) => lbValue(b).length - lbValue(a).length)[0]
+      const fixes = []
+      if (longest) fixes.push({ label: `Hide ${LABEL_FIELDS[longest].label}`, act: `lbToggleVisible('${longest}')` })
+      if (LB.cfg.template !== 'fabric-compact') fixes.push({ label: 'Use the compact format', act: `lbSetTemplate('fabric-compact')` })
+      issues.push({ sev: 'warn', field: longest || null,
+        title: `Content is ${hMm - t.maxHeightMm}mm taller than this format allows`,
+        desc: `The ${t.name} prints to content length on ${t.widthMm}mm continuous tape, but ${hMm}mm is past the practical maximum of ${t.maxHeightMm}mm. It will be scaled down to fit, which shrinks every value.`,
+        fixes })
+    }
+  }
+  LB.issues = issues
+  return issues
+}
+function lbBlocking() { return (LB.issues || []).some(i => i.sev === 'error') }
+
+/* ══ Mutations ══ every one re-renders the preview immediately; none of
+   them touch the product record (§3, §7). ══════════════════════════ */
+function lbSet(path, value) {
+  const parts = path.split('.')
+  let o = LB.cfg
+  while (parts.length > 1) o = o[parts.shift()]
+  o[parts[0]] = value
+  lbRenderEditor(); lbRenderPreview()
+}
+function lbSetOverride(key, raw) {
+  const val = String(raw ?? '')
+  // Typing the product's own value back is not an override.
+  if (val === lbProductValue(key)) delete LB.cfg.overrides[key]
+  else LB.cfg.overrides[key] = val
+  lbRenderPreview()
+  lbSyncFieldChrome(key)
+  lbUpdateHeader()
+}
+function lbResetField(key) {
+  delete LB.cfg.overrides[key]
+  lbRenderEditor(); lbRenderPreview()
+}
+function lbToggleVisible(key) {
+  const i = LB.cfg.hidden.indexOf(key)
+  if (i >= 0) LB.cfg.hidden.splice(i, 1); else LB.cfg.hidden.push(key)
+  lbRenderEditor(); lbRenderPreview()
+}
+function lbToggleSection(secKey) {
+  const fields = LABEL_SECTIONS[secKey].fields
+  const allHidden = fields.every(k => LB.cfg.hidden.includes(k))
+  fields.forEach(k => {
+    const i = LB.cfg.hidden.indexOf(k)
+    if (allHidden && i >= 0) LB.cfg.hidden.splice(i, 1)
+    else if (!allHidden && i < 0) LB.cfg.hidden.push(k)
   })
-  el.innerHTML = html
+  lbRenderEditor(); lbRenderPreview()
+}
+function lbMoveSection(secKey, dir) {
+  const o = LB.cfg.order
+  const i = o.indexOf(secKey)
+  const j = i + dir
+  if (i < 0 || j < 0 || j >= o.length) return
+  ;[o[i], o[j]] = [o[j], o[i]]
+  lbRenderEditor(); lbRenderPreview()
+}
+// pdSelect invokes its onChange by global name, so each selector needs a
+// named handler rather than an inline arrow.
+function lbSetQrTarget(v) { lbSet('qr.target', v) }
+function lbSetBarcodeSource(v) { lbSet('barcode.source', v) }
+function lbSetTemplate(id) {
+  if (!LABEL_TEMPLATES[id]) return
+  const t = LABEL_TEMPLATES[id]
+  // Keep the user's overrides and their explicit visibility decisions;
+  // adopt the new template's section order and its hidden defaults for
+  // fields the user has not already decided on.
+  LB.cfg.template = id
+  LB.cfg.order = [...t.order]
+  ;(t.defaultHidden || []).forEach(k => { if (!LB.cfg.hidden.includes(k)) LB.cfg.hidden.push(k) })
+  lbRenderEditor(); lbRenderPreview()
+}
+function lbResetLayout() {
+  const keep = LB.cfg.overrides
+  LB.cfg = labelDefaultConfig(LB.cfg.template)
+  LB.cfg.overrides = keep
+  lbRenderEditor(); lbRenderPreview()
+}
+function lbResetToProduct() {
+  const n = Object.keys(LB.cfg.overrides).length
+  if (n && !confirm(`Discard ${n} label override${n > 1 ? 's' : ''} and use the product record's values?`)) return
+  LB.cfg.overrides = {}
+  lbRenderEditor(); lbRenderPreview()
 }
 
-function toggleLblField(e, key) {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
-  const f = labelFieldState.find(f => f.key === key)
-  if (!f) return
-  f.enabled = !f.enabled
-  const row = e.currentTarget
-  row.classList.toggle('fld-on', f.enabled)
-  row.classList.toggle('fld-off', !f.enabled)
-  const inp = row.querySelector('.lbl-fld-val')
-  if (inp) inp.disabled = !f.enabled
-  updateLabelPreview()
+/* ══ Persistence ══ product-specific config in specs.label_config. The
+   update payload contains ONLY `specs`, and `specs` is rebuilt from the
+   product's current specs plus this one key — no master field is ever in
+   the write (§3, §21). ══════════════════════════════════════════════ */
+async function lbSave() {
+  if (!lbCanEdit()) { toast('You do not have permission to save this label'); return }
+  const btn = document.getElementById('lbl-save-btn')
+  if (btn) { btn.disabled = true }
+  const p = LB.p
+  const before = lbClone(LB.saved)
+  const specs = { ...(p.specs || {}), label_config: lbClone(LB.cfg) }
+  const { error } = await sb.from('products').update({ specs }).eq('id', p.id)
+  if (btn) { btn.disabled = false }
+  if (error) { toast('Could not save label: ' + error.message); return }
+  p.specs = specs
+  const cached = allProducts.find(x => x.id === p.id)
+  if (cached) cached.specs = specs
+  // Audit the committed change only — never per keystroke (§41).
+  const changes = []
+  const keys = new Set([...Object.keys(before.overrides || {}), ...Object.keys(LB.cfg.overrides)])
+  keys.forEach(k => {
+    const from = before.overrides?.[k], to = LB.cfg.overrides[k]
+    if (from !== to) changes.push({ field: `label.${LABEL_FIELDS[k]?.label || k}`, from: from ?? lbProductValue(k), to: to ?? lbProductValue(k) })
+  })
+  if (JSON.stringify(before.hidden) !== JSON.stringify(LB.cfg.hidden)) changes.push({ field: 'label.visible fields', from: `${before.hidden.length} hidden`, to: `${LB.cfg.hidden.length} hidden` })
+  if (JSON.stringify(before.order) !== JSON.stringify(LB.cfg.order)) changes.push({ field: 'label.section order', from: before.order.join(' → '), to: LB.cfg.order.join(' → ') })
+  if (before.template !== LB.cfg.template) changes.push({ field: 'label.template', from: LABEL_TEMPLATES[before.template]?.name, to: lbTemplate().name })
+  Audit.log('product', p.id, p, 'label_config_saved', 'Label configuration saved', changes,
+    { template: LB.cfg.template, overrides: Object.keys(LB.cfg.overrides).length })
+  LB.saved = lbClone(LB.cfg)
+  lbUpdateHeader()
+  toast('Label saved')
 }
 
+/* ══ Open / close ══════════════════════════════════════════════════ */
 function openLabel() {
   if (!selected) return
-  Audit.log('product', selected.id, selected, 'label_generated', 'Label / QR / barcode generated',
-    [], { code: getProductBarcode(selected) })
-  buildLabelFieldState(selected)
-  document.getElementById('lbl-title').textContent = selected.name
-  renderEditor()
-  updateLabelPreview()
-
-  // Warn if no Mill Article code — barcode will be blocked at print time
-  const noCodeBanner = document.getElementById('lbl-no-code-banner')
-  if (noCodeBanner) noCodeBanner.style.display = selected.code ? 'none' : 'flex'
-
+  const p = selected
+  const stored = p.specs?.label_config
+  const cfg = labelNormalizeConfig(stored)
+  LB = {
+    p, cfg,
+    saved: lbClone(cfg),
+    tab: 'content',
+    open: { identity: true, material: true, physical: true, color: false, yarns: false, meta: false, footer: false },
+    selected: null,
+    zoom: 'fit',
+    issues: [],
+  }
   document.getElementById('m-label').classList.add('open')
-  setTimeout(fitLabelPreview, 340)
+  lbRenderEditor()
+  lbRenderPreview()
+  lbUpdateHeader()
+  Audit.log('product', p.id, p, 'label_opened', 'Label builder opened', [], { template: cfg.template })
+  setTimeout(lbFitPreview, 340)
+}
+function quickLabel(p) { selected = p; openLabel() }
+
+function closeLabel() {
+  if (LB && lbDirty() && !confirm('You have unsaved label changes. Close anyway?')) return
+  document.getElementById('m-label').classList.remove('open')
+  LB = null
 }
 
-function quickLabel(p) { selected = p; openLabel() }
+/* ══ Editor rendering ══════════════════════════════════════════════ */
+const LB_ICON = {
+  chev:   `<svg viewBox="0 0 16 16" fill="none"><path d="M6 3.5L10.5 8 6 12.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  reset:  `<svg viewBox="0 0 16 16" fill="none"><path d="M2.5 8a5.5 5.5 0 1 1 1.7 3.96" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 4.5v3.2h3.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  grip:   `<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.3"/><circle cx="10" cy="4" r="1.3"/><circle cx="6" cy="8" r="1.3"/><circle cx="10" cy="8" r="1.3"/><circle cx="6" cy="12" r="1.3"/><circle cx="10" cy="12" r="1.3"/></svg>`,
+  up:     `<svg viewBox="0 0 16 16" fill="none"><path d="M4 10l4-4 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  down:   `<svg viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  warn:   `<svg viewBox="0 0 20 20" fill="none"><path d="M10 3L2 17h16L10 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 8.5v3.5M10 14.5v.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+  error:  `<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.2" stroke="currentColor" stroke-width="1.6"/><path d="M10 6v5M10 13.5v.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+  save:   `<svg viewBox="0 0 20 20" fill="none"><path d="M4 4h9l3 3v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 4v4h6V4M6.5 17v-4.5h7V17" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>`,
+  pdf:    `<svg viewBox="0 0 20 20" fill="none"><path d="M10 3v9M6.5 8.5L10 12l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 15.5h13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+  print:  `<svg viewBox="0 0 20 20" fill="none"><path d="M5.5 7.5V3h9v4.5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><rect x="2.5" y="7.5" width="15" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 12h9v5h-9z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`,
+  close:  `<svg viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>`,
+}
+
+function lbSwitchTab(tab) {
+  LB.tab = tab
+  lbRenderEditor()
+}
+
+function lbRenderEditor() {
+  const tabsEl = document.getElementById('lbl-ed-tabs')
+  const bodyEl = document.getElementById('lbl-ed-body')
+  if (!tabsEl || !bodyEl) return
+  const tabs = [['content', 'Content'], ['layout', 'Layout'], ['codes', 'Codes'], ['print', 'Print']]
+  tabsEl.innerHTML = `<div class="sub-tabs" role="tablist">${tabs.map(([k, l]) =>
+    `<button class="sub-tab${LB.tab === k ? ' active' : ''}" role="tab" aria-selected="${LB.tab === k}" onclick="lbSwitchTab('${k}')">${l}</button>`).join('')}</div>`
+  bodyEl.innerHTML = LB.tab === 'content' ? lbContentHtml()
+    : LB.tab === 'layout' ? lbLayoutHtml()
+    : LB.tab === 'codes' ? lbCodesHtml()
+    : lbPrintHtml()
+}
+
+function lbFieldHtml(key, opts = {}) {
+  const def = LABEL_FIELDS[key]
+  const val = lbValue(key)
+  const overridden = lbIsOverridden(key)
+  const hidden = LB.cfg.hidden.includes(key)
+  const empty = !val.trim()
+  const ro = !lbCanEdit()
+  const sel = LB.selected === key ? ' is-selected' : ''
+  const input = def.long
+    ? `<textarea class="control-input" id="lbf-${key}" rows="2" ${ro ? 'disabled' : ''}
+         placeholder="${escAttr(def.label)}"
+         oninput="lbSetOverride('${key}', this.value)">${esc(val)}</textarea>`
+    : `<input class="control-input" id="lbf-${key}" type="text" value="${escAttr(val)}" ${ro ? 'disabled' : ''}
+         placeholder="${escAttr(def.label)}"
+         oninput="lbSetOverride('${key}', this.value)" />`
+  return `<div class="lbl-fld${hidden ? ' is-hidden' : ''}${sel}" id="lbrow-${key}" data-field="${key}">
+    <div class="lbl-fld-top">
+      <span class="lbl-fld-key">${esc(def.label)}</span>
+      <span class="lbl-fld-src" id="lbsrc-${key}">${overridden ? 'Label override' : 'Product data'}</span>
+      ${overridden && !ro ? `<button type="button" class="lbl-fld-reset" title="Reset to product value" aria-label="Reset ${escAttr(def.label)} to product value" onclick="lbResetField('${key}')">${LB_ICON.reset}</button>` : ''}
+      <span style="margin-left:auto"></span>
+      <button type="button" class="lbl-vis" aria-pressed="${!hidden}" ${ro ? 'disabled' : ''}
+        title="${hidden ? 'Show on label' : 'Hide from label'}"
+        aria-label="${hidden ? 'Show' : 'Hide'} ${escAttr(def.label)} on label"
+        onclick="lbToggleVisible('${key}')"></button>
+    </div>
+    <div class="lbl-fld-inputs">${input}</div>
+    ${empty && !hidden ? `<div class="lbl-fld-hint is-warn">Empty — this field will not appear on the label.</div>`
+      : opts.hint ? `<div class="lbl-fld-hint">${opts.hint}</div>` : ''}
+  </div>`
+}
+
+// Only the source badge and selection ring change while typing — the row
+// is never re-rendered mid-keystroke, so focus and caret survive.
+function lbSyncFieldChrome(key) {
+  const badge = document.getElementById('lbsrc-' + key)
+  if (badge) {
+    const ov = lbIsOverridden(key)
+    badge.textContent = ov ? 'Label override' : 'Product data'
+    badge.classList.toggle('is-override', ov)
+  }
+}
+
+function lbAccordion(secKey, inner) {
+  const sec = LABEL_SECTIONS[secKey]
+  const isOpen = !!LB.open[secKey]
+  const total = sec.fields.length
+  const shown = sec.fields.filter(k => lbVisible(k)).length
+  return `<div class="lbl-acc${isOpen ? ' open' : ''}">
+    <button type="button" class="lbl-acc-hd" aria-expanded="${isOpen}" onclick="LB.open['${secKey}']=!LB.open['${secKey}'];lbRenderEditor()">
+      <span class="lbl-acc-chev">${LB_ICON.chev}</span>
+      ${esc(sec.label)}
+      <span class="lbl-acc-count">${shown}/${total}</span>
+    </button>
+    <div class="lbl-acc-body">${inner}</div>
+  </div>`
+}
+
+function lbContentHtml() {
+  const t = lbTemplate()
+  const secs = LB.cfg.order.filter(k => LABEL_SECTIONS[k])
+  const body = secs.map(secKey => {
+    const fields = LABEL_SECTIONS[secKey].fields
+    // Short parallel values pair up two-per-row (§32); everything else is
+    // a full-width row so long textile strings have room.
+    let inner = ''
+    if (secKey === 'physical') {
+      for (let i = 0; i < fields.length; i += 2) {
+        inner += `<div class="lbl-fld-pair">${fields.slice(i, i + 2).map(k => lbFieldHtml(k)).join('')}</div>`
+      }
+    } else {
+      inner = fields.map(k => lbFieldHtml(k, k === 'footer'
+        ? { hint: 'Printed at the bottom right of the label.' } : {})).join('')
+    }
+    return lbAccordion(secKey, inner)
+  }).join('')
+  const ovCount = Object.keys(LB.cfg.overrides).length
+  return `${body}
+    <div class="lbl-ed-note">
+      Values default to this product's record. Editing here creates a
+      <b>label override</b> that applies to this label only — the product master is never changed.
+      ${ovCount ? `<div style="margin-top:10px"><button class="btn btn-secondary btn-sm" onclick="lbResetToProduct()">${LB_ICON.reset}Reset all ${ovCount} override${ovCount > 1 ? 's' : ''}</button></div>` : ''}
+    </div>`
+}
+
+function lbLayoutHtml() {
+  const t = lbTemplate()
+  const secs = LB.cfg.order.filter(k => LABEL_SECTIONS[k])
+  const rows = secs.map((k, i) => {
+    const sec = LABEL_SECTIONS[k]
+    const allHidden = sec.fields.every(f => LB.cfg.hidden.includes(f))
+    return `<div class="lbl-ord-row${allHidden ? ' is-hidden' : ''}" draggable="${lbCanEdit()}" data-sec="${k}"
+      ondragstart="lbDragStart(event,'${k}')" ondragover="lbDragOver(event,'${k}')"
+      ondrop="lbDrop(event,'${k}')" ondragend="lbDragEnd(event)">
+      <span class="lbl-ord-grip" aria-hidden="true">${LB_ICON.grip}</span>
+      <span class="lbl-ord-name">${esc(sec.label)}</span>
+      <span class="lbl-ord-btns">
+        <button class="icon-btn icon-btn-sm" title="Move up" aria-label="Move ${escAttr(sec.label)} up" ${i === 0 ? 'disabled' : ''} onclick="lbMoveSection('${k}',-1)">${LB_ICON.up}</button>
+        <button class="icon-btn icon-btn-sm" title="Move down" aria-label="Move ${escAttr(sec.label)} down" ${i === secs.length - 1 ? 'disabled' : ''} onclick="lbMoveSection('${k}',1)">${LB_ICON.down}</button>
+      </span>
+      <button type="button" class="lbl-vis" aria-pressed="${!allHidden}" title="${allHidden ? 'Show section' : 'Hide section'}"
+        aria-label="${allHidden ? 'Show' : 'Hide'} ${escAttr(sec.label)}" onclick="lbToggleSection('${k}')"></button>
+    </div>`
+  }).join('')
+  const tplOptions = Object.entries(LABEL_TEMPLATES)
+    .filter(([, v]) => v.divisions.includes(LB.p.division))
+    .map(([value, v]) => ({ value, label: v.name }))
+  return `
+    <div class="lbl-ed-group">
+      <div class="lbl-ed-label">Label format</div>
+      ${pdSelect('lbl-tpl', tplOptions, LB.cfg.template, 'Format', 'lbSetTemplate', 'wide')}
+      <div class="lbl-ed-note">${esc(t.name)} prints at ${t.widthMm} × ${t.maxHeightMm} mm.</div>
+    </div>
+    <div class="lbl-ed-group">
+      <div class="lbl-ed-label">Section order</div>
+      <div class="lbl-ord">${rows}</div>
+      <div class="lbl-ed-note">Drag a section, or use the arrows. Sections reorder as a block — individual
+      elements stay where the template puts them so the label always stays well composed.</div>
+    </div>
+    ${lbCanEdit() ? `<div class="lbl-ed-group">
+      <button class="btn btn-secondary" onclick="lbResetLayout()">${LB_ICON.reset}Reset layout to template default</button>
+      <div class="lbl-ed-note">Restores section order and visibility. Your text overrides are kept.</div>
+    </div>` : ''}`
+}
+
+function lbCodesHtml() {
+  const q = LB.cfg.qr, b = LB.cfg.barcode
+  const ro = !lbCanEdit()
+  const targets = [{ value: 'product', label: 'Product record' }, { value: 'custom', label: 'Custom URL' }]
+  const srcOptions = Object.entries(BARCODE_SOURCES).map(([value, v]) => ({ value, label: v.label }))
+  const bcPayload = lbBarcodePayload()
+  return `
+    <div class="lbl-ed-group">
+      <div class="lbl-ed-label">QR code</div>
+      <div class="lbl-ed-row">
+        <span class="lbl-ed-row-label">Show QR on label</span>
+        <button type="button" class="lbl-vis" aria-pressed="${q.enabled}" ${ro ? 'disabled' : ''}
+          aria-label="Show QR on label" onclick="lbSet('qr.enabled', ${!q.enabled})"></button>
+      </div>
+      ${q.enabled ? `
+        <div style="margin-top:8px">
+          <div class="lbl-ed-label" style="margin-bottom:6px">Destination</div>
+          ${pdSelect('lbl-qr-target', targets, q.target, 'Destination', 'lbSetQrTarget', 'wide')}
+        </div>
+        ${q.target === 'custom' ? `
+          <div style="margin-top:10px">
+            <input class="control-input" style="width:100%" type="url" inputmode="url"
+              placeholder="https://…" value="${escAttr(q.url || '')}" ${ro ? 'disabled' : ''}
+              oninput="LB.cfg.qr.url=this.value;lbRenderPreview();lbUpdateHeader()" />
+            <div class="lbl-ed-note">Must be a full https:// address. Scanners cannot recover from a malformed destination once the label is printed.</div>
+          </div>`
+          : `<div class="lbl-ed-note">Resolves to this product's public record:<br><code style="font-size:11px;word-break:break-all">${esc(getProductPublicUrl(LB.p))}</code></div>`}
+      ` : ''}
+    </div>
+    <div class="lbl-ed-group">
+      <div class="lbl-ed-label">Barcode</div>
+      <div class="lbl-ed-row">
+        <span class="lbl-ed-row-label">Show barcode on label</span>
+        <button type="button" class="lbl-vis" aria-pressed="${b.enabled}" ${ro ? 'disabled' : ''}
+          aria-label="Show barcode on label" onclick="lbSet('barcode.enabled', ${!b.enabled})"></button>
+      </div>
+      ${b.enabled ? `
+        <div style="margin-top:8px">
+          <div class="lbl-ed-label" style="margin-bottom:6px">Encoded field</div>
+          ${pdSelect('lbl-bc-src', srcOptions, b.source, 'Source', 'lbSetBarcodeSource', 'wide')}
+        </div>
+        <div class="lbl-ed-note">
+          Symbology <b>CODE128</b> — the format this printing stack encodes.<br>
+          Encodes: ${bcPayload ? `<code style="font-size:12px">${esc(bcPayload)}</code>` : `<span style="color:var(--danger)">no value on this product</span>`}
+        </div>` : ''}
+    </div>`
+}
+
+function lbPrintHtml() {
+  const t = lbTemplate()
+  const issues = LB.issues || []
+  const blocking = lbBlocking()
+  return `
+    <div class="lbl-ed-group">
+      <div class="lbl-ed-label">Label check</div>
+      ${issues.length ? `<div class="lbl-issues">${issues.map(i => `
+        <div class="lbl-issue sev-${i.sev === 'error' ? 'error' : 'warn'}">
+          <span class="lbl-issue-icon">${i.sev === 'error' ? LB_ICON.error : LB_ICON.warn}</span>
+          <div class="lbl-issue-body">
+            <div class="lbl-issue-title">${esc(i.title)}</div>
+            <div class="lbl-issue-desc">${esc(i.desc)}</div>
+            ${(i.fixes || []).length ? `<div class="lbl-issue-fixes">${i.fixes.map(f =>
+              `<button class="btn btn-secondary btn-sm" onclick="${escAttr(f.act)}">${esc(f.label)}</button>`).join('')}</div>` : ''}
+          </div>
+        </div>`).join('')}</div>`
+        : `<div class="lbl-ed-note" style="margin-top:0">No issues — this label is ready to print.</div>`}
+    </div>
+    <div class="lbl-ed-group">
+      <div class="lbl-ed-label">Printer</div>
+      <div class="lbl-ed-row"><span class="lbl-ed-row-label">Target</span><span style="font-size:14px;font-weight:650">Brother QL-800</span></div>
+      <div class="lbl-ed-row"><span class="lbl-ed-row-label">Media</span><span style="font-size:14px;font-weight:650">${t.widthMm} mm continuous</span></div>
+      <div class="lbl-ed-row"><span class="lbl-ed-row-label">Sheet</span><span style="font-size:14px;font-weight:650">${t.widthMm} × ${lbSheetMm(lbMeasuredMm(document.querySelector('#label-preview .lbl')))} mm</span></div>
+      <div class="lbl-ed-note">Length follows the content on ${t.widthMm} mm continuous tape.
+        The page is set to exactly these dimensions with zero margin, so the printed sheet matches the preview.
+        Choose the QL-800 in the browser's print dialog.</div>
+    </div>
+    <div class="lbl-ed-group">
+      <div class="lbl-ed-label">Copies</div>
+      <input class="control-input" style="width:100px" type="number" min="1" max="50" value="1" id="lbl-copies" />
+      <div class="lbl-ed-note">More than one copy repeats the same label on consecutive sheets.</div>
+    </div>
+    <div class="lbl-ed-group">
+      <button class="btn btn-primary btn-full" ${blocking ? 'disabled title="Fix the errors above before printing"' : ''} onclick="printLabel()">${LB_ICON.print}Print</button>
+      <button class="btn btn-secondary btn-full" style="margin-top:8px" ${blocking ? 'disabled' : ''} onclick="downloadPDF()">${LB_ICON.pdf}Download PDF</button>
+    </div>`
+}
+
+/* Section drag-and-drop (Layout tab) */
+let _lbDragSec = null
+function lbDragStart(e, k) { _lbDragSec = k; e.currentTarget.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move' }
+function lbDragOver(e, k) {
+  if (!_lbDragSec || k === _lbDragSec) return
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move'
+  document.querySelectorAll('.lbl-ord-row.drop-target').forEach(r => r.classList.remove('drop-target'))
+  e.currentTarget.classList.add('drop-target')
+}
+function lbDrop(e, k) {
+  e.preventDefault()
+  if (!_lbDragSec || k === _lbDragSec) return
+  const o = LB.cfg.order
+  o.splice(o.indexOf(_lbDragSec), 1)
+  o.splice(o.indexOf(k), 0, _lbDragSec)
+  _lbDragSec = null
+  lbRenderEditor(); lbRenderPreview()
+}
+function lbDragEnd() {
+  _lbDragSec = null
+  document.querySelectorAll('.lbl-ord-row').forEach(r => r.classList.remove('dragging', 'drop-target'))
+}
+
+/* ══ Header (save state + validation + actions) ══════════════════════ */
+function lbUpdateHeader() {
+  if (!LB) return
+  const nameEl = document.getElementById('lbl-title')
+  if (nameEl) nameEl.textContent = LB.p.name
+  const stateEl = document.getElementById('lbl-state-chip')
+  if (stateEl) {
+    const dirty = lbDirty()
+    stateEl.className = 'lbl-chip ' + (dirty ? 'lbl-chip-dirty' : 'lbl-chip-saved')
+    stateEl.innerHTML = `<span class="lbl-chip-dot"></span>${dirty ? 'Unsaved changes' : 'Saved'}`
+  }
+  const vEl = document.getElementById('lbl-valid-chip')
+  if (vEl) {
+    const errs = (LB.issues || []).filter(i => i.sev === 'error').length
+    const warns = (LB.issues || []).filter(i => i.sev === 'warn').length
+    const n = errs + warns
+    vEl.className = 'lbl-chip ' + (errs ? 'lbl-chip-err' : warns ? 'lbl-chip-warn' : 'lbl-chip-ok')
+    vEl.innerHTML = `<span class="lbl-chip-dot"></span>${n ? `${n} issue${n > 1 ? 's' : ''}` : 'Ready to print'}`
+    vEl.title = n ? 'Open the Print tab to review' : 'This label is ready to print'
+  }
+  const saveBtn = document.getElementById('lbl-save-btn')
+  if (saveBtn) saveBtn.disabled = !lbCanEdit() || !lbDirty()
+  const printBtn = document.getElementById('lbl-print-btn')
+  if (printBtn) {
+    printBtn.disabled = lbBlocking()
+    printBtn.title = lbBlocking() ? 'Fix the errors in the Print tab first' : 'Print this label'
+  }
+}
 
 
 function toggleCardMore(e, btn) {
@@ -7152,93 +7704,9 @@ async function deleteComment(commentId, productId) {
   loadFichaComments(productId)
 }
 
-function renderDockChips() { /* replaced by renderEditor */ }
-function toggleLblSection() { /* replaced by toggleLblField */ }
-function renderOverrides() { /* replaced by renderEditor */ }
-function toggleOvRow() { /* replaced by toggleLblField */ }
-function toggleDockExpand() { /* no longer used */ }
-
-function renderLblFields() { /* legacy stub */ }
-function renderLblChips() { /* legacy stub */ }
-function renderFieldToggles() { /* legacy stub */ }
-function toggleLblProp() { /* legacy stub */ }
-
-function toggleLabelField(key, enabled) {
-  const f = labelFieldState.find(f => f.key === key)
-  if (f) { f.enabled = enabled; updateLabelPreview() }
-}
-
-function setLabelFieldValue(key, val) {
-  const f = labelFieldState.find(f => f.key === key)
-  if (!f) return
-  f.value = val
-  if (key === 'Price' || key === 'Comments') {
-    f.enabled = val.trim() !== ''
-  }
-  updateLabelPreview()
-}
-
-function updateLabelPreview() {
-  document.getElementById('label-preview').innerHTML = renderLabel(selected, labelFieldState)
-  // Defer code renders one frame so DOM is painted before JsBarcode measures the SVG
-  requestAnimationFrame(() => {
-    initLabelCodePreviews(selected)
-    requestAnimationFrame(fitLabelPreview)
-  })
-}
-
-function fitLabelPreview() {
-  const container = document.querySelector('.lbl-dr-preview')
-  const paper = document.querySelector('.lbl-dr-paper')
-  const label = document.getElementById('label-preview')
-  if (!container || !label || !paper) return
-
-  // Reset to measure natural size
-  label.style.transform = 'scale(1)'
-  label.style.transformOrigin = 'top center'
-  paper.style.height = ''
-
-  const availW = container.clientWidth - 80
-  const availH = container.clientHeight - 96
-  const naturalW = label.offsetWidth
-  const naturalH = label.offsetHeight
-  if (!naturalW || !naturalH) return
-
-  const scale = Math.min(availW / naturalW, availH / naturalH, 3.5)
-  const s = Math.round(scale * 100) / 100
-  label.style.transform = `scale(${s})`
-  // Set paper height so container knows scaled visual height
-  paper.style.height = Math.ceil(naturalH * s) + 'px'
-}
-
-function initLabelCodePreviews(p) {
-  if (!p) return
-  const bcSvg = document.getElementById('lbl-preview-bc')
-  const code = getProductBarcode(p)
-  if (bcSvg && code) {
-    // Same proportions as print so preview reflects actual label output
-    try { JsBarcode(bcSvg, code, {
-      format: 'CODE128',
-      width: 5,
-      height: 100,
-      displayValue: false,
-      marginLeft: 60, marginRight: 60, marginTop: 5, marginBottom: 5,
-      background: '#fff', lineColor: '#000'
-    }) } catch(e) {}
-  }
-  const qrCanvas = document.getElementById('lbl-preview-qr')
-  if (qrCanvas) {
-    try {
-      QRCode.toCanvas(qrCanvas, getProductPublicUrl(p),
-        { width:256, margin:3, errorCorrectionLevel:'L', color:{ dark:'#000000', light:'#ffffff' } },
-        function() {
-          // QRCode.toCanvas overrides canvas style.width/height — reset to label dimensions
-          qrCanvas.style.width = '13mm'
-          qrCanvas.style.height = '13mm'
-        })
-    } catch(e) {}
-  }
-}
+/* Legacy label editor helpers removed — the Label Builder above
+   replaces renderEditor/toggleLblField/setLabelFieldValue and the
+   dock/chip stubs that preceded them. */
 
 /* ── LABEL RENDERER ── */
 // Inline SVG so it renders in print-root too (no external image load needed)
@@ -7330,190 +7798,345 @@ document.addEventListener('scroll', e => {
 document.addEventListener('click', () => closePdSelects())
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePdSelects() })
 
-/* helpers — single KV row and dimension block */
-function lblKV(k, v) {
-  return `<div class="lbl-kv"><span class="lbl-kv-k">${esc(k)}</span><span class="lbl-kv-v">${esc(String(v))}</span></div>`
+/* ══════════════════════════════════════════════════════════════════════
+   LABEL RENDERER — the printed artifact
+   ----------------------------------------------------------------------
+   One function renders both the on-screen preview and the sheet that
+   goes to the printer, from the same config, so the preview cannot drift
+   from the output. The only differences are supplied through `opts`:
+
+     interactive  preview only — wraps fields in click-to-select regions
+     assets       print only — pre-rasterised QR + inline barcode SVG,
+                  because the print document cannot run canvas draws
+
+   Sections render in the config's order. A section with no visible field
+   is omitted entirely, so hiding a field reflows the label instead of
+   leaving a hole (§5).
+   ══════════════════════════════════════════════════════════════════════ */
+function lbRegion(key, inner, interactive) {
+  if (!interactive) return inner
+  return `<div ${lbRegionAttrs(key, interactive)}>${inner}</div>`
 }
-function lblDim(k, v) {
-  return `<div class="lbl-dim"><span class="lbl-dim-k">${esc(k)}</span><span class="lbl-dim-v">${esc(String(v))}</span></div>`
+// Where the clickable region must itself be the flex/grid item (the spec
+// strip, the metadata grid), the attributes are merged onto that element
+// instead of wrapping it — a wrapper would become the layout item and
+// break `flex:1` / grid placement.
+function lbRegionAttrs(key, interactive, extraClass = '') {
+  if (!interactive) return extraClass ? `class="${extraClass}"` : ''
+  const sel = LB && LB.selected === key ? ' is-selected' : ''
+  return `class="${extraClass ? extraClass + ' ' : ''}lbl-region${sel}" data-lf="${key}" onclick="lbSelectField('${key}')"`
 }
 
-/* Keep old names as stubs so nothing else breaks */
-function lblBlock(key, val) { return lblKV(key, val) }
-function lblSpec(k, v)      { return lblKV(k, v) }
+function renderLabel(p, cfg, opts = {}) {
+  const { interactive = false, assets = null } = opts
+  const t = LABEL_TEMPLATES[cfg.template] || LABEL_TEMPLATES[LABEL_DEFAULT_TEMPLATE]
+  // Value resolution mirrors lbValue() but is driven by the passed cfg so
+  // the print path never depends on the live editor being open.
+  const V = key => {
+    const ov = cfg.overrides[key]
+    if (ov !== undefined && ov !== null) return String(ov)
+    const v = LABEL_FIELDS[key]?.read(p)
+    return v === null || v === undefined ? '' : String(v)
+  }
+  const show = key => !cfg.hidden.includes(key) && V(key).trim() !== ''
 
-function renderLabel(p, fields, printAssets = null) {
-  const F = {}
-  fields.forEach(f => { if (f.enabled) F[f.key] = f.value })
+  const out = []
 
-  const s = []
-
-  /* ── QR element ── */
-  const qrEl = printAssets
-    ? (printAssets.qrSrc ? `<img src="${printAssets.qrSrc}" style="width:13mm;height:13mm;display:block;image-rendering:pixelated">` : '')
-    : `<canvas id="lbl-preview-qr" width="256" height="256" style="width:13mm;height:13mm;display:block"></canvas>`
-
-  /* ── TOP ROW: SIERRA logo left · QR + SCAN right ── */
-  s.push(`<div class="lbl-hdr">
+  /* ── HEADER: logo left, QR right ── */
+  const qrOn = cfg.qr.enabled
+  const qrEl = !qrOn ? ''
+    : assets
+      ? (assets.qrSrc ? `<img src="${assets.qrSrc}" alt="" />` : '')
+      : `<canvas id="lbl-preview-qr" width="256" height="256"></canvas>`
+  out.push(`<div class="lbl-hdr">
     <div class="lbl-hdr-logo">${LBL_LOGO_SVG}</div>
-    <div class="lbl-hdr-qr">
-      ${qrEl}
-      <div class="lbl-qr-hint">▼ SCAN</div>
-    </div>
+    ${qrOn ? `<div class="lbl-hdr-qr">${qrEl}<div class="lbl-qr-hint">Scan</div></div>` : ''}
   </div>`)
 
-  /* ── PRODUCT NAME — SIZE A ── */
-  if (F['Product Name']) {
-    s.push(`<div class="lbl-title">${esc(F['Product Name'])}</div>`)
-  }
+  /* ── SECTION RENDERERS ── */
+  const kv = (key, label) => lbRegion(key,
+    `<div class="lbl-kv"><span class="lbl-kv-k">${esc(label)}</span><span class="lbl-kv-v">${esc(V(key))}</span></div>`,
+    interactive)
 
-  /* ── IDENTITY: if SKU (barcode) exists show only Country, else Mill Article · LOT · Country ── */
-  const codeStr = p.code || p.specs?.barcode || null
-  const idParts = codeStr ? [] : [F['Mill Article'], F['LOT']].filter(Boolean)
-  const origin = F['Manufactured In']
-  if (idParts.length || origin) {
-    const idStr = idParts.map(v => esc(v)).join('<span class="lbl-identity-sep">·</span>')
-    const sepStr = idParts.length && origin ? '<span class="lbl-identity-sep">·</span>' : ''
-    const originStr = origin ? `${sepStr}<span class="lbl-origin">${esc(origin)}</span>` : ''
-    s.push(`<div class="lbl-identity-codes">${idStr}${originStr}</div>`)
-  }
-
-  /* ── SPECS ── */
-  const specKeys = ['Composition','Color','Dyed Method'].filter(k => F[k])
-  if (specKeys.length) {
-    s.push(`<div class="lbl-sep"></div>`)
-    s.push(`<div class="lbl-kv-table">${specKeys.map(k => lblKV(k, F[k])).join('')}</div>`)
-  }
-
-  /* ── DIMENSIONS ── */
-  const dimKeys = ['Width','GSM','DIA','Gauge'].filter(k => F[k])
-  if (dimKeys.length) {
-    s.push(`<div class="lbl-sep"></div>`)
-    s.push(`<div class="lbl-dims">${dimKeys.map(k => lblDim(k, F[k])).join('')}</div>`)
-  }
-
-  /* ── YARNS ── */
-  const yarnKeys = ['Yarn 01','Yarn 02','Yarn 03'].filter(k => F[k])
-  if (yarnKeys.length) {
-    s.push(`<div class="lbl-sep"></div>`)
-    s.push(`<div class="lbl-yarns">${yarnKeys.map(k =>
-      `<div class="lbl-yarn"><span class="lbl-yarn-k">${esc(k)}</span><span class="lbl-yarn-v">${esc(F[k])}</span></div>`
-    ).join('')}</div>`)
-  }
-
-  /* ── NOTES (price always with $, comments) ── */
-  const noteKeys = ['Price','Comments'].filter(k => F[k])
-  if (noteKeys.length) {
-    s.push(`<div class="lbl-sep"></div>`)
-    s.push(`<div class="lbl-kv-table">${noteKeys.map(k => {
-      let v = F[k]
-      if (k === 'Price') {
-        const str = String(v).trim()
-        if (str && !str.startsWith('$')) v = '$' + str
+  const sectionHtml = {
+    identity() {
+      const bits = []
+      if (show('productName')) {
+        const name = V('productName')
+        // Bounded step-down: long names get smaller, never illegible (§18).
+        const cls = name.length > 34 ? ' len-3' : name.length > 22 ? ' len-2' : ''
+        bits.push(lbRegion('productName', `<div class="lbl-title${cls}">${esc(name)}</div>`, interactive))
       }
-      return lblKV(k, v)
-    }).join('')}</div>`)
+      if (show('origin')) bits.push(lbRegion('origin', `<div class="lbl-origin">${esc(V('origin'))}</div>`, interactive))
+      return bits.join('')
+    },
+    material() { return show('composition') ? kv('composition', 'Composition') : '' },
+    color() {
+      return [show('color') ? kv('color', 'Color') : '',
+              show('dyeMethod') ? kv('dyeMethod', 'Dye method') : ''].join('')
+    },
+    physical() {
+      // Equal columns that redistribute when a metric is hidden (§12).
+      const keys = ['width', 'gsm', 'dia', 'gauge'].filter(show)
+      if (!keys.length) return ''
+      const LBLS = { width: 'Width', gsm: 'GSM', dia: 'DIA', gauge: 'Gauge' }
+      return `<div class="lbl-specs">${keys.map(k =>
+        `<div ${lbRegionAttrs(k, interactive, 'lbl-spec') || 'class="lbl-spec"'}><span class="lbl-spec-k">${LBLS[k]}</span><span class="lbl-spec-v">${esc(V(k))}</span></div>`
+      ).join('')}</div>`
+    },
+    yarns() {
+      const keys = ['yarn01', 'yarn02', 'yarn03'].filter(show)
+      const LBLS = { yarn01: 'Yarn 01', yarn02: 'Yarn 02', yarn03: 'Yarn 03' }
+      return keys.map(k => lbRegion(k,
+        `<div class="lbl-yarn"><span class="lbl-yarn-k">${LBLS[k]}</span><span class="lbl-yarn-v">${esc(V(k))}</span></div>`,
+        interactive)).join('')
+    },
+    meta() {
+      const keys = ['millArticle', 'lot', 'routeType', 'updated', 'updatedBy'].filter(show)
+      if (!keys.length) return ''
+      const LBLS = { millArticle: 'Mill article', lot: 'Lot', routeType: 'Route type', updated: 'Updated', updatedBy: 'By' }
+      const cols = keys.length <= 4 ? ' cols-2' : ''
+      return `<div class="lbl-meta${cols}">${keys.map(k =>
+        `<div ${lbRegionAttrs(k, interactive)}><span class="lbl-meta-k">${LBLS[k]}</span><span class="lbl-meta-v">${esc(V(k))}</span></div>`
+      ).join('')}</div>`
+    },
+    footer() {
+      const bcOn = cfg.barcode.enabled
+      const src = BARCODE_SOURCES[cfg.barcode.source] || BARCODE_SOURCES.millArticle
+      const payload = bcOn ? (src.read(p) ? String(src.read(p)) : null) : null
+      const idLine = [payload, V('lot')].filter(Boolean).join(' · ')
+      const site = show('footer') ? V('footer') : ''
+      if (!payload && !idLine && !site) return ''
+      const bcEl = payload
+        ? (assets ? (assets.bcSvgHtml || '') : `<svg id="lbl-preview-bc"></svg>`)
+        : ''
+      return `<div class="lbl-rule"></div>
+        ${bcEl ? `<div class="lbl-bc-wrap">${bcEl}</div>` : ''}
+        <div class="lbl-bc-footer">
+          <div class="lbl-bc-id">${esc(idLine.toUpperCase())}</div>
+          ${site ? lbRegion('footer', `<div class="lbl-bc-site">${esc(site)}</div>`, interactive) : ''}
+        </div>`
+    },
   }
 
-  /* ── RULE + BARCODE + footer ── */
-  if (codeStr) {
-    const bcEl = printAssets
-      ? (printAssets.bcSvgHtml || (printAssets.bcSrc ? `<img src="${printAssets.bcSrc}" style="width:100%;height:auto;display:block">` : ''))
-      : `<svg id="lbl-preview-bc"></svg>`
-    s.push(`<div class="lbl-rule"></div>
-    <div class="lbl-bc-wrap">${bcEl}</div>
-    <div class="lbl-bc-footer">
-      <div class="lbl-bc-id">${esc(codeStr.toUpperCase())}</div>
-      <div class="lbl-logo">${LBL_LOGO_SVG}</div>
-    </div>`)
-  } else {
-    s.push(`<div class="lbl-rule"></div>
-    <div class="lbl-bc-footer" style="justify-content:flex-end">
-      <div class="lbl-logo">${LBL_LOGO_SVG}</div>
-    </div>`)
-  }
+  // The footer carries its own strong rule, so it never gets a block
+  // border — everything else is separated by one thin hairline.
+  cfg.order.forEach(secKey => {
+    const fn = sectionHtml[secKey]
+    if (!fn) return
+    const inner = fn()
+    if (!inner) return
+    out.push(secKey === 'footer' ? inner : `<div class="lbl-block">${inner}</div>`)
+  })
 
-  return `<div class="lbl">${s.join('')}</div>`
+  return `<div class="lbl ${t.variant}" style="width:${t.widthMm}mm">${out.join('')}</div>`
 }
 
-/* LABEL_PRINT_CSS removed — print handled via #print-root + document @media print block */
+/* ══ Live preview ══ every edit re-renders here; there is no preview
+   button and nothing needs saving first (§7). ══════════════════════ */
+function lbRenderPreview() {
+  if (!LB) return
+  const host = document.getElementById('label-preview')
+  if (!host) return
+  host.innerHTML = renderLabel(LB.p, LB.cfg, { interactive: true })
+  // Codes draw after paint so JsBarcode/QRCode measure a laid-out node.
+  requestAnimationFrame(() => {
+    lbDrawCodes()
+    requestAnimationFrame(() => {
+      lbFitPreview()
+      lbValidate()
+      lbUpdateHeader()
+      if (LB.tab === 'print') lbRenderEditor()   // validation list is live
+    })
+  })
+}
+
+function lbDrawCodes() {
+  if (!LB) return
+  const bcSvg = document.getElementById('lbl-preview-bc')
+  const payload = lbBarcodePayload()
+  if (bcSvg && payload) {
+    // Same options as print, so preview bar density matches the sheet.
+    try {
+      JsBarcode(bcSvg, payload, {
+        format: LB.cfg.barcode.format || 'CODE128',
+        width: 5, height: 100, displayValue: false,
+        marginLeft: 60, marginRight: 60, marginTop: 5, marginBottom: 5,
+        background: '#ffffff', lineColor: '#000000',
+      })
+      // Fill the fixed 12mm barcode zone exactly — see .lbl-bc-wrap.
+      bcSvg.removeAttribute('width'); bcSvg.removeAttribute('height')
+      bcSvg.setAttribute('preserveAspectRatio', 'none')
+    } catch (_) { bcSvg.remove() }
+  }
+  const qrCanvas = document.getElementById('lbl-preview-qr')
+  const qrPayload = lbQrPayload()
+  if (qrCanvas && qrPayload) {
+    try {
+      QRCode.toCanvas(qrCanvas, qrPayload,
+        { width: 256, margin: 3, errorCorrectionLevel: 'L', color: { dark: '#000000', light: '#ffffff' } },
+        () => { qrCanvas.style.width = '13mm'; qrCanvas.style.height = '13mm' })
+    } catch (_) {}
+  }
+}
+
+/* Zoom affects the SCREEN only — the label's mm geometry is untouched,
+   so what prints never depends on what the preview is scaled to (§36). */
+function lbSetZoom(z) {
+  LB.zoom = z
+  document.querySelectorAll('#lbl-zoom .btn').forEach(b => b.classList.toggle('active', b.dataset.z === String(z)))
+  lbFitPreview()
+}
+function lbFitPreview() {
+  if (!LB) return
+  const stage = document.querySelector('.lbl-pv-stage')
+  const paper = document.querySelector('.lbl-dr-paper')
+  const label = document.getElementById('label-preview')
+  if (!stage || !paper || !label) return
+  label.style.transform = 'scale(1)'
+  paper.style.width = ''
+  paper.style.height = ''
+  const w = label.offsetWidth, h = label.offsetHeight
+  if (!w || !h) return
+  let scale
+  if (LB.zoom === 'fit') {
+    scale = Math.min((stage.clientWidth - 56) / w, (stage.clientHeight - 72) / h, 4)
+  } else {
+    scale = Number(LB.zoom) / 100
+  }
+  scale = Math.max(0.2, Math.round(scale * 100) / 100)
+  label.style.transform = `scale(${scale})`
+  paper.style.width = Math.ceil(w * scale) + 'px'
+  paper.style.height = Math.ceil(h * scale) + 'px'
+  const dims = document.getElementById('lbl-pv-dims')
+  if (dims) {
+    const t = lbTemplate()
+    const sheet = lbSheetMm(lbMeasuredMm(label.querySelector('.lbl')))
+    dims.textContent = `${t.widthMm} × ${sheet} mm sheet  ·  ${Math.round(scale * 100)}%`
+  }
+}
+
+/* ══ Preview → editor ══ clicking a value on the label selects it and
+   takes the editor to the control that owns it (§26). ══════════════ */
+function lbSelectField(key) {
+  if (!LB || !LABEL_FIELDS[key]) return
+  LB.selected = key
+  const sec = LABEL_FIELDS[key].section
+  LB.open[sec] = true
+  if (LB.tab !== 'content') LB.tab = 'content'
+  lbRenderEditor()
+  lbRenderPreview()
+  requestAnimationFrame(() => {
+    const row = document.getElementById('lbrow-' + key)
+    const input = document.getElementById('lbf-' + key)
+    if (row) row.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    if (input && !input.disabled) input.focus({ preventScroll: true })
+  })
+}
+
+/* ══ Print ══ Preserves the working QL-800 path: render into #print-root,
+   set @page to the template's exact millimetre geometry with zero margin,
+   and let the browser drive the printer. Only the geometry source and
+   the copy count are new. ══════════════════════════════════════════ */
+async function lbBuildPrintAssets() {
+  let bcSvgHtml = ''
+  const bcPayload = lbBarcodePayload()
+  if (bcPayload) {
+    try {
+      const tmp = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      JsBarcode(tmp, bcPayload, {
+        format: LB.cfg.barcode.format || 'CODE128',
+        width: 5, height: 100, displayValue: false,
+        marginLeft: 60, marginRight: 60, marginTop: 5, marginBottom: 5,
+        background: '#ffffff', lineColor: '#000000',
+        xmlDocument: document,
+      })
+      tmp.removeAttribute('width'); tmp.removeAttribute('height')
+      tmp.setAttribute('preserveAspectRatio', 'none')
+      tmp.setAttribute('style', 'width:100%;height:100%;display:block')
+      bcSvgHtml = tmp.outerHTML
+    } catch (_) {}
+  }
+  let qrSrc = ''
+  const qrPayload = lbQrPayload()
+  if (qrPayload) {
+    try {
+      qrSrc = await new Promise((res, rej) => QRCode.toDataURL(qrPayload,
+        { width: 512, margin: 3, errorCorrectionLevel: 'L', color: { dark: '#000000', light: '#ffffff' } },
+        (e, url) => e ? rej(e) : res(url)))
+    } catch (_) {}
+  }
+  return { qrSrc, bcSvgHtml }
+}
 
 async function printLabel() {
-  if (!selected) return
-
-  if (!selected.code) {
-    toast('Assign a Mill Article code to this product before printing a label.', 4000)
+  if (!LB) return
+  lbValidate()
+  if (lbBlocking()) {
+    LB.tab = 'print'; lbRenderEditor()
+    toast('This label has errors that must be fixed before printing', 4000)
     return
   }
+  const t = lbTemplate()
+  const copiesEl = document.getElementById('lbl-copies')
+  const copies = Math.max(1, Math.min(50, parseInt(copiesEl?.value, 10) || 1))
+  const assets = await lbBuildPrintAssets()
+  const html = renderLabel(LB.p, LB.cfg, { assets })
 
-  // Barcode: render to SVG inline (vectorial — no compression, bars stay crisp at any DPI)
-  let bcSvgHtml = ''
-  try {
-    const tmpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    JsBarcode(tmpSvg, getProductBarcode(selected), {
-      format:'CODE128', width:5, height:100,
-      displayValue:false,
-      marginLeft:60, marginRight:60, marginTop:5, marginBottom:5,
-      background:'#ffffff', lineColor:'#000000',
-      xmlDocument: document
-    })
-    tmpSvg.removeAttribute('width')
-    tmpSvg.removeAttribute('height')
-    tmpSvg.setAttribute('style', 'width:100%;height:auto;display:block')
-    bcSvgHtml = tmpSvg.outerHTML
-  } catch(e) {}
-
-  // QR: UUID-only URL (short) → low-density → 'L' correction → fewest modules → easy scan
-  let qrSrc = ''
-  try {
-    qrSrc = await new Promise((res, rej) =>
-      QRCode.toDataURL(getProductPublicUrl(selected),
-        { width: 512, margin: 3, errorCorrectionLevel: 'L', color: { dark:'#000000', light:'#ffffff' } },
-        (err, url) => err ? rej(err) : res(url)))
-  } catch(e) {}
-
-  const labelHtml = renderLabel(selected, labelFieldState, { qrSrc, bcSvgHtml })
-
-  // Inject into #print-root (visible in @media print via existing CSS)
   const root = document.getElementById('print-root')
-  root.innerHTML = labelHtml
+  root.innerHTML = Array.from({ length: copies }, () => html).join('')
 
-  // Measure label height and scale to fit within one 62×100mm sheet
+  // Measure off-screen to get the true sheet length, then set @page to
+  // exactly that. On continuous media the sheet follows the content, so
+  // nothing is scaled; a fixed-length format scales only when it must.
   root.style.cssText = 'display:block;position:fixed;visibility:hidden;top:0;left:0;z-index:-1;pointer-events:none'
   await new Promise(r => setTimeout(r, 80))
-  const lbl = root.querySelector('.lbl')
-  const PX_PER_MM = 96 / 25.4
-  const MAX_MM = 100
-  const naturalHmm = lbl ? (lbl.offsetHeight / PX_PER_MM) : MAX_MM
-  if (lbl && naturalHmm > MAX_MM) {
-    // Scale label down so it always fits on one sheet
-    const scale = MAX_MM / naturalHmm
-    lbl.style.transformOrigin = 'top left'
-    lbl.style.transform = `scale(${scale})`
-    // Expand width so after scaling it still fills 62mm
-    lbl.style.width = (62 / scale) + 'mm'
-  }
+  const first = root.querySelector('.lbl')
+  const sheetMm = lbSheetMm(lbMeasuredMm(first))
+  root.querySelectorAll('.lbl').forEach(lbl => {
+    const hMm = lbMeasuredMm(lbl)
+    if (hMm > sheetMm) {
+      const scale = sheetMm / hMm
+      lbl.style.transformOrigin = 'top left'
+      lbl.style.transform = `scale(${scale})`
+      lbl.style.width = (t.widthMm / scale) + 'mm'
+    }
+  })
   root.style.cssText = ''
 
-  // Always 62×100mm — one label, one sheet
-  let pageSizeStyle = document.getElementById('lbl-page-size-style')
-  if (!pageSizeStyle) {
-    pageSizeStyle = document.createElement('style')
-    pageSizeStyle.id = 'lbl-page-size-style'
-    document.head.appendChild(pageSizeStyle)
+  let pageStyle = document.getElementById('lbl-page-size-style')
+  if (!pageStyle) {
+    pageStyle = document.createElement('style')
+    pageStyle.id = 'lbl-page-size-style'
+    document.head.appendChild(pageStyle)
   }
-  pageSizeStyle.textContent = `@media print { @page { size: 62mm 100mm; margin: 0; } #print-root .lbl { page-break-after: avoid; page-break-inside: avoid; } }`
+  pageStyle.textContent = `@media print {
+    @page { size: ${t.widthMm}mm ${sheetMm}mm; margin: 0; }
+    #print-root .lbl { page-break-inside: avoid; break-inside: avoid; }
+    #print-root .lbl + .lbl { page-break-before: always; break-before: page; }
+  }`
+
+  Audit.log('product', LB.p.id, LB.p, 'label_printed',
+    `Label printed — ${t.name}${copies > 1 ? ` × ${copies}` : ''}`, [],
+    { template: LB.cfg.template, copies, barcode: lbBarcodePayload() })
 
   window.print()
-
-  // Clean up after dialog closes
-  setTimeout(() => { root.innerHTML = ''; pageSizeStyle.textContent = '' }, 1200)
+  setTimeout(() => { root.innerHTML = ''; pageStyle.textContent = '' }, 1200)
 }
 
+/* PDF uses the same print document — the browser's "Save as PDF"
+   destination writes the exact @page geometry with live text, so the PDF
+   matches the preview and stays selectable rather than rasterised. */
 function downloadPDF() {
-  toast('In the print dialog, choose "Save as PDF" as destination')
-  setTimeout(() => printLabel(), 300)
+  if (!LB) return
+  Audit.log('product', LB.p.id, LB.p, 'label_pdf_downloaded', 'Label PDF downloaded', [],
+    { template: LB.cfg.template })
+  toast('In the print dialog, choose "Save as PDF" as the destination', 4000)
+  setTimeout(() => printLabel(), 400)
 }
+
+// Keep the preview honest when the window changes size.
+window.addEventListener('resize', () => { if (LB) lbFitPreview() })
 
 
 /* ── ADD PRODUCT ── */
@@ -10959,7 +11582,7 @@ document.querySelectorAll('.overlay').forEach(el => { el.addEventListener('click
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return
   const drawer = document.getElementById('m-label')
-  if (drawer && drawer.classList.contains('open')) { closeModal('m-label'); return }
+  if (drawer && drawer.classList.contains('open')) { closeLabel(); return }
   const sd = document.getElementById('sd-overlay')
   if (sd && sd.classList.contains('open')) { closeSideDrawer(); return }
   document.querySelectorAll('.overlay.open').forEach(el => el.classList.remove('open'))
