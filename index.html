@@ -8456,7 +8456,7 @@ async function generateTechnicalSheet() {
   Audit.log('product', p.id, p, 'sheet_generated', 'Technical sheet generated')
   const code = p.code || p.id.slice(0,6).toUpperCase()
   const specs = p.specs || {}
-  const sierraDivision = (DIV_LBL[p.division] || p.division || '').replace('SIERRA ','')
+  const sierraDivision = 'SIERRA ' + (DIV_LBL[p.division] || p.division || '').replace('SIERRA ','')
   const dateStr = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
   const barcode = getProductBarcode(p)
   const pubUrl = getProductPublicUrl(p)
@@ -8513,56 +8513,32 @@ async function generateTechnicalSheet() {
   const hasCompare = [rw,rg,sw,sg].some(ne)
   const yarns = [specs['Yarn 01'], specs['Yarn 02'], specs['Yarn 03']].filter(ne)
 
-  // Organize specs by semantic groups (enterprise information architecture)
-  // Technical specifications (construction parameters)
-  const technicalSpecs = [
-    { label: 'Construction', value: specs.Construction },
-    { label: 'Gauge', value: specs.Gauge },
-    { label: 'Diameter', value: specs.DIA },
-    { label: 'Needles', value: specs.Needles },
-    { label: 'Route Type', value: specs['Route Type'] },
-    { label: 'Dye Method', value: specs['Dyed Method'] },
-  ].filter(s => ne(s.value))
+  const detailsLeft = [
+    ['Color', specs.Color],
+    ['Country of Origin', p.country || 'Honduras'],
+    ['Lot', p.lot],
+    ['Mill Article', specs['Mill Article']],
+  ].filter(([,v]) => ne(v))
 
-  // Physical specifications (measurements)
-  const physicalSpecs = [
-    { label: 'Standard Width', value: specs.Width },
-    { label: 'Standard GSM', value: specs.GSM },
-    { label: 'Requested Width', value: specs['Req Width'] },
-    { label: 'Requested GSM', value: specs['Req GSM'] },
-  ].filter(s => ne(s.value))
+  const detailsRight = [
+    ['Construction', specs.Construction ? (CONST_META[specs.Construction]?.label || specs.Construction) : null],
+    ['Needles', specs.Needles],
+    ['Diameter', specs.DIA],
+    ['Route Type', specs['Route Type']],
+    ['Dye Method', specs['Dyed Method']],
+    ['Vendor', specs.Vendor],
+    ['Buyer', specs.Buyer],
+  ].filter(([,v]) => ne(v))
 
-  // Commercial & traceability
-  const commercialSpecs = [
-    { label: 'Vendor', value: specs.Vendor },
-    { label: 'Buyer', value: specs.Buyer },
-    { label: 'Country of Origin', value: p.country || 'Honduras' },
-    { label: 'Color', value: specs.Color },
-    { label: 'Lot', value: p.lot },
-    { label: 'Mill Article', value: specs['Mill Article'] },
-  ].filter(s => ne(s.value))
-
-  // Yarn information
-  const yarns = [specs['Yarn 01'], specs['Yarn 02'], specs['Yarn 03']].filter(ne)
-
-  // Generic fallback for non-fabric products
+  // Generic (non-fabric) fallback
   const genericSpecs = (p.division !== 'fabric' && Object.entries(specs).filter(([,v]) => ne(v))) || []
 
-  function kvRow(k, v) {
-    return `<tr><td class="tbl-lbl">${esc2(k)}</td><td class="tbl-val">${esc2(String(v))}</td></tr>`
+  function kv(k, v) {
+    return `<div class="kv"><span class="kv-k">${esc2(k)}</span><span class="kv-v">${esc2(String(v))}</span></div>`
   }
 
-  // Quick facts grid (4 most critical specs)
-  const quickFacts = [
-    { label: 'Construction', value: specs.Construction ? (CONST_META[specs.Construction]?.label || specs.Construction) : null },
-    { label: 'Width', value: specs.Width },
-    { label: 'GSM', value: specs.GSM },
-    { label: 'Gauge', value: specs.Gauge },
-    { label: 'Needles', value: specs.Needles },
-    { label: 'Diameter', value: specs.DIA },
-  ].filter(f => ne(f.value))
-
-  // Logo (bug mark only - used as compact header indicator)
+  // ── LOGOS ─────────────────────────────────────────────
+  const logoWordmark = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1715 353.13"><path fill="#0b0b0b" d="M570.98,144.81c-47.7-6.81-61.33-13.63-61.33-34.07,0-13.63,10.22-23.85,40.88-23.85,37.48,0,47.7,10.22,47.7,30.66l3.41,3.41h40.88l3.41-3.41c0-40.88-27.26-71.55-91.99-71.55s-91.99,30.66-91.99,64.73c0,47.7,37.48,64.73,85.17,71.55,47.7,6.81,61.33,13.63,61.33,37.48,0,20.44-17.03,30.66-47.7,30.66-40.88,0-54.51-13.63-54.51-37.48l-3.41-3.41h-40.88l-3.41,3.41c0,44.29,30.66,78.36,98.8,78.36,71.55,0,98.8-34.07,98.8-71.55,0-47.7-37.48-68.14-85.17-74.95Z"/><polygon fill="#0b0b0b" points="700.44 49.41 697.03 52.82 697.03 284.49 700.44 287.9 741.32 287.9 744.73 284.49 744.73 52.82 741.32 49.41 700.44 49.41"/><polygon fill="#0b0b0b" points="802.64 49.41 799.23 52.82 799.23 284.49 802.64 287.9 962.76 287.9 966.17 284.49 966.17 250.42 962.76 247.02 850.33 247.02 846.93 243.61 846.93 189.1 850.33 185.69 955.95 185.69 959.36 182.29 959.36 148.22 955.95 144.81 850.33 144.81 846.93 141.4 846.93 93.7 850.33 90.3 962.76 90.3 966.17 86.89 966.17 52.82 962.76 49.41 802.64 49.41"/><path fill="#0b0b0b" d="M1211.46,120.96c0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41,68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14ZM1129.7,151.62h-64.73l-3.41-3.41v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66Z"/><path fill="#0b0b0b" d="M1344.33,195.91l68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14,0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41ZM1300.04,148.22v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66h-64.73l-3.41-3.41Z"/><path fill="#0b0b0b" d="M1678.2,284.49v-34.07l-78.36-197.6-3.41-3.41h-44.29l-3.41,3.41-78.36,197.6v34.07l3.41,3.41h30.66l3.41-3.41,17.04-44.29,6.81-3.41h85.17l6.81,3.41,17.03,44.29,3.41,3.41h30.66l3.41-3.41ZM1603.25,195.91h-57.92l-3.41-3.41,30.66-81.77h3.41l30.66,81.77-3.41,3.41Z"/><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>`
   const logoBug = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 411 353.13"><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>`
 
   const w = window.open('', '_blank')
@@ -8570,327 +8546,304 @@ async function generateTechnicalSheet() {
 
   w.document.write(`<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8">
-<title>${esc2(p.name)} — SIERRA Index Technical Sheet</title>
+<title>${esc2(p.name)} — SIERRA Technical Sheet</title>
 <style>
   @page { size: A4; margin: 0; }
   *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-
-  :root {
-    --text: #0b0b0b;
-    --text-2: #555;
-    --text-3: #888;
-    --text-muted: #999;
-    --border: #e4e4e4;
-    --border-light: #f0f0f0;
-    --bg: #ffffff;
-    --accent: #16cdbe;
-  }
-
   body {
-    font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
-    color: var(--text); background: var(--bg);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #0c0c0c; background: #fff;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    font-size: 9px; line-height: 1.4;
+    font-size: 10px; line-height: 1.5;
   }
 
   .page {
     width: 210mm; min-height: 297mm;
-    padding: 12mm 14mm 10mm;
+    padding: 10mm 14mm 8mm;
     display: flex; flex-direction: column;
-    background: #fff;
   }
 
-  /* HEADER */
-  .header {
-    display: grid; grid-template-columns: auto 1fr auto; align-items: start; gap: 12mm;
-    padding-bottom: 8mm; margin-bottom: 8mm;
-    border-bottom: 1px solid var(--border);
+  /* ─────────────── MASTHEAD ─────────────── */
+  .masthead {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding-bottom: 5.5mm; border-bottom: 1px solid #0c0c0c;
+    margin-bottom: 0;
   }
-  .hdr-logo { width: 22px; flex-shrink: 0; margin-top: 1px; }
-  .hdr-logo svg { width: 100%; display: block; }
-  .hdr-info { min-width: 0; }
-  .hdr-badge {
-    display: inline-block; font-size: 5.5px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.1em; color: var(--text-3); margin-bottom: 2px;
+  .mh-logo { width: 132px; }
+  .mh-logo svg { width: 100%; height: auto; display: block; }
+  .mh-right { text-align: right; }
+  .mh-division {
+    font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.16em; color: #0c0c0c;
+    margin-bottom: 0.8mm;
   }
-  .hdr-title {
-    font-size: 1.3rem; font-weight: 700; line-height: 1.2;
-    color: var(--text); margin-bottom: 3mm;
-  }
-  .hdr-subtitle {
-    font-size: 8.5px; color: var(--accent); font-weight: 600; margin-bottom: 2mm;
-  }
-  .hdr-codes {
-    font-size: 7px; color: var(--text-muted); line-height: 1.4;
-  }
-  .hdr-codes .code { font-weight: 600; font-family: 'Courier New', monospace; }
-  .hdr-status { display: flex; align-items: center; gap: 3mm; }
-  .badge {
-    font-size: 6px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.08em; padding: 2px 5px; border-radius: 3px;
-    border: 0.5px solid var(--border);
+  .mh-doc {
+    font-size: 6.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.18em; color: #bbb;
   }
 
-  /* QUICK FACTS GRID */
-  .quick-facts {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6mm 8mm;
-    padding: 0 0 8mm; margin-bottom: 8mm;
-    border-bottom: 1px solid var(--border);
+  /* ─────────────── HERO ─────────────── */
+  /* ATTENTION: product name dominates the page */
+  .hero { padding: 6.5mm 0 6.5mm; border-bottom: 0.5px solid #e4e4e4; }
+  .hero-name {
+    font-size: 52px; font-weight: 800;
+    letter-spacing: -0.05em; line-height: 0.93;
+    color: #0c0c0c; margin-bottom: 4.5mm;
   }
-  .fact { display: flex; flex-direction: column; }
-  .fact-val {
-    font-size: 14px; font-weight: 700; color: var(--text);
-    line-height: 1; margin-bottom: 3px;
+  /* ATTENTION support: what is it in one line */
+  .hero-essence {
+    font-size: 11px; font-weight: 600; color: #16cdbe;
+    letter-spacing: 0.04em; margin-bottom: 2.5mm;
   }
-  .fact-lbl {
-    font-size: 5.5px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.1em; color: var(--text-3);
+  /* DOCUMENTATION: code is quiet */
+  .hero-sku {
+    font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.16em; color: #ccc;
   }
 
-  /* SECTIONS */
-  .section { margin-bottom: 8mm; }
-  .section:last-child { margin-bottom: 0; }
-  .section-label {
-    font-size: 6px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.12em; color: var(--accent); margin-bottom: 3mm;
-    display: block;
+  /* ─────────────── COMPOSITION ─────────────── */
+  /* ATTENTION: composition is what the fabric IS — render with visual weight */
+  .comp-zone {
+    padding: 5.5mm 0 5.5mm;
+    border-bottom: 0.5px solid #e4e4e4;
   }
-  .section-content {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8mm;
+  .zone-eyebrow {
+    font-size: 7px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.28em;
+    color: #ccc; margin-bottom: 4mm;
   }
-  .section-single { grid-column: 1 / -1; }
+  .fiber-panels { display: flex; }
+  .fiber-panel {
+    flex: 1; padding-right: 5mm; margin-right: 5mm;
+    border-right: 0.5px solid #e4e4e4;
+  }
+  .fiber-panel:last-child { border-right: none; margin-right: 0; padding-right: 0; }
+  .fiber-pct {
+    font-size: 36px; font-weight: 800;
+    letter-spacing: -0.045em; line-height: 1; color: #0c0c0c;
+  }
+  .fiber-name {
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: #999; margin-top: 1.8mm;
+  }
 
-  /* COMPOSITION */
-  .comp-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 4mm;
+  /* ─────────────── KEY SPECS ─────────────── */
+  /* ATTENTION: the three numbers a buyer cares about */
+  .specs-zone {
+    padding: 5mm 0 5mm;
+    border-bottom: 0.5px solid #e4e4e4;
   }
-  .comp-item {
-    padding: 5mm; background: #f9f9f9; border: 0.5px solid var(--border-light);
-    border-radius: 4px;
+  .spec-panels { display: flex; margin-top: 3.5mm; }
+  .spec-panel {
+    padding-right: 6mm; margin-right: 6mm;
+    border-right: 0.5px solid #e4e4e4;
   }
-  .comp-pct { font-size: 16px; font-weight: 700; color: var(--text); line-height: 1; }
-  .comp-name { font-size: 7px; font-weight: 600; text-transform: uppercase; color: var(--text-3); margin-top: 2mm; }
+  .spec-panel:last-child { border-right: none; margin-right: 0; padding-right: 0; }
+  .spec-val {
+    font-size: 26px; font-weight: 700;
+    letter-spacing: -0.03em; line-height: 1; color: #0c0c0c;
+  }
+  .spec-lbl {
+    font-size: 8px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: #bbb; margin-top: 1.5mm;
+  }
+  /* Req vs Std — supplementary data, very quiet */
+  .cmp-tbl { border-collapse: collapse; margin-top: 4mm; font-size: 7.5px; }
+  .cmp-tbl th {
+    font-size: 5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.16em; color: #ccc; text-align: left;
+    padding: 0 9mm 1.5mm 0; border-bottom: 0.5px solid #ebebeb;
+  }
+  .cmp-tbl td { padding: 1.5mm 9mm 0 0; font-size: 7.5px; color: #777; font-weight: 500; }
+  .cmp-tbl td.row-lbl { font-size: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #ccc; }
 
-  /* DATA TABLE */
-  .data-tbl { width: 100%; border-collapse: collapse; }
-  .data-tbl th {
-    background: #f9f9f9; padding: 3mm 4mm;
-    font-size: 6px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.08em; color: var(--text-3);
-    border-bottom: 1px solid var(--border); text-align: left;
+  /* ─────────────── SUPPLEMENTARY DETAILS ─────────────── */
+  /* CONTEXT: supporting data, visually secondary */
+  .supp-zone {
+    padding: 5mm 0;
+    border-bottom: 0.5px solid #e4e4e4;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 7mm;
   }
-  .data-tbl td {
-    padding: 3.5mm 4mm; border-bottom: 0.5px solid var(--border-light);
-    font-size: 8.5px; color: var(--text-2);
+  .kv {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 1.5mm 0; border-bottom: 0.5px solid #f4f4f4;
   }
-  .data-tbl tr:last-child td { border-bottom: none; }
-  .tbl-lbl { font-weight: 600; color: var(--text-3); width: 50%; }
-  .tbl-val { color: var(--text-2); word-break: break-word; }
-
-  /* YARNS LIST */
-  .yarn-item {
-    display: flex; gap: 4mm; align-items: baseline;
-    padding: 2.5mm 0; border-bottom: 0.5px solid var(--border-light);
+  .kv:last-child { border-bottom: none; }
+  .kv-k {
+    font-size: 8px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em; color: #ccc;
+    flex-shrink: 0; padding-right: 3mm;
   }
-  .yarn-item:last-child { border-bottom: none; }
-  .yarn-idx { font-size: 6px; font-weight: 700; color: var(--text-3); min-width: 12mm; }
-  .yarn-spec { font-size: 8px; color: var(--text-2); }
+  .kv-v { font-size: 11px; font-weight: 500; color: #555; text-align: right; }
+  .yarn-row {
+    display: flex; gap: 3mm; align-items: baseline;
+    padding: 1.5mm 0; border-bottom: 0.5px solid #f4f4f4;
+  }
+  .yarn-n {
+    font-size: 5.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: #ccc; flex-shrink: 0; min-width: 4mm;
+  }
+  .yarn-val { font-size: 8.5px; font-weight: 500; color: #555; }
 
   /* NOTES */
-  .notes-text {
-    font-size: 8px; color: var(--text-2); line-height: 1.6;
-    background: #f9f9f9; padding: 5mm; border-radius: 4px;
-    border: 0.5px solid var(--border-light);
-  }
+  .notes-zone { padding: 4mm 0; border-bottom: 0.5px solid #e4e4e4; }
+  .notes-text { font-size: 8px; color: #666; line-height: 1.75; margin-top: 2mm; }
 
-  /* SPACER */
-  .spacer { flex: 1; min-height: 8mm; }
+  /* ─────────────── SPACER ─────────────── */
+  .spacer { flex: 1; }
 
-  /* DIGITAL IDENTITY */
+  /* ─────────────── DIGITAL IDENTITY ─────────────── */
+  /* Not technical appendages — the product's public and internal identity */
   .identity {
+    padding-top: 5mm; border-top: 1px solid #0c0c0c;
     display: grid; grid-template-columns: 1fr 1fr; gap: 8mm;
-    padding-top: 6mm; margin-top: 8mm;
-    border-top: 1px solid var(--border);
+    margin-bottom: 4mm;
   }
-  .identity-item {
-    display: flex; gap: 4mm; align-items: flex-start;
+  /* Each panel: purpose label (teal) → code → description */
+  .id-panel { display: flex; gap: 4.5mm; align-items: flex-start; }
+  .id-purpose {
+    font-size: 7px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.26em;
+    color: #16cdbe; margin-bottom: 2mm;
   }
-  .identity-visual { flex-shrink: 0; }
-  .identity-qr { width: 20mm; height: 20mm; }
-  .identity-bc { width: 50mm; }
-  .identity-bc svg { width: 100%; height: auto; max-height: 10mm; }
-  .identity-info { flex: 1; min-width: 0; }
-  .identity-label {
-    font-size: 5.5px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.1em; color: var(--accent); margin-bottom: 1.5mm;
+  .id-desc { font-size: 9px; color: #aaa; line-height: 1.75; }
+  .id-ref {
+    font-size: 8px; font-weight: 600; letter-spacing: 0.06em;
+    color: #bbb; font-family: 'Courier New', monospace;
+    margin-top: 1.5mm;
   }
-  .identity-desc {
-    font-size: 7px; color: var(--text-3); line-height: 1.5; margin-bottom: 2mm;
-  }
-  .identity-code {
-    font-size: 7px; font-weight: 600; font-family: 'Courier New', monospace;
-    color: var(--text-2);
-  }
+  .id-qr img { width: 22mm; height: 22mm; display: block; flex-shrink: 0; }
+  .id-bc { flex-shrink: 0; width: 52mm; }
+  .id-bc svg { width: 100%; height: auto; max-height: 12mm; display: block; }
 
-  /* FOOTER */
+  /* ─────────────── FOOTER ─────────────── */
   .footer {
-    display: grid; grid-template-columns: auto 1fr auto; gap: 8mm; align-items: center;
-    padding-top: 4mm; border-top: 0.5px solid var(--border);
-    font-size: 7px; color: var(--text-3);
+    padding-top: 3.5mm; border-top: 0.5px solid #e4e4e4;
+    display: flex; align-items: center; gap: 3.5mm;
   }
-  .ftr-logo { width: 12px; flex-shrink: 0; }
-  .ftr-logo svg { width: 100%; display: block; }
-  .ftr-contact { }
-  .ftr-meta { text-align: right; white-space: nowrap; }
+  .ftr-bug { width: 14px; flex-shrink: 0; }
+  .ftr-bug svg { width: 100%; height: auto; display: block; }
+  .ftr-contact {
+    font-size: 9px; color: #bbb;
+    display: flex; gap: 4mm; align-items: center; flex: 1;
+  }
+  .ftr-sep { color: #ddd; }
+  .ftr-date { font-size: 9px; color: #ccc; margin-left: auto; white-space: nowrap; }
 
-  /* PRINT */
+  /* ─────────────── SCREEN ─────────────── */
   @media screen {
-    body { background: #999; padding: 14px 0; }
-    .page { width: 794px; margin: 0 auto; box-shadow: 0 2px 12px rgba(0,0,0,0.15); }
-    .print-btn {
-      position: fixed; top: 14px; right: 14px; z-index: 200;
-      background: #0b0b0b; color: #fff; border: none; border-radius: 4px;
-      padding: 7px 14px; font-size: 11px; font-weight: 600;
-      font-family: inherit; cursor: pointer; letter-spacing: 0.02em;
-    }
+    body { background: #c0c0c0; padding: 28px 0; }
+    .page { width: 794px; margin: 0 auto; min-height: 1122px; box-shadow: 0 2px 40px rgba(0,0,0,0.22); background: #fff; }
+    .print-btn { position: fixed; top: 20px; right: 20px; z-index: 200; background: #0c0c0c; color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: 0.02em; }
     .print-btn:hover { background: #333; }
   }
   @media print {
     body { background: #fff; padding: 0; }
     .print-btn { display: none; }
-    .page { width: 210mm; box-shadow: none; }
+    .page { width: 210mm; }
   }
 </style>
 </head><body>
 <button class="print-btn" onclick="window.print()">Save PDF</button>
 <div class="page">
 
-  <!-- HEADER: Logo, title, codes, status -->
-  <div class="header">
-    <div class="hdr-logo">${logoBug}</div>
-    <div class="hdr-info">
-      <div class="hdr-badge">SIERRA ${esc2(sierraDivision)} — Product Record</div>
-      <div class="hdr-title">${esc2(p.name)}</div>
-      ${essenceLine ? `<div class="hdr-subtitle">${esc2(essenceLine)}</div>` : ''}
-      <div class="hdr-codes">
-        <div class="code">${esc2(code)}</div>
-        ${p.lot ? `<div>Lot: ${esc2(p.lot)}</div>` : ''}
-      </div>
-    </div>
-    <div class="hdr-status">
-      <div class="badge" style="background: #16cdbe20; color: #16cdbe; border-color: #16cdbe40;">Available</div>
+  <!-- ① MASTHEAD — who published this -->
+  <div class="masthead">
+    <div class="mh-logo">${logoWordmark}</div>
+    <div class="mh-right">
+      <div class="mh-division">${esc2(sierraDivision)}</div>
+      <div class="mh-doc">Technical Sheet</div>
     </div>
   </div>
 
-  <!-- QUICK FACTS: Key specs in 4-column grid -->
-  ${quickFacts.length ? `
-  <div class="quick-facts">
-    ${quickFacts.map(f => `<div class="fact">
-      <div class="fact-val">${esc2(String(f.value))}</div>
-      <div class="fact-lbl">${esc2(f.label)}</div>
-    </div>`).join('')}
-  </div>` : ''}
+  <!-- ② HERO — what is it called -->
+  <div class="hero">
+    <div class="hero-name">${esc2(p.name)}</div>
+    ${essenceLine ? `<div class="hero-essence">${esc2(essenceLine)}</div>` : ''}
+    <div class="hero-sku">${esc2(code)}${p.lot ? ' &middot; LOT ' + esc2(p.lot) : ''}</div>
+  </div>
 
-  <!-- COMPOSITION (full-width) -->
   ${fibers.length ? `
-  <div class="section section-single">
-    <span class="section-label">Composition</span>
-    <div class="comp-grid">
-      ${fibers.map(f => `<div class="comp-item">
-        <div class="comp-pct">${esc2(f.pct)}</div>
-        <div class="comp-name">${esc2(f.fiber)}</div>
+  <!-- ③ COMPOSITION — what it IS made of -->
+  <div class="comp-zone">
+    <div class="zone-eyebrow">Composition</div>
+    <div class="fiber-panels">
+      ${fibers.map(f => `<div class="fiber-panel">
+        <div class="fiber-pct">${esc2(f.pct)}</div>
+        <div class="fiber-name">${esc2(f.fiber)}</div>
       </div>`).join('')}
     </div>
   </div>` : ''}
 
-  <!-- TECHNICAL SPECIFICATIONS (2 columns) -->
-  ${technicalSpecs.length ? `
-  <div class="section">
-    <span class="section-label">Technical Specifications</span>
-    <div class="section-content">
-      <table class="data-tbl">
-        ${technicalSpecs.slice(0, Math.ceil(technicalSpecs.length/2)).map(s => kvRow(s.label, s.value)).join('')}
-      </table>
-      <table class="data-tbl">
-        ${technicalSpecs.slice(Math.ceil(technicalSpecs.length/2)).map(s => kvRow(s.label, s.value)).join('')}
-      </table>
-    </div>
-  </div>` : ''}
-
-  <!-- PHYSICAL SPECIFICATIONS -->
-  ${physicalSpecs.length ? `
-  <div class="section">
-    <span class="section-label">Physical Specifications</span>
-    <div class="section-content section-single">
-      <table class="data-tbl">
-        ${physicalSpecs.map(s => kvRow(s.label, s.value)).join('')}
-      </table>
-    </div>
-  </div>` : ''}
-
-  <!-- YARN INFORMATION -->
-  ${yarns.length ? `
-  <div class="section">
-    <span class="section-label">Yarn Composition</span>
-    <div class="section-content section-single">
-      ${yarns.map((y, i) => `<div class="yarn-item">
-        <div class="yarn-idx">Yarn ${String(i+1).padStart(2,'0')}</div>
-        <div class="yarn-spec">${esc2(y)}</div>
+  ${keyPanels.length ? `
+  <!-- ④ KEY SPECS — the numbers a buyer needs -->
+  <div class="specs-zone">
+    <div class="zone-eyebrow">Key Specifications</div>
+    <div class="spec-panels">
+      ${keyPanels.map(sp => `<div class="spec-panel">
+        <div class="spec-val">${esc2(String(sp.val))}</div>
+        <div class="spec-lbl">${esc2(sp.lbl)}</div>
       </div>`).join('')}
     </div>
+    ${hasCompare ? `<table class="cmp-tbl">
+      <thead><tr><th></th><th>Width</th><th>GSM</th></tr></thead>
+      <tbody>
+        <tr><td class="row-lbl">Requested</td><td>${ne(rw)?esc2(rw):'—'}</td><td>${ne(rg)?esc2(rg):'—'}</td></tr>
+        <tr><td class="row-lbl">Standard</td><td>${ne(sw)?esc2(sw):'—'}</td><td>${ne(sg)?esc2(sg):'—'}</td></tr>
+      </tbody></table>` : ''}
   </div>` : ''}
 
-  <!-- COMMERCIAL & TRACEABILITY -->
-  ${commercialSpecs.length ? `
-  <div class="section">
-    <span class="section-label">Commercial &amp; Traceability</span>
-    <div class="section-content">
-      <table class="data-tbl">
-        ${commercialSpecs.slice(0, Math.ceil(commercialSpecs.length/2)).map(s => kvRow(s.label, s.value)).join('')}
-      </table>
-      <table class="data-tbl">
-        ${commercialSpecs.slice(Math.ceil(commercialSpecs.length/2)).map(s => kvRow(s.label, s.value)).join('')}
-      </table>
+  <!-- ⑤ SUPPLEMENTARY — context that completes the picture -->
+  ${(detailsLeft.length || detailsRight.length || yarns.length || genericSpecs.length) ? `
+  <div class="supp-zone">
+    <div>
+      ${detailsLeft.map(([k,v]) => kv(k,v)).join('')}
+      ${yarns.length ? yarns.map((y,i) => `<div class="yarn-row"><span class="yarn-n">${String(i+1).padStart(2,'0')}</span><span class="yarn-val">${esc2(y)}</span></div>`).join('') : ''}
+      ${genericSpecs.slice(0, Math.ceil(genericSpecs.length/2)).map(([k,v]) => kv(k,v)).join('')}
+    </div>
+    <div>
+      ${detailsRight.map(([k,v]) => kv(k,v)).join('')}
+      ${genericSpecs.slice(Math.ceil(genericSpecs.length/2)).map(([k,v]) => kv(k,v)).join('')}
     </div>
   </div>` : ''}
 
-  <!-- NOTES -->
   ${specs.Comments ? `
-  <div class="section">
-    <span class="section-label">Notes</span>
+  <div class="notes-zone">
+    <div class="zone-eyebrow">Notes</div>
     <div class="notes-text">${esc2(specs.Comments)}</div>
   </div>` : ''}
 
-  <!-- Push digital identity to bottom -->
+  <!-- push identity and footer to bottom -->
   <div class="spacer"></div>
 
-  <!-- DIGITAL IDENTITY: QR + Barcode -->
+  <!-- ⑥ DIGITAL IDENTITY — the product's public and internal codes -->
   <div class="identity">
-    ${qrDataUrl ? `<div class="identity-item">
-      <div class="identity-visual">
-        <img class="identity-qr" src="${qrDataUrl}" alt="QR">
+    ${qrDataUrl ? `<div class="id-panel">
+      <div><img class="id-qr" src="${qrDataUrl}" alt="QR" style="width:22mm;height:22mm;display:block;flex-shrink:0"></div>
+      <div>
+        <div class="id-purpose">Public Product Page</div>
+        <div class="id-desc">Scan to access composition, product code, construction type and color. No login required.</div>
       </div>
-      <div class="identity-info">
-        <div class="identity-label">Public Product Page</div>
-        <div class="identity-desc">Scan to view this product record in SIERRA Index. No login required.</div>
-      </div>
-    </div>` : ''}
-    ${bcSvgStr ? `<div class="identity-item">
-      <div class="identity-info">
-        <div class="identity-label">Internal Reference</div>
-        <div class="identity-code">${esc2(barcode)}</div>
-      </div>
-      <div class="identity-visual">
-        <div class="identity-bc">${bcSvgStr}</div>
-      </div>
-    </div>` : ''}
+    </div>` : '<div></div>'}
+    ${bcSvgStr ? `<div class="id-panel" style="flex-direction:column;gap:2mm">
+      <div class="id-purpose">Internal Reference</div>
+      <div class="id-bc">${bcSvgStr}</div>
+      <div class="id-ref">${esc2(barcode)}</div>
+    </div>` : '<div></div>'}
   </div>
 
-  <!-- FOOTER -->
+  <!-- ⑦ FOOTER — signature -->
   <div class="footer">
-    <div class="ftr-logo">${logoBug}</div>
-    <div class="ftr-contact">www.sierratextiles.com · hello@sierratextiles.com</div>
-    <div class="ftr-meta">Generated ${esc2(dateStr)} | SIERRA Index</div>
+    <div class="ftr-bug">${logoBug}</div>
+    <div class="ftr-contact">
+      www.sierratextiles.com
+      <span class="ftr-sep">·</span>
+      hello@sierratextiles.com
+    </div>
+    <div class="ftr-date">Generated ${esc2(dateStr)} · SIERRA Index</div>
   </div>
 
 </div>
