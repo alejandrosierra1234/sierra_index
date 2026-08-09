@@ -2606,6 +2606,77 @@
     [data-theme="dark"] .smp-damaged    { background:rgba(239,68,68,0.12);  color:#f87171; }
     [data-theme="dark"] .smp-archived   { background:rgba(150,150,150,0.08);color:#888; }
 
+    /* ── Dispatch Queue — dense operational table ──
+       ERP density: small counters (not stat cards), a compact filter row,
+       and a real table instead of a card-per-row list. Reuses the
+       existing .smp-badge status system so colors stay consistent with
+       every other status pill in the app. */
+    .dq-meta { font-size:0.74rem; color:var(--text-3); margin:-0.3rem 0 1rem; }
+    .dq-counters { display:flex; gap:0.5rem; margin-bottom:0.9rem; flex-wrap:wrap; }
+    .dq-counter {
+      display:flex; align-items:baseline; gap:0.4rem; padding:0.4rem 0.75rem;
+      border:1px solid var(--border); border-radius:8px; background:var(--surface2);
+      font-size:0.72rem; color:var(--text-2); cursor:pointer; user-select:none;
+      transition:border-color var(--dur-fast) var(--ease-out);
+    }
+    .dq-counter:hover { border-color:var(--text-3); }
+    .dq-counter.active { border-color:var(--accent); color:var(--text); }
+    .dq-counter b { font-size:1rem; color:var(--text); font-weight:700; font-variant-numeric:tabular-nums; }
+    .dq-counter.overdue b { color:#c0392b; }
+    .dq-toolbar { display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.9rem; align-items:center; }
+    .dq-toolbar input[type=text], .dq-toolbar select {
+      border:1px solid var(--border); border-radius:7px; background:var(--surface2); color:var(--text);
+      font-family:inherit; font-size:0.76rem; padding:0.4rem 0.55rem; height:2rem; box-sizing:border-box;
+    }
+    .dq-toolbar input[type=text] { min-width:170px; flex:1; max-width:260px; }
+    .dq-toolbar-sep { width:1px; height:1.3rem; background:var(--border); }
+    .dq-table-wrap { border:1px solid var(--border); border-radius:10px; overflow:auto; }
+    .dq-table { width:100%; border-collapse:collapse; font-size:0.79rem; min-width:760px; }
+    .dq-table th {
+      text-align:left; font-size:0.62rem; text-transform:uppercase; letter-spacing:0.06em;
+      color:var(--text-3); font-weight:600; padding:0.55rem 0.7rem; border-bottom:1px solid var(--border);
+      background:var(--surface2); white-space:nowrap; position:sticky; top:0;
+    }
+    .dq-table td { padding:0.5rem 0.7rem; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .dq-table tbody tr:last-child td { border-bottom:none; }
+    .dq-table tbody tr { cursor:pointer; transition:background var(--dur-fast) var(--ease-out); }
+    .dq-table tbody tr:hover { background:var(--surface2); }
+    .dq-row-id { font-weight:700; font-variant-numeric:tabular-nums; font-size:0.76rem; white-space:nowrap; }
+    .dq-row-kind { font-size:0.6rem; color:var(--text-3); text-transform:uppercase; letter-spacing:0.05em; margin-top:0.1rem; }
+    .dq-row-name { font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
+    .dq-next { color:var(--accent); font-weight:600; white-space:nowrap; }
+    .dq-overdue-dot { width:6px; height:6px; border-radius:50%; background:#c0392b; display:inline-block; margin-right:0.4rem; flex-shrink:0; }
+    .dq-empty { padding:2.5rem 1rem; text-align:center; color:var(--text-3); font-size:0.85rem; }
+
+    /* ── Order workspace (picking/packing) ──
+       Reuses .srd-layout's main+340px sidebar split so it matches every
+       other detail screen in the app instead of inventing a new pattern. */
+    .ord-hdr-row { display:flex; flex-wrap:wrap; gap:0.35rem 1.5rem; font-size:0.78rem; color:var(--text-2); margin-bottom:0.5rem; }
+    .ord-hdr-row b { color:var(--text); font-weight:600; }
+    .ord-steps { display:flex; align-items:center; flex-wrap:wrap; gap:0.25rem; margin:0.85rem 0 1.4rem; }
+    .ord-step { font-size:0.66rem; font-weight:600; color:var(--text-3); padding:0.32rem 0.65rem; border-radius:999px; background:var(--surface2); white-space:nowrap; }
+    .ord-step.current { color:var(--accent-ink); background:var(--accent); }
+    .ord-step.done { color:var(--text-2); }
+    .ord-arrow { color:var(--text-3); font-size:0.65rem; }
+    .pick-table { width:100%; border-collapse:collapse; font-size:0.79rem; }
+    .pick-table th {
+      text-align:left; font-size:0.62rem; text-transform:uppercase; letter-spacing:0.06em;
+      color:var(--text-3); font-weight:600; padding:0.5rem 0.6rem; border-bottom:1px solid var(--border);
+    }
+    .pick-table td { padding:0.45rem 0.6rem; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .pick-table tbody tr:last-child td { border-bottom:none; }
+    .pick-scan-dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+    .pick-scan-dot.pending { background:var(--text-3); opacity:0.4; }
+    .pick-scan-dot.confirmed { background:#1a8a5c; }
+    .pick-scan-dot.unavailable { background:#c0392b; }
+    .ord-side-stat { display:flex; justify-content:space-between; align-items:baseline; font-size:0.79rem; padding:0.28rem 0; }
+    .ord-side-stat b { font-variant-numeric:tabular-nums; }
+    .ord-side-stat.warn b { color:#c0392b; }
+    .ord-side-sep { height:1px; background:var(--border); margin:0.75rem 0; }
+    .ord-side-lbl { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); margin-bottom:0.4rem; }
+    .ord-side-line { font-size:0.8rem; color:var(--text); margin-bottom:0.15rem; }
+    .ord-side-line.muted { color:var(--text-3); font-size:0.74rem; }
+
     /* Sample list */
     .smp-list { display:flex; flex-direction:column; gap:0; }
     .smp-row {
@@ -3236,7 +3307,10 @@
         <button class="nav-item" id="nav-samples" data-tip="Solicitudes" style="--item-color:#16cdbe;display:none" onclick="showSampleCenter()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="10" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="10" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M13.5 13.5v-1M13.5 16.5v-1M11.5 14.5h1M15.5 14.5h1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Solicitudes</span></button>
         <button class="nav-item cart-nav-item" id="nav-cart" data-tip="Colecciones" style="--item-color:#16cdbe;display:none" onclick="openCollectionsNav()"><span class="n-icon" style="position:relative"><svg viewBox="0 0 20 20" fill="none"><path d="M3 4h2l1.6 9.5a1 1 0 0 0 1 .8h7.3a1 1 0 0 0 1-.75L17.5 8H5.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="17" r="1.1" fill="currentColor"/><circle cx="14.5" cy="17" r="1.1" fill="currentColor"/></svg><span class="cart-nav-badge" id="cart-nav-badge">0</span></span><span class="nav-label">Colecciones</span><span class="cart-nav-count" id="cart-nav-count">0</span></button>
         <button class="nav-item" id="nav-insights" data-tip="Insights" style="--item-color:#9e00cb;display:none" onclick="showInsights()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M4 16V9M10 16V4M16 16v-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="nav-label">Insights</span></button>
-        <button class="nav-item" id="nav-scan" data-tip="Scan" style="--item-color:#009fff;display:none" onclick="openScanMode()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Scan</span></button>
+        <!-- Scan is a contextual action (Picking/Packing/Inventory lookup), not
+             an IA destination — reachable from the div-toolbar, the dashboard,
+             and inline "Scan" buttons on the warehouse screens below. -->
+        <span class="s-label" id="wh-group-label" style="margin-top:0.5rem;display:none">Almacén</span>
         <button class="nav-item" id="nav-dispatch-queue" data-tip="Cola de despacho" style="--item-color:#16cdbe;display:none" onclick="showDispatchQueueCurrent()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
         <button class="nav-item" id="nav-wh-inventory" data-tip="Inventario" style="--item-color:#16cdbe;display:none" onclick="showWarehouseInventoryCurrent()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Inventario</span></button>
       </div>
@@ -3961,7 +4035,6 @@ function applyLanguage(opts = {}) {
   setText('#nav-samples .nav-label', tx('nav.sampleCenter'))
   setText('#nav-insights .nav-label', tx('nav.insights'))
   setText('#nav-cart .nav-label', tx('nav.collection'))
-  setText('#nav-scan .nav-label', tx('nav.scan'))
   setText('#nav-logs .nav-label', tx('nav.accessLogs'))
   setText('#nav-users .nav-label', tx('nav.team'))
   setText('#notif-btn .nav-label', tx('nav.notifications'))
@@ -4842,24 +4915,24 @@ document.addEventListener('click', e => {
 function renderSamplesFulfillmentNav() {
   const dq = document.getElementById('nav-dispatch-queue')
   const wi = document.getElementById('nav-wh-inventory')
+  const grp = document.getElementById('wh-group-label')
   const showDispatch = canDispatchDiv(division)
   const showInv = hasWarehouseAccess(division)
   if (dq) dq.style.display = showDispatch ? 'flex' : 'none'
   if (wi) wi.style.display = showInv ? 'flex' : 'none'
+  if (grp) grp.style.display = (showDispatch || showInv) ? 'block' : 'none'
 }
 
 // Requests/Collections lifecycle (customer_service) is its own domain, not
 // tied to any one division — a Fiber-only user with no customer_service
-// grant shouldn't see Solicitudes/Colecciones/Scan at all. Not
-// division-dependent, so this only needs to run once at login.
+// grant shouldn't see Solicitudes/Colecciones at all. Not division-
+// dependent, so this only needs to run once at login.
 function renderSamplesCommercialNav() {
   const show = can('read', 'customer_service') ? 'flex' : 'none'
   const samplesBtn = document.getElementById('nav-samples')
   const cartBtn = document.getElementById('nav-cart')
-  const scanBtn = document.getElementById('nav-scan')
   if (samplesBtn) samplesBtn.style.display = show
   if (cartBtn) cartBtn.style.display = show
-  if (scanBtn) scanBtn.style.display = show
 }
 
 function updateSectionTitle() {
@@ -11592,6 +11665,34 @@ let _dispatchCol = null, _dispatchItems = []
    specific collection ("Ir a Despacho"), with no way to see what's
    waiting overall. ── */
 const DISPATCH_QUEUE_STATUSES = ['requested', 'approved', 'preparing']
+// Warehouses are physically independent per division — shown as secondary
+// header metadata so a warehouse user always knows which physical location
+// they're looking at, never a merged view.
+const WAREHOUSE_LOCATION_LBL = { fiber:'Fiber Warehouse', yarn:'Guatemala', fabric:'Northern Textiles', garment:'Northern Textiles', chemicals:'Pride Chemicals' }
+const DQ_OVERDUE_HOURS = 24, DQ_OVERDUE_HOURS_URGENT = 6
+function dqIsOverdue(c) {
+  if (c.status === 'ready') return false
+  const ageH = (Date.now() - new Date(c.created_at).getTime()) / 3600000
+  return ageH > (c.priority === 'urgent' ? DQ_OVERDUE_HOURS_URGENT : DQ_OVERDUE_HOURS)
+}
+function dqNextAction(status) {
+  if (status === 'requested' || status === 'approved') return 'Prepare →'
+  if (status === 'preparing') return 'Continue →'
+  if (status === 'ready') return 'Review →'
+  return 'Open →'
+}
+function dqRelTime(dateStr) {
+  const d = new Date(dateStr), now = new Date()
+  const time = d.toLocaleTimeString('es-GT', { hour:'numeric', minute:'2-digit' })
+  if (d.toDateString() === now.toDateString()) return `Hoy ${time}`
+  const y = new Date(now); y.setDate(now.getDate() - 1)
+  if (d.toDateString() === y.toDateString()) return `Ayer ${time}`
+  return d.toLocaleDateString('es-GT', { day:'2-digit', month:'short' })
+}
+
+let _dqRows = [], _dqDiv = null
+let _dqFilters = { q:'', status:'', customer:'', requester:'', delivery:'', date:'', overdue:false, sort:'age_asc' }
+
 async function showDispatchQueue(div) {
   syncModule('samples')
   division = div // keep the bu-switch context in sync with the warehouse queue being viewed
@@ -11606,7 +11707,9 @@ async function showDispatchQueue(div) {
   document.getElementById('tb-section').textContent = title
   document.getElementById('product-controls').style.display = 'none'
   document.getElementById('sec-title').textContent = title
-  document.getElementById('sec-sub').textContent = 'Colecciones listas para verificar, excluir y despachar'
+  document.getElementById('sec-sub').textContent = ''
+  _dqDiv = div
+  _dqFilters = { q:'', status:'', customer:'', requester:'', delivery:'', date:'', overdue:false, sort:'age_asc' }
 
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
@@ -11620,33 +11723,123 @@ async function showDispatchQueue(div) {
     .not('collection_id', 'is', null)
   if (divErr) { pg.innerHTML = `<div class="empty"><p>Error: ${esc(divErr.message)}</p></div>`; return }
   const colIds = [...new Set((divSamples || []).map(s => s.collection_id))]
-  if (!colIds.length) { pg.innerHTML = `<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>No hay colecciones de ${ALMACEN_DIV_LBL[div]} esperando despacho.</p></div>`; return }
+  if (!colIds.length) { _dqRows = []; renderDispatchQueueScreen(); return }
 
   const { data: cols, error } = await sb.from('sample_collections')
-    .select('id,collection_id,name,customer,priority,status,created_at,requested_by')
+    .select('id,collection_id,name,customer,priority,status,created_at,requested_by,delivery_method,profiles!requested_by(full_name)')
     .in('id', colIds).in('status', DISPATCH_QUEUE_STATUSES).order('created_at', { ascending: true })
   if (error) { pg.innerHTML = `<div class="empty"><p>Error: ${esc(error.message)}</p></div>`; return }
-  if (!cols.length) { pg.innerHTML = `<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>No hay colecciones de ${ALMACEN_DIV_LBL[div]} esperando despacho.</p></div>`; return }
 
-  const { data: items } = await sb.from('samples').select('collection_id, products(division)').in('collection_id', cols.map(c => c.id))
-  const divsByCol = {}
-  ;(items || []).forEach(i => { (divsByCol[i.collection_id] = divsByCol[i.collection_id] || []).push(i.products?.division) })
+  const { data: items } = await sb.from('samples').select('id, collection_id, products(division)').in('collection_id', cols.map(c => c.id))
+  const itemCounts = {}
+  ;(items || []).forEach(i => { itemCounts[i.collection_id] = (itemCounts[i.collection_id] || 0) + 1 })
 
-  pg.innerHTML = `<div class="smp-list">${cols.map(c => {
-    const divs = [...new Set((divsByCol[c.id] || []).filter(Boolean))]
-    const date = new Date(c.created_at).toLocaleDateString('es-GT', { day:'2-digit', month:'short' })
-    return `<div class="smp-row" onclick="showDispatch('${c.id}')">
-      <div class="smp-row-id">${esc(c.collection_id)}</div>
-      <div class="smp-row-product">
-        <div class="smp-row-name">${esc(c.name || 'Colección sin nombre')}${c.customer ? ' · ' + esc(c.customer) : ''}</div>
-        <div class="smp-row-meta">${divs.map(d => `<span style="color:${DIV_CLR[d]||'#aaa'};font-weight:700;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em">${esc(DIV_LBL[d]||d)}</span>`).join(' · ') || 'Sin muestras'}${c.priority === 'urgent' ? ' · Urgente' : ''}</div>
-      </div>
-      <div class="smp-row-right">
-        ${smpBadge(c.status)}
-        <div class="smp-row-date">${date}</div>
-      </div>
-    </div>`
-  }).join('')}</div>`
+  _dqRows = cols.map(c => ({ ...c, itemCount: itemCounts[c.id] || 0, requesterName: c.profiles?.full_name || '—' }))
+  renderDispatchQueueScreen()
+}
+
+function renderDispatchQueueScreen() {
+  const div = _dqDiv
+  const pg = document.getElementById('pg')
+  const rows = _dqRows
+  const pendingN = rows.filter(c => c.status === 'requested' || c.status === 'approved').length
+  const preparingN = rows.filter(c => c.status === 'preparing').length
+  const readyN = rows.filter(c => c.status === 'ready').length
+  const overdueN = rows.filter(dqIsOverdue).length
+  const lastUpdate = rows.length ? Math.min(...rows.map(c => Date.now() - new Date(c.created_at).getTime())) : null
+
+  const customers = [...new Set(rows.map(c => c.customer).filter(Boolean))].sort()
+  const requesters = [...new Set(rows.map(c => c.requesterName).filter(Boolean))].sort()
+  const deliveries = [...new Set(rows.map(c => c.delivery_method).filter(Boolean))].sort()
+
+  pg.innerHTML = `
+    <div class="dq-meta">${esc(WAREHOUSE_LOCATION_LBL[div] || ALMACEN_DIV_LBL[div])} · ${rows.length} order${rows.length!==1?'s':''} in queue</div>
+    <div class="dq-counters">
+      <div class="dq-counter ${_dqFilters.status==='' && !_dqFilters.overdue ? 'active':''}" onclick="dqSetQuickFilter('')"><b>${rows.length}</b> All</div>
+      <div class="dq-counter ${_dqFilters.status==='pending' ? 'active':''}" onclick="dqSetQuickFilter('pending')"><b>${pendingN}</b> Pending</div>
+      <div class="dq-counter ${_dqFilters.status==='preparing' ? 'active':''}" onclick="dqSetQuickFilter('preparing')"><b>${preparingN}</b> In preparation</div>
+      <div class="dq-counter ${_dqFilters.status==='ready' ? 'active':''}" onclick="dqSetQuickFilter('ready')"><b>${readyN}</b> Ready</div>
+      <div class="dq-counter overdue ${_dqFilters.overdue ? 'active':''}" onclick="dqSetQuickFilter('overdue')"><b>${overdueN}</b> Overdue</div>
+    </div>
+    <div class="dq-toolbar">
+      <input type="text" id="dq-search" placeholder="Search order, customer, requester…" value="${esc(_dqFilters.q)}" oninput="dqFilterChange('q', this.value)" />
+      <select id="dq-customer" onchange="dqFilterChange('customer', this.value)">
+        <option value="">Customer: All</option>
+        ${customers.map(c => `<option value="${esc(c)}" ${_dqFilters.customer===c?'selected':''}>${esc(c)}</option>`).join('')}
+      </select>
+      <select id="dq-requester" onchange="dqFilterChange('requester', this.value)">
+        <option value="">Requester: All</option>
+        ${requesters.map(r => `<option value="${esc(r)}" ${_dqFilters.requester===r?'selected':''}>${esc(r)}</option>`).join('')}
+      </select>
+      <select id="dq-delivery" onchange="dqFilterChange('delivery', this.value)">
+        <option value="">Delivery: All</option>
+        ${deliveries.map(d => `<option value="${esc(d)}" ${_dqFilters.delivery===d?'selected':''}>${esc(d)}</option>`).join('')}
+      </select>
+      <div class="dq-toolbar-sep"></div>
+      <select id="dq-sort" onchange="dqFilterChange('sort', this.value)">
+        <option value="age_asc" ${_dqFilters.sort==='age_asc'?'selected':''}>Oldest first</option>
+        <option value="age_desc" ${_dqFilters.sort==='age_desc'?'selected':''}>Newest first</option>
+        <option value="priority" ${_dqFilters.sort==='priority'?'selected':''}>Priority first</option>
+      </select>
+    </div>
+    <div id="dq-table-slot"></div>`
+  dqRenderTable()
+}
+
+function dqSetQuickFilter(key) {
+  _dqFilters.overdue = key === 'overdue'
+  _dqFilters.status = key === 'overdue' ? '' : key
+  renderDispatchQueueScreen()
+}
+function dqFilterChange(key, val) { _dqFilters[key] = val; dqRenderTable() }
+
+function dqRenderTable() {
+  const slot = document.getElementById('dq-table-slot')
+  if (!slot) return
+  const f = _dqFilters
+  let rows = _dqRows.filter(c => {
+    if (f.q) {
+      const hay = `${c.collection_id} ${c.name||''} ${c.customer||''} ${c.requesterName||''}`.toLowerCase()
+      if (!hay.includes(f.q.toLowerCase())) return false
+    }
+    if (f.status === 'pending' && !(c.status === 'requested' || c.status === 'approved')) return false
+    if (f.status === 'preparing' && c.status !== 'preparing') return false
+    if (f.status === 'ready' && c.status !== 'ready') return false
+    if (f.overdue && !dqIsOverdue(c)) return false
+    if (f.customer && c.customer !== f.customer) return false
+    if (f.requester && c.requesterName !== f.requester) return false
+    if (f.delivery && c.delivery_method !== f.delivery) return false
+    return true
+  })
+  rows = rows.slice().sort((a, b) => {
+    if (f.sort === 'age_desc') return new Date(b.created_at) - new Date(a.created_at)
+    if (f.sort === 'priority') return (b.priority==='urgent') - (a.priority==='urgent') || new Date(a.created_at) - new Date(b.created_at)
+    return new Date(a.created_at) - new Date(b.created_at)
+  })
+
+  if (!rows.length) {
+    slot.innerHTML = `<div class="dq-empty">No orders match these filters.</div>`
+    return
+  }
+  slot.innerHTML = `<div class="dq-table-wrap"><table class="dq-table">
+    <thead><tr>
+      <th>Order</th><th>Collection / Request</th><th>Customer</th><th>Requester</th>
+      <th>Items</th><th>Delivery</th><th>Requested</th><th>Status</th><th>Next action</th>
+    </tr></thead>
+    <tbody>${rows.map(c => `
+      <tr onclick="showDispatch('${c.id}')">
+        <td class="dq-row-id">${dqIsOverdue(c) ? '<span class="dq-overdue-dot" title="Overdue"></span>' : ''}${esc(c.collection_id)}<div class="dq-row-kind">${c.name ? 'Collection' : 'Quick request'}</div></td>
+        <td class="dq-row-name">${esc(c.name || '—')}${c.priority==='urgent' ? ' <span style="color:#c0392b;font-weight:700">· Urgent</span>' : ''}</td>
+        <td>${esc(c.customer || '—')}</td>
+        <td>${esc(c.requesterName)}</td>
+        <td style="text-align:center">${c.itemCount}</td>
+        <td>${esc(c.delivery_method || '—')}</td>
+        <td>${dqRelTime(c.created_at)}</td>
+        <td>${smpBadge(c.status)}</td>
+        <td class="dq-next">${dqNextAction(c.status)}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`
 }
 // Sidebar entry point — dispatches into whichever business unit is
 // currently in context (see bu-switch), falling back to the user's first
@@ -11668,7 +11861,7 @@ async function showDispatch(collectionId) {
   vs.innerHTML = '<div style="padding:2rem 1.75rem;color:var(--text-3);font-size:0.85rem">Loading…</div>'
 
   const [colRes, itemsRes] = await Promise.all([
-    sb.from('sample_collections').select('*').eq('id', collectionId).single(),
+    sb.from('sample_collections').select('*, profiles!requested_by(full_name)').eq('id', collectionId).single(),
     sb.from('samples').select('*, products(name,division,code)').eq('collection_id', collectionId).order('created_at', { ascending: true }),
   ])
   if (colRes.error || !colRes.data) { vs.innerHTML = `<div style="padding:2rem 1.75rem"><p>Error loading collection.</p></div>`; return }
@@ -11676,108 +11869,165 @@ async function showDispatch(collectionId) {
   _dispatchItems = itemsRes.data || []
   // Scope the sidebar to whichever division this collection's items belong
   // to (single-division going forward — falls back to the first one found
-  // if an older mixed collection still exists).
+  // if an older mixed collection still exists), keeping the bu-switch and
+  // warehouse nav in sync with the order actually being worked.
   const firstDiv = _dispatchItems.find(i => i.products?.division)?.products?.division
-  syncModule(firstDiv ? 'almacen_' + firstDiv : null)
+  if (firstDiv) { division = firstDiv; applyDivisionAccent(firstDiv) }
+  syncModule('samples')
+  renderBuSwitcher()
+  renderSamplesFulfillmentNav()
   renderDispatchScreen()
 }
 
-function dispatchItemHtml(i) {
-  const c = DIV_CLR[i.products?.division] || '#aaa'
-  let stateHtml
-  if (i.excluded) {
-    stateHtml = `<div style="font-size:0.72rem;color:#c0392b;margin-top:0.5rem">Excluded — ${esc(i.exclusion_reason||'')}</div>
-      <button class="btn btn-ghost btn-sm" style="margin-top:0.4rem" onclick="dispatchVerify('${i.id}')">Include after all</button>`
-  } else if (i.verified) {
-    stateHtml = `<div style="font-size:0.72rem;color:#0a7a72;margin-top:0.5rem;font-weight:600">✓ Verified present</div>`
-  } else {
-    stateHtml = `
-      <div style="display:flex;gap:0.4rem;margin-top:0.6rem">
-        <button class="btn btn-primary btn-sm" onclick="dispatchVerify('${i.id}')">Mark present</button>
-        <button class="btn btn-ghost btn-sm" style="color:#c0392b" onclick="dispatchRevealExclude('${i.id}')">Exclude…</button>
-      </div>
-      <div id="exclude-form-${i.id}" style="display:none;margin-top:0.6rem">
-        <input type="text" id="exclude-reason-${i.id}" placeholder="Why isn't this going? (required)"
-          style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.65rem;font-size:0.8rem;font-family:inherit;background:var(--surface2);color:var(--text);margin-bottom:0.4rem" />
-        <button class="btn btn-primary btn-sm" onclick="dispatchExclude('${i.id}')">Confirm exclude</button>
-      </div>`
-  }
-  // Labeling state: base label always expected; commercial sticker only
-  // when the item carries pricing (set by Customer Service — warehouse
-  // never types prices, it only prints)
+// Pending → Picking → Packing → Dispatch → Completed. The DB doesn't carry
+// a distinct "packing" status (picking/packing happen in the same
+// resolve-every-item pass here), so 'ready' — set once every item is
+// scanned/excluded and the package is physically closed — maps to Packing
+// done / Dispatch pending, which is what it actually means operationally.
+const ORDER_STAGES = ['Pending', 'Picking', 'Packing', 'Dispatch', 'Completed']
+function orderStageIndex(status) {
+  if (status === 'requested' || status === 'approved') return 0
+  if (status === 'preparing') return 1
+  if (status === 'ready') return 2
+  if (status === 'picked_up' || status === 'shipped') return 3
+  if (status === 'delivered') return 4
+  return 0
+}
+function orderStepperHtml(status) {
+  const cur = orderStageIndex(status)
+  return ORDER_STAGES.map((s, i) => `${i>0 ? '<span class="ord-arrow">→</span>' : ''}<span class="ord-step ${i===cur?'current':i<cur?'done':''}">${esc(s)}</span>`).join('')
+}
+
+function dispatchRowHtml(i) {
+  const scanClass = i.excluded ? 'unavailable' : i.verified ? 'confirmed' : 'pending'
+  const statusLbl = i.excluded ? `Unavailable${i.exclusion_reason ? ' — ' + esc(i.exclusion_reason) : ''}` : i.verified ? 'Confirmed' : 'Pending'
+  const scannedQty = i.excluded ? 0 : (i.verified ? (i.quantity || 1) : 0)
+  const actions = i.excluded
+    ? `<button class="btn btn-ghost btn-sm" onclick="dispatchVerify('${i.id}')">Include</button>`
+    : i.verified
+      ? `<button class="btn btn-ghost btn-sm" onclick="dispatchRevealExclude('${i.id}')">Undo</button>`
+      : `<button class="btn btn-primary btn-sm" onclick="dispatchVerify('${i.id}')">Scan</button>
+         <button class="btn btn-ghost btn-sm" style="color:#c0392b" onclick="dispatchRevealExclude('${i.id}')">Unavailable</button>`
   const needsSticker = i.price != null
-  const labelChips = `
-    <div style="display:flex;gap:0.35rem;flex-wrap:wrap;margin-top:0.45rem;align-items:center">
-      <span class="lc-pill lc-pill-sm" style="${i.label_printed_at ? 'background:rgba(52,199,89,0.1);color:#0a7a72;border-color:rgba(52,199,89,0.25)' : 'background:rgba(255,159,10,0.1);color:#b47107;border-color:rgba(255,159,10,0.25)'}">
-        ${i.label_printed_at ? 'Label ✓' : 'Label needed'}</span>
-      ${!i.label_printed_at && !i.excluded ? `<button class="btn btn-ghost btn-sm" onclick="printBaseLabelFor('${i.id}')">Print label</button>` : ''}
-      ${needsSticker ? `
-        <span class="lc-pill lc-pill-sm" style="${i.sticker_printed_at ? 'background:rgba(52,199,89,0.1);color:#0a7a72;border-color:rgba(52,199,89,0.25)' : 'background:rgba(255,159,10,0.1);color:#b47107;border-color:rgba(255,159,10,0.25)'}">
-          ${i.sticker_printed_at ? 'Price sticker ✓' : 'Price sticker needed'} · ${esc(fmtPrice(i) || '')}</span>
-        ${!i.sticker_printed_at && !i.excluded ? `<button class="btn btn-ghost btn-sm" onclick="printPriceSticker('${i.id}')">Print sticker</button>` : ''}
-      ` : ''}
-    </div>`
-  return `<div class="srd-card" style="margin-bottom:0.6rem">
-    <div style="display:flex;align-items:center;gap:0.6rem">
-      <span style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0"></span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:0.85rem;font-weight:600">${esc(i.products?.name||'—')}</div>
-        <div style="font-size:0.68rem;color:var(--text-3)">${esc(i.sample_id)} · ${esc(i.sample_type)} · Qty ${i.quantity||1}${i.products?.code ? ' · '+esc(i.products.code) : ''}</div>
+  const labelFlags = [
+    !i.excluded && !i.label_printed_at ? `<button class="btn btn-ghost btn-sm" onclick="printBaseLabelFor('${i.id}')" title="Label needed">🏷</button>` : '',
+    !i.excluded && needsSticker && !i.sticker_printed_at ? `<button class="btn btn-ghost btn-sm" onclick="printPriceSticker('${i.id}')" title="Price sticker needed">💲</button>` : '',
+  ].filter(Boolean).join('')
+  return `<tr>
+    <td><span class="pick-scan-dot ${scanClass}"></span></td>
+    <td style="font-variant-numeric:tabular-nums;font-size:0.74rem;color:var(--text-3)">${esc(i.sample_id)}</td>
+    <td>
+      <div style="font-weight:500">${esc(i.products?.name||'—')}</div>
+      <div style="font-size:0.68rem;color:var(--text-3)">${esc(i.sample_type)}${i.products?.code ? ' · '+esc(i.products.code) : ''}</div>
+    </td>
+    <td style="text-align:center">${i.quantity || 1}</td>
+    <td style="text-align:center">${scannedQty}</td>
+    <td><span class="pick-scan-dot ${scanClass}" style="display:none"></span>${statusLbl}</td>
+    <td>
+      <div style="display:flex;gap:0.35rem;align-items:center;flex-wrap:wrap">${actions}${labelFlags}</div>
+      <div id="exclude-form-${i.id}" style="display:none;margin-top:0.4rem">
+        <input type="text" id="exclude-reason-${i.id}" placeholder="Why isn't this going? (required)"
+          style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.55rem;font-size:0.76rem;font-family:inherit;background:var(--surface2);color:var(--text);margin-bottom:0.3rem" />
+        <button class="btn btn-primary btn-sm" onclick="dispatchExclude('${i.id}')">Confirm</button>
       </div>
-    </div>
-    ${i.excluded ? '' : labelChips}
-    ${stateHtml}
-  </div>`
+    </td>
+  </tr>`
 }
 
 function renderDispatchScreen() {
   const col = _dispatchCol, items = _dispatchItems
-  const resolved = items.filter(i => i.verified || i.excluded).length
-  const allResolved = items.length > 0 && resolved === items.length
+  const confirmed = items.filter(i => i.verified).length
+  const unavailable = items.filter(i => i.excluded).length
+  const pending = items.length - confirmed - unavailable
+  const allResolved = items.length > 0 && pending === 0
+  const requestedQty = items.reduce((t, i) => t + (i.quantity || 1), 0)
+  const scannedQty = items.filter(i => i.verified).reduce((t, i) => t + (i.quantity || 1), 0)
+  const stage = orderStageIndex(col.status)
+  const nextActionLbl = stage <= 1 ? 'Finalize Picking' : col.delivery_method === 'Pickup' ? 'Mark Picked Up' : 'Ship Order'
   const vs = document.getElementById('view-sample-detail')
   vs.innerHTML = `
-  <div style="padding:1.75rem 1.75rem 0">
-    <div style="margin-bottom:2rem">
+  <div style="padding:1.5rem 1.75rem 0">
+    <div style="margin-bottom:1rem">
       <button class="detail-back-btn" onclick="showCollectionRecord('${col.id}')">
         <span class="detail-back-dot" style="background:var(--accent)"></span>
-        ${esc(col.name || col.collection_id)}
+        ${esc(col.name || 'Cola de despacho')}
       </button>
     </div>
 
-    <div class="srd-id-block">
+    <div class="srd-id-block" style="margin-bottom:0;padding-bottom:0.5rem;border-bottom:none">
       <div>
-        <div class="srd-id-text">Dispatch</div>
-        <div class="srd-id-sub">${esc(col.collection_id)} · ${resolved}/${items.length} resolved</div>
+        <div class="srd-id-text">${esc(col.collection_id)}</div>
+        <div class="srd-id-sub">${col.name ? esc(col.name) : 'Quick request'}</div>
       </div>
       <div style="flex:1"></div>
-      <button class="btn btn-ghost btn-sm" onclick="openScanMode('dispatch')">
-        <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-        Escanear
-      </button>
       ${smpBadge(col.status)}
     </div>
-
-    <div class="srd-section-label" style="margin-top:0">Add a product</div>
-    <div class="srd-card" style="margin-bottom:1.5rem">
-      <input type="text" id="dispatch-search" placeholder="Search products to add…" oninput="dispatchSearchProducts(this.value)"
-        style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:8px;padding:0.55rem 0.7rem;font-family:inherit;font-size:0.85rem;background:var(--surface2);color:var(--text)" />
-      <div id="dispatch-search-results"></div>
+    <div class="ord-hdr-row">
+      <span>Customer <b>${esc(col.customer || '—')}</b></span>
+      <span>Requester <b>${esc(col.profiles?.full_name || '—')}</b></span>
+      <span>Items <b>${items.length}</b></span>
+      <span>Delivery <b>${esc(col.delivery_method || '—')}</b></span>
     </div>
+    <div class="ord-steps">${orderStepperHtml(col.status)}</div>
 
-    <div class="srd-section-label">Items (${items.length})</div>
-    <div id="dispatch-items" style="max-width:640px">
-      ${items.map(dispatchItemHtml).join('') || '<div style="font-size:0.82rem;color:var(--text-3)">No items yet.</div>'}
+    <div class="srd-layout">
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem">
+          <div class="srd-section-label" style="margin:0">Picking (${items.length})</div>
+          <button class="btn btn-ghost btn-sm" onclick="openScanMode('dispatch')">
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            Scan
+          </button>
+        </div>
+        <div class="dq-table-wrap" style="margin-bottom:1rem">
+          <table class="pick-table">
+            <thead><tr><th></th><th>Code</th><th>Product</th><th style="text-align:center">Req.</th><th style="text-align:center">Scanned</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>${items.map(dispatchRowHtml).join('') || `<tr><td colspan="7" style="color:var(--text-3);padding:1rem 0.6rem">No items yet.</td></tr>`}</tbody>
+          </table>
+        </div>
+        <div class="srd-section-label">Add a product</div>
+        <div class="srd-card" style="margin-bottom:1.5rem">
+          <input type="text" id="dispatch-search" placeholder="Search products to add…" oninput="dispatchSearchProducts(this.value)"
+            style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.65rem;font-family:inherit;font-size:0.82rem;background:var(--surface2);color:var(--text)" />
+          <div id="dispatch-search-results"></div>
+        </div>
+      </div>
+
+      <div class="srd-card">
+        <div class="ord-side-lbl">Reconciliation</div>
+        <div class="ord-side-stat"><span>Requested</span><b>${requestedQty}</b></div>
+        <div class="ord-side-stat"><span>Scanned</span><b>${scannedQty}</b></div>
+        <div class="ord-side-stat ${pending ? 'warn' : ''}"><span>Pending</span><b>${pending}</b></div>
+        <div class="ord-side-stat ${unavailable ? 'warn' : ''}"><span>Unavailable</span><b>${unavailable}</b></div>
+        <div class="ord-side-sep"></div>
+        <div class="ord-side-lbl">Delivery</div>
+        <div class="ord-side-line">${esc(col.delivery_method || '—')}${col.priority==='urgent' ? ' · Urgent' : ''}</div>
+        <div class="ord-side-line muted">${esc(col.recipient || 'No recipient on file')}</div>
+        ${col.address ? `<div class="ord-side-line muted">${esc(col.address)}</div>` : ''}
+        ${col.notes ? `<div class="ord-side-sep"></div><div class="ord-side-lbl">Notes</div><div class="ord-side-line muted">${esc(col.notes)}</div>` : ''}
+      </div>
     </div>
   </div>
   <div class="detail-toolbar">
     <div class="detail-toolbar-inner">
+      ${stage <= 1 ? `
       <button class="btn btn-primary" id="dispatch-print-btn" onclick="finalizeDispatch()" ${allResolved ? '' : 'disabled'}
-        title="${allResolved ? '' : 'Resolve every item first — scan it present or exclude it with a reason'}">
+        title="${allResolved ? '' : 'Resolve every item first — scan it present or mark it unavailable'}">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="14" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 9h14M10 6V3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-        Print &amp; Notify
-      </button>
+        ${esc(nextActionLbl)}
+      </button>` : stage === 2 ? `
+      <button class="btn btn-primary" onclick="advanceOrderStatus('${col.delivery_method === 'Pickup' ? 'picked_up' : 'shipped'}')">${esc(nextActionLbl)}</button>
+      <button class="btn btn-ghost btn-sm" onclick="printShippingGuide()">Reprint manifest</button>` : stage === 3 ? `
+      <button class="btn btn-primary" onclick="advanceOrderStatus('delivered')">Mark Delivered</button>` : `
+      <span style="font-size:0.8rem;color:var(--text-3)">Order completed</span>`}
     </div>
   </div>`
+}
+
+async function advanceOrderStatus(status) {
+  await updateCollectionStatus(_dispatchCol.id, status)
+  _dispatchCol.status = status
+  renderDispatchScreen()
 }
 
 async function dispatchVerify(sampleId) {
@@ -11917,6 +12167,8 @@ async function finalizeDispatch() {
     { included: _dispatchItems.filter(i => i.verified).length, excluded: _dispatchItems.filter(i => i.excluded).length })
   printShippingGuide()
   toast('Package ready — requester notified')
+  col.status = 'ready'
+  renderDispatchScreen()
 }
 
 /* ── SAMPLE STATUS UPDATE ── */
@@ -12708,7 +12960,13 @@ async function showWarehouseInventory(div) {
   pg.style.display = 'block'
   pg.innerHTML = `
     <div class="srd-card" style="margin-bottom:1.5rem;max-width:480px">
-      <label style="display:block;font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-3);margin-bottom:0.4rem">Registrar movimiento</label>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
+        <label style="font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-3)">Registrar movimiento</label>
+        <button class="btn btn-ghost btn-sm" onclick="openScanMode('inventory')">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          Scan
+        </button>
+      </div>
       <input type="text" id="wh-inv-search" class="tl-search" style="width:100%" placeholder="Buscar producto de ${esc(ALMACEN_DIV_LBL[div])} por nombre o código…" oninput="whInvSearchProducts(this.value)" />
       <div id="wh-inv-search-results"></div>
     </div>
