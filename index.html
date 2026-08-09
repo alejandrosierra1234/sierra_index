@@ -8456,29 +8456,67 @@ async function generateTechnicalSheet() {
   Audit.log('product', p.id, p, 'sheet_generated', 'Technical sheet generated')
   const code = p.code || p.id.slice(0,6).toUpperCase()
   const specs = p.specs || {}
-  const sierraDivision = 'SIERRA ' + (DIV_LBL[p.division] || p.division || '').replace('SIERRA ','')
+  const isFabric = p.division === 'fabric'
+  const divClr = DIV_CLR[p.division] || '#0f9d90'
+  const divLabel = DIV_LBL[p.division] || p.division
   const dateStr = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
   const barcode = getProductBarcode(p)
   const pubUrl = getProductPublicUrl(p)
+  const statusMeta = LIFECYCLE[lc(p)] || LIFECYCLE.available
 
   function ne(v) { return v !== null && v !== undefined && v !== '' && v !== '0' && v !== 0 }
   function esc2(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
-
-  // Parse composition into discrete fiber objects
-  function parseFibers(str) {
-    if (!str) return []
-    return str.trim().split(/(?=\d+%)/).map(s => s.trim()).filter(Boolean)
-      .map(part => {
-        const m = part.match(/^(\d+%)\s*(.+)/)
-        return m ? { pct: m[1], fiber: m[2].trim() } : { pct: '', fiber: part }
-      })
+  function fmtDate(v) {
+    if (!ne(v)) return null
+    const d = new Date(v)
+    return isNaN(d.getTime()) ? String(v) : d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
   }
+  function tint(hex, pct) {
+    const h = hex.replace('#',''), r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16)
+    const mix = c => Math.round(c*pct + 255*(1-pct))
+    return '#' + [mix(r),mix(g),mix(b)].map(v => v.toString(16).padStart(2,'0')).join('')
+  }
+
+  // ── Print-safe primitives — same shape as the app's DataField / DataBlock,
+  // so the sheet reads as the document view of the same record architecture. ──
+  function tsField(label, value, opts) {
+    opts = opts || {}
+    if (!ne(value) && !opts.html) return ''
+    const val = opts.html != null ? opts.html : esc2(String(value))
+    return `<div class="ts-field${opts.lg ? ' ts-field-lg' : ''}">
+      <div class="ts-field-label">${esc2(label)}</div>
+      <div class="ts-field-value">${val}</div>
+    </div>`
+  }
+  function tsFields(arr) { return arr.filter(Boolean).join('') }
+  function tsBlock(title, inner, opts) {
+    opts = opts || {}
+    if (!inner) return ''
+    return `<div class="ts-block${opts.surface ? ' ts-block-surface' : ''}">
+      <div class="ts-block-title">${esc2(title)}</div>
+      <div class="ts-fields">${inner}</div>
+    </div>`
+  }
+  function compHtml(str) {
+    if (!str) return null
+    const groups = str.trim().match(/\d+%[^\d]*/g) || [str.trim()]
+    const parsed = groups.map(g => g.trim()).filter(Boolean).map(seg => {
+      const m = seg.match(/^(\d+)%\s*(.*)$/)
+      return m ? { pct: parseInt(m[1],10), name: m[2] } : { pct: 0, name: seg }
+    })
+    const hasPct = parsed.some(x => x.pct)
+    const bar = hasPct ? `<div class="ts-comp-bar">${parsed.map(x => `<span style="width:${x.pct}%"></span>`).join('')}</div>` : ''
+    const list = `<div class="ts-comp-list">${parsed.map(x => `<div class="ts-comp-item">${x.pct ? `<b>${x.pct}%</b>` : ''}${esc2(x.name)}</div>`).join('')}</div>`
+    return bar + list
+  }
+
+  const logoBug = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 411 353.13"><path fill="#0b0b0b" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>`
 
   // Pre-generate barcode SVG
   let bcSvgStr = ''
   try {
     const tmp = document.createElementNS('http://www.w3.org/2000/svg','svg')
-    JsBarcode(tmp, barcode, { format:'CODE128', width:1.6, height:40, displayValue:false, margin:0, background:'#ffffff', lineColor:'#0c0c0c' })
+    JsBarcode(tmp, barcode, { format:'CODE128', width:1.6, height:40, displayValue:false, margin:0, background:'#ffffff', lineColor:'#0b0b0b' })
     bcSvgStr = new XMLSerializer().serializeToString(tmp)
   } catch(e) {}
 
@@ -8486,61 +8524,172 @@ async function generateTechnicalSheet() {
   let qrDataUrl = ''
   try {
     qrDataUrl = await new Promise((res,rej) => {
-      QRCode.toDataURL(pubUrl, { width:110, margin:0, color:{dark:'#0c0c0c',light:'#ffffff'} },
+      QRCode.toDataURL(pubUrl, { width:120, margin:0, color:{dark:'#0b0b0b',light:'#ffffff'} },
         (err,url) => err ? rej(err) : res(url))
     })
   } catch(e) {}
 
-  // ── INFORMATION HIERARCHY ─────────────────────────────
-  // ATTENTION — composition fibers + key numbers (Width, GSM, Gauge)
-  const fibers = parseFibers(specs.Composition)
-  const keyPanels = [
-    ne(specs.Width)  ? { val: specs.Width,  lbl: 'Width' }  : null,
-    ne(specs.GSM)    ? { val: specs.GSM,    lbl: 'GSM' }    : null,
-    ne(specs.Gauge)  ? { val: specs.Gauge,  lbl: 'Gauge' }  : null,
-  ].filter(Boolean)
+  const constLabel = CONST_META[inferConstruction(p)]?.label || specs.Construction || null
+  const gsmLabel = ne(specs.GSM) ? `${specs.GSM} GSM` : null
 
-  // ESSENCE LINE — the product in one sentence (teal, below name)
-  const essenceParts = [
-    specs.Construction ? (CONST_META[specs.Construction]?.label || specs.Construction) : null,
-    specs['Dyed Method'],
-    specs.Color,
-  ].filter(ne)
-  const essenceLine = essenceParts.join(' · ')
+  // ── HEADER — breadcrumb-style division context, then product identity ──
+  const headerHtml = `<div class="ts-header">
+    <div class="ts-eyebrow">
+      <span class="ts-eyebrow-logo">${logoBug}</span>
+      <span class="ts-eyebrow-div" style="color:${divClr}">${esc2(divLabel.toUpperCase())}</span>
+      <span class="ts-eyebrow-sep">&middot;</span>
+      <span class="ts-eyebrow-doc">Technical Sheet</span>
+    </div>
+    <div class="ts-title">${esc2(p.name)}</div>
+    <div class="ts-meta">
+      <b>${esc2(code)}</b>
+      ${p.lot ? `<span class="ts-meta-sep"></span><span>LOT ${esc2(p.lot)}</span>` : ''}
+      <span class="ts-meta-sep"></span><span>${esc2(p.country || 'Honduras')}</span>
+      <span class="ts-meta-sep"></span><span class="ts-status"><i style="background:${statusMeta.color}"></i>${esc2(statusMeta.label)}</span>
+    </div>
+  </div>`
 
-  // CONTEXT — supporting details (two columns, quieter)
-  const rw = specs['Req Width'], rg = specs['Req GSM'], sw = specs['Std Width'], sg = specs['Std GSM']
-  const hasCompare = [rw,rg,sw,sg].some(ne)
-  const yarns = [specs['Yarn 01'], specs['Yarn 02'], specs['Yarn 03']].filter(ne)
-
-  const detailsLeft = [
-    ['Color', specs.Color],
-    ['Country of Origin', p.country || 'Honduras'],
-    ['Lot', p.lot],
-    ['Mill Article', specs['Mill Article']],
-  ].filter(([,v]) => ne(v))
-
-  const detailsRight = [
-    ['Construction', specs.Construction ? (CONST_META[specs.Construction]?.label || specs.Construction) : null],
-    ['Needles', specs.Needles],
-    ['Diameter', specs.DIA],
-    ['Route Type', specs['Route Type']],
-    ['Dye Method', specs['Dyed Method']],
-    ['Vendor', specs.Vendor],
-    ['Buyer', specs.Buyer],
-  ].filter(([,v]) => ne(v))
-
-  // Generic (non-fabric) fallback
-  const genericSpecs = (p.division !== 'fabric' && Object.entries(specs).filter(([,v]) => ne(v))) || []
-
-  function kv(k, v) {
-    return `<div class="kv"><span class="kv-k">${esc2(k)}</span><span class="kv-v">${esc2(String(v))}</span></div>`
+  // ── PRODUCT ESSENTIALS — Overview-tab equivalent ──
+  let essentialsHtml
+  if (isFabric) {
+    essentialsHtml = `<div class="ts-grid-3">
+      ${tsBlock('Product', tsFields([
+        tsField('Construction', constLabel),
+        tsField('Composition', null, { html: compHtml(specs.Composition) }),
+        tsField('Origin', p.country || 'Honduras'),
+        tsField('Mill Article', specs['Mill Article']),
+      ]))}
+      ${tsBlock('Physical', tsFields([
+        tsField('Weight', gsmLabel, { lg:true }),
+        tsField('Width', specs.Width, { lg:true }),
+        tsField('Gauge', specs.Gauge),
+        tsField('Diameter', specs.DIA),
+      ]))}
+      ${tsBlock('Color & Production', tsFields([
+        tsField('Color', specs.Color, { lg:true }),
+        tsField('Dye Method', specs['Dyed Method']),
+        tsField('Lot', p.lot),
+        tsField('Route Type', specs['Route Type']),
+      ]))}
+    </div>`
+  } else {
+    essentialsHtml = `<div class="ts-grid-3">
+      ${tsBlock('Product', tsFields([
+        tsField('Description', p.description),
+        tsField('Origin', p.country || 'Honduras'),
+        tsField('Lot', p.lot),
+      ]))}
+    </div>`
   }
 
-  // ── LOGOS ─────────────────────────────────────────────
-  const logoWordmark = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1715 353.13"><path fill="#0b0b0b" d="M570.98,144.81c-47.7-6.81-61.33-13.63-61.33-34.07,0-13.63,10.22-23.85,40.88-23.85,37.48,0,47.7,10.22,47.7,30.66l3.41,3.41h40.88l3.41-3.41c0-40.88-27.26-71.55-91.99-71.55s-91.99,30.66-91.99,64.73c0,47.7,37.48,64.73,85.17,71.55,47.7,6.81,61.33,13.63,61.33,37.48,0,20.44-17.03,30.66-47.7,30.66-40.88,0-54.51-13.63-54.51-37.48l-3.41-3.41h-40.88l-3.41,3.41c0,44.29,30.66,78.36,98.8,78.36,71.55,0,98.8-34.07,98.8-71.55,0-47.7-37.48-68.14-85.17-74.95Z"/><polygon fill="#0b0b0b" points="700.44 49.41 697.03 52.82 697.03 284.49 700.44 287.9 741.32 287.9 744.73 284.49 744.73 52.82 741.32 49.41 700.44 49.41"/><polygon fill="#0b0b0b" points="802.64 49.41 799.23 52.82 799.23 284.49 802.64 287.9 962.76 287.9 966.17 284.49 966.17 250.42 962.76 247.02 850.33 247.02 846.93 243.61 846.93 189.1 850.33 185.69 955.95 185.69 959.36 182.29 959.36 148.22 955.95 144.81 850.33 144.81 846.93 141.4 846.93 93.7 850.33 90.3 962.76 90.3 966.17 86.89 966.17 52.82 962.76 49.41 802.64 49.41"/><path fill="#0b0b0b" d="M1211.46,120.96c0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41,68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14ZM1129.7,151.62h-64.73l-3.41-3.41v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66Z"/><path fill="#0b0b0b" d="M1344.33,195.91l68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14,0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41ZM1300.04,148.22v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66h-64.73l-3.41-3.41Z"/><path fill="#0b0b0b" d="M1678.2,284.49v-34.07l-78.36-197.6-3.41-3.41h-44.29l-3.41,3.41-78.36,197.6v34.07l3.41,3.41h30.66l3.41-3.41,17.04-44.29,6.81-3.41h85.17l6.81,3.41,17.03,44.29,3.41,3.41h30.66l3.41-3.41ZM1603.25,195.91h-57.92l-3.41-3.41,30.66-81.77h3.41l30.66,81.77-3.41,3.41Z"/><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>`
-  const logoBug = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 411 353.13"><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>`
+  // ── TECHNICAL SPECIFICATIONS — Technical-tab equivalent, one surfaced
+  // block per engineering domain, exactly mirroring showProductDetail(). ──
+  let technicalHtml
+  if (isFabric) {
+    const rw = specs['Req Width'], rg = specs['Req GSM'], sw = specs['Std Width'], sg = specs['Std GSM']
+    const hasCompare = [rw,rg,sw,sg].some(ne)
+    const compareTbl = hasCompare ? `<table class="ts-cmp-tbl">
+      <thead><tr><th></th><th>Width</th><th>GSM</th></tr></thead>
+      <tbody>
+        <tr><td>Requested</td><td>${ne(rw)?esc2(rw):'&mdash;'}</td><td>${ne(rg)?esc2(rg):'&mdash;'}</td></tr>
+        <tr><td>Actual</td><td>${ne(specs.Width)?esc2(specs.Width):'&mdash;'}</td><td>${ne(specs.GSM)?esc2(specs.GSM):'&mdash;'}</td></tr>
+        <tr><td>Standard</td><td>${ne(sw)?esc2(sw):'&mdash;'}</td><td>${ne(sg)?esc2(sg):'&mdash;'}</td></tr>
+      </tbody></table>` : ''
+    technicalHtml = `<div class="ts-grid-3 ts-grid-equal">
+      ${tsBlock('Construction', tsFields([
+        tsField('Construction', constLabel),
+        tsField('Gauge', specs.Gauge),
+        tsField('Diameter', specs.DIA),
+        tsField('Needles', specs.Needles),
+        tsField('Route Type', specs['Route Type']),
+      ]), { surface:true })}
+      ${tsBlock('Material', tsFields([
+        tsField('Composition', null, { html: compHtml(specs.Composition) }),
+        tsField('Yarn 01', specs['Yarn 01']),
+        tsField('Yarn 02', specs['Yarn 02']),
+        tsField('Yarn 03', specs['Yarn 03']),
+      ]), { surface:true })}
+      ${tsBlock('Physical', tsFields([
+        tsField('Width', specs.Width),
+        tsField('GSM', specs.GSM),
+      ]) + compareTbl, { surface:true })}
+      ${tsBlock('Dyeing & Finishing', tsFields([
+        tsField('Color', specs.Color),
+        tsField('Dye Method', specs['Dyed Method']),
+      ]), { surface:true })}
+      ${tsBlock('Commercial', tsFields([
+        tsField('Vendor', specs.Vendor),
+        tsField('Buyer', specs.Buyer),
+        tsField('Sample Quantity', specs['Sample Qty']),
+        tsField('Received', fmtDate(specs['Rec Date'])),
+      ]), { surface:true })}
+      ${tsBlock('Identification', tsFields([
+        tsField('Product Code', code),
+        tsField('Lot', p.lot),
+        tsField('Mill Article', specs['Mill Article']),
+        tsField('Division', divLabel),
+        tsField('Origin', p.country || 'Honduras'),
+        tsField('Created', fmtDate(p.created_at)),
+        tsField('Last Updated', fmtDate(p.updated_at)),
+      ]), { surface:true })}
+    </div>`
+  } else {
+    const entries = Object.entries(specs).filter(([k,v]) => ne(v) && !['Documents','Sample Formats','image_captions'].includes(k))
+    const half = Math.ceil(entries.length / 2) || 1
+    technicalHtml = `<div class="ts-grid-3 ts-grid-equal">
+      ${tsBlock('Specifications', tsFields(entries.slice(0,half).map(([k,v]) => tsField(k, v))), { surface:true })}
+      ${entries.length > half ? tsBlock('Additional Specifications', tsFields(entries.slice(half).map(([k,v]) => tsField(k, v))), { surface:true }) : ''}
+      ${tsBlock('Identification', tsFields([
+        tsField('Product Code', code),
+        tsField('Lot', p.lot),
+        tsField('Division', divLabel),
+        tsField('Origin', p.country || 'Honduras'),
+        tsField('Created', fmtDate(p.created_at)),
+        tsField('Last Updated', fmtDate(p.updated_at)),
+      ]), { surface:true })}
+    </div>`
+  }
 
+  // ── NOTES / TAGS ──
+  const notesBlock = specs.Comments ? `<div class="ts-block ts-span-3">
+    <div class="ts-block-title">Notes</div>
+    <div class="ts-notes">${esc2(specs.Comments)}</div>
+  </div>` : ''
+  const tagsBlock = (p.tags && p.tags.length) ? `<div class="ts-block ts-span-3">
+    <div class="ts-block-title">Tags</div>
+    <div class="ts-tags">${p.tags.map(t => `<span class="ts-tag">${esc2(t)}</span>`).join('')}</div>
+  </div>` : ''
+  const notesRow = (notesBlock || tagsBlock) ? `<div class="ts-grid-3">${notesBlock}${tagsBlock}</div>` : ''
+
+  // ── DIGITAL PRODUCT RECORD — an ERP utility, not a decorative feature ──
+  const identityHtml = (qrDataUrl || bcSvgStr) ? `<div class="ts-identity">
+    <div class="ts-block-title">Digital Product Record</div>
+    <div class="ts-identity-row">
+      ${qrDataUrl ? `<div class="ts-id-item">
+        <img class="ts-qr" src="${qrDataUrl}" alt="QR" />
+        <div>
+          <div class="ts-id-lbl" style="color:${divClr}">Public Product Page</div>
+          <div class="ts-id-desc">Scan to open the public product record. Public access, no login required.</div>
+        </div>
+      </div>` : '<div></div>'}
+      ${bcSvgStr ? `<div class="ts-id-item ts-id-item-bc">
+        <div class="ts-id-lbl" style="color:${divClr}">Internal Reference</div>
+        <div class="ts-bc">${bcSvgStr}</div>
+        <div class="ts-id-code">${esc2(barcode)}</div>
+      </div>` : '<div></div>'}
+    </div>
+  </div>` : ''
+
+  // ── FOOTER ──
+  const footerHtml = `<div class="ts-footer">
+    <div class="ts-footer-bug">${logoBug}</div>
+    <div class="ts-footer-meta">SIERRA Index</div>
+    <span class="ts-footer-sep">&middot;</span>
+    <div class="ts-footer-meta">Generated ${esc2(dateStr)}</div>
+    <div class="ts-footer-page">Page 1/1</div>
+  </div>`
+
+  const accentTint = tint(divClr, 0.55)
   const w = window.open('', '_blank')
   if (!w) { toast('Enable popups to generate Technical Sheet'); return }
 
@@ -8552,299 +8701,122 @@ async function generateTechnicalSheet() {
   *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
   body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    color: #0c0c0c; background: #fff;
+    color: #0b0b0b; background: #fff;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    font-size: 10px; line-height: 1.5;
+    font-size: 9px; line-height: 1.5;
   }
-
   .page {
     width: 210mm; min-height: 297mm;
-    padding: 10mm 14mm 8mm;
+    padding: 14mm 16mm 12mm;
     display: flex; flex-direction: column;
   }
 
-  /* ─────────────── MASTHEAD ─────────────── */
-  .masthead {
-    display: flex; align-items: center; justify-content: space-between;
-    padding-bottom: 6mm; border-bottom: 1px solid #e4e4e4;
-    margin-bottom: 0;
-  }
-  .mh-logo { width: 20px; }
-  .mh-logo svg { width: 100%; height: auto; display: block; }
-  .mh-right { text-align: right; }
-  .mh-division {
-    font-size: 6px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.16em; color: #16cdbe;
-    margin-bottom: 0.8mm;
-  }
-  .mh-doc {
-    font-size: 6.5px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.18em; color: #16cdbe;
-  }
+  /* ── HEADER — breadcrumb, title, metadata; mirrors .object-header ── */
+  .ts-header { padding-bottom: 5mm; border-bottom: 1px solid #e4e4e7; margin-bottom: 6mm; }
+  .ts-eyebrow { display: flex; align-items: center; gap: 1.6mm; margin-bottom: 3mm; }
+  .ts-eyebrow-logo { width: 10px; flex-shrink: 0; }
+  .ts-eyebrow-logo svg { width: 100%; height: auto; display: block; }
+  .ts-eyebrow-div { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+  .ts-eyebrow-sep { color: #d2d2d7; font-size: 7px; }
+  .ts-eyebrow-doc { font-size: 7px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #6b6b73; }
+  .ts-title { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; color: #0b0b0b; margin-bottom: 2.5mm; }
+  .ts-meta { display: flex; align-items: center; gap: 2.2mm; font-size: 8.5px; color: #45454a; font-weight: 500; }
+  .ts-meta b { font-weight: 700; color: #0b0b0b; }
+  .ts-meta-sep { width: 2px; height: 2px; border-radius: 50%; background: #6b6b73; flex-shrink: 0; }
+  .ts-status { display: inline-flex; align-items: center; gap: 1.4mm; }
+  .ts-status i { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
 
-  /* ─────────────── HERO ─────────────── */
-  /* Product identity section */
-  .hero { padding: 4mm 0 4mm; border-bottom: 0.5px solid #e4e4e4; }
-  .hero-name {
-    font-size: 28px; font-weight: 700;
-    letter-spacing: -0.02em; line-height: 1.2;
-    color: #0c0c0c; margin-bottom: 2mm;
-  }
-  /* ATTENTION support: what is it in one line */
-  .hero-essence {
-    font-size: 11px; font-weight: 600; color: #16cdbe;
-    letter-spacing: 0.04em; margin-bottom: 2.5mm;
-  }
-  /* DOCUMENTATION: code is quiet */
-  .hero-sku {
-    font-size: 9px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.16em; color: #ccc;
-  }
+  /* ── GRID — mirrors .record-subgrid ── */
+  .ts-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm 7mm; margin-bottom: 6mm; }
+  .ts-grid-equal { align-items: stretch; }
+  .ts-span-3 { grid-column: 1 / -1; }
 
-  /* ─────────────── COMPOSITION ─────────────── */
-  /* ATTENTION: composition is what the fabric IS — render with visual weight */
-  .comp-zone {
-    padding: 5.5mm 0 5.5mm;
-    border-bottom: 0.5px solid #e4e4e4;
+  /* ── BLOCK / FIELD — mirrors .data-block / .data-field ── */
+  .ts-block { min-width: 0; }
+  .ts-block-title {
+    font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+    color: #45454a; padding-bottom: 1.6mm; margin-bottom: 3mm; border-bottom: 0.75px solid #e4e4e7;
   }
-  .zone-eyebrow {
-    font-size: 5.5px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.15em;
-    color: #16cdbe; margin-bottom: 3mm;
-  }
-  .fiber-panels { display: flex; }
-  .fiber-panel {
-    flex: 1; padding-right: 5mm; margin-right: 5mm;
-    border-right: 0.5px solid #e4e4e4;
-  }
-  .fiber-panel:last-child { border-right: none; margin-right: 0; padding-right: 0; }
-  .fiber-pct {
-    font-size: 20px; font-weight: 700;
-    letter-spacing: -0.03em; line-height: 1; color: #0c0c0c;
-  }
-  .fiber-name {
-    font-size: 7px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.1em;
-    color: #888; margin-top: 1mm;
-  }
+  .ts-block-surface { background: #f7f8f8; border: 0.75px solid #e4e4e7; border-radius: 2mm; padding: 4mm 4.2mm; }
+  .ts-block-surface .ts-block-title { border-bottom-color: #e9e9eb; }
+  .ts-fields { display: flex; flex-direction: column; gap: 3mm; }
+  .ts-field { min-width: 0; }
+  .ts-field-label { font-size: 6.3px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #6b6b73; margin-bottom: 0.7mm; }
+  .ts-field-value { font-size: 9px; font-weight: 500; color: #0b0b0b; line-height: 1.4; overflow-wrap: break-word; }
+  .ts-field-lg .ts-field-value { font-size: 12px; font-weight: 650; letter-spacing: -0.01em; }
 
-  /* ─────────────── KEY SPECS ─────────────── */
-  /* ATTENTION: the three numbers a buyer cares about */
-  .specs-zone {
-    padding: 5mm 0 5mm;
-    border-bottom: 0.5px solid #e4e4e4;
-  }
-  .spec-panels { display: flex; margin-top: 3.5mm; }
-  .spec-panel {
-    padding-right: 6mm; margin-right: 6mm;
-    border-right: 0.5px solid #e4e4e4;
-  }
-  .spec-panel:last-child { border-right: none; margin-right: 0; padding-right: 0; }
-  .spec-val {
-    font-size: 26px; font-weight: 700;
-    letter-spacing: -0.03em; line-height: 1; color: #0c0c0c;
-  }
-  .spec-lbl {
-    font-size: 8px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.12em;
-    color: #bbb; margin-top: 1.5mm;
-  }
-  /* Req vs Std — supplementary data, very quiet */
-  .cmp-tbl { border-collapse: collapse; margin-top: 4mm; font-size: 7.5px; }
-  .cmp-tbl th {
-    font-size: 5px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.16em; color: #ccc; text-align: left;
-    padding: 0 9mm 1.5mm 0; border-bottom: 0.5px solid #ebebeb;
-  }
-  .cmp-tbl td { padding: 1.5mm 9mm 0 0; font-size: 7.5px; color: #777; font-weight: 500; }
-  .cmp-tbl td.row-lbl { font-size: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #ccc; }
+  /* ── COMPOSITION — mirrors .comp-bar / .comp-list ── */
+  .ts-comp-bar { display: flex; height: 1.4mm; border-radius: 0.7mm; overflow: hidden; margin-bottom: 1.6mm; background: #e4e4e7; }
+  .ts-comp-bar span:nth-child(4n+1) { background: var(--ts-accent); }
+  .ts-comp-bar span:nth-child(4n+2) { background: var(--ts-accent-tint); }
+  .ts-comp-bar span:nth-child(4n+3) { background: #45454a; }
+  .ts-comp-bar span:nth-child(4n+4) { background: #a9a9ae; }
+  .ts-comp-list { display: flex; flex-direction: column; gap: 0.5mm; }
+  .ts-comp-item { font-size: 9px; color: #0b0b0b; }
+  .ts-comp-item b { font-weight: 700; margin-right: 1.4mm; }
 
-  /* ─────────────── SUPPLEMENTARY DETAILS ─────────────── */
-  /* CONTEXT: supporting data, visually secondary */
-  .supp-zone {
-    padding: 5mm 0;
-    border-bottom: 0.5px solid #e4e4e4;
-    display: grid; grid-template-columns: 1fr 1fr; gap: 7mm;
-  }
-  .kv {
-    display: flex; justify-content: space-between; align-items: baseline;
-    padding: 1.5mm 0; border-bottom: 0.5px solid #f4f4f4;
-  }
-  .kv:last-child { border-bottom: none; }
-  .kv-k {
-    font-size: 8px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.1em; color: #ccc;
-    flex-shrink: 0; padding-right: 3mm;
-  }
-  .kv-v { font-size: 11px; font-weight: 500; color: #555; text-align: right; }
-  .yarn-row {
-    display: flex; gap: 3mm; align-items: baseline;
-    padding: 1.5mm 0; border-bottom: 0.5px solid #f4f4f4;
-  }
-  .yarn-n {
-    font-size: 5.5px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.1em;
-    color: #ccc; flex-shrink: 0; min-width: 4mm;
-  }
-  .yarn-val { font-size: 8.5px; font-weight: 500; color: #555; }
+  /* ── COMPARISON TABLE — Requested / Actual / Standard ── */
+  .ts-cmp-tbl { border-collapse: collapse; margin-top: 3mm; width: 100%; }
+  .ts-cmp-tbl th { font-size: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b6b73; text-align: left; padding: 0 0 1.2mm; border-bottom: 0.75px solid #e4e4e7; }
+  .ts-cmp-tbl td { font-size: 8px; color: #45454a; font-weight: 500; padding: 1.2mm 0 0; border-bottom: 0.5px solid #f0f0f1; }
+  .ts-cmp-tbl td:first-child { font-size: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #6b6b73; }
+  .ts-cmp-tbl tr:last-child td { border-bottom: none; }
 
-  /* NOTES */
-  .notes-zone { padding: 4mm 0; border-bottom: 0.5px solid #e4e4e4; }
-  .notes-text { font-size: 8px; color: #666; line-height: 1.75; margin-top: 2mm; }
+  /* ── NOTES / TAGS ── */
+  .ts-notes { font-size: 8.5px; color: #45454a; line-height: 1.7; }
+  .ts-tags { display: flex; flex-wrap: wrap; gap: 1.6mm; }
+  .ts-tag { font-size: 7.5px; font-weight: 600; color: #45454a; background: #f7f8f8; border: 0.75px solid #e4e4e7; border-radius: 1mm; padding: 0.8mm 2mm; }
 
-  /* ─────────────── SPACER ─────────────── */
-  .spacer { flex: 1; }
+  /* ── SPACER — pushes identity/footer to the bottom on short sheets ── */
+  .ts-spacer { flex: 1; }
 
-  /* ─────────────── DIGITAL IDENTITY ─────────────── */
-  /* Not technical appendages — the product's public and internal identity */
-  .identity {
-    padding-top: 5mm; border-top: 1px solid #0c0c0c;
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8mm;
-    margin-bottom: 4mm;
-  }
-  /* Each panel: purpose label (teal) → code → description */
-  .id-panel { display: flex; gap: 4.5mm; align-items: flex-start; }
-  .id-purpose {
-    font-size: 7px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.26em;
-    color: #16cdbe; margin-bottom: 2mm;
-  }
-  .id-desc { font-size: 9px; color: #aaa; line-height: 1.75; }
-  .id-ref {
-    font-size: 8px; font-weight: 600; letter-spacing: 0.06em;
-    color: #bbb; font-family: 'Courier New', monospace;
-    margin-top: 1.5mm;
-  }
-  .id-qr img { width: 22mm; height: 22mm; display: block; flex-shrink: 0; }
-  .id-bc { flex-shrink: 0; width: 52mm; }
-  .id-bc svg { width: 100%; height: auto; max-height: 12mm; display: block; }
+  /* ── DIGITAL PRODUCT RECORD ── */
+  .ts-identity { padding-top: 5mm; border-top: 1px solid #0b0b0b; margin-bottom: 4mm; }
+  .ts-identity-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin-top: 4mm; }
+  .ts-id-item { display: flex; gap: 4mm; align-items: flex-start; }
+  .ts-qr { width: 18mm; height: 18mm; display: block; flex-shrink: 0; }
+  .ts-id-lbl { font-size: 6.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1.4mm; }
+  .ts-id-desc { font-size: 8px; color: #6b6b73; line-height: 1.6; }
+  .ts-id-item-bc { flex-direction: column; gap: 1.6mm; }
+  .ts-bc { width: 100%; max-width: 52mm; }
+  .ts-bc svg { width: 100%; height: auto; max-height: 10mm; display: block; }
+  .ts-id-code { font-size: 7.5px; font-weight: 600; letter-spacing: 0.05em; color: #6b6b73; font-family: 'Courier New', monospace; }
 
-  /* ─────────────── FOOTER ─────────────── */
-  .footer {
-    padding-top: 3.5mm; border-top: 0.5px solid #e4e4e4;
-    display: flex; align-items: center; gap: 3.5mm;
-  }
-  .ftr-bug { width: 14px; flex-shrink: 0; }
-  .ftr-bug svg { width: 100%; height: auto; display: block; }
-  .ftr-contact {
-    font-size: 9px; color: #bbb;
-    display: flex; gap: 4mm; align-items: center; flex: 1;
-  }
-  .ftr-sep { color: #ddd; }
-  .ftr-date { font-size: 9px; color: #ccc; margin-left: auto; white-space: nowrap; }
+  /* ── FOOTER ── */
+  .ts-footer { padding-top: 3.5mm; border-top: 0.75px solid #e4e4e7; display: flex; align-items: center; gap: 2.4mm; }
+  .ts-footer-bug { width: 9px; flex-shrink: 0; }
+  .ts-footer-bug svg { width: 100%; height: auto; display: block; }
+  .ts-footer-meta { font-size: 7.5px; color: #6b6b73; font-weight: 500; }
+  .ts-footer-sep { color: #d2d2d7; font-size: 7.5px; }
+  .ts-footer-page { margin-left: auto; font-size: 7.5px; color: #6b6b73; }
 
-  /* ─────────────── SCREEN ─────────────── */
+  /* ── SCREEN ── */
   @media screen {
     body { background: #c0c0c0; padding: 28px 0; }
     .page { width: 794px; margin: 0 auto; min-height: 1122px; box-shadow: 0 2px 40px rgba(0,0,0,0.22); background: #fff; }
-    .print-btn { position: fixed; top: 20px; right: 20px; z-index: 200; background: #0c0c0c; color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: 0.02em; }
+    .print-btn { position: fixed; top: 20px; right: 20px; z-index: 200; background: #0b0b0b; color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; letter-spacing: 0.02em; }
     .print-btn:hover { background: #333; }
   }
   @media print {
     body { background: #fff; padding: 0; }
     .print-btn { display: none; }
     .page { width: 210mm; }
+    .ts-grid-3, .ts-block-surface { break-inside: avoid; }
   }
 </style>
 </head><body>
 <button class="print-btn" onclick="window.print()">Save PDF</button>
-<div class="page">
+<div class="page" style="--ts-accent:${divClr};--ts-accent-tint:${accentTint}">
 
-  <!-- ① MASTHEAD — who published this -->
-  <div class="masthead">
-    <div class="mh-logo">${logoWordmark}</div>
-    <div class="mh-right">
-      <div class="mh-division">${esc2(sierraDivision)}</div>
-      <div class="mh-doc">Technical Sheet</div>
-    </div>
-  </div>
+  ${headerHtml}
+  ${essentialsHtml}
+  ${technicalHtml}
+  ${notesRow}
 
-  <!-- ② HERO — what is it called -->
-  <div class="hero">
-    <div class="hero-name">${esc2(p.name)}</div>
-    ${essenceLine ? `<div class="hero-essence">${esc2(essenceLine)}</div>` : ''}
-    <div class="hero-sku">${esc2(code)}${p.lot ? ' &middot; LOT ' + esc2(p.lot) : ''}</div>
-  </div>
+  <div class="ts-spacer"></div>
 
-  ${fibers.length ? `
-  <!-- ③ COMPOSITION — what it IS made of -->
-  <div class="comp-zone">
-    <div class="zone-eyebrow">Composition</div>
-    <div class="fiber-panels">
-      ${fibers.map(f => `<div class="fiber-panel">
-        <div class="fiber-pct">${esc2(f.pct)}</div>
-        <div class="fiber-name">${esc2(f.fiber)}</div>
-      </div>`).join('')}
-    </div>
-  </div>` : ''}
-
-  ${keyPanels.length ? `
-  <!-- ④ KEY SPECS — the numbers a buyer needs -->
-  <div class="specs-zone">
-    <div class="zone-eyebrow">Key Specifications</div>
-    <div class="spec-panels">
-      ${keyPanels.map(sp => `<div class="spec-panel">
-        <div class="spec-val">${esc2(String(sp.val))}</div>
-        <div class="spec-lbl">${esc2(sp.lbl)}</div>
-      </div>`).join('')}
-    </div>
-    ${hasCompare ? `<table class="cmp-tbl">
-      <thead><tr><th></th><th>Width</th><th>GSM</th></tr></thead>
-      <tbody>
-        <tr><td class="row-lbl">Requested</td><td>${ne(rw)?esc2(rw):'—'}</td><td>${ne(rg)?esc2(rg):'—'}</td></tr>
-        <tr><td class="row-lbl">Standard</td><td>${ne(sw)?esc2(sw):'—'}</td><td>${ne(sg)?esc2(sg):'—'}</td></tr>
-      </tbody></table>` : ''}
-  </div>` : ''}
-
-  <!-- ⑤ SUPPLEMENTARY — context that completes the picture -->
-  ${(detailsLeft.length || detailsRight.length || yarns.length || genericSpecs.length) ? `
-  <div class="supp-zone">
-    <div>
-      ${detailsLeft.map(([k,v]) => kv(k,v)).join('')}
-      ${yarns.length ? yarns.map((y,i) => `<div class="yarn-row"><span class="yarn-n">${String(i+1).padStart(2,'0')}</span><span class="yarn-val">${esc2(y)}</span></div>`).join('') : ''}
-      ${genericSpecs.slice(0, Math.ceil(genericSpecs.length/2)).map(([k,v]) => kv(k,v)).join('')}
-    </div>
-    <div>
-      ${detailsRight.map(([k,v]) => kv(k,v)).join('')}
-      ${genericSpecs.slice(Math.ceil(genericSpecs.length/2)).map(([k,v]) => kv(k,v)).join('')}
-    </div>
-  </div>` : ''}
-
-  ${specs.Comments ? `
-  <div class="notes-zone">
-    <div class="zone-eyebrow">Notes</div>
-    <div class="notes-text">${esc2(specs.Comments)}</div>
-  </div>` : ''}
-
-  <!-- push identity and footer to bottom -->
-  <div class="spacer"></div>
-
-  <!-- ⑥ DIGITAL IDENTITY — the product's public and internal codes -->
-  <div class="identity">
-    ${qrDataUrl ? `<div class="id-panel">
-      <div><img class="id-qr" src="${qrDataUrl}" alt="QR" style="width:22mm;height:22mm;display:block;flex-shrink:0"></div>
-      <div>
-        <div class="id-purpose">Public Product Page</div>
-        <div class="id-desc">Scan to access composition, product code, construction type and color. No login required.</div>
-      </div>
-    </div>` : '<div></div>'}
-    ${bcSvgStr ? `<div class="id-panel" style="flex-direction:column;gap:2mm">
-      <div class="id-purpose">Internal Reference</div>
-      <div class="id-bc">${bcSvgStr}</div>
-      <div class="id-ref">${esc2(barcode)}</div>
-    </div>` : '<div></div>'}
-  </div>
-
-  <!-- ⑦ FOOTER — signature -->
-  <div class="footer">
-    <div class="ftr-bug">${logoBug}</div>
-    <div class="ftr-contact">
-      www.sierratextiles.com
-      <span class="ftr-sep">·</span>
-      hello@sierratextiles.com
-    </div>
-    <div class="ftr-date">Generated ${esc2(dateStr)} · SIERRA Index</div>
-  </div>
+  ${identityHtml}
+  ${footerHtml}
 
 </div>
 </body></html>`)
