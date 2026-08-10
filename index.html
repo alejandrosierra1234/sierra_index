@@ -12331,31 +12331,38 @@ function renderImportUpload() {
   `
 }
 
-function handleImportFile(e) {
+async function handleImportFile(e) {
   const file = e.target.files[0]
   if (!file) return
-  const reader = new FileReader()
-  reader.onload = (event) => {
-    try {
-      // Simple CSV parsing (full implementation would handle .xlsx via SheetJS)
-      const text = event.target.result
-      const lines = text.split('\n').filter(l => l.trim())
-      const headers = lines[0].split(',').map(h => h.trim())
-      const rows = lines.slice(1).map(line => {
-        const cells = line.split(',').map(c => c.trim())
-        const obj = {}
-        headers.forEach((h, i) => obj[h] = cells[i] || '')
-        return obj
+  try {
+    let grid
+    if (/\.xlsx?$/i.test(file.name)) {
+      // Excel: lazy-load SheetJS only when actually needed
+      if (!window.XLSX) await new Promise((res, rej) => {
+        const s = document.createElement('script')
+        s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
+        s.onload = res; s.onerror = () => rej(new Error('Could not load the Excel reader — check your connection or use CSV'))
+        document.head.appendChild(s)
       })
-      _badge_ui.importData = { headers, rows, file: file.name }
-      _badge_ui.importStep = 'map'
-      closeImportModal()
-      renderImportModal()
-    } catch (err) {
-      toast('Error parsing file: ' + err.message)
+      const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' })
+      grid = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: '' })
+    } else {
+      grid = parseCSV(await file.text())
     }
+    if (!grid || grid.length < 2) { toast('The file has no data rows'); return }
+    const headers = grid[0].map(h => String(h).trim()).filter(Boolean)
+    const rows = grid.slice(1).map(r => {
+      const obj = {}
+      headers.forEach((h, i) => obj[h] = String(r[i] ?? '').trim())
+      return obj
+    })
+    _badge_ui.importData = { headers, rows, file: file.name }
+    _badge_ui.importStep = 'map'
+    closeImportModal()
+    renderImportModal()
+  } catch (err) {
+    toast('Error parsing file: ' + err.message)
   }
-  reader.readAsText(file)
 }
 
 function handleImportDrop(e) {
@@ -12379,15 +12386,17 @@ function renderImportMap() {
     </div>
     <div class="modal-body">
       <p>Match your Excel columns to employee fields.</p>
-      ${['employee_code', 'first_name', 'last_name', 'department', 'position'].map(field => `
+      ${['employee_code', 'first_name', 'last_name', 'department', 'position'].map(field => {
+        const guess = headers.find(h => h.toLowerCase().replace(/[^a-z]/g, '') === field.replace(/_/g, ''))
+        return `
         <div class="import-map-row">
-          <label>${field}</label>
+          <label>${field.replace(/_/g, ' ')}${IMPORT_REQUIRED_FIELDS.includes(field) ? ' *' : ''}</label>
           <select id="map-${field}">
             <option value="">— Select column —</option>
-            ${headers.map(h => `<option value="${h}">${h}</option>`).join('')}
+            ${headers.map(h => `<option value="${esc(h)}" ${h === guess ? 'selected' : ''}>${esc(h)}</option>`).join('')}
           </select>
         </div>
-      `).join('')}
+      `}).join('')}
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
@@ -12396,7 +12405,9 @@ function renderImportMap() {
   `
 }
 
-function proceedToValidation() {
+const IMPORT_REQUIRED_FIELDS = ['employee_code', 'first_name', 'last_name']
+
+async function proceedToValidation() {
   if (!_badge_ui.importData) return
   // Get column mappings
   const mapping = {}
@@ -12404,23 +12415,61 @@ function proceedToValidation() {
     const sel = document.getElementById(`map-${field}`)
     mapping[field] = sel?.value || null
   })
+  const missing = IMPORT_REQUIRED_FIELDS.filter(f => !mapping[f])
+  if (missing.length) { toast(`Map a column to: ${missing.join(', ')}`); return }
   _badge_ui.importData.mapping = mapping
+
+  // Apply mapping to build normalized rows
+  const seen = new Set()
+  const codes = _badge_ui.importData.rows.map(r => (r[mapping.employee_code] || '').trim()).filter(Boolean)
+  let dbDupes = new Set()
+  if (_badge.activeSite && codes.length) {
+    const { data } = await sb.from('employees').select('employee_code').eq('site_id', _badge.activeSite).in('employee_code', codes)
+    dbDupes = new Set((data || []).map(r => (r.employee_code || '').toLowerCase()))
+  }
+  _badge_ui.importData.mapped = _badge_ui.importData.rows.map((row, i) => {
+    const errors = []
+    const employee_code = (row[mapping.employee_code] || '').trim()
+    const first_name = (row[mapping.first_name] || '').trim()
+    const last_name = (row[mapping.last_name] || '').trim()
+    const department = mapping.department ? (row[mapping.department] || '').trim() : ''
+    const position = mapping.position ? (row[mapping.position] || '').trim() : ''
+    if (!employee_code) errors.push('Employee Code is required')
+    if (!first_name) errors.push('First Name is required')
+    if (!last_name) errors.push('Last Name is required')
+    if (employee_code) {
+      const key = employee_code.toLowerCase()
+      if (seen.has(key)) errors.push(`duplicate Employee Code "${employee_code}" in file`)
+      else if (dbDupes.has(key)) errors.push(`Employee Code "${employee_code}" already exists at this site`)
+      seen.add(key)
+    }
+    return { n: i + 2, errors, data: { employee_code, first_name, last_name, department: department || null, position: position || null } }
+  })
   _badge_ui.importStep = 'validate'
   closeImportModal()
   renderImportModal()
 }
 
 function renderImportValidate() {
+  const mapped = _badge_ui.importData?.mapped || []
+  const valid = mapped.filter(r => !r.errors.length)
+  const bad = mapped.filter(r => r.errors.length)
   return `
     <div class="modal-header">
       <h2>Validate Records</h2>
     </div>
     <div class="modal-body">
-      <p>Validating ${_badge_ui.importData?.rows.length || 0} employees...</p>
+      <p>Validated ${mapped.length} employee${mapped.length === 1 ? '' : 's'}: <strong>${valid.length}</strong> ready, <strong>${bad.length}</strong> with errors.</p>
+      ${bad.length ? `
+        <div class="form-errors" style="max-height:180px;overflow-y:auto">
+          <div class="form-errors-title">Rows with errors (will be skipped)</div>
+          <ul>${bad.slice(0, 10).map(r => `<li>Row ${r.n}: ${esc(r.errors.join('; '))}</li>`).join('')}</ul>
+          ${bad.length > 10 ? `<div style="font-size:0.7rem;color:var(--text-3);margin-top:0.3rem">…and ${bad.length - 10} more.</div>` : ''}
+        </div>` : ''}
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="proceedToReview()">Next: Review Changes</button>
+      <button class="btn btn-primary" ${valid.length ? '' : 'disabled'} onclick="proceedToReview()">Next: Review Changes</button>
     </div>
   `
 }
@@ -12432,45 +12481,57 @@ function proceedToReview() {
 }
 
 function renderImportReview() {
+  const mapped = _badge_ui.importData?.mapped || []
+  const valid = mapped.filter(r => !r.errors.length)
   return `
     <div class="modal-header">
       <h2>Review Changes</h2>
     </div>
     <div class="modal-body">
-      <p>Preview of employees to be imported:</p>
+      <p>Preview of employees to be imported (${valid.length} valid row${valid.length === 1 ? '' : 's'}):</p>
       <div style="max-height:400px;overflow-y:auto">
         <table class="erp-table" style="font-size:0.8rem">
           <thead>
             <tr><th>Action</th><th>Code</th><th>Name</th><th>Department</th></tr>
           </thead>
           <tbody>
-            ${_badge_ui.importData?.rows.slice(0, 10).map((row, i) => `
+            ${valid.slice(0, 10).map(r => `
               <tr>
                 <td><span class="badge badge-info">New</span></td>
-                <td><code>${row.employee_code || '—'}</code></td>
-                <td>${row.first_name} ${row.last_name}</td>
-                <td>${row.department || '—'}</td>
+                <td><code>${esc(r.data.employee_code)}</code></td>
+                <td>${esc(r.data.first_name)} ${esc(r.data.last_name)}</td>
+                <td>${esc(r.data.department || '—')}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
+        ${valid.length > 10 ? `<div style="font-size:0.7rem;color:var(--text-3);margin-top:0.3rem">…and ${valid.length - 10} more.</div>` : ''}
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="commitImport()">Import ${_badge_ui.importData?.rows.length || 0} Employees</button>
+      <button class="btn btn-primary" ${valid.length ? '' : 'disabled'} onclick="commitImport()">Import ${valid.length} Employee${valid.length === 1 ? '' : 's'}</button>
     </div>
   `
 }
 
 async function commitImport() {
   if (!_badge_ui.importData || !_badge.activeSite) return
+  const valid = (_badge_ui.importData.mapped || []).filter(r => !r.errors.length)
+  if (!valid.length) return
   toast('Importing… This may take a moment.')
-  // Implementation would upsert all rows
+  let ok = 0, failed = 0
+  for (let i = 0; i < valid.length; i += 50) {
+    const chunk = valid.slice(i, i + 50).map(r => ({ ...r.data, site_id: _badge.activeSite, created_by: me.id }))
+    const { error } = await sb.from('employees').insert(chunk)
+    if (error) failed += chunk.length; else ok += chunk.length
+  }
+  Audit.log('user', me.id, null, 'employees_imported',
+    `Imported ${ok} employee${ok > 1 ? 's' : ''}${failed ? ` (${failed} failed)` : ''}`, [], { site_id: _badge.activeSite, ok, failed })
   closeImportModal()
   await loadBadgeData()
   renderBadgeModule()
-  toast('Import complete!')
+  toast(failed ? `Imported ${ok}, ${failed} failed` : `Imported ${ok} employee${ok > 1 ? 's' : ''}`)
 }
 
 function closeImportModal() {
