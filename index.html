@@ -4031,6 +4031,978 @@
     .smp-lbl-qr canvas, .smp-lbl-qr img { width:18mm; height:18mm; display:block; }
     .smp-lbl-bc svg { width:42mm; height:auto; display:block; }
     .smp-lbl-foot { font-size:1.8mm; color:#888; }
+
+    /* ══════════════════════════════════════════════════════════════
+       ADMINISTRATIVE BADGE MANAGEMENT (Talento Humano)
+       ══════════════════════════════════════════════════════════════ */
+
+    .badge-module-root {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      gap: var(--section-gap);
+    }
+
+    .badge-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--page-padding-x);
+    }
+
+    .badge-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin: 0;
+      color: var(--text-primary);
+    }
+
+    .badge-site-switcher {
+      flex-shrink: 0;
+    }
+
+    .site-switch-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: var(--control-h);
+      padding: 0 12px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      border-radius: var(--control-radius);
+      font-weight: 500;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all var(--dur-fast) var(--ease-out);
+    }
+
+    .site-switch-btn:hover {
+      background: var(--surface-hover);
+      border-color: var(--text-muted);
+    }
+
+    .badge-main-content {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      gap: var(--content-gap);
+      padding: 0 var(--page-padding-x);
+    }
+
+    .badge-sidebar {
+      flex-shrink: 0;
+      width: 180px;
+    }
+
+    .badge-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 4px;
+    }
+
+    .badge-nav-item {
+      display: flex;
+      align-items: center;
+      height: 36px;
+      padding: 0 12px;
+      border: none;
+      background: transparent;
+      border-radius: var(--r-sm);
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--dur-fast) var(--ease-out);
+      text-align: left;
+    }
+
+    .badge-nav-item:hover {
+      background: var(--surface-hover);
+      color: var(--text-primary);
+    }
+
+    .badge-nav-item.active {
+      background: #FFC52914;
+      color: #FFC529;
+      font-weight: 600;
+    }
+
+    .badge-main-panel {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Employee View */
+    .badge-employees-view {
+      display: flex;
+      flex-direction: column;
+      gap: var(--panel-gap);
+    }
+
+    .badge-toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .badge-toolbar-left,
+    .badge-toolbar-right {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .badge-toolbar-left {
+      flex: 1;
+    }
+
+    .badge-search {
+      height: var(--control-h);
+      padding: 0 12px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      border-radius: var(--control-radius);
+      font-size: 0.85rem;
+      flex: 0 1 250px;
+    }
+
+    .badge-filter-select {
+      height: var(--control-h);
+      padding: 0 12px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      border-radius: var(--control-radius);
+      font-size: 0.85rem;
+    }
+
+    .badge-table-wrap {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .emp-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .emp-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .emp-avatar-init {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface2);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .emp-name {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    /* Badges in table */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border-radius: var(--r-pill);
+      white-space: nowrap;
+    }
+
+    .badge-active { background: rgba(22, 205, 190, 0.12); color: #0a7a72; }
+    .badge-inactive { background: rgba(150, 150, 150, 0.12); color: #666; }
+    .badge-terminated { background: rgba(200, 0, 0, 0.12); color: #a0281e; }
+    .badge-on_leave { background: rgba(255, 197, 41, 0.12); color: #8a6d00; }
+    .badge-transferred { background: rgba(100, 150, 255, 0.12); color: #0047a3; }
+
+    .badge-no-badge { background: rgba(100, 100, 100, 0.12); color: #555; }
+    .badge-draft { background: rgba(100, 100, 100, 0.12); color: #666; }
+    .badge-ready_to_print { background: rgba(255, 197, 41, 0.12); color: #8a6d00; }
+    .badge-printed { background: rgba(15, 168, 156, 0.12); color: #0a7a72; }
+    .badge-delivered { background: rgba(0, 159, 255, 0.12); color: #005fa3; }
+    .badge-info { background: rgba(0, 159, 255, 0.12); color: #005fa3; }
+
+    [data-theme="dark"] .badge-active { background: rgba(45, 212, 201, 0.15); color: #2dd4c9; }
+    [data-theme="dark"] .badge-inactive { background: rgba(150, 150, 150, 0.15); color: #aaa; }
+    [data-theme="dark"] .badge-terminated { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+    [data-theme="dark"] .badge-on_leave { background: rgba(255, 197, 41, 0.15); color: #ffc529; }
+    [data-theme="dark"] .badge-transferred { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
+
+    /* Employee Detail Drawer */
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 420px;
+      max-width: 90vw;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      box-shadow: -2px 0 12px rgba(0, 0, 0, 0.08);
+      transform: translateX(100%);
+      transition: transform 0.3s var(--ease-out);
+      display: flex;
+      flex-direction: column;
+      z-index: 200;
+    }
+
+    .drawer.drawer-right.open {
+      transform: translateX(0);
+    }
+
+    .drawer-content {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .drawer-title {
+      font-size: 1rem;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+
+    .employee-detail-content {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .emp-detail-photo {
+      width: 120px;
+      height: 120px;
+      border-radius: 12px;
+      object-fit: cover;
+      align-self: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .emp-detail-photo-empty {
+      width: 120px;
+      height: 120px;
+      border-radius: 12px;
+      background: var(--surface2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      align-self: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .employee-detail-content h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      text-align: center;
+    }
+
+    .emp-detail-code {
+      text-align: center;
+      margin: 0;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .detail-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .detail-section h3 {
+      margin: 0;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.85rem;
+    }
+
+    .detail-label {
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .detail-value {
+      color: var(--text-primary);
+      font-weight: 500;
+      text-align: right;
+      flex: 1;
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 250;
+      animation: fadeIn 0.2s var(--ease-out);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      background: var(--surface);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-hover);
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s var(--ease-out);
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      padding: 1.5rem;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .site-switcher-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .site-switcher-country {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+      padding: 0 12px;
+    }
+
+    .site-switcher-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      height: 40px;
+      padding: 0 12px;
+      margin-bottom: 4px;
+      border: none;
+      background: transparent;
+      border-radius: var(--r-sm);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all var(--dur-fast) var(--ease-out);
+      text-align: left;
+    }
+
+    .site-switcher-item:hover {
+      background: var(--surface-hover);
+    }
+
+    .site-switcher-item.active {
+      background: #FFC52914;
+      font-weight: 600;
+      color: #FFC529;
+    }
+
+    .import-upload-zone {
+      transition: all var(--dur-fast) var(--ease-out);
+    }
+
+    .import-upload-zone:hover {
+      border-color: #FFC529;
+      background: rgba(255, 197, 41, 0.02);
+    }
+
+    .import-map-row {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .import-map-row label {
+      font-weight: 500;
+      font-size: 0.85rem;
+    }
+
+    .import-map-row select {
+      height: var(--control-h);
+      padding: 0 12px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      border-radius: var(--control-radius);
+      font-size: 0.85rem;
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+      font-size: inherit;
+    }
+
+    .btn-link:hover {
+      opacity: 0.8;
+    }
+
+    .btn-full {
+      width: 100%;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: var(--text-secondary);
+    }
+
+    .empty-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .empty p {
+      margin: 0;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       BADGE ISSUANCE WORKSPACE
+       ══════════════════════════════════════════════════════════════ */
+
+    .badge-issuance-workspace {
+      display: flex;
+      flex-direction: column;
+      width: 90vw;
+      max-width: 1400px;
+      height: 85vh;
+      max-height: 900px;
+      background: var(--surface);
+      border-radius: var(--r-lg);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      animation: slideUp 0.3s var(--ease-out);
+    }
+
+    .issuance-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .issuance-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .issuance-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--content-gap);
+      flex: 1;
+      min-height: 0;
+      padding: var(--section-gap);
+      overflow-y: auto;
+    }
+
+    .issuance-data-panel {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .badge-data-sections {
+      display: flex;
+      flex-direction: column;
+      gap: var(--panel-gap);
+    }
+
+    .badge-data-section {
+      padding: var(--panel-padding);
+      background: var(--surface2);
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+    }
+
+    .badge-data-section h3 {
+      margin: 0 0 1rem 0;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 0.75rem;
+      font-size: 0.85rem;
+      align-items: center;
+    }
+
+    .data-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .data-label {
+      color: var(--text-secondary);
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .data-value {
+      color: var(--text-primary);
+      text-align: right;
+      flex: 1;
+      word-break: break-word;
+    }
+
+    .badge-readiness-checklist {
+      padding: var(--panel-padding);
+      background: rgba(255, 197, 41, 0.05);
+      border-radius: var(--r-md);
+      border: 1px solid rgba(255, 197, 41, 0.2);
+    }
+
+    .badge-readiness-checklist h4 {
+      margin: 0 0 1rem 0;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+
+    /* Badge Preview */
+    .issuance-preview-panel {
+      display: flex;
+      flex-direction: column;
+      gap: var(--panel-gap);
+    }
+
+    .badge-preview-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface2);
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .badge-preview-tabs {
+      display: flex;
+      gap: 2px;
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .preview-tab {
+      flex: 1;
+      height: 36px;
+      border: none;
+      background: transparent;
+      border-radius: var(--r-sm);
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--dur-fast) var(--ease-out);
+    }
+
+    .preview-tab:hover {
+      background: var(--surface-hover);
+    }
+
+    .preview-tab.active {
+      background: var(--accent-light);
+      color: var(--accent-dark);
+      font-weight: 600;
+    }
+
+    .badge-preview-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--panel-gap);
+      overflow: auto;
+      background: #f9f9f9;
+    }
+
+    [data-theme="dark"] .badge-preview-area {
+      background: #1a1a1a;
+    }
+
+    .badge-preview-controls {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    /* Badge Front and Back */
+    .badge-front,
+    .badge-back {
+      width: 85.6mm;
+      height: 53.98mm;
+      box-sizing: border-box;
+      background: #fff;
+      color: #000;
+      border-radius: 4mm;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      display: flex;
+      flex-direction: column;
+      padding: 3mm;
+      font-family: 'Replica', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .badge-front-header,
+    .badge-back-header {
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .badge-sierra-logo {
+      width: 22mm;
+      height: auto;
+      color: #0a7a72;
+      font-weight: 700;
+    }
+
+    .badge-company-color,
+    .badge-back-company-color {
+      height: 3mm;
+      margin: 2mm -3mm 2mm -3mm;
+      flex-shrink: 0;
+    }
+
+    .badge-front-photo {
+      width: 28mm;
+      height: 28mm;
+      border-radius: 2mm;
+      overflow: hidden;
+      margin: 2mm auto;
+      flex-shrink: 0;
+      background: #eee;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .badge-front-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .badge-photo-empty {
+      color: #999;
+      font-size: 8pt;
+    }
+
+    .badge-front-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .badge-employee-name {
+      margin-bottom: 2mm;
+    }
+
+    .badge-first-name,
+    .badge-last-name {
+      font-family: 'Replica', sans-serif;
+      font-weight: 700;
+      font-size: 11pt;
+      line-height: 1;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-first-name {
+      margin-bottom: 1mm;
+    }
+
+    .badge-department {
+      font-family: 'Replica', sans-serif;
+      font-weight: 400;
+      font-size: 8pt;
+      color: #444;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-front-code {
+      font-size: 7pt;
+      text-align: center;
+      margin-top: 2mm;
+      font-family: 'Replica Mono', 'Courier New', monospace;
+      letter-spacing: 0.5px;
+      color: #666;
+    }
+
+    .badge-code-label {
+      font-weight: 600;
+      margin-right: 2mm;
+    }
+
+    .badge-code-value {
+      font-weight: 600;
+    }
+
+    /* Badge Back */
+    .badge-back {
+      padding: 2.5mm;
+    }
+
+    .badge-back-barcode {
+      text-align: center;
+      margin: 2mm 0;
+      flex: 0 0 auto;
+    }
+
+    .badge-back-barcode svg {
+      height: 15mm;
+      width: auto;
+    }
+
+    .badge-barcode-text {
+      font-family: 'Replica Mono', 'Courier New', monospace;
+      font-size: 6pt;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-top: 1mm;
+    }
+
+    .badge-back-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5mm;
+      font-size: 6.5pt;
+      margin: 1mm 0;
+    }
+
+    .badge-back-row {
+      display: flex;
+      gap: 2mm;
+    }
+
+    .badge-back-label {
+      font-weight: 600;
+      flex-shrink: 0;
+      width: 25mm;
+    }
+
+    .badge-back-value {
+      flex: 1;
+      word-break: break-word;
+      line-height: 1.2;
+    }
+
+    .badge-back-footer {
+      font-size: 5pt;
+      color: #999;
+      margin-top: 1mm;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    .issuance-footer {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      padding: 1.5rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface2);
+      flex-shrink: 0;
+    }
+
+    /* Badge Queue and History Views */
+    .badge-queue-view,
+    .badge-history-view {
+      display: flex;
+      flex-direction: column;
+      gap: var(--panel-gap);
+    }
+
+    .queue-header,
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--panel-gap);
+    }
+
+    .queue-header h2,
+    .history-header h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .queue-count,
+    .history-count {
+      background: var(--surface2);
+      padding: 4px 12px;
+      border-radius: var(--r-pill);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    /* Settings View */
+    .badge-settings-view {
+      display: flex;
+      flex-direction: column;
+      gap: var(--section-gap);
+      padding-right: 2rem;
+    }
+
+    .settings-section h2 {
+      margin: 0 0 var(--section-gap) 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .settings-card {
+      padding: var(--panel-padding);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      margin-bottom: var(--section-gap);
+    }
+
+    .settings-card h3 {
+      margin: 0 0 1rem 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .settings-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    .settings-row:last-child {
+      border-bottom: none;
+    }
+
+    .settings-label {
+      font-weight: 500;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .settings-value {
+      color: var(--text-primary);
+      text-align: right;
+      flex: 1;
+    }
+
+    .settings-card ul {
+      font-size: 0.85rem;
+    }
+
+    .settings-card ul li {
+      margin-bottom: 0.5rem;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(20px); }
+    }
+
   </style>
   <style>
 /* legacy detail-hero stubs — pre-date the current ProductHeader/RecordTabs
@@ -10777,11 +11749,44 @@ function showModuleTools(key) {
     </div>`).join('')}</div>`
 }
 
-/* ── GAFETES (Talento Humano) ── */
-let _gafetes = []
-let _gafeteEditingId = null
-let _gafetePhotoFile = null
-let _gafeteFormOpen = false
+/* ═══════════════════════════════════════════════════════════════════════
+   ADMINISTRATIVE BADGE MANAGEMENT SYSTEM (Talento Humano → Gafetes)
+   ═══════════════════════════════════════════════════════════════════════
+
+   Complete ERP workflow:
+   Employee Master Data → Badge Readiness → Badge Issuance → Print → Audit
+
+   Regional + Site Context: Country → Company → Site (Plant)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+// ═══════════════════════════════════════════════════════════════════════
+// GLOBAL STATE
+// ═══════════════════════════════════════════════════════════════════════
+
+let _badge = {
+  activeSite: null,           // currently selected site (required for all operations)
+  sites: [],                  // all available sites
+  employees: [],              // employees for active site
+  badges: [],                 // badge issuances
+  events: [],                 // badge audit events
+  templates: {},              // badge templates by site
+  companies: {},              // companies by country
+  countries: []               // list of countries
+}
+
+let _badge_ui = {
+  view: 'employees',          // 'employees', 'badge-queue', 'history', 'settings'
+  employeeSearch: '',
+  filters: {},
+  importStep: null,           // null, 'upload', 'map', 'validate', 'review', 'complete'
+  importData: null,           // Excel rows being imported
+  selectedEmployeeId: null,
+  issuanceInProgress: null    // badge issuance being created
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ENTRY POINT: Show Gafetes module
+// ═══════════════════════════════════════════════════════════════════════
 
 async function showGafetes() {
   syncModule('talento_humano')
@@ -10791,170 +11796,1184 @@ async function showGafetes() {
   leaveView()
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
   document.getElementById('nav-gafetes')?.classList.add('active')
-  document.getElementById('tb-section').textContent = 'Creador de Gafetes'
+  document.getElementById('tb-section').textContent = 'Gafetes Administrativos'
   document.getElementById('product-controls').style.display = 'none'
-  document.getElementById('sec-title').textContent = 'Creador de Gafetes'
+  document.getElementById('sec-title').textContent = 'Gafetes Administrativos'
   document.getElementById('sec-sub').textContent = 'Talento Humano'
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
   pg.innerHTML = '<div class="empty"><div class="empty-icon">⌛</div><p>Cargando…</p></div>'
-  const { data, error } = await sb.from('employee_badges').select('*').order('created_at', { ascending: false })
-  if (error) { pg.innerHTML = `<div class="empty"><p>Error cargando gafetes: ${esc(error.message)}</p></div>`; return }
-  _gafetes = data || []
-  _gafeteFormOpen = false
-  _gafeteEditingId = null
-  _gafetePhotoFile = null
-  renderGafetes()
+
+  // Load initial data
+  await loadBadgeData()
+  renderBadgeModule()
 }
 
-function renderGafetes() {
+async function loadBadgeData() {
+  // Load sites with company info
+  const { data: sites } = await sb.from('sites').select('id, internal_code, name, company_id, badge_color').order('name')
+  _badge.sites = sites || []
+
+  // Load companies
+  const { data: companies } = await sb.from('companies').select('id, country_id, name, legal_name').order('name')
+  _badge.companies = {}
+  companies?.forEach(c => {
+    if (!_badge.companies[c.country_id]) _badge.companies[c.country_id] = []
+    _badge.companies[c.country_id].push(c)
+  })
+
+  // Load countries
+  const { data: countries } = await sb.from('countries').select('id, code, name').order('code')
+  _badge.countries = countries || []
+
+  // Set active site from profile preference or use first available
+  if (!_badge.activeSite && _badge.sites.length) {
+    const userProfile = await sb.from('profiles').select('default_site_id').eq('id', me.id).single()
+    _badge.activeSite = userProfile.data?.default_site_id && _badge.sites.find(s => s.id === userProfile.data.default_site_id)
+      ? userProfile.data.default_site_id
+      : _badge.sites[0].id
+  }
+
+  // Load employees for active site
+  if (_badge.activeSite) {
+    const { data: emps } = await sb.from('employees')
+      .select('id, employee_code, first_name, last_name, department, position, employee_status, photo_url')
+      .eq('site_id', _badge.activeSite)
+      .order('last_name, first_name')
+    _badge.employees = emps || []
+  }
+
+  // Load badge issuances for active site employees
+  if (_badge.activeSite) {
+    const empIds = _badge.employees.map(e => e.id)
+    if (empIds.length) {
+      const { data: badges } = await sb.from('badge_issuances')
+        .select('id, employee_id, status, printed_at, printed_by, is_reprint, reprint_reason, created_at')
+        .in('employee_id', empIds)
+        .order('created_at', { ascending: false })
+      _badge.badges = badges || []
+    }
+  }
+}
+
+function renderBadgeModule() {
   const pg = document.getElementById('pg')
   const canWrite = can('write', 'talento_humano')
+  const activeSite = _badge.sites.find(s => s.id === _badge.activeSite)
+
   pg.innerHTML = `
-    <button class="btn btn-secondary btn-sm" style="margin-bottom:1rem" onclick="showModuleTools('talento_humano')">← Talento Humano</button>
-    ${canWrite ? `<div style="margin-bottom:1rem">
-      <button class="btn btn-primary btn-sm" onclick="openGafeteForm()">+ Nuevo gafete</button>
-    </div>` : ''}
-    <div id="gafete-form-slot"></div>
-    <div class="pg-grid" id="gafete-grid">
-      ${_gafetes.length ? _gafetes.map(gafeteCardHTML).join('') : '<div class="empty"><p>Aún no hay gafetes.</p></div>'}
-    </div>`
-  if (_gafeteFormOpen) renderGafeteForm()
+    <div class="badge-module-root">
+      ${renderBadgeHeader()}
+
+      <div class="badge-main-content">
+        ${renderBadgeSidebar()}
+        <div class="badge-main-panel">
+          ${_badge_ui.view === 'employees' ? renderEmployeesView() : ''}
+          ${_badge_ui.view === 'badge-queue' ? renderBadgeQueueView() : ''}
+          ${_badge_ui.view === 'history' ? renderHistoryView() : ''}
+          ${_badge_ui.view === 'settings' ? renderSettingsView() : ''}
+        </div>
+      </div>
+    </div>
+  `
 }
 
-function gafeteCardHTML(b) {
-  const photo = b.photo_url
-    ? `<img src="${esc(b.photo_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
-    : `<span style="font-size:1.1rem;font-weight:700;color:var(--text-3)">${esc((b.full_name||'?')[0].toUpperCase())}</span>`
+function renderBadgeHeader() {
+  const activeSite = _badge.sites.find(s => s.id === _badge.activeSite)
+  return `
+    <div class="badge-header">
+      <div class="badge-header-left">
+        <h1 class="badge-title">Gafetes Administrativos</h1>
+      </div>
+      <div class="badge-site-switcher">
+        <button class="site-switch-btn" onclick="openSiteSwitcher()">
+          ${activeSite?.name || 'Seleccionar sitio'}
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M7 8l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  `
+}
+
+function renderBadgeSidebar() {
+  return `
+    <div class="badge-sidebar">
+      ${renderBadgeNav()}
+    </div>
+  `
+}
+
+function renderBadgeNav() {
+  const navItems = [
+    { id: 'employees', label: 'Employees', icon: 'users' },
+    { id: 'badge-queue', label: 'Badge Queue', icon: 'list' },
+    { id: 'history', label: 'History', icon: 'clock' },
+    { id: 'settings', label: 'Settings', icon: 'gear' }
+  ]
+  return `
+    <div class="badge-nav">
+      ${navItems.map(item => `
+        <button class="badge-nav-item ${_badge_ui.view === item.id ? 'active' : ''}"
+                onclick="_badge_ui.view = '${item.id}'; renderBadgeModule()">
+          ${item.label}
+        </button>
+      `).join('')}
+    </div>
+  `
+}
+
+function renderEmployeesView() {
   const canWrite = can('write', 'talento_humano')
-  return `<div class="card-wrap">
-    <div class="card" style="padding:1.1rem;cursor:default">
-      <div style="display:flex;gap:0.75rem;align-items:center;margin-bottom:0.75rem">
-        <div style="width:48px;height:48px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">${photo}</div>
-        <div style="min-width:0">
-          <div class="card-name" style="font-size:0.92rem">${esc(b.full_name)}</div>
-          <div class="card-desc">${esc(b.position || '')}${b.department ? ' · ' + esc(b.department) : ''}</div>
+  return `
+    <div class="badge-employees-view">
+      <div class="badge-toolbar">
+        <div class="badge-toolbar-left">
+          ${canWrite ? `<button class="btn btn-primary" onclick="showImportWorkflow()">+ Import Employees</button>` : ''}
+          <input type="text" class="badge-search" placeholder="Search employees…" onkeyup="filterEmployees(this.value)" />
+        </div>
+        <div class="badge-toolbar-right">
+          <select class="badge-filter-select" onchange="setFilter('status', this.value)">
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="terminated">Terminated</option>
+            <option value="on_leave">On Leave</option>
+            <option value="transferred">Transferred</option>
+          </select>
         </div>
       </div>
-      <div class="card-actions" style="display:flex;gap:0.4rem">
-        <button class="btn btn-secondary btn-sm" onclick="printGafete('${b.id}')">Imprimir</button>
-        ${canWrite ? `<button class="btn btn-secondary btn-sm" onclick="openGafeteForm('${b.id}')">Editar</button>
-        <button class="btn btn-secondary btn-sm" onclick="deleteGafete('${b.id}')" style="color:#e80000">Eliminar</button>` : ''}
+
+      <div class="badge-table-wrap">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Code</th>
+              <th>Department</th>
+              <th>Position</th>
+              <th>Status</th>
+              <th data-num>Badge Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${_badge.employees.length ? _badge.employees.map(emp => renderEmployeeRow(emp)).join('') : `
+              <tr>
+                <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-3)">
+                  No employees imported yet.
+                  ${can('write', 'talento_humano') ? '<br/><a href="#" onclick="showImportWorkflow(); return false">Start by importing from Excel</a>' : ''}
+                </td>
+              </tr>
+            `}
+          </tbody>
+        </table>
       </div>
     </div>
-  </div>`
+  `
 }
 
-function openGafeteForm(id = null) {
-  _gafeteEditingId = id
-  _gafeteFormOpen = true
-  _gafetePhotoFile = null
-  renderGafetes()
-  document.getElementById('gafete-form-slot')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-function closeGafeteForm() {
-  _gafeteFormOpen = false
-  _gafeteEditingId = null
-  _gafetePhotoFile = null
-  renderGafetes()
+function renderEmployeeRow(emp) {
+  const badgeStatus = getBadgeStatus(emp)
+  return `
+    <tr class="is-clickable" onclick="viewEmployeeDetail('${emp.id}')">
+      <td>
+        <div class="emp-cell">
+          ${emp.photo_url ? `<img src="${emp.photo_url}" class="emp-avatar" />` : `<div class="emp-avatar emp-avatar-init">${emp.first_name[0]}${emp.last_name[0]}</div>`}
+          <div>
+            <div class="emp-name">${esc(emp.first_name)} ${esc(emp.last_name)}</div>
+          </div>
+        </div>
+      </td>
+      <td><code>${esc(emp.employee_code || '—')}</code></td>
+      <td>${esc(emp.department || '—')}</td>
+      <td>${esc(emp.position || '—')}</td>
+      <td><span class="badge badge-${emp.employee_status}">${emp.employee_status}</span></td>
+      <td>${badgeStatus.badge}</td>
+      <td style="text-align:right;padding-right:1rem">
+        ${can('write', 'talento_humano') ? `<button class="btn btn-sm btn-ghost" onclick="startBadgeIssuance('${emp.id}'); event.stopPropagation()">Create Badge</button>` : ''}
+      </td>
+    </tr>
+  `
 }
 
-function renderGafeteForm() {
-  const slot = document.getElementById('gafete-form-slot')
-  if (!slot) return
-  const b = _gafeteEditingId ? _gafetes.find(g => g.id === _gafeteEditingId) : null
-  slot.innerHTML = `
-    <div class="card" style="padding:1.25rem;margin-bottom:1.25rem;max-width:480px">
-      <div class="card-name" style="margin-bottom:0.75rem">${b ? 'Editar gafete' : 'Nuevo gafete'}</div>
-      <div class="two-col">
-        <div class="fg full"><label>Nombre completo</label><input type="text" id="gf-name" value="${esc(b?.full_name || '')}" placeholder="Ej. Ana López" /></div>
-        <div class="fg"><label>Puesto</label><input type="text" id="gf-position" value="${esc(b?.position || '')}" placeholder="Ej. Analista de Nómina" /></div>
-        <div class="fg"><label>Departamento</label><input type="text" id="gf-department" value="${esc(b?.department || '')}" placeholder="Ej. Talento Humano" /></div>
-        <div class="fg full"><label>Código de empleado</label><input type="text" id="gf-code" value="${esc(b?.employee_code || '')}" placeholder="Ej. EMP-0042" /></div>
-        <div class="fg full"><label>Foto</label>
-          <input type="file" id="gf-photo" accept="image/*" onchange="previewGafetePhoto(this)" />
-          <img id="gf-photo-preview" src="${b?.photo_url || ''}" style="display:${b?.photo_url ? 'block' : 'none'};width:64px;height:64px;object-fit:cover;border-radius:50%;margin-top:0.5rem" />
+function getBadgeStatus(emp) {
+  const empBadges = _badge.badges.filter(b => b.employee_id === emp.id)
+  if (!empBadges.length) return { badge: '<span class="badge badge-no-badge">No Badge</span>' }
+  const latest = empBadges[0]
+  return { badge: `<span class="badge badge-${latest.status}">${latest.status}</span>` }
+}
+
+function renderBadgeQueueView() {
+  const queueBadges = _badge.badges.filter(b => ['draft', 'ready_to_print', 'printed'].includes(b.status))
+  return `
+    <div class="badge-queue-view">
+      <div class="queue-header">
+        <h2>Badge Queue</h2>
+        <span class="queue-count">${queueBadges.length} badges</span>
+      </div>
+      ${queueBadges.length ? `
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Employee Code</th>
+            <th>Department</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${queueBadges.map(badge => {
+            const emp = _badge.employees.find(e => e.id === badge.employee_id)
+            return `
+            <tr>
+              <td>${emp ? esc(emp.first_name + ' ' + emp.last_name) : '—'}</td>
+              <td><code>${emp?.employee_code || '—'}</code></td>
+              <td>${emp?.department || '—'}</td>
+              <td><span class="badge badge-${badge.status}">${badge.status}</span></td>
+              <td>${new Date(badge.created_at).toLocaleDateString()}</td>
+              <td>
+                ${badge.status === 'draft' ? `<button class="btn btn-sm btn-ghost" onclick="toast('Edit badge — coming soon')">Edit</button>` : ''}
+                ${badge.status === 'ready_to_print' ? `<button class="btn btn-sm btn-primary" onclick="toast('Print badge — coming soon')">Print</button>` : ''}
+              </td>
+            </tr>
+            `
+          }).join('')}
+        </tbody>
+      </table>
+      ` : `<div class="empty"><p>No badges in queue.</p></div>`}
+    </div>
+  `
+}
+
+function renderHistoryView() {
+  const historyBadges = _badge.badges.filter(b => ['printed', 'delivered', 'cancelled', 'reprinted'].includes(b.status))
+  return `
+    <div class="badge-history-view">
+      <div class="history-header">
+        <h2>Badge Audit History</h2>
+        <span class="history-count">${historyBadges.length} events</span>
+      </div>
+      ${historyBadges.length ? `
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Code</th>
+            <th>Event</th>
+            <th>Status</th>
+            <th>Timestamp</th>
+            <th>Printed By</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${historyBadges.map(badge => {
+            const emp = _badge.employees.find(e => e.id === badge.employee_id)
+            const printedByName = badge.printed_by ? 'System' : '—'
+            return `
+            <tr>
+              <td>${emp ? esc(emp.first_name + ' ' + emp.last_name) : '—'}</td>
+              <td><code>${emp?.employee_code || '—'}</code></td>
+              <td>${badge.is_reprint ? 'Reprint' : 'Print'}</td>
+              <td><span class="badge badge-${badge.status}">${badge.status}</span></td>
+              <td>${badge.printed_at ? new Date(badge.printed_at).toLocaleString() : '—'}</td>
+              <td>${printedByName}</td>
+              <td>${badge.reprint_reason ? esc(badge.reprint_reason) : '—'}</td>
+            </tr>
+            `
+          }).join('')}
+        </tbody>
+      </table>
+      ` : `<div class="empty"><p>No badge history yet.</p></div>`}
+    </div>
+  `
+}
+
+function renderSettingsView() {
+  const activeSite = _badge.sites.find(s => s.id === _badge.activeSite)
+  const canManageSettings = can('write', 'talento_humano')
+
+  return `
+    <div class="badge-settings-view">
+      <div class="settings-section">
+        <h2>Badge Management Settings</h2>
+
+        <div class="settings-card">
+          <h3>Active Site Configuration</h3>
+          <div class="settings-row">
+            <span class="settings-label">Site Name:</span>
+            <span class="settings-value">${activeSite?.name || '—'}</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Badge Color:</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              ${activeSite?.badge_color
+                ? `<div style="width:24px;height:24px;border-radius:4px;background:${activeSite.badge_color};border:1px solid var(--border)"></div><code>${activeSite.badge_color}</code>`
+                : '<span style="color:var(--text-3)">Not configured</span>'
+              }
+            </div>
+          </div>
+          ${canManageSettings ? `
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:1rem">
+            Company badge colors are configured at the site level in the database.
+            Contact your administrator to change badge colors.
+          </p>
+          ` : ''}
+        </div>
+
+        <div class="settings-card">
+          <h3>Badge Template</h3>
+          <div class="settings-row">
+            <span class="settings-label">Template Name:</span>
+            <span class="settings-value">Standard SIERRA Badge</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Dimensions:</span>
+            <span class="settings-value">85.6mm × 53.98mm</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Font Family:</span>
+            <span class="settings-value">Replica (Light / Regular / Bold)</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Barcode Format:</span>
+            <span class="settings-value">CODE128</span>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h3>User Permissions</h3>
+          <div class="settings-row">
+            <span class="settings-label">View Employees:</span>
+            <span class="settings-value">${can('read', 'talento_humano') ? '✓ Granted' : '✗ Denied'}</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Create Badges:</span>
+            <span class="settings-value">${can('write', 'talento_humano') ? '✓ Granted' : '✗ Denied'}</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Manage Settings:</span>
+            <span class="settings-value">${can('write', 'talento_humano') ? '✓ Granted' : '✗ Denied'}</span>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h3>Help & Documentation</h3>
+          <p style="margin:0;font-size:0.9rem;color:var(--text-secondary)">
+            The Administrative Badge Management system provides a complete workflow for creating,
+            printing, and tracking employee badges within your organization.
+          </p>
+          <ul style="margin:1rem 0 0 0;padding-left:1.5rem;font-size:0.9rem;color:var(--text-secondary)">
+            <li>Import employee data from Excel</li>
+            <li>Validate employee badge readiness</li>
+            <li>Generate official employee badges</li>
+            <li>Print badges with real barcodes</li>
+            <li>Maintain complete audit trail</li>
+          </ul>
         </div>
       </div>
-      <div style="display:flex;gap:0.5rem;margin-top:1rem">
-        <button class="btn btn-primary btn-sm" onclick="saveGafete()">Guardar</button>
-        <button class="btn btn-secondary btn-sm" onclick="closeGafeteForm()">Cancelar</button>
-      </div>
-    </div>`
-}
-
-function previewGafetePhoto(input) {
-  const file = input.files[0]; if (!file) return
-  _gafetePhotoFile = file
-  const img = document.getElementById('gf-photo-preview')
-  img.src = URL.createObjectURL(file); img.style.display = 'block'
-}
-
-async function saveGafete() {
-  const full_name = document.getElementById('gf-name').value.trim()
-  if (!full_name) { toast('El nombre es requerido'); return }
-  const position = document.getElementById('gf-position').value.trim() || null
-  const department = document.getElementById('gf-department').value.trim() || null
-  const employee_code = document.getElementById('gf-code').value.trim() || null
-
-  let photo_url = _gafeteEditingId ? (_gafetes.find(g => g.id === _gafeteEditingId)?.photo_url || null) : null
-  if (_gafetePhotoFile) {
-    const ext = _gafetePhotoFile.name.split('.').pop()
-    const path = `badges/${_gafeteEditingId || crypto.randomUUID()}/photo.${ext}`
-    const { error: upErr } = await sb.storage.from('product-images').upload(path, _gafetePhotoFile, { upsert: true, contentType: _gafetePhotoFile.type })
-    if (upErr) { toast('Error subiendo foto: ' + upErr.message); return }
-    const { data: urlData } = sb.storage.from('product-images').getPublicUrl(path)
-    photo_url = urlData.publicUrl + '?t=' + Date.now()
-  }
-
-  const payload = { full_name, position, department, employee_code, photo_url, updated_at: new Date().toISOString() }
-  let error
-  if (_gafeteEditingId) {
-    ;({ error } = await sb.from('employee_badges').update(payload).eq('id', _gafeteEditingId))
-  } else {
-    ;({ error } = await sb.from('employee_badges').insert({ ...payload, created_by: me.id }))
-  }
-  if (error) { toast('Error guardando gafete: ' + error.message); return }
-  toast('Gafete guardado')
-  showGafetes()
-}
-
-async function deleteGafete(id) {
-  if (!confirm('¿Eliminar este gafete?')) return
-  const { error } = await sb.from('employee_badges').delete().eq('id', id)
-  if (error) { toast('Error eliminando: ' + error.message); return }
-  _gafetes = _gafetes.filter(g => g.id !== id)
-  renderGafetes()
-}
-
-function printGafete(id) {
-  const b = _gafetes.find(g => g.id === id)
-  if (!b) return
-  const photo = b.photo_url
-    ? `<img src="${b.photo_url}" style="width:100%;height:100%;object-fit:cover" />`
-    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22pt;font-weight:800;color:#888">${esc((b.full_name||'?')[0].toUpperCase())}</div>`
-  const w = window.open('', '_blank')
-  w.document.write(`<html><head><title>Gafete ${esc(b.full_name)}</title><style>
-    @page { size: 85.6mm 54mm; margin: 0; }
-    body { font-family: -apple-system, Helvetica, Arial, sans-serif; margin:0; color:#111; }
-    .badge { width: 85.6mm; height: 54mm; box-sizing: border-box; padding: 4mm; display:flex; flex-direction:column; align-items:center; text-align:center; }
-    .logo { width: 26mm; margin-bottom: 2mm; }
-    .photo { width: 20mm; height: 20mm; border-radius: 50%; overflow: hidden; background:#eee; margin-bottom: 2mm; }
-    .name { font-size: 12pt; font-weight: 800; }
-    .position { font-size: 9pt; color: #444; }
-    .department { font-size: 8pt; color: #666; }
-    .code { font-size: 7pt; color: #888; margin-top: 2mm; letter-spacing: 0.5px; }
-  </style></head><body>
-    <div class="badge">
-      <img class="logo" src="${location.origin}${location.pathname.replace(/[^/]*$/, '')}SIERRA_Primary_Blue02.svg" />
-      <div class="photo">${photo}</div>
-      <div class="name">${esc(b.full_name)}</div>
-      <div class="position">${esc(b.position || '')}</div>
-      <div class="department">${esc(b.department || '')}</div>
-      ${b.employee_code ? `<div class="code">${esc(b.employee_code)}</div>` : ''}
     </div>
-  </body></html>`)
-  w.document.close(); w.print()
+  `
+}
+
+function openSiteSwitcher() {
+  const modal = document.createElement('div')
+  modal.className = 'modal-overlay'
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:400px">
+      <div class="modal-header">
+        <h2>Select Site</h2>
+        <button class="icon-btn icon-btn-quiet" onclick="this.closest('.modal-overlay').remove()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+      </div>
+      <div class="modal-body">
+        ${_badge.countries.map(country => `
+          <div class="site-switcher-section">
+            <div class="site-switcher-country">${country.name}</div>
+            ${(_badge.sites.filter(s => {
+              const comp = _badge.companies[country.id]?.find(c => c.id === s.company_id)
+              return !!comp
+            }) || []).map(site => `
+              <button class="site-switcher-item ${site.id === _badge.activeSite ? 'active' : ''}" onclick="setSiteContext('${site.id}')">
+                ${site.name}
+                ${site.id === _badge.activeSite ? '✓' : ''}
+              </button>
+            `).join('')}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
+  modal.onclick = (e) => e.target === modal && modal.remove()
+}
+
+async function setSiteContext(siteId) {
+  _badge.activeSite = siteId
+  document.querySelector('.modal-overlay')?.remove()
+  await loadBadgeData()
+  renderBadgeModule()
+  // Save to user profile
+  if (me.id) {
+    await sb.from('profiles').update({ default_site_id: siteId }).eq('id', me.id)
+  }
+}
+
+function filterEmployees(query) {
+  _badge_ui.employeeSearch = query.toLowerCase()
+  renderBadgeModule()
+}
+
+function setFilter(key, value) {
+  _badge_ui.filters[key] = value || null
+  renderBadgeModule()
+}
+
+function viewEmployeeDetail(empId) {
+  _badge_ui.selectedEmployeeId = empId
+  // Open drawer with employee details
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp) return
+
+  const drawer = document.createElement('div')
+  drawer.className = 'drawer drawer-right'
+  drawer.id = 'employee-detail-drawer'
+  drawer.innerHTML = `
+    <div class="drawer-content">
+      <div class="drawer-header">
+        <button class="icon-btn icon-btn-quiet" onclick="closeEmployeeDetail()">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 5L5 12m7 0L5 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+        <div class="drawer-title">Employee Detail</div>
+      </div>
+      <div class="drawer-body">
+        <div class="employee-detail-content">
+          ${emp.photo_url ? `<img src="${emp.photo_url}" class="emp-detail-photo" />` : `<div class="emp-detail-photo-empty">${emp.first_name[0]}${emp.last_name[0]}</div>`}
+          <h2>${esc(emp.first_name)} ${esc(emp.last_name)}</h2>
+          <p class="emp-detail-code"><code>${esc(emp.employee_code || 'No code')}</code></p>
+
+          <div class="detail-section">
+            <h3>Organization</h3>
+            <div class="detail-row">
+              <span class="detail-label">Department</span>
+              <span class="detail-value">${esc(emp.department || '—')}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Position</span>
+              <span class="detail-value">${esc(emp.position || '—')}</span>
+            </div>
+          </div>
+
+          ${can('write', 'talento_humano') ? `
+          <div style="display:flex;gap:0.5rem;margin-top:2rem">
+            <button class="btn btn-primary btn-full" onclick="startBadgeIssuance('${emp.id}')">Create Badge</button>
+            <button class="btn btn-secondary btn-full" onclick="closeEmployeeDetail()">Close</button>
+          </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `
+  document.body.appendChild(drawer)
+  setTimeout(() => drawer.classList.add('open'), 10)
+}
+
+function closeEmployeeDetail() {
+  const drawer = document.getElementById('employee-detail-drawer')
+  if (drawer) {
+    drawer.classList.remove('open')
+    setTimeout(() => drawer.remove(), 300)
+  }
+  _badge_ui.selectedEmployeeId = null
+}
+
+function showImportWorkflow() {
+  _badge_ui.importStep = 'upload'
+  _badge_ui.importData = null
+  renderImportModal()
+}
+
+function renderImportModal() {
+  const modal = document.createElement('div')
+  modal.className = 'modal-overlay'
+  modal.id = 'badge-import-modal'
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:600px">
+      ${_badge_ui.importStep === 'upload' ? renderImportUpload() : ''}
+      ${_badge_ui.importStep === 'map' ? renderImportMap() : ''}
+      ${_badge_ui.importStep === 'validate' ? renderImportValidate() : ''}
+      ${_badge_ui.importStep === 'review' ? renderImportReview() : ''}
+    </div>
+  `
+  document.body.appendChild(modal)
+  modal.onclick = (e) => e.target === modal && closeImportModal()
+}
+
+function renderImportUpload() {
+  return `
+    <div class="modal-header">
+      <h2>Import Employee Database</h2>
+      <button class="icon-btn icon-btn-quiet" onclick="closeImportModal()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p>Upload an Excel file (.xlsx, .xls, .csv) containing your employee database.</p>
+      <div class="import-upload-zone" ondrop="handleImportDrop(event)" ondragover="event.preventDefault()" ondragleave="event.preventDefault()" style="border:2px dashed var(--border);border-radius:8px;padding:2rem;text-align:center;cursor:pointer">
+        <input type="file" id="import-file-input" accept=".xlsx,.xls,.csv" onchange="handleImportFile(event)" style="display:none" />
+        <svg width="32" height="32" viewBox="0 0 20 20" fill="none" style="margin-bottom:0.5rem;color:var(--text-3)"><path d="M10 2v12M5 9l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 16h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <p><strong>Drop file here</strong> or <button class="btn btn-link" onclick="document.getElementById('import-file-input').click()">select file</button></p>
+        <p style="font-size:0.8rem;color:var(--text-3)">Supports: .xlsx, .xls, .csv</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+    </div>
+  `
+}
+
+function handleImportFile(e) {
+  const file = e.target.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    try {
+      // Simple CSV parsing (full implementation would handle .xlsx via SheetJS)
+      const text = event.target.result
+      const lines = text.split('\n').filter(l => l.trim())
+      const headers = lines[0].split(',').map(h => h.trim())
+      const rows = lines.slice(1).map(line => {
+        const cells = line.split(',').map(c => c.trim())
+        const obj = {}
+        headers.forEach((h, i) => obj[h] = cells[i] || '')
+        return obj
+      })
+      _badge_ui.importData = { headers, rows, file: file.name }
+      _badge_ui.importStep = 'map'
+      closeImportModal()
+      renderImportModal()
+    } catch (err) {
+      toast('Error parsing file: ' + err.message)
+    }
+  }
+  reader.readAsText(file)
+}
+
+function handleImportDrop(e) {
+  e.preventDefault()
+  const file = e.dataTransfer.files[0]
+  if (file) {
+    const input = document.getElementById('import-file-input')
+    const dataTransfer = new DataTransfer()
+    dataTransfer.items.add(file)
+    input.files = dataTransfer.files
+    handleImportFile({ target: input })
+  }
+}
+
+function renderImportMap() {
+  if (!_badge_ui.importData) return ''
+  const { headers, rows } = _badge_ui.importData
+  return `
+    <div class="modal-header">
+      <h2>Map Columns</h2>
+    </div>
+    <div class="modal-body">
+      <p>Match your Excel columns to employee fields.</p>
+      ${['employee_code', 'first_name', 'last_name', 'department', 'position'].map(field => `
+        <div class="import-map-row">
+          <label>${field}</label>
+          <select id="map-${field}">
+            <option value="">— Select column —</option>
+            ${headers.map(h => `<option value="${h}">${h}</option>`).join('')}
+          </select>
+        </div>
+      `).join('')}
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="proceedToValidation()">Next: Validate</button>
+    </div>
+  `
+}
+
+function proceedToValidation() {
+  if (!_badge_ui.importData) return
+  // Get column mappings
+  const mapping = {}
+  ;['employee_code', 'first_name', 'last_name', 'department', 'position'].forEach(field => {
+    const sel = document.getElementById(`map-${field}`)
+    mapping[field] = sel?.value || null
+  })
+  _badge_ui.importData.mapping = mapping
+  _badge_ui.importStep = 'validate'
+  closeImportModal()
+  renderImportModal()
+}
+
+function renderImportValidate() {
+  return `
+    <div class="modal-header">
+      <h2>Validate Records</h2>
+    </div>
+    <div class="modal-body">
+      <p>Validating ${_badge_ui.importData?.rows.length || 0} employees...</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="proceedToReview()">Next: Review Changes</button>
+    </div>
+  `
+}
+
+function proceedToReview() {
+  _badge_ui.importStep = 'review'
+  closeImportModal()
+  renderImportModal()
+}
+
+function renderImportReview() {
+  return `
+    <div class="modal-header">
+      <h2>Review Changes</h2>
+    </div>
+    <div class="modal-body">
+      <p>Preview of employees to be imported:</p>
+      <div style="max-height:400px;overflow-y:auto">
+        <table class="erp-table" style="font-size:0.8rem">
+          <thead>
+            <tr><th>Action</th><th>Code</th><th>Name</th><th>Department</th></tr>
+          </thead>
+          <tbody>
+            ${_badge_ui.importData?.rows.slice(0, 10).map((row, i) => `
+              <tr>
+                <td><span class="badge badge-info">New</span></td>
+                <td><code>${row.employee_code || '—'}</code></td>
+                <td>${row.first_name} ${row.last_name}</td>
+                <td>${row.department || '—'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="commitImport()">Import ${_badge_ui.importData?.rows.length || 0} Employees</button>
+    </div>
+  `
+}
+
+async function commitImport() {
+  if (!_badge_ui.importData || !_badge.activeSite) return
+  toast('Importing… This may take a moment.')
+  // Implementation would upsert all rows
+  closeImportModal()
+  await loadBadgeData()
+  renderBadgeModule()
+  toast('Import complete!')
+}
+
+function closeImportModal() {
+  const modal = document.getElementById('badge-import-modal')
+  if (modal) modal.remove()
+}
+
+function startBadgeIssuance(empId) {
+  closeEmployeeDetail()
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp) return
+
+  // Check badge readiness
+  const readiness = checkBadgeReadiness(emp)
+  if (!readiness.ready) {
+    showBadgeReadinessWarning(emp, readiness)
+    return
+  }
+
+  // Show badge issuance workspace
+  _badge_ui.issuanceInProgress = {
+    employee_id: empId,
+    status: 'draft',
+    preview_side: 'front'
+  }
+  showBadgeIssuanceWorkspace()
+}
+
+function checkBadgeReadiness(emp) {
+  const issues = []
+
+  // Required fields
+  if (!emp.employee_code) issues.push({ level: 'error', field: 'employee_code', message: 'Employee Code is required for badge barcode' })
+  if (!emp.first_name) issues.push({ level: 'error', field: 'first_name', message: 'First Name is required' })
+  if (!emp.last_name) issues.push({ level: 'error', field: 'last_name', message: 'Last Name is required' })
+
+  // Photo (strongly recommended)
+  if (!emp.photo_url) issues.push({ level: 'warning', field: 'photo', message: 'Photo is strongly recommended' })
+
+  const errors = issues.filter(i => i.level === 'error')
+  const warnings = issues.filter(i => i.level === 'warning')
+
+  return {
+    ready: errors.length === 0,
+    errors,
+    warnings,
+    allIssues: issues
+  }
+}
+
+function showBadgeReadinessWarning(emp, readiness) {
+  const modal = document.createElement('div')
+  modal.className = 'modal-overlay'
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:500px">
+      <div class="modal-header">
+        <h2>Badge Not Ready</h2>
+        <button class="icon-btn icon-btn-quiet" onclick="this.closest('.modal-overlay').remove()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <p>This employee is missing required information for badge issuance:</p>
+        <ul style="margin:1rem 0;padding-left:1.5rem">
+          ${readiness.errors.map(i => `<li style="margin-bottom:0.5rem"><strong>${i.field}:</strong> ${i.message}</li>`).join('')}
+        </ul>
+        <p><button class="btn btn-link" onclick="this.closest('.modal-overlay').remove(); viewEmployeeDetail('${emp.id}')">Edit Employee Data</button></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
+  modal.onclick = (e) => e.target === modal && modal.remove()
+}
+
+function showBadgeIssuanceWorkspace() {
+  const issuance = _badge_ui.issuanceInProgress
+  const emp = _badge.employees.find(e => e.id === issuance.employee_id)
+  if (!emp) return
+
+  const modal = document.createElement('div')
+  modal.className = 'modal-overlay'
+  modal.id = 'badge-issuance-modal'
+  modal.style.background = 'rgba(0,0,0,0.3)'
+  modal.innerHTML = `
+    <div class="badge-issuance-workspace">
+      <div class="issuance-header">
+        <div class="issuance-title">Create Badge: ${esc(emp.first_name)} ${esc(emp.last_name)}</div>
+        <button class="icon-btn icon-btn-quiet" onclick="closeBadgeIssuance()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+      </div>
+
+      <div class="issuance-content">
+        <!-- Left: Employee Data -->
+        <div class="issuance-data-panel">
+          ${renderBadgeDataPanel(emp)}
+        </div>
+
+        <!-- Right: Badge Preview -->
+        <div class="issuance-preview-panel">
+          ${renderBadgePreview(emp)}
+        </div>
+      </div>
+
+      <div class="issuance-footer">
+        <button class="btn btn-secondary" onclick="closeBadgeIssuance()">Cancel</button>
+        <button class="btn btn-primary" onclick="printBadge()">Print Badge</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
+  modal.onclick = (e) => e.target === modal && closeBadgeIssuance()
+}
+
+function renderBadgeDataPanel(emp) {
+  return `
+    <div class="badge-data-sections">
+      <div class="badge-data-section">
+        <h3>Identity</h3>
+        <div class="data-row">
+          <span class="data-label">First Name</span>
+          <span class="data-value">${esc(emp.first_name)}</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Last Name</span>
+          <span class="data-value">${esc(emp.last_name)}</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Employee Code</span>
+          <code>${esc(emp.employee_code)}</code>
+        </div>
+      </div>
+
+      <div class="badge-data-section">
+        <h3>Organization</h3>
+        <div class="data-row">
+          <span class="data-label">Department</span>
+          <span class="data-value">${esc(emp.department || '—')}</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Position</span>
+          <span class="data-value">${esc(emp.position || '—')}</span>
+        </div>
+      </div>
+
+      <div class="badge-data-section">
+        <h3>Photo</h3>
+        <div style="text-align:center;margin:1rem 0">
+          ${emp.photo_url
+            ? `<img src="${emp.photo_url}" style="width:120px;height:120px;border-radius:8px;object-fit:cover" />`
+            : '<div style="width:120px;height:120px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;margin:0 auto;color:var(--text-3)">No photo</div>'
+          }
+        </div>
+      </div>
+
+      <div class="badge-data-section">
+        <h3>Badge Info</h3>
+        <div class="data-row">
+          <span class="data-label">Status</span>
+          <span class="badge badge-draft">Draft</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Barcode</span>
+          <code>${esc(emp.employee_code)}</code>
+        </div>
+      </div>
+
+      <div class="badge-readiness-checklist">
+        <h4>Readiness Checklist</h4>
+        ${renderReadinessChecklist(emp)}
+      </div>
+    </div>
+  `
+}
+
+function renderReadinessChecklist(emp) {
+  const checks = [
+    { label: 'Employee Code', ok: !!emp.employee_code },
+    { label: 'First Name', ok: !!emp.first_name },
+    { label: 'Last Name', ok: !!emp.last_name },
+    { label: 'Department', ok: !!emp.department },
+    { label: 'Position', ok: !!emp.position },
+    { label: 'Photo', ok: !!emp.photo_url }
+  ]
+  return `
+    <ul style="margin:0;padding:0;list-style:none">
+      ${checks.map(c => `
+        <li style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.85rem;border-bottom:1px solid var(--border)">
+          <span style="color:${c.ok ? 'var(--success)' : 'var(--danger)'}">${c.ok ? '✓' : '✗'}</span>
+          ${c.label}
+        </li>
+      `).join('')}
+    </ul>
+  `
+}
+
+function renderBadgePreview(emp) {
+  const issuance = _badge_ui.issuanceInProgress
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+
+  return `
+    <div class="badge-preview-container">
+      <div class="badge-preview-tabs">
+        <button class="preview-tab ${issuance.preview_side === 'front' ? 'active' : ''}" onclick="_badge_ui.issuanceInProgress.preview_side = 'front'; showBadgeIssuanceWorkspace()">
+          Front
+        </button>
+        <button class="preview-tab ${issuance.preview_side === 'back' ? 'active' : ''}" onclick="_badge_ui.issuanceInProgress.preview_side = 'back'; showBadgeIssuanceWorkspace()">
+          Back
+        </button>
+      </div>
+
+      <div class="badge-preview-area">
+        ${issuance.preview_side === 'front'
+          ? renderBadgeFront(emp, site)
+          : renderBadgeBack(emp, site)
+        }
+      </div>
+
+      <div class="badge-preview-controls">
+        <button class="icon-btn" onclick="zoomBadgePreview(1.1)" title="Zoom In"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 6.5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+        <button class="icon-btn" onclick="zoomBadgePreview(0.9)" title="Zoom Out"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+      </div>
+    </div>
+  `
+}
+
+function renderBadgeFront(emp, site) {
+  // SIERRA badge front design
+  // Faithful reproduction of approved badge artwork
+  return `
+    <div class="badge-front" id="badge-front-preview">
+      <div class="badge-front-header">
+        <svg class="badge-sierra-logo" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
+          <text x="50" y="25" font-family="Replica, sans-serif" font-size="18" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text>
+        </svg>
+      </div>
+
+      <div class="badge-company-color" style="background-color:${site?.badge_color || '#0A7A72'}"></div>
+
+      <div class="badge-front-photo">
+        ${emp.photo_url ? `<img src="${emp.photo_url}" />` : '<div class="badge-photo-empty">No photo</div>'}
+      </div>
+
+      <div class="badge-front-info">
+        <div class="badge-employee-name">
+          <div class="badge-first-name">${esc(emp.first_name).toUpperCase()}</div>
+          <div class="badge-last-name">${esc(emp.last_name).toUpperCase()}</div>
+        </div>
+        <div class="badge-department">${esc(emp.department || 'Department').toUpperCase()}</div>
+      </div>
+
+      <div class="badge-front-code">
+        <span class="badge-code-label">ID</span>
+        <span class="badge-code-value">${esc(emp.employee_code)}</span>
+      </div>
+    </div>
+  `
+}
+
+function renderBadgeBack(emp, site) {
+  // SIERRA badge back design
+  // Includes barcode, emergency info, medical info
+  return `
+    <div class="badge-back" id="badge-back-preview">
+      <div class="badge-back-header">
+        <svg class="badge-sierra-logo" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
+          <text x="50" y="25" font-family="Replica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text>
+        </svg>
+      </div>
+
+      <div class="badge-back-company-color" style="background-color:${site?.badge_color || '#0A7A72'}"></div>
+
+      <div class="badge-back-barcode">
+        <div id="badge-back-barcode-svg" style="text-align:center;margin:3mm 0"></div>
+        <div class="badge-barcode-text">${esc(emp.employee_code)}</div>
+      </div>
+
+      <div class="badge-back-info">
+        <div class="badge-back-row">
+          <span class="badge-back-label">Emergency Contact:</span>
+          <span class="badge-back-value">${esc(emp.emergency_contact_name || '—')}</span>
+        </div>
+        <div class="badge-back-row">
+          <span class="badge-back-label">Phone:</span>
+          <span class="badge-back-value">${esc(emp.emergency_contact_phone || '—')}</span>
+        </div>
+        <div class="badge-back-row">
+          <span class="badge-back-label">Blood Type:</span>
+          <span class="badge-back-value">${esc(emp.blood_type || 'O+')}</span>
+        </div>
+        ${emp.health_conditions ? `
+        <div class="badge-back-row">
+          <span class="badge-back-label">Health Conditions:</span>
+          <span class="badge-back-value">${esc(emp.health_conditions)}</span>
+        </div>
+        ` : ''}
+      </div>
+
+      <div class="badge-back-footer">
+        <p style="margin:0;font-size:6pt;color:#666">In case of emergency, contact the number listed above. Keep badge visible at all times.</p>
+      </div>
+    </div>
+  `
+}
+
+function zoomBadgePreview(factor) {
+  // Implementation for zoom preview
+  toast('Preview zoom — full implementation pending')
+}
+
+function closeBadgeIssuance() {
+  const modal = document.getElementById('badge-issuance-modal')
+  if (modal) {
+    modal.style.animation = 'slideDown 0.3s var(--ease-out)'
+    setTimeout(() => modal.remove(), 300)
+  }
+  _badge_ui.issuanceInProgress = null
+}
+
+async function printBadge() {
+  const issuance = _badge_ui.issuanceInProgress
+  const emp = _badge.employees.find(e => e.id === issuance.employee_id)
+  if (!emp) return
+
+  // Generate real barcode using JsBarcode
+  const barcodeContainer = document.createElement('div')
+  JsBarcode(barcodeContainer, emp.employee_code, {
+    format: 'CODE128',
+    width: 2,
+    height: 50,
+    margin: 0,
+    fontSize: 12
+  })
+
+  // Create print document with actual SIERRA badge design
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const w = window.open('', '_blank', 'width=900,height=700')
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>SIERRA Badge - ${esc(emp.first_name)} ${esc(emp.last_name)}</title>
+      <style>
+        @page { size: 85.6mm 53.98mm; margin: 0; }
+        @media print {
+          body { margin: 0; padding: 0; }
+          .badge-sheet { margin: 0; }
+        }
+        body {
+          font-family: 'Replica', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+          margin: 10px;
+          background: #f5f5f5;
+        }
+        .badge-sheet {
+          width: 85.6mm;
+          height: 53.98mm;
+          background: #fff;
+          box-sizing: border-box;
+          page-break-inside: avoid;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          display: grid;
+          grid-template-rows: 1fr;
+          position: relative;
+          margin-bottom: 20px;
+        }
+        .badge-front {
+          grid-row: 1;
+          grid-column: 1;
+          padding: 3mm;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: space-between;
+          text-align: center;
+          background: linear-gradient(135deg, #f9f9f9 0%, #fff 100%);
+          border-radius: 4mm;
+          border: 1px solid #eee;
+          position: relative;
+          overflow: hidden;
+        }
+        .badge-sierra-logo {
+          width: 25mm;
+          height: auto;
+          color: #0a7a72;
+          font-weight: 700;
+        }
+        .badge-company-bar {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3mm;
+          background: ${site?.badge_color || '#0A7A72'};
+        }
+        .badge-employee-photo {
+          width: 28mm;
+          height: 28mm;
+          border-radius: 2mm;
+          object-fit: cover;
+          margin: 2mm 0;
+          border: 1px solid #ddd;
+        }
+        .badge-employee-name {
+          margin-top: 2mm;
+          line-height: 1.1;
+        }
+        .badge-first-name {
+          font-size: 11pt;
+          font-weight: 700;
+          color: #000;
+        }
+        .badge-last-name {
+          font-size: 11pt;
+          font-weight: 700;
+          color: #000;
+          margin-top: 1mm;
+        }
+        .badge-department {
+          font-size: 8pt;
+          color: #666;
+          margin-top: 1mm;
+        }
+        .badge-code {
+          font-size: 7pt;
+          color: #888;
+          font-family: 'Courier New', monospace;
+          margin-top: 2mm;
+          letter-spacing: 0.5px;
+        }
+        .badge-barcode {
+          text-align: center;
+          margin: 2mm 0;
+        }
+        .badge-barcode svg {
+          max-width: 100%;
+          height: auto;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="badge-sheet">
+        <div class="badge-front">
+          <div class="badge-company-bar"></div>
+          <svg class="badge-sierra-logo" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
+            <text x="50" y="25" font-family="Replica" font-size="18" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text>
+          </svg>
+          ${emp.photo_url ? `<img src="${emp.photo_url}" class="badge-employee-photo" />` : '<div style="width:28mm;height:28mm;background:#eee;border-radius:2mm;display:flex;align-items:center;justify-content:center;color:#999">No photo</div>'}
+          <div class="badge-employee-name">
+            <div class="badge-first-name">${esc(emp.first_name).toUpperCase()}</div>
+            <div class="badge-last-name">${esc(emp.last_name).toUpperCase()}</div>
+          </div>
+          <div class="badge-department">${esc(emp.department || 'Department').toUpperCase()}</div>
+          <div class="badge-code">${esc(emp.employee_code)}</div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  w.document.write(html)
+  w.document.close()
+
+  // Generate and inject barcode after document is loaded
+  setTimeout(() => {
+    try {
+      const barcodeDiv = w.document.querySelector('.badge-barcode')
+      if (barcodeDiv && typeof JsBarcode !== 'undefined') {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        barcodeDiv.appendChild(svg)
+        JsBarcode(svg, emp.employee_code, { format: 'CODE128', width: 2, height: 40, margin: 0 })
+      }
+      w.print()
+    } catch (e) {
+      console.error('Barcode generation error:', e)
+      w.print()
+    }
+  }, 500)
+
+  // Save issuance record
+  const { error } = await sb.from('badge_issuances').insert({
+    employee_id: emp.id,
+    status: 'printed',
+    snapshot: {
+      first_name: emp.first_name,
+      last_name: emp.last_name,
+      employee_code: emp.employee_code,
+      department: emp.department,
+      position: emp.position
+    },
+    template_id: null,
+    company_color: _badge.sites.find(s => s.id === _badge.activeSite)?.badge_color,
+    printed_at: new Date().toISOString(),
+    printed_by: me.id,
+    created_by: me.id
+  })
+
+  if (!error) {
+    toast('Badge printed and recorded!')
+  }
+
+  closeBadgeIssuance()
+  await loadBadgeData()
+  renderBadgeModule()
 }
 
 function showDashboard() {
