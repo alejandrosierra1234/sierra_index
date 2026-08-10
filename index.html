@@ -3481,6 +3481,16 @@
     .cat-pop-row .cat-pop-count { margin-left:auto; color:var(--text-3); font-size:0.72rem; }
     .cat-pop-ftr { display:flex; justify-content:flex-end; padding:0.4rem 0.3rem 0.1rem; border-top:1px solid var(--border); margin-top:0.3rem; }
 
+    /* Grouped rows (Colaboradores → Agrupar) — collapsible section header,
+       reuses the Talento Humano accent tint rather than a saturated block. */
+    .erp-table tr.emp-group-row { cursor:pointer; background:var(--surface2); }
+    .erp-table tr.emp-group-row:hover { background:var(--surface-hover,var(--surface2)); }
+    .erp-table tr.emp-group-row td { padding:0.5rem 0.9rem; border-bottom:1px solid var(--border); white-space:nowrap; }
+    .emp-group-caret { display:inline-flex; color:var(--text-3); margin-right:6px; transition:transform var(--dur-fast) var(--ease-out); vertical-align:-1px; }
+    .emp-group-caret.collapsed { transform:rotate(-90deg); }
+    .emp-group-label { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-primary); }
+    .emp-group-count { margin-left:8px; font-size:0.72rem; font-weight:600; color:var(--text-3); }
+
     /* ── Catalog ERP table specifics ── layered on .erp-table (above):
        checkbox column, sortable header buttons, collapsible group rows. */
     .erp-table th.cat-th-select, .erp-table td.cat-td-select { width:2.2rem; padding-left:0.9rem; padding-right:0.2rem; }
@@ -11862,6 +11872,36 @@ const EMP_STATUS_LABELS = { active: 'Activo', inactive: 'Inactivo', terminated: 
 const BADGE_STATUS_LABELS = { no_badge: 'Sin gafete', draft: 'Borrador', ready_to_print: 'Listo para imprimir', printed: 'Emitido', delivered: 'Entregado', cancelled: 'Cancelado', reprinted: 'Reimpreso' }
 const READINESS_LABELS = { ready: 'Completo', missing: 'Faltan datos', blocked: 'Bloqueado' }
 
+// Table grouping — Monday-style collapsible groups so large employee
+// datasets stay scannable. keyFn/labelFn read from the same filtered
+// dataset the table already uses; no separate query or state.
+const EMP_GROUPS = {
+  none:           { label: 'Ninguno' },
+  department:     { label: 'Departamento',        keyFn: e => e.department || '—',                      labelFn: k => k },
+  readiness:      { label: 'Preparación del gafete', keyFn: e => badgeReadinessState(e).state,           labelFn: k => READINESS_LABELS[k] || k },
+  badge_status:   { label: 'Estado del gafete',    keyFn: e => getBadgeStatus(e).status,                 labelFn: k => BADGE_STATUS_LABELS[k] || k },
+  employee_status:{ label: 'Estado del colaborador', keyFn: e => e.employee_status,                      labelFn: k => EMP_STATUS_LABELS[k] || k },
+}
+function empSetGroupBy(key) { _badge_ui.groupBy = key; wsClosePopovers(); renderBadgeModule() }
+function empToggleGroupCollapsed(key) {
+  if (_badge_ui.collapsedGroups.has(key)) _badge_ui.collapsedGroups.delete(key)
+  else _badge_ui.collapsedGroups.add(key)
+  renderBadgeModule()
+}
+// Groups the already-filtered/sorted list; sort order is preserved
+// within each group so Group + Sort compose predictably.
+function empGroupedList(list) {
+  const cfg = EMP_GROUPS[_badge_ui.groupBy]
+  if (!cfg || !cfg.keyFn) return null
+  const groups = new Map()
+  list.forEach(e => {
+    const key = cfg.keyFn(e)
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(e)
+  })
+  return [...groups.entries()].map(([key, items]) => ({ key: String(key), label: cfg.labelFn(key), items }))
+}
+
 let _badge_ui = {
   view: 'employees',          // 'employees', 'badge-queue', 'history', 'companies', 'settings'
   employeeView: 'table',      // 'table' | 'cards'
@@ -11871,6 +11911,8 @@ let _badge_ui = {
     badge_status: new Set(), readiness: new Set(),
   },
   sort: 'name_asc',
+  groupBy: 'none',            // 'none' | 'department' | 'readiness' | 'badge_status' | 'employee_status'
+  collapsedGroups: new Set(), // group keys currently collapsed
   visibleCols: (() => {
     try {
       const stored = JSON.parse(localStorage.getItem('sierra_emp_visible_cols'))
@@ -12176,7 +12218,19 @@ function empTableHtml(list) {
     <th>Acciones</th>
   </tr></thead>`
   let body
-  if (list.length) {
+  const groups = list.length ? empGroupedList(list) : null
+  if (groups) {
+    body = groups.map(g => {
+      const collapsed = _badge_ui.collapsedGroups.has(g.key)
+      return `<tr class="emp-group-row" onclick="empToggleGroupCollapsed('${jsStr(g.key)}')">
+        <td colspan="${cols.length + 2}">
+          <span class="emp-group-caret ${collapsed ? 'collapsed' : ''}"><svg width="10" height="10" viewBox="0 0 20 20" fill="none"><path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="emp-group-label">${esc(g.label)}</span>
+          <span class="emp-group-count">${g.items.length}</span>
+        </td>
+      </tr>${collapsed ? '' : g.items.map(e => empRowHtml(e, cols)).join('')}`
+    }).join('')
+  } else if (list.length) {
     body = list.map(e => empRowHtml(e, cols)).join('')
   } else if (!_badge.employees.length) {
     body = `<tr><td colspan="${cols.length + 2}" style="text-align:center;padding:2rem;color:var(--text-3)">
@@ -12393,6 +12447,7 @@ function renderEmployeesToolbar() {
   const canWrite = can('write', 'talento_humano')
   const filterCount = empActiveFilterCount()
   const sortLabel = EMP_SORTS[_badge_ui.sort]?.label || 'Ordenar'
+  const groupLabel = EMP_GROUPS[_badge_ui.groupBy]?.label || 'Ninguno'
   const hasEmployees = _badge.employees.length > 0
   return `
     <div class="page-toolbar">
@@ -12412,6 +12467,14 @@ function renderEmployeesToolbar() {
           ${Object.entries(EMP_SORTS).map(([k, s]) => `<button type="button" class="cat-pop-row" onclick="empSetSort('${k}')">${_badge_ui.sort === k ? '✓ ' : ''}${esc(s.label)}</button>`).join('')}
         </div>
       </div>
+      ${_badge_ui.employeeView === 'table' ? `
+      <div style="position:relative">
+        <button class="btn btn-secondary btn-sm cat-tb-btn ${_badge_ui.groupBy !== 'none' ? 'has-value' : ''}" onclick="catTogglePop(event,'emp-pop-group')">Agrupar: ${esc(groupLabel)}</button>
+        <div class="ws-pop cat-pop" id="emp-pop-group">
+          <div class="cat-pop-title">Agrupar por</div>
+          ${Object.entries(EMP_GROUPS).map(([k, g]) => `<button type="button" class="cat-pop-row" onclick="empSetGroupBy('${k}')">${_badge_ui.groupBy === k ? '✓ ' : ''}${esc(g.label)}</button>`).join('')}
+        </div>
+      </div>` : ''}
       ${_badge_ui.employeeView === 'table' ? `
       <div style="position:relative">
         <button class="btn btn-secondary btn-sm cat-tb-btn" onclick="catTogglePop(event,'emp-pop-cols')">Columnas</button>
