@@ -1,7 +1,11 @@
 # SIERRA INDEX — Administrative Badge Management System
 ## Complete Implementation Summary
 
-**Status:** Phase 1-10 Complete | Phases 11-12 Ready for Refinement
+**Status:** Phase 1-10 Complete (Excel import now fully functional) | Phases 11-12 Ready for Refinement
+
+**Database migrations required (run in order, in Supabase SQL Editor):**
+1. `update19.sql` — core data model (already executed)
+2. `update20.sql` — adds `needs_review` / `review_reason` to `employees`, required by the import upsert workflow below
 
 ---
 
@@ -102,23 +106,72 @@ Database schema supporting the complete organizational hierarchy:
 
 2. **Employee Master Table**
    - ERP-style table with filters, search, sorting
-   - Columns: Employee, Code, Department, Position, Status, Badge Status, Actions
-   - Row selection for bulk operations (future)
+   - Columns: Employee, Code, Department, Position, Status, Badge Status, **Data Status**, Actions
+   - "Data Status" surfaces the `needs_review` flag from import (see below) directly in the table
    - Photo avatars with initials fallback
    - Hover state shows row actions
 
 3. **Toolbar**
    - Import employees button
-   - Search box (first/last name, code)
-   - Status filter (Active/Inactive/Terminated/On Leave/Transferred)
+   - Search box (name, code, department, position) — actually applied to the table (`getFilteredEmployees()`), not decorative
+   - Status filter (Active/Inactive/Terminated/On Leave/Transferred) — applied, with a "showing X of Y" summary when filters are active
    - Badge status filter (future)
    - Column customization (future)
 
 4. **Employee Detail Drawer**
    - Right-side drawer with employee information
-   - Organized sections (Identity, Organization, Photo)
+   - Organized sections (Identity, Organization, Identification, Emergency Contact, Photo)
+   - "Needs Review" banner with reason picker + Resolve action when the employee wasn't found in the latest import
    - Clean readable layout
    - Quick badge creation from drawer
+
+---
+
+### Excel Import — Full Implementation ✅
+**File:** `index.html` — functions prefixed `handleImportFile` / `renderImport*` / `performImportValidation` / `commitImport`
+
+The import wizard is a real 4-step flow, matching the existing codebase's
+established SheetJS pattern (same lazy-load technique already used for
+product imports): **Upload → Map Columns → Validate → Review → Commit.**
+
+1. **Upload**
+   - Accepts `.xlsx`, `.xls`, `.csv`
+   - `.xlsx`/`.xls` parsed via SheetJS (`XLSX.utils.sheet_to_json(sheet, {header:1})`), lazy-loaded from CDN only when an Excel file is actually selected (`window.XLSX` check first — no blocking script tag on page load)
+   - `.csv` parsed via the existing `parseCSV()` helper (proper quoted-field CSV parser already used elsewhere in the app)
+   - Drag-and-drop or file picker
+
+2. **Map Columns**
+   - Shows every column **actually detected** in the uploaded file — never a fixed/assumed list
+   - One row per Excel column: `EXCEL COLUMN → INDEX FIELD` dropdown, exactly per spec
+   - `BADGE_IMPORT_FIELDS` registry auto-suggests a mapping using bilingual (ES/ES accent-insensitive/EN) header synonyms (e.g. "Código" → Employee Code, "Departamento" → Department) — always overridable, never enforced
+   - Required fields (Employee Code, First Name, Last Name) marked with `*`; "Next" is blocked with a clear message if any are unmapped
+
+3. **Validate**
+   - Runs in chunks of 50 rows with a real progress bar (`Validating employees — 742 / 914`), yielding to the UI thread between chunks so large files don't freeze the browser
+   - Fetches the existing employee set for the active site once, keyed by `employee_code`, for diffing
+   - Per-row checks, each issue tagged **error / warning / info**:
+     - **Error** (blocks that row): missing Employee Code ("This employee cannot receive a valid badge until an official employee code is provided"), missing First/Last Name, duplicate Employee Code within the same file
+     - **Warning**: missing Department, Position, Identification Number, or incomplete Emergency Contact
+     - **Info**: "Ready." when a row has no issues
+   - Determines the row's action: `create` (new code) / `update` (existing code, at least one field differs) / `unchanged` (existing code, identical) / `error` (has error-level issues, excluded from import)
+   - Employees that exist in the DB for this site but whose code never appeared in the file are collected separately as **orphaned** — never deleted, never silently dropped
+
+4. **Review**
+   - Summary counts (`New / Updated / Unchanged / Needs review / Errors`) using the existing `insCard`/`.ins-grid` component
+   - Expandable error list with exact row numbers and human-readable messages
+   - Expandable "Not found in latest import" list naming every orphaned employee, with an explicit note that they are **not** deleted
+   - Full per-row detail table behind a `<details>` disclosure (doesn't dump hundreds of rows by default)
+   - "Import N Records" button — N is `New + Updated` only (errors are always excluded; unchanged rows are skipped as a no-op)
+
+5. **Commit**
+   - Creates one `employee_imports` row up front (file name, row count, per-category counts, `status: 'pending'`)
+   - Upserts `create`/`update` rows into `employees` in batches of 50, `onConflict: 'site_id,employee_code'` (the same unique constraint defined in `update19.sql`)
+   - Flags every orphaned employee `needs_review = true` (never deletes, never touches `employee_status`)
+   - Writes one `employee_import_results` row per record in the file (action + full issues array) for a permanent audit trail of exactly what the import decided and why
+   - Marks the `employee_imports` row `completed` (or `failed` if any batch errored) with a timestamp
+   - Reloads the employee table and shows a summary toast
+
+**Requires `update20.sql`** — adds `employees.needs_review` / `employees.review_reason` (not part of `update19.sql`, which was already executed in production before this flag existed).
 
 ---
 
@@ -287,13 +340,7 @@ _badge_ui = {
 
 ### Future Enhancements Beyond Phase 12
 
-1. **Excel Import — Full Implementation**
-   - Replace simple CSV with SheetJS for real .xlsx parsing
-   - Column auto-detection
-   - Validation rules engine (duplicate codes, invalid formats)
-   - Batch upsert with transaction support
-   - Review changes UI before commit
-   - Error reporting with suggested fixes
+1. **Excel Import — Done.** ~~Replace simple CSV with SheetJS~~ See "Excel Import — Full Implementation" below; this item is complete.
 
 2. **Photo Management**
    - Crop/position controls in issuance workspace
@@ -359,10 +406,10 @@ showGafetes()
 
 1. Click "Import Employees" button
 2. Upload Excel file (.xlsx, .xls, or .csv)
-3. Map columns (Employee Code, First Name, Last Name, Department, Position)
-4. Validate records (check for errors)
-5. Review changes (new, updated, unchanged)
-6. Commit import
+3. Map each detected column to the matching INDEX field (auto-guessed, always editable) — Employee Code, First Name and Last Name are required
+4. Validate — runs automatically with a progress bar; every row is checked and tagged error/warning/info
+5. Review — see counts (New / Updated / Unchanged / Needs Review / Errors), expand error and "not found in latest import" details
+6. Click "Import N Records" to commit — existing employees are updated by Employee Code, new ones created, nothing is ever deleted
 
 ### 5. Create & Print Badge
 
@@ -509,7 +556,7 @@ Every badge print, reprint, delivery, and cancellation is logged with timestamp 
 | Queue View | ✅ Complete | Status-based filtering |
 | History View | ✅ Complete | Complete event tracking |
 | Settings | ✅ Complete | Configuration display |
-| Import (CSV) | ⚠️ Basic | CSV parsing ready, .xlsx needs SheetJS |
+| Excel Import | ✅ Complete | Real .xlsx/.xls/.csv, dynamic mapping, error/warning validation, safe upsert |
 | Permissions (UI) | ✅ Partial | Architecture ready, gating ready |
 | Medical Data Gating | 📋 Queued | RLS ready, UI ready |
 | Photo Crop | 📋 Queued | Structure ready |
