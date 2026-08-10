@@ -9975,7 +9975,12 @@ window.addEventListener('resize', () => { if (LB) lbFitPreview() })
    ══════════════════════════════════════════════════════════════════════ */
 
 const YARN_FIBERS = ['Cotton', 'U.S. Cotton', 'Recycled Cotton', 'Polyester', 'Recycled Polyester', 'Viscose', 'Modal', 'Lyocell', 'Nylon', 'Spandex', 'Other']
-const YARN_COUNTS = ['10/1', '16/1', '20/1', '24/1', '30/1', '40/1', '2/20', '2/30']
+// Standard SIERRA Yarn Count nomenclature — the "/1" is part of the
+// technical notation (single-ply count) and must never be stripped, in
+// storage, on the label, or in search/filters. 30/1 is SIERRA's most
+// common count and is the Creator's default selection.
+const YARN_COUNTS = ['06/1', '10/1', '12/1', '16/1', '20/1', '24/1', '26/1', '30/1', '34/1', '36/1', '40/1']
+const YARN_COUNT_DEFAULT = '30/1'
 const YARN_SPINNING = ['Ring Spun', 'MVS', 'Open End', 'Other']
 const YARN_PREP = ['Carded', 'Combed', 'Other']
 const YARN_EFFECTS = [
@@ -9993,7 +9998,7 @@ let YC = null
 function ycBlankState() {
   return {
     editingId: null, original: null, saving: false,
-    name: '', count: '', countCustom: '',
+    name: '', count: YARN_COUNT_DEFAULT, countCustom: '',
     fibers: [{ fiber: 'Cotton', other: '', pct: 100 }],
     spinning: '', spinningOther: '',
     prep: '', prepOther: '',
@@ -10236,7 +10241,12 @@ function ycRenderForm() {
         <label>Yarn Count<span class="yc-req">*</span></label>
         <select class="control-input" style="width:100%" onchange="ycSetCount(this.value)">
           <option value="">— Select —</option>
-          ${YARN_COUNTS.map(c => `<option value="${escAttr(c)}" ${YC.count === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
+          <optgroup label="Frequently used">
+            <option value="${escAttr(YARN_COUNT_DEFAULT)}" ${YC.count === YARN_COUNT_DEFAULT ? 'selected' : ''}>${esc(YARN_COUNT_DEFAULT)}</option>
+          </optgroup>
+          <optgroup label="All counts">
+            ${YARN_COUNTS.filter(c => c !== YARN_COUNT_DEFAULT).map(c => `<option value="${escAttr(c)}" ${YC.count === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
+          </optgroup>
           <option value="__custom" ${countIsCustom ? 'selected' : ''}>Custom…</option>
         </select>
         ${countIsCustom ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="e.g. 36/1" value="${escAttr(YC.countCustom)}" oninput="ycSetCountCustom(this.value)" />` : ''}
