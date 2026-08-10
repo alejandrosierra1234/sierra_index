@@ -40,7 +40,7 @@
          (the old --text-3 was 2.3:1, which is why the app read as
          "everything is gray"). See SIERRA_DESIGN_SYSTEM.md §19. */
       --text-primary: #0b0b0b;      /* 19.6:1 — titles, values, active nav */
-      --text-secondary: #45454a;    /* 9.2:1  — body, inactive nav, metadata */
+      --text-secondary: #444444;    /* 9.4:1  — body, inactive nav, metadata */
       --text-muted: #6b6b73;        /* 5.6:1  — labels, timestamps, captions */
       --text-disabled: #a5a5ab;     /* 2.5:1  — disabled controls ONLY */
       --text: var(--text-primary);
@@ -55,6 +55,22 @@
       --info: #005fa3;     --info-bg: rgba(0,159,255,0.10);
       /* Division identities */
       --div-fiber: #009fff; --div-yarn: #9e00cb; --div-chem: #ff7824; --brand-teal: #16cdbe;
+      /* ── APPLICATION SHELL TOKENS ──
+         The shell (topbar/sidebar/workspace) is a distinct layer from the
+         page content it hosts, so it gets its own tokens rather than
+         reusing --bg/--surface directly — that's what let the sidebar and
+         workspace silently drift out of sync before. --shell-topbar is
+         fixed dark in both themes (app chrome, not themed surface); see
+         .system-bar, which sets it inline instead of via [data-theme]. */
+      --shell-topbar: #0b0b0b;
+      --sidebar-bg: #f5f5f5;
+      --workspace-bg: #ffffff;
+      --surface-primary: var(--surface);
+      --surface-secondary: #f5f5f5;
+      --surface-selected: #ececec;
+      --icon-default: var(--text-secondary);
+      --module-accent: var(--accent); /* set per-module by syncModule()/applyModuleScope() */
+      --shell-radius: 18px; /* workspace↔topbar/sidebar architectural corner, §13 */
       /* Radius scale — the only sanctioned corner values for new UI */
       --r-xs: 4px; --r-sm: 7px; --r-md: 10px; --r-lg: 12px; --r-xl: 16px; --r-2xl: 18px; --r-pill: 999px;
       /* Spacing scale — base-4 */
@@ -63,8 +79,8 @@
          Single source of truth for every screen's outer geometry. New
          screens reference these — never hardcode 1.75rem, 340px, etc.
          See SIERRA_DESIGN_SYSTEM.md. */
-      --sidebar-width: 200px;
-      --sidebar-width-collapsed: 52px;
+      --sidebar-width: 248px;
+      --sidebar-width-collapsed: 68px;
       --page-padding-x: 1.75rem;      /* .content's horizontal inset — the one guide every page aligns to */
       --page-padding-y: 1.75rem;
       --page-max-width: 1480px;       /* matches .detail-view-inner, the existing single-record page container */
@@ -79,9 +95,9 @@
          only sanctioned exception is --control-h-sm, for controls inside
          an already-compact secondary surface (table row, popover, inline
          editor) — never mixed with --control-h in the same group. */
-      --control-h: 36px;              /* THE control height */
-      --control-h-sm: 32px;           /* compact secondary contexts only */
-      --control-h-lg: 40px;           /* full-width form submits / modals */
+      --control-h: 40px;              /* THE control height */
+      --control-h-sm: 36px;           /* compact secondary contexts only */
+      --control-h-lg: 44px;           /* full-width form submits / modals */
       --control-padding-x: 14px;      /* horizontal padding inside a control */
       --control-padding-x-sm: 10px;
       --control-radius: 8px;
@@ -107,9 +123,9 @@
       --subtab-height: 34px;
       /* ── RECORD TYPOGRAPHY ── minimum readable scale (§ Typography) */
       --title-size: 28px;             /* record title */
-      --section-title-size: 16px;     /* primary section title */
+      --section-title-size: 18px;     /* primary section title */
       --block-title-size: 12px;       /* uppercase data-block heading */
-      --field-label-size: 11px;       /* uppercase field label */
+      --field-label-size: 12px;       /* uppercase field label */
       --field-value-size: 14px;       /* field value */
       --field-value-size-lg: 18px;    /* prominent field value */
       --body-size: 14px;
@@ -135,6 +151,15 @@
       --success: #2dd4c9; --success-bg: rgba(15,168,156,0.12);
       --danger: #f87171;  --danger-bg: rgba(232,0,0,0.12);
       --info: #60a5fa;    --info-bg: rgba(0,159,255,0.12);
+      /* Shell layer — deliberately layered, not a flat inverted canvas:
+         workspace sits darkest, sidebar one step up, so depth still reads
+         without relying on borders everywhere (§16). --shell-topbar is
+         unchanged from :root — it's fixed dark in both themes. */
+      --sidebar-bg: #2b2b2b;
+      --workspace-bg: #0b0b0b;
+      --surface-secondary: #2c2c2e;
+      --surface-selected: #3a3a3c;
+      --icon-default: var(--text-secondary);
     }
 
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -331,18 +356,17 @@
        ══════════════════════════════════════════════════════════════ */
     .system-bar {
       display: none; /* shown at >=768px, see media query below */
-      height: 56px; flex-shrink: 0;
-      background: #171717;
+      height: 58px; flex-shrink: 0;
+      background: var(--shell-topbar);
       align-items: center; justify-content: space-between;
-      padding: 0 1rem 0 0.85rem;
+      padding: 0 1.1rem 0 1rem;
       position: relative; z-index: 50;
     }
     @media (min-width: 768px) { .system-bar { display: flex; } }
 
-    .sb-left { display:flex; align-items:center; gap:0.55rem; min-width:0; }
-    .sb-logo { width:22px; height:22px; flex-shrink:0; display:flex; }
-    .sb-logo svg { width:100%; height:100%; display:block; }
-    .sb-wordmark { font-size:0.92rem; font-weight:700; letter-spacing:0.01em; color:#fff; opacity:0.92; }
+    .sb-left { display:flex; align-items:center; min-width:0; }
+    .sb-logo-full { height:20px; width:auto; flex-shrink:0; display:flex; }
+    .sb-logo-full svg { height:100%; width:auto; display:block; }
 
     .sb-right { display:flex; align-items:center; gap:2px; flex-shrink:0; }
 
@@ -365,6 +389,10 @@
       pointer-events:none; z-index:900;
       box-shadow:0 4px 16px rgba(0,0,0,0.3);
     }
+    /* Suppress the tooltip while this control's own popover is open —
+       otherwise the tooltip renders on top of the popover it just opened,
+       since the pointer is still hovering the trigger. */
+    .sb-acct.open .sb-icon-btn[data-tip]:hover::after { display:none; }
 
     /* Notifications badge — shared .notif-badge class also lives on the
        (now desktop-hidden) sidebar bell; loadNotifications() keeps every
@@ -373,7 +401,7 @@
     .sb-icon-btn .notif-badge {
       position:absolute; top:7px; right:7px;
       width:8px; height:8px; border-radius:50%;
-      background:#ff453a; border:2px solid #171717;
+      background:#ff453a; border:2px solid var(--shell-topbar);
     }
 
     /* Theme toggle — sun/moon crossfade driven purely by [data-theme],
@@ -419,6 +447,28 @@
       transition:opacity 0.14s ease, transform 0.14s ease;
     }
     .sb-acct.open .sb-acct-pop { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
+
+    /* Appearance popover — Light / Dark / System, centered under its
+       (narrower, icon-only) trigger rather than right-anchored like the
+       account mega menu. */
+    .sb-theme-pop { width:180px; right:auto; left:50%; transform:translateX(-50%) translateY(-6px) scale(0.98); padding-bottom:6px; }
+    .sb-acct.open .sb-theme-pop { transform:translateX(-50%) translateY(0) scale(1); }
+    .sb-theme-opt {
+      display:flex; align-items:center; gap:10px; width:calc(100% - 12px); margin:0 6px; text-align:left;
+      height:40px; padding:0 10px; border-radius:var(--r-sm);
+      background:none; border:none; font-family:inherit; font-size:0.84rem; font-weight:500; color:var(--text-primary);
+      cursor:pointer; transition:background 0.12s ease;
+    }
+    .sb-theme-opt:hover { background:var(--surface-hover); }
+    .sb-theme-radio {
+      width:16px; height:16px; border-radius:50%; flex-shrink:0;
+      border:1.5px solid var(--border-strong); position:relative;
+    }
+    .sb-theme-opt.current { font-weight:650; }
+    .sb-theme-opt.current .sb-theme-radio { border-color:var(--accent); }
+    .sb-theme-opt.current .sb-theme-radio::after {
+      content:''; position:absolute; inset:3px; border-radius:50%; background:var(--accent);
+    }
 
     .sb-mega-hdr { display:flex; align-items:center; gap:12px; padding:12px 16px 14px; }
     .sb-mega-av {
@@ -766,11 +816,11 @@
     .logout-btn:hover { color:var(--text); }
 
     /* ── LAYOUT ── */
-    .main { display:flex; flex:1; overflow:hidden; }
+    .main { display:flex; flex:1; overflow:hidden; background:var(--sidebar-bg); }
 
     /* ── SIDEBAR ── */
     .sidebar {
-      width:var(--sidebar-width); background:var(--bg); border-right:1px solid var(--border);
+      width:var(--sidebar-width); background:var(--sidebar-bg);
       padding:0.9rem 0.65rem 0.65rem; display:flex; flex-direction:column; gap:1px;
       flex-shrink:0; overflow-y:auto; overflow-x:hidden; position:relative;
       transition:width 0.32s cubic-bezier(0.22,1,0.36,1), padding 0.32s cubic-bezier(0.22,1,0.36,1);
@@ -832,14 +882,16 @@
     .sidebar.collapsed .s-label { max-height:0; opacity:0; transform:translateX(-4px); padding-top:0; padding-bottom:0; margin-top:0 !important; pointer-events:none; }
     .sidebar-user-info { max-width:120px; opacity:1; transform:translateX(0); transition:opacity 0.18s ease, transform 0.28s cubic-bezier(0.22,1,0.36,1), max-width 0.28s cubic-bezier(0.22,1,0.36,1); }
     .sidebar.collapsed .sidebar-user-info { max-width:0; opacity:0; transform:translateX(-4px); pointer-events:none; }
-    /* Square nav buttons when collapsed */
+    /* Square nav buttons when collapsed — 40px, matching the app-wide
+       control standard so the collapsed rail isn't a smaller, cramped
+       version of the expanded one (§12, §17). */
     .sidebar.collapsed .nav-item {
-      width:36px; height:36px; padding:0;
+      width:40px; height:40px; padding:0;
       justify-content:center; align-items:center;
-      gap:0; border-radius:9px; overflow:visible;
+      gap:0; border-radius:var(--control-radius); overflow:visible;
     }
     .sidebar.collapsed .sidebar-bottom { align-items:center; width:100%; }
-    .sidebar.collapsed .sidebar-bottom .nav-item { width:36px; height:36px; }
+    .sidebar.collapsed .sidebar-bottom .nav-item { width:40px; height:40px; }
     .sidebar.collapsed .sidebar-spacer { width:100%; }
 
     /* Icon color — neutral by default, own color on hover/active */
@@ -910,14 +962,14 @@
     .mod-switch { position:relative; margin:0.3rem 0 0.2rem; display:none; }
     .mod-switch.has-modules { display:block; }
     .mod-switch-btn {
-      display:flex; align-items:center; gap:0.5rem; width:100%; padding:0.44rem 0.55rem;
-      border-radius:7px; border:1px solid var(--border); background:var(--surface2);
-      color:var(--text); font-family:inherit; font-size:0.8rem; font-weight:600; cursor:pointer;
-      text-align:left; transition:border-color var(--dur-fast) var(--ease-out);
+      display:flex; align-items:center; gap:0.55rem; width:100%; height:var(--control-h); padding:0 0.6rem;
+      border-radius:var(--control-radius); border:1px solid var(--border-strong); background:var(--surface);
+      color:var(--text); font-family:inherit; font-size:0.82rem; font-weight:600; cursor:pointer;
+      text-align:left; transition:border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
     }
-    .mod-switch-btn:hover { border-color:var(--text-3); }
-    .mod-switch-dot { width:18px; height:18px; border-radius:7px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
-    .mod-switch-dot svg { width:12px; height:12px; }
+    .mod-switch-btn:hover { background:var(--surface-hover); border-color:var(--text-muted); }
+    .mod-switch-dot { width:22px; height:22px; border-radius:7px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .mod-switch-dot svg { width:13px; height:13px; }
     .mod-switch-lbl { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .mod-switch-chev { color:var(--text-3); flex-shrink:0; transition:transform var(--dur-fast) var(--ease-out); }
     .mod-switch.open .mod-switch-chev { transform:rotate(180deg); }
@@ -931,9 +983,48 @@
     .mod-switch.open .mod-switch-pop,
     .bu-switch.open .bu-switch-pop,
     .acct-menu.open .acct-menu-pop { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
-    .mod-switch-item .mod-switch-dot, .bu-switch-item .bu-switch-dot { width:16px; height:16px; }
-    .mod-switch-item .mod-switch-dot svg, .bu-switch-item .bu-switch-dot svg { width:10px; height:10px; }
-    .sidebar.collapsed .mod-switch { display:none !important; }
+    .bu-switch-item .bu-switch-dot { width:16px; height:16px; }
+    .bu-switch-item .bu-switch-dot svg { width:10px; height:10px; }
+
+    /* ── Module selector rows — icon, name, module color, favorite star,
+       selected state (§9-10). A proper ERP module list, not a plain text
+       dropdown menu. */
+    .mod-switch-item {
+      display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+      min-height:42px; padding:5px 8px 5px 6px; border-radius:var(--r-sm);
+      background:none; border:none; font-family:inherit; cursor:pointer;
+      transition:background var(--dur-fast) var(--ease-out);
+    }
+    .mod-switch-item:hover { background:var(--surface-hover); }
+    .mod-switch-item.current { background:var(--surface-selected); font-weight:650; }
+    .mod-switch-item-dot { width:26px; height:26px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .mod-switch-item-dot svg { width:15px; height:15px; }
+    .mod-switch-item-lbl { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.84rem; color:var(--text-primary); }
+    .mod-switch-star {
+      flex-shrink:0; width:28px; height:28px; display:flex; align-items:center; justify-content:center;
+      background:none; border:none; border-radius:7px; cursor:pointer; color:var(--text-muted);
+      opacity:0; transition:opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
+    }
+    .mod-switch-star svg { width:15px; height:15px; }
+    .mod-switch-item:hover .mod-switch-star, .mod-switch-star.is-fav { opacity:1; }
+    .mod-switch-star:hover { background:var(--surface2); color:var(--text-secondary); }
+    .mod-switch-star.is-fav { color:#ffb400; }
+    .mod-switch-star.is-fav:hover { color:#e0a000; }
+
+    /* Collapsed sidebar: the module selector becomes a single icon-square
+       (current module's color/icon) instead of vanishing — clicking still
+       opens the full popover, flown out to the right of the rail so it
+       never overlaps the icon column (§12: "a deliberate design state"). */
+    .sidebar.collapsed .mod-switch-btn {
+      width:40px; height:40px; padding:0; justify-content:center; border-radius:var(--control-radius);
+      border-color:transparent; background:none;
+    }
+    .sidebar.collapsed .mod-switch-lbl, .sidebar.collapsed .mod-switch-chev { display:none; }
+    .sidebar.collapsed .mod-switch-pop {
+      top:0; left:calc(100% + 10px); right:auto; width:240px;
+      transform:translateY(-4px) scale(0.98);
+    }
+    .sidebar.collapsed .mod-switch.open .mod-switch-pop { transform:translateY(0) scale(1); }
     /* ── Business-unit switcher ──
        Lives inside the Samples mod-scope. Unlike .mod-switch (which jumps
        between whole módulos), this only changes the `division` CONTEXT —
@@ -1048,7 +1139,15 @@
     .mob-topbar-search svg { width:20px; height:20px; }
 
     /* ── CONTENT ── */
-    .content { flex:1; overflow-y:auto; padding:var(--page-padding-y) var(--page-padding-x); background:var(--bg); }
+    .content {
+      flex:1; overflow-y:auto; padding:var(--page-padding-y) var(--page-padding-x);
+      background:var(--workspace-bg);
+      /* Architectural corner where the workspace meets the sidebar/topbar
+         junction (§13) — subtle and structural, not a card. Only the
+         top-left corner: workspace still reads as one continuous plane
+         against the sidebar on its right/bottom edges. */
+      border-top-left-radius:var(--shell-radius);
+    }
     .content-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; gap:1rem; flex-wrap:wrap; }
     .content-hdr-l h2 { font-size:2rem; font-weight:700; letter-spacing:-0.035em; line-height:1.1; }
     .content-hdr-l p { font-size:0.8rem; color:var(--text-2); margin-top:0.2rem; }
@@ -4000,9 +4099,12 @@
        only (see .system-bar CSS); mobile keeps .mob-topbar above. -->
   <div class="system-bar" id="system-bar">
     <div class="sb-left">
-      <span class="sb-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 411 353.13"><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>
+      <!-- The official SIERRA wordmark — one brand mark, once, in the shell.
+           No "INDEX" beside it: the user is already inside Index (§2). Text
+           fill is hardcoded white (not var(--text)) since this bar is
+           always dark regardless of the light/dark content theme. -->
+      <span class="sb-logo sb-logo-full"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1715 353.13"><path fill="#fff" d="M570.98,144.81c-47.7-6.81-61.33-13.63-61.33-34.07,0-13.63,10.22-23.85,40.88-23.85,37.48,0,47.7,10.22,47.7,30.66l3.41,3.41h40.88l3.41-3.41c0-40.88-27.26-71.55-91.99-71.55s-91.99,30.66-91.99,64.73c0,47.7,37.48,64.73,85.17,71.55,47.7,6.81,61.33,13.63,61.33,37.48,0,20.44-17.03,30.66-47.7,30.66-40.88,0-54.51-13.63-54.51-37.48l-3.41-3.41h-40.88l-3.41,3.41c0,44.29,30.66,78.36,98.8,78.36,71.55,0,98.8-34.07,98.8-71.55,0-47.7-37.48-68.14-85.17-74.95Z"/><polygon fill="#fff" points="700.44 49.41 697.03 52.82 697.03 284.49 700.44 287.9 741.32 287.9 744.73 284.49 744.73 52.82 741.32 49.41 700.44 49.41"/><polygon fill="#fff" points="802.64 49.41 799.23 52.82 799.23 284.49 802.64 287.9 962.76 287.9 966.17 284.49 966.17 250.42 962.76 247.02 850.33 247.02 846.93 243.61 846.93 189.1 850.33 185.69 955.95 185.69 959.36 182.29 959.36 148.22 955.95 144.81 850.33 144.81 846.93 141.4 846.93 93.7 850.33 90.3 962.76 90.3 966.17 86.89 966.17 52.82 962.76 49.41 802.64 49.41"/><path fill="#fff" d="M1211.46,120.96c0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41,68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14ZM1129.7,151.62h-64.73l-3.41-3.41v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66Z"/><path fill="#fff" d="M1344.33,195.91l68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14,0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41ZM1300.04,148.22v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66h-64.73l-3.41-3.41Z"/><path fill="#fff" d="M1678.2,284.49v-34.07l-78.36-197.6-3.41-3.41h-44.29l-3.41,3.41-78.36,197.6v34.07l3.41,3.41h30.66l3.41-3.41,17.04-44.29,6.81-3.41h85.17l6.81,3.41,17.03,44.29,3.41,3.41h30.66l3.41-3.41ZM1603.25,195.91h-57.92l-3.41-3.41,30.66-81.77h3.41l30.66,81.77-3.41,3.41Z"/><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>
       </span>
-      <span class="sb-wordmark">INDEX</span>
     </div>
     <div class="sb-right">
       <button class="sb-icon-btn" id="tb-search-btn" data-tip="Search" onclick="openSpotlight()" aria-label="Search">
@@ -4012,12 +4114,15 @@
         <svg viewBox="0 0 20 20" fill="none"><path d="M10 3a5 5 0 0 1 5 5v3l1.5 2H3.5L5 11V8a5 5 0 0 1 5-5zM8.5 15.5a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="notif-badge" id="tb-notif-badge"></span>
       </button>
-      <button class="sb-icon-btn" id="tb-theme-btn" data-tip="Appearance" onclick="toggleTheme()" aria-label="Toggle theme">
-        <span class="sb-theme-icon">
-          <svg class="icon-sun" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="3.6" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.2v2M10 15.8v2M17.8 10h-2M4.2 10h-2M15.5 4.5l-1.4 1.4M5.9 14.1l-1.4 1.4M15.5 15.5l-1.4-1.4M5.9 5.9L4.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-          <svg class="icon-moon" viewBox="0 0 20 20" fill="none"><path d="M16.5 12.3A6.8 6.8 0 0 1 7.7 3.5a7 7 0 1 0 8.8 8.8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-        </span>
-      </button>
+      <div class="sb-acct" id="tb-theme">
+        <button class="sb-icon-btn" id="tb-theme-btn" data-tip="Appearance" onclick="toggleThemeMenu()" aria-haspopup="true" aria-expanded="false" aria-label="Appearance">
+          <span class="sb-theme-icon">
+            <svg class="icon-sun" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="3.6" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.2v2M10 15.8v2M17.8 10h-2M4.2 10h-2M15.5 4.5l-1.4 1.4M5.9 14.1l-1.4 1.4M15.5 15.5l-1.4-1.4M5.9 5.9L4.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            <svg class="icon-moon" viewBox="0 0 20 20" fill="none"><path d="M16.5 12.3A6.8 6.8 0 0 1 7.7 3.5a7 7 0 1 0 8.8 8.8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </span>
+        </button>
+        <div class="sb-acct-pop sb-theme-pop" id="tb-theme-pop"></div>
+      </div>
       <button class="sb-icon-btn" id="tb-help-btn" data-tip="Help &amp; Support" onclick="openHelp()" aria-label="Help and support">
         <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M7.8 7.8a2.2 2.2 0 1 1 3.4 1.85c-.7.45-1.2.9-1.2 1.85" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="14.5" r="0.9" fill="currentColor"/></svg>
       </button>
@@ -4038,28 +4143,21 @@
           <path class="edge-expand" d="M6 5l4 5-4 5M12 5l4 5-4 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <div class="sidebar-hdr">
-        <button class="sidebar-brand-btn" data-tip="Expand sidebar" onclick="toggleSidebar()" aria-label="Toggle sidebar">
-          <span class="sidebar-logo-full">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1715 353.13"><defs><style>.cls-1{fill:#16cdbe}.cls-2{fill:var(--text)}</style></defs><path class="cls-2" d="M570.98,144.81c-47.7-6.81-61.33-13.63-61.33-34.07,0-13.63,10.22-23.85,40.88-23.85,37.48,0,47.7,10.22,47.7,30.66l3.41,3.41h40.88l3.41-3.41c0-40.88-27.26-71.55-91.99-71.55s-91.99,30.66-91.99,64.73c0,47.7,37.48,64.73,85.17,71.55,47.7,6.81,61.33,13.63,61.33,37.48,0,20.44-17.03,30.66-47.7,30.66-40.88,0-54.51-13.63-54.51-37.48l-3.41-3.41h-40.88l-3.41,3.41c0,44.29,30.66,78.36,98.8,78.36,71.55,0,98.8-34.07,98.8-71.55,0-47.7-37.48-68.14-85.17-74.95Z"/><polygon class="cls-2" points="700.44 49.41 697.03 52.82 697.03 284.49 700.44 287.9 741.32 287.9 744.73 284.49 744.73 52.82 741.32 49.41 700.44 49.41"/><polygon class="cls-2" points="802.64 49.41 799.23 52.82 799.23 284.49 802.64 287.9 962.76 287.9 966.17 284.49 966.17 250.42 962.76 247.02 850.33 247.02 846.93 243.61 846.93 189.1 850.33 185.69 955.95 185.69 959.36 182.29 959.36 148.22 955.95 144.81 850.33 144.81 846.93 141.4 846.93 93.7 850.33 90.3 962.76 90.3 966.17 86.89 966.17 52.82 962.76 49.41 802.64 49.41"/><path class="cls-2" d="M1211.46,120.96c0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41,68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14ZM1129.7,151.62h-64.73l-3.41-3.41v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66Z"/><path class="cls-2" d="M1344.33,195.91l68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14,0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41ZM1300.04,148.22v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66h-64.73l-3.41-3.41Z"/><path class="cls-2" d="M1678.2,284.49v-34.07l-78.36-197.6-3.41-3.41h-44.29l-3.41,3.41-78.36,197.6v34.07l3.41,3.41h30.66l3.41-3.41,17.04-44.29,6.81-3.41h85.17l6.81,3.41,17.03,44.29,3.41,3.41h30.66l3.41-3.41ZM1603.25,195.91h-57.92l-3.41-3.41,30.66-81.77h3.41l30.66,81.77-3.41,3.41Z"/><path class="cls-1" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>
-          </span>
-          <span class="sidebar-logo-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 411 353.13"><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>
-          </span>
-          <span class="sidebar-expand-icon">
-            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 4l6 6-6 6M4 4l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </span>
-        </button>
-        <button class="sidebar-close-btn" onclick="closeDrawer()" aria-label="Close menu">
-          <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        </button>
-      </div>
+      <!-- Mobile drawer close (desktop uses .sidebar-edge-toggle only — no
+           brand logo here anymore: SIERRA identity lives once, in the
+           Global System Bar. The sidebar begins directly with navigation. -->
+      <button class="sidebar-close-btn" onclick="closeDrawer()" aria-label="Close menu">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
       <button class="nav-item" data-tip="Search" onclick="openSpotlight()" id="sidebar-search-btn">
         <span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
         <span class="nav-label" style="color:var(--text-3);font-weight:400">Search…</span>
         <span class="nav-label" style="margin-left:auto;font-size:0.62rem;color:var(--text-3);border:1px solid var(--border);border-radius:4px;padding:0.1rem 0.35rem;line-height:1.4">⌘K</span>
       </button>
 
+      <button class="nav-item" id="nav-dash" data-tip="Dashboard" style="--item-color:#16cdbe" onclick="showDashboard()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3L3 8.5V17h5v-4h4v4h5V8.5L10 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Dashboard</span></button>
+
+      <span class="s-label" id="modules-label" style="margin-top:0.5rem">Modules</span>
       <div class="mod-switch" id="mod-switch">
         <button class="mod-switch-btn" id="mod-switch-btn" onclick="toggleModSwitch()">
           <span class="mod-switch-dot" id="mod-switch-dot"></span>
@@ -4069,7 +4167,6 @@
         <div class="mod-switch-pop" id="mod-switch-pop"></div>
       </div>
 
-      <button class="nav-item" id="nav-dash" data-tip="Dashboard" style="--item-color:#16cdbe" onclick="showDashboard()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3L3 8.5V17h5v-4h4v4h5V8.5L10 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Dashboard</span></button>
       <div class="mod-scope" data-scope="samples">
         <span class="s-label" style="margin-top:0.5rem">Muestras</span>
         <!-- Business-unit switcher: changes CONTEXT (division), not module.
@@ -4099,8 +4196,8 @@
         <button class="nav-item" id="nav-gafetes" data-tip="Creador de Gafetes" style="--item-color:#ffc529" onclick="showGafetes()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="4" y="2.5" width="12" height="15" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="8" r="2.2" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 14.5c0-1.7 1.6-2.7 3.5-2.7s3.5 1 3.5 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span class="nav-label">Gafetes</span></button>
       </div>
       <div class="mod-scope" data-scope="administracion">
-        <span class="s-label" style="margin-top:0.5rem">Administración</span>
-        <button class="nav-item" id="nav-logs" data-tip="Access logs" style="--item-color:#e80000" onclick="showAccessLogs()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M10 6v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Access logs</span></button>
+        <span class="s-label" style="margin-top:0.5rem">Index</span>
+        <button class="nav-item" id="nav-logs" data-tip="Access logs" style="--item-color:#444444" onclick="showAccessLogs()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M10 6v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Access logs</span></button>
         <button class="nav-item" id="nav-users" data-tip="Team" style="--item-color:#9e00cb" onclick="showUserManagement()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 17c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M15 6v4M17 8h-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Team</span></button>
         <button class="nav-item" id="nav-styleguide" data-tip="Style Guide" style="--item-color:#16cdbe" onclick="showStyleGuide()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M5 4h8.5A1.5 1.5 0 0 1 15 5.5V16H6.5A1.5 1.5 0 0 1 5 14.5V4Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 7h4M8 10h4M8 13h2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Style Guide</span></button>
       </div>
@@ -5138,10 +5235,30 @@ function getProductPublicUrl(p) {
   return `${base}?pub=${p.id}`
 }
 
-/* ── THEME ── */
-const initTheme = localStorage.getItem('sierra-theme') || 'light'
-document.documentElement.setAttribute('data-theme', initTheme)
-setThemeIcon(initTheme)
+/* ── APPEARANCE — Light / Dark / System ──
+   localStorage['sierra-theme'] stores the user's PREFERENCE, which may be
+   the literal string 'system' — not always the resolved light/dark value.
+   The [data-theme] attribute always holds the RESOLVED value (what's
+   actually painted); [data-theme="dark"] CSS never needs to know about
+   'system' at all. This is the existing persistence architecture (same
+   key, extended to a third value) rather than a separate mechanism. */
+function resolveTheme(pref) {
+  if (pref === 'system') return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  return pref === 'dark' ? 'dark' : 'light'
+}
+function applyTheme(pref) {
+  localStorage.setItem('sierra-theme', pref)
+  document.documentElement.setAttribute('data-theme', resolveTheme(pref))
+  renderThemeMenu()
+}
+function themePref() { return localStorage.getItem('sierra-theme') || 'system' }
+
+const initTheme = themePref()
+document.documentElement.setAttribute('data-theme', resolveTheme(initTheme))
+// Live-follow the OS while 'system' is selected.
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (themePref() === 'system') document.documentElement.setAttribute('data-theme', resolveTheme('system'))
+})
 
 function toggleSidebar() {
   const sb = document.getElementById('sidebar')
@@ -5163,25 +5280,42 @@ updateSidebarToggleState()
 
 function updateSidebarToggleState() {
   const sb = document.getElementById('sidebar')
-  const btn = document.querySelector('.sidebar-brand-btn')
   const edgeBtn = document.querySelector('.sidebar-edge-toggle')
-  if (!sb || !btn) return
+  if (!sb || !edgeBtn) return
   const collapsed = sb.classList.contains('collapsed')
-  btn.dataset.tip = collapsed ? 'Expand sidebar' : 'Collapse sidebar'
-  btn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar')
-  if (edgeBtn) edgeBtn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar')
+  edgeBtn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar')
 }
 
+// Mobile sidebar's Appearance nav-item has no room for a popover — cycles
+// through the same three states a single tap at a time instead. Desktop
+// (system-bar) uses toggleThemeMenu()/renderThemeMenu() below.
 function toggleTheme() {
-  const t = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light'
-  document.documentElement.setAttribute('data-theme', t)
-  localStorage.setItem('sierra-theme', t)
-  setThemeIcon(t)
+  const order = ['light', 'dark', 'system']
+  const next = order[(order.indexOf(themePref()) + 1) % order.length]
+  applyTheme(next)
 }
-function setThemeIcon(t) {
-  // No-op by design: the system-bar theme toggle's sun/moon crossfade is
-  // pure CSS, driven by [data-theme] (see .sb-theme-icon rules) — nothing
-  // to update in JS beyond the data-theme attribute toggleTheme() already sets.
+
+/* ── Appearance popover (Global System Bar) ── */
+function renderThemeMenu() {
+  const pop = document.getElementById('tb-theme-pop')
+  if (!pop) return
+  const pref = themePref()
+  const opt = (value, label) => `<button type="button" class="sb-theme-opt${pref === value ? ' current' : ''}" onclick="applyTheme('${value}')">
+    <span class="sb-theme-radio"></span><span>${label}</span>
+  </button>`
+  pop.innerHTML = `
+    <div class="sb-mega-label" style="padding-top:8px">Appearance</div>
+    ${opt('light', 'Light')}
+    ${opt('dark', 'Dark')}
+    ${opt('system', 'System')}
+  `
+}
+function toggleThemeMenu(force) {
+  const wrap = document.getElementById('tb-theme')
+  if (!wrap) return
+  const willOpen = force !== undefined ? force : !wrap.classList.contains('open')
+  if (willOpen) renderThemeMenu()
+  wrap.classList.toggle('open', willOpen)
 }
 
 /* ── INIT ── */
@@ -6176,6 +6310,7 @@ const SB_ICON = {
   team:   '<svg viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 17c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M15 6v4M17 8h-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
   help:   '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M7.8 7.8a2.2 2.2 0 1 1 3.4 1.85c-.7.45-1.2.9-1.2 1.85" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="14.5" r="0.9" fill="currentColor"/></svg>',
   info:   '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M10 9v4.5M10 6.8v.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  bell:   '<svg viewBox="0 0 20 20" fill="none"><path d="M10 3a5 5 0 0 1 5 5v3l1.5 2H3.5L5 11V8a5 5 0 0 1 5-5zM8.5 15.5a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   logout: '<svg viewBox="0 0 20 20" fill="none"><path d="M8 17H4.5A1.5 1.5 0 0 1 3 15.5v-11A1.5 1.5 0 0 1 4.5 3H8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 13.5L17 10l-4.5-3.5M17 10H7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 }
 // Which Defaults row (if any) is showing its <select> instead of its
@@ -6256,6 +6391,10 @@ function renderTopAcctMenu() {
       <span class="sb-mega-row-icon">${SB_ICON.user}</span>
       <span class="sb-mega-row-text"><div class="sb-mega-row-title">My profile</div><div class="sb-mega-row-desc">Personal information and account details</div></span>
     </button>
+    <button class="sb-mega-row" onclick="toggleTopAcctMenu(false); toggleNotifications()">
+      <span class="sb-mega-row-icon">${SB_ICON.bell}</span>
+      <span class="sb-mega-row-text"><div class="sb-mega-row-title">Notifications</div></span>
+    </button>
     ${defaultsHtml}
     <div class="sb-mega-sep"></div>
     <div class="sb-mega-label">System</div>
@@ -6294,7 +6433,15 @@ async function setDefaultModule(key) {
   if (profile.default_module !== 'samples') profile.default_division = null
   _tbEditingDefault = null
   renderTopAcctMenu()
+  renderModuleSwitcher()
   await sb.from('profiles').update({ default_module: profile.default_module, default_division: profile.default_division }).eq('id', me.id)
+}
+// Star in the module selector — a quick toggle over the same preference
+// the Account Mega Menu's Defaults section edits (one source of truth,
+// per §10: "Both must update the SAME underlying user preference").
+function toggleFavoriteModule(key, ev) {
+  ev.stopPropagation()
+  setDefaultModule(profile?.default_module === key ? null : key)
 }
 async function setDefaultDivision(d) {
   profile = profile || {}
@@ -6312,6 +6459,8 @@ document.addEventListener('click', e => {
   if (am && !am.contains(e.target)) am.classList.remove('open')
   const tb = document.getElementById('tb-acct')
   if (tb && !tb.contains(e.target)) tb.classList.remove('open')
+  const th = document.getElementById('tb-theme')
+  if (th && !th.contains(e.target)) th.classList.remove('open')
 })
 
 /* ── Fulfillment nav (Cola de despacho / Inventario) ──
@@ -10416,9 +10565,16 @@ const MODULES = {
     tools: [], // contextual — Muestras jumps straight into showSamplesHome(), see enterModule()
   },
   administracion: {
-    label: 'Administración',
+    // "Index" — administration of the Index platform itself (Team &
+    // Permissions, Access Logs, Style Guide). Deliberately not labeled
+    // "Administración": SIERRA also has a real business department by
+    // that name, and this module must not be confused with it. Internal
+    // key stays 'administracion' — renaming it would break the
+    // profiles.default_module check constraint (update18.sql), stored
+    // sessionStorage routes, and DIV/MODULES lookups keyed on it.
+    label: 'Index',
     domains: ['platform'],
-    color: '#e80000',
+    color: '#444444',
     icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 17c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M15 6v4M17 8h-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
     tools: [
       {
@@ -10485,18 +10641,30 @@ function renderModuleSwitcher() {
   if (!mods.length) { wrap.classList.remove('open'); return }
 
   const current = MODULES[activeModule]
+  const MOD_FALLBACK_ICON = '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.3" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.3" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.3" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.3" stroke="currentColor" stroke-width="1.4"/></svg>'
   document.getElementById('mod-switch-lbl').textContent = current ? current.label : 'Módulos'
+  // Always render something in the dot — collapsed mode shows this alone
+  // with no label beside it, so an empty dot (no active module yet) would
+  // be an invisible button (§12: never leave unexplained empty space).
   document.getElementById('mod-switch-dot').innerHTML = current
     ? `<span style="width:100%;height:100%;border-radius:inherit;display:flex;align-items:center;justify-content:center;background:${current.color}1f;color:${current.color}">${current.icon}</span>`
-    : ''
+    : `<span style="width:100%;height:100%;border-radius:inherit;display:flex;align-items:center;justify-content:center;background:var(--surface2);color:var(--text-muted)">${MOD_FALLBACK_ICON}</span>`
 
-  document.getElementById('mod-switch-pop').innerHTML = mods.map(([key, m]) => `
-    <div class="pop-menu-item mod-switch-item ${key === activeModule ? 'current' : ''}" onclick="enterModule('${key}'); toggleModSwitch(false)">
-      <span class="mod-switch-dot" style="background:${m.color}1f;color:${m.color}">${m.icon}</span>
-      <span>${esc(m.label)}</span>
-    </div>`).join('') + `
+  const fav = profile?.default_module
+  document.getElementById('mod-switch-pop').innerHTML = mods.map(([key, m]) => {
+    const isFav = fav === key
+    return `<div class="mod-switch-item${key === activeModule ? ' current' : ''}" onclick="enterModule('${key}'); toggleModSwitch(false)">
+      <span class="mod-switch-item-dot" style="background:${m.color}1f;color:${m.color}">${m.icon}</span>
+      <span class="mod-switch-item-lbl">${esc(m.label)}</span>
+      <button type="button" class="mod-switch-star${isFav ? ' is-fav' : ''}" onclick="toggleFavoriteModule('${key}', event)" title="${isFav ? 'Default module' : 'Set as default'}" aria-label="${isFav ? 'Default module' : 'Set as default'}" aria-pressed="${isFav}">
+        <svg viewBox="0 0 20 20" fill="${isFav ? 'currentColor' : 'none'}"><path d="M10 2.8l2.1 4.5 4.8.6-3.5 3.4.9 4.8L10 13.7l-4.3 2.4.9-4.8-3.5-3.4 4.8-.6L10 2.8z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+      </button>
+    </div>`
+  }).join('') + `
     <div class="pop-menu-sep"></div>
-    <div class="pop-menu-item mod-switch-item" onclick="showModuleHub(); toggleModSwitch(false)">Todos los módulos</div>`
+    <div class="mod-switch-item" onclick="showModuleHub(); toggleModSwitch(false)">
+      <span class="mod-switch-item-lbl" style="padding-left:2px">Todos los módulos</span>
+    </div>`
 }
 
 function toggleModSwitch(force) {
