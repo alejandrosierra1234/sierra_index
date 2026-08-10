@@ -3030,6 +3030,79 @@
       letter-spacing: 0.1em; text-transform: uppercase; flex-shrink: 0; white-space: nowrap;
     }
 
+    /* ── YARN LABEL — Zone 2 (count) / Zone 3 (content · construction ·
+       effect), see LABEL_TEMPLATES['yarn-label'] ─────────────────────── */
+    .lbl-count {
+      font-size: 5mm; font-weight: 800; color: var(--ink);
+      line-height: 1; letter-spacing: -0.01em; margin-top: 0.9mm;
+    }
+    .lbl-ycomp {
+      font-size: 2.9mm; font-weight: 700; color: var(--ink);
+      line-height: 1.25; overflow-wrap: break-word;
+    }
+    .lbl-yconstr {
+      font-size: 2.4mm; font-weight: 600; color: var(--ink-2);
+      line-height: 1.2; margin-top: 1.1mm; overflow-wrap: break-word;
+    }
+    .lbl-yeffect {
+      font-size: 2.2mm; font-weight: 700; color: var(--teal);
+      text-transform: uppercase; letter-spacing: 0.06em; margin-top: 1.2mm;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       YARN LABEL CREATOR — visual data entry for Yarn Inventory. Reuses
+       the .lbl-dr shell (§ Label Builder above) for the split-screen
+       frame; only the left rail's contents are bespoke to yarn's
+       structured fields (Count, Content, Construction, Effects).
+       ══════════════════════════════════════════════════════════════════ */
+    .yc-sec { padding: 18px 20px; border-bottom: 1px solid var(--border); }
+    .yc-sec:last-child { border-bottom: none; }
+    .yc-sec-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 12px;
+    }
+    .yc-fg { margin-bottom: 12px; }
+    .yc-fg:last-child { margin-bottom: 0; }
+    .yc-fg label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px; }
+    .yc-req { color: var(--danger); margin-left: 2px; }
+
+    .yc-fiber-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .yc-fiber-select {
+      flex: 1; min-width: 0; height: var(--control-h-sm); border: 1px solid var(--border-strong);
+      border-radius: var(--r-sm); background: var(--surface); color: var(--text-primary);
+      font: inherit; font-size: 13px; padding: 0 8px; cursor: pointer; appearance: none;
+    }
+    .yc-fiber-other { width: 108px; flex-shrink: 0; }
+    .yc-fiber-pct { width: 58px; flex-shrink: 0; text-align: right; }
+    .yc-fiber-pct-sign { font-size: 12px; color: var(--text-muted); flex-shrink: 0; margin-left: -4px; }
+    .yc-fiber-remove {
+      flex-shrink: 0; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+      border: none; background: none; color: var(--text-muted); border-radius: var(--r-sm); cursor: pointer;
+    }
+    .yc-fiber-remove:hover:not(:disabled) { background: var(--surface-hover); color: var(--danger); }
+    .yc-fiber-remove:disabled { opacity: 0.3; cursor: default; }
+    .yc-content-total {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--border);
+      font-size: 12.5px; font-weight: 650; color: var(--text-secondary);
+    }
+    .yc-content-total.is-ok { color: var(--success); }
+    .yc-content-total.is-warn { color: var(--warning-text); }
+
+    .yc-seg, .yc-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .yc-seg-btn, .yc-chip-btn {
+      height: 30px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: var(--r-pill);
+      background: var(--surface); color: var(--text-secondary); font: inherit; font-size: 12.5px;
+      font-weight: 600; cursor: pointer; transition: background 0.1s, color 0.1s, border-color 0.1s;
+    }
+    .yc-seg-btn:hover, .yc-chip-btn:hover { background: var(--surface-hover); }
+    .yc-seg-btn.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .yc-chip-btn.is-active { background: var(--accent-light); border-color: var(--accent); color: var(--accent-dark); }
+    .yc-other-input { margin-top: 8px; }
+
+    .yc-hint { font-size: 12px; color: var(--text-muted); margin-top: 8px; line-height: 1.45; }
+    .yc-hint.is-warn { color: var(--warning-text); }
+
     /* Preview-only: click-to-select regions. Stripped from print output
        by the @media print block — a printed label has no affordances. */
     .lbl-region { position: relative; cursor: pointer; }
@@ -3312,6 +3385,7 @@
       /* Logo and the single teal accent print mono */
       #print-root .lbl .lc1, #print-root .lbl .lc2 { fill:#000 !important; }
       #print-root .lbl-bc-site { color:#000 !important; }
+      #print-root .lbl-yeffect { color:#000 !important; }
     }
 
     #print-root { display:none; }
@@ -5421,7 +5495,90 @@
 </div>
 
 
+<!-- ══ YARN LABEL CREATOR ══
+     Visual data entry for Yarn Inventory (Samples > Yarn). Building the
+     yarn IS building its physical label — one workflow, one record, no
+     separate label entity. Reuses the Label Builder's .lbl-dr shell so
+     the frame is identical; the left rail is yarn's own structured form
+     and the right preview is rendered by the same renderLabel() the
+     Brother QL-800 print path uses, via the 'yarn-label' template. ══ -->
+<div id="m-yarn" class="lbl-dr-wrap">
+  <div class="lbl-dr-backdrop" onclick="closeYarnCreator()"></div>
+
+  <div class="lbl-dr" role="dialog" aria-modal="true" aria-label="Create yarn">
+
+    <div class="lbl-dr-hdr">
+      <div class="lbl-dr-meta">
+        <div class="lbl-dr-eyebrow" id="yc-eyebrow">Yarn Inventory</div>
+        <div class="lbl-dr-name-row">
+          <span class="lbl-dr-name" id="yc-title">Create Yarn</span>
+          <span class="lbl-chip lbl-chip-saved" id="yc-state-chip"><span class="lbl-chip-dot"></span>Draft</span>
+        </div>
+      </div>
+      <div class="lbl-dr-actions">
+        <button class="btn btn-secondary" id="yc-save-btn" onclick="ycSave(false)">Save</button>
+        <button class="btn btn-primary" id="yc-save-print-btn" onclick="ycSave(true)">Save &amp; Print</button>
+        <div class="lbl-dr-actions-sep"></div>
+        <button class="icon-btn icon-btn-quiet" onclick="closeYarnCreator()" title="Close (Esc)" aria-label="Close">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="lbl-dr-body">
+      <!-- LEFT: structured yarn editor -->
+      <div class="lbl-dr-editor" style="width:460px">
+        <div class="form-errors" id="yc-errors" style="display:none;margin:14px 20px 0"></div>
+        <div class="lbl-ed-scroll" id="yc-form" style="padding:0"></div>
+      </div>
+
+      <!-- RIGHT: live physical label preview -->
+      <div class="lbl-dr-preview">
+        <div class="lbl-pv-bar">
+          <span class="lbl-pv-dims" id="yc-pv-dims"></span>
+        </div>
+        <div class="lbl-pv-stage">
+          <div class="lbl-dr-paper">
+            <div id="yc-label-preview"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <!-- ══ MODAL: ADD / EDIT PRODUCT ══ -->
+<!-- ══ Yarn print step — §20: quantity + printer profile, nothing else ══ -->
+<div class="overlay" id="m-yarn-print">
+  <div class="modal" style="width:380px">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-eyebrow" style="color:var(--text-3)">Print</div>
+        <div class="modal-title">Print Yarn Label</div>
+      </div>
+      <button class="btn-icon" onclick="closeModal('m-yarn-print')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="yc-print-summary" style="margin-bottom:1.1rem"></div>
+      <div class="fg">
+        <label>Quantity</label>
+        <div style="display:flex;align-items:center;gap:0.6rem">
+          <button class="btn btn-secondary btn-sm" onclick="ycPrintQtyStep(-1)" type="button">−</button>
+          <input type="number" id="yc-print-qty" value="1" min="1" max="50" style="width:64px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:0.5rem;font-family:inherit;font-size:0.88rem;color:var(--text)" />
+          <button class="btn btn-secondary btn-sm" onclick="ycPrintQtyStep(1)" type="button">+</button>
+        </div>
+      </div>
+      <div class="fg"><label>Label size</label><div style="font-size:0.88rem;color:var(--text-2)" id="yc-print-size">62 × — mm</div></div>
+      <div class="fg" style="margin-bottom:0"><label>Printer profile</label><div style="font-size:0.88rem;color:var(--text-2)">Brother QL-800 · DK-2205</div></div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-secondary" onclick="closeModal('m-yarn-print')">Cancel</button>
+      <button class="btn btn-primary" id="yc-print-confirm-btn" onclick="ycConfirmPrint()">Print</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="m-add">
   <div class="modal" style="width:620px">
     <div class="modal-hdr">
@@ -8497,6 +8654,15 @@ const LABEL_FIELDS = {
   updated:     { label: 'Updated',         section: 'meta',     read: p => p.updated_at ? fmtHumanDate(p.updated_at) : null },
   updatedBy:   { label: 'Updated by',      section: 'meta',     read: () => profile?.full_name || null },
   footer:      { label: 'Footer text',     section: 'footer',   read: () => 'SIERRAFABRIC.COM' },
+  // ── Yarn Label Creator fields (§ Yarn Label Creator brief) — read the
+  // same structured specs the Yarn Creator writes (Yarn Count, Yarn
+  // Content, Spinning Technology, Yarn Preparation, Effects). Only the
+  // 'yarn-label' template uses these; renderLabel() branches on
+  // cfg.template rather than adding them to every division's label.
+  yarnCount:        { label: 'Yarn Count',    section: 'identity', read: p => p.specs?.['Yarn Count'] },
+  yarnContent:       { label: 'Yarn Content',  section: 'material', long: true, read: p => p.specs?.['Yarn Content'] },
+  yarnConstruction:  { label: 'Construction',  section: 'material', read: p => [p.specs?.['Spinning Technology'], p.specs?.['Yarn Preparation']].filter(Boolean).join(' · ') },
+  yarnEffect:        { label: 'Effect',        section: 'material', read: p => Array.isArray(p.specs?.Effects) ? p.specs.Effects.join(' · ') : '' },
 }
 
 const LABEL_SECTIONS = {
@@ -8533,6 +8699,16 @@ const LABEL_TEMPLATES = {
     widthMm: 62, maxHeightMm: 120, variant: 'lbl-compact',
     order: ['identity', 'material', 'color', 'physical', 'footer'],
     defaultHidden: ['yarn01', 'yarn02', 'yarn03', 'routeType', 'updated', 'updatedBy'],
+  },
+  'yarn-label': {
+    name: 'Yarn Inventory Label',
+    divisions: ['yarn'],
+    // Brother QL-800 + DK-2205: fixed 62mm width, cut-to-content length,
+    // hard-capped at 101.6mm (4in) — the media's physical maximum, not a
+    // "practical handling" preference like the fabric templates above.
+    widthMm: 62, maxHeightMm: 101.6, variant: 'lbl-yarn',
+    order: ['identity', 'material', 'footer'],
+    defaultHidden: ['origin'],
   },
 }
 // Measured height of the rendered label, in whole millimetres.
@@ -9445,7 +9621,12 @@ function lbRegionAttrs(key, interactive, extraClass = '') {
 }
 
 function renderLabel(p, cfg, opts = {}) {
-  const { interactive = false, assets = null } = opts
+  // idPrefix lets a second, independent live preview (the Yarn Label
+  // Creator, mounted alongside the fabric Label Builder in the DOM) draw
+  // its own barcode/QR canvases without id-colliding with '#label-preview'
+  // — both hosts can hold stale markup at once, and getElementById must
+  // resolve to the right one.
+  const { interactive = false, assets = null, idPrefix = 'lbl' } = opts
   const t = LABEL_TEMPLATES[cfg.template] || LABEL_TEMPLATES[LABEL_DEFAULT_TEMPLATE]
   // Value resolution mirrors lbValue() but is driven by the passed cfg so
   // the print path never depends on the live editor being open.
@@ -9464,7 +9645,7 @@ function renderLabel(p, cfg, opts = {}) {
   const qrEl = !qrOn ? ''
     : assets
       ? (assets.qrSrc ? `<img src="${assets.qrSrc}" alt="" />` : '')
-      : `<canvas id="lbl-preview-qr" width="256" height="256"></canvas>`
+      : `<canvas id="${idPrefix}-preview-qr" width="256" height="256"></canvas>`
   out.push(`<div class="lbl-hdr">
     <div class="lbl-hdr-logo">${LBL_LOGO_SVG}</div>
     ${qrOn ? `<div class="lbl-hdr-qr">${qrEl}<div class="lbl-qr-hint">Scan</div></div>` : ''}
@@ -9484,10 +9665,28 @@ function renderLabel(p, cfg, opts = {}) {
         const cls = name.length > 34 ? ' len-3' : name.length > 22 ? ' len-2' : ''
         bits.push(lbRegion('productName', `<div class="lbl-title${cls}">${esc(name)}</div>`, interactive))
       }
+      // Zone 2 (§14): Yarn Count sits directly under the name with its
+      // own strong hierarchy — recognizable at a glance, not read as a
+      // key/value pair like the technical fields below it.
+      if (cfg.template === 'yarn-label' && show('yarnCount')) {
+        bits.push(lbRegion('yarnCount', `<div class="lbl-count">${esc(V('yarnCount'))}</div>`, interactive))
+      }
       if (show('origin')) bits.push(lbRegion('origin', `<div class="lbl-origin">${esc(V('origin'))}</div>`, interactive))
       return bits.join('')
     },
-    material() { return show('composition') ? kv('composition', 'Composition') : '' },
+    material() {
+      if (cfg.template === 'yarn-label') {
+        // Zone 3 (§14): content, then construction, then effect — each
+        // its own line so the label reads top-to-bottom without needing
+        // "Content:" / "Spinning:" prefixes; hierarchy comes from weight.
+        const bits = []
+        if (show('yarnContent')) bits.push(lbRegion('yarnContent', `<div class="lbl-ycomp">${esc(V('yarnContent'))}</div>`, interactive))
+        if (show('yarnConstruction')) bits.push(lbRegion('yarnConstruction', `<div class="lbl-yconstr">${esc(V('yarnConstruction'))}</div>`, interactive))
+        if (show('yarnEffect')) bits.push(lbRegion('yarnEffect', `<div class="lbl-yeffect">${esc(V('yarnEffect'))}</div>`, interactive))
+        return bits.join('')
+      }
+      return show('composition') ? kv('composition', 'Composition') : ''
+    },
     color() {
       return [show('color') ? kv('color', 'Color') : '',
               show('dyeMethod') ? kv('dyeMethod', 'Dye method') : ''].join('')
@@ -9525,7 +9724,7 @@ function renderLabel(p, cfg, opts = {}) {
       const site = show('footer') ? V('footer') : ''
       if (!payload && !idLine && !site) return ''
       const bcEl = payload
-        ? (assets ? (assets.bcSvgHtml || '') : `<svg id="lbl-preview-bc"></svg>`)
+        ? (assets ? (assets.bcSvgHtml || '') : `<svg id="${idPrefix}-preview-bc"></svg>`)
         : ''
       return `<div class="lbl-rule"></div>
         ${bcEl ? `<div class="lbl-bc-wrap">${bcEl}</div>` : ''}
@@ -9754,6 +9953,579 @@ function downloadPDF() {
 
 // Keep the preview honest when the window changes size.
 window.addEventListener('resize', () => { if (LB) lbFitPreview() })
+
+/* ══════════════════════════════════════════════════════════════════════
+   YARN LABEL CREATOR
+   ------------------------------------------------------------------
+   Visual data entry for Yarn Inventory (Samples > Yarn). There is ONE
+   source of truth — the products row (division:'yarn') — and building
+   the physical label IS creating/editing that row. No separate label
+   entity, no separate database.
+
+   Save:            validate → write products row → done.
+   Save & Print:     validate → write products row → generate Yarn ID
+                     (first save only) → open the compact print step →
+                     reuse printLabel()'s exact QL-800/DK-2205 pipeline.
+
+   The right-hand preview is rendered by the SAME renderLabel() the
+   fabric Label Builder's print path uses (via the 'yarn-label'
+   template added to LABEL_TEMPLATES above), so what the user watches
+   build in real time is what the Brother QL-800 prints — never a
+   second, drifting rendering path.
+   ══════════════════════════════════════════════════════════════════════ */
+
+const YARN_FIBERS = ['Cotton', 'U.S. Cotton', 'Recycled Cotton', 'Polyester', 'Recycled Polyester', 'Viscose', 'Modal', 'Lyocell', 'Nylon', 'Spandex', 'Other']
+const YARN_COUNTS = ['10/1', '16/1', '20/1', '24/1', '30/1', '40/1', '2/20', '2/30']
+const YARN_SPINNING = ['Ring Spun', 'MVS', 'Open End', 'Other']
+const YARN_PREP = ['Carded', 'Combed', 'Other']
+const YARN_EFFECTS = [
+  { key: 'none', label: 'None' },
+  { key: 'slub', label: 'Slub' },
+  { key: 'injected', label: 'Injected' },
+  { key: 'neppy', label: 'Neppy' },
+  { key: 'melange', label: 'Mélange' },
+  { key: 'other', label: 'Other' },
+]
+const ycFmt = n => Math.round((n + Number.EPSILON) * 10) / 10
+
+let YC = null
+
+function ycBlankState() {
+  return {
+    editingId: null, original: null, saving: false,
+    name: '', count: '', countCustom: '',
+    fibers: [{ fiber: 'Cotton', other: '', pct: 100 }],
+    spinning: '', spinningOther: '',
+    prep: '', prepOther: '',
+    effects: new Set(['none']), effectsOther: '',
+    lifecycle: 'available', baseline: '',
+  }
+}
+
+function ycSnapshot() {
+  return JSON.stringify({
+    name: YC.name, count: YC.count, countCustom: YC.countCustom, fibers: YC.fibers,
+    spinning: YC.spinning, spinningOther: YC.spinningOther, prep: YC.prep, prepOther: YC.prepOther,
+    effects: [...YC.effects].sort(), effectsOther: YC.effectsOther,
+  })
+}
+function ycDirty() { return !!YC && ycSnapshot() !== YC.baseline }
+
+function openYarnCreator(p) {
+  if (p && isArchived(p)) { toast('Archived products are read-only — change their status first'); return }
+  YC = ycBlankState()
+  if (p) {
+    const s = p.specs || {}
+    YC.editingId = p.id
+    YC.original = p
+    YC.name = p.name || ''
+    const cnt = s['Yarn Count'] || ''
+    YC.count = cnt && YARN_COUNTS.includes(cnt) ? cnt : (cnt ? '__custom' : '')
+    YC.countCustom = YC.count === '__custom' ? cnt : ''
+    const content = Array.isArray(s['Yarn Content Structured']) && s['Yarn Content Structured'].length
+      ? s['Yarn Content Structured'] : null
+    YC.fibers = content ? content.map(f => ({
+      fiber: YARN_FIBERS.includes(f.fiber) ? f.fiber : 'Other',
+      other: YARN_FIBERS.includes(f.fiber) ? '' : (f.fiber || ''),
+      pct: Number(f.pct) || 0,
+    })) : ycBlankState().fibers
+    const spin = s['Spinning Technology'] || ''
+    YC.spinning = spin && YARN_SPINNING.includes(spin) ? spin : (spin ? 'Other' : '')
+    YC.spinningOther = YC.spinning === 'Other' ? spin : ''
+    const prep = s['Yarn Preparation'] || ''
+    YC.prep = prep && YARN_PREP.includes(prep) ? prep : (prep ? 'Other' : '')
+    YC.prepOther = YC.prep === 'Other' ? prep : ''
+    const effs = Array.isArray(s.Effects) ? s.Effects : []
+    YC.effects = new Set()
+    effs.forEach(e => {
+      const known = YARN_EFFECTS.find(x => x.label === e)
+      if (known) YC.effects.add(known.key)
+      else { YC.effects.add('other'); YC.effectsOther = e }
+    })
+    if (!YC.effects.size) YC.effects.add('none')
+    YC.lifecycle = lc(p)
+  }
+  YC.baseline = ycSnapshot()
+  document.getElementById('yc-eyebrow').textContent = p ? (p.code || 'Yarn Inventory') : 'Yarn Inventory'
+  document.getElementById('yc-title').textContent = p ? (p.name || 'Edit Yarn') : 'Create Yarn'
+  document.getElementById('yc-state-chip').innerHTML = `<span class="lbl-chip-dot"></span>${p ? 'Saved' : 'Draft'}`
+  document.getElementById('view-detail').style.display = 'none'
+  document.getElementById('m-yarn').classList.add('open')
+  ycClearErrors()
+  ycRenderForm()
+  ycRenderPreview()
+}
+
+function closeYarnCreator() {
+  if (YC && ycDirty() && !confirm('Discard unsaved changes to this yarn?')) return
+  document.getElementById('m-yarn').classList.remove('open')
+  YC = null
+}
+
+/* ── Mutators — every one re-renders the preview immediately (§18) ── */
+function ycSetName(v) {
+  YC.name = v
+  const t = document.getElementById('yc-title')
+  if (t) t.textContent = YC.editingId ? (v.trim() || 'Edit Yarn') : (v.trim() || 'Create Yarn')
+  ycRenderPreview()
+}
+function ycCountValue() { return YC.count === '__custom' ? YC.countCustom.trim() : YC.count }
+function ycSetCount(v) { YC.count = v; ycRenderForm(); ycRenderPreview() }
+function ycSetCountCustom(v) { YC.countCustom = v; ycRenderPreview() }
+
+function ycFiberLabel(f) { return f.fiber === 'Other' ? (f.other || '').trim() : f.fiber }
+function ycContentTotal() { return YC.fibers.reduce((t, f) => t + (Number(f.pct) || 0), 0) }
+function ycAddFiber() { YC.fibers.push({ fiber: 'Cotton', other: '', pct: 0 }); ycRenderForm(); ycRenderPreview() }
+function ycRemoveFiber(i) { if (YC.fibers.length <= 1) return; YC.fibers.splice(i, 1); ycRenderForm(); ycRenderPreview() }
+function ycSetFiber(i, v) { YC.fibers[i].fiber = v; if (v !== 'Other') YC.fibers[i].other = ''; ycRenderForm(); ycRenderPreview() }
+function ycSetFiberOther(i, v) { YC.fibers[i].other = v; ycRenderPreview() }
+function ycSetFiberPct(i, v) {
+  YC.fibers[i].pct = v === '' ? '' : Math.max(0, Math.min(100, Number(v) || 0))
+  const el = document.getElementById('yc-content-total')
+  if (el) el.outerHTML = ycContentTotalHtml()
+  ycRenderPreview()
+}
+function ycContentTotalHtml() {
+  const total = ycFmt(ycContentTotal())
+  const cls = total === 100 ? 'is-ok' : 'is-warn'
+  const label = total === 100 ? `${total}% total`
+    : total < 100 ? `${total}% total · ${ycFmt(100 - total)}% remaining`
+    : `${total}% total · ${ycFmt(total - 100)}% over`
+  return `<div class="yc-content-total ${cls}" id="yc-content-total">${label}</div>`
+}
+
+function ycSetSpinning(v) { YC.spinning = v; ycRenderForm(); ycRenderPreview() }
+function ycSetSpinningOther(v) { YC.spinningOther = v; ycRenderPreview() }
+function ycSetPrep(v) { YC.prep = v; ycRenderForm(); ycRenderPreview() }
+function ycSetPrepOther(v) { YC.prepOther = v; ycRenderPreview() }
+
+function ycToggleEffect(key) {
+  if (key === 'none') {
+    YC.effects = new Set(['none'])
+  } else {
+    YC.effects.delete('none')
+    if (YC.effects.has(key)) YC.effects.delete(key); else YC.effects.add(key)
+    if (!YC.effects.size) YC.effects.add('none')
+  }
+  ycRenderForm()
+  ycRenderPreview()
+}
+function ycSetEffectOther(v) { YC.effectsOther = v; ycRenderPreview() }
+
+/* ── Derived label lines — same three-line Zone 3 the label prints ── */
+function ycConstructionLine() {
+  const spin = YC.spinning === 'Other' ? YC.spinningOther.trim() : YC.spinning
+  const prep = YC.prep === 'Other' ? YC.prepOther.trim() : YC.prep
+  return [spin, prep].filter(Boolean).join(' · ')
+}
+function ycEffectLabels() {
+  if (YC.effects.has('none') || !YC.effects.size) return []
+  return [...YC.effects].map(k => k === 'other' ? (YC.effectsOther.trim() || 'Other') : YARN_EFFECTS.find(e => e.key === k)?.label).filter(Boolean)
+}
+function ycContentLine() {
+  return YC.fibers.filter(f => (Number(f.pct) || 0) > 0 && ycFiberLabel(f))
+    .map(f => `${ycFmt(Number(f.pct) || 0)}% ${ycFiberLabel(f)}`).join(' · ')
+}
+
+/* ── Build the structured specs written to the product record — the
+   ONE place the Yarn Creator's fields become products.specs (§6, §7,
+   §25). 'Composition' mirrors 'Yarn Content' so the existing generic
+   catalog/composition readers keep working for yarn rows too. ── */
+function ycBuildSpecs() {
+  const specs = {}
+  const count = ycCountValue()
+  if (count) specs['Yarn Count'] = count
+  const contentStructured = YC.fibers.filter(f => (Number(f.pct) || 0) > 0 && ycFiberLabel(f))
+    .map(f => ({ fiber: ycFiberLabel(f), pct: Number(f.pct) || 0 }))
+  if (contentStructured.length) {
+    specs['Yarn Content'] = ycContentLine()
+    specs['Yarn Content Structured'] = contentStructured
+    specs.Composition = specs['Yarn Content']
+  }
+  const spin = YC.spinning === 'Other' ? YC.spinningOther.trim() : YC.spinning
+  if (spin) specs['Spinning Technology'] = spin
+  const prep = YC.prep === 'Other' ? YC.prepOther.trim() : YC.prep
+  if (prep) specs['Yarn Preparation'] = prep
+  const effLabels = ycEffectLabels()
+  if (effLabels.length) specs.Effects = effLabels
+  return specs
+}
+
+function ycDraftProduct() {
+  const orig = YC.original || {}
+  return {
+    id: orig.id || 'draft', code: orig.code || null, division: 'yarn',
+    name: YC.name.trim() || 'Untitled Yarn', country: orig.country || 'Honduras',
+    lot: orig.lot || null, specs: ycBuildSpecs(),
+  }
+}
+function ycCfg() {
+  const t = LABEL_TEMPLATES['yarn-label']
+  return {
+    template: 'yarn-label', overrides: { footer: '' }, hidden: [...(t.defaultHidden || [])],
+    order: [...t.order], qr: { enabled: false, target: 'product', url: '' },
+    barcode: { enabled: true, format: 'CODE128', source: 'millArticle' },
+  }
+}
+
+/* ── Live preview — no Preview button, every field updates it (§18) ── */
+function ycRenderPreview() {
+  const host = document.getElementById('yc-label-preview')
+  if (!host) return
+  const draft = ycDraftProduct()
+  const cfg = ycCfg()
+  host.innerHTML = renderLabel(draft, cfg, { interactive: false, idPrefix: 'yc' })
+  if (!draft.code) {
+    // Unsaved yarn: the barcode zone holds its place but stays a
+    // placeholder — the real code/barcode only exist once saved (§9).
+    const lbl = host.querySelector('.lbl')
+    if (lbl) lbl.insertAdjacentHTML('beforeend', `
+      <div class="lbl-rule"></div>
+      <div class="lbl-bc-wrap" style="display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(90deg,var(--rule) 0,var(--rule) 1.2px,transparent 1.2px,transparent 4px)"></div>
+      <div class="lbl-bc-footer"><div class="lbl-bc-id" style="color:var(--ink-3)">GENERATED ON SAVE</div></div>`)
+  }
+  requestAnimationFrame(() => {
+    if (draft.code) ycDrawBarcode(draft.code)
+    ycUpdateDims(host, draft)
+  })
+}
+function ycDrawBarcode(payload) {
+  const svg = document.getElementById('yc-preview-bc')
+  if (!svg) return
+  try {
+    JsBarcode(svg, payload, {
+      format: 'CODE128', width: 5, height: 100, displayValue: false,
+      marginLeft: 60, marginRight: 60, marginTop: 5, marginBottom: 5,
+      background: '#ffffff', lineColor: '#000000',
+    })
+    svg.removeAttribute('width'); svg.removeAttribute('height')
+    svg.setAttribute('preserveAspectRatio', 'none')
+  } catch (_) {}
+}
+// Physical size readout (§17) + the one hard rule the whole feature
+// exists to enforce: a yarn label never exceeds 101.6mm on the
+// DK-2205's 62mm continuous tape.
+function ycUpdateDims(host, draft) {
+  const lbl = host.querySelector('.lbl')
+  const dims = document.getElementById('yc-pv-dims')
+  const printBtn = document.getElementById('yc-save-print-btn')
+  if (!lbl || !dims) return
+  const measuredMm = lbMeasuredMm(lbl)
+  const over = measuredMm > 101.6
+  const shown = Math.min(measuredMm, 101.6) || 0
+  dims.innerHTML = `62 × ${Math.max(shown, 1)} mm  ·  Brother QL-800 · DK-2205${over ? ' <span style="color:var(--warning-text);font-weight:700">· over maximum length</span>' : ''}`
+  const hint = document.getElementById('yc-length-hint')
+  if (hint) hint.style.display = over ? 'block' : 'none'
+}
+
+/* ── Left-panel form — a full rebuild on structural changes (add/remove
+   fiber, select changes); text fields bind directly and never trigger
+   a rebuild while the user is typing, so focus/caret never jumps. ── */
+function ycRenderForm() {
+  const el = document.getElementById('yc-form')
+  if (!el) return
+  const countIsCustom = YC.count === '__custom'
+  el.innerHTML = `
+    <div class="yc-sec">
+      <div class="yc-sec-label">Product Information</div>
+      <div class="yc-fg">
+        <label>Product Name<span class="yc-req">*</span></label>
+        <input type="text" class="control-input" style="width:100%" placeholder="e.g. Combed Cotton" value="${escAttr(YC.name)}" oninput="ycSetName(this.value)" />
+      </div>
+      <div class="yc-fg" style="margin-bottom:0">
+        <label>Yarn Count<span class="yc-req">*</span></label>
+        <select class="control-input" style="width:100%" onchange="ycSetCount(this.value)">
+          <option value="">— Select —</option>
+          ${YARN_COUNTS.map(c => `<option value="${escAttr(c)}" ${YC.count === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
+          <option value="__custom" ${countIsCustom ? 'selected' : ''}>Custom…</option>
+        </select>
+        ${countIsCustom ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="e.g. 36/1" value="${escAttr(YC.countCustom)}" oninput="ycSetCountCustom(this.value)" />` : ''}
+      </div>
+    </div>
+
+    <div class="yc-sec">
+      <div class="yc-sec-label">Yarn Content</div>
+      <div id="yc-fiber-rows">${YC.fibers.map((f, i) => ycFiberRowHtml(f, i)).join('')}</div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="ycAddFiber()">+ Add fiber</button>
+      ${ycContentTotalHtml()}
+    </div>
+
+    <div class="yc-sec">
+      <div class="yc-sec-label">Yarn Construction</div>
+      <div class="yc-fg">
+        <label>Spinning Technology</label>
+        <div class="yc-seg">${YARN_SPINNING.map(o => `<button type="button" class="yc-seg-btn ${YC.spinning === o ? 'is-active' : ''}" onclick="ycSetSpinning('${jsStr(o)}')">${esc(o)}</button>`).join('')}</div>
+        ${YC.spinning === 'Other' ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="Describe the spinning technology" value="${escAttr(YC.spinningOther)}" oninput="ycSetSpinningOther(this.value)" />` : ''}
+      </div>
+      <div class="yc-fg" style="margin-bottom:0">
+        <label>Yarn Preparation</label>
+        <div class="yc-seg">${YARN_PREP.map(o => `<button type="button" class="yc-seg-btn ${YC.prep === o ? 'is-active' : ''}" onclick="ycSetPrep('${jsStr(o)}')">${esc(o)}</button>`).join('')}</div>
+        ${YC.prep === 'Other' ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="Describe the preparation" value="${escAttr(YC.prepOther)}" oninput="ycSetPrepOther(this.value)" />` : ''}
+      </div>
+    </div>
+
+    <div class="yc-sec">
+      <div class="yc-sec-label">Effects</div>
+      <div class="yc-chip-row">${YARN_EFFECTS.map(e => `<button type="button" class="yc-chip-btn ${YC.effects.has(e.key) ? 'is-active' : ''}" onclick="ycToggleEffect('${e.key}')">${esc(e.label)}${e.key === 'other' ? ' +' : ''}</button>`).join('')}</div>
+      ${YC.effects.has('other') ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="Describe the effect" value="${escAttr(YC.effectsOther)}" oninput="ycSetEffectOther(this.value)" />` : ''}
+    </div>
+
+    <div class="yc-sec" id="yc-length-hint" style="display:none">
+      <div class="yc-hint is-warn">This label's content is longer than the DK-2205's 101.6mm maximum. Remove an effect or shorten the product name — Save still works, but printing will scale the label down to fit.</div>
+    </div>`
+}
+function ycFiberOptionsHtml(sel) { return YARN_FIBERS.map(f => `<option value="${escAttr(f)}" ${sel === f ? 'selected' : ''}>${esc(f)}</option>`).join('') }
+function ycFiberRowHtml(f, i) {
+  return `<div class="yc-fiber-row">
+    <select class="yc-fiber-select" onchange="ycSetFiber(${i}, this.value)">${ycFiberOptionsHtml(f.fiber)}</select>
+    ${f.fiber === 'Other' ? `<input type="text" class="control-input yc-fiber-other" placeholder="Fiber name" value="${escAttr(f.other)}" oninput="ycSetFiberOther(${i}, this.value)" />` : ''}
+    <input type="number" class="control-input yc-fiber-pct" min="0" max="100" value="${f.pct}" oninput="ycSetFiberPct(${i}, this.value)" />
+    <span style="font-size:12px;color:var(--text-muted);flex-shrink:0">%</span>
+    <button type="button" class="yc-fiber-remove" onclick="ycRemoveFiber(${i})" ${YC.fibers.length <= 1 ? 'disabled' : ''} title="Remove">
+      <svg viewBox="0 0 16 16" fill="none" width="14" height="14"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>`
+}
+
+/* ── Validation — calm while typing, hard gate on save (§6, §19) ── */
+function ycValidate() {
+  const errs = []
+  if (!YC.name.trim()) errs.push('Product name is required')
+  if (!ycCountValue()) errs.push('Yarn Count is required')
+  const withPct = YC.fibers.filter(f => (Number(f.pct) || 0) > 0)
+  if (!withPct.length) errs.push('Add at least one fiber to Yarn Content')
+  else if (withPct.some(f => !ycFiberLabel(f))) errs.push('Every fiber row needs a name')
+  if (ycFmt(ycContentTotal()) !== 100) errs.push(`Yarn Content must total exactly 100% — currently ${ycFmt(ycContentTotal())}%`)
+  if (YC.spinning === 'Other' && !YC.spinningOther.trim()) errs.push('Enter the custom Spinning Technology')
+  if (YC.prep === 'Other' && !YC.prepOther.trim()) errs.push('Enter the custom Yarn Preparation')
+  if (YC.effects.has('other') && !YC.effectsOther.trim()) errs.push('Enter the custom Effect')
+  return errs
+}
+function ycShowErrors(errs) {
+  const box = document.getElementById('yc-errors')
+  if (!box) { toast(errs[0]); return }
+  box.style.display = 'block'
+  box.innerHTML = `<div class="form-errors-title">Please fix before saving</div><ul>${errs.map(e => `<li>${esc(e)}</li>`).join('')}</ul>`
+  box.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+}
+function ycClearErrors() {
+  const box = document.getElementById('yc-errors')
+  if (box) { box.style.display = 'none'; box.innerHTML = '' }
+}
+function ycSetSavingChrome(saving) {
+  const chip = document.getElementById('yc-state-chip')
+  if (chip) chip.innerHTML = `<span class="lbl-chip-dot"></span>${saving ? 'Saving yarn…' : (YC?.editingId ? 'Saved' : 'Draft')}`
+  const s1 = document.getElementById('yc-save-btn'), s2 = document.getElementById('yc-save-print-btn')
+  if (s1) s1.disabled = saving
+  if (s2) s2.disabled = saving
+}
+
+/* ── Save ══ one Yarn Record, one write. Save & Print continues straight
+   into the compact print step — never a second "now go print it"
+   errand (§19, §31). ══ */
+async function ycSave(thenPrint) {
+  if (!YC || YC.saving) return
+  const errs = ycValidate()
+  if (errs.length) { ycShowErrors(errs); return }
+  ycClearErrors()
+  YC.saving = true
+  ycSetSavingChrome(true)
+
+  const specs = ycBuildSpecs()
+  const name = YC.name.trim()
+  const isNew = !YC.editingId
+  let codeVal = YC.original?.code || null
+
+  if (isNew) {
+    const { data: genId, error: idErr } = await sb.rpc('next_yarn_id')
+    if (idErr || !genId) {
+      YC.saving = false; ycSetSavingChrome(false)
+      ycShowErrors(['Could not generate a Yarn ID: ' + (idErr?.message || 'please try again')])
+      return
+    }
+    codeVal = genId
+  }
+
+  const payload = {
+    name, division: 'yarn', code: codeVal, specs,
+    tags: YC.original?.tags || [], lifecycle: YC.lifecycle || 'available',
+    country: YC.original?.country || 'Honduras',
+  }
+
+  let error, savedId = YC.editingId
+  for (let tries = 0; tries < 4; tries++) {
+    if (YC.editingId) {
+      ;({ error } = await sb.from('products').update(payload).eq('id', YC.editingId))
+    } else {
+      const ins = await sb.from('products').insert({ ...payload, created_by: me.id }).select('id').single()
+      error = ins.error; savedId = ins.data?.id
+    }
+    if (!error) break
+    if (dropMissingProductColumn(error, payload)) continue
+    break
+  }
+
+  YC.saving = false
+  ycSetSavingChrome(false)
+
+  if (error) {
+    ycShowErrors([(error.code === '23505' || /duplicate key/i.test(error.message || ''))
+      ? `Yarn ID "${payload.code}" is already in use — please try saving again`
+      : 'Could not save: ' + error.message])
+    return
+  }
+
+  const wasEditing = !isNew
+  if (wasEditing && YC.original) {
+    const diffs = Audit.diff(YC.original, payload)
+    if (diffs.length) Audit.log('product', savedId, payload, 'edited', `Edited ${diffs.length} field${diffs.length > 1 ? 's' : ''}`, diffs)
+  } else {
+    Audit.log('product', savedId, payload, 'created', 'Created yarn via Yarn Label Creator')
+  }
+  Audit.snapshot('product', savedId, payload, { id: savedId, ...payload })
+
+  toast(wasEditing ? `${codeVal} updated` : `${codeVal} created`)
+  await loadProducts()
+  const saved = allProducts.find(x => x.id === savedId) || { id: savedId, ...payload }
+  if (selected && wasEditing && selected.id === savedId) showProductDetail(saved)
+
+  document.getElementById('m-yarn').classList.remove('open')
+  YC = null
+
+  if (thenPrint) await ycOpenPrintStep(saved)
+}
+
+/* ── Print step (§20) — quantity + the fixed QL-800/DK-2205 profile,
+   nothing else to configure. Reprinting (§24) calls this directly on a
+   saved record — same code, same barcode, no label recreated. ── */
+let _ycPrintTarget = null
+async function ycOpenPrintStep(p) {
+  _ycPrintTarget = p
+  const s = p.specs || {}
+  document.getElementById('yc-print-summary').innerHTML =
+    `<div style="font-size:0.72rem;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.2rem">${esc(p.code || '')}</div>
+     <div style="font-size:1rem;font-weight:700">${esc(p.name)}${s['Yarn Count'] ? ' · ' + esc(s['Yarn Count']) : ''}</div>`
+  document.getElementById('yc-print-qty').value = '1'
+
+  const cfg = ycCfg()
+  const tmp = document.createElement('div')
+  tmp.style.cssText = 'position:fixed;visibility:hidden;top:0;left:0;pointer-events:none'
+  tmp.innerHTML = renderLabel(p, cfg, {})
+  document.body.appendChild(tmp)
+  const sheetMm = lbSheetMm(lbMeasuredMm(tmp.querySelector('.lbl')))
+  document.body.removeChild(tmp)
+  document.getElementById('yc-print-size').textContent = `62 × ${sheetMm} mm${sheetMm >= 101.6 ? ' · Maximum length' : ''}`
+
+  document.getElementById('m-yarn-print').classList.add('open')
+}
+function quickPrintYarn(p) { ycOpenPrintStep(p) }
+function ycPrintQtyStep(d) {
+  const el = document.getElementById('yc-print-qty')
+  el.value = String(Math.max(1, Math.min(50, (parseInt(el.value, 10) || 1) + d)))
+}
+async function ycConfirmPrint() {
+  if (!_ycPrintTarget) return
+  const qty = Math.max(1, Math.min(50, parseInt(document.getElementById('yc-print-qty').value, 10) || 1))
+  const btn = document.getElementById('yc-print-confirm-btn')
+  if (btn) btn.disabled = true
+  // Reuses printLabel() verbatim: same @page sizing math, same barcode
+  // asset build, same audit log — only LB.p/LB.cfg and the copies input
+  // differ from the fabric Label Builder's own call site.
+  LB = { p: _ycPrintTarget, cfg: ycCfg(), saved: null, tab: 'print', open: {}, selected: null, zoom: 'fit', issues: [] }
+  const copiesEl = document.getElementById('lbl-copies')
+  if (copiesEl) copiesEl.value = String(qty)
+  await printLabel()
+  LB = null
+  if (btn) btn.disabled = false
+  closeModal('m-yarn-print')
+}
+
+/* ── Entry points (§2, §23, §24, §25) — Yarn products route through the
+   creator/print-step instead of the generic product editor and fabric
+   label builder, everywhere those are reached from. Wrapping the
+   existing functions (rather than editing every call site: catalog row
+   overflow menu, record detail header/overflow/doc row, quick view
+   drawer) keeps a single division check in one place. ══════════════ */
+;(function () {
+  const _openLabel = openLabel
+  openLabel = function () {
+    if (selected && selected.division === 'yarn') { quickPrintYarn(selected); return }
+    _openLabel()
+  }
+  const _quickLabel = quickLabel
+  quickLabel = function (p) {
+    if (p && p.division === 'yarn') { quickPrintYarn(p); return }
+    _quickLabel(p)
+  }
+  const _openEdit = openEdit
+  openEdit = function (p, section) {
+    if (p && p.division === 'yarn') { openYarnCreator(p); return }
+    _openEdit(p, section)
+  }
+  const _renderCatalogHeaderActions = renderCatalogHeaderActions
+  renderCatalogHeaderActions = function () {
+    const el = document.getElementById('product-controls')
+    if (!el) return
+    if (division === 'yarn') {
+      el.innerHTML = canEditDiv('yarn')
+        ? `<button class="btn btn-primary btn-sm" onclick="openYarnCreator()">+ Add Yarn</button>
+           <button class="btn btn-secondary btn-sm" onclick="openAdd()" style="margin-left:8px">Quick Add</button>`
+        : ''
+      return
+    }
+    _renderCatalogHeaderActions()
+  }
+  const _catRenderDrawerBody = catRenderDrawerBody
+  catRenderDrawerBody = function (p) {
+    if (p.division !== 'yarn') { _catRenderDrawerBody(p); return }
+    const body = document.getElementById('sd-body')
+    if (!body) return
+    const ep = enc(p), s = p.specs || {}
+    body.innerHTML = `
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.9rem">
+        ${lcPill(p)}
+        <span style="font-size:0.72rem;color:var(--text-3);font-variant-numeric:tabular-nums">${esc(catCode(p))}</span>
+      </div>
+      <div class="ctx-lbl">Yarn Count</div>
+      <div class="ctx-line">${esc(s['Yarn Count'] || '—')}</div>
+      <div class="ctx-sep"></div>
+      <div class="ctx-lbl">Technical specification</div>
+      <div class="ctx-stat"><span>Content</span><b>${esc(s['Yarn Content'] || '—')}</b></div>
+      <div class="ctx-stat"><span>Spinning</span><b>${esc(s['Spinning Technology'] || '—')}</b></div>
+      <div class="ctx-stat"><span>Preparation</span><b>${esc(s['Yarn Preparation'] || '—')}</b></div>
+      <div class="ctx-stat"><span>Effect</span><b>${esc(Array.isArray(s.Effects) ? s.Effects.join(' · ') : '—')}</b></div>
+      <div class="ctx-stat"><span>Last updated</span><b>${esc(catUpdated(p))}</b></div>
+      <div class="ctx-sep"></div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p) ? '' : 'disabled'}>Request sample</button>
+        <button class="btn btn-secondary btn-sm" onclick="closeSideDrawer(); openFicha(dec('${ep}'))">Open full record</button>
+      </div>`
+  }
+  const _catVisibleColumns = catVisibleColumns
+  catVisibleColumns = function () { return division === 'yarn' ? YARN_CAT_COLUMNS : _catVisibleColumns() }
+  const _catColCellHtml = catColCellHtml
+  catColCellHtml = function (p, key) {
+    if (p.division !== 'yarn') return _catColCellHtml(p, key)
+    const s = p.specs || {}
+    switch (key) {
+      case 'code': return `<td class="cat-row-code">${esc(catCode(p))}</td>`
+      case 'product': return `<td><div class="cat-row-name">${esc(p.name)}${productNameTag()}</div><div class="cat-row-name-sub">${esc(s['Yarn Count'] || '—')}</div></td>`
+      case 'yarnContent': return `<td>${esc(s['Yarn Content'] || '—')}</td>`
+      case 'yarnConstr': return `<td>${esc([s['Spinning Technology'], s['Yarn Preparation']].filter(Boolean).join(' · ') || '—')}</td>`
+      case 'yarnEffect': return `<td>${esc(Array.isArray(s.Effects) ? s.Effects.join(' · ') : '—')}</td>`
+      case 'updated': return `<td style="white-space:nowrap;color:var(--text-3)">${esc(catUpdated(p))}</td>`
+      default: return '<td></td>'
+    }
+  }
+})()
+const YARN_CAT_COLUMNS = [
+  { key: 'code', label: 'Yarn ID' },
+  { key: 'product', label: 'Product / Count', alwaysOn: true },
+  { key: 'yarnContent', label: 'Content' },
+  { key: 'yarnConstr', label: 'Construction' },
+  { key: 'yarnEffect', label: 'Effect' },
+  { key: 'updated', label: 'Last Updated' },
+]
 
 
 /* ── ADD PRODUCT ── */
@@ -10613,6 +11385,14 @@ async function saveProduct() {
       return Math.max(m, n)
     }, 0)
     codeVal = prefix + String(maxSeq + 1).padStart(5, '0')
+  }
+  // Yarn Quick Add path (§9 of the Yarn Label Creator brief: the user
+  // must never manually enter the barcode — same atomic generator the
+  // Yarn Label Creator itself calls, so both paths produce the same
+  // YRN-###### identity space).
+  if (!editingProductId && div === 'yarn' && (!codeVal || !/^YRN-\d+$/.test(codeVal))) {
+    const { data: genId } = await sb.rpc('next_yarn_id')
+    if (genId) codeVal = genId
   }
 
   const payload = {
@@ -15137,6 +15917,8 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return
   const drawer = document.getElementById('m-label')
   if (drawer && drawer.classList.contains('open')) { closeLabel(); return }
+  const ycDrawer = document.getElementById('m-yarn')
+  if (ycDrawer && ycDrawer.classList.contains('open')) { closeYarnCreator(); return }
   const sd = document.getElementById('sd-overlay')
   if (sd && sd.classList.contains('open')) { closeSideDrawer(); return }
   document.querySelectorAll('.overlay.open').forEach(el => el.classList.remove('open'))
