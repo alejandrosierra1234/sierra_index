@@ -361,7 +361,13 @@
       background: var(--shell-topbar);
       align-items: center; justify-content: space-between;
       padding: 0 1.1rem 0 1rem;
-      position: relative; z-index: 50;
+      /* Must outrank every sticky/elevated element that can scroll under it
+         (.object-header is the tallest at z-index:60) so its own popovers
+         (search/notifications/appearance/account) are never hidden behind
+         page content — but stay below true app-level overlays (drawer 400,
+         notif-panel 600, spotlight 800, modals 9999) which should still
+         cover the whole shell, topbar included, when they're open. */
+      position: relative; z-index: 100;
     }
     @media (min-width: 768px) { .system-bar { display: flex; } }
 
@@ -984,25 +990,34 @@
     .mod-switch-lbl { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .mod-switch-chev { color:var(--text-3); flex-shrink:0; transition:transform var(--dur-fast) var(--ease-out); }
     .mod-switch.open .mod-switch-chev { transform:rotate(180deg); }
-    .mod-switch-pop, .bu-switch-pop, .acct-menu-pop {
+    .bu-switch-pop, .acct-menu-pop {
       position:absolute; top:calc(100% + 4px); left:0; right:0;
       background:var(--surface); border:1px solid var(--border); border-radius:12px;
       box-shadow:var(--shadow-hover); padding:0.3rem; z-index:150;
       opacity:0; pointer-events:none; transform:translateY(-4px) scale(0.98);
       transition:opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
     }
-    .mod-switch.open .mod-switch-pop,
     .bu-switch.open .bu-switch-pop,
     .acct-menu.open .acct-menu-pop { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
     .bu-switch-item .bu-switch-dot { width:16px; height:16px; }
     .bu-switch-item .bu-switch-dot svg { width:10px; height:10px; }
 
-    /* ── Module selector rows — icon, name, module color, favorite star,
-       selected state (§9-10). A proper ERP module list, not a plain text
-       dropdown menu. */
+    /* ── Module selector popover — same visual language as the Account
+       Mega Menu (fixed generous width, edge-to-edge rows, 44px targets),
+       not the older compact inline-popover pattern above. A proper ERP
+       module list, not a plain text dropdown menu (§9-10). */
+    .mod-switch-pop {
+      position:absolute; top:calc(100% + 6px); left:0;
+      width:288px; max-width:calc(100vw - 24px);
+      background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+      box-shadow:var(--shadow-hover); padding:6px 0; z-index:150;
+      opacity:0; pointer-events:none; transform:translateY(-4px) scale(0.98);
+      transition:opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+    }
+    .mod-switch.open .mod-switch-pop { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
     .mod-switch-item {
-      display:flex; align-items:center; gap:10px; width:100%; text-align:left;
-      min-height:42px; padding:5px 8px 5px 6px; border-radius:var(--r-sm);
+      display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+      min-height:44px; padding:6px 12px 6px 16px;
       background:none; border:none; font-family:inherit; cursor:pointer;
       transition:background var(--dur-fast) var(--ease-out);
     }
