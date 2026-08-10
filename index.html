@@ -4902,6 +4902,102 @@
       flex-shrink: 0;
     }
 
+    /* Badge Queue and History Views */
+    .badge-queue-view,
+    .badge-history-view {
+      display: flex;
+      flex-direction: column;
+      gap: var(--panel-gap);
+    }
+
+    .queue-header,
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--panel-gap);
+    }
+
+    .queue-header h2,
+    .history-header h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .queue-count,
+    .history-count {
+      background: var(--surface2);
+      padding: 4px 12px;
+      border-radius: var(--r-pill);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    /* Settings View */
+    .badge-settings-view {
+      display: flex;
+      flex-direction: column;
+      gap: var(--section-gap);
+      padding-right: 2rem;
+    }
+
+    .settings-section h2 {
+      margin: 0 0 var(--section-gap) 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .settings-card {
+      padding: var(--panel-padding);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      margin-bottom: var(--section-gap);
+    }
+
+    .settings-card h3 {
+      margin: 0 0 1rem 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .settings-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    .settings-row:last-child {
+      border-bottom: none;
+    }
+
+    .settings-label {
+      font-weight: 500;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .settings-value {
+      color: var(--text-primary);
+      text-align: right;
+      flex: 1;
+    }
+
+    .settings-card ul {
+      font-size: 0.85rem;
+    }
+
+    .settings-card ul li {
+      margin-bottom: 0.5rem;
+    }
+
     @keyframes slideDown {
       from { opacity: 1; transform: translateY(0); }
       to { opacity: 0; transform: translateY(20px); }
@@ -11908,15 +12004,178 @@ function getBadgeStatus(emp) {
 }
 
 function renderBadgeQueueView() {
-  return `<div class="empty"><p>Badge Queue — Coming soon</p></div>`
+  const queueBadges = _badge.badges.filter(b => ['draft', 'ready_to_print', 'printed'].includes(b.status))
+  return `
+    <div class="badge-queue-view">
+      <div class="queue-header">
+        <h2>Badge Queue</h2>
+        <span class="queue-count">${queueBadges.length} badges</span>
+      </div>
+      ${queueBadges.length ? `
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Employee Code</th>
+            <th>Department</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${queueBadges.map(badge => {
+            const emp = _badge.employees.find(e => e.id === badge.employee_id)
+            return `
+            <tr>
+              <td>${emp ? esc(emp.first_name + ' ' + emp.last_name) : '—'}</td>
+              <td><code>${emp?.employee_code || '—'}</code></td>
+              <td>${emp?.department || '—'}</td>
+              <td><span class="badge badge-${badge.status}">${badge.status}</span></td>
+              <td>${new Date(badge.created_at).toLocaleDateString()}</td>
+              <td>
+                ${badge.status === 'draft' ? `<button class="btn btn-sm btn-ghost" onclick="toast('Edit badge — coming soon')">Edit</button>` : ''}
+                ${badge.status === 'ready_to_print' ? `<button class="btn btn-sm btn-primary" onclick="toast('Print badge — coming soon')">Print</button>` : ''}
+              </td>
+            </tr>
+            `
+          }).join('')}
+        </tbody>
+      </table>
+      ` : `<div class="empty"><p>No badges in queue.</p></div>`}
+    </div>
+  `
 }
 
 function renderHistoryView() {
-  return `<div class="empty"><p>Audit History — Coming soon</p></div>`
+  const historyBadges = _badge.badges.filter(b => ['printed', 'delivered', 'cancelled', 'reprinted'].includes(b.status))
+  return `
+    <div class="badge-history-view">
+      <div class="history-header">
+        <h2>Badge Audit History</h2>
+        <span class="history-count">${historyBadges.length} events</span>
+      </div>
+      ${historyBadges.length ? `
+      <table class="erp-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Code</th>
+            <th>Event</th>
+            <th>Status</th>
+            <th>Timestamp</th>
+            <th>Printed By</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${historyBadges.map(badge => {
+            const emp = _badge.employees.find(e => e.id === badge.employee_id)
+            const printedByName = badge.printed_by ? 'System' : '—'
+            return `
+            <tr>
+              <td>${emp ? esc(emp.first_name + ' ' + emp.last_name) : '—'}</td>
+              <td><code>${emp?.employee_code || '—'}</code></td>
+              <td>${badge.is_reprint ? 'Reprint' : 'Print'}</td>
+              <td><span class="badge badge-${badge.status}">${badge.status}</span></td>
+              <td>${badge.printed_at ? new Date(badge.printed_at).toLocaleString() : '—'}</td>
+              <td>${printedByName}</td>
+              <td>${badge.reprint_reason ? esc(badge.reprint_reason) : '—'}</td>
+            </tr>
+            `
+          }).join('')}
+        </tbody>
+      </table>
+      ` : `<div class="empty"><p>No badge history yet.</p></div>`}
+    </div>
+  `
 }
 
 function renderSettingsView() {
-  return `<div class="empty"><p>Settings — Coming soon</p></div>`
+  const activeSite = _badge.sites.find(s => s.id === _badge.activeSite)
+  const canManageSettings = can('write', 'talento_humano')
+
+  return `
+    <div class="badge-settings-view">
+      <div class="settings-section">
+        <h2>Badge Management Settings</h2>
+
+        <div class="settings-card">
+          <h3>Active Site Configuration</h3>
+          <div class="settings-row">
+            <span class="settings-label">Site Name:</span>
+            <span class="settings-value">${activeSite?.name || '—'}</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Badge Color:</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              ${activeSite?.badge_color
+                ? `<div style="width:24px;height:24px;border-radius:4px;background:${activeSite.badge_color};border:1px solid var(--border)"></div><code>${activeSite.badge_color}</code>`
+                : '<span style="color:var(--text-3)">Not configured</span>'
+              }
+            </div>
+          </div>
+          ${canManageSettings ? `
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:1rem">
+            Company badge colors are configured at the site level in the database.
+            Contact your administrator to change badge colors.
+          </p>
+          ` : ''}
+        </div>
+
+        <div class="settings-card">
+          <h3>Badge Template</h3>
+          <div class="settings-row">
+            <span class="settings-label">Template Name:</span>
+            <span class="settings-value">Standard SIERRA Badge</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Dimensions:</span>
+            <span class="settings-value">85.6mm × 53.98mm</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Font Family:</span>
+            <span class="settings-value">Replica (Light / Regular / Bold)</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Barcode Format:</span>
+            <span class="settings-value">CODE128</span>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h3>User Permissions</h3>
+          <div class="settings-row">
+            <span class="settings-label">View Employees:</span>
+            <span class="settings-value">${can('read', 'talento_humano') ? '✓ Granted' : '✗ Denied'}</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Create Badges:</span>
+            <span class="settings-value">${can('write', 'talento_humano') ? '✓ Granted' : '✗ Denied'}</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Manage Settings:</span>
+            <span class="settings-value">${can('write', 'talento_humano') ? '✓ Granted' : '✗ Denied'}</span>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h3>Help & Documentation</h3>
+          <p style="margin:0;font-size:0.9rem;color:var(--text-secondary)">
+            The Administrative Badge Management system provides a complete workflow for creating,
+            printing, and tracking employee badges within your organization.
+          </p>
+          <ul style="margin:1rem 0 0 0;padding-left:1.5rem;font-size:0.9rem;color:var(--text-secondary)">
+            <li>Import employee data from Excel</li>
+            <li>Validate employee badge readiness</li>
+            <li>Generate official employee badges</li>
+            <li>Print badges with real barcodes</li>
+            <li>Maintain complete audit trail</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  `
 }
 
 function openSiteSwitcher() {
