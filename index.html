@@ -4495,13 +4495,15 @@
       font-size: 0.85rem;
     }
 
-    .import-map-row select {
+    .import-map-row select,
+    .import-map-row input[type="text"] {
       height: var(--control-h);
       padding: 0 12px;
       border: 1px solid var(--border-strong);
       background: var(--surface);
       border-radius: var(--control-radius);
       font-size: 0.85rem;
+      width: 100%;
     }
 
     #import-grid-body tr.import-row-error {
@@ -11914,6 +11916,7 @@ function renderBadgeModule() {
           ${_badge_ui.view === 'employees' ? renderEmployeesView() : ''}
           ${_badge_ui.view === 'badge-queue' ? renderBadgeQueueView() : ''}
           ${_badge_ui.view === 'history' ? renderHistoryView() : ''}
+          ${_badge_ui.view === 'companies' ? renderCompaniesView() : ''}
           ${_badge_ui.view === 'settings' ? renderSettingsView() : ''}
         </div>
       </div>
@@ -11951,6 +11954,7 @@ function renderBadgeNav() {
     { id: 'employees', label: 'Employees', icon: 'users' },
     { id: 'badge-queue', label: 'Badge Queue', icon: 'list' },
     { id: 'history', label: 'History', icon: 'clock' },
+    { id: 'companies', label: 'Companies', icon: 'building' },
     { id: 'settings', label: 'Settings', icon: 'gear' }
   ]
   return `
@@ -12221,6 +12225,113 @@ function renderSettingsView() {
   `
 }
 
+function renderCompaniesView() {
+  const canWrite = can('write', 'talento_humano')
+  const rows = _badge.countries.flatMap(country =>
+    (_badge.companies[country.id] || []).map(c => ({ ...c, countryName: country.name }))
+  )
+  return `
+    <div class="badge-companies-view">
+      <div class="badge-toolbar">
+        <div class="badge-toolbar-left">
+          ${canWrite ? `<button class="btn btn-primary" onclick="openCompanyEditor()">+ New Company</button>` : ''}
+        </div>
+      </div>
+      <div class="badge-table-wrap">
+        <table class="erp-table">
+          <thead>
+            <tr><th>Name</th><th>Legal Name</th><th>Country</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            ${rows.length ? rows.map(c => `
+              <tr>
+                <td>${esc(c.name)}</td>
+                <td>${esc(c.legal_name || '—')}</td>
+                <td>${esc(c.countryName)}</td>
+                <td style="text-align:right;padding-right:1rem">
+                  ${canWrite ? `
+                    <button class="btn btn-sm btn-ghost" onclick="openCompanyEditor('${c.id}')">Edit</button>
+                    <button class="btn btn-sm btn-ghost" onclick="deleteCompany('${c.id}')">Delete</button>
+                  ` : ''}
+                </td>
+              </tr>
+            `).join('') : `
+              <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-3)">No companies yet.</td></tr>
+            `}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `
+}
+
+function openCompanyEditor(id) {
+  const company = id ? Object.values(_badge.companies).flat().find(c => c.id === id) : null
+  const modal = document.createElement('div')
+  modal.className = 'modal-overlay'
+  modal.id = 'company-editor-modal'
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:480px">
+      <div class="modal-header">
+        <h2>${company ? 'Edit Company' : 'New Company'}</h2>
+        <button class="icon-btn icon-btn-quiet" onclick="closeCompanyEditor()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="import-map-row">
+          <label>Name *</label>
+          <input type="text" id="company-name" value="${esc(company?.name || '')}" />
+        </div>
+        <div class="import-map-row">
+          <label>Legal Name</label>
+          <input type="text" id="company-legal-name" value="${esc(company?.legal_name || '')}" />
+        </div>
+        <div class="import-map-row">
+          <label>Country *</label>
+          <select id="company-country">
+            <option value="">— Select —</option>
+            ${_badge.countries.map(c => `<option value="${c.id}" ${company?.country_id === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeCompanyEditor()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCompany('${company?.id || ''}')">Save</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
+  modal.onclick = (e) => e.target === modal && closeCompanyEditor()
+}
+
+function closeCompanyEditor() {
+  document.getElementById('company-editor-modal')?.remove()
+}
+
+async function saveCompany(id) {
+  const name = document.getElementById('company-name').value.trim()
+  const legal_name = document.getElementById('company-legal-name').value.trim()
+  const country_id = document.getElementById('company-country').value
+  if (!name || !country_id) { toast('Name and country are required'); return }
+  const payload = { name, legal_name: legal_name || null, country_id }
+  const { error } = id
+    ? await sb.from('companies').update(payload).eq('id', id)
+    : await sb.from('companies').insert(payload)
+  if (error) { toast('Error: ' + error.message); return }
+  closeCompanyEditor()
+  await loadBadgeData()
+  renderBadgeModule()
+  toast(id ? 'Company updated' : 'Company created')
+}
+
+async function deleteCompany(id) {
+  if (!confirm('Delete this company? Sites linked to it will be affected.')) return
+  const { error } = await sb.from('companies').delete().eq('id', id)
+  if (error) { toast('Error: ' + error.message); return }
+  await loadBadgeData()
+  renderBadgeModule()
+  toast('Company deleted')
+}
+
 function openSiteSwitcher() {
   const modal = document.createElement('div')
   modal.className = 'modal-overlay'
@@ -12292,7 +12403,12 @@ function viewEmployeeDetail(empId) {
       </div>
       <div class="drawer-body">
         <div class="employee-detail-content">
-          ${emp.photo_url ? `<img src="${emp.photo_url}" class="emp-detail-photo" />` : `<div class="emp-detail-photo-empty">${emp.first_name[0]}${emp.last_name[0]}</div>`}
+          ${can('write', 'talento_humano') ? `
+          <label style="cursor:pointer;display:inline-block" title="Change photo">
+            ${emp.photo_url ? `<img src="${emp.photo_url}" class="emp-detail-photo" />` : `<div class="emp-detail-photo-empty">${emp.first_name[0]}${emp.last_name[0]}</div>`}
+            <input type="file" accept="image/*" style="display:none" onchange="uploadEmployeeDetailPhoto('${emp.id}', this)" />
+          </label>
+          ` : (emp.photo_url ? `<img src="${emp.photo_url}" class="emp-detail-photo" />` : `<div class="emp-detail-photo-empty">${emp.first_name[0]}${emp.last_name[0]}</div>`)}
           <h2>${esc(emp.first_name)} ${esc(emp.last_name)}</h2>
           <p class="emp-detail-code"><code>${esc(emp.employee_code || 'No code')}</code></p>
 
@@ -12320,6 +12436,27 @@ function viewEmployeeDetail(empId) {
   `
   document.body.appendChild(drawer)
   setTimeout(() => drawer.classList.add('open'), 10)
+}
+
+async function uploadEmployeeDetailPhoto(empId, inputEl) {
+  const file = inputEl.files[0]
+  if (!file) return
+  if (!IMG_TYPES.includes(file.type)) { toast('Unsupported image type'); return }
+  if (file.size > IMG_MAX_MB * 1024 * 1024) { toast(`Image larger than ${IMG_MAX_MB} MB`); return }
+  toast('Uploading photo…')
+  const ext = file.name.split('.').pop()
+  const path = `employees/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const { error: upErr } = await sb.storage.from('product-images').upload(path, file, { contentType: file.type, upsert: false })
+  if (upErr) { toast('Upload error: ' + upErr.message); return }
+  const { data } = sb.storage.from('product-images').getPublicUrl(path)
+  const { error } = await sb.from('employees').update({ photo_url: data.publicUrl }).eq('id', empId)
+  if (error) { toast('Save error: ' + error.message); return }
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (emp) emp.photo_url = data.publicUrl
+  toast('Photo updated')
+  closeEmployeeDetail()
+  viewEmployeeDetail(empId)
+  renderBadgeModule()
 }
 
 function closeEmployeeDetail() {
@@ -12427,9 +12564,9 @@ const EMPLOYEE_IMPORT_FIELDS = [
   { key: 'last_name', label: 'Last Name', required: true },
   { key: 'department', label: 'Department' },
   { key: 'position', label: 'Position' },
-  { key: 'company', label: 'Company' },
+  { key: 'company', label: 'Company', type: 'select', dynamicOptions: 'companies' },
   { key: 'country', label: 'Country', type: 'select', options: PRODUCT_COUNTRIES },
-  { key: 'photo_url', label: 'Photo (URL)' },
+  { key: 'photo_url', label: 'Photo', type: 'photo' },
   { key: 'phone', label: 'Phone' },
   { key: 'email', label: 'Email' },
   { key: 'identification_type', label: 'ID Type' },
@@ -12550,6 +12687,40 @@ function revalidateImportGrid() {
   }
 }
 
+function importFieldOptions(f) {
+  if (f.dynamicOptions === 'companies') return [...new Set(Object.values(_badge.companies).flat().map(c => c.name))].sort()
+  return f.options || []
+}
+
+function renderImportPhotoCell(i, url) {
+  return `
+    <div class="import-photo-cell" id="import-photo-${i}" style="display:flex;align-items:center;gap:6px">
+      ${url ? `<img src="${esc(url)}" style="width:28px;height:28px;border-radius:6px;object-fit:cover" />` : ''}
+      <label class="btn btn-sm btn-ghost" style="cursor:pointer">
+        ${url ? 'Change' : 'Upload'}
+        <input type="file" accept="image/*" style="display:none" onchange="uploadImportPhoto(${i}, this)" />
+      </label>
+    </div>
+  `
+}
+
+async function uploadImportPhoto(i, inputEl) {
+  const file = inputEl.files[0]
+  if (!file) return
+  if (!IMG_TYPES.includes(file.type)) { toast('Unsupported image type'); return }
+  if (file.size > IMG_MAX_MB * 1024 * 1024) { toast(`Image larger than ${IMG_MAX_MB} MB`); return }
+  toast('Uploading photo…')
+  const ext = file.name.split('.').pop()
+  const path = `employees/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const { error: upErr } = await sb.storage.from('product-images').upload(path, file, { contentType: file.type, upsert: false })
+  if (upErr) { toast('Upload error: ' + upErr.message); return }
+  const { data } = sb.storage.from('product-images').getPublicUrl(path)
+  updateImportCell(i, 'photo_url', data.publicUrl)
+  const cell = document.getElementById(`import-photo-${i}`)
+  if (cell) cell.outerHTML = renderImportPhotoCell(i, data.publicUrl)
+  toast('Photo uploaded')
+}
+
 function renderImportGrid() {
   const mapped = _badge_ui.importData?.mapped || []
   const valid = mapped.filter(r => !r.errors.length).length
@@ -12567,10 +12738,12 @@ function renderImportGrid() {
             ${mapped.map((r, i) => `
               <tr class="${r.errors.length ? 'import-row-error' : ''}" title="${esc(r.errors.join('; '))}">
                 ${EMPLOYEE_IMPORT_FIELDS.map(f => `
-                  <td>${f.type === 'select'
+                  <td>${f.type === 'photo'
+                    ? renderImportPhotoCell(i, r.data[f.key])
+                    : f.type === 'select'
                     ? `<select onchange="updateImportCell(${i},'${f.key}',this.value); revalidateImportGrid()">
                         <option value="">—</option>
-                        ${f.options.map(o => `<option value="${esc(o)}" ${r.data[f.key] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+                        ${importFieldOptions(f).map(o => `<option value="${esc(o)}" ${r.data[f.key] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}
                       </select>`
                     : `<input type="text" value="${esc(r.data[f.key] || '')}" oninput="updateImportCell(${i},'${f.key}',this.value)" onblur="revalidateImportGrid()" />`
                   }</td>
