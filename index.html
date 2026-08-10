@@ -12270,6 +12270,7 @@ function renderBadgeQueueView() {
               <td>
                 ${canWrite && emp ? `<button class="btn btn-sm btn-ghost" onclick="openQueuedBadge('${badge.id}')">Edit</button>` : ''}
                 ${canWrite && emp ? `<button class="btn btn-sm btn-primary" onclick="openQueuedBadge('${badge.id}')" ${!readiness.ready ? 'disabled title="Missing required data — open to review"' : ''}>Print</button>` : ''}
+                ${canWrite ? `<button class="btn btn-sm btn-ghost" style="color:var(--danger)" onclick="startCancelBadgeFlow('${badge.id}')">Cancel</button>` : ''}
               </td>
             </tr>
             `
@@ -12318,7 +12319,11 @@ function renderHistoryView() {
               <td>${badge.reprint_reason ? esc(reprintReasonLabel(badge.reprint_reason)) : '—'}</td>
               <td>
                 <button class="btn btn-sm btn-ghost" onclick="viewBadgeDetail('${badge.id}')">View</button>
-                ${isActive && can('write', 'talento_humano') ? `<button class="btn btn-sm btn-ghost" onclick="startReprintFlow('${emp.id}', '${badge.id}')">Reprint</button>` : ''}
+                ${isActive && can('write', 'talento_humano') ? `
+                  ${badge.status === 'printed' ? `<button class="btn btn-sm btn-ghost" onclick="deliverBadge('${badge.id}')">Deliver</button>` : ''}
+                  <button class="btn btn-sm btn-ghost" onclick="startReprintFlow('${emp.id}', '${badge.id}')">Reprint</button>
+                  <button class="btn btn-sm btn-ghost" style="color:var(--danger)" onclick="startCancelBadgeFlow('${badge.id}')">Cancel</button>
+                ` : ''}
               </td>
             </tr>
             `
@@ -13095,6 +13100,7 @@ function startBadgeIssuance(empId) {
 }
 
 function showActiveBadgePanel(emp, badge) {
+  const canWrite = can('write', 'talento_humano')
   const modal = document.createElement('div')
   modal.className = 'modal-overlay'
   modal.id = 'active-badge-modal'
@@ -13109,12 +13115,15 @@ function showActiveBadgePanel(emp, badge) {
         <div class="detail-section" style="margin-top:1rem">
           <div class="detail-row"><span class="detail-label">Status</span><span class="badge badge-${badge.status}">${badge.status}</span></div>
           <div class="detail-row"><span class="detail-label">Printed</span><span class="detail-value">${badge.printed_at ? new Date(badge.printed_at).toLocaleString() : '—'}</span></div>
+          ${badge.status === 'delivered' ? `<div class="detail-row"><span class="detail-label">Delivered</span><span class="detail-value">${badge.delivered_at ? new Date(badge.delivered_at).toLocaleString() : '—'} by ${esc(badgeActorName(badge.delivered_by))}</span></div>` : ''}
           ${badge.is_reprint ? `<div class="detail-row"><span class="detail-label">Reprint reason</span><span class="detail-value">${esc(reprintReasonLabel(badge.reprint_reason))}</span></div>` : ''}
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer" style="flex-wrap:wrap">
         <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove(); viewBadgeDetail('${badge.id}')">View Badge</button>
-        ${can('write', 'talento_humano') ? `<button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove(); startReprintFlow('${emp.id}', '${badge.id}')">Reprint</button>` : ''}
+        ${canWrite ? `<button class="btn btn-danger" onclick="startCancelBadgeFlow('${badge.id}')">Cancel Badge</button>` : ''}
+        ${canWrite && badge.status === 'printed' ? `<button class="btn btn-secondary" onclick="deliverBadge('${badge.id}')">Mark Delivered</button>` : ''}
+        ${canWrite ? `<button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove(); startReprintFlow('${emp.id}', '${badge.id}')">Reprint</button>` : ''}
       </div>
     </div>
   `
@@ -13168,6 +13177,59 @@ function confirmReprintReason(empId, previousBadgeId) {
     draftIssuanceId: null, isReprint: true, reprintReason: reason, originalIssuanceId: previousBadgeId,
   }
   showBadgeIssuanceWorkspace()
+}
+
+async function deliverBadge(badgeId) {
+  if (!confirm('Mark this badge as delivered to the employee?')) return
+  const { error } = await sb.from('badge_issuances').update({
+    status: 'delivered', delivered_at: new Date().toISOString(), delivered_by: me.id, updated_at: new Date().toISOString(),
+  }).eq('id', badgeId)
+  if (error) { toast('Error: ' + error.message); return }
+  await logBadgeEvent(badgeId, 'delivered', `Delivered by ${esc(profile?.full_name || 'user')}`)
+  document.getElementById('active-badge-modal')?.remove()
+  toast('Badge marked as delivered')
+  await loadBadgeData()
+  renderBadgeModule()
+}
+
+function startCancelBadgeFlow(badgeId) {
+  const modal = document.createElement('div')
+  modal.className = 'modal-overlay'
+  modal.id = 'cancel-badge-modal'
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:420px">
+      <div class="modal-header"><h2>Cancel Badge</h2></div>
+      <div class="modal-body">
+        <p>Cancelling requires a reason. The record is kept for audit — it is never deleted.</p>
+        <div class="fg full">
+          <label style="display:block;font-size:0.8rem;font-weight:500;margin-bottom:6px">Reason</label>
+          <textarea id="cancel-reason-input" rows="3" style="width:100%;padding:10px 12px;border:1px solid var(--border-strong);background:var(--surface);border-radius:var(--control-radius);font-size:0.85rem;font-family:inherit;resize:vertical" placeholder="Why is this badge being cancelled?"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Back</button>
+        <button class="btn btn-danger" onclick="confirmCancelBadge('${badgeId}')">Cancel Badge</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
+  modal.onclick = (e) => e.target === modal && modal.remove()
+}
+
+async function confirmCancelBadge(badgeId) {
+  const reason = document.getElementById('cancel-reason-input')?.value.trim()
+  if (!reason) { toast('A cancellation reason is required'); return }
+  const { error } = await sb.from('badge_issuances').update({
+    status: 'cancelled', cancelled_at: new Date().toISOString(), cancelled_by: me.id,
+    cancellation_reason: reason, updated_at: new Date().toISOString(),
+  }).eq('id', badgeId)
+  if (error) { toast('Error: ' + error.message); return }
+  await logBadgeEvent(badgeId, 'cancelled', `Cancelled by ${esc(profile?.full_name || 'user')} — ${esc(reason)}`, { reason })
+  document.getElementById('cancel-badge-modal')?.remove()
+  document.getElementById('active-badge-modal')?.remove()
+  toast('Badge cancelled')
+  await loadBadgeData()
+  renderBadgeModule()
 }
 
 function openQueuedBadge(badgeId) {
