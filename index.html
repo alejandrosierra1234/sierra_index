@@ -4504,6 +4504,35 @@
       font-size: 0.85rem;
     }
 
+    #import-grid-body tr.import-row-error {
+      background: rgba(255, 69, 58, 0.06);
+    }
+
+    #import-grid-body td input,
+    #import-grid-body td select {
+      width: 100%;
+      min-width: 110px;
+      border: 1px solid transparent;
+      background: transparent;
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-size: 0.76rem;
+      font-family: inherit;
+      color: inherit;
+    }
+
+    #import-grid-body td input:hover,
+    #import-grid-body td select:hover {
+      border-color: var(--border);
+    }
+
+    #import-grid-body td input:focus,
+    #import-grid-body td select:focus {
+      border-color: var(--accent);
+      background: var(--surface);
+      outline: none;
+    }
+
     .btn-link {
       background: none;
       border: none;
@@ -12312,12 +12341,12 @@ function renderImportModal() {
   const modal = document.createElement('div')
   modal.className = 'modal-overlay'
   modal.id = 'badge-import-modal'
+  const wide = _badge_ui.importStep === 'grid'
   modal.innerHTML = `
-    <div class="modal-content" style="max-width:600px">
+    <div class="modal-content" style="max-width:${wide ? '96vw' : '600px'}">
       ${_badge_ui.importStep === 'upload' ? renderImportUpload() : ''}
       ${_badge_ui.importStep === 'map' ? renderImportMap() : ''}
-      ${_badge_ui.importStep === 'validate' ? renderImportValidate() : ''}
-      ${_badge_ui.importStep === 'review' ? renderImportReview() : ''}
+      ${_badge_ui.importStep === 'grid' ? renderImportGrid() : ''}
     </div>
   `
   document.body.appendChild(modal)
@@ -12391,153 +12420,203 @@ function handleImportDrop(e) {
   }
 }
 
+const IMPORT_REQUIRED_FIELDS = ['employee_code', 'first_name', 'last_name']
+const EMPLOYEE_IMPORT_FIELDS = [
+  { key: 'employee_code', label: 'Code', required: true },
+  { key: 'first_name', label: 'First Name', required: true },
+  { key: 'last_name', label: 'Last Name', required: true },
+  { key: 'department', label: 'Department' },
+  { key: 'position', label: 'Position' },
+  { key: 'company', label: 'Company' },
+  { key: 'country', label: 'Country', type: 'select', options: PRODUCT_COUNTRIES },
+  { key: 'photo_url', label: 'Photo (URL)' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'email', label: 'Email' },
+  { key: 'identification_type', label: 'ID Type' },
+  { key: 'identification_number', label: 'ID Number' },
+  { key: 'emergency_contact_name', label: 'Emergency Contact' },
+  { key: 'emergency_contact_phone', label: 'Emergency Phone' },
+  { key: 'emergency_contact_relationship', label: 'Relationship' },
+  { key: 'blood_type', label: 'Blood Type' },
+  { key: 'health_conditions', label: 'Health Conditions' },
+]
+
 function renderImportMap() {
   if (!_badge_ui.importData) return ''
-  const { headers, rows } = _badge_ui.importData
+  const { headers } = _badge_ui.importData
   return `
     <div class="modal-header">
       <h2>Map Columns</h2>
     </div>
     <div class="modal-body">
-      <p>Match your Excel columns to employee fields.</p>
-      ${['employee_code', 'first_name', 'last_name', 'department', 'position'].map(field => {
-        const guess = headers.find(h => h.toLowerCase().replace(/[^a-z]/g, '') === field.replace(/_/g, ''))
-        return `
-        <div class="import-map-row">
-          <label>${field.replace(/_/g, ' ')}${IMPORT_REQUIRED_FIELDS.includes(field) ? ' *' : ''}</label>
-          <select id="map-${field}">
-            <option value="">— Select column —</option>
-            ${headers.map(h => `<option value="${esc(h)}" ${h === guess ? 'selected' : ''}>${esc(h)}</option>`).join('')}
-          </select>
-        </div>
-      `}).join('')}
+      <p>Match your Excel columns to employee fields. Unmapped fields can still be filled in by hand on the next screen.</p>
+      <div style="max-height:400px;overflow-y:auto">
+        ${EMPLOYEE_IMPORT_FIELDS.map(f => {
+          const guess = headers.find(h => h.toLowerCase().replace(/[^a-z]/g, '') === f.key.replace(/_/g, ''))
+          return `
+          <div class="import-map-row">
+            <label>${esc(f.label)}${f.required ? ' *' : ''}</label>
+            <select id="map-${f.key}">
+              <option value="">— Select column —</option>
+              ${headers.map(h => `<option value="${esc(h)}" ${h === guess ? 'selected' : ''}>${esc(h)}</option>`).join('')}
+            </select>
+          </div>
+        `}).join('')}
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="proceedToValidation()">Next: Validate</button>
+      <button class="btn btn-primary" onclick="proceedToGrid()">Next: Review &amp; Edit</button>
     </div>
   `
 }
 
-const IMPORT_REQUIRED_FIELDS = ['employee_code', 'first_name', 'last_name']
+function importRowErrors(data, codeCounts, dbDupes) {
+  const errors = []
+  if (!data.employee_code) errors.push('Code is required')
+  if (!data.first_name) errors.push('First Name is required')
+  if (!data.last_name) errors.push('Last Name is required')
+  if (data.employee_code) {
+    const key = data.employee_code.toLowerCase()
+    if (codeCounts.get(key) > 1) errors.push(`duplicate Code "${data.employee_code}" in file`)
+    else if (dbDupes.has(key)) errors.push(`Code "${data.employee_code}" already exists at this site`)
+  }
+  return errors
+}
 
-async function proceedToValidation() {
+async function proceedToGrid() {
   if (!_badge_ui.importData) return
-  // Get column mappings
   const mapping = {}
-  ;['employee_code', 'first_name', 'last_name', 'department', 'position'].forEach(field => {
-    const sel = document.getElementById(`map-${field}`)
-    mapping[field] = sel?.value || null
+  EMPLOYEE_IMPORT_FIELDS.forEach(f => {
+    const sel = document.getElementById(`map-${f.key}`)
+    mapping[f.key] = sel?.value || null
   })
   const missing = IMPORT_REQUIRED_FIELDS.filter(f => !mapping[f])
   if (missing.length) { toast(`Map a column to: ${missing.join(', ')}`); return }
   _badge_ui.importData.mapping = mapping
 
-  // Apply mapping to build normalized rows
-  const seen = new Set()
-  const codes = _badge_ui.importData.rows.map(r => (r[mapping.employee_code] || '').trim()).filter(Boolean)
+  const codes = _badge_ui.importData.rows.map(row => (row[mapping.employee_code] || '').trim()).filter(Boolean)
   let dbDupes = new Set()
   if (_badge.activeSite && codes.length) {
     const { data } = await sb.from('employees').select('employee_code').eq('site_id', _badge.activeSite).in('employee_code', codes)
     dbDupes = new Set((data || []).map(r => (r.employee_code || '').toLowerCase()))
   }
-  _badge_ui.importData.mapped = _badge_ui.importData.rows.map((row, i) => {
-    const errors = []
-    const employee_code = (row[mapping.employee_code] || '').trim()
-    const first_name = (row[mapping.first_name] || '').trim()
-    const last_name = (row[mapping.last_name] || '').trim()
-    const department = mapping.department ? (row[mapping.department] || '').trim() : ''
-    const position = mapping.position ? (row[mapping.position] || '').trim() : ''
-    if (!employee_code) errors.push('Employee Code is required')
-    if (!first_name) errors.push('First Name is required')
-    if (!last_name) errors.push('Last Name is required')
-    if (employee_code) {
-      const key = employee_code.toLowerCase()
-      if (seen.has(key)) errors.push(`duplicate Employee Code "${employee_code}" in file`)
-      else if (dbDupes.has(key)) errors.push(`Employee Code "${employee_code}" already exists at this site`)
-      seen.add(key)
-    }
-    return { n: i + 2, errors, data: { employee_code, first_name, last_name, department: department || null, position: position || null } }
+  _badge_ui.importData.dbDupes = dbDupes
+
+  const records = _badge_ui.importData.rows.map(row => {
+    const data = {}
+    EMPLOYEE_IMPORT_FIELDS.forEach(f => { data[f.key] = mapping[f.key] ? (row[mapping[f.key]] || '').trim() : '' })
+    return data
   })
-  _badge_ui.importStep = 'validate'
+  _badge_ui.importData.mapped = records.map((data, i) => ({ n: i + 2, data, errors: [] }))
+  revalidateAllImportRows()
+  _badge_ui.importStep = 'grid'
   closeImportModal()
   renderImportModal()
 }
 
-function renderImportValidate() {
+function revalidateAllImportRows() {
   const mapped = _badge_ui.importData?.mapped || []
-  const valid = mapped.filter(r => !r.errors.length)
-  const bad = mapped.filter(r => r.errors.length)
-  return `
-    <div class="modal-header">
-      <h2>Validate Records</h2>
-    </div>
-    <div class="modal-body">
-      <p>Validated ${mapped.length} employee${mapped.length === 1 ? '' : 's'}: <strong>${valid.length}</strong> ready, <strong>${bad.length}</strong> with errors.</p>
-      ${bad.length ? `
-        <div class="form-errors" style="max-height:180px;overflow-y:auto">
-          <div class="form-errors-title">Rows with errors (will be skipped)</div>
-          <ul>${bad.slice(0, 10).map(r => `<li>Row ${r.n}: ${esc(r.errors.join('; '))}</li>`).join('')}</ul>
-          ${bad.length > 10 ? `<div style="font-size:0.7rem;color:var(--text-3);margin-top:0.3rem">…and ${bad.length - 10} more.</div>` : ''}
-        </div>` : ''}
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
-      <button class="btn btn-primary" ${valid.length ? '' : 'disabled'} onclick="proceedToReview()">Next: Review Changes</button>
-    </div>
-  `
+  const dbDupes = _badge_ui.importData?.dbDupes || new Set()
+  const codeCounts = new Map()
+  mapped.forEach(r => {
+    const key = (r.data.employee_code || '').toLowerCase()
+    if (key) codeCounts.set(key, (codeCounts.get(key) || 0) + 1)
+  })
+  mapped.forEach(r => { r.errors = importRowErrors(r.data, codeCounts, dbDupes) })
 }
 
-function proceedToReview() {
-  _badge_ui.importStep = 'review'
-  closeImportModal()
-  renderImportModal()
+function updateImportCell(i, key, value) {
+  const r = _badge_ui.importData?.mapped?.[i]
+  if (!r) return
+  r.data[key] = value
 }
 
-function renderImportReview() {
+function revalidateImportGrid() {
+  revalidateAllImportRows()
   const mapped = _badge_ui.importData?.mapped || []
-  const valid = mapped.filter(r => !r.errors.length)
+  document.querySelectorAll('#import-grid-body tr').forEach((tr, i) => {
+    const bad = mapped[i]?.errors.length > 0
+    tr.classList.toggle('import-row-error', bad)
+    tr.title = mapped[i]?.errors.join('; ') || ''
+  })
+  const valid = mapped.filter(r => !r.errors.length).length
+  const summary = document.getElementById('import-grid-summary')
+  if (summary) summary.textContent = `${valid} of ${mapped.length} row${mapped.length === 1 ? '' : 's'} ready to import`
+  const commitBtn = document.getElementById('import-grid-commit')
+  if (commitBtn) {
+    commitBtn.disabled = !valid
+    commitBtn.textContent = `Import ${valid} Employee${valid === 1 ? '' : 's'}`
+  }
+}
+
+function renderImportGrid() {
+  const mapped = _badge_ui.importData?.mapped || []
+  const valid = mapped.filter(r => !r.errors.length).length
   return `
     <div class="modal-header">
-      <h2>Review Changes</h2>
+      <h2>Review &amp; Edit</h2>
+      <button class="icon-btn icon-btn-quiet" onclick="closeImportModal()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
     </div>
     <div class="modal-body">
-      <p>Preview of employees to be imported (${valid.length} valid row${valid.length === 1 ? '' : 's'}):</p>
-      <div style="max-height:400px;overflow-y:auto">
-        <table class="erp-table" style="font-size:0.8rem">
-          <thead>
-            <tr><th>Action</th><th>Code</th><th>Name</th><th>Department</th></tr>
-          </thead>
-          <tbody>
-            ${valid.slice(0, 10).map(r => `
-              <tr>
-                <td><span class="badge badge-info">New</span></td>
-                <td><code>${esc(r.data.employee_code)}</code></td>
-                <td>${esc(r.data.first_name)} ${esc(r.data.last_name)}</td>
-                <td>${esc(r.data.department || '—')}</td>
+      <p>Edit any cell directly to fix or complete a record before importing. Rows with errors are highlighted and will be skipped.</p>
+      <div style="max-height:60vh;overflow:auto;border:1px solid var(--border);border-radius:8px">
+        <table class="erp-table" style="font-size:0.76rem;white-space:nowrap">
+          <thead><tr>${EMPLOYEE_IMPORT_FIELDS.map(f => `<th>${esc(f.label)}${f.required ? ' *' : ''}</th>`).join('')}</tr></thead>
+          <tbody id="import-grid-body">
+            ${mapped.map((r, i) => `
+              <tr class="${r.errors.length ? 'import-row-error' : ''}" title="${esc(r.errors.join('; '))}">
+                ${EMPLOYEE_IMPORT_FIELDS.map(f => `
+                  <td>${f.type === 'select'
+                    ? `<select onchange="updateImportCell(${i},'${f.key}',this.value); revalidateImportGrid()">
+                        <option value="">—</option>
+                        ${f.options.map(o => `<option value="${esc(o)}" ${r.data[f.key] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+                      </select>`
+                    : `<input type="text" value="${esc(r.data[f.key] || '')}" oninput="updateImportCell(${i},'${f.key}',this.value)" onblur="revalidateImportGrid()" />`
+                  }</td>
+                `).join('')}
               </tr>
             `).join('')}
           </tbody>
         </table>
-        ${valid.length > 10 ? `<div style="font-size:0.7rem;color:var(--text-3);margin-top:0.3rem">…and ${valid.length - 10} more.</div>` : ''}
       </div>
+      <div id="import-grid-summary" style="font-size:0.78rem;color:var(--text-2);margin-top:0.5rem">${valid} of ${mapped.length} row${mapped.length === 1 ? '' : 's'} ready to import</div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
-      <button class="btn btn-primary" ${valid.length ? '' : 'disabled'} onclick="commitImport()">Import ${valid.length} Employee${valid.length === 1 ? '' : 's'}</button>
+      <button class="btn btn-primary" id="import-grid-commit" ${valid ? '' : 'disabled'} onclick="commitImport()">Import ${valid} Employee${valid === 1 ? '' : 's'}</button>
     </div>
   `
 }
 
 async function commitImport() {
   if (!_badge_ui.importData || !_badge.activeSite) return
+  revalidateAllImportRows()
   const valid = (_badge_ui.importData.mapped || []).filter(r => !r.errors.length)
   if (!valid.length) return
   toast('Importing… This may take a moment.')
   let ok = 0, failed = 0
   for (let i = 0; i < valid.length; i += 50) {
-    const chunk = valid.slice(i, i + 50).map(r => ({ ...r.data, site_id: _badge.activeSite, created_by: me.id }))
-    const { error } = await sb.from('employees').insert(chunk)
+    const chunk = valid.slice(i, i + 50).map(r => {
+      const d = r.data
+      return {
+        employee_code: d.employee_code, first_name: d.first_name, last_name: d.last_name,
+        department: d.department || null, position: d.position || null,
+        company: d.company || null, country: d.country || null,
+        photo_url: d.photo_url || null, phone: d.phone || null, email: d.email || null,
+        identification_type: d.identification_type || null, identification_number: d.identification_number || null,
+        emergency_contact_name: d.emergency_contact_name || null, emergency_contact_phone: d.emergency_contact_phone || null,
+        emergency_contact_relationship: d.emergency_contact_relationship || null,
+        blood_type: d.blood_type || null, health_conditions: d.health_conditions || null,
+        site_id: _badge.activeSite, created_by: me.id,
+      }
+    })
+    let error = null
+    for (let tries = 0; tries < 4; tries++) {
+      ;({ error } = await sb.from('employees').insert(chunk))
+      if (!error) break
+      if (!dropMissingProductColumn(error, chunk)) break
+    }
     if (error) failed += chunk.length; else ok += chunk.length
   }
   Audit.log('user', me.id, null, 'employees_imported',
