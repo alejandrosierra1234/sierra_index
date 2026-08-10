@@ -4551,27 +4551,42 @@
        BADGE ISSUANCE WORKSPACE
        ══════════════════════════════════════════════════════════════ */
 
+    /* Badge workspace — a dedicated in-app page (renderBadgeIssuanceView),
+       never a modal. Fills the module's main panel; the global shell
+       (sidebar/topbar/site switcher) stays visible around it. */
     .badge-issuance-workspace {
       display: flex;
       flex-direction: column;
-      width: 90vw;
-      max-width: 1400px;
-      height: 85vh;
-      max-height: 900px;
-      background: var(--surface);
-      border-radius: var(--r-lg);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      overflow: hidden;
-      animation: slideUp 0.3s var(--ease-out);
+      width: 100%;
+      min-height: calc(100vh - 220px);
+      background: transparent;
     }
+
+    .issuance-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      align-self: flex-start;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 0.4rem 0;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+    }
+    .issuance-back:hover { color: var(--text-primary); }
 
     .issuance-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 1.5rem;
+      gap: 1rem;
+      padding-bottom: 1rem;
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
+      margin-bottom: var(--section-gap);
     }
 
     .issuance-title {
@@ -4579,14 +4594,27 @@
       font-weight: 600;
     }
 
+    .issuance-subtitle {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      margin-top: 0.2rem;
+    }
+
+    .issuance-header-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
     .issuance-content {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(300px, 38%) 1fr;
       gap: var(--content-gap);
       flex: 1;
       min-height: 0;
-      padding: var(--section-gap);
-      overflow-y: auto;
+    }
+    @media (max-width: 980px) {
+      .issuance-content { grid-template-columns: 1fr; }
     }
 
     .issuance-data-panel {
@@ -11948,13 +11976,14 @@ function renderBadgeModule() {
 
   pg.innerHTML = `
     <div class="badge-module-root">
-      ${renderBadgeTabs()}
+      ${_badge_ui.view === 'issuance' ? '' : renderBadgeTabs()}
       <div class="badge-main-panel">
         ${_badge_ui.view === 'employees' ? renderEmployeesView() : ''}
         ${_badge_ui.view === 'badge-queue' ? renderBadgeQueueView() : ''}
         ${_badge_ui.view === 'history' ? renderHistoryView() : ''}
         ${_badge_ui.view === 'companies' ? renderCompaniesView() : ''}
         ${_badge_ui.view === 'settings' ? renderSettingsView() : ''}
+        ${_badge_ui.view === 'issuance' ? renderBadgeIssuanceView() : ''}
       </div>
     </div>
   `
@@ -13351,13 +13380,15 @@ function startBadgeIssuance(empId) {
     return
   }
 
-  // Show badge issuance workspace
+  // Navigate to the dedicated badge workspace (a page, not a modal) —
+  // the global app shell (sidebar, topbar, site switcher) stays visible.
   _badge_ui.issuanceInProgress = {
     employee_id: empId,
     status: 'draft',
     preview_side: 'front'
   }
-  showBadgeIssuanceWorkspace()
+  _badge_ui.view = 'issuance'
+  renderBadgeModule()
 }
 
 function checkBadgeReadiness(emp) {
@@ -13410,20 +13441,32 @@ function showBadgeReadinessWarning(emp, readiness) {
   modal.onclick = (e) => e.target === modal && modal.remove()
 }
 
-function showBadgeIssuanceWorkspace() {
+/* ── Badge workspace — a dedicated in-app page (never a modal). The
+   global shell (sidebar, topbar, site switcher) stays visible; only the
+   section tabs are hidden while this view is active, replaced by the
+   "← Colaboradores" back link. Rendered inline in #pg like every other
+   badge view so it shares the same render/state cycle. ── */
+function renderBadgeIssuanceView() {
   const issuance = _badge_ui.issuanceInProgress
-  const emp = _badge.employees.find(e => e.id === issuance.employee_id)
-  if (!emp) return
-
-  const modal = document.createElement('div')
-  modal.className = 'modal-overlay'
-  modal.id = 'badge-issuance-modal'
-  modal.style.background = 'rgba(0,0,0,0.3)'
-  modal.innerHTML = `
+  const emp = issuance && _badge.employees.find(e => e.id === issuance.employee_id)
+  if (!emp) { _badge_ui.view = 'employees'; return renderEmployeesView() }
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const subtitleParts = [emp.employee_code, site?.name, emp.department].filter(Boolean)
+  return `
     <div class="badge-issuance-workspace">
+      <button type="button" class="issuance-back" onclick="closeBadgeIssuance()">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M12.5 4.5L6 10l6.5 5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Colaboradores
+      </button>
       <div class="issuance-header">
-        <div class="issuance-title">Crear gafete: ${esc(emp.first_name)} ${esc(emp.last_name)}</div>
-        <button class="icon-btn icon-btn-quiet" onclick="closeBadgeIssuance()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+        <div>
+          <div class="issuance-title">Crear gafete</div>
+          <div class="issuance-subtitle">${esc(emp.first_name)} ${esc(emp.last_name)}${subtitleParts.length ? ' · ' + esc(subtitleParts.join(' · ')) : ''}</div>
+        </div>
+        <div class="issuance-header-actions">
+          <button class="btn btn-secondary" onclick="closeBadgeIssuance()">Cancelar</button>
+          <button class="btn btn-primary" onclick="printBadge()">Imprimir gafete</button>
+        </div>
       </div>
 
       <div class="issuance-content">
@@ -13437,15 +13480,8 @@ function showBadgeIssuanceWorkspace() {
           ${renderBadgePreview(emp)}
         </div>
       </div>
-
-      <div class="issuance-footer">
-        <button class="btn btn-secondary" onclick="closeBadgeIssuance()">Cancelar</button>
-        <button class="btn btn-primary" onclick="printBadge()">Imprimir gafete</button>
-      </div>
     </div>
   `
-  document.body.appendChild(modal)
-  modal.onclick = (e) => e.target === modal && closeBadgeIssuance()
 }
 
 function renderBadgeDataPanel(emp) {
@@ -13537,10 +13573,10 @@ function renderBadgePreview(emp) {
   return `
     <div class="badge-preview-container">
       <div class="badge-preview-tabs">
-        <button class="preview-tab ${issuance.preview_side === 'front' ? 'active' : ''}" onclick="_badge_ui.issuanceInProgress.preview_side = 'front'; showBadgeIssuanceWorkspace()">
+        <button class="preview-tab ${issuance.preview_side === 'front' ? 'active' : ''}" onclick="_badge_ui.issuanceInProgress.preview_side = 'front'; renderBadgeModule()">
           Frente
         </button>
-        <button class="preview-tab ${issuance.preview_side === 'back' ? 'active' : ''}" onclick="_badge_ui.issuanceInProgress.preview_side = 'back'; showBadgeIssuanceWorkspace()">
+        <button class="preview-tab ${issuance.preview_side === 'back' ? 'active' : ''}" onclick="_badge_ui.issuanceInProgress.preview_side = 'back'; renderBadgeModule()">
           Reverso
         </button>
       </div>
@@ -13645,12 +13681,9 @@ function zoomBadgePreview(factor) {
 }
 
 function closeBadgeIssuance() {
-  const modal = document.getElementById('badge-issuance-modal')
-  if (modal) {
-    modal.style.animation = 'slideDown 0.3s var(--ease-out)'
-    setTimeout(() => modal.remove(), 300)
-  }
   _badge_ui.issuanceInProgress = null
+  _badge_ui.view = 'employees'
+  renderBadgeModule()
 }
 
 async function printBadge() {
