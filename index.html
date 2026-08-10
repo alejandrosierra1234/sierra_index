@@ -5399,7 +5399,18 @@
         <div class="fg full"><label>Product name</label><input type="text" id="np-name" placeholder="e.g. Double Knit Plain Scuba" /></div>
         <div class="fg"><label>Mill article</label><input type="text" id="np-code" placeholder="e.g. S-328" /></div>
         <div class="fg"><label>LOT</label><input type="text" id="np-lot" placeholder="e.g. NT25-DKPS511" /></div>
-        <div class="fg full"><label>Manufactured in</label><input type="text" id="np-country" placeholder="Honduras" /></div>
+        <div class="fg full"><label>Company</label><input type="text" id="np-company" placeholder="e.g. Sierra Textiles S.A." /></div>
+        <div class="fg full"><label>Manufactured in</label>
+          <select id="np-country">
+            <option value="Guatemala">Guatemala</option>
+            <option value="Honduras">Honduras</option>
+            <option value="El Salvador">El Salvador</option>
+            <option value="Nicaragua">Nicaragua</option>
+            <option value="Turquía">Turquía</option>
+            <option value="Bangladesh">Bangladesh</option>
+            <option value="India">India</option>
+          </select>
+        </div>
         <div class="fg full"><label>Lifecycle status</label>
           <select id="np-lifecycle">
             <option value="draft">Draft</option>
@@ -5835,6 +5846,7 @@ function applyDivisionAccent(d) {
   document.documentElement.style.setProperty('--accent-rgb', rgb)
 }
 const DIV_LBL = { fiber:'SIERRA Fiber', yarn:'SIERRA Yarn', fabric:'SIERRA Fabric', chemicals:'SIERRA Chemicals', garment:'SIERRA Apparel' }
+const PRODUCT_COUNTRIES = ['Guatemala', 'Honduras', 'El Salvador', 'Nicaragua', 'Turquía', 'Bangladesh', 'India']
 
 const DIV_ICON = {
   all:       `<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/></svg>`,
@@ -9774,7 +9786,7 @@ function openAdd() {
   const fmtNew = document.getElementById('np-formats'); if (fmtNew) fmtNew.value = ''
   const docNew = document.getElementById('np-docs'); if (docNew) docNew.value = ''
   document.getElementById('add-modal-title').textContent = 'New product'
-  ;['np-name','np-code','np-lot','np-country'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
+  ;['np-name','np-code','np-lot','np-company'].forEach(id => { const el = document.getElementById(id); if (el) el.value = '' })
   document.getElementById('np-country').value = 'Honduras'
   const lcSelNew = document.getElementById('np-lifecycle'); if (lcSelNew) lcSelNew.value = 'available'
   document.getElementById('np-div').value = division !== 'all' ? division : 'fabric'
@@ -9847,6 +9859,7 @@ function openEdit(p, section) {
   document.getElementById('np-name').value = p.name || ''
   document.getElementById('np-code').value = p.code || ''
   document.getElementById('np-lot').value = p.lot || ''
+  document.getElementById('np-company').value = p.company || ''
   document.getElementById('np-country').value = p.country || 'Honduras'
   const lcSel = document.getElementById('np-lifecycle'); if (lcSel) lcSel.value = lc(p)
   const fmtEl = document.getElementById('np-formats'); if (fmtEl) fmtEl.value = p.specs?.['Sample Formats'] || ''
@@ -10557,6 +10570,7 @@ async function saveProduct() {
     name, division: div,
     code: codeVal,
     lot: document.getElementById('np-lot').value.trim() || null,
+    company: document.getElementById('np-company').value.trim() || null,
     country: document.getElementById('np-country').value.trim() || 'Honduras',
     description, specs, tags, image_url, image_urls,
     lifecycle: document.getElementById('np-lifecycle')?.value || 'available',
@@ -17584,7 +17598,7 @@ async function restorePdVersion(no) {
   if (!confirm(`Restore "${p.name}" to Version ${no}? A new version will be created — history is never deleted.`)) return
   const s = v.snapshot || {}
   const payload = {}
-  ;['name','code','lot','country','description','specs','tags','image_url','image_urls','lifecycle'].forEach(k => {
+  ;['name','code','lot','company','country','description','specs','tags','image_url','image_urls','lifecycle'].forEach(k => {
     if (k in s) payload[k] = s[k]
   })
   let { error } = await sb.from('products').update(payload).eq('id', p.id)
@@ -18567,11 +18581,11 @@ function insExport(kind) {
    the editor before anything is written. Nothing publishes automatically:
    imports land as Draft unless "publish" is explicitly checked. */
 const IMPORT_TEMPLATES = {
-  fiber:     ['name','code','lot','country','description','tags'],
-  yarn:      ['name','code','lot','country','description','tags'],
-  chemicals: ['name','code','lot','country','description','tags'],
-  garment:   ['name','code','lot','country','description','tags'],
-  fabric:    ['name','code','lot','country','construction','composition','color','width','gsm','tags'],
+  fiber:     ['name','code','lot','company','country','description','tags','photo'],
+  yarn:      ['name','code','lot','company','country','description','tags','photo'],
+  chemicals: ['name','code','lot','company','country','description','tags','photo'],
+  garment:   ['name','code','lot','company','country','description','tags','photo'],
+  fabric:    ['name','code','lot','company','country','construction','composition','color','width','gsm','tags','photo'],
 }
 let _importRows = null
 
@@ -18587,8 +18601,8 @@ function downloadImportTemplate() {
   const div = document.getElementById('imp-div').value
   const cols = IMPORT_TEMPLATES[div]
   const example = div === 'fabric'
-    ? ['Plain Jersey 180', 'S-100', 'LOT-01', 'Honduras', 'JRS', '95% Cotton 5% Spandex', 'White', '1.60 m', '180', 'soft,basic']
-    : ['Example product', 'S-100', 'LOT-01', 'Honduras', 'Short description', 'tag1,tag2']
+    ? ['Plain Jersey 180', 'S-100', 'LOT-01', 'Sierra Textiles S.A.', 'Honduras', 'JRS', '95% Cotton 5% Spandex', 'White', '1.60 m', '180', 'soft,basic', 'https://example.com/photo.jpg']
+    : ['Example product', 'S-100', 'LOT-01', 'Sierra Textiles S.A.', 'Honduras', 'Short description', 'tag1,tag2', 'https://example.com/photo.jpg']
   const csv = cols.join(',') + '\n' + example.map(v => `"${v}"`).join(',')
   const a = document.createElement('a')
   a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' }))
@@ -18667,6 +18681,9 @@ async function parseImportFile(input) {
     const name = get(r, 'name')
     const code = get(r, 'code')
     if (!name) errors.push('name is required')
+    const countryRaw = get(r, 'country')
+    const country = PRODUCT_COUNTRIES.find(c => c.toLowerCase() === countryRaw.toLowerCase()) || (countryRaw ? '' : 'Honduras')
+    if (countryRaw && !country) errors.push(`country "${countryRaw}" is not one of: ${PRODUCT_COUNTRIES.join(', ')}`)
     if (div === 'fabric') {
       if (!get(r, 'construction')) errors.push('construction is required for fabric')
       if (!get(r, 'composition')) errors.push('composition is required for fabric')
@@ -18688,14 +18705,16 @@ async function parseImportFile(input) {
       if (get(r, 'width')) specs.Width = get(r, 'width')
       if (get(r, 'gsm')) specs.GSM = get(r, 'gsm')
     }
+    const photo = get(r, 'photo')
     return {
       n: n + 2, errors,
       data: {
         name, division: div, code: code || null, lot: get(r, 'lot') || null,
-        country: get(r, 'country') || 'Honduras',
+        company: get(r, 'company') || null,
+        country: country || 'Honduras',
         description: get(r, 'description') || '', specs,
         tags: get(r, 'tags').split(',').map(t => t.trim()).filter(Boolean),
-        image_url: null, image_urls: [],
+        image_url: photo || null, image_urls: photo ? [photo] : [],
       },
     }
   })
