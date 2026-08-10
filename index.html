@@ -4239,6 +4239,12 @@
     .badge-ready_to_print { background: rgba(255, 197, 41, 0.12); color: #8a6d00; }
     .badge-printed { background: rgba(15, 168, 156, 0.12); color: #0a7a72; }
     .badge-delivered { background: rgba(0, 159, 255, 0.12); color: #005fa3; }
+    .badge-reprinted { background: rgba(150, 110, 255, 0.12); color: #5b3fb0; }
+    .badge-cancelled { background: rgba(200, 0, 0, 0.12); color: #a0281e; }
+    .badge-expired { background: rgba(150, 150, 150, 0.12); color: #666; }
+    [data-theme="dark"] .badge-reprinted { background: rgba(180, 150, 255, 0.15); color: #b496ff; }
+    [data-theme="dark"] .badge-cancelled { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+    [data-theme="dark"] .badge-expired { background: rgba(150, 150, 150, 0.15); color: #aaa; }
     .badge-info { background: rgba(0, 159, 255, 0.12); color: #005fa3; }
 
     [data-theme="dark"] .badge-active { background: rgba(45, 212, 201, 0.15); color: #2dd4c9; }
@@ -11961,7 +11967,8 @@ let _badge_ui = {
   importStep: null,           // null, 'upload', 'map', 'validate', 'review', 'complete'
   importData: null,           // Excel rows being imported
   selectedEmployeeId: null,
-  issuanceInProgress: null    // badge issuance being created
+  issuanceInProgress: null,   // badge issuance being created
+  viewSide: 'front'           // active side in the read-only badge snapshot viewer
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -12029,16 +12036,31 @@ async function loadBadgeData() {
 
   // Load badge issuances for active site employees
   _badge.badges = []
+  _badge.profileNames = _badge.profileNames || {}
   if (_badge.activeSite) {
     const empIds = _badge.employees.map(e => e.id)
     if (empIds.length) {
       const { data: badges } = await sb.from('badge_issuances')
-        .select('id, employee_id, status, printed_at, printed_by, is_reprint, reprint_reason, created_at')
+        .select('id, employee_id, status, snapshot, company_color, printed_at, printed_by, delivered_at, delivered_by, is_reprint, reprint_reason, original_issuance_id, cancelled_at, cancellation_reason, created_at')
         .in('employee_id', empIds)
         .order('created_at', { ascending: false })
       _badge.badges = badges || []
+
+      // Resolve printed_by/delivered_by ids to display names for the
+      // Queue/History tables (only fetch ones we don't already have).
+      const actorIds = [...new Set(_badge.badges.flatMap(b => [b.printed_by, b.delivered_by]).filter(Boolean))]
+        .filter(id => !_badge.profileNames[id])
+      if (actorIds.length) {
+        const { data: actors } = await sb.from('profiles').select('id, full_name').in('id', actorIds)
+        ;(actors || []).forEach(a => { _badge.profileNames[a.id] = a.full_name })
+      }
     }
   }
+}
+
+function badgeActorName(id) {
+  if (!id) return '—'
+  return _badge.profileNames?.[id] || 'Unknown user'
 }
 
 function renderBadgeModule() {
@@ -12211,12 +12233,13 @@ function getBadgeStatus(emp) {
 }
 
 function renderBadgeQueueView() {
-  const queueBadges = _badge.badges.filter(b => ['draft', 'ready_to_print', 'printed'].includes(b.status))
+  const canWrite = can('write', 'talento_humano')
+  const queueBadges = _badge.badges.filter(b => b.status === 'draft')
   return `
     <div class="badge-queue-view">
       <div class="queue-header">
         <h2>Badge Queue</h2>
-        <span class="queue-count">${queueBadges.length} badges</span>
+        <span class="queue-count">${queueBadges.length} draft${queueBadges.length === 1 ? '' : 's'} pending</span>
       </div>
       ${queueBadges.length ? `
       <table class="erp-table">
@@ -12233,23 +12256,27 @@ function renderBadgeQueueView() {
         <tbody>
           ${queueBadges.map(badge => {
             const emp = _badge.employees.find(e => e.id === badge.employee_id)
+            const readiness = emp ? checkBadgeReadiness(emp) : { ready: false }
             return `
             <tr>
               <td>${emp ? esc(emp.first_name + ' ' + emp.last_name) : '—'}</td>
               <td><code>${emp?.employee_code || '—'}</code></td>
-              <td>${emp?.department || '—'}</td>
-              <td><span class="badge badge-${badge.status}">${badge.status}</span></td>
+              <td>${esc(emp?.department || '—')}</td>
+              <td>
+                <span class="badge badge-${badge.status}">${badge.is_reprint ? 'Draft Reprint' : badge.status}</span>
+                ${!readiness.ready ? '<span class="badge badge-terminated" style="margin-left:4px">Blocked</span>' : ''}
+              </td>
               <td>${new Date(badge.created_at).toLocaleDateString()}</td>
               <td>
-                ${badge.status === 'draft' ? `<button class="btn btn-sm btn-ghost" onclick="toast('Edit badge — coming soon')">Edit</button>` : ''}
-                ${badge.status === 'ready_to_print' ? `<button class="btn btn-sm btn-primary" onclick="toast('Print badge — coming soon')">Print</button>` : ''}
+                ${canWrite && emp ? `<button class="btn btn-sm btn-ghost" onclick="openQueuedBadge('${badge.id}')">Edit</button>` : ''}
+                ${canWrite && emp ? `<button class="btn btn-sm btn-primary" onclick="openQueuedBadge('${badge.id}')" ${!readiness.ready ? 'disabled title="Missing required data — open to review"' : ''}>Print</button>` : ''}
               </td>
             </tr>
             `
           }).join('')}
         </tbody>
       </table>
-      ` : `<div class="empty"><p>No badges in queue.</p></div>`}
+      ` : `<div class="empty"><p>No badges in queue. Badges saved as a draft from the issuance workspace appear here.</p></div>`}
     </div>
   `
 }
@@ -12260,7 +12287,7 @@ function renderHistoryView() {
     <div class="badge-history-view">
       <div class="history-header">
         <h2>Badge Audit History</h2>
-        <span class="history-count">${historyBadges.length} events</span>
+        <span class="history-count">${historyBadges.length} record${historyBadges.length === 1 ? '' : 's'}</span>
       </div>
       ${historyBadges.length ? `
       <table class="erp-table">
@@ -12273,12 +12300,13 @@ function renderHistoryView() {
             <th>Timestamp</th>
             <th>Printed By</th>
             <th>Notes</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           ${historyBadges.map(badge => {
             const emp = _badge.employees.find(e => e.id === badge.employee_id)
-            const printedByName = badge.printed_by ? 'System' : '—'
+            const isActive = emp && getActiveBadgeForEmployee(emp.id)?.id === badge.id
             return `
             <tr>
               <td>${emp ? esc(emp.first_name + ' ' + emp.last_name) : '—'}</td>
@@ -12286,8 +12314,12 @@ function renderHistoryView() {
               <td>${badge.is_reprint ? 'Reprint' : 'Print'}</td>
               <td><span class="badge badge-${badge.status}">${badge.status}</span></td>
               <td>${badge.printed_at ? new Date(badge.printed_at).toLocaleString() : '—'}</td>
-              <td>${printedByName}</td>
-              <td>${badge.reprint_reason ? esc(badge.reprint_reason) : '—'}</td>
+              <td>${esc(badgeActorName(badge.printed_by))}</td>
+              <td>${badge.reprint_reason ? esc(reprintReasonLabel(badge.reprint_reason)) : '—'}</td>
+              <td>
+                <button class="btn btn-sm btn-ghost" onclick="viewBadgeDetail('${badge.id}')">View</button>
+                ${isActive && can('write', 'talento_humano') ? `<button class="btn btn-sm btn-ghost" onclick="startReprintFlow('${emp.id}', '${badge.id}')">Reprint</button>` : ''}
+              </td>
             </tr>
             `
           }).join('')}
@@ -13026,25 +13058,164 @@ function closeImportModal() {
   if (modal) modal.remove()
 }
 
+function getActiveBadgeForEmployee(empId) {
+  // _badge.badges is loaded ordered by created_at desc, so the first
+  // printed/delivered match is the current one.
+  return _badge.badges.find(b => b.employee_id === empId && ['printed', 'delivered'].includes(b.status)) || null
+}
+
+function reprintReasonLabel(v) {
+  return { lost: 'Lost', damaged: 'Damaged', data_correction: 'Data Correction', photo_update: 'Photo Update', other: 'Other' }[v] || v || '—'
+}
+
 function startBadgeIssuance(empId) {
   closeEmployeeDetail()
   const emp = _badge.employees.find(e => e.id === empId)
   if (!emp) return
 
-  // Check badge readiness
+  // An employee never gets a second badge silently — if one is already
+  // active, offer View/Reprint instead of pretending they have none.
+  const activeBadge = getActiveBadgeForEmployee(empId)
+  if (activeBadge) {
+    showActiveBadgePanel(emp, activeBadge)
+    return
+  }
+
   const readiness = checkBadgeReadiness(emp)
   if (!readiness.ready) {
     showBadgeReadinessWarning(emp, readiness)
     return
   }
 
-  // Show badge issuance workspace
   _badge_ui.issuanceInProgress = {
-    employee_id: empId,
-    status: 'draft',
-    preview_side: 'front'
+    employee_id: empId, status: 'draft', preview_side: 'front',
+    draftIssuanceId: null, isReprint: false, reprintReason: null, originalIssuanceId: null,
   }
   showBadgeIssuanceWorkspace()
+}
+
+function showActiveBadgePanel(emp, badge) {
+  const modal = document.createElement('div')
+  modal.className = 'modal-overlay'
+  modal.id = 'active-badge-modal'
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:440px">
+      <div class="modal-header">
+        <h2>Badge Active</h2>
+        <button class="icon-btn icon-btn-quiet" onclick="this.closest('.modal-overlay').remove()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <p>${esc(emp.first_name)} ${esc(emp.last_name)} already has an active badge.</p>
+        <div class="detail-section" style="margin-top:1rem">
+          <div class="detail-row"><span class="detail-label">Status</span><span class="badge badge-${badge.status}">${badge.status}</span></div>
+          <div class="detail-row"><span class="detail-label">Printed</span><span class="detail-value">${badge.printed_at ? new Date(badge.printed_at).toLocaleString() : '—'}</span></div>
+          ${badge.is_reprint ? `<div class="detail-row"><span class="detail-label">Reprint reason</span><span class="detail-value">${esc(reprintReasonLabel(badge.reprint_reason))}</span></div>` : ''}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove(); viewBadgeDetail('${badge.id}')">View Badge</button>
+        ${can('write', 'talento_humano') ? `<button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove(); startReprintFlow('${emp.id}', '${badge.id}')">Reprint</button>` : ''}
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
+  modal.onclick = (e) => e.target === modal && modal.remove()
+}
+
+function startReprintFlow(empId, previousBadgeId) {
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp) return
+  const readiness = checkBadgeReadiness(emp)
+  if (!readiness.ready) { showBadgeReadinessWarning(emp, readiness); return }
+  showReprintReasonModal(empId, previousBadgeId)
+}
+
+function showReprintReasonModal(empId, previousBadgeId) {
+  const modal = document.createElement('div')
+  modal.className = 'modal-overlay'
+  modal.id = 'reprint-reason-modal'
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:420px">
+      <div class="modal-header"><h2>Reprint Badge</h2></div>
+      <div class="modal-body">
+        <p>Reprinting requires a reason. It's recorded in this badge's audit history — the previous badge is marked superseded, never deleted.</p>
+        <div class="fg full">
+          <label style="display:block;font-size:0.8rem;font-weight:500;margin-bottom:6px">Reason</label>
+          <select id="reprint-reason-select" style="width:100%;height:var(--control-h);padding:0 12px;border:1px solid var(--border-strong);background:var(--surface);border-radius:var(--control-radius);font-size:0.85rem">
+            <option value="lost">Lost</option>
+            <option value="damaged">Damaged</option>
+            <option value="data_correction">Data Correction</option>
+            <option value="photo_update">Photo Update</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmReprintReason('${empId}', '${previousBadgeId}')">Continue</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
+  modal.onclick = (e) => e.target === modal && modal.remove()
+}
+
+function confirmReprintReason(empId, previousBadgeId) {
+  const reason = document.getElementById('reprint-reason-select')?.value || 'other'
+  document.getElementById('reprint-reason-modal')?.remove()
+  _badge_ui.issuanceInProgress = {
+    employee_id: empId, status: 'draft', preview_side: 'front',
+    draftIssuanceId: null, isReprint: true, reprintReason: reason, originalIssuanceId: previousBadgeId,
+  }
+  showBadgeIssuanceWorkspace()
+}
+
+function openQueuedBadge(badgeId) {
+  const badge = _badge.badges.find(b => b.id === badgeId)
+  if (!badge) return
+  const emp = _badge.employees.find(e => e.id === badge.employee_id)
+  if (!emp) return
+  _badge_ui.issuanceInProgress = {
+    employee_id: emp.id, status: 'draft', preview_side: 'front',
+    draftIssuanceId: badge.id, isReprint: badge.is_reprint, reprintReason: badge.reprint_reason,
+    originalIssuanceId: badge.original_issuance_id,
+  }
+  showBadgeIssuanceWorkspace()
+}
+
+function viewBadgeDetail(badgeId) {
+  const badge = _badge.badges.find(b => b.id === badgeId)
+  if (!badge || !badge.snapshot) { toast('No snapshot available for this badge'); return }
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const snap = badge.snapshot
+
+  const modal = document.createElement('div')
+  modal.className = 'modal-overlay'
+  modal.id = 'badge-view-modal'
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:420px">
+      <div class="modal-header">
+        <h2>Badge Snapshot</h2>
+        <button class="icon-btn icon-btn-quiet" onclick="this.closest('.modal-overlay').remove()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:1rem">Data as it was printed on ${badge.printed_at ? new Date(badge.printed_at).toLocaleString() : 'issuance'} — the employee record may have changed since.</p>
+        <div class="badge-preview-tabs">
+          <button class="preview-tab ${_badge_ui.viewSide !== 'back' ? 'active' : ''}" onclick="_badge_ui.viewSide='front'; viewBadgeDetail('${badge.id}')">Front</button>
+          <button class="preview-tab ${_badge_ui.viewSide === 'back' ? 'active' : ''}" onclick="_badge_ui.viewSide='back'; viewBadgeDetail('${badge.id}')">Back</button>
+        </div>
+        <div style="display:flex;justify-content:center;padding:1.5rem 0">
+          ${_badge_ui.viewSide === 'back' ? renderBadgeBack(snap, { badge_color: badge.company_color || site?.badge_color }) : renderBadgeFront(snap, { badge_color: badge.company_color || site?.badge_color })}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
+  modal.onclick = (e) => e.target === modal && modal.remove()
+  renderBackBarcode(snap.employee_code)
 }
 
 function checkBadgeReadiness(emp) {
@@ -13099,6 +13270,12 @@ function showBadgeIssuanceWorkspace() {
   const emp = _badge.employees.find(e => e.id === issuance.employee_id)
   if (!emp) return
 
+  const title = issuance.isReprint
+    ? `Reprint Badge: ${esc(emp.first_name)} ${esc(emp.last_name)}`
+    : issuance.draftIssuanceId
+      ? `Edit Draft: ${esc(emp.first_name)} ${esc(emp.last_name)}`
+      : `Create Badge: ${esc(emp.first_name)} ${esc(emp.last_name)}`
+
   const modal = document.createElement('div')
   modal.className = 'modal-overlay'
   modal.id = 'badge-issuance-modal'
@@ -13106,7 +13283,7 @@ function showBadgeIssuanceWorkspace() {
   modal.innerHTML = `
     <div class="badge-issuance-workspace">
       <div class="issuance-header">
-        <div class="issuance-title">Create Badge: ${esc(emp.first_name)} ${esc(emp.last_name)}</div>
+        <div class="issuance-title">${title}</div>
         <button class="icon-btn icon-btn-quiet" onclick="closeBadgeIssuance()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
       </div>
 
@@ -13124,15 +13301,19 @@ function showBadgeIssuanceWorkspace() {
 
       <div class="issuance-footer">
         <button class="btn btn-secondary" onclick="closeBadgeIssuance()">Cancel</button>
-        <button class="btn btn-primary" onclick="printBadge()">Print Badge</button>
+        <button class="btn btn-secondary" onclick="saveDraftBadge()">Save Draft</button>
+        <button class="btn btn-primary" onclick="printBadge()">${issuance.isReprint ? 'Print Reprint' : 'Print Badge'}</button>
       </div>
     </div>
   `
   document.body.appendChild(modal)
   modal.onclick = (e) => e.target === modal && closeBadgeIssuance()
+  if (issuance.preview_side === 'back') renderBackBarcode(emp.employee_code)
 }
 
 function renderBadgeDataPanel(emp) {
+  const issuance = _badge_ui.issuanceInProgress
+  const statusLabel = issuance.isReprint ? 'reprinted' : 'draft'
   return `
     <div class="badge-data-sections">
       <div class="badge-data-section">
@@ -13177,8 +13358,13 @@ function renderBadgeDataPanel(emp) {
         <h3>Badge Info</h3>
         <div class="data-row">
           <span class="data-label">Status</span>
-          <span class="badge badge-draft">Draft</span>
+          <span class="badge badge-${statusLabel}">${statusLabel === 'reprinted' ? 'Reprint' : 'Draft'}</span>
         </div>
+        ${issuance.isReprint ? `
+        <div class="data-row">
+          <span class="data-label">Reason</span>
+          <span class="data-value">${esc(reprintReasonLabel(issuance.reprintReason))}</span>
+        </div>` : ''}
         <div class="data-row">
           <span class="data-label">Barcode</span>
           <code>${esc(emp.employee_code)}</code>
@@ -13306,7 +13492,7 @@ function renderBadgeBack(emp, site) {
         </div>
         <div class="badge-back-row">
           <span class="badge-back-label">Blood Type:</span>
-          <span class="badge-back-value">${esc(emp.blood_type || 'O+')}</span>
+          <span class="badge-back-value">${esc(emp.blood_type || '—')}</span>
         </div>
         ${emp.health_conditions ? `
         <div class="badge-back-row">
@@ -13337,26 +13523,80 @@ function closeBadgeIssuance() {
   _badge_ui.issuanceInProgress = null
 }
 
-async function printBadge() {
+// Renders the real CODE128 barcode into the live preview's placeholder
+// SVG — the preview must show exactly what will print, not an empty box.
+function renderBackBarcode(employeeCode) {
+  const el = document.getElementById('badge-back-barcode-svg')
+  if (!el || !employeeCode || typeof JsBarcode === 'undefined') return
+  el.innerHTML = ''
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  el.appendChild(svg)
+  try { JsBarcode(svg, employeeCode, { format: 'CODE128', width: 1.4, height: 40, margin: 0, displayValue: false }) } catch (_) {}
+}
+
+// The only fields a badge ever needs from the employee record — kept
+// intentionally narrow so a printed badge's historical snapshot never
+// balloons into a duplicate of the whole employee master row.
+function buildBadgeSnapshot(emp) {
+  return {
+    first_name: emp.first_name,
+    last_name: emp.last_name,
+    employee_code: emp.employee_code,
+    department: emp.department,
+    position: emp.position,
+    photo_url: emp.photo_url,
+    emergency_contact_name: emp.emergency_contact_name,
+    emergency_contact_phone: emp.emergency_contact_phone,
+    blood_type: emp.blood_type,
+    health_conditions: emp.health_conditions,
+  }
+}
+
+async function logBadgeEvent(issuanceId, eventType, label, data = {}) {
+  try {
+    await sb.from('badge_events').insert({
+      issuance_id: issuanceId, event_type: eventType, event_label: label, event_data: data, created_by: me.id,
+    })
+  } catch (_) {}
+}
+
+async function saveDraftBadge() {
   const issuance = _badge_ui.issuanceInProgress
   const emp = _badge.employees.find(e => e.id === issuance.employee_id)
   if (!emp) return
-
-  // Generate real barcode using JsBarcode
-  const barcodeContainer = document.createElement('div')
-  JsBarcode(barcodeContainer, emp.employee_code, {
-    format: 'CODE128',
-    width: 2,
-    height: 50,
-    margin: 0,
-    fontSize: 12
-  })
-
-  // Create print document with actual SIERRA badge design
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
-  const w = window.open('', '_blank', 'width=900,height=700')
+  const snapshot = buildBadgeSnapshot(emp)
 
-  const html = `
+  if (issuance.draftIssuanceId) {
+    const { error } = await sb.from('badge_issuances').update({
+      snapshot, company_color: site?.badge_color || null, updated_at: new Date().toISOString(),
+    }).eq('id', issuance.draftIssuanceId)
+    if (error) { toast('Error saving draft: ' + error.message); return }
+    toast('Draft updated')
+  } else {
+    const { data, error } = await sb.from('badge_issuances').insert({
+      employee_id: emp.id, status: 'draft', snapshot,
+      template_id: null, company_color: site?.badge_color || null,
+      is_reprint: issuance.isReprint, reprint_reason: issuance.isReprint ? issuance.reprintReason : null,
+      original_issuance_id: issuance.originalIssuanceId || null,
+      created_by: me.id,
+    }).select().single()
+    if (error) { toast('Error saving draft: ' + error.message); return }
+    issuance.draftIssuanceId = data.id
+    await logBadgeEvent(data.id, 'created', `Draft saved by ${esc(profile?.full_name || 'user')}`)
+    toast('Draft saved — find it in Badge Queue')
+  }
+  await loadBadgeData()
+}
+
+// Builds the actual printable document: real physical dimensions, both
+// sides (front then back — a badge is a two-sided credential, printing
+// only the front was never a complete badge), Replica typography.
+function buildBadgePrintHTML(emp, companyColor) {
+  const photoBlock = emp.photo_url
+    ? `<img src="${esc(emp.photo_url)}" class="badge-employee-photo" />`
+    : '<div class="badge-photo-placeholder">No photo</div>'
+  return `
     <!DOCTYPE html>
     <html>
     <head>
@@ -13364,161 +13604,133 @@ async function printBadge() {
       <style>
         @page { size: 85.6mm 53.98mm; margin: 0; }
         @media print {
-          body { margin: 0; padding: 0; }
-          .badge-sheet { margin: 0; }
+          body { margin: 0; padding: 0; background: #fff; }
+          .badge-sheet { margin: 0; box-shadow: none; page-break-after: always; }
+          .badge-sheet:last-child { page-break-after: auto; }
         }
-        body {
-          font-family: 'Replica', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
-          margin: 10px;
-          background: #f5f5f5;
-        }
-        .badge-sheet {
-          width: 85.6mm;
-          height: 53.98mm;
-          background: #fff;
-          box-sizing: border-box;
-          page-break-inside: avoid;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-          display: grid;
-          grid-template-rows: 1fr;
-          position: relative;
-          margin-bottom: 20px;
-        }
-        .badge-front {
-          grid-row: 1;
-          grid-column: 1;
-          padding: 3mm;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: space-between;
-          text-align: center;
-          background: linear-gradient(135deg, #f9f9f9 0%, #fff 100%);
-          border-radius: 4mm;
-          border: 1px solid #eee;
-          position: relative;
-          overflow: hidden;
-        }
-        .badge-sierra-logo {
-          width: 25mm;
-          height: auto;
-          color: #0a7a72;
-          font-weight: 700;
-        }
-        .badge-company-bar {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 3mm;
-          background: ${site?.badge_color || '#0A7A72'};
-        }
-        .badge-employee-photo {
-          width: 28mm;
-          height: 28mm;
-          border-radius: 2mm;
-          object-fit: cover;
-          margin: 2mm 0;
-          border: 1px solid #ddd;
-        }
-        .badge-employee-name {
-          margin-top: 2mm;
-          line-height: 1.1;
-        }
-        .badge-first-name {
-          font-size: 11pt;
-          font-weight: 700;
-          color: #000;
-        }
-        .badge-last-name {
-          font-size: 11pt;
-          font-weight: 700;
-          color: #000;
-          margin-top: 1mm;
-        }
-        .badge-department {
-          font-size: 8pt;
-          color: #666;
-          margin-top: 1mm;
-        }
-        .badge-code {
-          font-size: 7pt;
-          color: #888;
-          font-family: 'Courier New', monospace;
-          margin-top: 2mm;
-          letter-spacing: 0.5px;
-        }
-        .badge-barcode {
-          text-align: center;
-          margin: 2mm 0;
-        }
-        .badge-barcode svg {
-          max-width: 100%;
-          height: auto;
-        }
+        body { font-family: 'Replica', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 10px; background: #f5f5f5; }
+        .badge-sheet { width: 85.6mm; height: 53.98mm; background: #fff; box-sizing: border-box; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 4mm; border: 1px solid #eee; position: relative; overflow: hidden; margin-bottom: 20px; padding: 3mm; display: flex; flex-direction: column; }
+        .badge-company-bar { position: absolute; top: 0; left: 0; right: 0; height: 3mm; background: ${companyColor}; }
+        .badge-sierra-logo { width: 22mm; height: auto; color: #0a7a72; font-weight: 700; margin: 0 auto 1mm; display: block; }
+        .badge-front { align-items: center; justify-content: space-between; text-align: center; }
+        .badge-employee-photo, .badge-photo-placeholder { width: 28mm; height: 28mm; border-radius: 2mm; object-fit: cover; margin: 2mm auto; border: 1px solid #ddd; box-sizing: border-box; }
+        .badge-photo-placeholder { display: flex; align-items: center; justify-content: center; color: #999; background: #eee; font-size: 7pt; }
+        .badge-first-name, .badge-last-name { font-size: 11pt; font-weight: 700; color: #000; line-height: 1.15; }
+        .badge-department { font-size: 8pt; color: #666; margin-top: 1mm; }
+        .badge-code { font-size: 7pt; color: #888; font-family: 'Courier New', monospace; margin-top: 2mm; letter-spacing: 0.5px; }
+        .badge-back-barcode { text-align: center; margin: 1.5mm 0; }
+        .badge-back-barcode svg { max-width: 100%; height: 13mm; }
+        .badge-back-code { font-family: 'Courier New', monospace; font-size: 6pt; font-weight: 600; letter-spacing: 0.5px; text-align: center; }
+        .badge-back-info { flex: 1; display: flex; flex-direction: column; gap: 1.5mm; font-size: 6.5pt; margin: 1.5mm 0; }
+        .badge-back-row { display: flex; gap: 2mm; }
+        .badge-back-label { font-weight: 600; flex-shrink: 0; width: 25mm; }
+        .badge-back-footer { font-size: 5pt; color: #999; text-align: center; line-height: 1.2; }
       </style>
     </head>
     <body>
-      <div class="badge-sheet">
-        <div class="badge-front">
-          <div class="badge-company-bar"></div>
-          <svg class="badge-sierra-logo" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
-            <text x="50" y="25" font-family="Replica" font-size="18" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text>
-          </svg>
-          ${emp.photo_url ? `<img src="${emp.photo_url}" class="badge-employee-photo" />` : '<div style="width:28mm;height:28mm;background:#eee;border-radius:2mm;display:flex;align-items:center;justify-content:center;color:#999">No photo</div>'}
-          <div class="badge-employee-name">
-            <div class="badge-first-name">${esc(emp.first_name).toUpperCase()}</div>
-            <div class="badge-last-name">${esc(emp.last_name).toUpperCase()}</div>
-          </div>
-          <div class="badge-department">${esc(emp.department || 'Department').toUpperCase()}</div>
-          <div class="badge-code">${esc(emp.employee_code)}</div>
+      <div class="badge-sheet badge-front">
+        <div class="badge-company-bar"></div>
+        <svg class="badge-sierra-logo" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet"><text x="50" y="25" font-family="Replica" font-size="18" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text></svg>
+        ${photoBlock}
+        <div>
+          <div class="badge-first-name">${esc(emp.first_name).toUpperCase()}</div>
+          <div class="badge-last-name">${esc(emp.last_name).toUpperCase()}</div>
         </div>
+        <div class="badge-department">${esc(emp.department || 'Department').toUpperCase()}</div>
+        <div class="badge-code">${esc(emp.employee_code)}</div>
+      </div>
+      <div class="badge-sheet badge-back">
+        <div class="badge-company-bar"></div>
+        <svg class="badge-sierra-logo" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet" style="width:16mm"><text x="50" y="25" font-family="Replica" font-size="14" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text></svg>
+        <div class="badge-back-barcode"><svg id="print-barcode-back"></svg></div>
+        <div class="badge-back-code">${esc(emp.employee_code)}</div>
+        <div class="badge-back-info">
+          <div class="badge-back-row"><span class="badge-back-label">Emergency Contact:</span><span>${esc(emp.emergency_contact_name || '—')}</span></div>
+          <div class="badge-back-row"><span class="badge-back-label">Phone:</span><span>${esc(emp.emergency_contact_phone || '—')}</span></div>
+          <div class="badge-back-row"><span class="badge-back-label">Blood Type:</span><span>${esc(emp.blood_type || '—')}</span></div>
+          ${emp.health_conditions ? `<div class="badge-back-row"><span class="badge-back-label">Health Conditions:</span><span>${esc(emp.health_conditions)}</span></div>` : ''}
+        </div>
+        <div class="badge-back-footer">In case of emergency, contact the number listed above. Keep badge visible at all times.</div>
       </div>
     </body>
     </html>
   `
+}
 
-  w.document.write(html)
+async function printBadge() {
+  const issuance = _badge_ui.issuanceInProgress
+  const emp = _badge.employees.find(e => e.id === issuance.employee_id)
+  if (!emp) return
+
+  // The barcode must encode exactly the same value shown as text below
+  // it — both are read from the same field, but we verify explicitly
+  // right before anything reaches the printer, per the "never print a
+  // mismatched barcode" requirement.
+  const barcodeValue = emp.employee_code
+  const visibleCode = emp.employee_code
+  if (!barcodeValue || barcodeValue !== visibleCode) {
+    toast('Cannot print: this employee has no valid Employee Code to encode.')
+    return
+  }
+
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const companyColor = site?.badge_color || '#0A7A72'
+  const snapshot = buildBadgeSnapshot(emp)
+
+  const w = window.open('', '_blank', 'width=900,height=700')
+  w.document.write(buildBadgePrintHTML(emp, companyColor))
   w.document.close()
 
-  // Generate and inject barcode after document is loaded
   setTimeout(() => {
     try {
-      const barcodeDiv = w.document.querySelector('.badge-barcode')
-      if (barcodeDiv && typeof JsBarcode !== 'undefined') {
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-        barcodeDiv.appendChild(svg)
-        JsBarcode(svg, emp.employee_code, { format: 'CODE128', width: 2, height: 40, margin: 0 })
+      const bcTarget = w.document.getElementById('print-barcode-back')
+      if (bcTarget && typeof JsBarcode !== 'undefined') {
+        JsBarcode(bcTarget, barcodeValue, { format: 'CODE128', width: 1.4, height: 40, margin: 0, displayValue: false })
       }
       w.print()
     } catch (e) {
       console.error('Barcode generation error:', e)
       w.print()
     }
-  }, 500)
+  }, 400)
 
-  // Save issuance record
-  const { error } = await sb.from('badge_issuances').insert({
-    employee_id: emp.id,
+  // Finalize the draft this workspace was opened from, or insert a
+  // fresh issuance if printing straight from "Create Badge".
+  const payload = {
     status: 'printed',
-    snapshot: {
-      first_name: emp.first_name,
-      last_name: emp.last_name,
-      employee_code: emp.employee_code,
-      department: emp.department,
-      position: emp.position
-    },
-    template_id: null,
-    company_color: _badge.sites.find(s => s.id === _badge.activeSite)?.badge_color,
+    snapshot,
+    company_color: companyColor,
     printed_at: new Date().toISOString(),
     printed_by: me.id,
-    created_by: me.id
-  })
-
-  if (!error) {
-    toast('Badge printed and recorded!')
+    is_reprint: !!issuance.isReprint,
+    reprint_reason: issuance.isReprint ? issuance.reprintReason : null,
+    original_issuance_id: issuance.originalIssuanceId || null,
+    updated_at: new Date().toISOString(),
   }
 
+  let issuanceId = issuance.draftIssuanceId
+  let error
+  if (issuanceId) {
+    ;({ error } = await sb.from('badge_issuances').update(payload).eq('id', issuanceId))
+  } else {
+    const ins = await sb.from('badge_issuances').insert({ employee_id: emp.id, created_by: me.id, ...payload }).select().single()
+    error = ins.error
+    issuanceId = ins.data?.id
+  }
+
+  if (error) { toast('Error recording badge issuance: ' + error.message); return }
+
+  await logBadgeEvent(issuanceId, issuance.isReprint ? 'reprinted' : 'printed',
+    `${issuance.isReprint ? 'Reprinted' : 'Printed'} by ${esc(profile?.full_name || 'user')}${issuance.isReprint ? ' — ' + reprintReasonLabel(issuance.reprintReason) : ''}`,
+    { reason: issuance.reprintReason || null })
+
+  // Reprints never overwrite the badge they replace — the old issuance
+  // is marked superseded and kept, not deleted.
+  if (issuance.isReprint && issuance.originalIssuanceId) {
+    await sb.from('badge_issuances').update({ status: 'reprinted' }).eq('id', issuance.originalIssuanceId)
+  }
+
+  toast(issuance.isReprint ? 'Badge reprinted and recorded' : 'Badge printed and recorded')
   closeBadgeIssuance()
   await loadBadgeData()
   renderBadgeModule()
