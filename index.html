@@ -318,6 +318,158 @@
     .u-avatar { width:28px; height:28px; border-radius:50%; background:var(--text-2); color:var(--bg); font-size:0.62rem; font-weight:700; display:flex; align-items:center; justify-content:center; overflow:hidden; cursor:pointer; flex-shrink:0; }
     .u-avatar img { width:100%; height:100%; object-fit:cover; }
     .u-avatar:hover { opacity:0.85; }
+
+    /* ══════════════════════════════════════════════════════════════
+       GLOBAL SYSTEM BAR — persistent dark platform-level surface.
+       SIERRA Index + global/user utilities, never module-tinted (that
+       belongs to the sidebar/workspace layer). Desktop only — mobile
+       keeps the existing .mob-topbar (hamburger + logo + search), which
+       already covers the same job at a screen size this bar isn't
+       designed for (no room for a 5-icon cluster at 375px). Always dark
+       regardless of the light/dark content theme: it's app chrome, not
+       themed surface, so none of its colors reference theme tokens.
+       ══════════════════════════════════════════════════════════════ */
+    .system-bar {
+      display: none; /* shown at >=768px, see media query below */
+      height: 56px; flex-shrink: 0;
+      background: #171717;
+      align-items: center; justify-content: space-between;
+      padding: 0 1rem 0 0.85rem;
+      position: relative; z-index: 50;
+    }
+    @media (min-width: 768px) { .system-bar { display: flex; } }
+
+    .sb-left { display:flex; align-items:center; gap:0.55rem; min-width:0; }
+    .sb-logo { width:22px; height:22px; flex-shrink:0; display:flex; }
+    .sb-logo svg { width:100%; height:100%; display:block; }
+    .sb-wordmark { font-size:0.92rem; font-weight:700; letter-spacing:0.01em; color:#fff; opacity:0.92; }
+
+    .sb-right { display:flex; align-items:center; gap:2px; flex-shrink:0; }
+
+    .sb-icon-btn {
+      position:relative; width:40px; height:40px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      background:none; border:none; border-radius:9px; cursor:pointer;
+      color:rgba(255,255,255,0.72);
+      transition:background 0.14s ease, color 0.14s ease;
+    }
+    .sb-icon-btn svg { width:19px; height:19px; }
+    .sb-icon-btn:hover { background:rgba(255,255,255,0.09); color:#fff; }
+    .sb-icon-btn:focus-visible { outline:2px solid rgba(255,255,255,0.5); outline-offset:-2px; }
+    .sb-icon-btn[data-tip]:hover::after {
+      content:attr(data-tip);
+      position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%);
+      background:#0b0b0b; color:#fff;
+      font-size:0.72rem; font-weight:500; white-space:nowrap;
+      padding:0.3rem 0.55rem; border-radius:7px;
+      pointer-events:none; z-index:900;
+      box-shadow:0 4px 16px rgba(0,0,0,0.3);
+    }
+
+    /* Notifications badge — shared .notif-badge class also lives on the
+       (now desktop-hidden) sidebar bell; loadNotifications() keeps every
+       instance in sync via querySelectorAll, so whichever is visible for
+       the current viewport is always correct. */
+    .sb-icon-btn .notif-badge {
+      position:absolute; top:7px; right:7px;
+      width:8px; height:8px; border-radius:50%;
+      background:#ff453a; border:2px solid #171717;
+    }
+
+    /* Theme toggle — sun/moon crossfade driven purely by [data-theme],
+       no JS icon-swap needed. Restrained: opacity + a small scale/rotate,
+       no spin or bounce. */
+    .sb-theme-icon { position:relative; width:19px; height:19px; }
+    .sb-theme-icon svg {
+      position:absolute; inset:0; width:19px; height:19px;
+      transition:opacity 0.18s ease, transform 0.18s ease;
+    }
+    .sb-theme-icon .icon-sun { opacity:1; transform:scale(1) rotate(0deg); }
+    .sb-theme-icon .icon-moon { opacity:0; transform:scale(0.6) rotate(-40deg); }
+    [data-theme="dark"] .sb-theme-icon .icon-sun { opacity:0; transform:scale(0.6) rotate(40deg); }
+    [data-theme="dark"] .sb-theme-icon .icon-moon { opacity:1; transform:scale(1) rotate(0deg); }
+
+    /* Account control — more substantial than the other utility icons */
+    .sb-acct { position:relative; margin-left:6px; }
+    .sb-acct-btn {
+      display:flex; align-items:center; gap:6px; height:40px; padding:0 8px 0 4px;
+      background:none; border:none; border-radius:10px; cursor:pointer;
+      transition:background 0.14s ease;
+    }
+    .sb-acct-btn:hover { background:rgba(255,255,255,0.09); }
+    .sb-acct-btn:focus-visible { outline:2px solid rgba(255,255,255,0.5); outline-offset:-2px; }
+    .sb-acct-av {
+      width:30px; height:30px; border-radius:50%; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      font-size:0.66rem; font-weight:700; overflow:hidden;
+      background:var(--text-2); color:var(--bg);
+    }
+    .sb-acct-av img { width:100%; height:100%; object-fit:cover; }
+    .sb-acct-chev { color:rgba(255,255,255,0.55); flex-shrink:0; transition:transform 0.16s ease; }
+    .sb-acct.open .sb-acct-chev { transform:rotate(180deg); }
+
+    /* ── Account Mega Menu ── */
+    .sb-acct-pop {
+      position:absolute; top:calc(100% + 8px); right:0;
+      width:340px; max-width:calc(100vw - 24px);
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:var(--r-lg); box-shadow:var(--shadow-hover);
+      padding:6px 0; z-index:250;
+      opacity:0; pointer-events:none; transform:translateY(-6px) scale(0.98);
+      transition:opacity 0.14s ease, transform 0.14s ease;
+    }
+    .sb-acct.open .sb-acct-pop { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
+
+    .sb-mega-hdr { display:flex; align-items:center; gap:12px; padding:12px 16px 14px; }
+    .sb-mega-av {
+      width:40px; height:40px; border-radius:50%; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      font-size:0.82rem; font-weight:700; overflow:hidden;
+      background:var(--text-2); color:var(--bg);
+    }
+    .sb-mega-av img { width:100%; height:100%; object-fit:cover; }
+    .sb-mega-id { min-width:0; }
+    .sb-mega-name { font-size:0.9rem; font-weight:650; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .sb-mega-role { font-size:0.74rem; color:var(--text-muted); margin-top:1px; }
+    .sb-mega-email { font-size:0.74rem; color:var(--text-muted); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+    .sb-mega-sep { height:1px; background:var(--border); margin:4px 0; }
+    .sb-mega-label { font-size:0.66rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); padding:10px 16px 4px; }
+    .sb-mega-row {
+      display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+      min-height:44px; padding:6px 16px;
+      background:none; border:none; font-family:inherit; cursor:pointer;
+      transition:background 0.12s ease;
+    }
+    .sb-mega-row:hover { background:var(--surface-hover); }
+    .sb-mega-row-icon { width:19px; height:19px; flex-shrink:0; color:var(--text-muted); display:flex; align-items:center; justify-content:center; }
+    .sb-mega-row-icon svg { width:19px; height:19px; }
+    .sb-mega-row-text { min-width:0; flex:1; }
+    .sb-mega-row-title { font-size:0.84rem; font-weight:600; color:var(--text-primary); }
+    .sb-mega-row-desc { font-size:0.74rem; color:var(--text-muted); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .sb-mega-row.danger .sb-mega-row-title,
+    .sb-mega-row.danger .sb-mega-row-icon { color:var(--danger); }
+
+    /* Defaults — compact inline picker inside the mega menu */
+    .sb-mega-defaults { padding:2px 16px 10px; }
+    .sb-mega-default-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:5px 0; }
+    .sb-mega-default-k { font-size:0.78rem; color:var(--text-secondary); flex-shrink:0; }
+    .sb-mega-default-v {
+      font-size:0.78rem; font-weight:600; color:var(--text-primary); text-align:right;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:190px;
+      background:none; border:none; cursor:pointer; font-family:inherit; padding:2px 0;
+    }
+    .sb-mega-default-v:hover { color:var(--accent); }
+    .sb-mega-default-v.muted { color:var(--text-muted); font-weight:500; }
+    .sb-mega-defaults select {
+      font-family:inherit; font-size:0.78rem; color:var(--text-primary);
+      background:var(--surface2); border:1px solid var(--border-strong); border-radius:6px;
+      padding:3px 6px; max-width:190px;
+    }
+
+    /* Small info modals (Help & Support / About) reuse .overlay/.modal —
+       nothing new to define here. */
+
     /* ── PROFILE MODAL ── */
     .prof-hero { display:flex; flex-direction:column; align-items:center; gap:0.55rem; padding:1.5rem 0 1.25rem; }
     .profile-avatar-lg {
@@ -604,6 +756,8 @@
     /* Danger */
     .prof-signout { width:100%; margin-top:0.35rem; padding:0.7rem; border-radius:10px; border:none; background:none; font-family:inherit; font-size:0.85rem; font-weight:500; color:#c0392b; cursor:pointer; transition:background 0.12s; }
     .prof-signout:hover { background:rgba(192,57,43,0.07); }
+    [data-theme="dark"] .prof-signout { color:var(--danger); }
+    [data-theme="dark"] .prof-signout:hover { background:var(--danger-bg); }
     .auth-link { background:none; border:none; color:var(--accent); font-size:0.82rem; font-family:inherit; cursor:pointer; padding:0; text-align:left; }
     .auth-link:hover { text-decoration:underline; }
     .u-name { font-size:0.78rem; font-weight:500; }
@@ -741,6 +895,9 @@
     .pop-menu-item:hover, .ws-menu-item:hover, .card-more-item:hover { background:var(--surface-hover); color:var(--text-primary); }
     .pop-menu-item.current { color:var(--text); font-weight:600; }
     .pop-menu-item.danger, .ws-menu-danger, .card-more-item.danger { color:#c0392b; }
+    [data-theme="dark"] .pop-menu-item.danger,
+    [data-theme="dark"] .ws-menu-danger,
+    [data-theme="dark"] .card-more-item.danger { color:var(--danger); }
     .pop-menu-item .pop-menu-dot { width:16px; height:16px; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
     .pop-menu-item .pop-menu-dot svg { width:10px; height:10px; }
     .pop-menu-sep { height:1px; background:var(--border); margin:0.3rem 0.2rem; }
@@ -808,6 +965,16 @@
     .acct-menu { position:relative; }
     .acct-menu-pop { left:0.6rem; right:0.6rem; bottom:calc(100% + 6px); top:auto; min-width:200px; }
     .sidebar.collapsed .acct-menu-pop { display:none; }
+
+    /* Search / Notifications / Appearance / Account now live in the
+       Global System Bar (desktop, >=768px) — the sidebar stays focused
+       exclusively on ERP navigation there. Below 768px the system bar
+       is hidden in favor of .mob-topbar, which has no equivalent for
+       these, so the mobile drawer keeps them (see @media(max-width:767px)
+       "Restore sidebar-bottom in mobile drawer" below). */
+    @media (min-width: 768px) {
+      #sidebar-search-btn, #notif-btn, #theme-btn, #acct-menu { display: none !important; }
+    }
 
 
     .s-label { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); padding:0.7rem 0.55rem 0.3rem; }
@@ -3829,6 +3996,40 @@
 
 <!-- ══ APP ══ -->
 <div id="app">
+  <!-- Global System Bar — persistent dark platform-level surface. Desktop
+       only (see .system-bar CSS); mobile keeps .mob-topbar above. -->
+  <div class="system-bar" id="system-bar">
+    <div class="sb-left">
+      <span class="sb-logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 411 353.13"><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>
+      </span>
+      <span class="sb-wordmark">INDEX</span>
+    </div>
+    <div class="sb-right">
+      <button class="sb-icon-btn" id="tb-search-btn" data-tip="Search" onclick="openSpotlight()" aria-label="Search">
+        <svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <button class="sb-icon-btn" id="tb-notif-btn" data-tip="Notifications" onclick="toggleNotifications()" aria-label="Notifications">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M10 3a5 5 0 0 1 5 5v3l1.5 2H3.5L5 11V8a5 5 0 0 1 5-5zM8.5 15.5a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="notif-badge" id="tb-notif-badge"></span>
+      </button>
+      <button class="sb-icon-btn" id="tb-theme-btn" data-tip="Appearance" onclick="toggleTheme()" aria-label="Toggle theme">
+        <span class="sb-theme-icon">
+          <svg class="icon-sun" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="3.6" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.2v2M10 15.8v2M17.8 10h-2M4.2 10h-2M15.5 4.5l-1.4 1.4M5.9 14.1l-1.4 1.4M15.5 15.5l-1.4-1.4M5.9 5.9L4.5 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <svg class="icon-moon" viewBox="0 0 20 20" fill="none"><path d="M16.5 12.3A6.8 6.8 0 0 1 7.7 3.5a7 7 0 1 0 8.8 8.8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        </span>
+      </button>
+      <button class="sb-icon-btn" id="tb-help-btn" data-tip="Help &amp; Support" onclick="openHelp()" aria-label="Help and support">
+        <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M7.8 7.8a2.2 2.2 0 1 1 3.4 1.85c-.7.45-1.2.9-1.2 1.85" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="14.5" r="0.9" fill="currentColor"/></svg>
+      </button>
+      <div class="sb-acct" id="tb-acct">
+        <button class="sb-acct-btn" id="tb-acct-btn" onclick="toggleTopAcctMenu()" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
+          <span class="sb-acct-av" id="tb-av">–</span>
+          <svg class="sb-acct-chev" width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="sb-acct-pop" id="tb-acct-pop"></div>
+      </div>
+    </div>
+  </div>
   <div class="main">
     <div class="sidebar" id="sidebar">
       <button class="sidebar-edge-toggle" onclick="toggleSidebar()" aria-label="Collapse sidebar">
@@ -3895,7 +4096,7 @@
       </div>
       <div class="mod-scope" data-scope="talento_humano">
         <span class="s-label" style="margin-top:0.5rem">Talento Humano</span>
-        <button class="nav-item" id="nav-gafetes" data-tip="Creador de Gafetes" style="--item-color:#9e00cb" onclick="showGafetes()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="4" y="2.5" width="12" height="15" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="8" r="2.2" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 14.5c0-1.7 1.6-2.7 3.5-2.7s3.5 1 3.5 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span class="nav-label">Gafetes</span></button>
+        <button class="nav-item" id="nav-gafetes" data-tip="Creador de Gafetes" style="--item-color:#ffc529" onclick="showGafetes()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="4" y="2.5" width="12" height="15" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="8" r="2.2" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 14.5c0-1.7 1.6-2.7 3.5-2.7s3.5 1 3.5 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span class="nav-label">Gafetes</span></button>
       </div>
       <div class="mod-scope" data-scope="administracion">
         <span class="s-label" style="margin-top:0.5rem">Administración</span>
@@ -4447,6 +4648,47 @@
   </div>
 </div>
 
+<!-- Help & Support — reached from the Account Mega Menu's System group -->
+<div class="overlay" id="m-help">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-hdr">
+      <button class="modal-close" onclick="closeModal('m-help')" style="margin-left:auto">✕</button>
+    </div>
+    <div class="modal-body" style="padding-top:0">
+      <div class="prof-group-label" style="padding-top:0">Help &amp; Support</div>
+      <p style="font-size:0.84rem;color:var(--text-2);line-height:1.65;margin:0 0 1.1rem">
+        Need a hand with SIERRA Index? Our support team can help with product data,
+        access, or anything that isn't working the way you'd expect.
+      </p>
+      <a class="btn btn-primary btn-full" href="mailto:hello@sierratextiles.com" style="text-decoration:none;box-sizing:border-box;margin-bottom:0.6rem">Email support</a>
+      <a class="btn btn-secondary btn-full" href="home.html" style="text-decoration:none;box-sizing:border-box">Visit sierratextiles.com</a>
+    </div>
+  </div>
+</div>
+
+<!-- About SIERRA Index — reached from the Account Mega Menu's System group -->
+<div class="overlay" id="m-about">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-hdr">
+      <button class="modal-close" onclick="closeModal('m-about')" style="margin-left:auto">✕</button>
+    </div>
+    <div class="modal-body" style="padding-top:0">
+      <div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:0.25rem 0 1.25rem">
+        <span style="width:36px;height:36px;margin-bottom:0.85rem">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 411 353.13" style="width:100%;height:100%"><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>
+        </span>
+        <div style="font-size:1.05rem;font-weight:700;color:var(--text)">SIERRA Index</div>
+        <div style="font-size:0.78rem;color:var(--text-3);margin-top:0.2rem">Product Index for SIERRA Textiles</div>
+      </div>
+      <p style="font-size:0.84rem;color:var(--text-2);line-height:1.65;margin:0">
+        The single source of truth for SIERRA's product catalog, samples and fulfillment —
+        fiber, yarn, fabric, chemicals and garment in one system.
+      </p>
+      <p style="font-size:0.74rem;color:var(--text-3);margin:1.1rem 0 0">© SIERRA Textiles</p>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -4937,7 +5179,9 @@ function toggleTheme() {
   setThemeIcon(t)
 }
 function setThemeIcon(t) {
-  // theme-btn is the sidebar nav-item (SVG icon, no text to swap)
+  // No-op by design: the system-bar theme toggle's sun/moon crossfade is
+  // pure CSS, driven by [data-theme] (see .sb-theme-icon rules) — nothing
+  // to update in JS beyond the data-theme attribute toggleTheme() already sets.
 }
 
 /* ── INIT ── */
@@ -5058,14 +5302,18 @@ async function enterApp(user) {
   const name = p?.full_name || user.email.split('@')[0]
   const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
   const roleLabel = authRoleLabel()
-  // Sidebar user card
+  // Sidebar user card (mobile drawer) + system-bar account avatar (desktop)
   const sbAv = document.getElementById('sb-av')
-  if (p?.avatar_url) {
-    sbAv.innerHTML = `<img src="${p.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
-  } else {
-    sbAv.textContent = initials
-    sbAv.setAttribute('style', sbAv.getAttribute('style') + ';' + avatarStyle(user.id))
-  }
+  const tbAv = document.getElementById('tb-av')
+  ;[sbAv, tbAv].forEach(av => {
+    if (!av) return
+    if (p?.avatar_url) {
+      av.innerHTML = `<img src="${p.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+    } else {
+      av.textContent = initials
+      av.setAttribute('style', av.getAttribute('style') + ';' + avatarStyle(user.id))
+    }
+  })
   document.getElementById('sb-nm').textContent = name
   document.getElementById('sb-role').textContent = roleLabel
   // "+ New product" is now rendered per-division inside #product-controls
@@ -5114,6 +5362,18 @@ async function enterApp(user) {
     const key = savedRoute.slice(7)
     if (key === 'samples') { showSamplesHome(); return }
     showModuleTools(key); return
+  }
+
+  // No deep link, no saved session route (first visit / new tab) — fall
+  // back to the user's persisted default module/division (Account Mega
+  // Menu → Defaults) before landing on the generic module hub.
+  if (profile?.default_module && MODULES[profile.default_module] && moduleAccessible(MODULES[profile.default_module])) {
+    if (profile.default_module === 'samples') {
+      const d = profile.default_division && authorizedDivisions().includes(profile.default_division) ? profile.default_division : null
+      if (d) { setDiv(d); return }
+      showSamplesHome(); return
+    }
+    enterModule(profile.default_module); return
   }
   showModuleHub()
 }
@@ -5889,7 +6149,7 @@ function renderAcctMenu() {
     items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); showAccessLogs()">Access logs</button>`)
   }
   items.push(`<div class="pop-menu-sep"></div>`)
-  items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); toast('Help — coming soon')">Help</button>`)
+  items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); openHelp()">Help</button>`)
   items.push(`<button class="pop-menu-item danger" onclick="toggleAcctMenu(false); logout()">Log out</button>`)
   pop.innerHTML = items.join('')
 }
@@ -5900,9 +6160,158 @@ function toggleAcctMenu(force) {
   if (willOpen) renderAcctMenu()
   wrap.classList.toggle('open', willOpen)
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   ACCOUNT MEGA MENU — Global System Bar (desktop, >=768px)
+   ----------------------------------------------------------------------
+   The mobile drawer keeps the small acct-menu popover above (renderAcctMenu/
+   toggleAcctMenu) since it already works and .system-bar is hidden below
+   768px. This is a parallel, richer implementation for the top-bar account
+   button: a structured personal control center (identity header, grouped
+   actions, Defaults, Sign out) rather than a flat list of rows. Both read
+   the same underlying `me`/`profile` state — no separate data model.
+   ══════════════════════════════════════════════════════════════════════ */
+const SB_ICON = {
+  user:   '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.2" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 17c0-3.6 2.9-5.4 6.5-5.4s6.5 1.8 6.5 5.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+  team:   '<svg viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 17c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M15 6v4M17 8h-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+  help:   '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M7.8 7.8a2.2 2.2 0 1 1 3.4 1.85c-.7.45-1.2.9-1.2 1.85" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="14.5" r="0.9" fill="currentColor"/></svg>',
+  info:   '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M10 9v4.5M10 6.8v.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  logout: '<svg viewBox="0 0 20 20" fill="none"><path d="M8 17H4.5A1.5 1.5 0 0 1 3 15.5v-11A1.5 1.5 0 0 1 4.5 3H8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5 13.5L17 10l-4.5-3.5M17 10H7.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+}
+// Which Defaults row (if any) is showing its <select> instead of its
+// read-only value — reset whenever the menu is (re)opened fresh.
+let _tbEditingDefault = null
+
+function renderTopAcctMenu() {
+  const pop = document.getElementById('tb-acct-pop')
+  if (!pop) return
+  const name = profile?.full_name || me?.email?.split('@')[0] || ''
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || '–'
+  const roleLabel = authRoleLabel()
+  const email = me?.email || ''
+  const avInner = profile?.avatar_url ? `<img src="${escAttr(profile.avatar_url)}" alt="">` : esc(initials)
+  const avStyle = profile?.avatar_url ? '' : avatarStyle(me?.id)
+  const admin = isAdmin()
+
+  const modOpts = accessibleModules()
+  const divOpts = authorizedDivisions()
+  const effectiveModule = profile?.default_module || 'samples'
+  const showModuleDefault = modOpts.length > 1
+  const showDivisionDefault = effectiveModule === 'samples' && divOpts.length > 1
+
+  let defaultsHtml = ''
+  const rows = []
+  if (showModuleDefault) {
+    if (_tbEditingDefault === 'module') {
+      rows.push(`<div class="sb-mega-default-row">
+        <span class="sb-mega-default-k">Default module</span>
+        <select onchange="setDefaultModule(this.value)" autofocus>
+          <option value="">Not set</option>
+          ${modOpts.map(([key,m]) => `<option value="${escAttr(key)}" ${profile?.default_module===key?'selected':''}>${esc(m.label)}</option>`).join('')}
+        </select>
+      </div>`)
+    } else {
+      const lbl = profile?.default_module && MODULES[profile.default_module] ? MODULES[profile.default_module].label : 'Not set'
+      rows.push(`<div class="sb-mega-default-row">
+        <span class="sb-mega-default-k">Default module</span>
+        <button type="button" class="sb-mega-default-v${profile?.default_module?'':' muted'}" onclick="event.stopPropagation(); _tbEditingDefault='module'; renderTopAcctMenu()">${esc(lbl)} · Change</button>
+      </div>`)
+    }
+  }
+  if (showDivisionDefault) {
+    if (_tbEditingDefault === 'division') {
+      rows.push(`<div class="sb-mega-default-row">
+        <span class="sb-mega-default-k">Default division</span>
+        <select onchange="setDefaultDivision(this.value)" autofocus>
+          <option value="">Not set</option>
+          ${divOpts.map(d => `<option value="${escAttr(d)}" ${profile?.default_division===d?'selected':''}>${esc(DIV_LBL[d]||d)}</option>`).join('')}
+        </select>
+      </div>`)
+    } else {
+      const lbl = profile?.default_division ? (DIV_LBL[profile.default_division] || profile.default_division) : 'Not set'
+      rows.push(`<div class="sb-mega-default-row">
+        <span class="sb-mega-default-k">Default division</span>
+        <button type="button" class="sb-mega-default-v${profile?.default_division?'':' muted'}" onclick="event.stopPropagation(); _tbEditingDefault='division'; renderTopAcctMenu()">${esc(lbl)} · Change</button>
+      </div>`)
+    }
+  }
+  if (rows.length) {
+    defaultsHtml = `<div class="sb-mega-sep"></div>
+      <div class="sb-mega-label">Defaults</div>
+      <div class="sb-mega-defaults">${rows.join('')}</div>`
+  }
+
+  pop.innerHTML = `
+    <div class="sb-mega-hdr">
+      <span class="sb-mega-av" style="${avStyle}">${avInner}</span>
+      <div class="sb-mega-id">
+        <div class="sb-mega-name">${esc(name)}</div>
+        <div class="sb-mega-role">${esc(roleLabel)}</div>
+        ${email ? `<div class="sb-mega-email">${esc(email)}</div>` : ''}
+      </div>
+    </div>
+    <div class="sb-mega-sep"></div>
+    <div class="sb-mega-label">Account</div>
+    <button class="sb-mega-row" onclick="toggleTopAcctMenu(false); openProfile()">
+      <span class="sb-mega-row-icon">${SB_ICON.user}</span>
+      <span class="sb-mega-row-text"><div class="sb-mega-row-title">My profile</div><div class="sb-mega-row-desc">Personal information and account details</div></span>
+    </button>
+    ${defaultsHtml}
+    <div class="sb-mega-sep"></div>
+    <div class="sb-mega-label">System</div>
+    ${admin ? `<button class="sb-mega-row" onclick="toggleTopAcctMenu(false); showUserManagement()">
+      <span class="sb-mega-row-icon">${SB_ICON.team}</span>
+      <span class="sb-mega-row-text"><div class="sb-mega-row-title">Team &amp; access</div><div class="sb-mega-row-desc">Manage accounts and module permissions</div></span>
+    </button>` : ''}
+    <button class="sb-mega-row" onclick="toggleTopAcctMenu(false); openHelp()">
+      <span class="sb-mega-row-icon">${SB_ICON.help}</span>
+      <span class="sb-mega-row-text"><div class="sb-mega-row-title">Help &amp; Support</div></span>
+    </button>
+    <button class="sb-mega-row" onclick="toggleTopAcctMenu(false); openAbout()">
+      <span class="sb-mega-row-icon">${SB_ICON.info}</span>
+      <span class="sb-mega-row-text"><div class="sb-mega-row-title">About SIERRA Index</div></span>
+    </button>
+    <div class="sb-mega-sep"></div>
+    <button class="sb-mega-row danger" onclick="toggleTopAcctMenu(false); logout()">
+      <span class="sb-mega-row-icon">${SB_ICON.logout}</span>
+      <span class="sb-mega-row-text"><div class="sb-mega-row-title">Sign out</div></span>
+    </button>
+  `
+}
+
+function toggleTopAcctMenu(force) {
+  const wrap = document.getElementById('tb-acct')
+  if (!wrap) return
+  const willOpen = force !== undefined ? force : !wrap.classList.contains('open')
+  if (willOpen) { _tbEditingDefault = null; renderTopAcctMenu() }
+  wrap.classList.toggle('open', willOpen)
+  document.getElementById('tb-acct-btn')?.setAttribute('aria-expanded', String(willOpen))
+}
+
+async function setDefaultModule(key) {
+  profile = profile || {}
+  profile.default_module = key || null
+  if (profile.default_module !== 'samples') profile.default_division = null
+  _tbEditingDefault = null
+  renderTopAcctMenu()
+  await sb.from('profiles').update({ default_module: profile.default_module, default_division: profile.default_division }).eq('id', me.id)
+}
+async function setDefaultDivision(d) {
+  profile = profile || {}
+  profile.default_division = d || null
+  _tbEditingDefault = null
+  renderTopAcctMenu()
+  await sb.from('profiles').update({ default_division: profile.default_division }).eq('id', me.id)
+}
+
+function openHelp() { document.getElementById('m-help')?.classList.add('open') }
+function openAbout() { document.getElementById('m-about')?.classList.add('open') }
+
 document.addEventListener('click', e => {
   const am = document.getElementById('acct-menu')
   if (am && !am.contains(e.target)) am.classList.remove('open')
+  const tb = document.getElementById('tb-acct')
+  if (tb && !tb.contains(e.target)) tb.classList.remove('open')
 })
 
 /* ── Fulfillment nav (Cola de despacho / Inventario) ──
@@ -9978,7 +10387,7 @@ const MODULES = {
   talento_humano: {
     label: 'Talento Humano',
     domains: ['talento_humano'],
-    color: '#9e00cb',
+    color: '#ffc529',
     icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.2" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 17c0-3.6 2.9-5.4 6.5-5.4s6.5 1.8 6.5 5.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
     tools: [
       {
@@ -16322,8 +16731,7 @@ async function loadNotifications() {
   if (error) return
 
   const unread = (data || []).filter(n => !n.read)
-  const badge = document.getElementById('notif-badge')
-  if (badge) { badge.style.display = unread.length ? 'block' : 'none' }
+  document.querySelectorAll('.notif-badge').forEach(badge => { badge.style.display = unread.length ? 'block' : 'none' })
 
   const list = document.getElementById('notif-list')
   if (!list) return
@@ -16362,7 +16770,7 @@ function closeNotifications() {
 
 async function markAllNotificationsRead() {
   await sb.from('notifications').update({ read: true }).eq('user_id', me.id).eq('read', false)
-  document.getElementById('notif-badge').style.display = 'none'
+  document.querySelectorAll('.notif-badge').forEach(badge => { badge.style.display = 'none' })
   document.querySelectorAll('.notif-item.unread').forEach(el => {
     el.classList.remove('unread')
     el.querySelector('.notif-unread-dot')?.remove()
