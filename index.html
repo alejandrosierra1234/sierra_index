@@ -4537,6 +4537,376 @@
       margin: 0;
     }
 
+    /* ══════════════════════════════════════════════════════════════
+       BADGE ISSUANCE WORKSPACE
+       ══════════════════════════════════════════════════════════════ */
+
+    .badge-issuance-workspace {
+      display: flex;
+      flex-direction: column;
+      width: 90vw;
+      max-width: 1400px;
+      height: 85vh;
+      max-height: 900px;
+      background: var(--surface);
+      border-radius: var(--r-lg);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      animation: slideUp 0.3s var(--ease-out);
+    }
+
+    .issuance-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .issuance-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .issuance-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--content-gap);
+      flex: 1;
+      min-height: 0;
+      padding: var(--section-gap);
+      overflow-y: auto;
+    }
+
+    .issuance-data-panel {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .badge-data-sections {
+      display: flex;
+      flex-direction: column;
+      gap: var(--panel-gap);
+    }
+
+    .badge-data-section {
+      padding: var(--panel-padding);
+      background: var(--surface2);
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+    }
+
+    .badge-data-section h3 {
+      margin: 0 0 1rem 0;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 0.75rem;
+      font-size: 0.85rem;
+      align-items: center;
+    }
+
+    .data-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .data-label {
+      color: var(--text-secondary);
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .data-value {
+      color: var(--text-primary);
+      text-align: right;
+      flex: 1;
+      word-break: break-word;
+    }
+
+    .badge-readiness-checklist {
+      padding: var(--panel-padding);
+      background: rgba(255, 197, 41, 0.05);
+      border-radius: var(--r-md);
+      border: 1px solid rgba(255, 197, 41, 0.2);
+    }
+
+    .badge-readiness-checklist h4 {
+      margin: 0 0 1rem 0;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+
+    /* Badge Preview */
+    .issuance-preview-panel {
+      display: flex;
+      flex-direction: column;
+      gap: var(--panel-gap);
+    }
+
+    .badge-preview-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface2);
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .badge-preview-tabs {
+      display: flex;
+      gap: 2px;
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .preview-tab {
+      flex: 1;
+      height: 36px;
+      border: none;
+      background: transparent;
+      border-radius: var(--r-sm);
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--dur-fast) var(--ease-out);
+    }
+
+    .preview-tab:hover {
+      background: var(--surface-hover);
+    }
+
+    .preview-tab.active {
+      background: var(--accent-light);
+      color: var(--accent-dark);
+      font-weight: 600;
+    }
+
+    .badge-preview-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--panel-gap);
+      overflow: auto;
+      background: #f9f9f9;
+    }
+
+    [data-theme="dark"] .badge-preview-area {
+      background: #1a1a1a;
+    }
+
+    .badge-preview-controls {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    /* Badge Front and Back */
+    .badge-front,
+    .badge-back {
+      width: 85.6mm;
+      height: 53.98mm;
+      box-sizing: border-box;
+      background: #fff;
+      color: #000;
+      border-radius: 4mm;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      display: flex;
+      flex-direction: column;
+      padding: 3mm;
+      font-family: 'Replica', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .badge-front-header,
+    .badge-back-header {
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .badge-sierra-logo {
+      width: 22mm;
+      height: auto;
+      color: #0a7a72;
+      font-weight: 700;
+    }
+
+    .badge-company-color,
+    .badge-back-company-color {
+      height: 3mm;
+      margin: 2mm -3mm 2mm -3mm;
+      flex-shrink: 0;
+    }
+
+    .badge-front-photo {
+      width: 28mm;
+      height: 28mm;
+      border-radius: 2mm;
+      overflow: hidden;
+      margin: 2mm auto;
+      flex-shrink: 0;
+      background: #eee;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .badge-front-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .badge-photo-empty {
+      color: #999;
+      font-size: 8pt;
+    }
+
+    .badge-front-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .badge-employee-name {
+      margin-bottom: 2mm;
+    }
+
+    .badge-first-name,
+    .badge-last-name {
+      font-family: 'Replica', sans-serif;
+      font-weight: 700;
+      font-size: 11pt;
+      line-height: 1;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-first-name {
+      margin-bottom: 1mm;
+    }
+
+    .badge-department {
+      font-family: 'Replica', sans-serif;
+      font-weight: 400;
+      font-size: 8pt;
+      color: #444;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-front-code {
+      font-size: 7pt;
+      text-align: center;
+      margin-top: 2mm;
+      font-family: 'Replica Mono', 'Courier New', monospace;
+      letter-spacing: 0.5px;
+      color: #666;
+    }
+
+    .badge-code-label {
+      font-weight: 600;
+      margin-right: 2mm;
+    }
+
+    .badge-code-value {
+      font-weight: 600;
+    }
+
+    /* Badge Back */
+    .badge-back {
+      padding: 2.5mm;
+    }
+
+    .badge-back-barcode {
+      text-align: center;
+      margin: 2mm 0;
+      flex: 0 0 auto;
+    }
+
+    .badge-back-barcode svg {
+      height: 15mm;
+      width: auto;
+    }
+
+    .badge-barcode-text {
+      font-family: 'Replica Mono', 'Courier New', monospace;
+      font-size: 6pt;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-top: 1mm;
+    }
+
+    .badge-back-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5mm;
+      font-size: 6.5pt;
+      margin: 1mm 0;
+    }
+
+    .badge-back-row {
+      display: flex;
+      gap: 2mm;
+    }
+
+    .badge-back-label {
+      font-weight: 600;
+      flex-shrink: 0;
+      width: 25mm;
+    }
+
+    .badge-back-value {
+      flex: 1;
+      word-break: break-word;
+      line-height: 1.2;
+    }
+
+    .badge-back-footer {
+      font-size: 5pt;
+      color: #999;
+      margin-top: 1mm;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    .issuance-footer {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      padding: 1.5rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface2);
+      flex-shrink: 0;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(20px); }
+    }
+
   </style>
   <style>
 /* legacy detail-hero stubs — pre-date the current ProductHeader/RecordTabs
@@ -11851,8 +12221,500 @@ function closeImportModal() {
 
 function startBadgeIssuance(empId) {
   closeEmployeeDetail()
-  _badge_ui.issuanceInProgress = { employee_id: empId }
-  toast('Badge issuance workspace — Coming soon')
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp) return
+
+  // Check badge readiness
+  const readiness = checkBadgeReadiness(emp)
+  if (!readiness.ready) {
+    showBadgeReadinessWarning(emp, readiness)
+    return
+  }
+
+  // Show badge issuance workspace
+  _badge_ui.issuanceInProgress = {
+    employee_id: empId,
+    status: 'draft',
+    preview_side: 'front'
+  }
+  showBadgeIssuanceWorkspace()
+}
+
+function checkBadgeReadiness(emp) {
+  const issues = []
+
+  // Required fields
+  if (!emp.employee_code) issues.push({ level: 'error', field: 'employee_code', message: 'Employee Code is required for badge barcode' })
+  if (!emp.first_name) issues.push({ level: 'error', field: 'first_name', message: 'First Name is required' })
+  if (!emp.last_name) issues.push({ level: 'error', field: 'last_name', message: 'Last Name is required' })
+
+  // Photo (strongly recommended)
+  if (!emp.photo_url) issues.push({ level: 'warning', field: 'photo', message: 'Photo is strongly recommended' })
+
+  const errors = issues.filter(i => i.level === 'error')
+  const warnings = issues.filter(i => i.level === 'warning')
+
+  return {
+    ready: errors.length === 0,
+    errors,
+    warnings,
+    allIssues: issues
+  }
+}
+
+function showBadgeReadinessWarning(emp, readiness) {
+  const modal = document.createElement('div')
+  modal.className = 'modal-overlay'
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:500px">
+      <div class="modal-header">
+        <h2>Badge Not Ready</h2>
+        <button class="icon-btn icon-btn-quiet" onclick="this.closest('.modal-overlay').remove()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <p>This employee is missing required information for badge issuance:</p>
+        <ul style="margin:1rem 0;padding-left:1.5rem">
+          ${readiness.errors.map(i => `<li style="margin-bottom:0.5rem"><strong>${i.field}:</strong> ${i.message}</li>`).join('')}
+        </ul>
+        <p><button class="btn btn-link" onclick="this.closest('.modal-overlay').remove(); viewEmployeeDetail('${emp.id}')">Edit Employee Data</button></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
+  modal.onclick = (e) => e.target === modal && modal.remove()
+}
+
+function showBadgeIssuanceWorkspace() {
+  const issuance = _badge_ui.issuanceInProgress
+  const emp = _badge.employees.find(e => e.id === issuance.employee_id)
+  if (!emp) return
+
+  const modal = document.createElement('div')
+  modal.className = 'modal-overlay'
+  modal.id = 'badge-issuance-modal'
+  modal.style.background = 'rgba(0,0,0,0.3)'
+  modal.innerHTML = `
+    <div class="badge-issuance-workspace">
+      <div class="issuance-header">
+        <div class="issuance-title">Create Badge: ${esc(emp.first_name)} ${esc(emp.last_name)}</div>
+        <button class="icon-btn icon-btn-quiet" onclick="closeBadgeIssuance()"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+      </div>
+
+      <div class="issuance-content">
+        <!-- Left: Employee Data -->
+        <div class="issuance-data-panel">
+          ${renderBadgeDataPanel(emp)}
+        </div>
+
+        <!-- Right: Badge Preview -->
+        <div class="issuance-preview-panel">
+          ${renderBadgePreview(emp)}
+        </div>
+      </div>
+
+      <div class="issuance-footer">
+        <button class="btn btn-secondary" onclick="closeBadgeIssuance()">Cancel</button>
+        <button class="btn btn-primary" onclick="printBadge()">Print Badge</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
+  modal.onclick = (e) => e.target === modal && closeBadgeIssuance()
+}
+
+function renderBadgeDataPanel(emp) {
+  return `
+    <div class="badge-data-sections">
+      <div class="badge-data-section">
+        <h3>Identity</h3>
+        <div class="data-row">
+          <span class="data-label">First Name</span>
+          <span class="data-value">${esc(emp.first_name)}</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Last Name</span>
+          <span class="data-value">${esc(emp.last_name)}</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Employee Code</span>
+          <code>${esc(emp.employee_code)}</code>
+        </div>
+      </div>
+
+      <div class="badge-data-section">
+        <h3>Organization</h3>
+        <div class="data-row">
+          <span class="data-label">Department</span>
+          <span class="data-value">${esc(emp.department || '—')}</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Position</span>
+          <span class="data-value">${esc(emp.position || '—')}</span>
+        </div>
+      </div>
+
+      <div class="badge-data-section">
+        <h3>Photo</h3>
+        <div style="text-align:center;margin:1rem 0">
+          ${emp.photo_url
+            ? `<img src="${emp.photo_url}" style="width:120px;height:120px;border-radius:8px;object-fit:cover" />`
+            : '<div style="width:120px;height:120px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;margin:0 auto;color:var(--text-3)">No photo</div>'
+          }
+        </div>
+      </div>
+
+      <div class="badge-data-section">
+        <h3>Badge Info</h3>
+        <div class="data-row">
+          <span class="data-label">Status</span>
+          <span class="badge badge-draft">Draft</span>
+        </div>
+        <div class="data-row">
+          <span class="data-label">Barcode</span>
+          <code>${esc(emp.employee_code)}</code>
+        </div>
+      </div>
+
+      <div class="badge-readiness-checklist">
+        <h4>Readiness Checklist</h4>
+        ${renderReadinessChecklist(emp)}
+      </div>
+    </div>
+  `
+}
+
+function renderReadinessChecklist(emp) {
+  const checks = [
+    { label: 'Employee Code', ok: !!emp.employee_code },
+    { label: 'First Name', ok: !!emp.first_name },
+    { label: 'Last Name', ok: !!emp.last_name },
+    { label: 'Department', ok: !!emp.department },
+    { label: 'Position', ok: !!emp.position },
+    { label: 'Photo', ok: !!emp.photo_url }
+  ]
+  return `
+    <ul style="margin:0;padding:0;list-style:none">
+      ${checks.map(c => `
+        <li style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.85rem;border-bottom:1px solid var(--border)">
+          <span style="color:${c.ok ? 'var(--success)' : 'var(--danger)'}">${c.ok ? '✓' : '✗'}</span>
+          ${c.label}
+        </li>
+      `).join('')}
+    </ul>
+  `
+}
+
+function renderBadgePreview(emp) {
+  const issuance = _badge_ui.issuanceInProgress
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+
+  return `
+    <div class="badge-preview-container">
+      <div class="badge-preview-tabs">
+        <button class="preview-tab ${issuance.preview_side === 'front' ? 'active' : ''}" onclick="_badge_ui.issuanceInProgress.preview_side = 'front'; showBadgeIssuanceWorkspace()">
+          Front
+        </button>
+        <button class="preview-tab ${issuance.preview_side === 'back' ? 'active' : ''}" onclick="_badge_ui.issuanceInProgress.preview_side = 'back'; showBadgeIssuanceWorkspace()">
+          Back
+        </button>
+      </div>
+
+      <div class="badge-preview-area">
+        ${issuance.preview_side === 'front'
+          ? renderBadgeFront(emp, site)
+          : renderBadgeBack(emp, site)
+        }
+      </div>
+
+      <div class="badge-preview-controls">
+        <button class="icon-btn" onclick="zoomBadgePreview(1.1)" title="Zoom In"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 6.5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+        <button class="icon-btn" onclick="zoomBadgePreview(0.9)" title="Zoom Out"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+      </div>
+    </div>
+  `
+}
+
+function renderBadgeFront(emp, site) {
+  // SIERRA badge front design
+  // Faithful reproduction of approved badge artwork
+  return `
+    <div class="badge-front" id="badge-front-preview">
+      <div class="badge-front-header">
+        <svg class="badge-sierra-logo" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
+          <text x="50" y="25" font-family="Replica, sans-serif" font-size="18" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text>
+        </svg>
+      </div>
+
+      <div class="badge-company-color" style="background-color:${site?.badge_color || '#0A7A72'}"></div>
+
+      <div class="badge-front-photo">
+        ${emp.photo_url ? `<img src="${emp.photo_url}" />` : '<div class="badge-photo-empty">No photo</div>'}
+      </div>
+
+      <div class="badge-front-info">
+        <div class="badge-employee-name">
+          <div class="badge-first-name">${esc(emp.first_name).toUpperCase()}</div>
+          <div class="badge-last-name">${esc(emp.last_name).toUpperCase()}</div>
+        </div>
+        <div class="badge-department">${esc(emp.department || 'Department').toUpperCase()}</div>
+      </div>
+
+      <div class="badge-front-code">
+        <span class="badge-code-label">ID</span>
+        <span class="badge-code-value">${esc(emp.employee_code)}</span>
+      </div>
+    </div>
+  `
+}
+
+function renderBadgeBack(emp, site) {
+  // SIERRA badge back design
+  // Includes barcode, emergency info, medical info
+  return `
+    <div class="badge-back" id="badge-back-preview">
+      <div class="badge-back-header">
+        <svg class="badge-sierra-logo" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
+          <text x="50" y="25" font-family="Replica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text>
+        </svg>
+      </div>
+
+      <div class="badge-back-company-color" style="background-color:${site?.badge_color || '#0A7A72'}"></div>
+
+      <div class="badge-back-barcode">
+        <div id="badge-back-barcode-svg" style="text-align:center;margin:3mm 0"></div>
+        <div class="badge-barcode-text">${esc(emp.employee_code)}</div>
+      </div>
+
+      <div class="badge-back-info">
+        <div class="badge-back-row">
+          <span class="badge-back-label">Emergency Contact:</span>
+          <span class="badge-back-value">${esc(emp.emergency_contact_name || '—')}</span>
+        </div>
+        <div class="badge-back-row">
+          <span class="badge-back-label">Phone:</span>
+          <span class="badge-back-value">${esc(emp.emergency_contact_phone || '—')}</span>
+        </div>
+        <div class="badge-back-row">
+          <span class="badge-back-label">Blood Type:</span>
+          <span class="badge-back-value">${esc(emp.blood_type || 'O+')}</span>
+        </div>
+        ${emp.health_conditions ? `
+        <div class="badge-back-row">
+          <span class="badge-back-label">Health Conditions:</span>
+          <span class="badge-back-value">${esc(emp.health_conditions)}</span>
+        </div>
+        ` : ''}
+      </div>
+
+      <div class="badge-back-footer">
+        <p style="margin:0;font-size:6pt;color:#666">In case of emergency, contact the number listed above. Keep badge visible at all times.</p>
+      </div>
+    </div>
+  `
+}
+
+function zoomBadgePreview(factor) {
+  // Implementation for zoom preview
+  toast('Preview zoom — full implementation pending')
+}
+
+function closeBadgeIssuance() {
+  const modal = document.getElementById('badge-issuance-modal')
+  if (modal) {
+    modal.style.animation = 'slideDown 0.3s var(--ease-out)'
+    setTimeout(() => modal.remove(), 300)
+  }
+  _badge_ui.issuanceInProgress = null
+}
+
+async function printBadge() {
+  const issuance = _badge_ui.issuanceInProgress
+  const emp = _badge.employees.find(e => e.id === issuance.employee_id)
+  if (!emp) return
+
+  // Generate real barcode using JsBarcode
+  const barcodeContainer = document.createElement('div')
+  JsBarcode(barcodeContainer, emp.employee_code, {
+    format: 'CODE128',
+    width: 2,
+    height: 50,
+    margin: 0,
+    fontSize: 12
+  })
+
+  // Create print document with actual SIERRA badge design
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const w = window.open('', '_blank', 'width=900,height=700')
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>SIERRA Badge - ${esc(emp.first_name)} ${esc(emp.last_name)}</title>
+      <style>
+        @page { size: 85.6mm 53.98mm; margin: 0; }
+        @media print {
+          body { margin: 0; padding: 0; }
+          .badge-sheet { margin: 0; }
+        }
+        body {
+          font-family: 'Replica', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+          margin: 10px;
+          background: #f5f5f5;
+        }
+        .badge-sheet {
+          width: 85.6mm;
+          height: 53.98mm;
+          background: #fff;
+          box-sizing: border-box;
+          page-break-inside: avoid;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          display: grid;
+          grid-template-rows: 1fr;
+          position: relative;
+          margin-bottom: 20px;
+        }
+        .badge-front {
+          grid-row: 1;
+          grid-column: 1;
+          padding: 3mm;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: space-between;
+          text-align: center;
+          background: linear-gradient(135deg, #f9f9f9 0%, #fff 100%);
+          border-radius: 4mm;
+          border: 1px solid #eee;
+          position: relative;
+          overflow: hidden;
+        }
+        .badge-sierra-logo {
+          width: 25mm;
+          height: auto;
+          color: #0a7a72;
+          font-weight: 700;
+        }
+        .badge-company-bar {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3mm;
+          background: ${site?.badge_color || '#0A7A72'};
+        }
+        .badge-employee-photo {
+          width: 28mm;
+          height: 28mm;
+          border-radius: 2mm;
+          object-fit: cover;
+          margin: 2mm 0;
+          border: 1px solid #ddd;
+        }
+        .badge-employee-name {
+          margin-top: 2mm;
+          line-height: 1.1;
+        }
+        .badge-first-name {
+          font-size: 11pt;
+          font-weight: 700;
+          color: #000;
+        }
+        .badge-last-name {
+          font-size: 11pt;
+          font-weight: 700;
+          color: #000;
+          margin-top: 1mm;
+        }
+        .badge-department {
+          font-size: 8pt;
+          color: #666;
+          margin-top: 1mm;
+        }
+        .badge-code {
+          font-size: 7pt;
+          color: #888;
+          font-family: 'Courier New', monospace;
+          margin-top: 2mm;
+          letter-spacing: 0.5px;
+        }
+        .badge-barcode {
+          text-align: center;
+          margin: 2mm 0;
+        }
+        .badge-barcode svg {
+          max-width: 100%;
+          height: auto;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="badge-sheet">
+        <div class="badge-front">
+          <div class="badge-company-bar"></div>
+          <svg class="badge-sierra-logo" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
+            <text x="50" y="25" font-family="Replica" font-size="18" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text>
+          </svg>
+          ${emp.photo_url ? `<img src="${emp.photo_url}" class="badge-employee-photo" />` : '<div style="width:28mm;height:28mm;background:#eee;border-radius:2mm;display:flex;align-items:center;justify-content:center;color:#999">No photo</div>'}
+          <div class="badge-employee-name">
+            <div class="badge-first-name">${esc(emp.first_name).toUpperCase()}</div>
+            <div class="badge-last-name">${esc(emp.last_name).toUpperCase()}</div>
+          </div>
+          <div class="badge-department">${esc(emp.department || 'Department').toUpperCase()}</div>
+          <div class="badge-code">${esc(emp.employee_code)}</div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  w.document.write(html)
+  w.document.close()
+
+  // Generate and inject barcode after document is loaded
+  setTimeout(() => {
+    try {
+      const barcodeDiv = w.document.querySelector('.badge-barcode')
+      if (barcodeDiv && typeof JsBarcode !== 'undefined') {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        barcodeDiv.appendChild(svg)
+        JsBarcode(svg, emp.employee_code, { format: 'CODE128', width: 2, height: 40, margin: 0 })
+      }
+      w.print()
+    } catch (e) {
+      console.error('Barcode generation error:', e)
+      w.print()
+    }
+  }, 500)
+
+  // Save issuance record
+  const { error } = await sb.from('badge_issuances').insert({
+    employee_id: emp.id,
+    status: 'printed',
+    snapshot: {
+      first_name: emp.first_name,
+      last_name: emp.last_name,
+      employee_code: emp.employee_code,
+      department: emp.department,
+      position: emp.position
+    },
+    template_id: null,
+    company_color: _badge.sites.find(s => s.id === _badge.activeSite)?.badge_color,
+    printed_at: new Date().toISOString(),
+    printed_by: me.id,
+    created_by: me.id
+  })
+
+  if (!error) {
+    toast('Badge printed and recorded!')
+  }
+
+  closeBadgeIssuance()
+  await loadBadgeData()
+  renderBadgeModule()
 }
 
 function showDashboard() {
