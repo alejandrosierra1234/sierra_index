@@ -3048,6 +3048,14 @@
       font-size: 2.2mm; font-weight: 700; color: var(--teal);
       text-transform: uppercase; letter-spacing: 0.06em; margin-top: 1.2mm;
     }
+    /* Progressive degradation (§11): tighter vertical rhythm only —
+       typography size and the barcode are never touched here. */
+    .lbl.lbl-yarn.is-tight .lbl-hdr { margin-bottom: 1.4mm; }
+    .lbl.lbl-yarn.is-tight .lbl-count { margin-top: 0.5mm; }
+    .lbl.lbl-yarn.is-tight .lbl-block { margin-top: 1.5mm; padding-top: 1.5mm; }
+    .lbl.lbl-yarn.is-tight .lbl-yconstr,
+    .lbl.lbl-yarn.is-tight .lbl-yeffect { margin-top: 0.7mm; }
+    .lbl.lbl-yarn.is-tight .lbl-rule { margin: 1.8mm 0 1.4mm; }
 
     /* ══════════════════════════════════════════════════════════════════
        YARN LABEL CREATOR — visual data entry for Yarn Inventory. Reuses
@@ -3067,13 +3075,31 @@
     .yc-req { color: var(--danger); margin-left: 2px; }
 
     .yc-fiber-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .yc-fiber-select {
-      flex: 1; min-width: 0; height: var(--control-h-sm); border: 1px solid var(--border-strong);
-      border-radius: var(--r-sm); background: var(--surface); color: var(--text-primary);
-      font: inherit; font-size: 13px; padding: 0 8px; cursor: pointer; appearance: none;
-    }
-    .yc-fiber-other { width: 108px; flex-shrink: 0; }
+    .yc-fiber-row .yc-combo { flex: 1; min-width: 0; }
     .yc-fiber-pct { width: 58px; flex-shrink: 0; text-align: right; }
+
+    /* ── Combobox — text input + filtered, grouped dropdown; typing a
+       value not in the list is a valid free-text entry, not an error
+       (§5, §16). ── */
+    .yc-combo { position: relative; }
+    .yc-combo-menu {
+      position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30;
+      display: none; padding: 4px; max-height: 240px; overflow-y: auto;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+      box-shadow: 0 14px 38px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .yc-combo.open .yc-combo-menu { display: block; }
+    .yc-combo-group-label {
+      font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-muted); padding: 7px 10px 4px;
+    }
+    .yc-combo-opt {
+      display: block; width: 100%; text-align: left; min-height: 32px; padding: 6px 10px;
+      border: none; background: none; border-radius: var(--r-sm); font: inherit; font-size: 13px;
+      color: var(--text-primary); cursor: pointer;
+    }
+    .yc-combo-opt:hover { background: var(--surface-hover); }
+    .yc-combo-empty { padding: 8px 10px; font-size: 12px; color: var(--text-muted); }
     .yc-fiber-pct-sign { font-size: 12px; color: var(--text-muted); flex-shrink: 0; margin-left: -4px; }
     .yc-fiber-remove {
       flex-shrink: 0; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
@@ -5536,6 +5562,11 @@
       <div class="lbl-dr-preview">
         <div class="lbl-pv-bar">
           <span class="lbl-pv-dims" id="yc-pv-dims"></span>
+          <span style="flex:1 1 auto"></span>
+          <span id="yc-zoom" style="display:flex;gap:4px">
+            <button class="btn btn-secondary btn-sm active" data-z="fit" onclick="ycSetZoom('fit')">Fit</button>
+            <button class="btn btn-secondary btn-sm" data-z="100" onclick="ycSetZoom(100)">Actual Size</button>
+          </span>
         </div>
         <div class="lbl-pv-stage">
           <div class="lbl-dr-paper">
@@ -5548,7 +5579,6 @@
 </div>
 
 
-<!-- ══ MODAL: ADD / EDIT PRODUCT ══ -->
 <!-- ══ Yarn print step — §20: quantity + printer profile, nothing else ══ -->
 <div class="overlay" id="m-yarn-print">
   <div class="modal" style="width:380px">
@@ -5574,7 +5604,8 @@
     </div>
     <div class="modal-ftr">
       <button class="btn btn-secondary" onclick="closeModal('m-yarn-print')">Cancel</button>
-      <button class="btn btn-primary" id="yc-print-confirm-btn" onclick="ycConfirmPrint()">Print</button>
+      <button class="btn btn-secondary" id="yc-print-pdf-btn" onclick="ycConfirmPrint(true)">PDF</button>
+      <button class="btn btn-primary" id="yc-print-confirm-btn" onclick="ycConfirmPrint(false)">Print</button>
     </div>
   </div>
 </div>
@@ -6415,7 +6446,7 @@ let allProducts = [], searchQuery = '', selectedProducts = []
 let catalogView = (() => { try { return localStorage.getItem('sierra_catalog_view') || 'table' } catch { return 'table' } })()
 let catalogSort = 'name_asc'
 let catalogGroupBy = 'none' // 'none' | 'construction' | 'composition' | 'availability'
-let catalogFilters = { construction: new Set(), availability: new Set(), color: new Set(), composition: new Set() }
+let catalogFilters = { construction: new Set(), availability: new Set(), color: new Set(), composition: new Set(), yarnCount: new Set() }
 let _catCollapsedGroups = new Set()
 
 // Real columns only — no Yarn Count / Finish / Warehouse-Location fields
@@ -6772,7 +6803,13 @@ function filterProducts() {
     p.name.toLowerCase().includes(q) ||
     (p.code && p.code.toLowerCase().includes(q)) ||
     (p.description && p.description.toLowerCase().includes(q)) ||
-    (p.tags && p.tags.some(t => t.toLowerCase().includes(q)))
+    (p.tags && p.tags.some(t => t.toLowerCase().includes(q))) ||
+    // Specs values too — so a Yarn Count like "30/1" (with its "/1" intact),
+    // Yarn Content, Spinning Technology, etc. are searchable the same way
+    // any other technical spec is, on every division, not just yarn.
+    (p.specs && Object.values(p.specs).some(v => Array.isArray(v)
+      ? v.some(x => typeof x === 'string' ? x.toLowerCase().includes(q) : String(x?.fiber || '').toLowerCase().includes(q))
+      : typeof v === 'string' && v.toLowerCase().includes(q)))
   )
 }
 
@@ -6887,6 +6924,7 @@ function catFacetValues(base, field) {
     else if (field === 'availability') v = LIFECYCLE[lc(p)]?.label
     else if (field === 'color') v = p.specs?.Color
     else if (field === 'composition') v = p.specs?.Composition || p.specs?.composition
+    else if (field === 'yarnCount') v = p.specs?.['Yarn Count']
     if (!v) return
     counts.set(v, (counts.get(v) || 0) + 1)
   })
@@ -6899,12 +6937,13 @@ function catApplyFacetFilters(products) {
     if (f.availability.size && !f.availability.has(LIFECYCLE[lc(p)]?.label)) return false
     if (f.color.size && !f.color.has(p.specs?.Color)) return false
     if (f.composition.size && !f.composition.has(p.specs?.Composition || p.specs?.composition)) return false
+    if (f.yarnCount.size && !f.yarnCount.has(p.specs?.['Yarn Count'])) return false
     return true
   })
 }
 function catActiveFilterCount() {
   const f = catalogFilters
-  return f.construction.size + f.availability.size + f.color.size + f.composition.size
+  return f.construction.size + f.availability.size + f.color.size + f.composition.size + f.yarnCount.size
 }
 
 function setCatalogView(view) {
@@ -7024,7 +7063,7 @@ function renderCatalogToolbar() {
       </div>
     </div>
 
-    ${catalogView === 'table' ? `
+    ${catalogView === 'table' && division !== 'yarn' ? `
     <div style="position:relative">
       <button class="btn btn-secondary btn-sm cat-tb-btn" onclick="catTogglePop(event,'cat-pop-cols')">Hide columns</button>
       <div class="ws-pop cat-pop" id="cat-pop-cols">
@@ -7054,12 +7093,18 @@ function renderCatalogToolbar() {
 }
 
 function catFilterPopHtml(base) {
-  const facets = [
-    division === 'fabric' ? { key: 'construction', label: 'Construction' } : null,
-    { key: 'availability', label: 'Availability' },
-    { key: 'composition', label: 'Composition' },
-    { key: 'color', label: 'Color' },
-  ].filter(Boolean)
+  const facets = division === 'yarn'
+    ? [
+        { key: 'yarnCount', label: 'Yarn Count' },
+        { key: 'availability', label: 'Availability' },
+        { key: 'composition', label: 'Content' },
+      ]
+    : [
+        division === 'fabric' ? { key: 'construction', label: 'Construction' } : null,
+        { key: 'availability', label: 'Availability' },
+        { key: 'composition', label: 'Composition' },
+        { key: 'color', label: 'Color' },
+      ].filter(Boolean)
   let html = facets.map(f => {
     const values = catFacetValues(base, f.key).slice(0, 12)
     _catLastFacetValues[f.key] = values.map(v => v[0])
@@ -9745,7 +9790,7 @@ function renderLabel(p, cfg, opts = {}) {
     out.push(secKey === 'footer' ? inner : `<div class="lbl-block">${inner}</div>`)
   })
 
-  return `<div class="lbl ${t.variant}" style="width:${t.widthMm}mm">${out.join('')}</div>`
+  return `<div class="lbl ${t.variant}${cfg.tight ? ' is-tight' : ''}" style="width:${t.widthMm}mm">${out.join('')}</div>`
 }
 
 /* ══ Live preview ══ every edit re-renders here; there is no preview
@@ -9998,8 +10043,8 @@ let YC = null
 function ycBlankState() {
   return {
     editingId: null, original: null, saving: false,
-    name: '', count: YARN_COUNT_DEFAULT, countCustom: '',
-    fibers: [{ fiber: 'Cotton', other: '', pct: 100 }],
+    name: '', count: YARN_COUNT_DEFAULT,
+    fibers: [{ fiber: 'Cotton', pct: 100 }],
     spinning: '', spinningOther: '',
     prep: '', prepOther: '',
     effects: new Set(['none']), effectsOther: '',
@@ -10007,9 +10052,26 @@ function ycBlankState() {
   }
 }
 
+// Free-text "NN% Fiber name" composition (however it was originally
+// entered — including yarn rows saved before the Creator existed, via
+// the old generic Quick Add form) reconstructed into fiber/pct rows so
+// editing an older record doesn't discard its composition.
+function ycParseLegacyComposition(str) {
+  if (!str || typeof str !== 'string') return null
+  const groups = str.trim().match(/\d+(?:\.\d+)?\s*%[^%]*?(?=\d+(?:\.\d+)?\s*%|$)/g)
+  if (!groups) return null
+  const out = groups.map(g => {
+    const m = g.match(/^(\d+(?:\.\d+)?)\s*%\s*(.*)$/)
+    if (!m) return null
+    const fiber = m[2].replace(/^[\s·,\/+]+|[\s·,\/+]+$/g, '').trim()
+    return fiber ? { fiber, pct: parseFloat(m[1]) } : null
+  }).filter(Boolean)
+  return out.length ? out : null
+}
+
 function ycSnapshot() {
   return JSON.stringify({
-    name: YC.name, count: YC.count, countCustom: YC.countCustom, fibers: YC.fibers,
+    name: YC.name, count: YC.count, fibers: YC.fibers,
     spinning: YC.spinning, spinningOther: YC.spinningOther, prep: YC.prep, prepOther: YC.prepOther,
     effects: [...YC.effects].sort(), effectsOther: YC.effectsOther,
   })
@@ -10024,16 +10086,13 @@ function openYarnCreator(p) {
     YC.editingId = p.id
     YC.original = p
     YC.name = p.name || ''
-    const cnt = s['Yarn Count'] || ''
-    YC.count = cnt && YARN_COUNTS.includes(cnt) ? cnt : (cnt ? '__custom' : '')
-    YC.countCustom = YC.count === '__custom' ? cnt : ''
+    YC.count = s['Yarn Count'] || ''
     const content = Array.isArray(s['Yarn Content Structured']) && s['Yarn Content Structured'].length
-      ? s['Yarn Content Structured'] : null
-    YC.fibers = content ? content.map(f => ({
-      fiber: YARN_FIBERS.includes(f.fiber) ? f.fiber : 'Other',
-      other: YARN_FIBERS.includes(f.fiber) ? '' : (f.fiber || ''),
-      pct: Number(f.pct) || 0,
-    })) : ycBlankState().fibers
+      ? s['Yarn Content Structured']
+      : ycParseLegacyComposition(s['Yarn Content'] || s.Composition)
+    YC.fibers = content && content.length
+      ? content.map(f => ({ fiber: (f.fiber || '').trim(), pct: Number(f.pct) || 0 }))
+      : ycBlankState().fibers
     const spin = s['Spinning Technology'] || ''
     YC.spinning = spin && YARN_SPINNING.includes(spin) ? spin : (spin ? 'Other' : '')
     YC.spinningOther = YC.spinning === 'Other' ? spin : ''
@@ -10051,6 +10110,8 @@ function openYarnCreator(p) {
     YC.lifecycle = lc(p)
   }
   YC.baseline = ycSnapshot()
+  ycZoom = 'fit'
+  document.querySelectorAll('#yc-zoom .btn').forEach(b => b.classList.toggle('active', b.dataset.z === 'fit'))
   document.getElementById('yc-eyebrow').textContent = p ? (p.code || 'Yarn Inventory') : 'Yarn Inventory'
   document.getElementById('yc-title').textContent = p ? (p.name || 'Edit Yarn') : 'Create Yarn'
   document.getElementById('yc-state-chip').innerHTML = `<span class="lbl-chip-dot"></span>${p ? 'Saved' : 'Draft'}`
@@ -10074,16 +10135,12 @@ function ycSetName(v) {
   if (t) t.textContent = YC.editingId ? (v.trim() || 'Edit Yarn') : (v.trim() || 'Create Yarn')
   ycRenderPreview()
 }
-function ycCountValue() { return YC.count === '__custom' ? YC.countCustom.trim() : YC.count }
-function ycSetCount(v) { YC.count = v; ycRenderForm(); ycRenderPreview() }
-function ycSetCountCustom(v) { YC.countCustom = v; ycRenderPreview() }
+function ycCountValue() { return (YC.count || '').trim() }
 
-function ycFiberLabel(f) { return f.fiber === 'Other' ? (f.other || '').trim() : f.fiber }
+function ycFiberLabel(f) { return (f.fiber || '').trim() }
 function ycContentTotal() { return YC.fibers.reduce((t, f) => t + (Number(f.pct) || 0), 0) }
-function ycAddFiber() { YC.fibers.push({ fiber: 'Cotton', other: '', pct: 0 }); ycRenderForm(); ycRenderPreview() }
+function ycAddFiber() { YC.fibers.push({ fiber: '', pct: 0 }); ycRenderForm(); ycRenderPreview() }
 function ycRemoveFiber(i) { if (YC.fibers.length <= 1) return; YC.fibers.splice(i, 1); ycRenderForm(); ycRenderPreview() }
-function ycSetFiber(i, v) { YC.fibers[i].fiber = v; if (v !== 'Other') YC.fibers[i].other = ''; ycRenderForm(); ycRenderPreview() }
-function ycSetFiberOther(i, v) { YC.fibers[i].other = v; ycRenderPreview() }
 function ycSetFiberPct(i, v) {
   YC.fibers[i].pct = v === '' ? '' : Math.max(0, Math.min(100, Number(v) || 0))
   const el = document.getElementById('yc-content-total')
@@ -10173,12 +10230,31 @@ function ycCfg() {
   }
 }
 
+/* ── Progressive degradation (§11) ── measured BEFORE the real render, so
+   the same 'tight' decision applies identically to the live preview and
+   the printed sheet (both call renderLabel() with this cfg). Tightening
+   only touches vertical rhythm (block spacing) — never typography size,
+   never the barcode — and is tried before the printer's own last-resort
+   uniform scale-down (which does shrink the barcode) ever kicks in. ── */
+function ycMeasureTightness(p, cfg) {
+  cfg.tight = false
+  const tmp = document.createElement('div')
+  tmp.style.cssText = 'position:fixed;visibility:hidden;top:0;left:0;pointer-events:none'
+  tmp.innerHTML = renderLabel(p, cfg, {})
+  document.body.appendChild(tmp)
+  const mm = lbMeasuredMm(tmp.querySelector('.lbl'))
+  document.body.removeChild(tmp)
+  cfg.tight = mm > 92
+  return cfg.tight
+}
+
 /* ── Live preview — no Preview button, every field updates it (§18) ── */
 function ycRenderPreview() {
   const host = document.getElementById('yc-label-preview')
   if (!host) return
   const draft = ycDraftProduct()
   const cfg = ycCfg()
+  ycMeasureTightness(draft, cfg)
   host.innerHTML = renderLabel(draft, cfg, { interactive: false, idPrefix: 'yc' })
   if (!draft.code) {
     // Unsaved yarn: the barcode zone holds its place but stays a
@@ -10192,6 +10268,7 @@ function ycRenderPreview() {
   requestAnimationFrame(() => {
     if (draft.code) ycDrawBarcode(draft.code)
     ycUpdateDims(host, draft)
+    ycFitPreview()
   })
 }
 function ycDrawBarcode(payload) {
@@ -10223,13 +10300,122 @@ function ycUpdateDims(host, draft) {
   if (hint) hint.style.display = over ? 'block' : 'none'
 }
 
+/* ── Fit / Actual Size (§17) — scoped to #m-yarn explicitly: the fabric
+   Label Builder (#m-label) uses the same .lbl-pv-stage/.lbl-dr-paper
+   class names for its own preview, and both drawers can hold markup in
+   the DOM at once, so an unscoped querySelector would silently grab
+   the wrong one. Zoom is a CSS transform only — it never touches the
+   label's mm geometry (§16), so what's on screen at 100% is the true
+   physical size at ~96 CSS px/inch. ── */
+let ycZoom = 'fit'
+function ycSetZoom(z) {
+  ycZoom = z
+  document.querySelectorAll('#yc-zoom .btn').forEach(b => b.classList.toggle('active', b.dataset.z === String(z)))
+  ycFitPreview()
+}
+function ycFitPreview() {
+  if (!YC) return
+  const stage = document.querySelector('#m-yarn .lbl-pv-stage')
+  const paper = document.querySelector('#m-yarn .lbl-dr-paper')
+  const label = document.getElementById('yc-label-preview')
+  if (!stage || !paper || !label) return
+  label.style.transform = 'scale(1)'
+  paper.style.width = ''; paper.style.height = ''
+  const w = label.offsetWidth, h = label.offsetHeight
+  if (!w || !h) return
+  let scale = ycZoom === 'fit'
+    ? Math.min((stage.clientWidth - 56) / w, (stage.clientHeight - 72) / h, 4)
+    : Number(ycZoom) / 100
+  scale = Math.max(0.2, Math.round(scale * 100) / 100)
+  label.style.transform = `scale(${scale})`
+  paper.style.width = Math.ceil(w * scale) + 'px'
+  paper.style.height = Math.ceil(h * scale) + 'px'
+}
+window.addEventListener('resize', () => { if (YC) ycFitPreview() })
+
+/* ── Combobox (§5, §16) — a text input with a filtered, grouped dropdown
+   that also accepts a value typed directly. Used for Yarn Count and
+   per-row fiber selection: fast for the common values, never blocks on
+   something not yet in the catalog. Spinning/Preparation/Effects stay
+   segmented buttons/chips per the brief — only these two fields are
+   genuinely open-ended pickers. ── */
+function ycComboConfig(id) {
+  if (id === 'yc-count') {
+    return {
+      groups: [
+        { label: 'Frequently used', options: [YARN_COUNT_DEFAULT] },
+        { label: 'All counts', options: YARN_COUNTS.filter(c => c !== YARN_COUNT_DEFAULT) },
+      ],
+      get: () => YC.count,
+      set: v => { YC.count = v },
+    }
+  }
+  const m = id.match(/^yc-fiber-(\d+)$/)
+  if (m) {
+    const i = Number(m[1])
+    return {
+      groups: [{ label: 'Fibers', options: YARN_FIBERS }],
+      get: () => YC.fibers[i]?.fiber || '',
+      set: v => { if (YC.fibers[i]) YC.fibers[i].fiber = v },
+    }
+  }
+  return null
+}
+function ycComboHtml(id, placeholder) {
+  const cfg = ycComboConfig(id)
+  return `<div class="yc-combo" id="${id}-combo">
+    <input type="text" class="control-input yc-combo-input" id="${id}-input" autocomplete="off"
+      placeholder="${escAttr(placeholder)}" value="${escAttr(cfg.get())}"
+      oninput="ycComboInput('${id}', this.value)" onfocus="ycComboOpen('${id}')"
+      onblur="ycComboBlur('${id}')" onkeydown="ycComboKeydown(event, '${id}')" />
+    <div class="yc-combo-menu" id="${id}-menu"></div>
+  </div>`
+}
+function ycComboOpen(id) { ycComboRenderMenu(id, document.getElementById(id + '-input')?.value || '') }
+function ycComboInput(id, v) {
+  const cfg = ycComboConfig(id)
+  if (!cfg) return
+  cfg.set(v)
+  ycComboRenderMenu(id, v)
+  if (id === 'yc-count') ycRenderPreview()
+  else { const el = document.getElementById('yc-content-total'); if (el) el.outerHTML = ycContentTotalHtml(); ycRenderPreview() }
+}
+function ycComboRenderMenu(id, query) {
+  const cfg = ycComboConfig(id)
+  const menu = document.getElementById(id + '-menu')
+  if (!cfg || !menu) return
+  const q = (query || '').trim().toLowerCase()
+  const html = cfg.groups.map(g => {
+    const opts = g.options.filter(o => !q || o.toLowerCase().includes(q))
+    if (!opts.length) return ''
+    return `<div class="yc-combo-group-label">${esc(g.label)}</div>${opts.map(o =>
+      `<button type="button" class="yc-combo-opt" onmousedown="ycComboPick('${id}','${jsStr(o)}')">${esc(o)}</button>`).join('')}`
+  }).join('')
+  menu.innerHTML = html || `<div class="yc-combo-empty">No match — this will be saved as typed</div>`
+  document.getElementById(id + '-combo')?.classList.add('open')
+}
+function ycComboPick(id, value) {
+  const cfg = ycComboConfig(id)
+  if (!cfg) return
+  cfg.set(value)
+  const input = document.getElementById(id + '-input')
+  if (input) input.value = value
+  ycComboClose(id)
+  if (id !== 'yc-count') { const el = document.getElementById('yc-content-total'); if (el) el.outerHTML = ycContentTotalHtml() }
+  ycRenderPreview()
+}
+function ycComboBlur(id) { setTimeout(() => ycComboClose(id), 120) }
+function ycComboClose(id) { document.getElementById(id + '-combo')?.classList.remove('open') }
+function ycComboKeydown(e, id) {
+  if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); e.target.blur(); ycComboClose(id) }
+}
+
 /* ── Left-panel form — a full rebuild on structural changes (add/remove
    fiber, select changes); text fields bind directly and never trigger
    a rebuild while the user is typing, so focus/caret never jumps. ── */
 function ycRenderForm() {
   const el = document.getElementById('yc-form')
   if (!el) return
-  const countIsCustom = YC.count === '__custom'
   el.innerHTML = `
     <div class="yc-sec">
       <div class="yc-sec-label">Product Information</div>
@@ -10239,17 +10425,7 @@ function ycRenderForm() {
       </div>
       <div class="yc-fg" style="margin-bottom:0">
         <label>Yarn Count<span class="yc-req">*</span></label>
-        <select class="control-input" style="width:100%" onchange="ycSetCount(this.value)">
-          <option value="">— Select —</option>
-          <optgroup label="Frequently used">
-            <option value="${escAttr(YARN_COUNT_DEFAULT)}" ${YC.count === YARN_COUNT_DEFAULT ? 'selected' : ''}>${esc(YARN_COUNT_DEFAULT)}</option>
-          </optgroup>
-          <optgroup label="All counts">
-            ${YARN_COUNTS.filter(c => c !== YARN_COUNT_DEFAULT).map(c => `<option value="${escAttr(c)}" ${YC.count === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}
-          </optgroup>
-          <option value="__custom" ${countIsCustom ? 'selected' : ''}>Custom…</option>
-        </select>
-        ${countIsCustom ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="e.g. 36/1" value="${escAttr(YC.countCustom)}" oninput="ycSetCountCustom(this.value)" />` : ''}
+        ${ycComboHtml('yc-count', 'Search or type a count…')}
       </div>
     </div>
 
@@ -10284,11 +10460,9 @@ function ycRenderForm() {
       <div class="yc-hint is-warn">This label's content is longer than the DK-2205's 101.6mm maximum. Remove an effect or shorten the product name — Save still works, but printing will scale the label down to fit.</div>
     </div>`
 }
-function ycFiberOptionsHtml(sel) { return YARN_FIBERS.map(f => `<option value="${escAttr(f)}" ${sel === f ? 'selected' : ''}>${esc(f)}</option>`).join('') }
 function ycFiberRowHtml(f, i) {
   return `<div class="yc-fiber-row">
-    <select class="yc-fiber-select" onchange="ycSetFiber(${i}, this.value)">${ycFiberOptionsHtml(f.fiber)}</select>
-    ${f.fiber === 'Other' ? `<input type="text" class="control-input yc-fiber-other" placeholder="Fiber name" value="${escAttr(f.other)}" oninput="ycSetFiberOther(${i}, this.value)" />` : ''}
+    ${ycComboHtml('yc-fiber-' + i, 'Fiber')}
     <input type="number" class="control-input yc-fiber-pct" min="0" max="100" value="${f.pct}" oninput="ycSetFiberPct(${i}, this.value)" />
     <span style="font-size:12px;color:var(--text-muted);flex-shrink:0">%</span>
     <button type="button" class="yc-fiber-remove" onclick="ycRemoveFiber(${i})" ${YC.fibers.length <= 1 ? 'disabled' : ''} title="Remove">
@@ -10409,6 +10583,7 @@ async function ycSave(thenPrint) {
    nothing else to configure. Reprinting (§24) calls this directly on a
    saved record — same code, same barcode, no label recreated. ── */
 let _ycPrintTarget = null
+let _ycPrintCfg = null
 async function ycOpenPrintStep(p) {
   _ycPrintTarget = p
   const s = p.specs || {}
@@ -10417,7 +10592,11 @@ async function ycOpenPrintStep(p) {
      <div style="font-size:1rem;font-weight:700">${esc(p.name)}${s['Yarn Count'] ? ' · ' + esc(s['Yarn Count']) : ''}</div>`
   document.getElementById('yc-print-qty').value = '1'
 
+  // Same cfg (including the tightness decision) used both to show the
+  // size here and to actually print — never two numbers for one label.
   const cfg = ycCfg()
+  ycMeasureTightness(p, cfg)
+  _ycPrintCfg = cfg
   const tmp = document.createElement('div')
   tmp.style.cssText = 'position:fixed;visibility:hidden;top:0;left:0;pointer-events:none'
   tmp.innerHTML = renderLabel(p, cfg, {})
@@ -10433,20 +10612,24 @@ function ycPrintQtyStep(d) {
   const el = document.getElementById('yc-print-qty')
   el.value = String(Math.max(1, Math.min(50, (parseInt(el.value, 10) || 1) + d)))
 }
-async function ycConfirmPrint() {
+async function ycConfirmPrint(asPdf) {
   if (!_ycPrintTarget) return
   const qty = Math.max(1, Math.min(50, parseInt(document.getElementById('yc-print-qty').value, 10) || 1))
   const btn = document.getElementById('yc-print-confirm-btn')
+  const pdfBtn = document.getElementById('yc-print-pdf-btn')
   if (btn) btn.disabled = true
+  if (pdfBtn) pdfBtn.disabled = true
   // Reuses printLabel() verbatim: same @page sizing math, same barcode
   // asset build, same audit log — only LB.p/LB.cfg and the copies input
   // differ from the fabric Label Builder's own call site.
-  LB = { p: _ycPrintTarget, cfg: ycCfg(), saved: null, tab: 'print', open: {}, selected: null, zoom: 'fit', issues: [] }
+  LB = { p: _ycPrintTarget, cfg: _ycPrintCfg || ycCfg(), saved: null, tab: 'print', open: {}, selected: null, zoom: 'fit', issues: [] }
   const copiesEl = document.getElementById('lbl-copies')
   if (copiesEl) copiesEl.value = String(qty)
+  if (asPdf) toast('In the print dialog, choose "Save as PDF" as the destination', 4000)
   await printLabel()
   LB = null
   if (btn) btn.disabled = false
+  if (pdfBtn) pdfBtn.disabled = false
   closeModal('m-yarn-print')
 }
 
