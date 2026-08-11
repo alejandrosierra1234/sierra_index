@@ -3030,38 +3030,55 @@
       letter-spacing: 0.1em; text-transform: uppercase; flex-shrink: 0; white-space: nowrap;
     }
 
-    /* ── YARN LABEL — Zone 2 (count) / Zone 3 (content · construction ·
-       effect), see LABEL_TEMPLATES['yarn-label'] ─────────────────────── */
+    /* ── YARN LABEL — four content blocks (Yarn Count / Construction /
+       Yarn Content / Comments), each an explicit small-caps field label
+       over its value, see LABEL_TEMPLATES['yarn-label']. Runs on the
+       app's own Replica family instead of the fabric label's Arial —
+       this template only; every other template is untouched. ────────── */
+    .lbl.lbl-yarn { font-family: "Replica", Arial, Helvetica, sans-serif; }
+    /* Record ID under the barcode — mono, never wraps (§21, §39). */
+    .lbl.lbl-yarn .lbl-bc-id {
+      font-family: 'Replica Mono', 'Courier New', monospace;
+      font-weight: 600; letter-spacing: 0.12em; white-space: nowrap;
+    }
+    .lbl.lbl-yarn .lbl-bc-footer { justify-content: center; }
+    /* The field label is metadata and must visually disappear before
+       the value it names (§12): mono, uppercase, small, muted. */
+    .lbl-ykey {
+      font-family: 'Replica Mono', 'Courier New', monospace;
+      font-size: 1.9mm; font-weight: 600; color: var(--ink-3);
+      text-transform: uppercase; letter-spacing: 0.09em;
+      line-height: 1; margin-bottom: 0.9mm;
+    }
+    .lbl-yfield + .lbl-yfield { margin-top: 2.6mm; }
+    /* Yarn Count — the strongest element on the label, through weight
+       and hierarchy rather than extreme scale (§6). */
     .lbl-count {
-      font-size: 5mm; font-weight: 800; color: var(--ink);
-      line-height: 1; letter-spacing: -0.01em; margin-top: 0.9mm;
+      font-size: 7.2mm; font-weight: 700; color: var(--ink);
+      line-height: 0.98; letter-spacing: -0.015em; white-space: nowrap;
     }
-    .lbl-ycomp {
-      font-size: 2.9mm; font-weight: 700; color: var(--ink);
-      line-height: 1.25; overflow-wrap: break-word;
-    }
+    /* Construction — one technical descriptor, one line (§7, §39). */
     .lbl-yconstr {
-      font-size: 2.4mm; font-weight: 600; color: var(--ink-2);
-      line-height: 1.2; margin-top: 1.1mm; overflow-wrap: break-word;
+      font-size: 3.3mm; font-weight: 700; color: var(--ink);
+      line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .lbl-yeffect {
-      font-size: 2.2mm; font-weight: 700; color: var(--teal);
-      text-transform: uppercase; letter-spacing: 0.06em; margin-top: 1.2mm;
+    /* Yarn Content — one fiber per line, never combined (§9). */
+    .lbl-ycomp-lines { display: flex; flex-direction: column; gap: 0.7mm; }
+    .lbl-ycomp-line {
+      font-size: 2.8mm; font-weight: 500; color: var(--ink);
+      line-height: 1.2; overflow-wrap: break-word;
     }
-    /* Optional free-text notes (§ Comments) — quiet/secondary by
-       default, collapses entirely when empty like every other field. */
+    /* Comments — secondary, quiet, bounded to a few lines (§11, §39). */
     .lbl-ycomment {
-      font-size: 2.2mm; font-weight: 500; color: var(--ink-3);
-      line-height: 1.3; margin-top: 1.3mm; overflow-wrap: break-word;
+      font-size: 2.2mm; font-weight: 400; color: var(--ink-3);
+      line-height: 1.32; overflow-wrap: break-word;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
     }
     /* Progressive degradation (§11): tighter vertical rhythm only —
        typography size and the barcode are never touched here. */
     .lbl.lbl-yarn.is-tight .lbl-hdr { margin-bottom: 1.4mm; }
-    .lbl.lbl-yarn.is-tight .lbl-count { margin-top: 0.5mm; }
     .lbl.lbl-yarn.is-tight .lbl-block { margin-top: 1.5mm; padding-top: 1.5mm; }
-    .lbl.lbl-yarn.is-tight .lbl-yconstr,
-    .lbl.lbl-yarn.is-tight .lbl-yeffect,
-    .lbl.lbl-yarn.is-tight .lbl-ycomment { margin-top: 0.7mm; }
+    .lbl.lbl-yarn.is-tight .lbl-yfield + .lbl-yfield { margin-top: 1.4mm; }
     .lbl.lbl-yarn.is-tight .lbl-rule { margin: 1.8mm 0 1.4mm; }
 
     /* ══════════════════════════════════════════════════════════════════
@@ -3115,9 +3132,8 @@
     .yc-fiber-remove:hover:not(:disabled) { background: var(--surface-hover); color: var(--danger); }
     .yc-fiber-remove:disabled { opacity: 0.3; cursor: default; }
     .yc-content-total {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--border);
-      font-size: 12.5px; font-weight: 650; color: var(--text-secondary);
+      font-size: 12.5px; font-weight: 700; color: var(--text-secondary);
+      white-space: nowrap;
     }
     .yc-content-total.is-ok { color: var(--success); }
     .yc-content-total.is-warn { color: var(--warning-text); }
@@ -3135,6 +3151,14 @@
 
     .yc-hint { font-size: 12px; color: var(--text-muted); margin-top: 8px; line-height: 1.45; }
     .yc-hint.is-warn { color: var(--warning-text); }
+    .yc-sec-label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+    .yc-sec-label-row .yc-sec-label { margin-bottom: 0; }
+    .yc-count-total {
+      font-size: 12.5px; font-weight: 650; color: var(--text-muted);
+      display: flex; align-items: baseline; gap: 6px; flex-shrink: 0;
+    }
+    .yc-char-count { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; text-align: right; }
+    .yc-char-count.is-warn { color: var(--warning-text); }
 
     /* Preview-only: click-to-select regions. Stripped from print output
        by the @media print block — a printed label has no affordances. */
@@ -3418,7 +3442,7 @@
       /* Logo and the single teal accent print mono */
       #print-root .lbl .lc1, #print-root .lbl .lc2 { fill:#000 !important; }
       #print-root .lbl-bc-site { color:#000 !important; }
-      #print-root .lbl-yeffect { color:#000 !important; }
+      #print-root .lbl-ykey { opacity:1 !important; }
     }
 
     #print-root { display:none; }
@@ -8686,6 +8710,37 @@ function fichaBody(p) {
    See SIERRA_DESIGN_SYSTEM.md "Document & Label Editors".
    ══════════════════════════════════════════════════════════════════════ */
 
+/* ── Yarn terminology — the printed label uses SIERRA's operational
+   abbreviations (CD/CM/RS/OE), never the expanded words, and always in
+   the fixed process sequence Preparation → Spinning → Finish/Effect
+   (§7, §8 of the Yarn Label brief). ── */
+const YARN_PREP_ABBR = { Carded: 'CD', Combed: 'CM' }
+const YARN_SPIN_ABBR = { 'Ring Spun': 'RS', MVS: 'MVS', 'Open End': 'OE' }
+function yarnAbbr(map, v) { return v ? (map[v] || v) : '' }
+// One combined technical descriptor: "CD · MVS · INJECTED". Effects with
+// the "None" label never appear here — an empty finish just shortens the
+// sequence, it never prints a trailing separator or placeholder.
+function yarnConstructionText(p) {
+  const s = p.specs || {}
+  const prep = yarnAbbr(YARN_PREP_ABBR, s['Yarn Preparation'])
+  const spin = yarnAbbr(YARN_SPIN_ABBR, s['Spinning Technology'])
+  const effects = Array.isArray(s.Effects) ? s.Effects.filter(e => e && e.trim().toLowerCase() !== 'none') : []
+  const finish = effects.join('/').toUpperCase()
+  return [prep, spin, finish].filter(Boolean).join(' · ')
+}
+// One line per fiber ("50% COTTON"), never combined on a single line
+// (§9). Falls back to parsing the legacy free-text Composition string
+// for yarn rows saved before structured content existed.
+function yarnContentLinesText(p) {
+  const s = p.specs || {}
+  let rows = Array.isArray(s['Yarn Content Structured']) ? s['Yarn Content Structured'] : null
+  if (!rows || !rows.length) rows = ycParseLegacyComposition(s['Yarn Content'] || s.Composition) || []
+  return rows
+    .filter(r => r && r.fiber && (Number(r.pct) || 0) > 0)
+    .map(r => `${Math.round((Number(r.pct) + Number.EPSILON) * 10) / 10}% ${r.fiber}`.toUpperCase())
+    .join('\n')
+}
+
 /* ── Field definitions ── `read` maps product master → label value. ── */
 const LABEL_FIELDS = {
   productName: { label: 'Product name',    section: 'identity', required: true,  read: p => p.name },
@@ -8711,11 +8766,10 @@ const LABEL_FIELDS = {
   // Content, Spinning Technology, Yarn Preparation, Effects). Only the
   // 'yarn-label' template uses these; renderLabel() branches on
   // cfg.template rather than adding them to every division's label.
-  yarnCount:        { label: 'Yarn Count',    section: 'identity', read: p => p.specs?.['Yarn Count'] },
-  yarnContent:       { label: 'Yarn Content',  section: 'material', long: true, read: p => p.specs?.['Yarn Content'] },
-  yarnConstruction:  { label: 'Construction',  section: 'material', read: p => [p.specs?.['Spinning Technology'], p.specs?.['Yarn Preparation']].filter(Boolean).join(' · ') },
-  yarnEffect:        { label: 'Effect',        section: 'material', read: p => Array.isArray(p.specs?.Effects) ? p.specs.Effects.join(' · ') : '' },
-  yarnComments:      { label: 'Comments',       section: 'material', long: true, read: p => p.specs?.Comments },
+  yarnCount:         { label: 'Yarn Count',    section: 'identity', read: p => p.specs?.['Yarn Count'] },
+  yarnConstruction:  { label: 'Construction',  section: 'material', read: p => yarnConstructionText(p) },
+  yarnContentLines:  { label: 'Yarn Content',  section: 'material', long: true, read: p => yarnContentLinesText(p) },
+  yarnComments:      { label: 'Comments',      section: 'material', long: true, read: p => p.specs?.Comments },
 }
 
 const LABEL_SECTIONS = {
@@ -9709,8 +9763,22 @@ function renderLabel(p, cfg, opts = {}) {
     `<div class="lbl-kv"><span class="lbl-kv-k">${esc(label)}</span><span class="lbl-kv-v">${esc(V(key))}</span></div>`,
     interactive)
 
+  // Explicit small-caps field label + value — the four content blocks
+  // of the yarn label (§3, §12). The key is metadata and must visually
+  // disappear before the value: Replica Mono, uppercase, muted.
+  const ykv = (key, label, valueHtml) => lbRegion(key,
+    `<div class="lbl-yfield"><div class="lbl-ykey">${esc(label)}</div>${valueHtml}</div>`,
+    interactive)
+
   const sectionHtml = {
     identity() {
+      // Yarn Count is the primary identifier for this division — there
+      // is no product-name headline on a yarn label (§4, §6). Every
+      // other template keeps the name/origin identity block unchanged.
+      if (cfg.template === 'yarn-label') {
+        if (!show('yarnCount')) return ''
+        return ykv('yarnCount', 'Yarn Count', `<div class="lbl-count">${esc(V('yarnCount'))}</div>`)
+      }
       const bits = []
       if (show('productName')) {
         const name = V('productName')
@@ -9718,25 +9786,26 @@ function renderLabel(p, cfg, opts = {}) {
         const cls = name.length > 34 ? ' len-3' : name.length > 22 ? ' len-2' : ''
         bits.push(lbRegion('productName', `<div class="lbl-title${cls}">${esc(name)}</div>`, interactive))
       }
-      // Zone 2 (§14): Yarn Count sits directly under the name with its
-      // own strong hierarchy — recognizable at a glance, not read as a
-      // key/value pair like the technical fields below it.
-      if (cfg.template === 'yarn-label' && show('yarnCount')) {
-        bits.push(lbRegion('yarnCount', `<div class="lbl-count">${esc(V('yarnCount'))}</div>`, interactive))
-      }
       if (show('origin')) bits.push(lbRegion('origin', `<div class="lbl-origin">${esc(V('origin'))}</div>`, interactive))
       return bits.join('')
     },
     material() {
       if (cfg.template === 'yarn-label') {
-        // Zone 3 (§14): content, then construction, then effect — each
-        // its own line so the label reads top-to-bottom without needing
-        // "Content:" / "Spinning:" prefixes; hierarchy comes from weight.
+        // CONSTRUCTION, then YARN CONTENT, then COMMENTS — the fixed
+        // operational reading order (§1, §5). A field with no value
+        // simply doesn't print; there is never an empty labelled block.
         const bits = []
-        if (show('yarnContent')) bits.push(lbRegion('yarnContent', `<div class="lbl-ycomp">${esc(V('yarnContent'))}</div>`, interactive))
-        if (show('yarnConstruction')) bits.push(lbRegion('yarnConstruction', `<div class="lbl-yconstr">${esc(V('yarnConstruction'))}</div>`, interactive))
-        if (show('yarnEffect')) bits.push(lbRegion('yarnEffect', `<div class="lbl-yeffect">${esc(V('yarnEffect'))}</div>`, interactive))
-        if (show('yarnComments')) bits.push(lbRegion('yarnComments', `<div class="lbl-ycomment">${esc(V('yarnComments'))}</div>`, interactive))
+        if (show('yarnConstruction')) {
+          bits.push(ykv('yarnConstruction', 'Construction', `<div class="lbl-yconstr">${esc(V('yarnConstruction'))}</div>`))
+        }
+        if (show('yarnContentLines')) {
+          const lines = V('yarnContentLines').split('\n').filter(Boolean)
+          const linesHtml = `<div class="lbl-ycomp-lines">${lines.map(l => `<div class="lbl-ycomp-line">${esc(l)}</div>`).join('')}</div>`
+          bits.push(ykv('yarnContentLines', 'Yarn Content', linesHtml))
+        }
+        if (show('yarnComments')) {
+          bits.push(ykv('yarnComments', 'Comments', `<div class="lbl-ycomment">${esc(V('yarnComments'))}</div>`))
+        }
         return bits.join('')
       }
       return show('composition') ? kv('composition', 'Composition') : ''
@@ -9774,7 +9843,9 @@ function renderLabel(p, cfg, opts = {}) {
       const bcOn = cfg.barcode.enabled
       const src = BARCODE_SOURCES[cfg.barcode.source] || BARCODE_SOURCES.millArticle
       const payload = bcOn ? (src.read(p) ? String(src.read(p)) : null) : null
-      const idLine = [payload, V('lot')].filter(Boolean).join(' · ')
+      // The yarn label's footer is the opaque record ID alone — no lot
+      // suffix, no "ID:" prefix; the code itself is sufficient (§21).
+      const idLine = cfg.template === 'yarn-label' ? (payload || '') : [payload, V('lot')].filter(Boolean).join(' · ')
       const site = show('footer') ? V('footer') : ''
       if (!payload && !idLine && !site) return ''
       const bcEl = payload
@@ -10052,7 +10123,7 @@ let YC = null
 function ycBlankState() {
   return {
     editingId: null, original: null, saving: false,
-    name: '', count: YARN_COUNT_DEFAULT,
+    count: YARN_COUNT_DEFAULT,
     fibers: [{ fiber: 'Cotton', pct: 100 }],
     spinning: '', spinningOther: '',
     prep: '', prepOther: '',
@@ -10060,6 +10131,16 @@ function ycBlankState() {
     comments: '',
     lifecycle: 'available', baseline: '',
   }
+}
+// Yarn Count is the primary identifier (§4, §6) — there is no
+// user-facing "name" field. products.name still exists as a NOT NULL
+// column, so it is derived from the same operational descriptor the
+// label prints, purely for catalog search/listing — it is never shown
+// as a headline and never printed on the label itself.
+function ycDerivedName() {
+  const count = ycCountValue()
+  const constr = ycConstructionLine()
+  return [count, constr].filter(Boolean).join(' · ') || 'Yarn'
 }
 
 // Free-text "NN% Fiber name" composition (however it was originally
@@ -10081,7 +10162,7 @@ function ycParseLegacyComposition(str) {
 
 function ycSnapshot() {
   return JSON.stringify({
-    name: YC.name, count: YC.count, fibers: YC.fibers,
+    count: YC.count, fibers: YC.fibers,
     spinning: YC.spinning, spinningOther: YC.spinningOther, prep: YC.prep, prepOther: YC.prepOther,
     effects: [...YC.effects].sort(), effectsOther: YC.effectsOther, comments: YC.comments,
   })
@@ -10095,7 +10176,6 @@ function openYarnCreator(p) {
     const s = p.specs || {}
     YC.editingId = p.id
     YC.original = p
-    YC.name = p.name || ''
     YC.count = s['Yarn Count'] || ''
     const content = Array.isArray(s['Yarn Content Structured']) && s['Yarn Content Structured'].length
       ? s['Yarn Content Structured']
@@ -10124,7 +10204,7 @@ function openYarnCreator(p) {
   ycZoom = 'fit'
   document.querySelectorAll('#yc-zoom .btn').forEach(b => b.classList.toggle('active', b.dataset.z === 'fit'))
   document.getElementById('yc-eyebrow').textContent = p ? (p.code || 'Yarn Inventory') : 'Yarn Inventory'
-  document.getElementById('yc-title').textContent = p ? (p.name || 'Edit Yarn') : 'Create Yarn'
+  document.getElementById('yc-title').textContent = ycCountValue() || (p ? 'Edit Yarn' : 'Create Yarn')
   document.getElementById('yc-state-chip').innerHTML = `<span class="lbl-chip-dot"></span>${p ? 'Saved' : 'Draft'}`
   document.getElementById('view-detail').style.display = 'none'
   document.getElementById('m-yarn').classList.add('open')
@@ -10140,13 +10220,13 @@ function closeYarnCreator() {
 }
 
 /* ── Mutators — every one re-renders the preview immediately (§18) ── */
-function ycSetName(v) {
-  YC.name = v
-  const t = document.getElementById('yc-title')
-  if (t) t.textContent = YC.editingId ? (v.trim() || 'Edit Yarn') : (v.trim() || 'Create Yarn')
-  ycRenderPreview()
-}
 function ycCountValue() { return (YC.count || '').trim() }
+// Yarn Count doubles as the drawer title — it is the primary identifier
+// (§4, §6), so there is no separate name field to keep in sync.
+function ycRefreshTitle() {
+  const t = document.getElementById('yc-title')
+  if (t) t.textContent = ycCountValue() || (YC.editingId ? 'Edit Yarn' : 'Create Yarn')
+}
 
 function ycFiberLabel(f) { return (f.fiber || '').trim() }
 function ycContentTotal() { return YC.fibers.reduce((t, f) => t + (Number(f.pct) || 0), 0) }
@@ -10161,10 +10241,10 @@ function ycSetFiberPct(i, v) {
 function ycContentTotalHtml() {
   const total = ycFmt(ycContentTotal())
   const cls = total === 100 ? 'is-ok' : 'is-warn'
-  const label = total === 100 ? `${total}% total`
-    : total < 100 ? `${total}% total · ${ycFmt(100 - total)}% remaining`
-    : `${total}% total · ${ycFmt(total - 100)}% over`
-  return `<div class="yc-content-total ${cls}" id="yc-content-total">${label}</div>`
+  const label = total === 100 ? `${total}%`
+    : total < 100 ? `${total}% · ${ycFmt(100 - total)}% remaining`
+    : `${total}% · ${ycFmt(total - 100)}% over`
+  return `<span class="yc-content-total ${cls}" id="yc-content-total">${label}</span>`
 }
 
 function ycSetSpinning(v) { YC.spinning = v; ycRenderForm(); ycRenderPreview() }
@@ -10184,13 +10264,25 @@ function ycToggleEffect(key) {
   ycRenderPreview()
 }
 function ycSetEffectOther(v) { YC.effectsOther = v; ycRenderPreview() }
-function ycSetComments(v) { YC.comments = v; ycRenderPreview() }
+function ycSetComments(v) {
+  YC.comments = v
+  const counter = document.getElementById('yc-comments-count')
+  if (counter) {
+    counter.textContent = `${v.length} / ${YC_COMMENTS_MAX}`
+    counter.classList.toggle('is-warn', v.length > YC_COMMENTS_MAX * 0.9)
+  }
+  ycRenderPreview()
+}
 
-/* ── Derived label lines — same three-line Zone 3 the label prints ── */
+/* ── Derived label lines — mirrors yarnConstructionText()/renderLabel
+   so the live preview and the printed label never drift (§28). Fixed
+   sequence: Preparation → Spinning Technology → Finish/Effect, using
+   SIERRA's abbreviations (CD/CM/RS/OE), never the expanded words. ── */
 function ycConstructionLine() {
-  const spin = YC.spinning === 'Other' ? YC.spinningOther.trim() : YC.spinning
-  const prep = YC.prep === 'Other' ? YC.prepOther.trim() : YC.prep
-  return [spin, prep].filter(Boolean).join(' · ')
+  const prep = YC.prep === 'Other' ? YC.prepOther.trim() : yarnAbbr(YARN_PREP_ABBR, YC.prep)
+  const spin = YC.spinning === 'Other' ? YC.spinningOther.trim() : yarnAbbr(YARN_SPIN_ABBR, YC.spinning)
+  const finish = ycEffectLabels().join('/').toUpperCase()
+  return [prep, spin, finish].filter(Boolean).join(' · ')
 }
 function ycEffectLabels() {
   if (YC.effects.has('none') || !YC.effects.size) return []
@@ -10230,7 +10322,7 @@ function ycDraftProduct() {
   const orig = YC.original || {}
   return {
     id: orig.id || 'draft', code: orig.code || null, division: 'yarn',
-    name: YC.name.trim() || 'Untitled Yarn', country: orig.country || 'Honduras',
+    name: ycDerivedName(), country: orig.country || 'Honduras',
     lot: orig.lot || null, specs: ycBuildSpecs(),
   }
 }
@@ -10270,13 +10362,15 @@ function ycRenderPreview() {
   ycMeasureTightness(draft, cfg)
   host.innerHTML = renderLabel(draft, cfg, { interactive: false, idPrefix: 'yc' })
   if (!draft.code) {
-    // Unsaved yarn: the barcode zone holds its place but stays a
-    // placeholder — the real code/barcode only exist once saved (§9).
+    // Unsaved yarn: the barcode zone holds its place but stays a quiet
+    // placeholder — no fake barcode data and no software/UI messaging
+    // is ever printed on the physical label (§17, §31). The "generated
+    // on save" note lives in the surrounding chrome instead, in
+    // ycUpdateDims() below — never inside this .lbl element.
     const lbl = host.querySelector('.lbl')
     if (lbl) lbl.insertAdjacentHTML('beforeend', `
       <div class="lbl-rule"></div>
-      <div class="lbl-bc-wrap" style="display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(90deg,var(--rule) 0,var(--rule) 1.2px,transparent 1.2px,transparent 4px)"></div>
-      <div class="lbl-bc-footer"><div class="lbl-bc-id" style="color:var(--ink-3)">GENERATED ON SAVE</div></div>`)
+      <div class="lbl-bc-wrap" style="display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(90deg,var(--rule) 0,var(--rule) 1.2px,transparent 1.2px,transparent 4px)"></div>`)
   }
   requestAnimationFrame(() => {
     if (draft.code) ycDrawBarcode(draft.code)
@@ -10308,7 +10402,8 @@ function ycUpdateDims(host, draft) {
   const measuredMm = lbMeasuredMm(lbl)
   const over = measuredMm > 101.6
   const shown = Math.min(measuredMm, 101.6) || 0
-  dims.innerHTML = `62 × ${Math.max(shown, 1)} mm  ·  Brother QL-800 · DK-2205${over ? ' <span style="color:var(--warning-text);font-weight:700">· over maximum length</span>' : ''}`
+  const codeNote = draft.code ? '' : ' <span style="color:var(--text-muted)">· El código se generará al guardar</span>'
+  dims.innerHTML = `62 × ${Math.max(shown, 1)} mm  ·  Brother QL-800 · DK-2205${codeNote}${over ? ' <span style="color:var(--warning-text);font-weight:700">· over maximum length</span>' : ''}`
   const hint = document.getElementById('yc-length-hint')
   if (hint) hint.style.display = over ? 'block' : 'none'
 }
@@ -10390,7 +10485,7 @@ function ycComboInput(id, v) {
   if (!cfg) return
   cfg.set(v)
   ycComboRenderMenu(id, v)
-  if (id === 'yc-count') ycRenderPreview()
+  if (id === 'yc-count') { ycRefreshTitle(); ycRenderPreview() }
   else { const el = document.getElementById('yc-content-total'); if (el) el.outerHTML = ycContentTotalHtml(); ycRenderPreview() }
 }
 function ycComboRenderMenu(id, query) {
@@ -10414,7 +10509,8 @@ function ycComboPick(id, value) {
   const input = document.getElementById(id + '-input')
   if (input) input.value = value
   ycComboClose(id)
-  if (id !== 'yc-count') { const el = document.getElementById('yc-content-total'); if (el) el.outerHTML = ycContentTotalHtml() }
+  if (id === 'yc-count') ycRefreshTitle()
+  else { const el = document.getElementById('yc-content-total'); if (el) el.outerHTML = ycContentTotalHtml() }
   ycRenderPreview()
 }
 function ycComboBlur(id) { setTimeout(() => ycComboClose(id), 120) }
@@ -10426,58 +10522,65 @@ function ycComboKeydown(e, id) {
 /* ── Left-panel form — a full rebuild on structural changes (add/remove
    fiber, select changes); text fields bind directly and never trigger
    a rebuild while the user is typing, so focus/caret never jumps. ── */
+// The editor's field order mirrors the label's own operational sequence
+// (§27): Yarn Count, then Preparation → Spinning Technology →
+// Finish/Effect (the fixed process order the printed Construction line
+// preserves), then Yarn Content, then Comments. Never alphabetical,
+// never reordered for visual convenience.
+const YC_COMMENTS_MAX = 80
 function ycRenderForm() {
   const el = document.getElementById('yc-form')
   if (!el) return
+  const commentsLen = YC.comments.length
   el.innerHTML = `
     <div class="yc-sec">
-      <div class="yc-sec-label">Product Information</div>
-      <div class="yc-fg">
-        <label>Product Name<span class="yc-req">*</span></label>
-        <input type="text" class="control-input" style="width:100%" placeholder="e.g. Combed Cotton" value="${escAttr(YC.name)}" oninput="ycSetName(this.value)" />
-      </div>
+      <div class="yc-sec-label">Yarn Count</div>
       <div class="yc-fg" style="margin-bottom:0">
-        <label>Yarn Count<span class="yc-req">*</span></label>
         ${ycComboHtml('yc-count', 'Search or type a count…')}
       </div>
     </div>
 
     <div class="yc-sec">
-      <div class="yc-sec-label">Yarn Content</div>
-      <div id="yc-fiber-rows">${YC.fibers.map((f, i) => ycFiberRowHtml(f, i)).join('')}</div>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="ycAddFiber()">+ Add fiber</button>
-      ${ycContentTotalHtml()}
-    </div>
-
-    <div class="yc-sec">
-      <div class="yc-sec-label">Yarn Construction</div>
-      <div class="yc-fg">
-        <label>Spinning Technology</label>
-        <div class="yc-seg">${YARN_SPINNING.map(o => `<button type="button" class="yc-seg-btn ${YC.spinning === o ? 'is-active' : ''}" onclick="ycSetSpinning('${jsStr(o)}')">${esc(o)}</button>`).join('')}</div>
-        ${YC.spinning === 'Other' ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="Describe the spinning technology" value="${escAttr(YC.spinningOther)}" oninput="ycSetSpinningOther(this.value)" />` : ''}
-      </div>
+      <div class="yc-sec-label">Preparation</div>
       <div class="yc-fg" style="margin-bottom:0">
-        <label>Yarn Preparation</label>
-        <div class="yc-seg">${YARN_PREP.map(o => `<button type="button" class="yc-seg-btn ${YC.prep === o ? 'is-active' : ''}" onclick="ycSetPrep('${jsStr(o)}')">${esc(o)}</button>`).join('')}</div>
+        <div class="yc-seg">${YARN_PREP.map(o => `<button type="button" class="yc-seg-btn ${YC.prep === o ? 'is-active' : ''}" onclick="ycSetPrep('${jsStr(o)}')" title="${o === 'Carded' ? 'CD' : o === 'Combed' ? 'CM' : ''}">${esc(o)}</button>`).join('')}</div>
         ${YC.prep === 'Other' ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="Describe the preparation" value="${escAttr(YC.prepOther)}" oninput="ycSetPrepOther(this.value)" />` : ''}
       </div>
     </div>
 
     <div class="yc-sec">
-      <div class="yc-sec-label">Effects</div>
+      <div class="yc-sec-label">Spinning Technology</div>
+      <div class="yc-fg" style="margin-bottom:0">
+        <div class="yc-seg">${YARN_SPINNING.map(o => `<button type="button" class="yc-seg-btn ${YC.spinning === o ? 'is-active' : ''}" onclick="ycSetSpinning('${jsStr(o)}')" title="${o === 'Ring Spun' ? 'RS' : o === 'Open End' ? 'OE' : ''}">${esc(o)}</button>`).join('')}</div>
+        ${YC.spinning === 'Other' ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="Describe the spinning technology" value="${escAttr(YC.spinningOther)}" oninput="ycSetSpinningOther(this.value)" />` : ''}
+      </div>
+    </div>
+
+    <div class="yc-sec">
+      <div class="yc-sec-label">Finish / Effect</div>
       <div class="yc-chip-row">${YARN_EFFECTS.map(e => `<button type="button" class="yc-chip-btn ${YC.effects.has(e.key) ? 'is-active' : ''}" onclick="ycToggleEffect('${e.key}')">${esc(e.label)}${e.key === 'other' ? ' +' : ''}</button>`).join('')}</div>
       ${YC.effects.has('other') ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="Describe the effect" value="${escAttr(YC.effectsOther)}" oninput="ycSetEffectOther(this.value)" />` : ''}
     </div>
 
     <div class="yc-sec">
+      <div class="yc-sec-label-row">
+        <div class="yc-sec-label">Yarn Content</div>
+        ${ycContentTotalHtml()}
+      </div>
+      <div id="yc-fiber-rows">${YC.fibers.map((f, i) => ycFiberRowHtml(f, i)).join('')}</div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="ycAddFiber()">+ Add fiber</button>
+    </div>
+
+    <div class="yc-sec">
       <div class="yc-sec-label">Comments</div>
       <div class="yc-fg" style="margin-bottom:0">
-        <textarea class="control-input" style="width:100%;min-height:56px;resize:vertical" placeholder="Optional note printed quietly at the bottom of the label…" oninput="ycSetComments(this.value)">${esc(YC.comments)}</textarea>
+        <textarea class="control-input" style="width:100%;min-height:56px;resize:vertical" maxlength="${YC_COMMENTS_MAX}" placeholder="Optional note printed quietly at the bottom of the label…" oninput="ycSetComments(this.value)">${esc(YC.comments)}</textarea>
+        <div class="yc-char-count${commentsLen > YC_COMMENTS_MAX * 0.9 ? ' is-warn' : ''}" id="yc-comments-count">${commentsLen} / ${YC_COMMENTS_MAX}</div>
       </div>
     </div>
 
     <div class="yc-sec" id="yc-length-hint" style="display:none">
-      <div class="yc-hint is-warn">This label's content is longer than the DK-2205's 101.6mm maximum. Remove an effect or shorten the product name — Save still works, but printing will scale the label down to fit.</div>
+      <div class="yc-hint is-warn">This label's content is longer than the DK-2205's 101.6mm maximum. Remove an effect or shorten a comment — Save still works, but printing will scale the label down to fit.</div>
     </div>`
 }
 function ycFiberRowHtml(f, i) {
@@ -10494,7 +10597,6 @@ function ycFiberRowHtml(f, i) {
 /* ── Validation — calm while typing, hard gate on save (§6, §19) ── */
 function ycValidate() {
   const errs = []
-  if (!YC.name.trim()) errs.push('Product name is required')
   if (!ycCountValue()) errs.push('Yarn Count is required')
   const withPct = YC.fibers.filter(f => (Number(f.pct) || 0) > 0)
   if (!withPct.length) errs.push('Add at least one fiber to Yarn Content')
@@ -10536,19 +10638,14 @@ async function ycSave(thenPrint) {
   ycSetSavingChrome(true)
 
   const specs = ycBuildSpecs()
-  const name = YC.name.trim()
+  const name = ycDerivedName()
   const isNew = !YC.editingId
+  // The Record ID is immutable once assigned — generated once on first
+  // save and never touched again on edit (§19, §34). On a genuine
+  // insert-time collision (23505), a fresh opaque ID is generated and
+  // the insert retried; the database's unique index is the final
+  // authority, never a client-side assumption of uniqueness (§20).
   let codeVal = YC.original?.code || null
-
-  if (isNew) {
-    const { data: genId, error: idErr } = await sb.rpc('next_yarn_id')
-    if (idErr || !genId) {
-      YC.saving = false; ycSetSavingChrome(false)
-      ycShowErrors(['Could not generate a Yarn ID: ' + (idErr?.message || 'please try again')])
-      return
-    }
-    codeVal = genId
-  }
 
   const payload = {
     name, division: 'yarn', code: codeVal, specs,
@@ -10557,7 +10654,15 @@ async function ycSave(thenPrint) {
   }
 
   let error, savedId = YC.editingId
-  for (let tries = 0; tries < 4; tries++) {
+  for (let tries = 0; tries < 5; tries++) {
+    if (isNew) {
+      const { data: genId, error: idErr } = await sb.rpc('next_yarn_record_id')
+      if (idErr || !genId) {
+        error = idErr || new Error('Could not generate a yarn record ID')
+        break
+      }
+      payload.code = genId
+    }
     if (YC.editingId) {
       ;({ error } = await sb.from('products').update(payload).eq('id', YC.editingId))
     } else {
@@ -10565,17 +10670,17 @@ async function ycSave(thenPrint) {
       error = ins.error; savedId = ins.data?.id
     }
     if (!error) break
+    if (isNew && (error.code === '23505' || /duplicate key/i.test(error.message || ''))) continue
     if (dropMissingProductColumn(error, payload)) continue
     break
   }
+  codeVal = payload.code
 
   YC.saving = false
   ycSetSavingChrome(false)
 
   if (error) {
-    ycShowErrors([(error.code === '23505' || /duplicate key/i.test(error.message || ''))
-      ? `Yarn ID "${payload.code}" is already in use — please try saving again`
-      : 'Could not save: ' + error.message])
+    ycShowErrors(['Could not save: ' + (error.message || 'please try again')])
     return
   }
 
@@ -11599,12 +11704,12 @@ async function saveProduct() {
     }, 0)
     codeVal = prefix + String(maxSeq + 1).padStart(5, '0')
   }
-  // Yarn Quick Add path (§9 of the Yarn Label Creator brief: the user
-  // must never manually enter the barcode — same atomic generator the
-  // Yarn Label Creator itself calls, so both paths produce the same
-  // YRN-###### identity space).
-  if (!editingProductId && div === 'yarn' && (!codeVal || !/^YRN-\d+$/.test(codeVal))) {
-    const { data: genId } = await sb.rpc('next_yarn_id')
+  // Yarn Quick Add path — the user must never manually enter the
+  // barcode. Same atomic, collision-checked opaque-ID generator the
+  // Yarn Label Creator itself calls, so both paths share one identity
+  // space and the same non-sequential, non-semantic ID scheme (§19, §20).
+  if (!editingProductId && div === 'yarn' && !codeVal) {
+    const { data: genId } = await sb.rpc('next_yarn_record_id')
     if (genId) codeVal = genId
   }
 
