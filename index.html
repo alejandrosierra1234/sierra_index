@@ -10361,7 +10361,7 @@ function ycCfg() {
   const t = LABEL_TEMPLATES['yarn-label']
   return {
     template: 'yarn-label', overrides: { footer: '' }, hidden: [...(t.defaultHidden || [])],
-    order: [...t.order], qr: { enabled: false, target: 'product', url: '' },
+    order: [...t.order], qr: { enabled: true, target: 'product', url: '' },
     barcode: { enabled: true, format: 'CODE128', source: 'millArticle' },
   }
 }
@@ -10405,6 +10405,11 @@ function ycRenderPreview() {
   }
   requestAnimationFrame(() => {
     if (draft.code) ycDrawBarcode(draft.code)
+    // Unsaved yarn: the record has no real identity yet, so the QR must
+    // not encode a fake/placeholder URL (§4) — it stays a neutral empty
+    // box, same convention as the barcode zone above (§17, §31).
+    if (draft.id && draft.id !== 'draft') ycDrawQr(getProductPublicUrl(draft))
+    else ycMarkQrPending()
     ycUpdateDims(host, draft)
     ycFitPreview()
   })
@@ -10421,6 +10426,20 @@ function ycDrawBarcode(payload) {
     svg.removeAttribute('width'); svg.removeAttribute('height')
     svg.setAttribute('preserveAspectRatio', 'none')
   } catch (_) {}
+}
+function ycDrawQr(payload) {
+  const canvas = document.getElementById('yc-preview-qr')
+  if (!canvas || !payload) return
+  canvas.style.background = ''
+  try {
+    QRCode.toCanvas(canvas, payload,
+      { width: 256, margin: 3, errorCorrectionLevel: 'L', color: { dark: '#000000', light: '#ffffff' } })
+  } catch (_) {}
+}
+function ycMarkQrPending() {
+  const canvas = document.getElementById('yc-preview-qr')
+  if (!canvas) return
+  canvas.style.background = 'repeating-linear-gradient(45deg,var(--rule) 0,var(--rule) 1.2px,transparent 1.2px,transparent 4px)'
 }
 // Physical size readout (§17) + the one hard rule the whole feature
 // exists to enforce: a yarn label never exceeds 101.6mm on the
@@ -10565,11 +10584,14 @@ function ycRenderForm() {
   if (!el) return
   const commentsLen = YC.comments.length
   const recordNumber = YC.original?.code || ''
+  const prepMissing = !YC.prep
+  const spinMissing = !YC.spinning
   el.innerHTML = `
     <div class="yc-sec">
-      <div class="yc-sec-label">Yarn Name</div>
+      <div class="yc-sec-label">Yarn Name<span class="yc-req">*</span></div>
       <div class="yc-fg" style="margin-bottom:0">
         <input type="text" class="control-input" style="width:100%" placeholder="e.g. Sierra Core 30" value="${escAttr(YC.name)}" oninput="ycSetName(this.value)" />
+        ${YC.name.trim() ? '' : '<div class="yc-hint is-warn" style="margin-top:6px">Required field</div>'}
       </div>
     </div>
 
@@ -10580,37 +10602,37 @@ function ycRenderForm() {
     </div>
 
     <div class="yc-sec">
-      <div class="yc-sec-label">Yarn Count</div>
+      <div class="yc-sec-label">Yarn Count<span class="yc-req">*</span></div>
       <div class="yc-fg" style="margin-bottom:0">
         ${ycComboHtml('yc-count', 'Search or type a count…')}
       </div>
     </div>
 
     <div class="yc-sec">
-      <div class="yc-sec-label">Preparation</div>
-      <div class="yc-fg" style="margin-bottom:0">
+      <div class="yc-sec-label">CONSTRUCTION</div>
+      <div class="yc-fg" style="margin-bottom:10px">
+        <div class="yc-sec-label" style="margin-bottom:6px">Preparation<span class="yc-req">*</span></div>
         <div class="yc-seg">${YARN_PREP.map(o => `<button type="button" class="yc-seg-btn ${YC.prep === o ? 'is-active' : ''}" onclick="ycSetPrep('${jsStr(o)}')" title="${o === 'Carded' ? 'CD' : o === 'Combed' ? 'CM' : ''}">${esc(o)}</button>`).join('')}</div>
         ${YC.prep === 'Other' ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="Describe the preparation" value="${escAttr(YC.prepOther)}" oninput="ycSetPrepOther(this.value)" />` : ''}
+        ${prepMissing ? '<div class="yc-hint is-warn" style="margin-top:6px">Required before Save &amp; Print</div>' : ''}
       </div>
-    </div>
-
-    <div class="yc-sec">
-      <div class="yc-sec-label">Spinning Technology</div>
-      <div class="yc-fg" style="margin-bottom:0">
+      <div class="yc-fg" style="margin-bottom:10px">
+        <div class="yc-sec-label" style="margin-bottom:6px">Spinning Technology<span class="yc-req">*</span></div>
         <div class="yc-seg">${YARN_SPINNING.map(o => `<button type="button" class="yc-seg-btn ${YC.spinning === o ? 'is-active' : ''}" onclick="ycSetSpinning('${jsStr(o)}')" title="${o === 'Ring Spun' ? 'RS' : o === 'Open End' ? 'OE' : ''}">${esc(o)}</button>`).join('')}</div>
         ${YC.spinning === 'Other' ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="Describe the spinning technology" value="${escAttr(YC.spinningOther)}" oninput="ycSetSpinningOther(this.value)" />` : ''}
+        ${spinMissing ? '<div class="yc-hint is-warn" style="margin-top:6px">Required before Save &amp; Print</div>' : ''}
       </div>
-    </div>
-
-    <div class="yc-sec">
-      <div class="yc-sec-label">Finish / Effect</div>
-      <div class="yc-chip-row">${YARN_EFFECTS.map(e => `<button type="button" class="yc-chip-btn ${YC.effects.has(e.key) ? 'is-active' : ''}" onclick="ycToggleEffect('${e.key}')">${esc(e.label)}${e.key === 'other' ? ' +' : ''}</button>`).join('')}</div>
-      ${YC.effects.has('other') ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="Describe the effect" value="${escAttr(YC.effectsOther)}" oninput="ycSetEffectOther(this.value)" />` : ''}
+      <div class="yc-fg" style="margin-bottom:0">
+        <div class="yc-sec-label" style="margin-bottom:6px">Finish / Effect</div>
+        <div class="yc-chip-row">${YARN_EFFECTS.map(e => `<button type="button" class="yc-chip-btn ${YC.effects.has(e.key) ? 'is-active' : ''}" onclick="ycToggleEffect('${e.key}')">${esc(e.label)}${e.key === 'other' ? ' +' : ''}</button>`).join('')}</div>
+        ${YC.effects.has('other') ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="Describe the effect" value="${escAttr(YC.effectsOther)}" oninput="ycSetEffectOther(this.value)" />` : ''}
+      </div>
+      <div class="yc-hint" style="margin-top:10px">Printed as one line — <strong>${esc(ycConstructionLine() || '—')}</strong></div>
     </div>
 
     <div class="yc-sec">
       <div class="yc-sec-label-row">
-        <div class="yc-sec-label">Yarn Content</div>
+        <div class="yc-sec-label">Yarn Content<span class="yc-req">*</span></div>
         ${ycContentTotalHtml()}
       </div>
       <div id="yc-fiber-rows">${YC.fibers.map((f, i) => ycFiberRowHtml(f, i)).join('')}</div>
@@ -10641,7 +10663,11 @@ function ycFiberRowHtml(f, i) {
 }
 
 /* ── Validation — calm while typing, hard gate on save (§6, §19) ── */
-function ycValidate() {
+// forPrint gates the final-production-only requirements (§25): Preparation
+// and Spinning Technology may stay blank on a plain Save (draft), but
+// Save & Print — the step that produces the physical label — never ships
+// a Construction block with a missing process step.
+function ycValidate(forPrint) {
   const errs = []
   if (!YC.name.trim()) errs.push('Yarn Name is required')
   if (!ycCountValue()) errs.push('Yarn Count is required')
@@ -10652,6 +10678,10 @@ function ycValidate() {
   if (YC.spinning === 'Other' && !YC.spinningOther.trim()) errs.push('Enter the custom Spinning Technology')
   if (YC.prep === 'Other' && !YC.prepOther.trim()) errs.push('Enter the custom Yarn Preparation')
   if (YC.effects.has('other') && !YC.effectsOther.trim()) errs.push('Enter the custom Effect')
+  if (forPrint) {
+    if (!YC.prep) errs.push('Preparation is required before Save & Print')
+    if (!YC.spinning) errs.push('Spinning Technology is required before Save & Print')
+  }
   return errs
 }
 function ycShowErrors(errs) {
@@ -10678,7 +10708,7 @@ function ycSetSavingChrome(saving) {
    errand (§19, §31). ══ */
 async function ycSave(thenPrint) {
   if (!YC || YC.saving) return
-  const errs = ycValidate()
+  const errs = ycValidate(thenPrint)
   if (errs.length) { ycShowErrors(errs); return }
   ycClearErrors()
   YC.saving = true
