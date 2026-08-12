@@ -7310,6 +7310,8 @@ function catRowActionsHtml(p) {
         icon: `<svg viewBox="0 0 20 20" fill="none"><path d="M4 5h12M4 9h8M4 13h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>` },
       { label: 'Print label', onClick: `quickLabel(dec('${ep}'))`,
         icon: `<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 6V5a3 3 0 016 0v1" stroke="currentColor" stroke-width="1.4"/></svg>` },
+      ...(canDeleteDiv(p.division) && !isArchived(p) ? [{ label: tx('product.archive'), onClick: `confirmArchive(dec('${ep}'))`, danger: true,
+        icon: `<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="3.5" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4.5 8.5V14a1.5 1.5 0 001.5 1.5h8a1.5 1.5 0 001.5-1.5V8.5" stroke="currentColor" stroke-width="1.4"/><path d="M8.25 11.5h3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>` }] : []),
     ])}
   </td>`
 }
@@ -7377,6 +7379,8 @@ function catCardHtml(p) {
             icon: `<svg viewBox="0 0 20 20" fill="none"><path d="M4 5h12M4 9h8M4 13h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>` },
           { label: 'Print label', onClick: `quickLabel(dec('${ep}'))`,
             icon: `<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 6V5a3 3 0 016 0v1" stroke="currentColor" stroke-width="1.4"/></svg>` },
+          ...(canDeleteDiv(p.division) && !isArchived(p) ? [{ label: tx('product.archive'), onClick: `confirmArchive(dec('${ep}'))`, danger: true,
+            icon: `<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="3.5" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4.5 8.5V14a1.5 1.5 0 001.5 1.5h8a1.5 1.5 0 001.5-1.5V8.5" stroke="currentColor" stroke-width="1.4"/><path d="M8.25 11.5h3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>` }] : []),
         ])}
       </div>
     </div>
@@ -7435,6 +7439,7 @@ function catRenderDrawerBody(p) {
     <div class="ctx-sep"></div>
     <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
       <button class="btn btn-primary btn-sm" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p) ? '' : 'disabled'}>Request sample</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeSideDrawer(); quickLabel(dec('${ep}'))">Print label</button>
       <button class="btn btn-secondary btn-sm" onclick="toggleProductSelect(dec('${ep}')); catRenderDrawerBody(dec('${ep}'))">${selectedProducts.some(s => s.id === p.id) ? '✓ Selected' : 'Add to selection'}</button>
       <button class="btn btn-secondary btn-sm" onclick="closeSideDrawer(); openFicha(dec('${ep}'))">Open full record</button>
     </div>`
@@ -11019,11 +11024,12 @@ async function ycConfirmPrint(asPdf) {
       <div class="ctx-stat"><span>Content</span><b>${esc(s['Yarn Content'] || '—')}</b></div>
       <div class="ctx-stat"><span>Spinning</span><b>${esc(s['Spinning Technology'] || '—')}</b></div>
       <div class="ctx-stat"><span>Preparation</span><b>${esc(s['Yarn Preparation'] || '—')}</b></div>
-      <div class="ctx-stat"><span>Effect</span><b>${esc(Array.isArray(s.Effects) ? s.Effects.join(' · ') : '—')}</b></div>
+      <div class="ctx-stat"><span>Effect</span><b>${esc((Array.isArray(s.Effects) ? s.Effects[0] : s.Effects) || '—')}</b></div>
       <div class="ctx-stat"><span>Last updated</span><b>${esc(catUpdated(p))}</b></div>
       <div class="ctx-sep"></div>
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
         <button class="btn btn-primary btn-sm" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p) ? '' : 'disabled'}>Request sample</button>
+        <button class="btn btn-secondary btn-sm" onclick="closeSideDrawer(); quickPrintYarn(dec('${ep}'))">Print label</button>
         <button class="btn btn-secondary btn-sm" onclick="closeSideDrawer(); openFicha(dec('${ep}'))">Open full record</button>
       </div>`
   }
@@ -11038,7 +11044,7 @@ async function ycConfirmPrint(asPdf) {
       case 'product': return `<td><div class="cat-row-name">${esc(p.name)}${productNameTag()}</div><div class="cat-row-name-sub">${esc(s['Yarn Count'] || '—')}</div></td>`
       case 'yarnContent': return `<td>${esc(s['Yarn Content'] || '—')}</td>`
       case 'yarnConstr': return `<td>${esc([s['Spinning Technology'], s['Yarn Preparation']].filter(Boolean).join(' · ') || '—')}</td>`
-      case 'yarnEffect': return `<td>${esc(Array.isArray(s.Effects) ? s.Effects.join(' · ') : '—')}</td>`
+      case 'yarnEffect': return `<td>${esc((Array.isArray(s.Effects) ? s.Effects[0] : s.Effects) || '—')}</td>`
       case 'updated': return `<td style="white-space:nowrap;color:var(--text-3)">${esc(catUpdated(p))}</td>`
       default: return '<td></td>'
     }
