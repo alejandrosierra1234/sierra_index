@@ -3158,15 +3158,18 @@
     .yc-content-total.is-ok { color: var(--success); }
     .yc-content-total.is-warn { color: var(--warning-text); }
 
-    .yc-seg, .yc-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
-    .yc-seg-btn, .yc-chip-btn {
+    /* Preparation, Spinning Technology and Finish/Effect are all
+       single-select now — one shared visual language (.yc-seg-btn) for
+       all three, not two different "selected" treatments for the same
+       kind of control. */
+    .yc-seg { display: flex; flex-wrap: wrap; gap: 6px; }
+    .yc-seg-btn {
       height: 30px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: var(--r-pill);
       background: var(--surface); color: var(--text-secondary); font: inherit; font-size: 12.5px;
       font-weight: 600; cursor: pointer; transition: background 0.1s, color 0.1s, border-color 0.1s;
     }
-    .yc-seg-btn:hover, .yc-chip-btn:hover { background: var(--surface-hover); }
+    .yc-seg-btn:hover { background: var(--surface-hover); }
     .yc-seg-btn.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .yc-chip-btn.is-active { background: var(--accent-light); border-color: var(--accent); color: var(--accent-dark); }
     .yc-other-input { margin-top: 8px; }
 
     .yc-hint { font-size: 12px; color: var(--text-muted); margin-top: 8px; line-height: 1.45; }
@@ -6222,13 +6225,14 @@ const I18N = {
     'yc.construction':'Construction', 'yc.preparation':'Preparation', 'yc.spinningTech':'Spinning Technology',
     'yc.finishEffect':'Finish / Effect', 'yc.requiredBeforePrint':'Required before Save & Print',
     'yc.preparationOther':'Describe the preparation', 'yc.spinningOther':'Describe the spinning technology',
-    'yc.effectOther':'Describe the effect', 'yc.printedAsOneLine':'Printed as one line —',
+    'yc.effectOther':'Describe the effect', 'yc.printedAsOneLine':'Printed as one line',
     'yc.content':'Yarn Content', 'yc.addFiber':'+ Add fiber', 'yc.fiber':'Fiber',
     'yc.comments':'Comments', 'yc.commentsPh':'Optional note printed quietly at the bottom of the label…',
     'yc.lengthWarning':'This label’s content is longer than the DK-2205’s 101.6mm maximum. Remove an effect or shorten a comment — Save still works, but printing will scale the label down to fit.',
     'yc.printEyebrow':'Print', 'yc.printTitle':'Print Yarn Label', 'yc.quantity':'Quantity',
     'yc.labelSize':'Label size', 'yc.printerProfile':'Printer profile',
-    'yc.cancel':'Cancel', 'yc.pdf':'PDF', 'yc.print':'Print',
+    'yc.cancel':'Cancel', 'yc.pdf':'PDF', 'yc.print':'Print', 'yc.maxLength':'Maximum length',
+    'yc.pdfHint':'In the print dialog, choose "Save as PDF" as the destination',
     'yc.discardConfirm':'Discard unsaved changes to this yarn?',
     'yc.saveFailed':'Could not save: {msg}', 'yc.recordFailed':'Could not generate a Record Number: {msg}',
     'yc.tryAgain':'please try again',
@@ -6299,13 +6303,14 @@ const I18N = {
     'yc.construction':'Construcción', 'yc.preparation':'Preparación', 'yc.spinningTech':'Tecnología de hilatura',
     'yc.finishEffect':'Acabado / efecto', 'yc.requiredBeforePrint':'Obligatorio antes de guardar e imprimir',
     'yc.preparationOther':'Describe la preparación', 'yc.spinningOther':'Describe la tecnología de hilatura',
-    'yc.effectOther':'Describe el efecto', 'yc.printedAsOneLine':'Se imprime en una línea —',
+    'yc.effectOther':'Describe el efecto', 'yc.printedAsOneLine':'Se imprime en una línea',
     'yc.content':'Composición', 'yc.addFiber':'+ Agregar fibra', 'yc.fiber':'Fibra',
     'yc.comments':'Comentarios', 'yc.commentsPh':'Nota opcional que se imprime discretamente al pie de la etiqueta…',
     'yc.lengthWarning':'El contenido de esta etiqueta supera el máximo de 101.6mm del DK-2205. Quita un efecto o acorta un comentario — Guardar sigue funcionando, pero al imprimir se reducirá la etiqueta para que quepa.',
     'yc.printEyebrow':'Imprimir', 'yc.printTitle':'Imprimir etiqueta de hilo', 'yc.quantity':'Cantidad',
     'yc.labelSize':'Tamaño de etiqueta', 'yc.printerProfile':'Perfil de impresora',
-    'yc.cancel':'Cancelar', 'yc.pdf':'PDF', 'yc.print':'Imprimir',
+    'yc.cancel':'Cancelar', 'yc.pdf':'PDF', 'yc.print':'Imprimir', 'yc.maxLength':'Longitud máxima',
+    'yc.pdfHint':'En el diálogo de impresión, elige "Guardar como PDF" como destino',
     'yc.discardConfirm':'¿Descartar los cambios sin guardar de este hilo?',
     'yc.saveFailed':'No se pudo guardar: {msg}', 'yc.recordFailed':'No se pudo generar el número de registro: {msg}',
     'yc.tryAgain':'inténtalo de nuevo',
@@ -10689,10 +10694,10 @@ function ycRenderForm() {
       </div>
       <div class="yc-fg" style="margin-bottom:0">
         <div class="yc-sec-label" style="margin-bottom:6px">${tx('yc.finishEffect')}</div>
-        <div class="yc-chip-row">${YARN_EFFECTS.map(e => `<button type="button" class="yc-chip-btn ${YC.effect === e.key ? 'is-active' : ''}" onclick="ycSetEffect('${e.key}')">${esc(e.label)}${e.key === 'other' ? ' +' : ''}</button>`).join('')}</div>
+        <div class="yc-seg">${YARN_EFFECTS.map(e => `<button type="button" class="yc-seg-btn ${YC.effect === e.key ? 'is-active' : ''}" onclick="ycSetEffect('${e.key}')">${esc(e.label)}${e.key === 'other' ? ' +' : ''}</button>`).join('')}</div>
         ${YC.effect === 'other' ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="${escAttr(tx('yc.effectOther'))}" value="${escAttr(YC.effectOther)}" oninput="ycSetEffectOther(this.value)" />` : ''}
       </div>
-      <div class="yc-hint" style="margin-top:10px">${esc(tx('yc.printedAsOneLine'))} <strong>${esc(ycConstructionLine() || '—')}</strong></div>
+      ${ycConstructionLine() ? `<div class="yc-hint" style="margin-top:10px">${esc(tx('yc.printedAsOneLine'))} — <strong>${esc(ycConstructionLine())}</strong></div>` : ''}
     </div>
 
     <div class="yc-sec">
@@ -10870,7 +10875,7 @@ async function ycOpenPrintStep(p) {
   document.body.appendChild(tmp)
   const sheetMm = lbSheetMm(lbMeasuredMm(tmp.querySelector('.lbl')))
   document.body.removeChild(tmp)
-  document.getElementById('yc-print-size').textContent = `62 × ${sheetMm} mm${sheetMm >= 101.6 ? ' · Maximum length' : ''}`
+  document.getElementById('yc-print-size').textContent = `62 × ${sheetMm} mm${sheetMm >= 101.6 ? ' · ' + tx('yc.maxLength') : ''}`
 
   document.getElementById('m-yarn-print').classList.add('open')
 }
@@ -10892,7 +10897,14 @@ async function ycConfirmPrint(asPdf) {
   LB = { p: _ycPrintTarget, cfg: _ycPrintCfg || ycCfg(), saved: null, tab: 'print', open: {}, selected: null, zoom: 'fit', issues: [] }
   const copiesEl = document.getElementById('lbl-copies')
   if (copiesEl) copiesEl.value = String(qty)
-  if (asPdf) toast('In the print dialog, choose "Save as PDF" as the destination', 4000)
+  if (asPdf) {
+    // window.print() blocks the main thread until the native dialog
+    // closes — firing it in the same tick as the toast means the toast
+    // never gets a paint frame. Same delay printLabel()'s other caller,
+    // downloadPDF(), already uses for this exact reason.
+    toast(tx('yc.pdfHint'), 4000)
+    await new Promise(r => setTimeout(r, 400))
+  }
   await printLabel()
   LB = null
   if (btn) btn.disabled = false
