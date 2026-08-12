@@ -10436,8 +10436,14 @@ function ycDrawQr(payload) {
   if (!canvas || !payload) return
   canvas.style.background = ''
   try {
+    // QRCode.toCanvas sets its own inline canvas.style.width/height to
+    // match the drawn resolution (256px), which otherwise overrides the
+    // 13mm CSS box and balloons the QR past the logo, crushing it to 0
+    // width in the flex header — the callback resets it back, same fix
+    // lbDrawCodes() already applies for the Fabric label.
     QRCode.toCanvas(canvas, payload,
-      { width: 256, margin: 3, errorCorrectionLevel: 'L', color: { dark: '#000000', light: '#ffffff' } })
+      { width: 256, margin: 3, errorCorrectionLevel: 'L', color: { dark: '#000000', light: '#ffffff' } },
+      () => { canvas.style.width = '13mm'; canvas.style.height = '13mm' })
   } catch (_) {}
 }
 function ycMarkQrPending() {
