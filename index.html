@@ -10901,7 +10901,12 @@ async function ycOpenPrintStep(p) {
   tmp.style.cssText = 'position:fixed;visibility:hidden;top:0;left:0;pointer-events:none'
   tmp.innerHTML = renderLabel(p, cfg, {})
   document.body.appendChild(tmp)
-  const sheetMm = lbSheetMm(lbMeasuredMm(tmp.querySelector('.lbl')))
+  // NOT lbSheetMm() — that reads LB.cfg.template, and LB is the Fabric
+  // Label Builder's own global state, still null whenever the Yarn
+  // Creator is opened directly (the normal case). That threw here,
+  // uncaught, before the print modal's own .open class was ever added
+  // — Save & Print looked like it silently did nothing after saving.
+  const sheetMm = Math.min(Math.max(lbMeasuredMm(tmp.querySelector('.lbl')) || 0, 40), LABEL_TEMPLATES['yarn-label'].maxHeightMm)
   document.body.removeChild(tmp)
   document.getElementById('yc-print-size').textContent = `62 × ${sheetMm} mm${sheetMm >= 101.6 ? ' · ' + tx('yc.maxLength') : ''}`
 
