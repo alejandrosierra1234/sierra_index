@@ -5636,26 +5636,26 @@
   <div class="modal" style="width:380px">
     <div class="modal-hdr">
       <div>
-        <div class="modal-eyebrow" style="color:var(--text-3)">Print</div>
-        <div class="modal-title">Print Yarn Label</div>
+        <div class="modal-eyebrow" style="color:var(--text-3)" id="yc-print-eyebrow">Print</div>
+        <div class="modal-title" id="yc-print-title">Print Yarn Label</div>
       </div>
       <button class="btn-icon" onclick="closeModal('m-yarn-print')">✕</button>
     </div>
     <div class="modal-body">
       <div id="yc-print-summary" style="margin-bottom:1.1rem"></div>
       <div class="fg">
-        <label>Quantity</label>
+        <label id="yc-qty-label">Quantity</label>
         <div style="display:flex;align-items:center;gap:0.6rem">
           <button class="btn btn-secondary btn-sm" onclick="ycPrintQtyStep(-1)" type="button">−</button>
           <input type="number" id="yc-print-qty" value="1" min="1" max="50" style="width:64px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:0.5rem;font-family:inherit;font-size:0.88rem;color:var(--text)" />
           <button class="btn btn-secondary btn-sm" onclick="ycPrintQtyStep(1)" type="button">+</button>
         </div>
       </div>
-      <div class="fg"><label>Label size</label><div style="font-size:0.88rem;color:var(--text-2)" id="yc-print-size">62 × — mm</div></div>
-      <div class="fg" style="margin-bottom:0"><label>Printer profile</label><div style="font-size:0.88rem;color:var(--text-2)">Brother QL-800 · DK-2205</div></div>
+      <div class="fg"><label id="yc-size-label">Label size</label><div style="font-size:0.88rem;color:var(--text-2)" id="yc-print-size">62 × — mm</div></div>
+      <div class="fg" style="margin-bottom:0"><label id="yc-printer-label">Printer profile</label><div style="font-size:0.88rem;color:var(--text-2)">Brother QL-800 · DK-2205</div></div>
     </div>
     <div class="modal-ftr">
-      <button class="btn btn-secondary" onclick="closeModal('m-yarn-print')">Cancel</button>
+      <button class="btn btn-secondary" id="yc-print-cancel-btn" onclick="closeModal('m-yarn-print')">Cancel</button>
       <button class="btn btn-secondary" id="yc-print-pdf-btn" onclick="ycConfirmPrint(true)">PDF</button>
       <button class="btn btn-primary" id="yc-print-confirm-btn" onclick="ycConfirmPrint(false)">Print</button>
     </div>
@@ -6205,6 +6205,27 @@ const I18N = {
     'team.modal.cancel':'Cancel', 'team.modal.submit':'Send invite', 'team.modal.sending':'Sending…',
     'team.toast.required':'Name and email are required', 'team.toast.createFailed':'Could not create account: {msg}',
     'team.toast.invited':'Invite sent to {email}',
+    'yc.eyebrow':'Yarn Inventory', 'yc.createTitle':'Create Yarn', 'yc.editTitle':'Edit Yarn',
+    'yc.draft':'Draft', 'yc.saved':'Saved', 'yc.saving':'Saving yarn…',
+    'yc.save':'Save', 'yc.saveAndPrint':'Save & Print',
+    'yc.name':'Yarn Name', 'yc.namePh':'e.g. Sierra Core 30', 'yc.required':'Required field',
+    'yc.recordNumber':'Record Number', 'yc.recordNumberPending':'Generated when saved',
+    'yc.recordNumberHint':'Generated automatically · Read only',
+    'yc.recordNumberPendingHint':'The permanent record number is assigned on first save and never changes.',
+    'yc.count':'Yarn Count', 'yc.countPh':'Search or type a count…',
+    'yc.construction':'Construction', 'yc.preparation':'Preparation', 'yc.spinningTech':'Spinning Technology',
+    'yc.finishEffect':'Finish / Effect', 'yc.requiredBeforePrint':'Required before Save & Print',
+    'yc.preparationOther':'Describe the preparation', 'yc.spinningOther':'Describe the spinning technology',
+    'yc.effectOther':'Describe the effect', 'yc.printedAsOneLine':'Printed as one line —',
+    'yc.content':'Yarn Content', 'yc.addFiber':'+ Add fiber', 'yc.fiber':'Fiber',
+    'yc.comments':'Comments', 'yc.commentsPh':'Optional note printed quietly at the bottom of the label…',
+    'yc.lengthWarning':'This label’s content is longer than the DK-2205’s 101.6mm maximum. Remove an effect or shorten a comment — Save still works, but printing will scale the label down to fit.',
+    'yc.printEyebrow':'Print', 'yc.printTitle':'Print Yarn Label', 'yc.quantity':'Quantity',
+    'yc.labelSize':'Label size', 'yc.printerProfile':'Printer profile',
+    'yc.cancel':'Cancel', 'yc.pdf':'PDF', 'yc.print':'Print',
+    'yc.discardConfirm':'Discard unsaved changes to this yarn?',
+    'yc.saveFailed':'Could not save: {msg}', 'yc.recordFailed':'Could not generate a Record Number: {msg}',
+    'yc.tryAgain':'please try again',
   },
   es: {
     'nav.search':'Buscar…', 'nav.dashboard':'Panel', 'nav.styleGuide':'Guía de estilo', 'nav.divisions':'Divisiones',
@@ -6261,6 +6282,27 @@ const I18N = {
     'team.modal.cancel':'Cancelar', 'team.modal.submit':'Enviar invitación', 'team.modal.sending':'Enviando…',
     'team.toast.required':'Nombre y correo son obligatorios', 'team.toast.createFailed':'No se pudo crear la cuenta: {msg}',
     'team.toast.invited':'Invitación enviada a {email}',
+    'yc.eyebrow':'Almacén de Hilo', 'yc.createTitle':'Crear hilo', 'yc.editTitle':'Editar hilo',
+    'yc.draft':'Borrador', 'yc.saved':'Guardado', 'yc.saving':'Guardando hilo…',
+    'yc.save':'Guardar', 'yc.saveAndPrint':'Guardar e imprimir',
+    'yc.name':'Nombre del hilo', 'yc.namePh':'ej. Sierra Core 30', 'yc.required':'Campo obligatorio',
+    'yc.recordNumber':'No. de registro', 'yc.recordNumberPending':'Se genera al guardar',
+    'yc.recordNumberHint':'Generado automáticamente · Solo lectura',
+    'yc.recordNumberPendingHint':'El número de registro permanente se asigna al guardar por primera vez y nunca cambia.',
+    'yc.count':'Título (Yarn Count)', 'yc.countPh':'Busca o escribe un título…',
+    'yc.construction':'Construcción', 'yc.preparation':'Preparación', 'yc.spinningTech':'Tecnología de hilatura',
+    'yc.finishEffect':'Acabado / efecto', 'yc.requiredBeforePrint':'Obligatorio antes de guardar e imprimir',
+    'yc.preparationOther':'Describe la preparación', 'yc.spinningOther':'Describe la tecnología de hilatura',
+    'yc.effectOther':'Describe el efecto', 'yc.printedAsOneLine':'Se imprime en una línea —',
+    'yc.content':'Composición', 'yc.addFiber':'+ Agregar fibra', 'yc.fiber':'Fibra',
+    'yc.comments':'Comentarios', 'yc.commentsPh':'Nota opcional que se imprime discretamente al pie de la etiqueta…',
+    'yc.lengthWarning':'El contenido de esta etiqueta supera el máximo de 101.6mm del DK-2205. Quita un efecto o acorta un comentario — Guardar sigue funcionando, pero al imprimir se reducirá la etiqueta para que quepa.',
+    'yc.printEyebrow':'Imprimir', 'yc.printTitle':'Imprimir etiqueta de hilo', 'yc.quantity':'Cantidad',
+    'yc.labelSize':'Tamaño de etiqueta', 'yc.printerProfile':'Perfil de impresora',
+    'yc.cancel':'Cancelar', 'yc.pdf':'PDF', 'yc.print':'Imprimir',
+    'yc.discardConfirm':'¿Descartar los cambios sin guardar de este hilo?',
+    'yc.saveFailed':'No se pudo guardar: {msg}', 'yc.recordFailed':'No se pudo generar el número de registro: {msg}',
+    'yc.tryAgain':'inténtalo de nuevo',
   }
 }
 
@@ -6302,6 +6344,20 @@ function applyLanguage(opts = {}) {
   setAttr('.sidebar-user', 'data-tip', tx('nav.profile'))
   const searchInput = document.getElementById('search-input')
   if (searchInput) searchInput.placeholder = tx('nav.search')
+  // Yarn Label Creator — static chrome only; the dynamic left-rail form
+  // (yc-form) re-renders from tx() on every keystroke via ycRenderForm(),
+  // so it always reflects the current language without a separate hook.
+  setText('#yc-save-btn', tx('yc.save'))
+  setText('#yc-save-print-btn', tx('yc.saveAndPrint'))
+  setText('#yc-print-eyebrow', tx('yc.printEyebrow'))
+  setText('#yc-print-title', tx('yc.printTitle'))
+  setText('#yc-qty-label', tx('yc.quantity'))
+  setText('#yc-size-label', tx('yc.labelSize'))
+  setText('#yc-printer-label', tx('yc.printerProfile'))
+  setText('#yc-print-cancel-btn', tx('yc.cancel'))
+  setText('#yc-print-pdf-btn', tx('yc.pdf'))
+  setText('#yc-print-confirm-btn', tx('yc.print'))
+  if (YC) ycRenderForm()
   if (opts.render !== false && allProducts.length && document.getElementById('view-products')?.style.display !== 'none') {
     renderProducts(filterProducts())
     updateSectionTitle()
@@ -8745,8 +8801,11 @@ function yarnConstructionText(p) {
   const s = p.specs || {}
   const prep = yarnAbbr(YARN_PREP_ABBR, s['Yarn Preparation'])
   const spin = yarnAbbr(YARN_SPIN_ABBR, s['Spinning Technology'])
-  const effects = Array.isArray(s.Effects) ? s.Effects.filter(e => e && e.trim().toLowerCase() !== 'none') : []
-  const finish = effects.join('/').toUpperCase()
+  // Effects is a single value; records saved before the multi- to
+  // single-select correction may still carry an array — only the first
+  // entry ever printed on those labels, so that's what still prints.
+  const effRaw = Array.isArray(s.Effects) ? (s.Effects[0] || '') : (s.Effects || '')
+  const finish = (effRaw && effRaw.trim().toLowerCase() !== 'none') ? effRaw.toUpperCase() : ''
   return [prep, spin, finish].filter(Boolean).join(' · ')
 }
 // One line per fiber ("50% COTTON"), never combined on a single line
@@ -10171,7 +10230,7 @@ function ycBlankState() {
     fibers: [{ fiber: 'Cotton', pct: 100 }],
     spinning: '', spinningOther: '',
     prep: '', prepOther: '',
-    effects: new Set(['none']), effectsOther: '',
+    effect: 'none', effectOther: '',
     comments: '',
     lifecycle: 'available', baseline: '',
   }
@@ -10198,7 +10257,7 @@ function ycSnapshot() {
   return JSON.stringify({
     name: YC.name, count: YC.count, fibers: YC.fibers,
     spinning: YC.spinning, spinningOther: YC.spinningOther, prep: YC.prep, prepOther: YC.prepOther,
-    effects: [...YC.effects].sort(), effectsOther: YC.effectsOther, comments: YC.comments,
+    effect: YC.effect, effectOther: YC.effectOther, comments: YC.comments,
   })
 }
 function ycDirty() { return !!YC && ycSnapshot() !== YC.baseline }
@@ -10224,23 +10283,22 @@ function openYarnCreator(p) {
     const prep = s['Yarn Preparation'] || ''
     YC.prep = prep && YARN_PREP.includes(prep) ? prep : (prep ? 'Other' : '')
     YC.prepOther = YC.prep === 'Other' ? prep : ''
-    const effs = Array.isArray(s.Effects) ? s.Effects : []
-    YC.effects = new Set()
-    effs.forEach(e => {
-      const known = YARN_EFFECTS.find(x => x.label === e)
-      if (known) YC.effects.add(known.key)
-      else { YC.effects.add('other'); YC.effectsOther = e }
-    })
-    if (!YC.effects.size) YC.effects.add('none')
+    // Effects is a single value now; records saved before the multi- to
+    // single-select correction may still carry an array — take the first
+    // entry so an older record still loads with something selected.
+    const eff = Array.isArray(s.Effects) ? (s.Effects[0] || '') : (s.Effects || '')
+    const known = eff ? YARN_EFFECTS.find(x => x.label === eff) : null
+    YC.effect = eff ? (known ? known.key : 'other') : 'none'
+    YC.effectOther = YC.effect === 'other' ? eff : ''
     YC.comments = s.Comments || ''
     YC.lifecycle = lc(p)
   }
   YC.baseline = ycSnapshot()
   ycZoom = 'fit'
   document.querySelectorAll('#yc-zoom .btn').forEach(b => b.classList.toggle('active', b.dataset.z === 'fit'))
-  document.getElementById('yc-eyebrow').textContent = p ? (p.code || 'Yarn Inventory') : 'Yarn Inventory'
-  document.getElementById('yc-title').textContent = p ? (p.name || 'Edit Yarn') : 'Create Yarn'
-  document.getElementById('yc-state-chip').innerHTML = `<span class="lbl-chip-dot"></span>${p ? 'Saved' : 'Draft'}`
+  document.getElementById('yc-eyebrow').textContent = p ? (p.code || tx('yc.eyebrow')) : tx('yc.eyebrow')
+  document.getElementById('yc-title').textContent = p ? (p.name || tx('yc.editTitle')) : tx('yc.createTitle')
+  document.getElementById('yc-state-chip').innerHTML = `<span class="lbl-chip-dot"></span>${p ? tx('yc.saved') : tx('yc.draft')}`
   document.getElementById('view-detail').style.display = 'none'
   document.getElementById('m-yarn').classList.add('open')
   ycClearErrors()
@@ -10249,7 +10307,7 @@ function openYarnCreator(p) {
 }
 
 function closeYarnCreator() {
-  if (YC && ycDirty() && !confirm('Discard unsaved changes to this yarn?')) return
+  if (YC && ycDirty() && !confirm(tx('yc.discardConfirm'))) return
   document.getElementById('m-yarn').classList.remove('open')
   YC = null
 }
@@ -10258,7 +10316,7 @@ function closeYarnCreator() {
 function ycSetName(v) {
   YC.name = v
   const t = document.getElementById('yc-title')
-  if (t) t.textContent = YC.editingId ? (v.trim() || 'Edit Yarn') : (v.trim() || 'Create Yarn')
+  if (t) t.textContent = YC.editingId ? (v.trim() || tx('yc.editTitle')) : (v.trim() || tx('yc.createTitle'))
   ycRenderPreview()
 }
 function ycCountValue() { return (YC.count || '').trim() }
@@ -10287,18 +10345,8 @@ function ycSetSpinningOther(v) { YC.spinningOther = v; ycRenderPreview() }
 function ycSetPrep(v) { YC.prep = v; ycRenderForm(); ycRenderPreview() }
 function ycSetPrepOther(v) { YC.prepOther = v; ycRenderPreview() }
 
-function ycToggleEffect(key) {
-  if (key === 'none') {
-    YC.effects = new Set(['none'])
-  } else {
-    YC.effects.delete('none')
-    if (YC.effects.has(key)) YC.effects.delete(key); else YC.effects.add(key)
-    if (!YC.effects.size) YC.effects.add('none')
-  }
-  ycRenderForm()
-  ycRenderPreview()
-}
-function ycSetEffectOther(v) { YC.effectsOther = v; ycRenderPreview() }
+function ycSetEffect(key) { YC.effect = key; ycRenderForm(); ycRenderPreview() }
+function ycSetEffectOther(v) { YC.effectOther = v; ycRenderPreview() }
 function ycSetComments(v) {
   YC.comments = v
   const counter = document.getElementById('yc-comments-count')
@@ -10316,12 +10364,13 @@ function ycSetComments(v) {
 function ycConstructionLine() {
   const prep = YC.prep === 'Other' ? YC.prepOther.trim() : yarnAbbr(YARN_PREP_ABBR, YC.prep)
   const spin = YC.spinning === 'Other' ? YC.spinningOther.trim() : yarnAbbr(YARN_SPIN_ABBR, YC.spinning)
-  const finish = ycEffectLabels().join('/').toUpperCase()
+  const finish = ycEffectLabel().toUpperCase()
   return [prep, spin, finish].filter(Boolean).join(' · ')
 }
-function ycEffectLabels() {
-  if (YC.effects.has('none') || !YC.effects.size) return []
-  return [...YC.effects].map(k => k === 'other' ? (YC.effectsOther.trim() || 'Other') : YARN_EFFECTS.find(e => e.key === k)?.label).filter(Boolean)
+function ycEffectLabel() {
+  if (!YC.effect || YC.effect === 'none') return ''
+  if (YC.effect === 'other') return YC.effectOther.trim()
+  return YARN_EFFECTS.find(e => e.key === YC.effect)?.label || ''
 }
 function ycContentLine() {
   return YC.fibers.filter(f => (Number(f.pct) || 0) > 0 && ycFiberLabel(f))
@@ -10347,8 +10396,8 @@ function ycBuildSpecs() {
   if (spin) specs['Spinning Technology'] = spin
   const prep = YC.prep === 'Other' ? YC.prepOther.trim() : YC.prep
   if (prep) specs['Yarn Preparation'] = prep
-  const effLabels = ycEffectLabels()
-  if (effLabels.length) specs.Effects = effLabels
+  const effLabel = ycEffectLabel()
+  if (effLabel) specs.Effects = effLabel
   if (YC.comments.trim()) specs.Comments = YC.comments.trim()
   return specs
 }
@@ -10598,72 +10647,72 @@ function ycRenderForm() {
   const spinMissing = !YC.spinning
   el.innerHTML = `
     <div class="yc-sec">
-      <div class="yc-sec-label">Yarn Name<span class="yc-req">*</span></div>
+      <div class="yc-sec-label">${tx('yc.name')}<span class="yc-req">*</span></div>
       <div class="yc-fg" style="margin-bottom:0">
-        <input type="text" class="control-input" style="width:100%" placeholder="e.g. Sierra Core 30" value="${escAttr(YC.name)}" oninput="ycSetName(this.value)" />
-        ${YC.name.trim() ? '' : '<div class="yc-hint is-warn" style="margin-top:6px">Required field</div>'}
+        <input type="text" class="control-input" style="width:100%" placeholder="${escAttr(tx('yc.namePh'))}" value="${escAttr(YC.name)}" oninput="ycSetName(this.value)" />
+        ${YC.name.trim() ? '' : `<div class="yc-hint is-warn" style="margin-top:6px">${esc(tx('yc.required'))}</div>`}
       </div>
     </div>
 
     <div class="yc-sec">
-      <div class="yc-sec-label">Record Number</div>
-      <div class="yc-record-number${recordNumber ? '' : ' is-pending'}">${recordNumber ? esc(recordNumber) : 'Generated when saved'}</div>
-      <div class="yc-hint" style="margin-top:6px">${recordNumber ? 'Generated automatically · Read only' : 'The permanent record number is assigned on first save and never changes.'}</div>
+      <div class="yc-sec-label">${tx('yc.recordNumber')}</div>
+      <div class="yc-record-number${recordNumber ? '' : ' is-pending'}">${recordNumber ? esc(recordNumber) : esc(tx('yc.recordNumberPending'))}</div>
+      <div class="yc-hint" style="margin-top:6px">${recordNumber ? esc(tx('yc.recordNumberHint')) : esc(tx('yc.recordNumberPendingHint'))}</div>
     </div>
 
     <div class="yc-sec">
-      <div class="yc-sec-label">Yarn Count<span class="yc-req">*</span></div>
+      <div class="yc-sec-label">${tx('yc.count')}<span class="yc-req">*</span></div>
       <div class="yc-fg" style="margin-bottom:0">
-        ${ycComboHtml('yc-count', 'Search or type a count…')}
+        ${ycComboHtml('yc-count', tx('yc.countPh'))}
       </div>
     </div>
 
     <div class="yc-sec">
-      <div class="yc-sec-label">CONSTRUCTION</div>
+      <div class="yc-sec-label">${tx('yc.construction')}</div>
       <div class="yc-fg" style="margin-bottom:10px">
-        <div class="yc-sec-label" style="margin-bottom:6px">Preparation<span class="yc-req">*</span></div>
+        <div class="yc-sec-label" style="margin-bottom:6px">${tx('yc.preparation')}<span class="yc-req">*</span></div>
         <div class="yc-seg">${YARN_PREP.map(o => `<button type="button" class="yc-seg-btn ${YC.prep === o ? 'is-active' : ''}" onclick="ycSetPrep('${jsStr(o)}')" title="${o === 'Carded' ? 'CD' : o === 'Combed' ? 'CM' : ''}">${esc(o)}</button>`).join('')}</div>
-        ${YC.prep === 'Other' ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="Describe the preparation" value="${escAttr(YC.prepOther)}" oninput="ycSetPrepOther(this.value)" />` : ''}
-        ${prepMissing ? '<div class="yc-hint is-warn" style="margin-top:6px">Required before Save &amp; Print</div>' : ''}
+        ${YC.prep === 'Other' ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="${escAttr(tx('yc.preparationOther'))}" value="${escAttr(YC.prepOther)}" oninput="ycSetPrepOther(this.value)" />` : ''}
+        ${prepMissing ? `<div class="yc-hint is-warn" style="margin-top:6px">${esc(tx('yc.requiredBeforePrint'))}</div>` : ''}
       </div>
       <div class="yc-fg" style="margin-bottom:10px">
-        <div class="yc-sec-label" style="margin-bottom:6px">Spinning Technology<span class="yc-req">*</span></div>
+        <div class="yc-sec-label" style="margin-bottom:6px">${tx('yc.spinningTech')}<span class="yc-req">*</span></div>
         <div class="yc-seg">${YARN_SPINNING.map(o => `<button type="button" class="yc-seg-btn ${YC.spinning === o ? 'is-active' : ''}" onclick="ycSetSpinning('${jsStr(o)}')" title="${o === 'Ring Spun' ? 'RS' : o === 'Open End' ? 'OE' : ''}">${esc(o)}</button>`).join('')}</div>
-        ${YC.spinning === 'Other' ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="Describe the spinning technology" value="${escAttr(YC.spinningOther)}" oninput="ycSetSpinningOther(this.value)" />` : ''}
-        ${spinMissing ? '<div class="yc-hint is-warn" style="margin-top:6px">Required before Save &amp; Print</div>' : ''}
+        ${YC.spinning === 'Other' ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="${escAttr(tx('yc.spinningOther'))}" value="${escAttr(YC.spinningOther)}" oninput="ycSetSpinningOther(this.value)" />` : ''}
+        ${spinMissing ? `<div class="yc-hint is-warn" style="margin-top:6px">${esc(tx('yc.requiredBeforePrint'))}</div>` : ''}
       </div>
       <div class="yc-fg" style="margin-bottom:0">
-        <div class="yc-sec-label" style="margin-bottom:6px">Finish / Effect</div>
-        <div class="yc-chip-row">${YARN_EFFECTS.map(e => `<button type="button" class="yc-chip-btn ${YC.effects.has(e.key) ? 'is-active' : ''}" onclick="ycToggleEffect('${e.key}')">${esc(e.label)}${e.key === 'other' ? ' +' : ''}</button>`).join('')}</div>
-        ${YC.effects.has('other') ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="Describe the effect" value="${escAttr(YC.effectsOther)}" oninput="ycSetEffectOther(this.value)" />` : ''}
+        <div class="yc-sec-label" style="margin-bottom:6px">${tx('yc.finishEffect')}</div>
+        <div class="yc-chip-row">${YARN_EFFECTS.map(e => `<button type="button" class="yc-chip-btn ${YC.effect === e.key ? 'is-active' : ''}" onclick="ycSetEffect('${e.key}')">${esc(e.label)}${e.key === 'other' ? ' +' : ''}</button>`).join('')}</div>
+        ${YC.effect === 'other' ? `<input type="text" class="control-input yc-other-input" style="width:100%" placeholder="${escAttr(tx('yc.effectOther'))}" value="${escAttr(YC.effectOther)}" oninput="ycSetEffectOther(this.value)" />` : ''}
       </div>
-      <div class="yc-hint" style="margin-top:10px">Printed as one line — <strong>${esc(ycConstructionLine() || '—')}</strong></div>
+      <div class="yc-hint" style="margin-top:10px">${esc(tx('yc.printedAsOneLine'))} <strong>${esc(ycConstructionLine() || '—')}</strong></div>
     </div>
 
     <div class="yc-sec">
       <div class="yc-sec-label-row">
-        <div class="yc-sec-label">Yarn Content<span class="yc-req">*</span></div>
+        <div class="yc-sec-label">${tx('yc.content')}<span class="yc-req">*</span></div>
         ${ycContentTotalHtml()}
       </div>
       <div id="yc-fiber-rows">${YC.fibers.map((f, i) => ycFiberRowHtml(f, i)).join('')}</div>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="ycAddFiber()">+ Add fiber</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="ycAddFiber()">${esc(tx('yc.addFiber'))}</button>
     </div>
 
     <div class="yc-sec">
-      <div class="yc-sec-label">Comments</div>
+      <div class="yc-sec-label">${tx('yc.comments')}</div>
       <div class="yc-fg" style="margin-bottom:0">
-        <textarea class="control-input" style="width:100%;min-height:56px;resize:vertical" maxlength="${YC_COMMENTS_MAX}" placeholder="Optional note printed quietly at the bottom of the label…" oninput="ycSetComments(this.value)">${esc(YC.comments)}</textarea>
+        <textarea class="control-input" style="width:100%;min-height:56px;resize:vertical" maxlength="${YC_COMMENTS_MAX}" placeholder="${escAttr(tx('yc.commentsPh'))}" oninput="ycSetComments(this.value)">${esc(YC.comments)}</textarea>
         <div class="yc-char-count${commentsLen > YC_COMMENTS_MAX * 0.9 ? ' is-warn' : ''}" id="yc-comments-count">${commentsLen} / ${YC_COMMENTS_MAX}</div>
       </div>
     </div>
 
     <div class="yc-sec" id="yc-length-hint" style="display:none">
-      <div class="yc-hint is-warn">This label's content is longer than the DK-2205's 101.6mm maximum. Remove an effect or shorten a comment — Save still works, but printing will scale the label down to fit.</div>
+      <div class="yc-hint is-warn">${esc(tx('yc.lengthWarning'))}</div>
     </div>`
 }
 function ycFiberRowHtml(f, i) {
   return `<div class="yc-fiber-row">
-    ${ycComboHtml('yc-fiber-' + i, 'Fiber')}
+    ${ycComboHtml('yc-fiber-' + i, tx('yc.fiber'))}
     <input type="number" class="control-input yc-fiber-pct" min="0" max="100" value="${f.pct}" oninput="ycSetFiberPct(${i}, this.value)" />
     <span style="font-size:12px;color:var(--text-muted);flex-shrink:0">%</span>
     <button type="button" class="yc-fiber-remove" onclick="ycRemoveFiber(${i})" ${YC.fibers.length <= 1 ? 'disabled' : ''} title="Remove">
@@ -10687,7 +10736,7 @@ function ycValidate(forPrint) {
   if (ycFmt(ycContentTotal()) !== 100) errs.push(`Yarn Content must total exactly 100% — currently ${ycFmt(ycContentTotal())}%`)
   if (YC.spinning === 'Other' && !YC.spinningOther.trim()) errs.push('Enter the custom Spinning Technology')
   if (YC.prep === 'Other' && !YC.prepOther.trim()) errs.push('Enter the custom Yarn Preparation')
-  if (YC.effects.has('other') && !YC.effectsOther.trim()) errs.push('Enter the custom Effect')
+  if (YC.effect === 'other' && !YC.effectOther.trim()) errs.push('Enter the custom Effect')
   if (forPrint) {
     if (!YC.prep) errs.push('Preparation is required before Save & Print')
     if (!YC.spinning) errs.push('Spinning Technology is required before Save & Print')
@@ -10707,7 +10756,7 @@ function ycClearErrors() {
 }
 function ycSetSavingChrome(saving) {
   const chip = document.getElementById('yc-state-chip')
-  if (chip) chip.innerHTML = `<span class="lbl-chip-dot"></span>${saving ? 'Saving yarn…' : (YC?.editingId ? 'Saved' : 'Draft')}`
+  if (chip) chip.innerHTML = `<span class="lbl-chip-dot"></span>${saving ? tx('yc.saving') : (YC?.editingId ? tx('yc.saved') : tx('yc.draft'))}`
   const s1 = document.getElementById('yc-save-btn'), s2 = document.getElementById('yc-save-print-btn')
   if (s1) s1.disabled = saving
   if (s2) s2.disabled = saving
@@ -10743,7 +10792,7 @@ async function ycSave(thenPrint) {
     const { data: genId, error: idErr } = await sb.rpc('next_yarn_id')
     if (idErr || !genId) {
       YC.saving = false; ycSetSavingChrome(false)
-      ycShowErrors(['Could not generate a Record Number: ' + (idErr?.message || 'please try again')])
+      ycShowErrors([tx('yc.recordFailed', { msg: idErr?.message || tx('yc.tryAgain') })])
       return
     }
     payload.code = genId
@@ -10767,7 +10816,7 @@ async function ycSave(thenPrint) {
   ycSetSavingChrome(false)
 
   if (error) {
-    ycShowErrors(['Could not save: ' + (error.message || 'please try again')])
+    ycShowErrors([tx('yc.saveFailed', { msg: error.message || tx('yc.tryAgain') })])
     return
   }
 
