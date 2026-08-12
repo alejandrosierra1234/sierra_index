@@ -6229,7 +6229,7 @@ const I18N = {
     'yc.effectOther':'Describe the effect', 'yc.printedAsOneLine':'Printed as one line',
     'yc.content':'Yarn Content', 'yc.addFiber':'+ Add fiber', 'yc.fiber':'Fiber',
     'yc.comments':'Comments', 'yc.commentsPh':'Optional note printed quietly at the bottom of the label…',
-    'yc.lengthWarning':'This label’s content is longer than the DK-2205’s 101.6mm maximum. Remove an effect or shorten a comment — Save still works, but printing will scale the label down to fit.',
+    'yc.lengthWarning':'This label’s content is taller than the fixed 62×100mm stock. Remove an effect or shorten a comment — Save still works, but printing will scale the label down to fit.',
     'yc.printEyebrow':'Print', 'yc.printTitle':'Print Yarn Label', 'yc.quantity':'Quantity',
     'yc.labelSize':'Label size', 'yc.printerProfile':'Printer profile',
     'yc.cancel':'Cancel', 'yc.pdf':'PDF', 'yc.print':'Print', 'yc.maxLength':'Maximum length',
@@ -6309,7 +6309,7 @@ const I18N = {
     'yc.effectOther':'Describe el efecto', 'yc.printedAsOneLine':'Se imprime en una línea',
     'yc.content':'Composición', 'yc.addFiber':'+ Agregar fibra', 'yc.fiber':'Fibra',
     'yc.comments':'Comentarios', 'yc.commentsPh':'Nota opcional que se imprime discretamente al pie de la etiqueta…',
-    'yc.lengthWarning':'El contenido de esta etiqueta supera el máximo de 101.6mm del DK-2205. Quita un efecto o acorta un comentario — Guardar sigue funcionando, pero al imprimir se reducirá la etiqueta para que quepa.',
+    'yc.lengthWarning':'El contenido de esta etiqueta es más alto que la etiqueta fija de 62×100mm. Quita un efecto o acorta un comentario — Guardar sigue funcionando, pero al imprimir se reducirá la etiqueta para que quepa.',
     'yc.printEyebrow':'Imprimir', 'yc.printTitle':'Imprimir etiqueta de hilo', 'yc.quantity':'Cantidad',
     'yc.labelSize':'Tamaño de etiqueta', 'yc.printerProfile':'Perfil de impresora',
     'yc.cancel':'Cancelar', 'yc.pdf':'PDF', 'yc.print':'Imprimir', 'yc.maxLength':'Longitud máxima',
@@ -8915,15 +8915,23 @@ const LABEL_TEMPLATES = {
   'yarn-label': {
     name: 'Yarn Inventory Label',
     divisions: ['yarn'],
-    // Brother QL-800 + DK-2205: fixed 62mm width, cut-to-content length,
-    // hard-capped at 101.6mm (4in) — the media's physical maximum, not a
-    // "practical handling" preference like the fabric templates above.
+    // Brother QL-800 + DK-2205: the physical stock actually loaded is a
+    // fixed 62×100mm — not cut-to-content like the fabric templates.
+    // fixedHeightMm means the printed sheet is always exactly this
+    // length regardless of how tall the content measures; lbSheetMm()
+    // and ycOpenPrintStep() both honor it. Printing at any other length
+    // than what the loaded stock actually is made the printer fill the
+    // gap between the content and the physical label edge with black —
+    // the driver isn't scaling to content, it's marking unaccounted-for
+    // media. maxHeightMm stays as the point past which content gets
+    // auto-scaled down to still fit that fixed 100mm, not a target the
+    // sheet grows or shrinks to on its own.
     // Four distinct blocks, each its own section so each gets its own
     // divider: identity (Yarn Name + Record Number) → material (Yarn
     // Count + Construction) → content (Yarn Content) → notes (Comments)
     // → footer (barcode). A section with nothing to show still collapses
     // entirely — see renderLabel()'s per-section `if (!inner) return`.
-    widthMm: 62, maxHeightMm: 101.6, variant: 'lbl-yarn-tpl',
+    widthMm: 62, maxHeightMm: 101.6, fixedHeightMm: 100, variant: 'lbl-yarn-tpl',
     order: ['identity', 'material', 'content', 'notes', 'footer'],
     defaultHidden: [],
   },
@@ -8936,7 +8944,9 @@ function lbMeasuredMm(el) { return el ? Math.ceil(el.offsetHeight / LBL_PX_PER_M
 // what makes the preview and the printed sheet the same size (§16).
 // maxHeightMm is the practical handling limit, not a printer limit.
 function lbSheetMm(measuredMm) {
-  return Math.min(Math.max(measuredMm || 0, 40), lbTemplate().maxHeightMm)
+  const t = lbTemplate()
+  if (t.fixedHeightMm) return t.fixedHeightMm
+  return Math.min(Math.max(measuredMm || 0, 40), t.maxHeightMm)
 }
 const LABEL_DEFAULT_TEMPLATE = 'fabric-technical'
 
@@ -9033,6 +9043,10 @@ function lbValidate() {
   const t = lbTemplate()
 
   for (const [key, def] of Object.entries(LABEL_FIELDS)) {
+    // Yarn Name is optional on the yarn-label template — productName is
+    // still required:true for every other template (Fabric etc.), where
+    // it must stay required, so this is scoped to the one template.
+    if (key === 'productName' && LB.cfg.template === 'yarn-label') continue
     if (def.required && !LB.cfg.hidden.includes(key) && !lbValue(key).trim()) {
       issues.push({ sev: 'error', field: key, title: `${def.label} is empty`,
         desc: 'A required label field has no value from the product record and no override.' })
@@ -10536,11 +10550,16 @@ function ycUpdateDims(host, draft) {
   const dims = document.getElementById('yc-pv-dims')
   const printBtn = document.getElementById('yc-save-print-btn')
   if (!lbl || !dims) return
+  const fixedMm = LABEL_TEMPLATES['yarn-label'].fixedHeightMm
+  // The physical stock is a fixed 62×100mm, always — not cut to content.
+  // Force the on-screen card to that same height (padding out with
+  // blank space below short content) so the preview shows exactly what
+  // prints, never a shorter card that only matches the content.
+  lbl.style.minHeight = fixedMm + 'mm'
   const measuredMm = lbMeasuredMm(lbl)
-  const over = measuredMm > 101.6
-  const shown = Math.min(measuredMm, 101.6) || 0
+  const over = measuredMm > fixedMm
   const codeNote = draft.code ? '' : ' <span style="color:var(--text-muted)">· El código se generará al guardar</span>'
-  dims.innerHTML = `62 × ${Math.max(shown, 1)} mm  ·  Brother QL-800 · DK-2205${codeNote}${over ? ' <span style="color:var(--warning-text);font-weight:700">· over maximum length</span>' : ''}`
+  dims.innerHTML = `62 × ${fixedMm} mm  ·  Brother QL-800 · DK-2205${codeNote}${over ? ' <span style="color:var(--warning-text);font-weight:700">· content taller than the label — will be scaled to fit</span>' : ''}`
   const hint = document.getElementById('yc-length-hint')
   if (hint) hint.style.display = over ? 'block' : 'none'
 }
@@ -10675,10 +10694,9 @@ function ycRenderForm() {
   const spinMissing = !YC.spinning
   el.innerHTML = `
     <div class="yc-sec">
-      <div class="yc-sec-label">${tx('yc.name')}<span class="yc-req">*</span></div>
+      <div class="yc-sec-label">${tx('yc.name')}</div>
       <div class="yc-fg" style="margin-bottom:0">
         <input type="text" class="control-input" style="width:100%" placeholder="${escAttr(tx('yc.namePh'))}" value="${escAttr(YC.name)}" oninput="ycSetName(this.value)" />
-        ${YC.name.trim() ? '' : `<div class="yc-hint is-warn" style="margin-top:6px">${esc(tx('yc.required'))}</div>`}
       </div>
     </div>
 
@@ -10756,7 +10774,6 @@ function ycFiberRowHtml(f, i) {
 // a Construction block with a missing process step.
 function ycValidate(forPrint) {
   const errs = []
-  if (!YC.name.trim()) errs.push('Yarn Name is required')
   if (!ycCountValue()) errs.push('Yarn Count is required')
   const withPct = YC.fibers.filter(f => (Number(f.pct) || 0) > 0)
   if (!withPct.length) errs.push('Add at least one fiber to Yarn Content')
@@ -10911,9 +10928,11 @@ async function ycOpenPrintStep(p) {
   // Creator is opened directly (the normal case). That threw here,
   // uncaught, before the print modal's own .open class was ever added
   // — Save & Print looked like it silently did nothing after saving.
-  const sheetMm = Math.min(Math.max(lbMeasuredMm(tmp.querySelector('.lbl')) || 0, 40), LABEL_TEMPLATES['yarn-label'].maxHeightMm)
+  const yt = LABEL_TEMPLATES['yarn-label']
+  const measuredMm = lbMeasuredMm(tmp.querySelector('.lbl'))
+  const sheetMm = yt.fixedHeightMm || Math.min(Math.max(measuredMm || 0, 40), yt.maxHeightMm)
   document.body.removeChild(tmp)
-  document.getElementById('yc-print-size').textContent = `62 × ${sheetMm} mm${sheetMm >= 101.6 ? ' · ' + tx('yc.maxLength') : ''}`
+  document.getElementById('yc-print-size').textContent = `62 × ${sheetMm} mm${measuredMm > sheetMm ? ' · ' + tx('yc.maxLength') : ''}`
 
   document.getElementById('m-yarn-print').classList.add('open')
 }
