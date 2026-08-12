@@ -3046,9 +3046,15 @@
       letter-spacing: 0.02em; margin-top: 1.1mm; line-height: 1.2;
     }
     /* Record ID under the barcode — never wraps (§21, §39). Same slot
-       and weight as the Fabric label's .lbl-bc-id, no separate face. */
-    .lbl.lbl-yarn .lbl-bc-id { white-space: nowrap; }
-    .lbl.lbl-yarn .lbl-bc-footer { justify-content: center; }
+       and weight as the Fabric label's .lbl-bc-id, no separate face.
+       Scoped to .lbl-yarn-tpl, NOT .lbl-yarn — that name is already
+       taken by the Fabric label's own Yarn 01/02/03 key-value row
+       (§9933) and matches on this same root div too if reused, which
+       silently overrides .lbl's flex-column stretch with baseline
+       alignment and collapses empty children (the barcode placeholder)
+       to 0 width. Keep the two names distinct. */
+    .lbl.lbl-yarn-tpl .lbl-bc-id { white-space: nowrap; }
+    .lbl.lbl-yarn-tpl .lbl-bc-footer { justify-content: center; }
     /* The field label is metadata and must visually disappear before
        the value it names (§12) — identical treatment to .lbl-kv-k /
        .lbl-spec-k / .lbl-meta-k: KEY tier, 1.8mm, uppercase, muted. */
@@ -3090,10 +3096,10 @@
     }
     /* Progressive degradation (§11): tighter vertical rhythm only —
        typography size and the barcode are never touched here. */
-    .lbl.lbl-yarn.is-tight .lbl-hdr { margin-bottom: 1.4mm; }
-    .lbl.lbl-yarn.is-tight .lbl-block { margin-top: 1.5mm; padding-top: 1.5mm; }
-    .lbl.lbl-yarn.is-tight .lbl-yfield + .lbl-yfield { margin-top: 1mm; }
-    .lbl.lbl-yarn.is-tight .lbl-rule { margin: 1.8mm 0 1.4mm; }
+    .lbl.lbl-yarn-tpl.is-tight .lbl-hdr { margin-bottom: 1.4mm; }
+    .lbl.lbl-yarn-tpl.is-tight .lbl-block { margin-top: 1.5mm; padding-top: 1.5mm; }
+    .lbl.lbl-yarn-tpl.is-tight .lbl-yfield + .lbl-yfield { margin-top: 1mm; }
+    .lbl.lbl-yarn-tpl.is-tight .lbl-rule { margin: 1.8mm 0 1.4mm; }
 
     /* ══════════════════════════════════════════════════════════════════
        YARN LABEL CREATOR — visual data entry for Yarn Inventory. Reuses
@@ -8902,7 +8908,7 @@ const LABEL_TEMPLATES = {
     // Count + Construction) → content (Yarn Content) → notes (Comments)
     // → footer (barcode). A section with nothing to show still collapses
     // entirely — see renderLabel()'s per-section `if (!inner) return`.
-    widthMm: 62, maxHeightMm: 101.6, variant: 'lbl-yarn',
+    widthMm: 62, maxHeightMm: 101.6, variant: 'lbl-yarn-tpl',
     order: ['identity', 'material', 'content', 'notes', 'footer'],
     defaultHidden: [],
   },
