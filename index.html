@@ -5651,6 +5651,7 @@
       <button class="btn-icon" onclick="closeModal('m-yarn-print')">✕</button>
     </div>
     <div class="modal-body">
+      <div class="form-errors" id="yc-print-errors" style="display:none;margin-bottom:1.1rem"></div>
       <div id="yc-print-summary" style="margin-bottom:1.1rem"></div>
       <div class="fg">
         <label id="yc-qty-label">Quantity</label>
@@ -6233,6 +6234,8 @@ const I18N = {
     'yc.labelSize':'Label size', 'yc.printerProfile':'Printer profile',
     'yc.cancel':'Cancel', 'yc.pdf':'PDF', 'yc.print':'Print', 'yc.maxLength':'Maximum length',
     'yc.pdfHint':'In the print dialog, choose "Save as PDF" as the destination',
+    'yc.printBlocked':'This label has an error that must be fixed before printing',
+    'yc.printFailed':'Could not print: {msg}',
     'yc.discardConfirm':'Discard unsaved changes to this yarn?',
     'yc.saveFailed':'Could not save: {msg}', 'yc.recordFailed':'Could not generate a Record Number: {msg}',
     'yc.tryAgain':'please try again',
@@ -6311,6 +6314,8 @@ const I18N = {
     'yc.labelSize':'Tamaño de etiqueta', 'yc.printerProfile':'Perfil de impresora',
     'yc.cancel':'Cancelar', 'yc.pdf':'PDF', 'yc.print':'Imprimir', 'yc.maxLength':'Longitud máxima',
     'yc.pdfHint':'En el diálogo de impresión, elige "Guardar como PDF" como destino',
+    'yc.printBlocked':'Esta etiqueta tiene un error que debe corregirse antes de imprimir',
+    'yc.printFailed':'No se pudo imprimir: {msg}',
     'yc.discardConfirm':'¿Descartar los cambios sin guardar de este hilo?',
     'yc.saveFailed':'No se pudo guardar: {msg}', 'yc.recordFailed':'No se pudo generar el número de registro: {msg}',
     'yc.tryAgain':'inténtalo de nuevo',
@@ -10124,13 +10129,19 @@ async function lbBuildPrintAssets() {
   return { qrSrc, bcSvgHtml }
 }
 
+// Returns true if a print document was actually produced, false if
+// blocked by validation — callers MUST check this. Silently returning
+// on a blocking issue previously let a caller (the Yarn print step)
+// close its modal and report nothing wrong, so a real validation error
+// looked exactly like nothing happening at all (§ Yarn print silent
+// failure fix).
 async function printLabel() {
-  if (!LB) return
+  if (!LB) return false
   lbValidate()
   if (lbBlocking()) {
     LB.tab = 'print'; lbRenderEditor()
     toast('This label has errors that must be fixed before printing', 4000)
-    return
+    return false
   }
   const t = lbTemplate()
   const copiesEl = document.getElementById('lbl-copies')
@@ -10177,6 +10188,7 @@ async function printLabel() {
 
   window.print()
   setTimeout(() => { root.innerHTML = ''; pageStyle.textContent = '' }, 1200)
+  return true
 }
 
 /* PDF uses the same print document — the browser's "Save as PDF"
@@ -10765,6 +10777,20 @@ function ycClearErrors() {
   const box = document.getElementById('yc-errors')
   if (box) { box.style.display = 'none'; box.innerHTML = '' }
 }
+// Same pattern as ycShowErrors(), but for the print-quantity modal
+// (#m-yarn-print), which is a separate overlay from the main editor
+// drawer — #yc-errors lives inside the drawer, already closed by the
+// time this modal is open, so writing into it would set a message
+// nobody can see (§ Yarn print silent failure fix).
+function ycShowPrintError(msg) {
+  const box = document.getElementById('yc-print-errors')
+  if (box) {
+    box.style.display = 'block'
+    box.innerHTML = `<ul><li>${esc(msg)}</li></ul>`
+    box.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }
+  toast(msg, 6000)
+}
 function ycSetSavingChrome(saving) {
   const chip = document.getElementById('yc-state-chip')
   if (chip) chip.innerHTML = `<span class="lbl-chip-dot"></span>${saving ? tx('yc.saving') : (YC?.editingId ? tx('yc.saved') : tx('yc.draft'))}`
@@ -10858,6 +10884,8 @@ let _ycPrintTarget = null
 let _ycPrintCfg = null
 async function ycOpenPrintStep(p) {
   _ycPrintTarget = p
+  const errBox = document.getElementById('yc-print-errors')
+  if (errBox) { errBox.style.display = 'none'; errBox.innerHTML = '' }
   const s = p.specs || {}
   document.getElementById('yc-print-summary').innerHTML =
     `<div style="font-size:0.72rem;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.2rem">${esc(p.code || '')}</div>
@@ -10891,25 +10919,46 @@ async function ycConfirmPrint(asPdf) {
   const pdfBtn = document.getElementById('yc-print-pdf-btn')
   if (btn) btn.disabled = true
   if (pdfBtn) pdfBtn.disabled = true
-  // Reuses printLabel() verbatim: same @page sizing math, same barcode
-  // asset build, same audit log — only LB.p/LB.cfg and the copies input
-  // differ from the fabric Label Builder's own call site.
-  LB = { p: _ycPrintTarget, cfg: _ycPrintCfg || ycCfg(), saved: null, tab: 'print', open: {}, selected: null, zoom: 'fit', issues: [] }
-  const copiesEl = document.getElementById('lbl-copies')
-  if (copiesEl) copiesEl.value = String(qty)
-  if (asPdf) {
-    // window.print() blocks the main thread until the native dialog
-    // closes — firing it in the same tick as the toast means the toast
-    // never gets a paint frame. Same delay printLabel()'s other caller,
-    // downloadPDF(), already uses for this exact reason.
-    toast(tx('yc.pdfHint'), 4000)
-    await new Promise(r => setTimeout(r, 400))
+  // try/finally: buttons must never stay stuck disabled — a thrown
+  // error here used to leave "Print"/"PDF" permanently unresponsive
+  // with no visible message, which looks exactly like nothing
+  // happening at all when the user clicks again.
+  try {
+    // Reuses printLabel() verbatim: same @page sizing math, same barcode
+    // asset build, same audit log — only LB.p/LB.cfg and the copies input
+    // differ from the fabric Label Builder's own call site.
+    LB = { p: _ycPrintTarget, cfg: _ycPrintCfg || ycCfg(), saved: null, tab: 'print', open: {}, selected: null, zoom: 'fit', issues: [] }
+    const copiesEl = document.getElementById('lbl-copies')
+    if (copiesEl) copiesEl.value = String(qty)
+    if (asPdf) {
+      // window.print() blocks the main thread until the native dialog
+      // closes — firing it in the same tick as the toast means the toast
+      // never gets a paint frame. Same delay printLabel()'s other caller,
+      // downloadPDF(), already uses for this exact reason.
+      toast(tx('yc.pdfHint'), 4000)
+      await new Promise(r => setTimeout(r, 400))
+    }
+    const printed = await printLabel()
+    if (!printed) {
+      // printLabel() found a blocking validation issue (e.g. no barcode
+      // data) and silently declined to print. Surface exactly why
+      // instead of just closing the modal as if it worked — that
+      // silence is what "guarda pero no imprime" looks like from the
+      // outside.
+      const issue = (LB.issues || []).find(i => i.sev === 'error')
+      ycShowPrintError(issue ? `${issue.title}${issue.desc ? ' — ' + issue.desc : ''}` : tx('yc.printBlocked'))
+      LB = null
+      return
+    }
+    LB = null
+    closeModal('m-yarn-print')
+  } catch (e) {
+    ycShowPrintError(tx('yc.printFailed', { msg: e?.message || tx('yc.tryAgain') }))
+    LB = null
+  } finally {
+    if (btn) btn.disabled = false
+    if (pdfBtn) pdfBtn.disabled = false
   }
-  await printLabel()
-  LB = null
-  if (btn) btn.disabled = false
-  if (pdfBtn) pdfBtn.disabled = false
-  closeModal('m-yarn-print')
 }
 
 /* ── Entry points (§2, §23, §24, §25) — Yarn products route through the
