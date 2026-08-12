@@ -3032,63 +3032,67 @@
 
     /* ── YARN LABEL — identity (Yarn Name + Record Number) / material
        (Yarn Count + Construction) / content (Yarn Content) / notes
-       (Comments), see LABEL_TEMPLATES['yarn-label']. Runs on the app's
-       own Replica family instead of the fabric label's Arial — this
-       template only; every other template is untouched. Yarn Name
-       reuses .lbl-title verbatim, the exact class the Fabric label's
-       "BUBBLE JERSEY" title uses — same design system, not a new one. */
-    .lbl.lbl-yarn { font-family: "Replica", Arial, Helvetica, sans-serif; }
+       (Comments), see LABEL_TEMPLATES['yarn-label']. No typeface or size
+       of its own: it inherits the Fabric label's Arial/Helvetica and
+       snaps every value onto the same four-step ramp (TITLE 6.2 / VALUE
+       2.9 / META 2.4 / KEY 1.8mm) — one label system, one sibling, not a
+       parallel one. Yarn Name reuses .lbl-title verbatim, the exact
+       class the Fabric label's "BUBBLE JERSEY" title uses. */
     /* Record Number — the permanent system identity, secondary to the
-       Yarn Name title directly above it. Mono, like every other
-       identifier on the label (barcode ID, field labels). */
+       Yarn Name title directly above it. Same slot, same size and
+       rhythm as .lbl-origin ("Honduras") on the Fabric label. */
     .lbl-record {
-      font-family: 'Replica Mono', 'Courier New', monospace;
-      font-size: 2.6mm; font-weight: 600; color: var(--ink-2);
-      letter-spacing: 0.05em; margin-top: 1mm; line-height: 1.2;
+      font-size: 2.4mm; font-weight: 600; color: var(--ink-2);
+      letter-spacing: 0.02em; margin-top: 1.1mm; line-height: 1.2;
     }
-    /* Record ID under the barcode — mono, never wraps (§21, §39). */
-    .lbl.lbl-yarn .lbl-bc-id {
-      font-family: 'Replica Mono', 'Courier New', monospace;
-      font-weight: 600; letter-spacing: 0.12em; white-space: nowrap;
-    }
+    /* Record ID under the barcode — never wraps (§21, §39). Same slot
+       and weight as the Fabric label's .lbl-bc-id, no separate face. */
+    .lbl.lbl-yarn .lbl-bc-id { white-space: nowrap; }
     .lbl.lbl-yarn .lbl-bc-footer { justify-content: center; }
     /* The field label is metadata and must visually disappear before
-       the value it names (§12): mono, uppercase, small, muted. */
+       the value it names (§12) — identical treatment to .lbl-kv-k /
+       .lbl-spec-k / .lbl-meta-k: KEY tier, 1.8mm, uppercase, muted. */
     .lbl-ykey {
-      font-family: 'Replica Mono', 'Courier New', monospace;
-      font-size: 1.9mm; font-weight: 600; color: var(--ink-3);
-      text-transform: uppercase; letter-spacing: 0.09em;
-      line-height: 1; margin-bottom: 0.9mm;
+      font-size: 1.8mm; font-weight: 700; color: var(--ink-3);
+      text-transform: uppercase; letter-spacing: 0.07em;
+      line-height: 1.35; margin-bottom: 0.7mm;
     }
-    .lbl-yfield + .lbl-yfield { margin-top: 2.6mm; }
-    /* Yarn Count — the primary technical spec, strong but subordinate
-       to the Yarn Name title above it (§ identity hierarchy correction). */
+    .lbl-yfield + .lbl-yfield { margin-top: 1.4mm; }
+    /* Yarn Count — a primary spec value, same tier and weight as the
+       Fabric label's GSM/DIA/Gauge figures (.lbl-spec-v): VALUE 2.9mm,
+       800. Strong because it's bold at that size, not because it runs a
+       size of its own — it stays clearly subordinate to the 6.2mm title. */
     .lbl-count {
-      font-size: 5mm; font-weight: 700; color: var(--ink);
-      line-height: 1; letter-spacing: -0.01em; white-space: nowrap;
+      font-size: 2.9mm; font-weight: 800; color: var(--ink);
+      line-height: 1.15; white-space: nowrap;
     }
-    /* Construction — one technical descriptor, one line (§7, §39). */
+    /* Construction — one technical descriptor, same tier as Composition
+       (.lbl-kv-v): VALUE 2.9mm, 700. Wraps rather than truncates — a
+       SIERRA label never hides technical data behind an ellipsis (§7, §39). */
     .lbl-yconstr {
-      font-size: 3.3mm; font-weight: 700; color: var(--ink);
-      line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    /* Yarn Content — one fiber per line, never combined (§9). */
-    .lbl-ycomp-lines { display: flex; flex-direction: column; gap: 0.7mm; }
-    .lbl-ycomp-line {
-      font-size: 2.8mm; font-weight: 500; color: var(--ink);
+      font-size: 2.9mm; font-weight: 700; color: var(--ink);
       line-height: 1.2; overflow-wrap: break-word;
     }
-    /* Comments — secondary, quiet, bounded to a few lines (§11, §39). */
+    /* Yarn Content — one fiber per line, never combined (§9). Same tier
+       as the Fabric label's YARN 01/02/03 values (.lbl-yarn-v): both are
+       long technical strings that wrap, never truncate. */
+    .lbl-ycomp-lines { display: flex; flex-direction: column; gap: 1.3mm; }
+    .lbl-ycomp-line {
+      font-size: 2.6mm; font-weight: 600; color: var(--ink-2);
+      line-height: 1.25; overflow-wrap: break-word;
+    }
+    /* Comments — secondary, quiet, bounded to a few lines (§11, §39).
+       META tier, 2.4mm, same size as operational metadata values. */
     .lbl-ycomment {
-      font-size: 2.2mm; font-weight: 400; color: var(--ink-3);
-      line-height: 1.32; overflow-wrap: break-word;
+      font-size: 2.4mm; font-weight: 400; color: var(--ink-3);
+      line-height: 1.3; overflow-wrap: break-word;
       display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
     }
     /* Progressive degradation (§11): tighter vertical rhythm only —
        typography size and the barcode are never touched here. */
     .lbl.lbl-yarn.is-tight .lbl-hdr { margin-bottom: 1.4mm; }
     .lbl.lbl-yarn.is-tight .lbl-block { margin-top: 1.5mm; padding-top: 1.5mm; }
-    .lbl.lbl-yarn.is-tight .lbl-yfield + .lbl-yfield { margin-top: 1.4mm; }
+    .lbl.lbl-yarn.is-tight .lbl-yfield + .lbl-yfield { margin-top: 1mm; }
     .lbl.lbl-yarn.is-tight .lbl-rule { margin: 1.8mm 0 1.4mm; }
 
     /* ══════════════════════════════════════════════════════════════════
