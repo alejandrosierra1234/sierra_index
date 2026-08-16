@@ -1845,3 +1845,61 @@ families but the interactive anatomy of §15 StatusSelect.
   assumed done, since the fix pattern (swap the CSS class, verify no
   layout regression) is now established here for whoever picks it up
   next.
+
+## 41.10 App-wide icon migration (Tabler), scope and remainder
+
+`SI_ICON` started as the Status System's icon set but is now the single
+icon source for the whole app — every icon-bearing chrome element
+(sidebar nav, the account/notification/theme controls, the global
+search trigger, close/collapse buttons, the Catalog row-actions
+overflow menu, invite/"add person" affordances, view-toggle and
+document/print/archive actions) renders through it. Before this pass
+every one of these was a bespoke hand-drawn SVG — no two shared the
+same stroke width, viewBox, or corner style, and several were
+byte-for-byte duplicated across 4–6 call sites. `index.html` was
+audited SVG-by-SVG (199 inline `<svg>` blocks total) and every icon
+was classified into one of three buckets:
+
+1. **Migrated to Tabler** (71 of 193 non-decorative `<svg>` blocks,
+   covering every reused shape and all always-visible app chrome) —
+   sidebar navigation (Dashboard/Website/Search/Notifications/
+   Appearance/Account), the `SB_ICON` top-bar account-menu registry,
+   close/collapse/plus/chevron/dots/check/clock controls used
+   throughout, and the Catalog row `•••` menu (View record/Print
+   label/Archive). `SI_ICON` grew from the original 21 status icons to
+   71 general-purpose ones (search, x, plus, dots, chevrons, home,
+   globe, calendar, filter, sort, columns, download, upload, share,
+   link, briefcase, settings, table, file, lock, key, box, trash, copy,
+   scan, barcode, qrcode, user/users/user-plus, and more) — add new
+   icons there, not as one-off inline SVGs.
+2. **Deliberately excluded, not a gap** — the SIERRA wordmark/mark (5
+   inline copies across the loading screen, auth screen, top bar and
+   printed badge — brand identity, never redrawn as a generic icon),
+   the printed badge's SVG wordmark/barcode/QR canvases (functional
+   output, not UI chrome — see §33's editor/document-are-different-
+   systems rule), and the sidebar's collapse/expand dual-path toggle
+   (`.edge-collapse`/`.edge-expand`, a single SVG with two paths shown/
+   hidden by CSS depending on collapsed state — not a simple 1-icon
+   swap, left as-is).
+3. **Not yet migrated** — roughly 122 remaining `<svg>` instances (86
+   distinct shapes) inside feature-specific screens: the Samples/Badge
+   module (front/back badge preview, readiness checklist icons), the
+   Insights and relationship-diagram views, the Label/Document editor's
+   codes tab, Catalog's Table/Cards/view-mode icon trio, avatar/
+   completeness-ring decorations, and assorted single-use icons inside
+   specific modals and drawers. These were not touched in this pass —
+   guessing an icon's meaning from its path shape alone (without a
+   live render to verify against, which this environment's network
+   policy blocks) risks shipping a wrong icon silently, so they were
+   left as their original hand-drawn SVGs rather than force-migrated.
+   Continue the same audit method (`grep -c "<svg\b"`, group by path
+   shape, confirm meaning from the surrounding label/`onclick`/context,
+   map to the matching `icons/outline/<name>.svg` in `@tabler/icons`)
+   the next time one of those screens is touched.
+
+Every migrated icon's path data is copied verbatim from
+`@tabler/icons` (`npm install @tabler/icons`, outline set) — never
+redrawn by hand — so a future contributor extending `SI_ICON` should
+do the same: find the closest-matching icon in the Tabler outline set,
+copy its `<path>` elements (dropping the inert `M0 0h24v24H0z` bounding
+placeholder), and add it as a new `SI_ICON` key.
