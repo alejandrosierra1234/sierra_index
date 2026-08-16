@@ -1742,6 +1742,16 @@ labels, not bubbles.
   `esc()`/`escAttr()`), rendered via `siIcon(name, size)` — inline SVG,
   `stroke="currentColor"`, 24×24 viewBox. Add new icons there, never
   inline a bespoke `<svg>` for a status.
+- Icon source: [Tabler Icons](https://tabler.io/icons) outline set, MIT
+  license — paths are copied verbatim (not redrawn) from the matching
+  `icons/outline/<name>.svg` in the `@tabler/icons` package. Chosen over
+  Google Material Symbols or Apple SF Symbols because its 2px-stroke,
+  round-cap, 24×24 language already matches the hand-drawn icons used
+  elsewhere in the app (nav, division marks) — one icon system app-wide,
+  per the icon rule above. Apple's SF Symbols license does not permit
+  embedding outside Apple-platform apps, so it was not an option. To add
+  an icon: find it in the Tabler outline set, copy its `<path>` elements
+  (drop the inert `M0 0h24v24H0z` bounding placeholder) into `SI_ICON`.
 
 Current icon mapping:
 
