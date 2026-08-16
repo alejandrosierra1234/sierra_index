@@ -1039,6 +1039,21 @@
        and active-state behavior for free) plus a chevron + indent per
        depth. See renderSidebarTree() and SIERRA_DESIGN_SYSTEM.md §52. */
     .nav-fav-empty { padding:0.3rem 0.55rem 0.6rem; font-size:0.72rem; color:var(--text-3); }
+    /* Favorite toggle — a small utility star, trailing in a favoritable
+       leaf row. Hidden until hover/focus/favorited so it never competes
+       with the icon+label identity of the row (§20/§22: favorites are
+       navigation shortcuts, not a second entity system). Filled+teal
+       when favorited, matching the existing "you are here" accent
+       convention used by .nav-item.active's icon color. */
+    .nav-fav-btn { margin-left:auto; flex-shrink:0; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:6px; color:var(--text-3); opacity:0; transition:opacity 0.12s, color 0.12s, background 0.12s; }
+    .nav-fav-btn svg { width:13px; height:13px; }
+    .nav-item:hover .nav-fav-btn, .nav-fav-btn.is-fav { opacity:1; }
+    .nav-fav-btn:hover { background:var(--surface2); color:var(--text); }
+    .nav-fav-btn.is-fav { color:var(--accent); }
+    .nav-fav-btn.is-fav svg path { fill:var(--accent); }
+    .sidebar.collapsed .nav-fav-btn { display:none; }
+    .nav-fav-list { display:flex; flex-direction:column; gap:1px; }
+    .nav-fav-list .nav-item.nav-tree-leaf.lvl2 { padding-left:0.55rem; }
     .nav-tree-chevron { display:inline-flex; flex-shrink:0; color:var(--text-3); transition:transform var(--dur-fast) var(--ease-out); }
     .nav-tree-chevron.expanded { transform:rotate(90deg); }
     .nav-tree-children { display:flex; flex-direction:column; gap:1px; }
@@ -5369,7 +5384,7 @@
            dropdown that has to be reopened after every navigation. See
            renderSidebarTree() and SIERRA_DESIGN_SYSTEM.md §52. -->
       <span class="s-label" style="margin-top:0.6rem">Favoritos</span>
-      <div class="nav-fav-empty" id="nav-fav-empty">Sin favoritos aún</div>
+      <div class="nav-fav-list" id="nav-fav-list"><div class="nav-fav-empty">Sin favoritos aún</div></div>
 
       <span class="s-label" id="modules-label" style="margin-top:0.6rem">Módulos</span>
       <div id="nav-tree"></div>
@@ -13001,12 +13016,36 @@ const NAV_ICON_INSIGHTS = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 16V9
 // to the hardcoded Spanish default after a language switch.
 const NAV_LEAF_TX = { requests: 'nav.sampleCenter', collections: 'nav.collection', insights: 'nav.insights', team: 'nav.team', logs: 'nav.accessLogs', styleguide: 'nav.styleGuide' }
 
+// Favorites — a real feature (spec §22), not a placeholder empty state.
+// A favorite is a navigation shortcut: small entity icon + screen name,
+// nothing louder than a Module row. Persisted by leaf key so it survives
+// reload; re-derived against the current tree on every render so a
+// favorite the user no longer has access to silently drops out instead
+// of dangling.
+const NAV_FAV_STORE_KEY = 'sierra_nav_favorites'
+let _navFavorites = new Set(JSON.parse(localStorage.getItem(NAV_FAV_STORE_KEY) || '[]'))
+let _navAllLeaves = []
+const NAV_STAR_SVG = '<svg viewBox="0 0 20 20" fill="none"><path d="M10 2.8l2.24 4.54 5.01.73-3.63 3.53.86 4.99L10 14.2l-4.48 2.39.86-4.99-3.63-3.53 5.01-.73L10 2.8z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>'
+function navToggleFavorite(ev, key) {
+  ev.stopPropagation()
+  ev.preventDefault()
+  if (_navFavorites.has(key)) _navFavorites.delete(key); else _navFavorites.add(key)
+  localStorage.setItem(NAV_FAV_STORE_KEY, JSON.stringify([..._navFavorites]))
+  renderSidebarTree()
+}
+
 function navLeafHtml(key, id, label, iconSvg, depthClass, fnExpr, extraAttrs) {
   const lbl = NAV_LEAF_TX[id] ? tx(NAV_LEAF_TX[id]) : label
   const active = _navLeaf === key
+  const favoritable = extraAttrs?.favoritable !== false
+  if (favoritable && extraAttrs?.collect !== false) _navAllLeaves.push({ key, id, label: lbl, iconSvg, fnExpr })
+  const isFav = favoritable && _navFavorites.has(key)
+  const starBtn = favoritable
+    ? `<span class="nav-fav-btn${isFav ? ' is-fav' : ''}" role="button" tabindex="0" aria-label="${isFav ? 'Quitar de favoritos' : 'Añadir a favoritos'}" title="${isFav ? 'Quitar de favoritos' : 'Añadir a favoritos'}" onclick="navToggleFavorite(event, '${key}')">${NAV_STAR_SVG}</span>`
+    : ''
   return `<button class="nav-item nav-tree-leaf ${depthClass}${active ? ' active' : ''}" id="${extraAttrs?.elId || ''}" data-tip="${escAttr(lbl)}" onclick="navGo('${key}', ${fnExpr})">
     <span class="n-icon"${extraAttrs?.iconStyle ? ` style="${extraAttrs.iconStyle}"` : ''}>${iconSvg}${extraAttrs?.badge || ''}</span>
-    <span class="nav-label">${esc(lbl)}</span>${extraAttrs?.trailing || ''}
+    <span class="nav-label">${esc(lbl)}</span>${extraAttrs?.trailing || ''}${starBtn}
   </button>`
 }
 
@@ -13068,9 +13107,19 @@ function renderSidebarTree() {
   document.getElementById('nav-dash')?.classList.toggle('active', _navLeaf === 'dashboard')
   const mobCart = document.getElementById('mob-cart-btn')
   if (mobCart) mobCart.style.display = can('read', 'customer_service') ? 'flex' : 'none'
+  _navAllLeaves = []
   const mods = accessibleModules().sort((a, b) => NAV_MODULE_ORDER.indexOf(a[0]) - NAV_MODULE_ORDER.indexOf(b[0]))
   root.innerHTML = mods.map(([key, m]) => navModuleRowHtml(key, m)).join('')
+  renderNavFavorites()
   updateCartFab()
+}
+function renderNavFavorites() {
+  const list = document.getElementById('nav-fav-list')
+  if (!list) return
+  const items = _navAllLeaves.filter(l => _navFavorites.has(l.key))
+  list.innerHTML = items.length
+    ? items.map(l => navLeafHtml(l.key, l.id, l.label, l.iconSvg, 'lvl2', l.fnExpr, { collect: false })).join('')
+    : '<div class="nav-fav-empty">Sin favoritos aún</div>'
 }
 // Aliases — every existing call site (setDiv, showDispatchQueue,
 // showWarehouseInventory, enterApp, setDefaultModule, ...) keeps working
@@ -16026,11 +16075,11 @@ async function showAccessLogs() {
   document.getElementById('tb-section').textContent = 'Access Logs'
   document.getElementById('product-controls').style.display = 'none'
   document.getElementById('sec-title').textContent = 'Access Logs'
-  document.getElementById('sec-sub').textContent = 'Login history — visible only to admin'
+  document.getElementById('sec-sub').textContent = 'Historial de inicios de sesión — visible solo para administradores'
 
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
-  pg.innerHTML = '<div class="empty"><div class="empty-icon">⌛</div><p>Loading…</p></div>'
+  pg.innerHTML = '<div class="empty"><p>Cargando…</p></div>'
 
   const { data, error } = await sb.from('login_logs')
     .select('*')
@@ -16040,19 +16089,14 @@ async function showAccessLogs() {
   if (error) {
     const needsSetup = error.code === 'PGRST200' || error.message?.includes('schema cache') || error.message?.includes('relation') || error.message?.includes('does not exist')
     pg.innerHTML = needsSetup
-      ? `<div class="empty" style="padding:3rem 1rem">
-          <div style="font-size:2rem;margin-bottom:1rem">⚙️</div>
-          <p style="font-weight:600;margin-bottom:0.5rem">Table not set up yet</p>
-          <p style="font-size:0.78rem;line-height:1.6;max-width:380px;margin:0 auto">
-            Run <code style="background:var(--surface2);padding:0.1rem 0.4rem;border-radius:4px;font-size:0.75rem">update8.sql</code>
-            in your <strong>Supabase SQL Editor</strong> to create the access logs table.
-            Once created, every login will be tracked automatically.
-          </p>
-        </div>`
-      : `<div class="empty"><p>Error: ${error.message}</p></div>`
+      ? emptyStateHtml({
+          title: 'Tabla no configurada todavía',
+          desc: 'Ejecuta update8.sql en el SQL Editor de Supabase para crear la tabla de access logs. Una vez creada, cada inicio de sesión se registrará automáticamente.',
+        })
+      : emptyStateHtml({ title: 'No se pudo cargar', desc: error.message })
     return
   }
-  if (!data.length) { pg.innerHTML = '<div class="empty"><p>No access records yet.</p></div>'; return }
+  if (!data.length) { pg.innerHTML = emptyStateHtml({ title: 'Sin registros de acceso', desc: 'Los inicios de sesión aparecerán aquí en cuanto ocurran.' }); return }
 
   // Group by user for stats
   const byUser = {}
@@ -16065,57 +16109,56 @@ async function showAccessLogs() {
     if (ua.includes('Mobile') || ua.includes('Android') || ua.includes('iPhone')) {
       if (ua.includes('iPhone'))  return '📱 iPhone'
       if (ua.includes('Android')) return '📱 Android'
-      return '📱 Mobile'
+      return '📱 Móvil'
     }
     if (ua.includes('Macintosh')) return '💻 Mac'
     if (ua.includes('Windows'))   return '🖥 Windows'
     if (ua.includes('Linux'))     return '🐧 Linux'
-    return '🖥 Desktop'
+    return '🖥 Escritorio'
   }
 
   pg.innerHTML = `
-  <div style="overflow-x:auto">
-    <table class="data-table" style="min-width:700px">
+  <div class="erp-table-wrap">
+    <table class="erp-table" style="min-width:760px">
       <thead>
         <tr>
-          <th>Date / Time</th>
-          <th>User</th>
-          <th>IP Address</th>
-          <th>Location</th>
-          <th>ISP / Org</th>
-          <th>Device</th>
+          <th>Fecha / hora</th>
+          <th>Usuario</th>
+          <th>Dirección IP</th>
+          <th>Ubicación</th>
+          <th>ISP / organización</th>
+          <th>Dispositivo</th>
         </tr>
       </thead>
       <tbody>
         ${data.map(r => {
           const dt = new Date(r.created_at)
-          const dateStr = dt.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
-          const timeStr = dt.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', hour12:true })
+          const dateStr = dt.toLocaleDateString('es-MX', { month:'short', day:'numeric', year:'numeric' })
+          const timeStr = dt.toLocaleTimeString('es-MX', { hour:'numeric', minute:'2-digit', hour12:true })
           const flag = flagEmoji(r.country_code)
-          const loc = [r.city, r.region, r.country].filter(Boolean).join(', ')
           const org = r.org ? r.org.replace(/^AS\d+\s*/,'') : '—'
           const device = parseUA(r.user_agent)
           const initials = (r.email||'?')[0].toUpperCase()
           return `<tr>
-            <td style="white-space:nowrap">
+            <td>
               <div style="font-weight:500;font-size:0.82rem">${dateStr}</div>
               <div style="font-size:0.72rem;color:var(--text-3)">${timeStr}</div>
             </td>
-            <td>
+            <td class="td-trunc" style="max-width:200px">
               <div style="display:flex;align-items:center;gap:0.5rem">
                 <div style="width:24px;height:24px;border-radius:50%;${avatarStyle(r.user_id || r.email)};font-size:0.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${initials}</div>
-                <div>
-                  <div style="font-size:0.78rem;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.email||'—'}</div>
-                  <div style="font-size:0.65rem;color:var(--text-3)">${byUser[r.email]||1} visit${byUser[r.email]>1?'s':''}</div>
+                <div style="min-width:0">
+                  <div class="td-trunc" style="font-size:0.78rem;font-weight:500">${esc(r.email||'—')}</div>
+                  <div style="font-size:0.65rem;color:var(--text-3)">${byUser[r.email]||1} ${byUser[r.email]>1?'visitas':'visita'}</div>
                 </div>
               </div>
             </td>
-            <td style="font-size:0.8rem;white-space:nowrap">${r.ip||'—'}</td>
+            <td style="font-size:0.8rem">${esc(r.ip||'—')}</td>
             <td>
-              <div style="font-size:0.82rem">${flag} ${r.city||''}${r.city&&r.country?', ':''}${r.country||'Unknown'}</div>
-              ${r.region && r.region !== r.city ? `<div style="font-size:0.68rem;color:var(--text-3)">${r.region}</div>` : ''}
+              <div style="font-size:0.82rem">${flag} ${esc(r.city||'')}${r.city&&r.country?', ':''}${esc(r.country||'Desconocida')}</div>
+              ${r.region && r.region !== r.city ? `<div style="font-size:0.68rem;color:var(--text-3)">${esc(r.region)}</div>` : ''}
             </td>
-            <td style="font-size:0.78rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.org||''}">${org}</td>
+            <td class="td-trunc" style="max-width:180px" title="${escAttr(r.org||'')}">${esc(org)}</td>
             <td style="font-size:0.8rem">${device}</td>
           </tr>`
         }).join('')}

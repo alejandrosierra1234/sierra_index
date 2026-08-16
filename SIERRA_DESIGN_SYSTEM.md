@@ -1482,3 +1482,73 @@ further large-scale offender found. A full line-by-line pass over every
 spacing" was not attempted in this pass — flagged as future work if a
 specific screen is found to still lean on containment instead of
 hierarchy.
+
+## 57. Favorites (built, not a placeholder)
+
+Favorites were previously a static "Sin favoritos aún" label with no
+functionality (§ "Sidebar Navigation Tree" originally shipped the
+Favoritos header with an empty state only). They're now real, per the
+ERP-interface-architecture brief's §22: **a favorite is a navigation
+shortcut** — small entity icon + screen name — never louder than a
+Module row, never a second hierarchy.
+
+- `_navFavorites` — a `Set` of favorited leaf keys, persisted to
+  `localStorage` (`sierra_nav_favorites`).
+- `_navAllLeaves` — rebuilt on every `renderSidebarTree()` pass as
+  `navLeafHtml()` runs across the tree; this is the live, permission-
+  filtered catalog of every leaf the current user can actually reach
+  right now (Catálogo/Cola de despacho/Inventario per division,
+  Solicitudes, Colecciones, Insights, and every module tool). A
+  favorite for a leaf the user has since lost access to (division
+  reassigned, role changed) silently drops out of the rendered list
+  instead of dangling — the Favoritos section is always derived from
+  current permissions, never a frozen snapshot.
+- `.nav-fav-btn` — the star toggle riding inside a favoritable leaf
+  row (`navToggleFavorite()`), trailing after the label, same slot
+  `.cart-nav-count` uses. Hidden until hover/focus/favorited so it
+  never competes with the row's icon+label identity; filled teal when
+  favorited, matching the existing accent-for-"you are here" convention
+  `.nav-item.active`'s icon already uses — no new color meaning
+  introduced.
+- `renderNavFavorites()` fills `#nav-fav-list` by intersecting
+  `_navAllLeaves` with `_navFavorites`, reusing `navLeafHtml()` itself
+  (`{ collect:false }` so the favorites section doesn't re-register its
+  own rows as tree leaves) — the favorites row is the *same component*
+  as a tree leaf, not a parallel one.
+- Module and division rows (`navModuleRowHtml`/`navDivisionRowHtml`)
+  are structural, not favoritable — consistent with §54, only a leaf
+  can be "current," and only a leaf can be a shortcut to it.
+
+## 58. Access Logs — migrated onto the ERP table system
+
+`showAccessLogs()` was the one list screen still on the legacy
+`.data-table` class with hardcoded English copy (`Loading…`, `Date /
+Time`, `No access records yet.`) sitting next to an all-Spanish rest of
+the app — a direct instance of the §26 "don't mix languages on the same
+interface" violation, and a `.data-table` holdout from before `.erp-table`
+(§7) became the one table primitive. Migrated: `.erp-table-wrap`/
+`.erp-table` markup, Spanish column headers and states, `emptyStateHtml()`
+for both the "table not provisioned" and "no records" cases instead of a
+hand-rolled `<div class="empty">`, and `.td-trunc` on the identity/org
+columns per §50 (default nowrap, explicit truncate — a long user-agent
+org string no longer pushes the row's height). Unescaped `${r.email}`/
+`${r.city}`/`${r.org}` interpolations (external, DB-sourced strings
+rendered without `esc()`) were also closed here — the same fields are
+already escaped correctly everywhere else login/geo data is displayed
+elsewhere in the app.
+
+## 59. `--up`/`--down` finance tokens now match the semantic palette
+
+The six standalone marketing/division pages (`home.html`, `fiber.html`,
+`yarn.html`, `fabric.html`, `chemicals.html`, `apparel.html`) defined
+`--up:#1a8a5c`/`--down:#c0392b` — a plausible-looking but *unregistered*
+green/red pair, not one of the sanctioned `--sem-green-dark`/
+`--sem-red-dark` hex values used everywhere status/positive/negative
+color appears inside `index.html` (§44/§45). Flagged as low-risk future
+work in §48; now closed — all six pages use `--up:#2a9200`/
+`--down:#b40b0b`, i.e. `--sem-green-dark`/`--sem-red-dark` verbatim. The
+six pages remain intentionally separate stylesheets (§46 — each defines
+its own `:root`, not a shared file), so this was a value-for-value sync,
+not a refactor to a shared token source; if a shared stylesheet is ever
+extracted for these pages, pull `--up`/`--down` from the same registry
+`index.html` uses instead of re-hardcoding the pair a third time.
