@@ -2438,7 +2438,7 @@ unchanged from §54). Every row keeps its `data-tip` tooltip
 
 Per the request's ~90/10 neutral/accent target: the only color sources
 left in the sidebar are (1) IconTiles — division and module identity,
-always contained to the 28×28 tile, never bleeding into text/border/
+always contained to the tile, never bleeding into text/border/
 background, and (2) the 3px teal active indicator + teal icon on the
 current leaf. Everything else — row text, chevrons, section labels,
 hover states — is neutral (`--text-2`/`--text-3`/`--surface2`). This is
@@ -2447,3 +2447,159 @@ many colors, many boxes, many repeated icons") ask for structurally, not
 just as a one-off polish pass — a new division added to `DIV_ACCENT`
 automatically stays inside this budget because color only ever enters
 through `--tile-bg`/`--tile-fg`.
+
+## 61.11 Density pass (post-launch refinement)
+
+A follow-up pass tightened the tree further once it was live, without
+touching the architecture above:
+
+- **IconTile** shrank 28×28/16px-icon → **24×24/14px-icon**
+  (`.nav-icon-tile`) — still a real tile (background + icon), just less
+  visually heavy at rest, per feedback that "IconTiles are useful but
+  should remain secondary." §61.5/§61.10's rules (identity color lives
+  only in the tile, never text/border) are otherwise unchanged.
+- **Section labels** (`.s-label` — Favoritos/Divisiones/Herramientas)
+  dropped from `0.55rem/0.3rem` top/bottom padding to `0.4rem/0.2rem`,
+  and the inline `margin-top` each one carries in its render call
+  (`renderSidebarTree()`, the static Favoritos/Module-Switcher markup)
+  dropped from `0.5-0.6rem` to `0.35-0.4rem`.
+- **Row-to-row gap was already 0px** — measured before this pass:
+  consecutive collapsed `.nav-tree-div` rows had no gap between them at
+  all (each is a 40px `min-height` block stacking directly). "Division
+  rows still feel spaced out" was IconTile/label weight, not literal
+  gap — confirmed by measuring `getBoundingClientRect()` deltas between
+  rows in a headless run before changing anything, so this pass tightens
+  the things that actually had slack (tile size, label padding) instead
+  of shrinking the **protected** 40px row height (§10/§61.7 — still
+  40px for every division/global row, unchanged).
+
+---
+
+# Inventory Workspace Recomposition (§62)
+
+## 62. Problem: assembled components, not one workflow
+
+The Warehouse Inventory screen (`showWarehouseInventory()`, Almacén →
+Inventario) read as unrelated pieces stacked on a page — a movement form
+capped at `max-width:480px` floating with no left/right alignment to
+anything else, a bare `<select class="grant-sel">` period picker
+floating top-right with no visible relationship to the KPI row beneath
+it, and English `insCard()`/`insList()` labels ("Low inventory",
+"Inventory by location", "Fast moving") on an otherwise fully-Spanish
+screen — plus a large gap before a `.ins-cols` breakdown section that
+duplicated what a real, interactive table should show. Root-caused and
+rebuilt as one continuous workspace, not a per-widget patch.
+
+## 62.1 A real, pre-existing bug this pass also fixed: Catalog chrome bleeding onto every other screen
+
+Before touching Inventory's own markup, `renderInventoryOverview()`'s
+screenshots showed **two** "Table / Cards" rows stacked on top of each
+other. Root cause: `#cat-view-tabs` (Catalog's Table/Cards switch) and
+`#cat-toolbar` (Catalog's Search/Filter/Sort/Group/Columns DataToolbar)
+live inside `#view-products`, the same wrapper every other `#pg`-based
+screen (Dispatch Queue, Sample Center, Insights, Gafetes, Team, Access
+Logs, Style Guide, **and** Inventory) reuses for `#sec-title`/`#sec-sub`/
+`#pg` — and neither element was ever hidden by `leaveView()` (only
+`#fab-filter-bar` was). The result: any screen visited *after* Catalog
+inherited Catalog's stale, empty-but-visible Table/Cards tabs and its
+last-rendered toolbar buttons, permanently — this is almost certainly
+what the request's §4 was describing as "the current toolbar." Fixed at
+the shared root, not with a per-screen override:
+
+- `leaveView()` now hides `#cat-view-tabs` and hides **and clears**
+  `#cat-toolbar` by default, next to its existing `#fab-filter-bar`
+  reset.
+- `renderProducts()` — the one function every real Catalog paint goes
+  through — re-shows both (`display:flex`) at its top, mirroring how
+  `renderCatalogSavedViews()` already owns `#fab-filter-bar`'s
+  visibility.
+
+Every non-Catalog screen benefits from this fix, not just Inventory;
+Inventory is simply the screen that made it visible enough to diagnose.
+
+## 62.2 Page composition — five zones, one flow
+
+```
+PageHeader          Inventario · {División} / Existencias, rotación y movimientos…
+View navigation     Table | Cards            (.view-tabs, own #inv-view-tabs — NOT #cat-view-tabs)
+DataToolbar          Buscar inventario… · Filtrar · Ordenar · Agrupar · Columnas
+Movement bar         REGISTRAR MOVIMIENTO — [scan] [search, full width]
+KPI summary          RESUMEN DE INVENTARIO  [30 días ▾]  →  5 compact cards
+Data                 the actual stock table/cards — begins immediately, no gap
+```
+
+Every zone shares the page's one content column (no `max-width` cap on
+the movement bar anymore, no floating right-aligned orphan controls) —
+directly answers the request's §27 ("align major content zones to the
+same grid") and §21 ("data table must follow the KPIs, no dead zone").
+
+## 62.3 New scoped components (§33 of the request)
+
+All new markup/state is prefixed `.inv-`/`_invTbl`/`INV_TBL_*`,
+deliberately **not** reusing Catalog's `#cat-toolbar`/`catalogGroupBy`/
+`CAT_*` state or Insights' `.ins-*`/`insCard()`/`insList()` — a focused,
+single-screen change per the request's own instruction not to
+re-redesign the app. Visual language is still fully reused, though: the
+toolbar is built from the exact same primitives Catalog's DataToolbar
+already established (`.page-toolbar`, `.btn.cat-tb-btn`, `catTogglePop()`,
+`.ws-pop.cat-pop`, `.cat-pop-row`, `.cat-pop-title`, `.cat-pop-ftr`) —
+§18's "one DataToolbar system," just a second instance bound to
+inventory's own state.
+
+| Component | Implementation |
+|---|---|
+| **InventoryMovementBar** | `.inv-move-bar` — one row: `.inv-move-label` ("REGISTRAR MOVIMIENTO"), `.inv-move-scan-btn` (40×40 icon button, `openScanMode('inventory')`), then `.control-input` search flexing to fill the rest (§6/§7 of the request — scan and search read as one control, not a detached mini-card above a lone input) |
+| **DataToolbar** (inventory instance) | `renderInvToolbar()` → `#inv-toolbar`: search, Filtrar (location + status facets, `invFilterPopHtml()`), sort (`INV_TBL_SORTS`), group (`INV_TBL_GROUPS`), Columnas (Table view only, `INV_TBL_COLUMNS`) |
+| **MetricStrip / MetricItem** | `.inv-kpi-grid`/`.inv-kpi-card` + `renderInvKpiCard()` — compact (0.6rem/0.75rem padding vs Insights' `.ins-card` 1.1rem/1.2rem), semantic tone only via `.tone-warning`/`.tone-danger` modifier classes, applied only when the metric's count is truthy (§13/§14 — a healthy zero stays neutral) |
+| **TimeRangeSelect** | `renderInvPeriodControl()` — same 40px icon+label+chevron `.cat-tb-btn` trigger as every other toolbar dropdown, replacing the old bare `<select class="grant-sel">` (§23 — "do not create smaller dropdowns unless there is a documented size variant"; there wasn't one) |
+| **Inventory data table/cards** | `invTableHtml()`/`invCardsHtml()` — the dataset itself (§21/§26): one row per product×format×location `inventory_stock` record (`invTblBuildRows()`), computed `available`/`statusKey`/`statusLabel`/`statusColor` per row. Table reuses `.erp-table-wrap`/`.erp-table` (§7) verbatim; Cards reuses `.pg-grid`/`.card`/`.card-name`/`.card-desc` (§18) verbatim. Grouping (`invGroupRows()`) inserts a `.inv-group-row` header row/label — shared by both views, one function, not two grouping implementations (§11) |
+
+`_invTbl` (view/search/sort/groupBy/filters/hiddenCols) resets fresh
+every time `showWarehouseInventory()` runs, same convention as Catalog's
+own per-screen toolbar state.
+
+## 62.4 Language
+
+The screen is Spanish end to end now (§5 of the request) — KPI titles
+("Inventario bajo", "Agotado", "Rotación de inventario", "Solicitado sin
+stock", "Nunca solicitado"), toolbar controls ("Buscar inventario…",
+"Filtrar", "Ordenar por", "Sin agrupación", "Columnas"), table headers
+("Producto", "Formato", "Ubicación", "Disponible", "Reservado", "Mínimo",
+"Estado") and empty states. This replaced `renderInventoryOverview()`'s
+previous direct calls into `insCard()`/`insList()`, which carried
+Insights' English copy onto an otherwise Spanish screen — Insights
+itself is untouched, still English, out of scope for this pass.
+
+Catalog's own toolbar had the same "None"-by-itself bug the request's §4
+calls out (`catalogGroupBy === 'none' ? 'None' : …`, both in the trigger
+label and the group popover's own row) — fixed to "No grouping" in place
+(Catalog stays English per its own established convention; only the
+ambiguous bare word changed).
+
+## 62.5 Removed: the `.ins-cols` breakdown section
+
+The old screen's `.ins-cols` block ("Inventory by location", "Inventory
+by division", "Inventory by format", "Fast moving", "Slow moving") is
+gone from this screen. By-location/by-format breakdown is now the same
+information, live and interactive, via the data table's own Group by
+control — keeping a second, static, redundant copy of it as a permanent
+list would directly contradict §21/§30 (no dead zone between KPIs and
+the real dataset, table follows KPIs immediately). "Fast moving"/"Slow
+moving" (movement-velocity ranking) wasn't reproducible from a stock
+snapshot and wasn't part of the request's target structure (§26) either
+— that class of analysis still lives in Insights → Operations/Demand,
+which this screen's own KPI row already points at via "Rotación de
+inventario." Not removed from Insights itself, only from this one
+screen's composition.
+
+## 62.6 What was intentionally left alone
+
+- **Responsive toolbar overflow** (§32 — Sort/Group/Columns collapsing
+  into a "More" button on narrow desktop widths) is not implemented.
+  Catalog's own DataToolbar doesn't do this either — both just wrap via
+  `.page-toolbar`'s existing `flex-wrap:wrap`. Flagged as future work
+  for the shared DataToolbar pattern generally, not a per-screen gap.
+- **Filter/Sort/Group state persistence** — Catalog persists hidden
+  columns to `localStorage`; Inventory's toolbar state resets on every
+  visit, matching most other screens' toolbars (Dispatch Queue, Sample
+  Center) rather than Catalog's specific persistence choice.
