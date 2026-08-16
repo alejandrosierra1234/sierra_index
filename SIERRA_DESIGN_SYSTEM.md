@@ -2473,6 +2473,52 @@ touching the architecture above:
   of shrinking the **protected** 40px row height (§10/§61.7 — still
   40px for every division/global row, unchanged).
 
+## 61.12 Orphaned-void pass
+
+A visual audit (headless render across module states — a 1-tool module
+like Talento Humano, a fully populated one like Muestras, collapsed rail,
+mobile drawer, light/dark) surfaced one real defect that no amount of
+reading the CSS caught: on any module whose tree doesn't fill the
+viewport (most of them), `.sidebar-spacer`'s `flex:1` leaves a large gap
+between the tree and `.sidebar-bottom` — expected and fine on its own
+(§ "don't compensate for weak structure with oversized blank space," same
+rule as page content, applies here too: empty space at the bottom of a
+short list is normal, not a bug to fix with more spacing). What *was* a
+bug: `.sidebar-edge-toggle` was positioned `top:50%` of the sidebar's
+full height, so on any short tree it drifted down into that gap and
+rendered as a control floating alone in empty space, structurally
+unrelated to anything around it — on a mobile drawer render (no edge
+toggle there at all) the same gap was just bare void, confirming the
+emptiness itself reads fine; it's the dangling control that read as
+broken. Fixed by anchoring the toggle to a fixed `top:17px`, vertically
+centered on the Search row instead of the column — it now reads as a
+fixed part of the top shell/header cluster regardless of how much module
+content follows, never a control whose position depends on unrelated
+content length.
+
+Two smaller findings from the same pass, both matching "hidden or
+badly-distributed things" rather than a new defect class:
+
+- **Favoritos empty state removed.** §57 built real favorite
+  functionality but left the "Sin favoritos aún" placeholder — header +
+  empty row, permanently on-screen for any user who hasn't favorited
+  anything, which is most users most of the time. Same restraint
+  principle as everywhere else in this doc: an empty section that adds
+  nothing is dead weight, not a state to design a placeholder for. The
+  section (`#nav-fav-section`, now wrapping the `.s-label` + list
+  together) is hidden via `renderNavFavorites()` until the user favorites
+  a first item, then appears with real content — never with a "you have
+  none of these" message. `.nav-fav-empty` itself stays in use for actual
+  empty-*results* states (module switcher search: "Sin resultados") —
+  that's a different, legitimate case ("nothing found"), not "you
+  haven't done X yet."
+- **`.s-label` was declared twice**, ~190 lines apart (animation/sizing
+  properties near the nav-tree rules, typography properties dropped in
+  later near the popover rules) — same selector, no conflicts since the
+  properties didn't overlap, but a single component's styling split
+  across two disconnected locations in the sheet is exactly the kind of
+  thing that makes a file hard to trust. Merged into the one declaration.
+
 ---
 
 # Inventory Workspace Recomposition (§62)

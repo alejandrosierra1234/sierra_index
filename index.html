@@ -1024,17 +1024,23 @@
     [data-theme="dark"] .sidebar-logo-full .cls-2 { fill:#e8e8e8; }
     [data-theme="dark"] .sidebar-logo-icon .cls-1 { fill:#16cdbe; }
 
+    /* Anchored to the top nav cluster (Search row), not vertically centered
+       on the sidebar's full height — the sidebar's remaining height is
+       whatever the active module's tree leaves over (often much less than
+       the viewport), so a 50%-centered toggle used to drift into that dead
+       space and read as an orphaned control unrelated to anything around
+       it. Pinned near the top, it reads as a fixed part of the shell. */
     .sidebar-edge-toggle {
-      position:absolute; right:-13px; top:50%; width:26px; height:34px;
+      position:absolute; right:-13px; top:17px; width:26px; height:34px;
       display:flex; align-items:center; justify-content:center;
       border:1px solid var(--border); border-radius:9px;
       background:var(--surface); color:var(--text-3); box-shadow:var(--shadow);
       cursor:pointer; opacity:0; pointer-events:auto; z-index:850;
-      transform:translateY(-50%) scale(0.92);
+      transform:scale(0.92);
       transition:opacity 0.14s ease, transform 0.18s cubic-bezier(0.22,1,0.36,1), background 0.12s, color 0.12s, border-color 0.12s;
     }
     .sidebar:hover .sidebar-edge-toggle,
-    .sidebar-edge-toggle:hover { opacity:1; transform:translateY(-50%) scale(1); }
+    .sidebar-edge-toggle:hover { opacity:1; transform:scale(1); }
     .sidebar-edge-toggle:hover { background:var(--surface2); color:var(--text); border-color:var(--border2); }
     .sidebar-edge-toggle svg { width:16px; height:16px; display:block; }
     .sidebar-edge-toggle .edge-expand { display:none; }
@@ -1048,7 +1054,12 @@
     .nav-label { white-space:nowrap; overflow:hidden; max-width:130px; opacity:1; transform:translateX(0); transition:opacity 0.18s ease, transform 0.28s cubic-bezier(0.22,1,0.36,1), max-width 0.28s cubic-bezier(0.22,1,0.36,1); }
     .sidebar.collapsed .nav-label { max-width:0; opacity:0; transform:translateX(-4px); pointer-events:none; }
     .sidebar.collapsed #sidebar-search-btn .nav-label:last-child { margin-left:0 !important; padding-left:0 !important; padding-right:0 !important; border-width:0 !important; }
-    .s-label { display:block; max-height:28px; opacity:1; transform:translateX(0); overflow:hidden; transition:opacity 0.18s ease, transform 0.28s cubic-bezier(0.22,1,0.36,1), max-height 0.28s cubic-bezier(0.22,1,0.36,1), padding 0.28s cubic-bezier(0.22,1,0.36,1), margin 0.28s cubic-bezier(0.22,1,0.36,1); }
+    .s-label {
+      display:block; max-height:28px; opacity:1; transform:translateX(0); overflow:hidden;
+      font-size:0.66rem; font-weight:650; text-transform:uppercase; letter-spacing:0.08em;
+      color:var(--text-3); padding:0.4rem 0.55rem 0.2rem;
+      transition:opacity 0.18s ease, transform 0.28s cubic-bezier(0.22,1,0.36,1), max-height 0.28s cubic-bezier(0.22,1,0.36,1), padding 0.28s cubic-bezier(0.22,1,0.36,1), margin 0.28s cubic-bezier(0.22,1,0.36,1);
+    }
     .sidebar.collapsed .s-label {
       max-height:0; max-width:0; opacity:0; transform:translateX(-4px);
       padding:0 !important; margin-top:0 !important; pointer-events:none;
@@ -1175,8 +1186,7 @@
        than the 40px/medium-weight division and global rows above them. */
     .nav-item.nav-tree-leaf { min-height:37px; font-weight:400; }
     .nav-item.nav-tree-leaf.active { font-weight:600; }
-    .sidebar.collapsed .nav-tree-children,
-    .sidebar.collapsed .nav-fav-empty { display:none !important; }
+    .sidebar.collapsed .nav-tree-children { display:none !important; }
     /* Collapsed rail (§15): only the current/expanded division's IconTile
        shows — every other division row is hidden outright, not just its
        children — so the rail never turns into a second, cramped copy of
@@ -1236,8 +1246,6 @@
       #sidebar-search-btn, #notif-btn, #theme-btn, #acct-menu { display: none !important; }
     }
 
-
-    .s-label { font-size:0.66rem; font-weight:650; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); padding:0.4rem 0.55rem 0.2rem; }
     /* Standard row height (§10): 40px for global/division rows, 36-38px for
        child leaves (see .nav-tree-leaf below) — never an arbitrary height. */
     .nav-item {
@@ -5615,8 +5623,13 @@
            module lives behind the switcher popover, never as a permanent
            peer block. See renderSidebarTree()/moduleSwitcher* in
            index.html and SIERRA_DESIGN_SYSTEM.md §61. -->
-      <span class="s-label" style="margin-top:0.4rem">Favoritos</span>
-      <div class="nav-fav-list" id="nav-fav-list"><div class="nav-fav-empty">Sin favoritos aún</div></div>
+      <!-- Hidden entirely until the user favorites something (§ restraint —
+           an empty "Favoritos" header + placeholder row is dead weight on
+           every single visit; see renderNavFavorites()). -->
+      <div id="nav-fav-section" style="display:none">
+        <span class="s-label" style="margin-top:0.4rem">Favoritos</span>
+        <div class="nav-fav-list" id="nav-fav-list"></div>
+      </div>
 
       <div class="mod-switcher" id="mod-switcher" style="margin-top:0.4rem">
         <button class="nav-item mod-switcher-trigger" id="mod-switcher-trigger" data-tip="Módulos" onclick="toggleModuleSwitcher()" aria-haspopup="true" aria-expanded="false"></button>
@@ -13656,11 +13669,11 @@ function renderSidebarTree() {
 }
 function renderNavFavorites() {
   const list = document.getElementById('nav-fav-list')
+  const section = document.getElementById('nav-fav-section')
   if (!list) return
   const items = _navAllLeaves.filter(l => _navFavorites.has(l.key))
-  list.innerHTML = items.length
-    ? items.map(l => navLeafHtml(l.key, l.id, l.label, l.iconSvg, 'lvl2', l.fnExpr, { collect: false })).join('')
-    : '<div class="nav-fav-empty">Sin favoritos aún</div>'
+  if (section) section.style.display = items.length ? '' : 'none'
+  list.innerHTML = items.map(l => navLeafHtml(l.key, l.id, l.label, l.iconSvg, 'lvl2', l.fnExpr, { collect: false })).join('')
 }
 
 /* ── MODULE SWITCHER (§3) ──────────────────────────────────────────────
