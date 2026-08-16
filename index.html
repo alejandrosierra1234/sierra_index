@@ -117,7 +117,6 @@
       --surface-secondary: #f5f5f5;
       --surface-selected: #ececec;
       --icon-default: var(--text-secondary);
-      --module-accent: var(--accent); /* set per-module by syncModule()/applyModuleScope() */
       --shell-radius: 18px; /* workspace↔topbar/sidebar architectural corner, §13 */
       /* Radius scale — the only sanctioned corner values for new UI */
       --r-xs: 4px; --r-sm: 7px; --r-md: 10px; --r-lg: 12px; --r-xl: 16px; --r-2xl: 18px; --r-pill: 999px;
@@ -130,11 +129,11 @@
       --sidebar-width: 248px;
       --sidebar-width-collapsed: 68px;
       --page-padding-x: 1.75rem;      /* .content's horizontal inset — the one guide every page aligns to */
-      --page-padding-y: 1.75rem;
+      --page-padding-y: 1.25rem;      /* ERP density: less dead air above the header, same side margins */
       --page-max-width: 1480px;       /* matches .detail-view-inner, the existing single-record page container */
       --content-gap: var(--sp-6);     /* MainPane ↔ ContextPane grid gap */
-      --section-gap: var(--sp-5);     /* vertical rhythm between page sections (header→toolbar→content) */
-      --panel-gap: var(--sp-4);       /* spacing between stacked panels within a section */
+      --section-gap: 20px;            /* vertical rhythm between page sections (header→toolbar→content) — ERP density, was --sp-5/24px */
+      --panel-gap: 14px;              /* spacing between stacked panels within a section — ERP density, was --sp-4/16px */
       --context-pane-width: 340px;    /* ContextPane fixed width, within the 320–380px range */
       /* ── CONTROL HEIGHT SYSTEM ──
          ONE standard height for every interactive control that can sit
@@ -1017,8 +1016,8 @@
        (below) and .pop-menu-item. Documented in SIERRA_DESIGN_SYSTEM.md
        §Popover / Dropdown Menu. */
     .pop-menu-item, .ws-menu-item, .card-more-item {
-      display:flex; align-items:center; gap:10px; width:100%; text-align:left; min-height:34px;
-      background:none; border:none; font-family:inherit; padding:6px 10px; border-radius:var(--r-sm);
+      display:flex; align-items:center; gap:10px; width:100%; text-align:left; min-height:32px;
+      background:none; border:none; font-family:inherit; padding:5px 10px; border-radius:var(--r-sm);
       cursor:pointer; font-size:var(--body-size); font-weight:500; color:var(--text-primary);
       transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
     }
@@ -1033,107 +1032,26 @@
     .pop-menu-sep { height:1px; background:var(--border); margin:0.3rem 0.2rem; }
     .pop-menu-hint { font-size:0.74rem; color:var(--text-3); margin:0.1rem 0.3rem 0.5rem; }
 
-    /* ── MODULE SWITCHER — iCloud.com-style: current module as a
-       button, click opens a small popover to jump to another module.
-       Hidden entirely when the user only has one module (or none). */
-    .mod-scope { display:none; }
-    .mod-switch { position:relative; margin:0.3rem 0 0.2rem; display:none; }
-    .mod-switch.has-modules { display:block; }
-    .mod-switch-btn {
-      display:flex; align-items:center; gap:0.55rem; width:100%; height:var(--control-h); padding:0 0.6rem;
-      border-radius:var(--control-radius); border:1px solid var(--border-strong); background:var(--surface);
-      color:var(--text); font-family:inherit; font-size:0.82rem; font-weight:600; cursor:pointer;
-      text-align:left; transition:border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
-    }
-    .mod-switch-btn:hover { background:var(--surface-hover); border-color:var(--text-muted); }
-    .mod-switch-dot { width:22px; height:22px; border-radius:7px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
-    .mod-switch-dot svg { width:13px; height:13px; }
-    .mod-switch-lbl { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .mod-switch-chev { color:var(--text-3); flex-shrink:0; transition:transform var(--dur-fast) var(--ease-out); }
-    .mod-switch.open .mod-switch-chev { transform:rotate(180deg); }
-    .bu-switch-pop, .acct-menu-pop {
-      position:absolute; top:calc(100% + 4px); left:0; right:0;
-      background:var(--surface); border:1px solid var(--border); border-radius:12px;
-      box-shadow:var(--shadow-hover); padding:0.3rem; z-index:150;
-      opacity:0; pointer-events:none; transform:translateY(-4px) scale(0.98);
-      transition:opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
-    }
-    .bu-switch.open .bu-switch-pop,
-    .acct-menu.open .acct-menu-pop { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
-    .bu-switch-item .bu-switch-dot { width:16px; height:16px; }
-    .bu-switch-item .bu-switch-dot svg { width:10px; height:10px; }
-
-    /* ── Module selector popover — same visual language as the Account
-       Mega Menu (fixed generous width, edge-to-edge rows, 44px targets),
-       not the older compact inline-popover pattern above. A proper ERP
-       module list, not a plain text dropdown menu (§9-10). */
-    .mod-switch-pop {
-      position:absolute; top:calc(100% + 6px); left:0;
-      width:288px; max-width:calc(100vw - 24px);
-      background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
-      box-shadow:var(--shadow-hover); padding:6px 0; z-index:150;
-      opacity:0; pointer-events:none; transform:translateY(-4px) scale(0.98);
-      transition:opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
-    }
-    .mod-switch.open .mod-switch-pop { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
-    .mod-switch-item {
-      display:flex; align-items:center; gap:12px; width:100%; text-align:left;
-      min-height:44px; padding:6px 12px 6px 16px;
-      background:none; border:none; font-family:inherit; cursor:pointer;
-      transition:background var(--dur-fast) var(--ease-out);
-    }
-    .mod-switch-item:hover { background:var(--surface-hover); }
-    .mod-switch-item.current { background:var(--surface-selected); font-weight:650; }
-    .mod-switch-item-dot { width:26px; height:26px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
-    .mod-switch-item-dot svg { width:15px; height:15px; }
-    .mod-switch-item-lbl { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.84rem; color:var(--text-primary); }
-    .mod-switch-star {
-      flex-shrink:0; width:28px; height:28px; display:flex; align-items:center; justify-content:center;
-      background:none; border:none; border-radius:7px; cursor:pointer; color:var(--text-muted);
-      opacity:0; transition:opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
-    }
-    .mod-switch-star svg { width:15px; height:15px; }
-    .mod-switch-item:hover .mod-switch-star, .mod-switch-star.is-fav { opacity:1; }
-    .mod-switch-star:hover { background:var(--surface2); color:var(--text-secondary); }
-    .mod-switch-star.is-fav { color:#ffb400; }
-    .mod-switch-star.is-fav:hover { color:#e0a000; }
-
-    /* Collapsed sidebar: the module selector becomes a single icon-square
-       (current module's color/icon) instead of vanishing — clicking still
-       opens the full popover, flown out to the right of the rail so it
-       never overlaps the icon column (§12: "a deliberate design state"). */
-    .sidebar.collapsed .mod-switch-btn {
-      width:40px; height:40px; padding:0; justify-content:center; border-radius:var(--control-radius);
-      border-color:transparent; background:none;
-    }
-    .sidebar.collapsed .mod-switch-lbl, .sidebar.collapsed .mod-switch-chev { display:none; }
-    .sidebar.collapsed .mod-switch-pop {
-      top:0; left:calc(100% + 10px); right:auto; width:240px;
-      transform:translateY(-4px) scale(0.98);
-    }
-    .sidebar.collapsed .mod-switch.open .mod-switch-pop { transform:translateY(0) scale(1); }
-    /* ── Business-unit switcher ──
-       Lives inside the Samples mod-scope. Unlike .mod-switch (which jumps
-       between whole módulos), this only changes the `division` CONTEXT —
-       catalog, requests, dispatch and inventory all stay on screen, just
-       re-scoped to the newly selected business unit. Hidden when the user
-       is authorized for a single business unit (nothing to switch to). */
-    .bu-switch { position:relative; margin:0.5rem 0 0.15rem; display:none; }
-    .bu-switch.has-multi { display:block; }
-    .bu-switch-btn {
-      display:flex; align-items:center; gap:0.5rem; width:100%; padding:0.4rem 0.5rem;
-      border-radius:7px; border:1px solid transparent; background:transparent;
-      color:var(--text-3); font-family:inherit; font-size:0.68rem; font-weight:700;
-      text-transform:uppercase; letter-spacing:0.04em; cursor:pointer; text-align:left;
-      transition:border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
-    }
-    .bu-switch-btn:hover { background:var(--surface2); }
-    .bu-switch-btn .bu-switch-dot { width:16px; height:16px; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
-    .bu-switch-btn .bu-switch-dot svg { width:10px; height:10px; }
-    .bu-switch-lbl { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); font-size:0.78rem; text-transform:none; letter-spacing:0; font-weight:600; }
-    .bu-switch-chev { color:var(--text-3); flex-shrink:0; transition:transform var(--dur-fast) var(--ease-out); }
-    .bu-switch.open .bu-switch-chev { transform:rotate(180deg); }
-    .sidebar.collapsed .bu-switch { display:none !important; }
+    /* ── SIDEBAR NAVIGATION TREE ── persistent, non-popover hierarchy:
+       Módulos → divisions/screens, always in the DOM, expand/collapse via
+       a Set (_navExpanded) rather than a dropdown you reopen every time.
+       Built from .nav-item (so it inherits collapsed-rail, tooltip, hover
+       and active-state behavior for free) plus a chevron + indent per
+       depth. See renderSidebarTree() and SIERRA_DESIGN_SYSTEM.md §52. */
+    .nav-fav-empty { padding:0.3rem 0.55rem 0.6rem; font-size:0.72rem; color:var(--text-3); }
+    .nav-tree-chevron { display:inline-flex; flex-shrink:0; color:var(--text-3); transition:transform var(--dur-fast) var(--ease-out); }
+    .nav-tree-chevron.expanded { transform:rotate(90deg); }
+    .nav-tree-children { display:flex; flex-direction:column; gap:1px; }
+    .nav-tree-children.collapsed { display:none; }
+    .nav-item.nav-tree-div { padding:0.4rem 0.55rem 0.4rem 1.5rem; font-size:0.78rem; }
+    .nav-item.nav-tree-leaf.lvl2 { padding-left:1.5rem; font-size:0.8rem; }
+    .nav-item.nav-tree-leaf.lvl3 { padding:0.4rem 0.55rem 0.4rem 2.5rem; font-size:0.78rem; }
+    .sidebar.collapsed .nav-tree-children,
+    .sidebar.collapsed .nav-fav-empty { display:none !important; }
+    /* Collapsed rail: module rows read as plain icon squares, same as
+       Dashboard/Website below — no chevron clutter since there's nothing
+       to expand in place (a click re-opens the full sidebar). */
+    .sidebar.collapsed .nav-tree-chevron { display:none; }
 
     /* ── Account menu ──
        Sidebar identity click opens this instead of jumping straight to the
@@ -1141,7 +1059,14 @@
        Appearance / Administration / Help / Log out. Same ancestor-driven
        open mechanic as the switchers above. */
     .acct-menu { position:relative; }
-    .acct-menu-pop { left:0.6rem; right:0.6rem; bottom:calc(100% + 6px); top:auto; min-width:200px; }
+    .acct-menu-pop {
+      position:absolute; left:0.6rem; right:0.6rem; bottom:calc(100% + 6px); top:auto; min-width:200px;
+      background:var(--surface); border:1px solid var(--border); border-radius:12px;
+      box-shadow:var(--shadow-hover); padding:0.3rem; z-index:150;
+      opacity:0; pointer-events:none; transform:translateY(-4px) scale(0.98);
+      transition:opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+    }
+    .acct-menu.open .acct-menu-pop { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
     .sidebar.collapsed .acct-menu-pop { display:none; }
 
     /* Search / Notifications / Appearance / Account now live in the
@@ -1155,7 +1080,7 @@
     }
 
 
-    .s-label { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); padding:0.7rem 0.55rem 0.3rem; }
+    .s-label { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); padding:0.55rem 0.55rem 0.25rem; }
     .nav-item { display:flex; align-items:center; gap:0.55rem; padding:0.48rem 0.55rem; border-radius:8px; cursor:pointer; font-size:0.82rem; color:var(--text-2); transition:background 0.12s, color 0.12s, border-color 0.12s, width 0.32s cubic-bezier(0.22,1,0.36,1), height 0.32s cubic-bezier(0.22,1,0.36,1), padding 0.32s cubic-bezier(0.22,1,0.36,1), gap 0.32s cubic-bezier(0.22,1,0.36,1), border-radius 0.32s cubic-bezier(0.22,1,0.36,1); border:1px solid transparent; background:none; width:100%; text-align:left; font-family:inherit; overflow:hidden; }
     .nav-item:hover { background:var(--surface2); color:var(--text); }
     .nav-item.active { background:none; border-color:var(--border); color:var(--text); font-weight:600; }
@@ -1235,7 +1160,7 @@
          against the sidebar on its right/bottom edges. */
       border-top-left-radius:var(--shell-radius);
     }
-    .content-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; gap:1rem; flex-wrap:wrap; }
+    .content-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.1rem; gap:1rem; flex-wrap:wrap; }
     .content-hdr-l h2 { font-size:2rem; font-weight:700; letter-spacing:-0.035em; line-height:1.1; }
     .content-hdr-l p { font-size:0.8rem; color:var(--text-2); margin-top:0.2rem; }
     .content-hdr-r { display:flex; align-items:center; gap:0.5rem; flex-shrink:0; }
@@ -1489,14 +1414,14 @@
       box-shadow:0 24px 80px rgba(0,0,0,0.2);
     }
     .modal-hdr {
-      padding:1.25rem 1.4rem; display:flex; align-items:flex-start; justify-content:space-between;
+      padding:1rem 1.25rem; display:flex; align-items:flex-start; justify-content:space-between;
       flex-shrink:0; border-bottom:1px solid var(--border);
     }
     .modal-eyebrow { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; margin-bottom:0.3rem; }
     .modal-title { font-size:1.05rem; font-weight:600; letter-spacing:-0.01em; }
-    .modal-body { padding:1.1rem 1.4rem; overflow-y:auto; flex:1; min-height:0; }
+    .modal-body { padding:0.95rem 1.25rem; overflow-y:auto; flex:1; min-height:0; }
     .modal-ftr {
-      padding:1rem 1.4rem; display:flex; gap:0.55rem; justify-content:flex-end;
+      padding:0.85rem 1.25rem; display:flex; gap:0.55rem; justify-content:flex-end;
       flex-shrink:0; border-top:1px solid var(--border);
     }
 
@@ -1524,20 +1449,20 @@
     }
     .sd-overlay.open .sd-panel { transform:translateX(0); }
     .sd-hdr {
-      padding:1.1rem 1.3rem; display:flex; align-items:flex-start; justify-content:space-between;
+      padding:0.9rem 1.15rem; display:flex; align-items:flex-start; justify-content:space-between;
       flex-shrink:0; border-bottom:1px solid var(--border);
     }
     .sd-eyebrow { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-bottom:0.25rem; }
     .sd-title { font-size:1rem; font-weight:600; letter-spacing:-0.01em; }
-    .sd-tabs { display:flex; gap:1.1rem; padding:0 1.3rem; border-bottom:1px solid var(--border); flex-shrink:0; }
+    .sd-tabs { display:flex; gap:1.1rem; padding:0 1.15rem; border-bottom:1px solid var(--border); flex-shrink:0; }
     .sd-tab {
-      padding:0.6rem 0.05rem; font-size:0.78rem; font-weight:600; color:var(--text-3);
+      padding:0.5rem 0.05rem; font-size:0.78rem; font-weight:600; color:var(--text-3);
       background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; font-family:inherit;
       transition:color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
     }
     .sd-tab:hover { color:var(--text); }
     .sd-tab.active { color:var(--text); border-bottom-color:var(--accent); }
-    .sd-body { padding:1.1rem 1.3rem; overflow-y:auto; flex:1; min-height:0; }
+    .sd-body { padding:0.95rem 1.15rem; overflow-y:auto; flex:1; min-height:0; }
     @media (max-width:640px) {
       .sd-panel { width:100%; max-width:100%; }
     }
@@ -3640,7 +3565,7 @@
     .erp-table, .dq-table, .pick-table { width:100%; border-collapse:collapse; font-size:0.79rem; }
     .erp-table th, .dq-table th, .pick-table th {
       text-align:left; font-size:0.62rem; text-transform:uppercase; letter-spacing:0.06em;
-      color:var(--text-3); font-weight:600; padding:0.55rem 0.7rem; border-bottom:1px solid var(--border);
+      color:var(--text-3); font-weight:600; padding:0.45rem 0.7rem; border-bottom:1px solid var(--border);
       background:var(--surface2); white-space:nowrap; position:sticky; top:0;
     }
     /* Table values never wrap onto multiple lines by default — a long name
@@ -3650,7 +3575,7 @@
        genuinely long-form column (notes, addresses) back into wrapping
        with .td-wrap — never let a name/code/position column wrap by
        accident because nobody set a width on it. */
-    .erp-table td, .dq-table td, .pick-table td { padding:0.5rem 0.7rem; border-bottom:1px solid var(--border); vertical-align:middle; white-space:nowrap; }
+    .erp-table td, .dq-table td, .pick-table td { padding:0.42rem 0.7rem; border-bottom:1px solid var(--border); vertical-align:middle; white-space:nowrap; }
     .erp-table td.td-wrap, .dq-table td.td-wrap, .pick-table td.td-wrap { white-space:normal; }
     .erp-table td.emp-td-trunc, .erp-table td.td-trunc { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:1px; height:46px; }
     .erp-table tbody tr:last-child td, .dq-table tbody tr:last-child td, .pick-table tbody tr:last-child td { border-bottom:none; }
@@ -5436,52 +5361,18 @@
         <span class="nav-label" style="margin-left:auto;font-size:0.62rem;color:var(--text-3);border:1px solid var(--border);border-radius:4px;padding:0.1rem 0.35rem;line-height:1.4">⌘K</span>
       </button>
 
-      <button class="nav-item" id="nav-dash" data-tip="Dashboard" style="--item-color:#16cdbe" onclick="showDashboard()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3L3 8.5V17h5v-4h4v4h5V8.5L10 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Dashboard</span></button>
+      <button class="nav-item" id="nav-dash" data-tip="Dashboard" style="--item-color:#16cdbe" onclick="navGo('dashboard', showDashboard)"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 3L3 8.5V17h5v-4h4v4h5V8.5L10 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Dashboard</span></button>
 
-      <span class="s-label" id="modules-label" style="margin-top:0.5rem">Modules</span>
-      <div class="mod-switch" id="mod-switch">
-        <button class="mod-switch-btn" id="mod-switch-btn" onclick="toggleModSwitch()">
-          <span class="mod-switch-dot" id="mod-switch-dot"></span>
-          <span class="mod-switch-lbl" id="mod-switch-lbl">Módulos</span>
-          <svg class="mod-switch-chev" width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <div class="mod-switch-pop" id="mod-switch-pop"></div>
-      </div>
+      <!-- Persistent navigation tree — replaces the old .mod-switch/.bu-switch
+           popover pair. Every accessible module, division and screen is
+           always in the DOM; expand state is a Set (_navExpanded), not a
+           dropdown that has to be reopened after every navigation. See
+           renderSidebarTree() and SIERRA_DESIGN_SYSTEM.md §52. -->
+      <span class="s-label" style="margin-top:0.6rem">Favoritos</span>
+      <div class="nav-fav-empty" id="nav-fav-empty">Sin favoritos aún</div>
 
-      <div class="mod-scope" data-scope="samples">
-        <span class="s-label" style="margin-top:0.5rem">Muestras</span>
-        <!-- Business-unit switcher: changes CONTEXT (division), not module.
-             Hidden automatically when the user is only authorized for one
-             business unit — see renderBuSwitcher(). -->
-        <div class="bu-switch" id="bu-switch">
-          <button class="bu-switch-btn" id="bu-switch-btn" onclick="toggleBuSwitch()">
-            <span class="bu-switch-dot" id="bu-switch-dot"></span>
-            <span class="bu-switch-lbl" id="bu-switch-lbl">Muestras</span>
-            <svg class="bu-switch-chev" width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <div class="bu-switch-pop" id="bu-switch-pop"></div>
-        </div>
-        <button class="nav-item" id="nav-catalog" data-tip="Catálogo" style="--item-color:#16cdbe" onclick="showSamplesCatalog()"><span class="n-icon" id="icon-catalog"></span><span class="nav-label">Catálogo</span></button>
-        <button class="nav-item" id="nav-samples" data-tip="Solicitudes" style="--item-color:#16cdbe;display:none" onclick="showSampleCenter()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="10" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="10" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M13.5 13.5v-1M13.5 16.5v-1M11.5 14.5h1M15.5 14.5h1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Solicitudes</span></button>
-        <button class="nav-item cart-nav-item" id="nav-cart" data-tip="Colecciones" style="--item-color:#16cdbe;display:none" onclick="openCollectionsNav()"><span class="n-icon" style="position:relative"><svg viewBox="0 0 20 20" fill="none"><path d="M3 4h2l1.6 9.5a1 1 0 0 0 1 .8h7.3a1 1 0 0 0 1-.75L17.5 8H5.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="17" r="1.1" fill="currentColor"/><circle cx="14.5" cy="17" r="1.1" fill="currentColor"/></svg><span class="cart-nav-badge" id="cart-nav-badge">0</span></span><span class="nav-label">Colecciones</span><span class="cart-nav-count" id="cart-nav-count">0</span></button>
-        <button class="nav-item" id="nav-insights" data-tip="Insights" style="--item-color:#9e00cb;display:none" onclick="showInsights()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M4 16V9M10 16V4M16 16v-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="nav-label">Insights</span></button>
-        <!-- Scan is a contextual action (Picking/Packing/Inventory lookup), not
-             an IA destination — reachable from the div-toolbar, the dashboard,
-             and inline "Scan" buttons on the warehouse screens below. -->
-        <span class="s-label" id="wh-group-label" style="margin-top:0.5rem;display:none">Almacén</span>
-        <button class="nav-item" id="nav-dispatch-queue" data-tip="Cola de despacho" style="--item-color:#16cdbe;display:none" onclick="showDispatchQueueCurrent()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Cola de despacho</span></button>
-        <button class="nav-item" id="nav-wh-inventory" data-tip="Inventario" style="--item-color:#16cdbe;display:none" onclick="showWarehouseInventoryCurrent()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Inventario</span></button>
-      </div>
-      <div class="mod-scope" data-scope="talento_humano">
-        <span class="s-label" style="margin-top:0.5rem">Talento Humano</span>
-        <button class="nav-item" id="nav-gafetes" data-tip="Creador de Gafetes" style="--item-color:#ffc529" onclick="showGafetes()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="4" y="2.5" width="12" height="15" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="8" r="2.2" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 14.5c0-1.7 1.6-2.7 3.5-2.7s3.5 1 3.5 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span class="nav-label">Gafetes</span></button>
-      </div>
-      <div class="mod-scope" data-scope="administracion">
-        <span class="s-label" style="margin-top:0.5rem">Index</span>
-        <button class="nav-item" id="nav-logs" data-tip="Access logs" style="--item-color:#444444" onclick="showAccessLogs()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M10 6v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Access logs</span></button>
-        <button class="nav-item" id="nav-users" data-tip="Team" style="--item-color:#9e00cb" onclick="showUserManagement()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 17c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M15 6v4M17 8h-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Team</span></button>
-        <button class="nav-item" id="nav-styleguide" data-tip="Style Guide" style="--item-color:#16cdbe" onclick="showStyleGuide()"><span class="n-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M5 4h8.5A1.5 1.5 0 0 1 15 5.5V16H6.5A1.5 1.5 0 0 1 5 14.5V4Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 7h4M8 10h4M8 13h2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Style Guide</span></button>
-      </div>
+      <span class="s-label" id="modules-label" style="margin-top:0.6rem">Módulos</span>
+      <div id="nav-tree"></div>
       <div class="sidebar-spacer"></div>
       <div class="sidebar-bottom">
         <button class="nav-item" data-tip="Visit the public website" onclick="location.href='home.html'" aria-label="Visit website">
@@ -6441,12 +6332,12 @@ function applyLanguage(opts = {}) {
   document.documentElement.lang = appLang
   setText('#sidebar-search-btn .nav-label', tx('nav.search'))
   setText('#nav-dash .nav-label', tx('nav.dashboard'))
-  setText('#nav-styleguide .nav-label', tx('nav.styleGuide'))
-  setText('#nav-samples .nav-label', tx('nav.sampleCenter'))
-  setText('#nav-insights .nav-label', tx('nav.insights'))
-  setText('#nav-cart .nav-label', tx('nav.collection'))
-  setText('#nav-logs .nav-label', tx('nav.accessLogs'))
-  setText('#nav-users .nav-label', tx('nav.team'))
+  // The sidebar tree's own leaves (Style Guide/Sample Center/Insights/
+  // Collections/Access Logs/Team) bake tx() in directly at render time
+  // (see NAV_LEAF_TX in renderSidebarTree()) — re-render it so a language
+  // switch is reflected immediately instead of waiting for the next
+  // navigation.
+  renderSidebarTree()
   setText('#notif-btn .nav-label', tx('nav.notifications'))
   setText('#theme-btn .nav-label', tx('nav.appearance'))
   setText('#sec-sub', tx('catalog.subtitle'))
@@ -6918,16 +6809,10 @@ async function enterApp(user) {
   // "+ New product" is now rendered per-division inside #product-controls
   // by renderCatalogHeaderActions() (called from setDiv) — no standalone
   // #add-btn element exists anymore.
-  if (can('admin', 'platform')) {
-    document.getElementById('nav-logs').style.display = 'flex'
-    const nu = document.getElementById('nav-users')
-    if (nu) nu.style.display = 'flex'
-  }
-  if (insightsSections().length) document.getElementById('nav-insights').style.display = 'flex'
-  renderModuleSwitcher()
-  renderBuSwitcher()
-  renderSamplesFulfillmentNav()
-  renderSamplesCommercialNav()
+  // Access logs/Team/Insights visibility is computed declaratively inside
+  // the sidebar tree render (navModuleRowHtml's tool.visible() checks,
+  // insightsSections().length) — nothing to toggle here.
+  renderSidebarTree()
   loadDraftCart()
   // Store email in profiles for admin view
   if (p && !p.email) {
@@ -7660,6 +7545,7 @@ function focusSearch() { openSpotlight() }
 // re-queries products/inventory scoped to the new division, it doesn't
 // union anything.
 function setDiv(d) {
+  _navLeaf = 'samples|' + d + '|catalog'
   syncModule('samples')
   sessionStorage.setItem('sierra_route', 'div:' + d)
   setHash('#/division/' + d)
@@ -7668,8 +7554,6 @@ function setDiv(d) {
   // screens that still use it (none currently show it while active).
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView(true)
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-catalog')?.classList.add('active')
   division = d
   applyDivisionAccent(d)
   fabricFilter = null // reset construction filter when switching division
@@ -7707,45 +7591,14 @@ function showSamplesHome() {
   showModuleHub()
 }
 
-/* ── Business-unit switcher ──
-   "Samples / Fabric ▾" — the ONE place a user changes which business
-   unit's catalog/requests/warehouse they're looking at. Only lists
-   divisions the signed-in user is actually authorized to read; picking
-   one re-scopes the current screen (catalog stays on catalog, dispatch
-   queue stays on dispatch queue) instead of bouncing to a different
-   módulo. Auto-hidden when the user has access to a single business
-   unit — nothing to switch between. */
-function renderBuSwitcher() {
-  const wrap = document.getElementById('bu-switch')
-  if (!wrap) return
-  const divs = authorizedDivisions()
-  wrap.classList.toggle('has-multi', divs.length > 1)
-  const cur = divs.includes(division) ? division : divs[0]
-  const lbl = document.getElementById('bu-switch-lbl')
-  const dot = document.getElementById('bu-switch-dot')
-  if (cur) {
-    lbl.textContent = DIV_LBL[cur] || cur
-    const c = (DIV_ACCENT[cur] || DIV_ACCENT.all).accent
-    dot.innerHTML = `<span style="width:100%;height:100%;border-radius:inherit;display:flex;align-items:center;justify-content:center;background:${c}1f;color:${c}">${DIV_ICON[cur] || ''}</span>`
-  } else {
-    lbl.textContent = 'Muestras'
-    dot.innerHTML = ''
-  }
-  document.getElementById('bu-switch-pop').innerHTML = divs.map(d => `
-    <div class="pop-menu-item bu-switch-item ${d === cur ? 'current' : ''}" onclick="setDiv('${d}'); toggleBuSwitch(false)">
-      <span class="bu-switch-dot" style="background:${(DIV_ACCENT[d]||DIV_ACCENT.all).accent}1f;color:${(DIV_ACCENT[d]||DIV_ACCENT.all).accent}">${DIV_ICON[d] || ''}</span>
-      <span>${esc(DIV_LBL[d] || d)}</span>
-    </div>`).join('')
-  const icon = document.getElementById('icon-catalog')
-  if (icon && cur) icon.innerHTML = DIV_ICON[cur] || ''
-}
-function toggleBuSwitch(force) {
-  document.getElementById('bu-switch')?.classList.toggle('open', force)
-}
-document.addEventListener('click', e => {
-  const sw = document.getElementById('bu-switch')
-  if (sw && !sw.contains(e.target)) sw.classList.remove('open')
-})
+/* ── Business-unit switching ──
+   Division context (catalog/requests/warehouse) now lives as expandable
+   nodes in the persistent sidebar tree (renderSidebarTree()), not a
+   popover. renderBuSwitcher() is kept as a thin alias so the ~10 existing
+   call sites throughout setDiv()/showDispatchQueue()/etc. keep working
+   unchanged — it just re-renders the tree, which already reflects the
+   current `division` global on every render. */
+function renderBuSwitcher() { renderSidebarTree() }
 
 /* ── Account menu ── §25: sidebar identity click opens a structured
    popover (My profile / Notifications / Appearance / Administration /
@@ -7920,13 +7773,6 @@ async function setDefaultModule(key) {
   renderModuleSwitcher()
   await sb.from('profiles').update({ default_module: profile.default_module, default_division: profile.default_division }).eq('id', me.id)
 }
-// Star in the module selector — a quick toggle over the same preference
-// the Account Mega Menu's Defaults section edits (one source of truth,
-// per §10: "Both must update the SAME underlying user preference").
-function toggleFavoriteModule(key, ev) {
-  ev.stopPropagation()
-  setDefaultModule(profile?.default_module === key ? null : key)
-}
 async function setDefaultDivision(d) {
   profile = profile || {}
   profile.default_division = d || null
@@ -7947,33 +7793,11 @@ document.addEventListener('click', e => {
   if (th && !th.contains(e.target)) th.classList.remove('open')
 })
 
-/* ── Fulfillment nav (Cola de despacho / Inventario) ──
-   Shown only when the signed-in user has warehouse access to the
-   business unit currently in context — never for every division at
-   once, and never merged across divisions. Re-evaluated on every
-   context switch (setDiv / showDispatchQueue / showWarehouseInventory). */
-function renderSamplesFulfillmentNav() {
-  const dq = document.getElementById('nav-dispatch-queue')
-  const wi = document.getElementById('nav-wh-inventory')
-  const grp = document.getElementById('wh-group-label')
-  const showDispatch = canDispatchDiv(division)
-  const showInv = hasWarehouseAccess(division)
-  if (dq) dq.style.display = showDispatch ? 'flex' : 'none'
-  if (wi) wi.style.display = showInv ? 'flex' : 'none'
-  if (grp) grp.style.display = (showDispatch || showInv) ? 'block' : 'none'
-}
-
-// Requests/Collections lifecycle (customer_service) is its own domain, not
-// tied to any one division — a Fiber-only user with no customer_service
-// grant shouldn't see Solicitudes/Colecciones at all. Not division-
-// dependent, so this only needs to run once at login.
-function renderSamplesCommercialNav() {
-  const show = can('read', 'customer_service') ? 'flex' : 'none'
-  const samplesBtn = document.getElementById('nav-samples')
-  const cartBtn = document.getElementById('nav-cart')
-  if (samplesBtn) samplesBtn.style.display = show
-  if (cartBtn) cartBtn.style.display = show
-}
+// renderSamplesFulfillmentNav()/renderSamplesCommercialNav() now live as
+// thin aliases to renderSidebarTree() (see MODULES/sidebar tree section) —
+// per-division dispatch/inventory visibility and the customer_service gate
+// are computed declaratively inside navDivisionRowHtml()/navModuleRowHtml()
+// on every tree render instead of toggled on fixed DOM nodes.
 
 function updateSectionTitle() {
   const title = division === 'all' ? tx('nav.allProducts') : DIV_LBL[division]
@@ -12134,6 +11958,7 @@ const NEWS_SOURCES_CFG = [
 ]
 
 function showStyleGuide() {
+  _navLeaf = 'administracion|_|styleguide'
   syncModule('administracion')
   sessionStorage.setItem('sierra_route', 'style-guide')
   document.getElementById('div-toolbar').style.display = 'none'
@@ -12143,8 +11968,6 @@ function showStyleGuide() {
   dashCharts = {}
   commodityData = {}
 
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-styleguide').classList.add('active')
   document.getElementById('tb-section').textContent = 'Style Guide'
   document.getElementById('view-products').style.display = 'none'
   document.getElementById('view-dashboard').style.display = 'none'
@@ -12462,16 +12285,17 @@ function showStyleGuide() {
             </div>
           </div>
           <div class="sg-canvas" style="margin-top:0.8rem">
-            <div class="sg-canvas-label">Navigation — módulos</div>
-            <div class="sg-lede" style="margin:0 0 0.6rem">The sidebar is module-scoped, not one long static list: only the active
-            module's tools show below the switcher (<code>.mod-scope</code> wrapper divs, toggled by <code>applyModuleScope()</code> — never per-item
-            <code>display</code> hacks). Users with more than one accessible module get the <code>.mod-switch</code> control (an iCloud.com-style
-            dropdown, not a permanent pill row or icon rail) right under the brand mark; it's hidden entirely for single-module users.
-            Radii follow the standard scale (sm·7 for the trigger/menu rows, lg·12 for the popover — "dropdown menus" per the Radius table
-            above); all motion uses <code>--dur-fast</code> / <code>--ease-out</code>, none of it ad hoc.</div>
+            <div class="sg-canvas-label">Navigation — sidebar tree</div>
+            <div class="sg-lede" style="margin:0 0 0.6rem">The sidebar is a persistent tree (<code>renderSidebarTree()</code>), not a
+            popover you reopen to move between screens. Every accessible module renders every time; a module row's chevron toggles its
+            children (<code>_navExpanded</code>, a Set persisted to <code>localStorage</code>), and Muestras nests each authorized
+            division the same way — division → Catálogo/Cola de despacho/Inventario. Active state is a thin <code>var(--accent)</code>
+            underline on the leaf plus <code>var(--accent-dark)</code> text (§ Color System §42), never a filled pill on the module or
+            division row — those are structure, not a destination. Collapsed sidebar hides all children and shows just the top-level
+            module icons; clicking one re-expands the sidebar rather than opening a flyout.</div>
             <div class="sg-usage">
-              <div class="sg-use"><b>Use</b>One module active at a time. Land new users on the Módulos hub, not inside a module, so the choice is always explicit.</div>
-              <div class="sg-nouse"><b>Don't</b>Show tools from more than one module at once, or invent a new switcher pattern per screen — this is the one component for cross-module navigation.</div>
+              <div class="sg-use"><b>Use</b>One tree for the whole app. A new screen becomes a leaf under its module/division in <code>navModuleRowHtml()</code>/<code>navDivisionRowHtml()</code>, never a new switcher or a second path to the same route.</div>
+              <div class="sg-nouse"><b>Don't</b>Reintroduce a popover for primary navigation, or give a module/division row the same filled-pill treatment as a leaf's active state — see §51 on not collapsing hierarchy levels into one look.</div>
             </div>
           </div>
         </section>
@@ -13089,6 +12913,7 @@ const MODULES = {
         desc: 'Crea cuentas, asigna módulos y administra el acceso de cada persona',
         icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 17c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
         run: 'showUserManagement',
+        visible: () => can('admin', 'platform'),
       },
       {
         id: 'logs',
@@ -13096,6 +12921,7 @@ const MODULES = {
         desc: 'Historial de accesos a la plataforma',
         icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M10 6v4l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
         run: 'showAccessLogs',
+        visible: () => can('admin', 'platform'),
       },
       {
         id: 'styleguide',
@@ -13117,73 +12943,145 @@ function accessibleModules() { return Object.entries(MODULES).filter(([, m]) => 
 
 let activeModule = null
 
-function applyModuleScope(key) {
-  document.querySelectorAll('.mod-scope').forEach(el => {
-    el.style.display = el.dataset.scope === key ? 'block' : 'none'
-  })
-}
-
 // Called by every screen that belongs to a module (including ones reached
 // directly — deep link, saved-route restore, sidebar item — not just via
-// enterModule()) so the sidebar scope and switcher never fall out of sync
-// with what's actually on screen.
+// enterModule()) so the sidebar tree's expanded/active state never falls
+// out of sync with what's actually on screen.
 function syncModule(key) {
   activeModule = key
   if (key) sessionStorage.setItem('sierra_active_module', key)
   else sessionStorage.removeItem('sierra_active_module')
-  applyModuleScope(key)
   renderModuleSwitcher()
 }
 
-function renderModuleSwitcher() {
-  const wrap = document.getElementById('mod-switch')
-  const mods = accessibleModules()
+/* ══════════════════════════════════════════════════════════════════════
+   SIDEBAR NAVIGATION TREE — persistent, non-popover replacement for the
+   old .mod-switch/.bu-switch pair. Every accessible module, division and
+   screen renders every time (never hidden behind a dropdown); expand
+   state is a small Set, persisted to localStorage so it survives reload.
+   renderModuleSwitcher()/renderBuSwitcher()/renderSamplesFulfillmentNav()/
+   renderSamplesCommercialNav() are kept as thin aliases below so the many
+   existing call sites throughout setDiv()/showDispatchQueue()/etc. keep
+   working — they all just re-render this one tree, which reads current
+   state (division, activeModule, capabilities) fresh every time.
+   ══════════════════════════════════════════════════════════════════════ */
+let _navLeaf = null // 'samples|fiber|catalog', 'talento_humano|_|gafetes', 'dashboard', or null
+let _navExpanded = new Set(JSON.parse(localStorage.getItem('sierra_nav_expanded') || '["samples"]'))
+function _navSaveExpanded() { localStorage.setItem('sierra_nav_expanded', JSON.stringify([..._navExpanded])) }
+function navToggleExpand(key) {
+  if (_navExpanded.has(key)) _navExpanded.delete(key); else _navExpanded.add(key)
+  _navSaveExpanded()
+  renderSidebarTree()
+}
+// Module-row click: expand the sidebar first if it's collapsed (a click on
+// a collapsed-rail icon must always do something useful — see §17b), then
+// toggle that module's children open.
+function navToggleModule(key) {
+  const sb = document.getElementById('sidebar')
+  if (sb && sb.classList.contains('collapsed')) toggleSidebar()
+  navToggleExpand(key)
+}
+// The one entry point every tree leaf's onclick calls: records which leaf
+// is now current (for the active-state underline/highlight), expands its
+// ancestor chain, runs the real navigation function, then re-renders.
+function navGo(key, fn) {
+  _navLeaf = key
+  fn()
+  renderSidebarTree()
+}
+const NAV_CHEVRON_SVG = '<svg viewBox="0 0 20 20" fill="none" width="10" height="10"><path d="M7 5l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+const NAV_ICON_DISPATCH = '<svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>'
+const NAV_ICON_INVENTORY = '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+const NAV_ICON_REQUESTS = '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="10" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="10" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M13.5 13.5v-1M13.5 16.5v-1M11.5 14.5h1M15.5 14.5h1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>'
+const NAV_ICON_COLLECTIONS = '<svg viewBox="0 0 20 20" fill="none"><path d="M3 4h2l1.6 9.5a1 1 0 0 0 1 .8h7.3a1 1 0 0 0 1-.75L17.5 8H5.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="17" r="1.1" fill="currentColor"/><circle cx="14.5" cy="17" r="1.1" fill="currentColor"/></svg>'
+const NAV_ICON_INSIGHTS = '<svg viewBox="0 0 20 20" fill="none"><path d="M4 16V9M10 16V4M16 16v-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
+// Screens whose displayed label goes through the (partial) EN/ES layer —
+// same tx() keys applyLanguage() used to overlay onto the old static
+// nav-items; baked in directly now so a fresh tree render never reverts
+// to the hardcoded Spanish default after a language switch.
+const NAV_LEAF_TX = { requests: 'nav.sampleCenter', collections: 'nav.collection', insights: 'nav.insights', team: 'nav.team', logs: 'nav.accessLogs', styleguide: 'nav.styleGuide' }
+
+function navLeafHtml(key, id, label, iconSvg, depthClass, fnExpr, extraAttrs) {
+  const lbl = NAV_LEAF_TX[id] ? tx(NAV_LEAF_TX[id]) : label
+  const active = _navLeaf === key
+  return `<button class="nav-item nav-tree-leaf ${depthClass}${active ? ' active' : ''}" id="${extraAttrs?.elId || ''}" data-tip="${escAttr(lbl)}" onclick="navGo('${key}', ${fnExpr})">
+    <span class="n-icon"${extraAttrs?.iconStyle ? ` style="${extraAttrs.iconStyle}"` : ''}>${iconSvg}${extraAttrs?.badge || ''}</span>
+    <span class="nav-label">${esc(lbl)}</span>${extraAttrs?.trailing || ''}
+  </button>`
+}
+
+function navDivisionRowHtml(d) {
+  const key = 'samples|' + d
+  const expanded = _navExpanded.has(key)
+  const accent = (DIV_ACCENT[d] || DIV_ACCENT.all).accent
+  const showDisp = canDispatchDiv(d)
+  const showInv = hasWarehouseAccess(d)
+  let children = navLeafHtml('samples|' + d + '|catalog', 'catalog', 'Catálogo', DIV_ICON[d] || '', 'lvl3', `function(){setDiv('${d}')}`)
+  if (showDisp) children += navLeafHtml('samples|' + d + '|dispatch', 'dispatch', 'Cola de despacho', NAV_ICON_DISPATCH, 'lvl3', `function(){showDispatchQueue('${d}')}`)
+  if (showInv) children += navLeafHtml('samples|' + d + '|inventory', 'inventory', 'Inventario', NAV_ICON_INVENTORY, 'lvl3', `function(){showWarehouseInventory('${d}')}`)
+  return `
+    <button class="nav-item nav-tree-div" data-tip="${escAttr(DIV_LBL[d] || d)}" onclick="navToggleExpand('${key}')">
+      <span class="nav-tree-chevron${expanded ? ' expanded' : ''}">${NAV_CHEVRON_SVG}</span>
+      <span class="n-icon" style="color:${accent}">${DIV_ICON[d] || ''}</span>
+      <span class="nav-label">${esc(DIV_LBL[d] || d)}</span>
+    </button>
+    <div class="nav-tree-children${expanded ? '' : ' collapsed'}">${children}</div>`
+}
+
+function navModuleRowHtml(key, m) {
+  const expanded = _navExpanded.has(key)
+  let children = ''
+  if (key === 'samples') {
+    children += authorizedDivisions().map(navDivisionRowHtml).join('')
+    if (can('read', 'customer_service')) {
+      children += navLeafHtml('samples|_|requests', 'requests', 'Solicitudes', NAV_ICON_REQUESTS, 'lvl2', 'showSampleCenter')
+      const n = (typeof sampleCart !== 'undefined' ? sampleCart.reduce((s, i) => s + i.qty, 0) : 0)
+      children += navLeafHtml('samples|_|collections', 'collections', 'Colecciones', NAV_ICON_COLLECTIONS, 'lvl2', 'openCollectionsNav', {
+        elId: 'nav-cart', iconStyle: 'position:relative',
+        badge: `<span class="cart-nav-badge" id="cart-nav-badge" style="display:${n ? 'flex' : 'none'}">${n}</span>`,
+        trailing: `<span class="cart-nav-count" id="cart-nav-count">${n}</span>`,
+      })
+    }
+    if (insightsSections().length) children += navLeafHtml('samples|_|insights', 'insights', 'Insights', NAV_ICON_INSIGHTS, 'lvl2', 'showInsights')
+  } else {
+    children = (m.tools || []).filter(t => !t.visible || t.visible())
+      .map(t => navLeafHtml(key + '|_|' + t.id, t.id, t.label, t.icon, 'lvl2', t.run)).join('')
+  }
+  return `
+    <button class="nav-item nav-tree-mod" data-tip="${escAttr(m.label)}" onclick="navToggleModule('${key}')">
+      <span class="nav-tree-chevron${expanded ? ' expanded' : ''}">${NAV_CHEVRON_SVG}</span>
+      <span class="n-icon" style="color:${m.color}">${m.icon}</span>
+      <span class="nav-label">${esc(m.label)}</span>
+    </button>
+    <div class="nav-tree-children${expanded ? '' : ' collapsed'}">${children}</div>`
+}
+
+const NAV_MODULE_ORDER = ['samples', 'talento_humano', 'administracion']
+function renderSidebarTree() {
+  const root = document.getElementById('nav-tree')
+  if (!root) return
+  if (_navLeaf) {
+    const [mk, dk] = _navLeaf.split('|')
+    if (mk && mk !== 'dashboard') _navExpanded.add(mk)
+    if (dk && dk !== '_') _navExpanded.add(mk + '|' + dk)
+  }
+  document.getElementById('nav-dash')?.classList.toggle('active', _navLeaf === 'dashboard')
   const mobCart = document.getElementById('mob-cart-btn')
   if (mobCart) mobCart.style.display = can('read', 'customer_service') ? 'flex' : 'none'
-  // Shown for anyone with at least one module — it's the only way back to
-  // the Módulos hub now that the sidebar doesn't also carry a separate
-  // "Módulos" button (that was a second, redundant path to the same place).
-  wrap.classList.toggle('has-modules', mods.length >= 1)
-  if (!mods.length) { wrap.classList.remove('open'); return }
-
-  const current = MODULES[activeModule]
-  const MOD_FALLBACK_ICON = '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.3" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.3" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.3" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.3" stroke="currentColor" stroke-width="1.4"/></svg>'
-  document.getElementById('mod-switch-lbl').textContent = current ? current.label : 'Módulos'
-  // Always render something in the dot — collapsed mode shows this alone
-  // with no label beside it, so an empty dot (no active module yet) would
-  // be an invisible button (§12: never leave unexplained empty space).
-  document.getElementById('mod-switch-dot').innerHTML = current
-    ? `<span style="width:100%;height:100%;border-radius:inherit;display:flex;align-items:center;justify-content:center;background:${current.color}1f;color:${current.color}">${current.icon}</span>`
-    : `<span style="width:100%;height:100%;border-radius:inherit;display:flex;align-items:center;justify-content:center;background:var(--surface2);color:var(--text-muted)">${MOD_FALLBACK_ICON}</span>`
-
-  const fav = profile?.default_module
-  document.getElementById('mod-switch-pop').innerHTML = mods.map(([key, m]) => {
-    const isFav = fav === key
-    return `<div class="mod-switch-item${key === activeModule ? ' current' : ''}" onclick="enterModule('${key}'); toggleModSwitch(false)">
-      <span class="mod-switch-item-dot" style="background:${m.color}1f;color:${m.color}">${m.icon}</span>
-      <span class="mod-switch-item-lbl">${esc(m.label)}</span>
-      <button type="button" class="mod-switch-star${isFav ? ' is-fav' : ''}" onclick="toggleFavoriteModule('${key}', event)" title="${isFav ? 'Default module' : 'Set as default'}" aria-label="${isFav ? 'Default module' : 'Set as default'}" aria-pressed="${isFav}">
-        <svg viewBox="0 0 20 20" fill="${isFav ? 'currentColor' : 'none'}"><path d="M10 2.8l2.1 4.5 4.8.6-3.5 3.4.9 4.8L10 13.7l-4.3 2.4.9-4.8-3.5-3.4 4.8-.6L10 2.8z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
-      </button>
-    </div>`
-  }).join('') + `
-    <div class="pop-menu-sep"></div>
-    <div class="mod-switch-item" onclick="showModuleHub(); toggleModSwitch(false)">
-      <span class="mod-switch-item-lbl" style="padding-left:2px">Todos los módulos</span>
-    </div>`
+  const mods = accessibleModules().sort((a, b) => NAV_MODULE_ORDER.indexOf(a[0]) - NAV_MODULE_ORDER.indexOf(b[0]))
+  root.innerHTML = mods.map(([key, m]) => navModuleRowHtml(key, m)).join('')
+  updateCartFab()
 }
+// Aliases — every existing call site (setDiv, showDispatchQueue,
+// showWarehouseInventory, enterApp, setDefaultModule, ...) keeps working
+// unchanged; all four just re-render the one tree.
+function renderModuleSwitcher() { renderSidebarTree() }
+function renderSamplesFulfillmentNav() { renderSidebarTree() }
+function renderSamplesCommercialNav() { renderSidebarTree() }
 
-function toggleModSwitch(force) {
-  document.getElementById('mod-switch').classList.toggle('open', force)
-}
-document.addEventListener('click', e => {
-  const sw = document.getElementById('mod-switch')
-  if (sw && !sw.contains(e.target)) sw.classList.remove('open')
-})
-
-// Selecting a module from the hub or switcher jumps straight into its one
-// tool (no pointless "here is your 1 tool" screen); modules with several
-// tools (Administración) still show the picker.
+// Selecting a module from the hub jumps straight into its one tool (no
+// pointless "here is your 1 tool" screen); modules with several tools
+// (Administración) still show the picker grid.
 function enterModule(key) {
   const m = MODULES[key]
   if (!m || !moduleAccessible(m)) { showModuleHub(); return }
@@ -13206,12 +13104,12 @@ function samplesModuleDesc() {
 }
 
 function showModuleHub() {
+  _navLeaf = null
   sessionStorage.setItem('sierra_route', 'modules')
   syncModule(null)
   clearHash()
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
   document.getElementById('tb-section').textContent = 'Módulos'
   document.getElementById('product-controls').style.display = 'none'
   document.getElementById('sec-title').textContent = 'Módulos'
@@ -13233,12 +13131,12 @@ function showModuleHub() {
 function showModuleTools(key) {
   const m = MODULES[key]
   if (!m || !moduleAccessible(m)) { showModuleHub(); return }
+  _navLeaf = null
   syncModule(key)
   sessionStorage.setItem('sierra_route', 'module:' + key)
   clearHash()
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
   document.getElementById('tb-section').textContent = m.label
   document.getElementById('product-controls').style.display = 'none'
   document.getElementById('sec-title').textContent = m.label
@@ -13379,13 +13277,12 @@ let _badge_ui = {
 // ═══════════════════════════════════════════════════════════════════════
 
 async function showGafetes() {
+  _navLeaf = 'talento_humano|_|gafetes'
   syncModule('talento_humano')
   sessionStorage.setItem('sierra_route', 'module:talento_humano')
   clearHash()
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-gafetes')?.classList.add('active')
   document.getElementById('tb-section').textContent = 'Gafetes Administrativos'
   // ONE page header (content-hdr) — the site switcher lives in its right
   // slot, never a second floating title inside the module body.
@@ -15382,6 +15279,7 @@ async function printBadge() {
 }
 
 function showDashboard() {
+  _navLeaf = 'dashboard'
   syncModule(null)
   sessionStorage.setItem('sierra_route', 'dashboard')
   clearHash()
@@ -15391,8 +15289,6 @@ function showDashboard() {
   Object.values(dashCharts).forEach(c => { try { c.destroy() } catch {} })
   dashCharts = {}
 
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-dash').classList.add('active')
   document.getElementById('tb-section').textContent = 'Home'
   document.getElementById('view-styleguide').style.display = 'none'
   document.getElementById('view-products').style.display = 'none'
@@ -16123,11 +16019,10 @@ async function logAccess() {
 }
 
 async function showAccessLogs() {
+  _navLeaf = 'administracion|_|logs'
   syncModule('administracion')
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-logs').classList.add('active')
   document.getElementById('tb-section').textContent = 'Access Logs'
   document.getElementById('product-controls').style.display = 'none'
   document.getElementById('sec-title').textContent = 'Access Logs'
@@ -16233,11 +16128,10 @@ function domainLabel(d) { return tx('team.domain.' + d) }
 function roleLabel(r) { return tx('team.role.' + (r || 'user')) }
 
 async function showUserManagement() {
+  _navLeaf = 'administracion|_|team'
   syncModule('administracion')
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-users').classList.add('active')
   document.getElementById('tb-section').textContent = tx('team.title')
   document.getElementById('product-controls').style.display = 'none'
   document.getElementById('sec-title').textContent = tx('team.title')
@@ -17387,11 +17281,10 @@ async function quickReq(p) { await addToCart(p) }
 
 /* ── SAMPLE CENTER VIEW ── */
 async function showSampleCenter() {
+  _navLeaf = 'samples|_|requests'
   syncModule('samples')
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-samples').classList.add('active')
   document.getElementById('sec-title').textContent = 'Sample Center'
   document.getElementById('sec-sub').textContent = 'Track every physical sample from request to archive'
   document.getElementById('product-controls').style.display = 'none'
@@ -17727,6 +17620,7 @@ async function showSampleRecord(sampleId) {
    on several client collections in parallel: each is its own card, its
    own workspace, its own room for collaborators to join. ── */
 async function showCollectionsHub() {
+  _navLeaf = 'samples|_|collections'
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
   syncModule('samples')
@@ -19025,15 +18919,14 @@ let _dqRows = [], _dqDiv = null
 let _dqFilters = { q:'', status:'', customer:'', requester:'', delivery:'', date:'', overdue:false, sort:'age_asc' }
 
 async function showDispatchQueue(div) {
+  _navLeaf = 'samples|' + div + '|dispatch'
   syncModule('samples')
-  division = div // keep the bu-switch context in sync with the warehouse queue being viewed
+  division = div // keep the sidebar tree context in sync with the warehouse queue being viewed
   applyDivisionAccent(div)
   renderBuSwitcher()
   renderSamplesFulfillmentNav()
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-dispatch-queue')?.classList.add('active')
   const title = `Cola de despacho · ${ALMACEN_DIV_LBL[div]}`
   document.getElementById('tb-section').textContent = title
   document.getElementById('product-controls').style.display = 'none'
@@ -20389,16 +20282,15 @@ function renderInventoryOverview(D, P, division) {
 
 let _whInvPeriod = 30, _whInvDivision = null
 async function showWarehouseInventory(div) {
+  _navLeaf = 'samples|' + div + '|inventory'
   _whInvDivision = div
-  division = div // keep the bu-switch context in sync with the warehouse inventory being viewed
+  division = div // keep the sidebar tree context in sync with the warehouse inventory being viewed
   syncModule('samples')
   applyDivisionAccent(div)
   renderBuSwitcher()
   renderSamplesFulfillmentNav()
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-wh-inventory')?.classList.add('active')
   const title = `Inventario · ${ALMACEN_DIV_LBL[div]}`
   document.getElementById('tb-section').textContent = title
   document.getElementById('product-controls').style.display = 'none'
@@ -20640,12 +20532,11 @@ function insightsSections() {
 const INS_LABELS = { overview:'Overview', demand:'Demand', operations:'Operations', customers:'Customers', health:'Product Health', trends:'Trends' }
 
 async function showInsights() {
+  _navLeaf = 'samples|_|insights'
   syncModule('samples')
   sessionStorage.setItem('sierra_route', 'insights')
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
-  document.getElementById('nav-insights')?.classList.add('active')
   document.getElementById('tb-section').textContent = 'Insights'
   document.getElementById('product-controls').style.display = 'none'
   document.getElementById('sec-title').textContent = 'Insights'

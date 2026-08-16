@@ -1348,3 +1348,137 @@ collapsing two different signals into one color. It's now neutral
 radius, not pill) like every other secondary control in §8. Teal stays
 reserved for the components in §44/§2 that genuinely mean "you are here"
 or "this is the primary action" — an applied filter chip is neither.
+
+---
+
+# Sidebar Navigation Tree (§52–§54)
+
+## 52. Persistent tree, not a popover
+
+The sidebar's module/division navigation (`.mod-switch`/`.bu-switch`) has
+been replaced with a persistent, always-in-the-DOM tree —
+`renderSidebarTree()` in `index.html`, rendered into `#nav-tree`. Every
+accessible module, and Muestras' every authorized division, renders every
+time; there is nothing to "open" to see what's reachable. Expand/collapse
+is a small `Set` (`_navExpanded`), persisted to `localStorage`
+(`sierra_nav_expanded`) so it survives reload — not a dropdown that has to
+be reopened after every navigation.
+
+```
+Dashboard                          ← static, outside the tree
+Favoritos                          ← header + empty state only (§ Favorites, not built yet)
+Módulos
+  ▾ Muestras
+      ▾ SIERRA Fiber
+          Catálogo
+          Cola de despacho          (canDispatchDiv(d))
+          Inventario                (hasWarehouseAccess(d))
+      ▸ SIERRA Yarn / Fabric / Chemicals / Apparel
+      Sample Center                 (can('read','customer_service'))
+      Collections                   (same gate, carries the cart badge)
+      Insights                      (insightsSections().length)
+  ▾ Talento Humano
+      Gafetes
+  ▾ Index
+      Equipo y Permisos             (can('admin','platform'))
+      Access Logs                   (same gate)
+      Style Guide
+```
+
+Three render functions, one job each:
+- `navModuleRowHtml(key, m)` — a module row + its children. `samples` is
+  special-cased (divisions + the three cross-division leaves); every
+  other module iterates `m.tools`, filtered by an optional
+  `t.visible()` predicate (used by Team/Access Logs to gate on
+  `can('admin','platform')` — Style Guide has none, always visible once
+  the module itself is accessible).
+- `navDivisionRowHtml(d)` — one division's Catálogo/Cola de
+  despacho/Inventario, gated by `canDispatchDiv(d)`/`hasWarehouseAccess(d)`
+  exactly like the old fixed nav-items were.
+- `navLeafHtml(key, id, label, icon, depthClass, fnExpr, extraAttrs)` — a
+  single destination. `NAV_LEAF_TX` bakes the existing partial EN/ES
+  overlay (`tx('nav.sampleCenter')` etc.) directly into the leaf's label
+  at render time, so a language switch doesn't get reverted by the next
+  navigation's re-render (the old `applyLanguage()` `setText()` calls
+  against fixed IDs are gone — it just calls `renderSidebarTree()` now).
+
+**`navGo(key, fn)`** is the one entry point every leaf's `onclick` calls:
+records `_navLeaf = key`, runs the real navigation function, re-renders.
+`renderSidebarTree()` itself expands the ancestor chain of `_navLeaf` on
+every render, so both a tree click and a direct/deep-link call to a
+`show*()` function (which each set `_navLeaf` as their first statement —
+see `setDiv()`, `showGafetes()`, `showDashboard()`, etc.) land on a
+correctly expanded, correctly highlighted tree.
+
+## 53. Integration: aliases, not a rewrite of every call site
+
+`renderModuleSwitcher()`, `renderBuSwitcher()`,
+`renderSamplesFulfillmentNav()` and `renderSamplesCommercialNav()` are
+kept as **thin aliases to `renderSidebarTree()`** — the ~15 existing call
+sites across `setDiv()`, `showDispatchQueue()`, `showWarehouseInventory()`,
+`enterApp()`, `setDefaultModule()` etc. needed no changes. All four used
+to do different partial DOM updates (toggle a `.mod-scope` div, rebuild
+one popover, show/hide two fixed nav-items); now they all just re-render
+the one tree, which reads current state (`division`, `activeModule`,
+`can()`, `sampleCart`) fresh on every call. `applyModuleScope()` and the
+`.mod-scope` wrapper divs are gone entirely — the tree shows every
+accessible module simultaneously instead of switching between single-
+module "scopes."
+
+## 54. Active state, never a filled pill
+
+Module and division rows are structure — clicking one only toggles
+`_navExpanded`, it never "goes" anywhere. Only a leaf can be active, and
+active means the same neutral-bordered `.nav-item.active` treatment used
+everywhere else in the app (`background:none; border-color:var(--border);
+font-weight:600`), with the icon color switching to `var(--accent)` — no
+filled background, no pill. This is the direct fix for the reported
+"cyan pill" collapse of hierarchy levels (§48–§51): navigation now reads
+as navigation at every depth, not a stack of identically-styled buttons.
+
+**Collapsed sidebar**: `.nav-tree-children` and `.nav-tree-chevron` are
+both `display:none` under `.sidebar.collapsed`, so the rail shows only
+the top-level module icons — square, 40px, same as Dashboard/Website
+below them, never a partial or misaligned tree. `navToggleModule(key)`
+calls `toggleSidebar()` first if the sidebar is collapsed, then expands
+that module — a collapsed-rail click always does something useful
+instead of requiring the user to expand the sidebar manually first.
+
+## 55. ERP density pass
+
+Tightened, not cramped — the base-4 spacing scale (§5) is unchanged, only
+the *values assigned to it* moved down one notch on the surfaces that had
+the most dead air:
+
+| Token/rule | Was | Now |
+|---|---|---|
+| `--page-padding-y` | 1.75rem | 1.25rem |
+| `--section-gap` | 24px (`--sp-5`) | 20px |
+| `--panel-gap` | 16px (`--sp-4`) | 14px |
+| `.content-hdr` margin-bottom | 1.5rem | 1.1rem |
+| `.modal-hdr`/`.modal-body`/`.modal-ftr` padding | 1.25/1.1/1rem × 1.4rem | 1/0.95/0.85rem × 1.25rem |
+| `.sd-hdr`/`.sd-body` padding (Drawer) | 1.1rem × 1.3rem | 0.9–0.95rem × 1.15rem |
+| `.erp-table th` padding | 0.55rem 0.7rem | 0.45rem 0.7rem |
+| `.erp-table td` padding | 0.5rem 0.7rem | 0.42rem 0.7rem |
+| `.pop-menu-item`/`.ws-menu-item`/`.card-more-item` min-height | 34px | 32px |
+| `.s-label` (sidebar section label) padding | 0.7rem top | 0.55rem top |
+
+`--control-h` (40px control height) was deliberately left untouched —
+it's load-bearing for alignment across every button/input/select in the
+app, and re-tuning it needs its own pass with broader visual verification
+than this one covered, not a drive-by shrink alongside the sidebar
+rewrite.
+
+## 56. Pill/rounded-rectangle audit
+
+Confirmed the dominant pill-overuse pattern was `.pd-tabs-inline`'s
+filled-teal active state serving three different jobs at once (§49) —
+fixed there. Spot-audited the remaining `border-radius:var(--r-pill)`/
+`999px` usages app-wide: all are legitimate per §16 (status badges,
+count chips like `.queue-count`/`.ws-cat-count`, avatars, the one real
+toggle switch, `.emp-filter-chip` already fixed to `--r-sm` in §51). No
+further large-scale offender found. A full line-by-line pass over every
+`.panel`/`.card` container in the app for "boxed instead of separated by
+spacing" was not attempted in this pass — flagged as future work if a
+specific screen is found to still lean on containment instead of
+hierarchy.
