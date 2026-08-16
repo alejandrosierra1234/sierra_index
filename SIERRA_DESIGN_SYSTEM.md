@@ -2055,3 +2055,167 @@ Not in scope for this pass, flagged rather than silently assumed done
   weren't audited beyond confirming `.card-more-btn`'s base-rule fix
   (§42.3) also benefits their row actions — no dedicated employee card
   grid exists yet to migrate.
+
+## 43. Catalog page architecture: PageHeader levels, CategoryTabs, ProductCard hierarchy
+
+§42 fixed one card's *component grammar* (RecordID/Lifecycle/buttons all
+sharing one height/radius/border scale). This pass fixes the page *around*
+the card: the header had five or six controls all rendering as similar-
+weight buttons, the view switcher and the category filters were literally
+the same CSS class wearing different text, and the card itself put the
+product **code** ahead of the product **name** — backwards for a catalog
+whose job is product comprehension, not code lookup.
+
+### 43.1 PageHeader: three levels, each visually quieter than the last
+
+Every Catalog-style screen (`#view-products`, reused by every division)
+already had the right *skeleton* — `.content-hdr` → view switch → saved-
+views bar → `.page-toolbar` → grid — it just rendered all four rows at
+close to the same visual weight. Nothing moved; the weight did:
+
+| Level | Role | Component | Weight |
+|---|---|---|---|
+| 1 | Page identity | `.content-hdr` (`#sec-title`/`#sec-sub` + primary action) | Heaviest — 2rem title, one filled `.btn-primary` |
+| 2 | Views | `.view-tabs`/`.view-tab` (**new**) | Text + 2px underline on the active tab, no track/pill |
+| 3 | Taxonomy (optional) | `.cat-tabs`/`.cat-tab` (**new**) | Text-forward, soft tint only when active, muted count |
+| 3.5 | Toolbar | `.page-toolbar` + `.btn.btn-secondary` (icon+label) | Bordered controls — heavier than tabs, lighter than the Level-1 primary action |
+
+Levels 2 and 3 used to be the *same* `.pd-tabs-inline`/`.pd-tab` component
+(originally built for the view switch, then reused for the saved-views
+strip because it "already looked like a tab strip") — which is exactly
+why Table|Cards and All Fabrics|Jersey|Rib competed for attention in the
+screenshot that opened this pass: they were the same button rendered
+twice. They're now two distinct, purpose-built components:
+
+- **ViewTabs** (`.view-tabs`) answers "which surface am I looking at" —
+  underline indicator, no background/border on the track, so it sits
+  directly under the PageHeader without adding a rectangle.
+- **CategoryTabs** (`.cat-tabs`) answers "which subset am I browsing" —
+  a lighter-still row: `background:none` at rest, a soft `--surface2`
+  tint only on hover/active, count always in `--text-3` regardless of
+  active state (§2 — the count is never the emphasized half).
+
+`.pd-tabs`/`.pd-tabs-inline` itself is untouched and still correct for
+what it was actually built for (Collection workspace Board/Cards/Table/
+Stats, a small *fixed* tab set in a bounded box) — only Catalog's two
+call sites moved off it.
+
+### 43.2 Toolbar: icon + label, one interaction height
+
+`renderCatalogToolbar()` (Filter/Sort/Group/Columns/•••) moved from
+`.btn-secondary.btn-sm` (36px, text-only — "Sort: Name (A–Z)", "Group by:
+Construction") to full `.btn-secondary` (40px `--control-h`, icon
+leading, prefix dropped — "Name A–Z", "Construction"). The icon already
+says *what kind* of control this is; repeating "Sort:"/"Group by:" in the
+label was pure noise once the icon carries that job (§1/§26). The shared
+`.page-toolbar input[type=text]`/`select` primitive (used by every
+`.page-toolbar`/`.dq-toolbar` in the app, not just Catalog) moved from
+`--control-h-sm` to `--control-h` for the same reason — Search is Level-3
+*interaction*, not a compact secondary surface, so it takes the 40px
+tier like its neighbors (§24). The overflow trigger is the canonical
+`.icon-btn` (40×40), not the old bespoke `.ws-icon-btn`.
+
+### 43.3 ProductCard: name first, code and status are metadata
+
+The card's `.card-meta` row (RecordID + LifecyclePill) used to render
+*above* the product name — so `S-237` was the first, boldest thing on the
+card and `Bubble Jersey` came second. Reversed:
+
+```
+[ media — 152px photo / 96px empty state ]
+Bubble Jersey                              ← .card-name, 16.8px/650, 1 line
+[🔲 S-237]              [● Available]      ← .card-meta: RecordID + LifecyclePill, unchanged from §42
+68% Modal
+29% Polyester                              ← .card-comp — see §43.4
+3% Spx
+358 GSM · Jersey                           ← .card-tech
+[📦 Request sample]              [•••]     ← .card-actions, unchanged from §42
+```
+
+`.card-name` is now single-line (`white-space:nowrap` + ellipsis) at
+1.05rem/650 — the strongest text in the card body — with a `.wrap-2`
+escape hatch (`catCardHtml()` applies it past ~26 characters) for names
+that genuinely need a second line rather than silently truncating a name
+mid-word. RecordID/LifecyclePill keep every anatomy rule from §42 —
+this pass only moved *where* that row sits, not what it looks like.
+
+### 43.4 Composition is read, not truncated
+
+`catCompositionHtml()`/`catCompositionParts()` (next to `catCode()` in
+`index.html`) replace the old `.card-desc` 2-line clamp, which silently
+cut off anything past ~40 characters — exactly the "users can't compare
+fabrics" problem in §14. Composition strings are space-separated
+("68% Modal 29% Polyester 3% Spx", not comma-delimited), so parts are
+split at whitespace immediately preceding a digit (`\s+(?=\d)`) rather
+than on a fixed delimiter:
+
+- **≤ 2 components** → one line, joined with " · " (`98% Modal · 2% Spx`).
+- **3+ components** → stacked, one component per line, fully readable,
+  no clamp.
+
+`catTechLine()` renders weight + construction (`358 GSM · Jersey`) as
+its own muted line underneath — previously bolted onto the same string
+as composition with no visual separation.
+
+### 43.5 Grid density: comprehension over card count
+
+`.pg-grid`'s floor moved from `minmax(240px,1fr)` to `minmax(280px,1fr)`,
+and the separate `.cat-cards-dense` variant (`minmax(200px,1fr)`, 84px
+media, single-line everything — literally the over-densified card this
+pass exists to fix) was deleted; Catalog Cards now renders through the
+one shared `.pg-grid`/`.card`, same as Collections' sample cards (§31 —
+shared primitive, not a per-screen density hack). Plain CSS Grid
+`auto-fill` does the rest without hand-maintained per-breakpoint column
+counts: at a 280px floor a ~1160px content column naturally lands ~4-up
+on a large desktop, ~3 on a laptop, and the `max-width:767px` tablet
+breakpoint (floor lowered to 220px there) still yields ~2-3 depending on
+viewport, down to the existing 400px breakpoint's forced single column.
+
+### 43.6 Card selection: the table's checkbox, not a bespoke circle
+
+`.card-check` was a decorative circular `<div>` toggled by textContent
+(`✓`/``). It's now a real `<input type="checkbox">` — the exact same
+element and `accent-color` treatment as `.cat-td-select input` in the
+table — positioned over the media region's top-left corner instead of a
+floating circle top-right (§20). `toggleProductSelect()` now sets
+`.checked` on it directly instead of `.textContent`.
+
+### 43.7 Media region: don't let an empty state dominate
+
+`.card-img` (real photo) stays tall — 152px, since a real photo is worth
+the space. `.card-img-placeholder` (no image) dropped from a forced-equal
+128px to 96px with a slightly larger, more opaque icon (24px, 0.6 opacity
+vs 22px/0.55) — legible without the gray box reading as more important
+than the product name directly beneath it (§16).
+
+### 43.8 Scope and what's deliberately not touched
+
+This pass changed the **shared** `catCardHtml()`/`wsCardsViewHtml()`
+renderers, `.pg-grid`, `.view-tabs`/`.cat-tabs`, and `renderCatalogToolbar()`
+— so Fiber, Yarn, Fabric, Chemicals and Apparel all pick it up for free
+(Yarn's own `renderCatalogHeaderActions()`/`catColCellHtml()` overrides
+were updated to match the new 40px button sizing but didn't need any
+other change), and Collections' sample cards now share the same
+name-first anatomy. Not in scope, flagged rather than silently assumed
+done:
+
+- **Sidebar navigation** (§4-§8 of the request) — the sidebar tree
+  (`renderSidebarTree()`/`_navExpanded`/`navToggleExpand()`) already only
+  renders a module's or division's children when its key is in the
+  `_navExpanded` `Set` (persisted to `localStorage`); a fresh session
+  shows only the active module/division expanded. The all-divisions-open
+  screenshot reflects **accumulated session state** from prior use, not a
+  missing collapse mechanism — there was nothing to build. What the
+  request also asks for — a Monday-style *dropdown* module switcher — is
+  a **documented, deliberate rejection** already on record in this file
+  (see the "SIDEBAR NAVIGATION TREE" comment block above
+  `renderSidebarTree()`): the persistent always-visible tree explicitly
+  replaced an earlier `.mod-switch`/`.bu-switch` dropdown pair. Reversing
+  that decision inside this pass, without revisiting why it was made,
+  would be a regression dressed as a fix — flagged for a deliberate,
+  separate decision rather than silently done or silently skipped.
+- **Favorites empty state** already matches the request ("Sin favoritos
+  aún" / "No favorites yet") — no change needed.
+- **ERP Table view** (`catTableHtml()`) row density is unchanged, same
+  rationale as §42.5 — only its Search/Filter/Sort/Group/Columns toolbar
+  (shared with Cards) picked up the 40px sizing.
