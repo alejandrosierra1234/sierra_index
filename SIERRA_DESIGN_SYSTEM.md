@@ -1294,3 +1294,57 @@ risk) and the `--up`/`--down` finance tokens on the six standalone pages
 (`#1a8a5c`/`#c0392b`-family, not yet remapped onto `--sem-green-dark`/
 `--sem-red-dark` — flagged as future work, not a live violation since
 they're already a consistent green/red pair app-wide).
+
+## 49. SectionTabs vs. ViewTabs — two different hierarchy levels
+
+`.pd-tabs-inline` (§ "ViewTabs, inline variant") and the new
+`.section-tabs`/`.section-tab` are not interchangeable, even though both
+render a horizontal row of buttons:
+
+- **`.section-tabs`** — primary in-page navigation between the top-level
+  views of a module (Talento Humano: Colaboradores / Cola de gafetes /
+  Historial / Empresas / Configuración, via `renderBadgeTabs()`). This is
+  "where am I in the module." Underline style: transparent background,
+  neutral text, active tab gets `var(--accent-dark)` text + a 2px
+  `var(--accent)` underline. Never a filled pill — that visual weight
+  belongs one level up, to primary actions.
+- **`.pd-tabs-inline`** — a view switcher (Table|Cards, Board/Cards/Table/
+  Stats) or a filter-chip strip (Catalog saved views). This is "which
+  representation/subset of the same data am I looking at," a secondary,
+  reversible choice — not navigation. Its active state is neutral
+  (`var(--surface)` + border + soft shadow, no teal fill), matching the
+  base `.pd-tabs`/`.pd-tab` segmented control it's a variant of.
+
+Both existed as one component before this pass, so every consumer — top
+nav, view switch, filter chips — rendered as an identical teal pill.
+Adding `.section-tabs` and neutralizing `.pd-tabs-inline .pd-tab.active`
+fixes that without touching the base `.pd-tabs`/`.pd-tab` segmented
+control, which was already neutral. When building a new module's
+top-level nav, use `.section-tabs`; never repurpose `.pd-tabs-inline` for
+that job again.
+
+## 50. Table cell wrapping default
+
+`.erp-table`/`.dq-table`/`.pick-table` `<td>` now default to
+`white-space:nowrap` — a value never wraps onto multiple lines by
+accident just because a column is narrow. Combined with
+`.erp-table-wrap`'s `overflow:auto`, a table with a long, un-truncated
+value scrolls horizontally rather than growing every row's height.
+Columns that should truncate with an ellipsis instead (name, code,
+position, department — anything identity-like) use `.emp-td-trunc` /
+`.td-trunc` (`max-width:1px` + `overflow:hidden` + `text-overflow:
+ellipsis`; put the full value in a `title` attribute for hover). A column
+that must genuinely wrap (long-form notes, addresses) opts back in with
+`.td-wrap`. Default nowrap, explicit opt-in to either truncate or wrap —
+never the reverse.
+
+## 51. Filter chips and applied-filter pills are neutral, not teal
+
+`.emp-filter-chip` (an applied filter value, e.g. "Departamento: Ventas
+✕") used to fill with `var(--accent-light)` unconditionally — this made
+"a filter is applied" look identical to "this row/option is selected,"
+collapsing two different signals into one color. It's now neutral
+(`var(--surface2)` background, `var(--text-primary)` text, `var(--r-sm)`
+radius, not pill) like every other secondary control in §8. Teal stays
+reserved for the components in §44/§2 that genuinely mean "you are here"
+or "this is the primary action" — an applied filter chip is neither.
