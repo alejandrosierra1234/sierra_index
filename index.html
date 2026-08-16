@@ -620,6 +620,43 @@
     .ins-cols { display:grid; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr)); gap:0.9rem; }
     .ins-panel { border:1px solid var(--border); border-radius:16px; padding:1rem 1.2rem; background:var(--surface); margin-bottom:0.9rem; }
     .ins-panel-title { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-3); margin-bottom:0.6rem; }
+
+    /* ── Inventory workspace (Almacén → Inventario) ── one operational page:
+       view nav → toolbar → movement bar → KPI summary → data table/cards.
+       Scoped .inv- classes — deliberately not sharing Insights' .ins-
+       components or Catalog's #cat-toolbar DOM, so this stays a focused,
+       single-screen change. See SIERRA_DESIGN_SYSTEM.md §62. */
+    .inv-move-bar { display:flex; align-items:center; gap:0.6rem; border:1px solid var(--border); border-radius:var(--r-md); padding:0.5rem 0.65rem; margin-bottom:0.5rem; }
+    .inv-move-label { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); flex-shrink:0; white-space:nowrap; }
+    .inv-move-scan-btn {
+      width:var(--control-h); height:var(--control-h); flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      border-radius:var(--control-radius); border:1px solid var(--border-strong);
+      background:var(--surface); color:var(--text-2); cursor:pointer;
+      transition:background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .inv-move-scan-btn:hover { background:var(--surface2); color:var(--text); border-color:var(--border2); }
+    .inv-move-bar .control-input { flex:1; min-width:0; }
+    .inv-move-results { margin-bottom:0.85rem; }
+
+    .inv-kpi-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem; }
+    .inv-kpi-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:0.6rem; margin-bottom:1rem; }
+    .inv-kpi-card { border:1px solid var(--border); border-radius:var(--r-md); padding:0.6rem 0.75rem; background:var(--surface); }
+    .inv-kpi-value { font-size:1.35rem; font-weight:800; letter-spacing:-0.01em; color:var(--text); font-variant-numeric:tabular-nums; line-height:1.15; }
+    .inv-kpi-title { font-size:0.72rem; font-weight:650; color:var(--text-2); margin-top:0.15rem; }
+    .inv-kpi-sub { font-size:0.64rem; color:var(--text-3); margin-top:0.05rem; }
+    /* Semantic color only when the metric actually means something (§13/§14
+       of the brief) — a healthy/zero metric stays on the neutral card above. */
+    .inv-kpi-card.tone-warning { border-color:var(--warning-border); background:var(--warning-bg); }
+    .inv-kpi-card.tone-warning .inv-kpi-value { color:var(--warning-text); }
+    .inv-kpi-card.tone-danger { border-color:var(--danger-border); background:var(--danger-bg); }
+    .inv-kpi-card.tone-danger .inv-kpi-value { color:var(--danger); }
+
+    .erp-table .inv-group-row td { background:var(--surface2); font-size:0.64rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-3); padding:0.35rem 0.7rem; border-top:1px solid var(--border); }
+    .inv-status-dot { display:inline-flex; align-items:center; gap:6px; }
+    .inv-status-dot::before { content:''; width:7px; height:7px; border-radius:50%; background:currentColor; flex-shrink:0; }
+    .inv-card-avail { font-size:1.3rem; font-weight:700; color:var(--text); }
+
     .ins-bar-row { display:grid; grid-template-columns:1fr auto; gap:0.15rem 0.75rem; padding:0.4rem 0; }
     .ins-bar-label { font-size:0.8rem; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .ins-bar-val { font-size:0.78rem; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap; }
@@ -1200,7 +1237,7 @@
     }
 
 
-    .s-label { font-size:0.66rem; font-weight:650; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); padding:0.55rem 0.55rem 0.3rem; }
+    .s-label { font-size:0.66rem; font-weight:650; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); padding:0.4rem 0.55rem 0.2rem; }
     /* Standard row height (§10): 40px for global/division rows, 36-38px for
        child leaves (see .nav-tree-leaf below) — never an arbitrary height. */
     .nav-item {
@@ -1227,11 +1264,11 @@
        color is allowed to appear. Text, chevrons and borders stay neutral;
        color is concentrated inside this tile only. */
     .nav-icon-tile {
-      width:28px; height:28px; border-radius:7px; flex-shrink:0;
+      width:24px; height:24px; border-radius:6px; flex-shrink:0;
       display:flex; align-items:center; justify-content:center;
       background:var(--tile-bg, var(--surface2)); color:var(--tile-fg, var(--text-3));
     }
-    .nav-icon-tile svg { width:16px; height:16px; }
+    .nav-icon-tile svg { width:14px; height:14px; }
 
     /* Sidebar user card at bottom */
     .sidebar-user { display:flex; align-items:center; gap:0.55rem; padding:0.5rem 0.4rem; border-radius:8px; cursor:pointer; transition:background 0.12s, width 0.32s cubic-bezier(0.22,1,0.36,1), height 0.32s cubic-bezier(0.22,1,0.36,1), padding 0.32s cubic-bezier(0.22,1,0.36,1), gap 0.32s cubic-bezier(0.22,1,0.36,1), border-radius 0.32s cubic-bezier(0.22,1,0.36,1); flex-shrink:0; overflow:hidden; }
@@ -5578,10 +5615,10 @@
            module lives behind the switcher popover, never as a permanent
            peer block. See renderSidebarTree()/moduleSwitcher* in
            index.html and SIERRA_DESIGN_SYSTEM.md §61. -->
-      <span class="s-label" style="margin-top:0.6rem">Favoritos</span>
+      <span class="s-label" style="margin-top:0.4rem">Favoritos</span>
       <div class="nav-fav-list" id="nav-fav-list"><div class="nav-fav-empty">Sin favoritos aún</div></div>
 
-      <div class="mod-switcher" id="mod-switcher" style="margin-top:0.6rem">
+      <div class="mod-switcher" id="mod-switcher" style="margin-top:0.4rem">
         <button class="nav-item mod-switcher-trigger" id="mod-switcher-trigger" data-tip="Módulos" onclick="toggleModuleSwitcher()" aria-haspopup="true" aria-expanded="false"></button>
         <div class="mod-switcher-pop" id="mod-switcher-pop"></div>
       </div>
@@ -7283,6 +7320,14 @@ function renderProducts(products) {
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
   document.body.classList.add('select-mode')
+  // Catalog's own view-switcher/toolbar chrome — leaveView() hides both by
+  // default so they don't bleed onto every other #pg-based screen (Dispatch
+  // Queue, Inventory, Sample Center, …); Catalog is the only screen that
+  // re-shows them, every time it actually paints.
+  const catViewTabs = document.getElementById('cat-view-tabs')
+  if (catViewTabs) catViewTabs.style.display = 'flex'
+  const catToolbar = document.getElementById('cat-toolbar')
+  if (catToolbar) catToolbar.style.display = 'flex'
   document.querySelectorAll('#cat-view-tabs .view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === catalogView))
   renderCatalogSavedViews()
   renderCatalogToolbar()
@@ -7367,7 +7412,7 @@ function renderCatalogToolbar() {
   const base = filterProducts() // search + saved view + archived, before facet filters — keeps facet counts honest
   const filterCount = catActiveFilterCount()
   const sortLabel = CAT_SORTS[catalogSort]?.label || 'Sort'
-  const groupLabel = catalogGroupBy === 'none' ? 'None' : (CAT_GROUP_DEFS[catalogGroupBy]?.label || 'None')
+  const groupLabel = catalogGroupBy === 'none' ? 'No grouping' : (CAT_GROUP_DEFS[catalogGroupBy]?.label || 'No grouping')
 
   el.innerHTML = `
     <div class="cat-toolbar-search">
@@ -7391,7 +7436,7 @@ function renderCatalogToolbar() {
     <div style="position:relative">
       <button class="btn btn-secondary cat-tb-btn" onclick="catTogglePop(event,'cat-pop-group')">${siIcon('grid', 16)}${esc(groupLabel)}</button>
       <div class="ws-pop cat-pop" id="cat-pop-group">
-        <button type="button" class="cat-pop-row" onclick="catSetGroupBy('none')">${catalogGroupBy === 'none' ? '✓ ' : ''}None</button>
+        <button type="button" class="cat-pop-row" onclick="catSetGroupBy('none')">${catalogGroupBy === 'none' ? '✓ ' : ''}No grouping</button>
         ${Object.entries(CAT_GROUP_DEFS).map(([key, g]) => `<button type="button" class="cat-pop-row" onclick="catSetGroupBy('${key}')">${catalogGroupBy === key ? '✓ ' : ''}${esc(g.label)}</button>`).join('')}
       </div>
     </div>
@@ -7795,6 +7840,16 @@ function leaveView(keepHash) {
   // this, navigating away (e.g. to Sample Center) left it stuck on screen.
   const fabBar = document.getElementById('fab-filter-bar')
   if (fabBar) fabBar.style.display = 'none'
+  // Catalog's view-switcher (Table/Cards) and DataToolbar (Search/Filter/
+  // Sort/Group/Columns) live in #view-products alongside #pg, which every
+  // other screen also renders into (Dispatch Queue, Inventory, Sample
+  // Center, …) — without this they stayed visible and stale (last time
+  // Catalog was rendered) on every one of those screens. Only Catalog
+  // (renderProducts()) re-shows them.
+  const catViewTabs = document.getElementById('cat-view-tabs')
+  if (catViewTabs) catViewTabs.style.display = 'none'
+  const catToolbar = document.getElementById('cat-toolbar')
+  if (catToolbar) { catToolbar.style.display = 'none'; catToolbar.innerHTML = '' }
 }
 
 function openDrawer() {
@@ -13580,18 +13635,18 @@ function renderSidebarTree() {
       ? _navExpandedDivision.samples
       : (divs[0] || null)
     if (divs.length) {
-      html += `<span class="s-label" style="margin-top:0.5rem">Divisiones</span>`
+      html += `<span class="s-label" style="margin-top:0.35rem">Divisiones</span>`
       html += divs.map(d => navDivisionRowHtml(d, d === expandedDiv, d === expandedDiv)).join('')
     }
     const tools = samplesSharedTools()
     if (tools.length) {
-      html += `<span class="s-label" style="margin-top:0.5rem">Herramientas</span>`
+      html += `<span class="s-label" style="margin-top:0.35rem">Herramientas</span>`
       html += tools.map(t => navLeafHtml(t.key, t.id, t.label, t.icon, 'lvl2', t.fnExpr, t.extraAttrs)).join('')
     }
   } else {
     const tools = (m.tools || []).filter(t => !t.visible || t.visible())
     if (tools.length) {
-      html += `<span class="s-label" style="margin-top:0.5rem">Herramientas</span>`
+      html += `<span class="s-label" style="margin-top:0.35rem">Herramientas</span>`
       html += tools.map(t => navLeafHtml(key + '|_|' + t.id, t.id, t.label, t.icon, 'lvl2', t.run)).join('')
     }
   }
@@ -20834,51 +20889,292 @@ async function submitInvMove() {
   loadPdInventory(p)
 }
 
-/* ── WAREHOUSE INVENTORY OVERVIEW — Almacén's own screen. Was a tab inside
-   Insights (shared with Muestras); moved here since the data (stock levels,
-   turnover, fast/slow movers) is warehouse's, not customer service's. ── */
-function renderInventoryOverview(D, P, division) {
-  const pname = id => D.productById[id]?.name || '—'
+/* ── WAREHOUSE INVENTORY — Almacén's own screen (§62 of the design system):
+   view nav → toolbar → movement bar → KPI summary → data table/cards, one
+   continuous operational page. renderInventoryOverview() composes the KPI
+   summary (renderInvKpiSection) and the data table/cards (renderInvDataSection)
+   — both read the same insightsData() cache the rest of the app shares, but
+   every markup/CSS class below (.inv-*, _invTbl, INV_TBL_*) is scoped to this
+   screen only, so nothing here touches Catalog's #cat-toolbar or Insights'
+   .ins-* components. ── */
+let _whInvPeriod = 30, _whInvDivision = null
+// Toolbar/table state — reset fresh every time the screen is entered
+// (showWarehouseInventory()), same as every other screen's toolbar state.
+let _invTbl = {
+  view: 'table',            // 'table' | 'cards'
+  search: '',
+  sort: 'name_asc',         // key into INV_TBL_SORTS
+  groupBy: 'none',          // 'none' | key into INV_TBL_GROUPS
+  filters: { location: new Set(), status: new Set() },
+  hiddenCols: new Set(['reserved', 'min']),
+}
+const INV_TBL_SORTS = {
+  name_asc:   { label: 'Nombre A–Z', fn: (a, b) => a.productName.localeCompare(b.productName) },
+  name_desc:  { label: 'Nombre Z–A', fn: (a, b) => b.productName.localeCompare(a.productName) },
+  avail_desc: { label: 'Disponible: mayor a menor', fn: (a, b) => b.available - a.available },
+  avail_asc:  { label: 'Disponible: menor a mayor', fn: (a, b) => a.available - b.available },
+}
+const INV_TBL_GROUPS = {
+  location: { label: 'Ubicación', keyFn: r => r.locationName },
+  format:   { label: 'Formato', keyFn: r => r.format },
+  status:   { label: 'Estado', keyFn: r => r.statusLabel },
+}
+const INV_TBL_STATUS_OPTS = [['ok', 'Disponible'], ['low', 'Bajo mínimo'], ['out', 'Agotado']]
+const INV_TBL_COLUMNS = [{ key: 'reserved', label: 'Reservado' }, { key: 'min', label: 'Mínimo' }]
+
+// One row per product/format/location stock record — the actual inventory
+// dataset (§21 of the brief: "the data table must follow the KPIs"), not
+// just the summary counters the old screen stopped at.
+function invTblBuildRows(D, division) {
+  const stocks = division ? D.stocks.filter(s => D.productById[s.product_id]?.division === division) : D.stocks
+  return stocks.map(s => {
+    const p = D.productById[s.product_id]
+    const loc = D.locations.find(l => l.id === s.location_id)
+    const available = s.qty - s.reserved
+    let statusKey = 'ok', statusLabel = 'Disponible', statusColor = 'var(--success)'
+    if (available <= 0) { statusKey = 'out'; statusLabel = 'Agotado'; statusColor = 'var(--danger)' }
+    else if (s.min_qty > 0 && available <= s.min_qty) { statusKey = 'low'; statusLabel = 'Bajo mínimo'; statusColor = 'var(--warning-text)' }
+    return {
+      productId: s.product_id, productName: p?.name || '—', productCode: p?.code || '',
+      format: s.format, locationId: s.location_id, locationName: loc?.name || '—',
+      qty: s.qty, reserved: s.reserved, minQty: s.min_qty, available,
+      statusKey, statusLabel, statusColor,
+    }
+  })
+}
+function invTblLocationOptions(rows) { return [...new Set(rows.map(r => r.locationName))].sort() }
+function invTblFilteredRows(rows) {
+  let out = rows
+  const q = _invTbl.search.trim().toLowerCase()
+  if (q) out = out.filter(r => r.productName.toLowerCase().includes(q) || r.productCode.toLowerCase().includes(q))
+  if (_invTbl.filters.location.size) out = out.filter(r => _invTbl.filters.location.has(r.locationName))
+  if (_invTbl.filters.status.size) out = out.filter(r => _invTbl.filters.status.has(r.statusKey))
+  return out.slice().sort(INV_TBL_SORTS[_invTbl.sort].fn)
+}
+function invGroupRows(rows) {
+  if (_invTbl.groupBy === 'none') return [{ label: null, rows }]
+  const keyFn = INV_TBL_GROUPS[_invTbl.groupBy].keyFn
+  const groups = new Map()
+  rows.forEach(r => { const k = keyFn(r) || '—'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r) })
+  return [...groups.entries()].map(([label, rows]) => ({ label, rows }))
+}
+
+let _invLastLocations = []
+function invFilterPopHtml(locs) {
+  _invLastLocations = locs
+  let html = ''
+  if (locs.length) {
+    html += `<div class="cat-pop-title">Ubicación</div>${locs.map((l, i) => `
+      <label class="cat-pop-row" style="cursor:pointer">
+        <input type="checkbox" ${_invTbl.filters.location.has(l) ? 'checked' : ''} onchange="invTblToggleLocationFilter(${i}, this.checked)" />
+        ${esc(l)}
+      </label>`).join('')}`
+  }
+  html += `<div class="cat-pop-title">Estado</div>${INV_TBL_STATUS_OPTS.map(([k, l]) => `
+    <label class="cat-pop-row" style="cursor:pointer">
+      <input type="checkbox" ${_invTbl.filters.status.has(k) ? 'checked' : ''} onchange="invTblToggleStatusFilter('${k}', this.checked)" />
+      ${esc(l)}
+    </label>`).join('')}`
+  if (_invTbl.filters.location.size + _invTbl.filters.status.size) html += `<div class="cat-pop-ftr"><button type="button" class="btn btn-secondary btn-sm" onclick="invTblClearFilters()">Limpiar filtros</button></div>`
+  return html
+}
+function invTblToggleLocationFilter(idx, checked) {
+  const val = _invLastLocations[idx]
+  if (val == null) return
+  if (checked) _invTbl.filters.location.add(val); else _invTbl.filters.location.delete(val)
+  renderInvToolbar(); invTblRerenderBody()
+}
+function invTblToggleStatusFilter(key, checked) {
+  if (checked) _invTbl.filters.status.add(key); else _invTbl.filters.status.delete(key)
+  renderInvToolbar(); invTblRerenderBody()
+}
+function invTblClearFilters() { _invTbl.filters.location.clear(); _invTbl.filters.status.clear(); renderInvToolbar(); invTblRerenderBody() }
+function invTblSetSearch(v) { _invTbl.search = v; invTblRerenderBody() }
+function invTblSetSort(k) { _invTbl.sort = k; wsClosePopovers(); renderInvToolbar(); invTblRerenderBody() }
+function invTblSetGroup(k) { _invTbl.groupBy = k; wsClosePopovers(); renderInvToolbar(); invTblRerenderBody() }
+function invTblToggleColumn(key, checked) {
+  if (checked) _invTbl.hiddenCols.delete(key); else _invTbl.hiddenCols.add(key)
+  invTblRerenderBody()
+}
+function invTblSetView(v) {
+  _invTbl.view = v
+  document.querySelectorAll('#inv-view-tabs .view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === v))
+  renderInvToolbar() // Columns only applies to Table view
+  invTblRerenderBody()
+}
+
+// DataToolbar (§4/§33) — same .page-toolbar/.cat-tb-btn/.ws-pop popover
+// primitives Catalog's toolbar already established (SIERRA_DESIGN_SYSTEM.md
+// §18), a fresh instance scoped to inventory state instead of reusing
+// Catalog's #cat-toolbar DOM/state.
+function renderInvToolbar() {
+  const el = document.getElementById('inv-toolbar')
+  if (!el) return
+  const D = _insCache
+  const allRows = D ? invTblBuildRows(D, _whInvDivision) : []
+  const locs = invTblLocationOptions(allRows)
+  const filterCount = _invTbl.filters.location.size + _invTbl.filters.status.size
+  const sortLabel = INV_TBL_SORTS[_invTbl.sort].label
+  const groupLabel = _invTbl.groupBy === 'none' ? 'Sin agrupación' : INV_TBL_GROUPS[_invTbl.groupBy].label
+  el.innerHTML = `
+    <div class="cat-toolbar-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+      <input type="text" placeholder="Buscar inventario…" value="${escAttr(_invTbl.search)}" oninput="invTblSetSearch(this.value)" />
+    </div>
+    <div style="position:relative">
+      <button class="btn btn-secondary cat-tb-btn ${filterCount ? 'has-value' : ''}" onclick="catTogglePop(event,'inv-pop-filter')">${siIcon('filter', 16)}Filtrar${filterCount ? `<span class="cat-tb-btn-dot"></span>` : ''}</button>
+      <div class="ws-pop cat-pop" id="inv-pop-filter">${invFilterPopHtml(locs)}</div>
+    </div>
+    <div style="position:relative">
+      <button class="btn btn-secondary cat-tb-btn" onclick="catTogglePop(event,'inv-pop-sort')">${siIcon('sort', 16)}${esc(sortLabel)}</button>
+      <div class="ws-pop cat-pop" id="inv-pop-sort">
+        <div class="cat-pop-title">Ordenar por</div>
+        ${Object.entries(INV_TBL_SORTS).map(([key, s]) => `<button type="button" class="cat-pop-row" onclick="invTblSetSort('${key}')">${_invTbl.sort === key ? '✓ ' : ''}${esc(s.label)}</button>`).join('')}
+      </div>
+    </div>
+    <div style="position:relative">
+      <button class="btn btn-secondary cat-tb-btn" onclick="catTogglePop(event,'inv-pop-group')">${siIcon('grid', 16)}${esc(groupLabel)}</button>
+      <div class="ws-pop cat-pop" id="inv-pop-group">
+        <button type="button" class="cat-pop-row" onclick="invTblSetGroup('none')">${_invTbl.groupBy === 'none' ? '✓ ' : ''}Sin agrupación</button>
+        ${Object.entries(INV_TBL_GROUPS).map(([key, g]) => `<button type="button" class="cat-pop-row" onclick="invTblSetGroup('${key}')">${_invTbl.groupBy === key ? '✓ ' : ''}${esc(g.label)}</button>`).join('')}
+      </div>
+    </div>
+    ${_invTbl.view === 'table' ? `
+    <div style="position:relative">
+      <button class="btn btn-secondary cat-tb-btn" onclick="catTogglePop(event,'inv-pop-cols')">${siIcon('columns', 16)}Columnas</button>
+      <div class="ws-pop cat-pop" id="inv-pop-cols">
+        <div class="cat-pop-title">Columnas</div>
+        ${INV_TBL_COLUMNS.map(c => `
+          <label class="cat-pop-row" style="cursor:pointer">
+            <input type="checkbox" ${_invTbl.hiddenCols.has(c.key) ? '' : 'checked'} onchange="invTblToggleColumn('${c.key}', this.checked)" />
+            ${esc(c.label)}
+          </label>`).join('')}
+      </div>
+    </div>` : ''}
+  `
+}
+
+const INV_PERIODS = [[7, '7 días'], [30, '30 días'], [90, '90 días'], [365, '12 meses']]
+// TimeRangeSelect (§9/§23) — same 40px icon+label+chevron trigger as every
+// other DataToolbar dropdown, replacing the old bare <select class="grant-sel">
+// (a smaller, unlabeled control that floated with no visible relationship
+// to the KPI row beneath it).
+function renderInvPeriodControl() {
+  const label = INV_PERIODS.find(([v]) => v === _whInvPeriod)?.[1] || `${_whInvPeriod} días`
+  return `<div style="position:relative">
+    <button class="btn btn-secondary cat-tb-btn" onclick="catTogglePop(event,'inv-pop-period')">${siIcon('calendar', 16)}${esc(label)}</button>
+    <div class="ws-pop cat-pop" id="inv-pop-period" style="right:0;left:auto">
+      ${INV_PERIODS.map(([v, l]) => `<button type="button" class="cat-pop-row" onclick="whInvSetPeriod(${v})">${_whInvPeriod === v ? '✓ ' : ''}${esc(l)}</button>`).join('')}
+    </div>
+  </div>`
+}
+
+function renderInvKpiCard(title, value, sub, tone) {
+  return `<div class="inv-kpi-card${tone ? ` tone-${tone}` : ''}">
+    <div class="inv-kpi-value">${value}</div>
+    <div class="inv-kpi-title">${esc(title)}</div>
+    ${sub ? `<div class="inv-kpi-sub">${esc(sub)}</div>` : ''}
+  </div>`
+}
+
+// KPI summary — semantic color only when the metric actually warns of
+// something (§13/§14): Inventario bajo/Agotado tint only once their count
+// is above zero, every other card (including a healthy zero) stays neutral.
+function renderInvKpiSection(D, P, division) {
   const pdiv = id => D.productById[id]?.division
-  const locName = id => D.locations.find(l => l.id === id)?.name || '—'
-  // Each warehouse only sees its own division's stock/movements/products —
-  // scoped here rather than at the query level since insightsData() is a
-  // single shared cache reused across screens.
   const stocks = division ? D.stocks.filter(s => pdiv(s.product_id) === division) : D.stocks
   const movements = division ? D.movements.filter(m => pdiv(m.product_id) === division) : D.movements
   const products = division ? D.products.filter(p => p.division === division) : D.products
   const samples = division ? D.samples.filter(s => pdiv(s.product_id) === division) : D.samples
-  const availBy = keyFn => {
-    const m = {}
-    stocks.forEach(s => { const k = keyFn(s); if (k) m[k] = (m[k] || 0) + (s.qty - s.reserved) })
-    return Object.entries(m).sort((a, b) => b[1] - a[1])
-  }
   const low = stocks.filter(s => s.min_qty > 0 && (s.qty - s.reserved) <= s.min_qty && (s.qty - s.reserved) > 0)
   const out = stocks.filter(s => (s.qty - s.reserved) <= 0)
-  const moved = insCount(movements.filter(m => insIn(m, P) && ['dispatched','picked'].includes(m.movement_type)), m => pname(m.product_id))
   const requestedIds = new Set(samples.map(s => s.product_id))
   const never = products.filter(p => !requestedIds.has(p.id))
   const stockedIds = new Set(stocks.filter(s => s.qty - s.reserved > 0).map(s => s.product_id))
   const reqButUnavailable = [...requestedIds].filter(id => D.productById[id] && stocks.some(s => s.product_id === id) && !stockedIds.has(id))
   const totalAvail = stocks.reduce((t, s) => t + s.qty - s.reserved, 0)
   const dispatched = movements.filter(m => insIn(m, P) && m.movement_type === 'dispatched').reduce((t, m) => t + m.qty, 0)
-  return `<div class="ins-grid">
-      ${insCard('Low inventory', low.length, 'formats below minimum')}
-      ${insCard('Out of stock', out.length, 'formats at zero')}
-      ${insCard('Inventory turnover', totalAvail ? (dispatched / totalAvail * 100).toFixed(0) + '%' : '—', `dispatched vs stock · ${P}d`)}
-      ${insCard('Requested, unavailable', reqButUnavailable.length, 'demand without stock')}
-      ${insCard('Never requested', never.length, 'products with zero requests')}
+  return `
+    <div class="inv-kpi-head">
+      <span class="s-label" style="padding:0">Resumen de inventario</span>
+      ${renderInvPeriodControl()}
     </div>
-    <div class="ins-cols">
-      ${insList('Inventory by location', availBy(s => locName(s.location_id)))}
-      ${division ? '' : insList('Inventory by division', availBy(s => DIV_LBL[pdiv(s.product_id)] || '—'))}
-      ${insList('Inventory by format', availBy(s => s.format))}
-      ${insList('Fast moving', moved, { click: "insOpenProduct('%K%')" })}
-      ${insList('Slow moving (stocked, no dispatches)', availBy(s => stockedIds.has(s.product_id) && !moved.some(([k]) => k === pname(s.product_id)) ? pname(s.product_id) : null), { click: "insOpenProduct('%K%')" })}
+    <div class="inv-kpi-grid">
+      ${renderInvKpiCard('Inventario bajo', low.length, 'Formatos bajo el mínimo', low.length ? 'warning' : null)}
+      ${renderInvKpiCard('Agotado', out.length, 'Formatos en cero', out.length ? 'danger' : null)}
+      ${renderInvKpiCard('Rotación de inventario', totalAvail ? (dispatched / totalAvail * 100).toFixed(0) + '%' : '—', `Despachado vs stock · ${P}d`)}
+      ${renderInvKpiCard('Solicitado sin stock', reqButUnavailable.length, 'Demanda sin existencias')}
+      ${renderInvKpiCard('Nunca solicitado', never.length, 'Productos sin solicitudes')}
     </div>`
 }
 
-let _whInvPeriod = 30, _whInvDivision = null
+function invTableHtml(rows) {
+  const groups = invGroupRows(rows)
+  const showReserved = !_invTbl.hiddenCols.has('reserved')
+  const showMin = !_invTbl.hiddenCols.has('min')
+  const colspan = 5 + showReserved + showMin
+  return `<div class="erp-table-wrap"><table class="erp-table">
+    <thead><tr>
+      <th>Producto</th><th>Formato</th><th>Ubicación</th><th data-num>Disponible</th>
+      ${showReserved ? '<th data-num>Reservado</th>' : ''}
+      ${showMin ? '<th data-num>Mínimo</th>' : ''}
+      <th>Estado</th>
+    </tr></thead>
+    <tbody>
+      ${groups.map(g => `
+        ${g.label != null ? `<tr class="inv-group-row"><td colspan="${colspan}">${esc(g.label)} · ${g.rows.length}</td></tr>` : ''}
+        ${g.rows.map(r => `
+          <tr class="is-clickable" onclick="navToProduct('${r.productId}')">
+            <td>${esc(r.productName)}</td>
+            <td>${esc(r.format)}</td>
+            <td>${esc(r.locationName)}</td>
+            <td data-num>${r.available}</td>
+            ${showReserved ? `<td data-num>${r.reserved}</td>` : ''}
+            ${showMin ? `<td data-num>${r.minQty || '—'}</td>` : ''}
+            <td><span class="inv-status-dot" style="color:${r.statusColor}">${esc(r.statusLabel)}</span></td>
+          </tr>`).join('')}
+      `).join('')}
+    </tbody>
+  </table></div>`
+}
+function invCardsHtml(rows) {
+  const groups = invGroupRows(rows)
+  return groups.map(g => `
+    ${g.label != null ? `<div class="s-label" style="padding-left:0">${esc(g.label)} · ${g.rows.length}</div>` : ''}
+    <div class="pg-grid" style="margin-bottom:1rem">
+      ${g.rows.map(r => `
+        <div class="card" onclick="navToProduct('${r.productId}')" style="cursor:pointer">
+          <div class="card-name">${esc(r.productName)}</div>
+          <div class="card-desc">${esc(r.format)} · ${esc(r.locationName)}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.6rem">
+            <span class="inv-card-avail">${r.available}</span>
+            <span class="inv-status-dot" style="color:${r.statusColor};font-size:0.72rem">${esc(r.statusLabel)}</span>
+          </div>
+        </div>`).join('')}
+    </div>`).join('')
+}
+// The actual inventory dataset (§21/§26 of the brief) — begins immediately
+// below the KPI summary, no extra empty section in between.
+function renderInvDataSection(D, division) {
+  const allRows = invTblBuildRows(D, division)
+  if (!allRows.length) {
+    return emptyStateHtml({ title: 'Sin existencias registradas', desc: 'Todavía no hay movimientos de inventario para esta división.' })
+  }
+  const rows = invTblFilteredRows(allRows)
+  if (!rows.length) {
+    return emptyStateHtml({ title: 'Sin resultados', desc: 'Ningún renglón de inventario coincide con la búsqueda o los filtros actuales.' })
+  }
+  return _invTbl.view === 'cards' ? invCardsHtml(rows) : invTableHtml(rows)
+}
+function renderInventoryOverview(D, P, division) {
+  return renderInvKpiSection(D, P, division) + renderInvDataSection(D, division)
+}
+async function invTblRerenderBody() {
+  const el = document.getElementById('wh-inv-body')
+  if (!el) return
+  const D = await insightsData()
+  el.innerHTML = renderInventoryOverview(D, _whInvPeriod, _whInvDivision)
+}
 async function showWarehouseInventory(div) {
   _navLeaf = 'samples|' + div + '|inventory'
   _whInvDivision = div
@@ -20895,28 +21191,30 @@ async function showWarehouseInventory(div) {
   document.getElementById('sec-title').textContent = title
   document.getElementById('sec-sub').textContent = `Existencias, rotación y movimientos de ${ALMACEN_DIV_LBL[div]}`
 
+  // Toolbar/table state resets fresh on every visit — same convention as
+  // Catalog's own per-screen state.
+  _invTbl = { view: 'table', search: '', sort: 'name_asc', groupBy: 'none', filters: { location: new Set(), status: new Set() }, hiddenCols: new Set(['reserved', 'min']) }
+
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
   pg.innerHTML = `
-    <div class="srd-card" style="margin-bottom:1.5rem;max-width:480px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
-        <label style="font-size:0.6rem;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-3)">Registrar movimiento</label>
-        <button class="btn btn-secondary btn-sm" onclick="openScanMode('inventory')">
-          <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-          Scan
-        </button>
-      </div>
-      <input type="text" id="wh-inv-search" class="tl-search" style="width:100%" placeholder="Buscar producto de ${esc(ALMACEN_DIV_LBL[div])} por nombre o código…" oninput="whInvSearchProducts(this.value)" />
-      <div id="wh-inv-search-results"></div>
+    <div class="view-tabs" id="inv-view-tabs">
+      <button class="view-tab active" data-view="table" onclick="invTblSetView('table')">Table</button>
+      <button class="view-tab" data-view="cards" onclick="invTblSetView('cards')">Cards</button>
     </div>
-    <div style="display:flex;justify-content:flex-end;margin-bottom:0.85rem">
-      <select class="grant-sel" onchange="whInvSetPeriod(this.value)">
-        ${[[7,'7 días'],[30,'30 días'],[90,'90 días'],[365,'12 meses']].map(([v, l]) => `<option value="${v}" ${_whInvPeriod === v ? 'selected' : ''}>${l}</option>`).join('')}
-      </select>
+    <div class="page-toolbar" id="inv-toolbar"></div>
+    <div class="inv-move-bar">
+      <span class="inv-move-label">Registrar movimiento</span>
+      <button class="inv-move-scan-btn" onclick="openScanMode('inventory')" title="Escanear código" aria-label="Escanear código">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none"><path d="M3 7V4h3M17 7V4h-3M3 13v3h3M17 13v3h-3M3 10h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </button>
+      <input type="text" id="wh-inv-search" class="control-input" placeholder="Buscar producto de ${esc(ALMACEN_DIV_LBL[div])} por nombre o código…" oninput="whInvSearchProducts(this.value)" />
     </div>
+    <div id="wh-inv-search-results" class="inv-move-results"></div>
     <div id="wh-inv-body"><div class="empty"><div class="empty-icon">⌛</div><p>Cargando…</p></div></div>`
 
   const D = await insightsData()
+  renderInvToolbar()
   document.getElementById('wh-inv-body').innerHTML = renderInventoryOverview(D, _whInvPeriod, _whInvDivision)
 }
 // Sidebar entry point — same "current business unit" pattern as
@@ -20927,6 +21225,7 @@ function showWarehouseInventoryCurrent() {
 }
 async function whInvSetPeriod(v) {
   _whInvPeriod = parseInt(v, 10)
+  wsClosePopovers()
   const D = await insightsData()
   document.getElementById('wh-inv-body').innerHTML = renderInventoryOverview(D, _whInvPeriod, _whInvDivision)
 }
