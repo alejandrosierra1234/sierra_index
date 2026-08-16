@@ -1168,3 +1168,129 @@ or barcode dominates, long yarn values overflow, technical values shrink
 below the readable floor (1.8mm), sections are boxed rather than
 separated by hairlines, or safe margins are inconsistent. The print type
 ramp is fixed: title 6.2mm, values 2.9mm, metadata 2.4mm, keys 1.8mm.
+
+---
+
+# Color System & Semantic Color Rules (§42–§48)
+
+## 42. Core principle
+
+INDEX distinguishes two color systems and never mixes them:
+
+- **UI / interaction color** — communicates how the application works.
+  This is brand teal, always: `--accent` / `--accent-light` /
+  `--accent-dark` (`#16cdbe` / `#cffffb` / `#007d73`).
+- **Semantic / identification color** — communicates what information
+  represents (a division, a status, a category, a tag, an avatar). This
+  is the secondary palette (§44).
+
+`--accent` is a **fixed** value app-wide. It is never reassigned per
+division or module — see `applyDivisionAccent()` in `index.html`, which
+sets `--div-color*` (small identity markers) and deliberately does not
+touch `--accent`. A purple SIERRA Fiber folder gets a purple dot; opening
+it never repaints the surrounding buttons/tabs/nav purple.
+
+## 43. Neutral UI
+
+`--bg #ffffff · --bg-alt #f5f5f5 · --surface #ffffff · --surface2 #f5f5f5
+· --border #e5e5e5 · --text-primary #0b0b0b · --text-secondary #444444 ·
+--text-muted #6b6b73 · --text-disabled #a4a4a4` (re-measured for dark
+mode, see `:root`/`[data-theme="dark"]`). Neutrals build ~80–90% of the
+visible interface: backgrounds, sidebars, table surfaces, dividers,
+borders, typography, disabled state, standard icons, input/dropdown/modal
+surfaces. Color reads as meaningful precisely because it isn't
+everywhere.
+
+## 44. Secondary semantic palette
+
+Seven families, each with three sanctioned levels — light (subtle
+bg/chip), base (identifier/icon/accent), dark (accessible text over the
+light bg). Backed by CSS custom properties `--sem-<name>-light` /
+`--sem-<name>` / `--sem-<name>-dark` in `index.html`'s `:root`. Do not
+improvise a fourth shade.
+
+| Family | Light | Base | Dark |
+|---|---|---|---|
+| Yellow / Olive | `#efefaf` | `#c4c412` | `#827e00` |
+| Green | `#d1ffbe` | `#3ed600` | `#2a9200` |
+| Blue | `#c5e9ff` | `#009fff` | `#004a86` |
+| Purple | `#f6d8ff` | `#9e00cb` | `#670084` |
+| Warm Yellow | `#fff0af` | `#ffc529` | `#bb9800` |
+| Orange | `#ffe3d2` | `#ff7824` | `#cd4f00` |
+| Red | `#ffc7c7` | `#e80000` | `#b40b0b` |
+
+Dark-mode text uses a lightened per-family variant (`--sem-<name>-dark-text`,
+`--success`/`--warning-text`/`--danger`/`--info` follow the same pattern)
+so nothing drops below AA against `#1c1c1e` — same hue family, never a
+new one.
+
+**Allowed**: identifying a division, module, folder, board, saved view,
+group, category, status value, tag, label, or generated avatar — as a
+dot, icon, thin side border, chip, or status cell. **Forbidden**: primary/
+standard buttons, links, tabs, checkboxes/radio/switches, dropdown
+interaction, input focus, nav selection, hover states, loaders, search,
+generic icons, CRUD actions, pagination, modal actions, drawers, active
+controls. Those are teal + neutral only, no exceptions.
+
+## 45. Status system → secondary palette mapping
+
+`--success/--success-bg` (green), `--warning-text/--warning-bg` (warm
+yellow), `--danger/--danger-bg` (red), `--info/--info-bg` (blue) are the
+single source for every status badge/pill/dot in the app (`.badge-*`,
+`.smp-*`, HR status badges, badge-readiness, inventory availability) —
+never a bespoke hex duplicating one of these hues. Never map a status
+onto brand teal; that would blur "this is a status" with "this is
+interactive." `.smp-badge`'s 11 sample-lifecycle statuses extend the same
+four families (plus purple for the one-off `picked_up` hand-off step) —
+see the `.smp-*` rules in `index.html` for the full mapping.
+
+## 46. Division / module identity
+
+`DIV_ACCENT` in `index.html` is the single source of truth for each
+division's identity color (also mirrored into `DIV_CLR` for inline dot/
+badge use): Fiber → Purple, Yarn → Blue, Fabric → Green, Chemicals →
+Red, Apparel/Garment → Orange. If a division is purple in the sidebar
+switcher dot, it is purple everywhere it's referenced as a folder,
+category, board identifier or contextual chip — never recolored per
+screen. `applyDivisionAccent(d)` sets only `--div-color`/`--div-color-dark`/
+`--div-color-light`/`--div-color-rgb` (small markers); it must never be
+extended to set `--accent`.
+
+The public division landing pages (`fiber.html`, `yarn.html`,
+`fabric.html`, `chemicals.html`, `apparel.html`, `home.html`) each define
+their own `--accent` in `:root` — as of this pass all six are fixed to
+`#16cdbe`, not the page's division hue. A division marketing page may
+still say "SIERRA Fiber" and show purple identity swatches, but its
+buttons/links/CTAs are teal like the rest of INDEX.
+
+## 47. Avatars
+
+`AVATAR_PALETTE` in `index.html` is 21 hex values — the seven secondary
+families × three levels, brand teal deliberately excluded (teal is
+reserved for interaction, never identity). `avatarColor(seed)` hashes a
+user's persistent id to a deterministic palette index — same person,
+same color, every render, every session. `avatarTextColor()` flips
+black/white text for contrast per swatch.
+
+## 48. Consistency audit (this pass)
+
+Replaced with tokens: the four parallel hardcoded status-color systems
+that had drifted apart (`.badge-*`, `.smp-*`, HR `.badge-active` family,
+inventory-availability object using iOS `#34c759`/`#e0442e`/`#ff9f0a`
+instead of `--success`/`--danger`/`--warning`), a nav hover/active state
+that tinted icons with a per-tool secondary color instead of teal
+(`.nav-item:hover .n-icon`/`.nav-item.active .n-icon` — a real forbidden-
+hover violation, now `var(--accent)` unconditionally), an
+`.import-upload-zone:hover`/`.site-switcher-item.active` pair painted
+warm yellow instead of teal, and two divergent division-color registries
+(`DIV_CLR` vs `DIV_ACCENT` used to disagree on Fiber/Yarn/Fabric/
+Chemicals hex values — now one source). `applyDivisionAccent()` no longer
+mutates `--accent`/`--accent-dark`/`--accent-light` — that was the
+central violation of "teal = interaction," since it meant every button,
+tab and focus ring in the app changed color when switching divisions.
+Not yet swept: chart/RSS-feed per-item swatches in the Dashboard/Insights
+market ticker (already match the sanctioned secondary hex values, low
+risk) and the `--up`/`--down` finance tokens on the six standalone pages
+(`#1a8a5c`/`#c0392b`-family, not yet remapped onto `--sem-green-dark`/
+`--sem-red-dark` — flagged as future work, not a live violation since
+they're already a consistent green/red pair app-wide).
