@@ -812,6 +812,28 @@
     .lc-pill { display:inline-flex; align-items:center; gap:var(--status-gap); height:var(--status-h); padding:0 var(--status-px); font-size:var(--status-font-size); font-weight:600; border-radius:var(--status-radius); border:1px solid transparent; white-space:nowrap; }
     .lc-pill-sm { height:var(--role-h); font-size:0.72rem; padding:0 8px; }
     .lc-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+
+    /* ── RecordID ── the canonical "YRN-000045" component (§ SIERRA_DESIGN
+       _SYSTEM.md, RecordID). Metadata, not a control: same 32px info-scale
+       height and 7px radius as every other status-family component, but its
+       own identity tint (blue, --info family) and Replica Mono type so a
+       record code never gets mistaken for a division/category tag or,
+       worse, a button. No hover/shadow unless explicitly marked clickable
+       (.rec-id.is-click) — a plain RecordID is inert. */
+    .rec-id {
+      display:inline-flex; align-items:center; gap:6px; min-width:0; max-width:100%;
+      height:var(--status-h); padding:0 var(--status-px);
+      border-radius:var(--status-radius); border:1px solid transparent;
+      background:var(--info-bg); color:var(--info); font-weight:600; white-space:nowrap;
+    }
+    .rec-id-icon { width:14px; height:14px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; }
+    .rec-id-icon svg { width:14px; height:14px; display:block; }
+    .rec-id-code {
+      font-family:'Replica Mono','Courier New',monospace; font-size:var(--status-font-size);
+      font-variant-numeric:tabular-nums; overflow:hidden; text-overflow:ellipsis;
+    }
+    .rec-id.is-click { cursor:pointer; transition:background var(--dur-fast) var(--ease-out); }
+    .rec-id.is-click:hover { background:color-mix(in srgb, var(--info) 22%, var(--info-bg)); }
     /* ── StatusControl (§17) — one interactive control for lifecycle status,
        not a read-only pill next to a separate "Change status" dropdown. The
        pd-select primitive is reused wholesale; this just retints its button
@@ -1405,13 +1427,17 @@
     }
     .card-img-placeholder svg { width:22px; height:22px; opacity:0.55; }
     .card-body { padding:0.82rem 0.86rem 0.82rem; }
-    .card-meta { display:flex; align-items:flex-start; justify-content:space-between; gap:0.65rem; margin-bottom:0.65rem; min-width:0; }
+    .card-meta { display:flex; align-items:center; justify-content:space-between; gap:0.65rem; margin-bottom:0.65rem; min-width:0; }
     .card-meta-main { display:flex; align-items:center; gap:0.45rem; min-width:0; }
     .card-meta-side { display:flex; flex-direction:column; align-items:flex-end; gap:0.26rem; flex-shrink:0; }
+    /* CategoryTag ("all products" view only — identifies the DIVISION, not
+       the record; see .rec-id for the record identifier). Shares the
+       32px/7px info-scale shell with every sibling in .card-meta so the two
+       pills in that row read as one baseline, not two component systems. */
     .card-div-pill {
       display:inline-flex; align-items:center; gap:0.38rem; min-width:0; max-width:100%;
-      font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
-      padding:0.24rem 0.48rem; border-radius:7px; border:1px solid transparent;
+      height:var(--status-h); font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+      padding:0 var(--status-px); border-radius:var(--status-radius); border:1px solid transparent;
     }
     .card-div-pill span:last-child { min-width:0; overflow:hidden; text-overflow:ellipsis; line-height:1.05; }
     .card-div-icon { width:14px; height:14px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; }
@@ -1434,11 +1460,15 @@
     .tags { display:flex; flex-wrap:wrap; gap:0.28rem; margin-bottom:0.9rem; }
     .tags:empty { display:none; }
     .tag { font-size:0.64rem; padding:0.16rem 0.45rem; border-radius:7px; background:none; color:var(--text-3); border:1px solid var(--border); }
-    .card-actions { display:flex; align-items:center; justify-content:space-between; gap:0.5rem; }
-    /* Quick action is .cat-req-btn (defined with the other Catalog ERP
-       primitives below) — a subtle outline button, not an e-commerce CTA. */
-    .card-more-btn { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--text-3); cursor:pointer; flex-shrink:0; transition:background 0.12s, color 0.12s, border-color 0.12s; position:relative; }
-    .card-more-btn:hover { background:var(--surface2); color:var(--text); }
+    /* Card action row (§ SIERRA_DESIGN_SYSTEM.md, Card action row) — the
+       primary action (canonical .btn.btn-primary, 40px) and the overflow
+       trigger (canonical .icon-btn, 40x40) share one interaction-scale
+       baseline. Nothing in this row writes its own button CSS — see
+       "40px = interaction". */
+    .card-actions { display:flex; align-items:center; justify-content:space-between; gap:var(--control-gap); }
+    .card-actions .btn-primary { flex:1; min-width:0; }
+    .card-more-btn { display:inline-flex; align-items:center; justify-content:center; width:var(--control-h-sm); height:var(--control-h-sm); border-radius:var(--control-radius); border:1px solid var(--border-strong); background:var(--surface); color:var(--text-secondary); cursor:pointer; flex-shrink:0; transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out); position:relative; }
+    .card-more-btn:hover { background:var(--surface-hover); color:var(--text-primary); border-color:var(--text-muted); }
     /* Overflow (•••) menu — positioning variant of the shared flyout
        popover (.ws-pop, see "POPOVER / DROPDOWN MENU PRIMITIVE"): opens
        upward since its trigger usually sits near a card's bottom edge.
@@ -3736,10 +3766,10 @@
     .cat-row-code { font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
     .cat-row-name { font-weight:500; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .cat-row-name-sub { font-size:0.68rem; color:var(--text-3); font-weight:400; }
-    .cat-row-actions { display:flex; align-items:center; justify-content:flex-end; gap:0.3rem; white-space:nowrap; }
-    .cat-req-btn { font-size:0.72rem; font-weight:600; padding:0.28rem 0.6rem; border-radius:7px; background:none; color:var(--accent-ink,var(--accent)); border:1px solid var(--border); cursor:pointer; font-family:inherit; transition:background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out); }
-    .cat-req-btn:hover { background:var(--surface2); border-color:var(--accent); }
-    .cat-req-btn:disabled { opacity:0.4; cursor:not-allowed; }
+    /* Request sample / More share one interaction-scale row — see
+       .card-actions above. Table-row actions use the canonical
+       .btn.btn-primary.btn-sm + overflowMenuHtml(), not a bespoke class. */
+    .cat-row-actions { display:flex; align-items:center; justify-content:flex-end; gap:var(--control-gap); white-space:nowrap; }
 
     /* ── Catalog Cards view ── same dataset/filters as the table, denser
        than the old product-gallery cards: shorter image, tighter body,
@@ -6514,7 +6544,14 @@ function lcPill(p, sm) {
 }
 function lcPillFor(status, sm) {
   const m = LIFECYCLE[status] || LIFECYCLE.available
-  return `<span class="lc-pill${sm ? ' lc-pill-sm' : ''}" style="background:${m.color}15;color:${m.color};border-color:${m.color}30"><span class="lc-dot" style="background:${m.color}"></span>${tx('lifecycle.' + status)}</span>`
+  // color-mix (not the "${hex}15" alpha-suffix trick used for literal hex
+  // colors like DIV_CLR) — LIFECYCLE.color values are var() references, and
+  // appending an alpha suffix to a var() call is invalid CSS: the browser
+  // silently drops the whole declaration, which is why this used to render
+  // as bare text + a dot with no fill/border at all ("the old outlined
+  // lifecycle style"). Same color-mix() pattern as .status-static/
+  // .pd-status-select above, which never had this bug.
+  return `<span class="lc-pill${sm ? ' lc-pill-sm' : ''}" style="background:color-mix(in srgb, ${m.color} 16%, var(--surface));color:color-mix(in srgb, ${m.color} 80%, var(--text-primary))"><span class="lc-dot" style="background:${m.color}"></span>${tx('lifecycle.' + status)}</span>`
 }
 // Draft & development are visible only to users who can edit that division
 function lifecycleVisible(p) {
@@ -7304,6 +7341,18 @@ function catTogglePop(e, id) {
   if (!wasOpen) el.classList.add('open')
 }
 
+/* ── RecordID ── the one canonical way to render a record identifier
+   ("YRN-000045"). Metadata, not a button: uses .rec-id (§ SIERRA_DESIGN_
+   SYSTEM.md, RecordID) — Replica Mono code on an --info identity tint, 32px
+   info-scale height, no hover/shadow unless explicitly clickable. Every
+   product/sample card and drawer that shows a code renders it through this
+   instead of hand-building a span. */
+function recordIdHtml(code, iconSvg, opts = {}) {
+  const cls = ['rec-id', opts.clickable ? 'is-click' : ''].filter(Boolean).join(' ')
+  const attrs = opts.onClick ? ` onclick="${opts.onClick}" role="button" tabindex="0"` : ''
+  return `<span class="${cls}"${attrs}><span class="rec-id-icon">${iconSvg || ''}</span><span class="rec-id-code">${esc(code)}</span></span>`
+}
+
 /* ── Row/card technical field readers — real fields only, no invented data ── */
 function catCode(p) { return p.code || p.id.slice(0, 6).toUpperCase() }
 function catComposition(p) { return p.specs?.Composition || p.specs?.composition || '—' }
@@ -7339,7 +7388,7 @@ function catColCellHtml(p, key) {
 function catRowActionsHtml(p) {
   const ep = enc(p)
   return `<td class="cat-row-actions" onclick="event.stopPropagation()">
-    <button class="cat-req-btn" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p) ? '' : `disabled title="${esc(tx('lifecycle.' + lc(p)))} products can't be requested"`}>Request sample</button>
+    <button class="btn btn-primary btn-sm" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p) ? '' : `disabled title="${esc(tx('lifecycle.' + lc(p)))} products can't be requested"`}>Request sample</button>
     ${overflowMenuHtml([
       { label: 'View full record', onClick: `openFicha(dec('${ep}'))`,
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2" /><path d="M9 9l1 0" /><path d="M9 13l6 0" /><path d="M9 17l6 0" /></svg>` },
@@ -7347,7 +7396,7 @@ function catRowActionsHtml(p) {
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 17h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-14a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h2" /><path d="M17 9v-4a2 2 0 0 0 -2 -2h-6a2 2 0 0 0 -2 2v4" /><path d="M7 15a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2l0 -4" /></svg>` },
       ...(canDeleteDiv(p.division) && !isArchived(p) ? [{ label: tx('product.archive'), onClick: `confirmArchive(dec('${ep}'))`, danger: true,
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2" /><path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" /><path d="M10 12l4 0" /></svg>` }] : []),
-    ])}
+    ], { title: 'More' })}
   </td>`
 }
 function catRowHtml(p, cols) {
@@ -7388,9 +7437,17 @@ function catToggleGroup(key) {
 function catCardHtml(p) {
   const c = DIV_CLR[p.division] || '#aaa'
   const ep = enc(p)
-  const code = catCode(p)
-  const metaLabel = division === 'all' ? esc(DIV_LBL[p.division] || p.division || 'Product') : esc(code)
   const metaIcon = DIV_ICON[p.division] || DIV_ICON.all
+  // "All products" view: the meta slot identifies which DIVISION the card
+  // belongs to (a category tag, division-tinted). A single-division view
+  // (Fiber/Yarn/Fabric/Chemicals/Apparel) already establishes the division
+  // by context, so the same slot instead identifies the RECORD — its code,
+  // via the canonical RecordID component, never the division pill.
+  const metaEl = division === 'all'
+    ? `<span class="card-div-pill" style="background:${c}12;color:${c};border-color:${c}20">
+        <span class="card-div-icon">${metaIcon}</span><span>${esc(DIV_LBL[p.division] || p.division || 'Product')}</span>
+      </span>`
+    : recordIdHtml(catCode(p), metaIcon)
   const thumb = (p.image_urls && p.image_urls[0]) || p.image_url || null
   const imgEl = thumb
     ? `<div class="card-img"><img src="${thumb}" alt="${esc(p.name)}" loading="lazy" /></div>`
@@ -7400,15 +7457,13 @@ function catCardHtml(p) {
     ${imgEl}
     <div class="card-body">
       <div class="card-meta">
-        <span class="card-div-pill" style="background:${c}12;color:${c};border-color:${c}20">
-          <span class="card-div-icon">${metaIcon}</span><span>${metaLabel}</span>
-        </span>
-        <span class="card-meta-side">${lcPill(p, true)}</span>
+        ${metaEl}
+        <span class="card-meta-side">${lcPill(p)}</span>
       </div>
       <div class="card-name">${esc(p.name)}${productNameTag()}</div>
       <div class="card-desc">${esc(catComposition(p))}${catGSM(p) !== '—' ? ' · ' + esc(catGSM(p)) + ' GSM' : ''}</div>
       <div class="card-actions" onclick="event.stopPropagation()">
-        <button class="cat-req-btn" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p) ? '' : `disabled title="${esc(tx('lifecycle.' + lc(p)))} products can't be requested"`}>Request sample</button>
+        <button class="btn btn-primary" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p) ? '' : `disabled title="${esc(tx('lifecycle.' + lc(p)))} products can't be requested"`}>${siIcon('package', 16)}Request sample</button>
         ${overflowMenuHtml([
           { label: 'View full record', onClick: `openFicha(dec('${ep}'))`,
             icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2" /><path d="M9 9l1 0" /><path d="M9 13l6 0" /><path d="M9 17l6 0" /></svg>` },
@@ -7416,7 +7471,7 @@ function catCardHtml(p) {
             icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 17h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-14a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h2" /><path d="M17 9v-4a2 2 0 0 0 -2 -2h-6a2 2 0 0 0 -2 2v4" /><path d="M7 15a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2l0 -4" /></svg>` },
           ...(canDeleteDiv(p.division) && !isArchived(p) ? [{ label: tx('product.archive'), onClick: `confirmArchive(dec('${ep}'))`, danger: true,
             icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2" /><path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" /><path d="M10 12l4 0" /></svg>` }] : []),
-        ])}
+        ], { btnClass: 'icon-btn', title: 'More' })}
       </div>
     </div>
     <div class="card-check">${isSelected ? '✓' : ''}</div>
@@ -7456,8 +7511,8 @@ function catRenderDrawerBody(p) {
   body.innerHTML = `
     ${thumb ? `<img src="${thumb}" alt="${esc(p.name)}" style="width:100%;height:150px;object-fit:cover;border-radius:10px;margin-bottom:0.9rem;border:1px solid var(--border)" />` : ''}
     <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.9rem">
+      ${recordIdHtml(catCode(p), DIV_ICON[p.division] || DIV_ICON.all)}
       ${lcPill(p)}
-      <span style="font-size:0.72rem;color:var(--text-3);font-variant-numeric:tabular-nums">${esc(catCode(p))}</span>
     </div>
     <div class="ctx-lbl">Construction</div>
     <div class="ctx-line">${esc(CONST_META[inferConstruction(p)]?.label || '—')}</div>
@@ -11119,8 +11174,8 @@ async function ycConfirmPrint(asPdf) {
     const ep = enc(p), s = p.specs || {}
     body.innerHTML = `
       <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.9rem">
+        ${recordIdHtml(catCode(p), DIV_ICON[p.division] || DIV_ICON.all)}
         ${lcPill(p)}
-        <span style="font-size:0.72rem;color:var(--text-3);font-variant-numeric:tabular-nums">${esc(catCode(p))}</span>
       </div>
       <div class="ctx-lbl">Yarn Count</div>
       <div class="ctx-line">${esc(s['Yarn Count'] || '—')}</div>
@@ -18336,14 +18391,13 @@ function wsTableViewHtml(items, categories) {
    Board stays the working surface (grouped, inline-editable, drag-style
    category moves); Cards is read-only, click opens the sample record —
    same interaction as a non-editable Board row / a Table row. Reuses the
-   catalog's card primitives (.pg-grid/.card/.card-img/.card-div-pill/
+   catalog's card primitives (.pg-grid/.card/.card-img/.rec-id/
    .card-meta-side) instead of inventing a second card component. */
 function wsCardsViewHtml(items, categories) {
   if (!items.length) return '<div class="srd-card" style="font-size:0.82rem;color:var(--text-3);padding:0.9rem">No samples in this collection yet.</div>'
   const catName = id => categories.find(c => c.id === id)?.name || 'Uncategorized'
   const tiles = items.map(it => {
     const p = it.products || {}
-    const c = DIV_CLR[p.division] || '#aaa'
     const thumb = (p.image_urls && p.image_urls[0]) || p.image_url || null
     const imgEl = thumb
       ? `<div class="card-img"><img src="${thumb}" alt="${esc(p.name||'')}" loading="lazy" /></div>`
@@ -18353,10 +18407,7 @@ function wsCardsViewHtml(items, categories) {
       ${imgEl}
       <div class="card-body">
         <div class="card-meta">
-          <span class="card-div-pill" style="background:${c}12;color:${c};border-color:${c}20">
-            <span class="card-div-icon">${DIV_ICON[p.division] || ''}</span>
-            <span>${esc(p.code || '—')}</span>
-          </span>
+          ${recordIdHtml(p.code || '—', DIV_ICON[p.division] || DIV_ICON.all)}
           <span class="card-meta-side">${smpBadge(it.status)}</span>
         </div>
         <div class="card-name">${esc(p.name || '—')}</div>
