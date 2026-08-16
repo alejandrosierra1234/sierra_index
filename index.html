@@ -3643,8 +3643,16 @@
       color:var(--text-3); font-weight:600; padding:0.55rem 0.7rem; border-bottom:1px solid var(--border);
       background:var(--surface2); white-space:nowrap; position:sticky; top:0;
     }
-    .erp-table td, .dq-table td, .pick-table td { padding:0.5rem 0.7rem; border-bottom:1px solid var(--border); vertical-align:middle; }
-    .erp-table td.emp-td-trunc { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:1px; height:46px; }
+    /* Table values never wrap onto multiple lines by default — a long name
+       truncates (via .emp-td-trunc/.cat-row-name-style max-width+ellipsis
+       classes) or the column stays on one line and the table scrolls
+       horizontally (.erp-table-wrap already does overflow:auto). Opt a
+       genuinely long-form column (notes, addresses) back into wrapping
+       with .td-wrap — never let a name/code/position column wrap by
+       accident because nobody set a width on it. */
+    .erp-table td, .dq-table td, .pick-table td { padding:0.5rem 0.7rem; border-bottom:1px solid var(--border); vertical-align:middle; white-space:nowrap; }
+    .erp-table td.td-wrap, .dq-table td.td-wrap, .pick-table td.td-wrap { white-space:normal; }
+    .erp-table td.emp-td-trunc, .erp-table td.td-trunc { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:1px; height:46px; }
     .erp-table tbody tr:last-child td, .dq-table tbody tr:last-child td, .pick-table tbody tr:last-child td { border-bottom:none; }
     .erp-table tbody tr.is-clickable, .dq-table tbody tr { cursor:pointer; transition:background var(--dur-fast) var(--ease-out); }
     .erp-table tbody tr.is-clickable:hover, .dq-table tbody tr:hover { background:var(--surface2); }
@@ -3668,8 +3676,30 @@
     .pd-tabs-inline { display:flex; gap:0.2rem; background:none; border:none; padding:0; margin:0 0 var(--panel-gap); overflow-x:auto; scrollbar-width:none; }
     .pd-tabs-inline::-webkit-scrollbar { display:none; }
     .pd-tabs-inline .pd-tab { flex:none; background:var(--surface2); border:1px solid transparent; white-space:nowrap; }
-    .pd-tabs-inline .pd-tab.active { background:var(--accent-light,var(--surface)); border-color:var(--border); box-shadow:none; color:var(--accent-ink,var(--text)); }
+    /* Neutral, not teal — this component now serves view switchers (Table|
+       Cards) and filter chips (saved views). Selection here means "this is
+       the active view/filter," not "this is where you are" (that's
+       .section-tabs below); a large cyan pill for either would out-rank
+       the actual data on screen. */
+    .pd-tabs-inline .pd-tab.active { background:var(--surface); border-color:var(--border-strong); box-shadow:0 1px 2px rgba(0,0,0,0.05); color:var(--text-primary); }
     .pd-tabs-inline .pd-tab-count { margin-left:0.35rem; opacity:0.65; font-weight:500; }
+
+    /* ── SectionTabs ── primary in-page navigation between the top-level
+       views of a module (Talento Humano: Colaboradores/Cola de gafetes/
+       Historial/Empresas/Configuración). Navigation reads as navigation —
+       thin teal underline on the active item, not a filled pill — never
+       reuse .pd-tabs-inline for this job (that's a view switcher/filter,
+       a different hierarchy level). */
+    .section-tabs { display:flex; gap:var(--sp-5); border-bottom:1px solid var(--border); margin-bottom:var(--section-gap); overflow-x:auto; scrollbar-width:none; }
+    .section-tabs::-webkit-scrollbar { display:none; }
+    .section-tab {
+      position:relative; flex:none; background:none; border:none; cursor:pointer;
+      font-family:inherit; font-size:0.84rem; font-weight:500; color:var(--text-3);
+      padding:0.7rem 0.1rem; white-space:nowrap; transition:color var(--dur-fast) var(--ease-out);
+    }
+    .section-tab:hover { color:var(--text-primary); }
+    .section-tab.active { color:var(--accent-dark,var(--text-primary)); font-weight:650; }
+    .section-tab.active::after { content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--accent); border-radius:2px 2px 0 0; }
 
     /* RecordTabs is now a first-class component (.record-tabs / .sub-tabs,
        defined with the tab system above) — the old .pd-tabs-nav variant that
@@ -4315,7 +4345,7 @@
     .emp-filter-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
     .emp-filter-chip {
       display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 6px 0 10px;
-      border-radius: var(--r-pill); background: var(--accent-light, var(--surface2)); color: var(--accent-ink, var(--text));
+      border-radius: var(--r-sm); background: var(--surface2); color: var(--text-primary);
       border: 1px solid var(--border); font-size: 0.74rem; font-weight: 500;
     }
     .emp-filter-chip button {
@@ -13489,9 +13519,9 @@ function renderBadgeTabs() {
     { id: 'settings', label: 'Configuración' },
   ]
   return `
-    <div class="pd-tabs pd-tabs-inline" style="max-width:none">
+    <div class="section-tabs">
       ${navItems.map(item => `
-        <button class="pd-tab ${_badge_ui.view === item.id ? 'active' : ''}" onclick="_badge_ui.view = '${item.id}'; renderBadgeModule()">${item.label}</button>
+        <button class="section-tab ${_badge_ui.view === item.id ? 'active' : ''}" onclick="_badge_ui.view = '${item.id}'; renderBadgeModule()">${item.label}</button>
       `).join('')}
     </div>
   `
