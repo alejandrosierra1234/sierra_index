@@ -1552,3 +1552,116 @@ its own `:root`, not a shared file), so this was a value-for-value sync,
 not a refactor to a shared token source; if a shared stylesheet is ever
 extracted for these pages, pull `--up`/`--down` from the same registry
 `index.html` uses instead of re-hardcoding the pair a third time.
+
+## 60. Fresh module-by-module audit (§39) — findings and fixes
+
+Ran a systematic pass over every top-level screen (`show*()`/list-screen
+entry point) not already covered by §17's audit history, checking each
+against header/toolbar/tabs/table/radius/color/spacing/empty-state/
+language rules. Full inventory: 20 screens total, 12 already audited
+(Catalog, Product Detail, Dispatch Queue/workspace, Sample record,
+Collection workspace, Warehouse Inventory, Insights, Access Logs, plus
+Gafetes — a clean `.section-tabs` reference implementation). This pass
+covers the remaining 8.
+
+**Dashboard (`showDashboard()`)** — the app's landing screen, was
+entirely in English while the rest of the ERP shell is Spanish: greeting
+copy, `en-US` date/time locale (dashboard notif timestamps too), search
+placeholder, every section label (World Time/Notifications/Pending
+Samples/Continue Working/Actions/Market), action-button labels, loading
+states, and the market-detail "no live price" copy. All translated to
+Spanish; `en-US`/`es-MX` locale calls unified. One inline
+`border-radius:10px` (market detail icon) replaced with `var(--r-md)`
+(10px is exactly `--r-md`, not a new token).
+
+**Module Hub / Module Tools (`showModuleHub()`/`showModuleTools()`)** —
+`MODULES.samples.color` was `#16cdbe`, brand teal, used as the Muestras
+tile's *identity* color — a direct §42/§44 violation ("teal is reserved
+for interaction, never identity"), while `talento_humano` (`#ffc529`,
+Warm Yellow) and `administracion` (`#444444`, neutral) already followed
+the rule correctly. Reassigned Muestras to the unclaimed Yellow/Olive
+secondary family (`#c4c412`) — divisions inside Muestras already carry
+their own DIV_ACCENT identity, so the module tile itself just needed a
+non-interactive, non-conflicting hue. Also fixed: two inline
+`border-radius:12px` tile literals → `var(--r-lg)` (12px is exactly
+`--r-lg`), and the hand-rolled no-access `<div class="empty">` → 
+`emptyStateHtml()`.
+
+**A second, independently-drifted division-color registry** — found
+while touching Module Hub, not part of the original audit list:
+`SPOT_DIVS` (Spotlight search's per-division filter chips) hardcoded its
+own hex values instead of reading `DIV_ACCENT` (§46's declared "single
+source of truth"), and had drifted badly: Yarn/Fabric were swapped
+(Yarn showed Fabric's green, Fabric showed Yarn's blue), Chemicals was
+tinted Apparel's orange, and Apparel was tinted brand teal (`#16cdbe`) —
+the same forbidden teal-as-identity pattern as the Module Hub finding
+above, independently introduced in a second registry. `SPOT_DIVS` now
+derives its `color` from `DIV_ACCENT[key]`
+at load time instead of carrying a parallel literal, closing the drift
+permanently rather than re-syncing the values by hand a second time —
+the same lesson §46 already drew from the old `DIV_CLR`/`DIV_ACCENT`
+duplication.
+
+**Team (`showUserManagement()`)** — explicitly flagged "not yet audited"
+in §17. The "Crear cuenta" primary action was hand-rolled inside `#pg`
+behind an inline `justify-content:flex-end` wrapper instead of living in
+`#product-controls` (§9 — creation actions belong top-right of the
+PageHeader, matching every other list screen); moved. Two hardcoded
+English fallback strings ("Loading…", "No users yet.") that bypassed the
+screen's own `tx()` scaffolding were translated directly (Spanish is the
+literal default here, not routed through `tx()`, since the rest of the
+screen already resolves through it and these were just missed).
+
+**Sample Center (`showSampleCenter()`)** — was the one Muestras-family
+screen never brought over to Spanish, sitting next to Spanish siblings
+(Sample record, Collection workspace, Dispatch): title/subtitle, loading/
+error/empty-state copy, section labels ("Collections"/"Individual
+Samples"), filter-chip labels ("All divisions (N)"/"All (N)"), row copy
+("Pickup"/"Urgent"), and `en-US` row-date locale (Collections Hub already
+correctly used a Spanish locale for the same kind of row — now `es-MX`
+here too, matching). All translated.
+
+**Filter-tab redundancy (Sample Center + Collections Hub)** —
+`filterSampleRows()`/`filterSampleDivision()`/`colhSetTab()`'s trigger
+buttons already carry `.div-toolbar-btn.active`, which the CSS itself
+renders as the correct neutral bordered-surface active state — but the
+JS also manually toggled `btn.style.background`/`btn.style.color` to the
+exact same values on every filter change, and the initial server-rendered
+markup baked the same inline style onto the default-active button. Purely
+redundant, not a color violation (the class alone already produces the
+right look), but exactly the kind of duplicated-logic drift that made two
+screens diverge instead of sharing one behavior. Removed the inline style
+mutation from both filter functions and both markup call sites — the
+`.active` class is now the only thing driving the visual state, in both
+screens, matching how every other `.pd-tabs-inline`/`.div-toolbar-btn`
+consumer in the app already works.
+
+**Collections Hub (`showCollectionsHub()`)** — two stray English
+toast/error strings in `cloneCollectionToDraft()` ("Could not start from
+this collection…", "New draft … started — edit it freely before
+submitting") next to a sibling function (`startBlankDraft()`) that
+already toasts in Spanish. Translated.
+
+**Account menu (`renderAcctMenu()`)** — shared chrome opened from every
+screen's sidebar identity, was hardcoded English (My profile/
+Notifications/Appearance/Dark·Light/Team/Access logs/Help/Log out) inside
+an otherwise Spanish shell. Translated; "Team"/"Access logs" now read
+"Equipo y Permisos"/"Registro de accesos", matching the labels used
+everywhere else those destinations are named (`MODULES.administracion`,
+the sidebar tree). Access Logs' own screen title (`showAccessLogs()`) was
+also still literally "Access Logs" in English from §58's pass — that pass
+translated the table/body but missed the header text; now "Registro de
+accesos" throughout.
+
+**Not fixed in this pass, left as-is deliberately**: Sample Center's
+hand-rolled `<div class="empty">` blocks (already Spanish, already using
+the shared `.empty` class — converting to `emptyStateHtml()` is cosmetic
+polish, not a correctness fix, and risked visual regression on
+content/icon combinations `emptyStateHtml()` wasn't built for); a full
+mechanical sweep of every remaining inline `border-radius:Npx` literal
+app-wide (the codebase uses hardcoded 8px/10px radius values extremely
+pervasively — hundreds of call sites predating the token scale — and a
+blind mass-replace was judged too large a blast radius for this pass;
+only the literals inside screens this pass was already editing, and that
+matched a token value exactly, were converted). Both flagged as future
+work, not silently assumed done.
