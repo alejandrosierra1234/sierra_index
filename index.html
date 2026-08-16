@@ -1321,11 +1321,18 @@
     mark.sh { background:var(--accent-light); color:var(--accent-dark); border-radius:2px; font-style:normal; }
     [data-theme="dark"] mark.sh { color:var(--accent); }
 
-    /* ── SELECT MODE ── */
+    /* ── SELECT MODE ── card selection uses the SAME checkbox as table
+       rows (§20) — not a bespoke circular affordance — sitting over the
+       media region's top-left corner, the one place every card variant
+       (product photo or empty placeholder) can host it consistently. */
     .card.card-selected { border-color:var(--accent); }
-    .card-check { position:absolute; top:0.6rem; right:0.6rem; width:20px; height:20px; border-radius:50%; background:var(--surface); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; transition:all 0.15s; opacity:0; pointer-events:none; transform:scale(0.7); }
-    .card-selected .card-check { background:var(--accent); border-color:var(--accent); color:#fff; }
-    body.select-mode .card-check { opacity:1; pointer-events:auto; transform:scale(1); }
+    .card-check {
+      position:absolute; top:0.6rem; left:0.6rem; width:18px; height:18px;
+      accent-color:var(--accent); cursor:pointer; opacity:0; pointer-events:none;
+      transition:opacity var(--dur-fast) var(--ease-out);
+      filter:drop-shadow(0 1px 2px rgba(0,0,0,0.25));
+    }
+    body.select-mode .card-check { opacity:1; pointer-events:auto; }
     .card-wrap { position:relative; }
 
     /* Floating select bar */
@@ -1401,9 +1408,12 @@
 
     /* CommentsPanel lives with the Record Detail architecture below. */
 
-    /* ── PRODUCT GRID ── */
+    /* ── PRODUCT GRID ── optimizes for product COMPREHENSION, not maximum
+       card count: a 280px floor keeps cards to ~4/row on a large desktop,
+       ~3 on a laptop, ~2 on tablet, 1 on mobile (§9) via plain auto-fill —
+       no hard-coded per-breakpoint column counts to keep in sync. */
     .pg { display:block; }
-    .pg-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:1rem; align-items:start; }
+    .pg-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:1.1rem; align-items:start; }
 
     /* ── Saved views (fabric construction) ── compact ViewTabs strip,
        replacing the old large fab-chip category buttons. Markup now
@@ -1411,6 +1421,39 @@
        app; #fab-filter-bar is kept only as the container id so existing
        show/hide call sites don't need touching. */
     #fab-filter-bar { padding:0; margin-bottom:var(--panel-gap); }
+
+    /* ── PageHeader Level 2: ViewTabs ── switching Table|Cards changes
+       which surface you're looking at, not a taxonomy/action — it must
+       read lighter than both. Text + underline, no track/pill chrome, so
+       it never competes with the CategoryTabs row below it or the toolbar
+       buttons below that (§1/§25 header-level hierarchy). */
+    .view-tabs { display:flex; gap:1.4rem; border-bottom:1px solid var(--border); margin:0 0 var(--panel-gap); }
+    .view-tab {
+      position:relative; background:none; border:none; font-family:inherit;
+      font-size:0.86rem; font-weight:600; color:var(--text-3); cursor:pointer;
+      padding:0 0.05rem 0.55rem; white-space:nowrap; transition:color var(--dur-fast) var(--ease-out);
+    }
+    .view-tab:hover { color:var(--text-2); }
+    .view-tab.active { color:var(--text); }
+    .view-tab.active::after { content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px; border-radius:2px; background:var(--accent); }
+
+    /* ── PageHeader taxonomy row: CategoryTabs ── navigation, not an
+       action group — quieter than the ViewTabs above it (no underline
+       track) and quieter still than the Toolbar below it (no border/
+       button shell at rest). The count is always the muted half of the
+       pair; the active tab gets a soft tint, never a filled/teal button
+       (§2). Reused verbatim wherever a catalog needs saved-view chips. */
+    .cat-tabs { display:flex; align-items:center; gap:0.2rem; margin:0 0 var(--panel-gap); overflow-x:auto; scrollbar-width:none; }
+    .cat-tabs::-webkit-scrollbar { display:none; }
+    .cat-tab {
+      display:inline-flex; align-items:center; gap:0.3rem; background:none; border:1px solid transparent;
+      border-radius:var(--r-sm); padding:0.36rem 0.6rem; font-family:inherit; font-size:0.82rem; font-weight:600;
+      color:var(--text-2); cursor:pointer; white-space:nowrap; flex-shrink:0;
+      transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+    }
+    .cat-tab:hover { background:var(--surface2); color:var(--text); }
+    .cat-tab.active { background:var(--surface2); color:var(--text); }
+    .cat-tab-count { color:var(--text-3); font-weight:500; }
 
     .card {
       position:relative; background:var(--surface); border:1px solid var(--border); border-radius:12px;
@@ -1420,15 +1463,34 @@
     .card:hover { border-color:color-mix(in srgb, var(--text-3) 42%, var(--border)); box-shadow:0 8px 26px rgba(0,0,0,0.06); transform:translateY(-1px); }
     [data-theme="dark"] .card:hover { box-shadow:0 10px 28px rgba(0,0,0,0.32); }
 
-    .card-img { width:100%; height:128px; object-fit:cover; background:var(--bg-alt); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    /* Media region (§16): shorter when there's nothing to show. A real
+       photo earns the taller zone (140-160px); the empty state doesn't
+       pretend to — 96px is enough for a legible icon without the gray box
+       dominating the card. */
+    .card-img { width:100%; height:152px; object-fit:cover; background:var(--bg-alt); display:flex; align-items:center; justify-content:center; overflow:hidden; }
     .card-img img { width:100%; height:100%; object-fit:cover; }
     .card-img-placeholder {
-      width:100%; height:128px; display:flex; align-items:center; justify-content:center;
+      width:100%; height:96px; display:flex; align-items:center; justify-content:center;
       background:linear-gradient(180deg, var(--surface2), var(--bg-alt)); overflow:hidden;
     }
-    .card-img-placeholder svg { width:22px; height:22px; opacity:0.55; }
-    .card-body { padding:0.82rem 0.86rem 0.82rem; }
-    .card-meta { display:flex; align-items:center; justify-content:space-between; gap:0.65rem; margin-bottom:0.65rem; min-width:0; }
+    .card-img-placeholder svg { width:24px; height:24px; opacity:0.6; }
+    .card-body { padding:0.95rem 1rem 1rem; }
+    /* ProductCard anatomy (§11): name first (primary identity), then
+       record metadata + lifecycle, then technical data, then actions —
+       never code-before-name. */
+    .card-name {
+      font-size:1.05rem; font-weight:650; color:var(--text); margin-bottom:0.55rem;
+      letter-spacing:-0.014em; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .card-name.wrap-2 { white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+    .product-name-lang-tag {
+      display:inline-flex; align-items:center; min-height:18px; margin-left:0.4rem; transform:translateY(-1px);
+      padding:0.12rem 0.38rem; border-radius:6px; border:1px solid var(--border);
+      background:var(--surface2); color:var(--text-3);
+      font-size:0.55rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em;
+      white-space:nowrap; vertical-align:middle;
+    }
+    .card-meta { display:flex; align-items:center; justify-content:space-between; gap:0.65rem; margin-bottom:0.7rem; min-width:0; }
     .card-meta-main { display:flex; align-items:center; gap:0.45rem; min-width:0; }
     .card-meta-side { display:flex; flex-direction:column; align-items:flex-end; gap:0.26rem; flex-shrink:0; }
     /* CategoryTag ("all products" view only — identifies the DIVISION, not
@@ -1445,19 +1507,20 @@
     .card-div-icon svg { width:14px; height:14px; display:block; }
     .card-div { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.11em; }
     .card-lot { font-size:0.6rem; color:var(--text-3); max-width:82px; text-align:right; line-height:1.2; overflow:hidden; text-overflow:ellipsis; }
-    .card-name {
-      font-size:0.94rem; font-weight:650; color:var(--text); margin-bottom:0.3rem;
-      letter-spacing:-0.012em; line-height:1.28; min-height:2.38em;
-      display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
-    }
-    .product-name-lang-tag {
-      display:inline-flex; align-items:center; min-height:18px; margin-left:0.4rem; transform:translateY(-1px);
-      padding:0.12rem 0.38rem; border-radius:6px; border:1px solid var(--border);
-      background:var(--surface2); color:var(--text-3);
-      font-size:0.55rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em;
-      white-space:nowrap; vertical-align:middle;
-    }
+    /* Generic card description line — reused by module tiles, employee
+       cards and sample cards. ProductCard's own technical data uses the
+       dedicated .card-comp/.card-tech below instead (§14/§15 need
+       different truncation rules than a generic one-liner). */
     .card-desc { font-size:0.74rem; color:var(--text-3); line-height:1.45; margin-bottom:0.8rem; min-height:2.15em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    /* Technical data block (§14/§15): composition is never blindly
+       truncated. Short compositions (≤2 components) stay one line
+       separated by " · "; longer ones stack, one component per line, so
+       every value stays fully readable — comprehension over card count. */
+    .card-tech-block { margin-bottom:1.05rem; }
+    .card-comp { font-size:0.8rem; color:var(--text-2); line-height:1.5; }
+    .card-comp-stack { display:flex; flex-direction:column; gap:0.02rem; }
+    .card-comp-empty { color:var(--text-3); }
+    .card-tech { font-size:0.76rem; color:var(--text-3); margin-top:0.15rem; }
     .tags { display:flex; flex-wrap:wrap; gap:0.28rem; margin-bottom:0.9rem; }
     .tags:empty { display:none; }
     .tag { font-size:0.64rem; padding:0.16rem 0.45rem; border-radius:7px; background:none; color:var(--text-3); border:1px solid var(--border); }
@@ -2843,9 +2906,10 @@
       .time-row { gap: 1.75rem; }
       .tr-time { font-size: 1rem; }
 
-      /* Product grid: fit narrow screens */
-      .pg-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; }
-      .card-img, .card-img-placeholder { height: 120px; }
+      /* Product grid: tablet/mobile — still ~2/row on a tablet width, never
+         forced back down to the old 5-narrow-cards density (§9). */
+      .pg-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; }
+      .card-img { height: 130px; }
 
       /* Content header */
       .content-hdr { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
@@ -3644,8 +3708,8 @@
     .page-toolbar, .dq-toolbar { display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-bottom:var(--panel-gap); align-items:center; }
     .page-toolbar input[type=text], .page-toolbar select,
     .dq-toolbar input[type=text], .dq-toolbar select {
-      border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface2); color:var(--text);
-      font-family:inherit; font-size:13px; padding:0 10px; height:var(--control-h-sm); box-sizing:border-box; color:var(--text-primary);
+      border:1px solid var(--border); border-radius:var(--control-radius); background:var(--surface2); color:var(--text);
+      font-family:inherit; font-size:13px; padding:0 10px; height:var(--control-h); box-sizing:border-box; color:var(--text-primary);
     }
     .page-toolbar input[type=text], .dq-toolbar input[type=text] { min-width:170px; flex:1; max-width:260px; }
     .page-toolbar-sep, .dq-toolbar-sep { width:1px; height:1.3rem; background:var(--border); }
@@ -3772,16 +3836,10 @@
        .btn.btn-primary.btn-sm + overflowMenuHtml(), not a bespoke class. */
     .cat-row-actions { display:flex; align-items:center; justify-content:flex-end; gap:var(--control-gap); white-space:nowrap; }
 
-    /* ── Catalog Cards view ── same dataset/filters as the table, denser
-       than the old product-gallery cards: shorter image, tighter body,
-       quick action reads as a link, not an e-commerce CTA. */
-    .pg-grid.cat-cards-dense { grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:0.7rem; }
-    .cat-cards-dense .card-img, .cat-cards-dense .card-img-placeholder { height:84px; }
-    .cat-cards-dense .card-body { padding:0.6rem 0.65rem; }
-    .cat-cards-dense .card-name { font-size:0.82rem; min-height:0; -webkit-line-clamp:1; margin-bottom:0.15rem; }
-    .cat-cards-dense .card-desc { font-size:0.7rem; min-height:0; -webkit-line-clamp:1; margin-bottom:0.4rem; }
-    .cat-cards-dense .tags { display:none; }
-    .cat-cards-dense .card-meta { margin-bottom:0.4rem; }
+    /* ── Catalog Cards view ── same dataset/filters as the table, using
+       the ONE shared .pg-grid/.card system (§9/§31) — no denser one-off
+       variant. Optimizes for product comprehension: readable name,
+       untruncated composition, breathing room, not maximum card count. */
 
     /* ── Bulk action bar (row selection) ── same #select-bar element,
        extended with a second contextual action; still the one canonical
@@ -5499,9 +5557,9 @@
           </div>
           <div class="content-hdr-r" id="product-controls"></div>
         </div>
-        <div class="pd-tabs pd-tabs-inline" id="cat-view-tabs" style="max-width:220px">
-          <button class="pd-tab" data-view="table" onclick="setCatalogView('table')">Table</button>
-          <button class="pd-tab" data-view="cards" onclick="setCatalogView('cards')">Cards</button>
+        <div class="view-tabs" id="cat-view-tabs">
+          <button class="view-tab" data-view="table" onclick="setCatalogView('table')">Table</button>
+          <button class="view-tab" data-view="cards" onclick="setCatalogView('cards')">Cards</button>
         </div>
         <div id="fab-filter-bar" style="display:none"></div>
         <div id="cat-toolbar" class="page-toolbar"></div>
@@ -7146,7 +7204,7 @@ function catActiveFilterCount() {
 function setCatalogView(view) {
   catalogView = view
   try { localStorage.setItem('sierra_catalog_view', view) } catch {}
-  document.querySelectorAll('#cat-view-tabs .pd-tab').forEach(b => b.classList.toggle('active', b.dataset.view === view))
+  document.querySelectorAll('#cat-view-tabs .view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === view))
   renderProducts(filterProducts())
 }
 
@@ -7154,7 +7212,7 @@ function renderProducts(products) {
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
   document.body.classList.add('select-mode')
-  document.querySelectorAll('#cat-view-tabs .pd-tab').forEach(b => b.classList.toggle('active', b.dataset.view === catalogView))
+  document.querySelectorAll('#cat-view-tabs .view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === catalogView))
   renderCatalogSavedViews()
   renderCatalogToolbar()
 
@@ -7182,18 +7240,20 @@ function _renderArchivedFooter(pg) {
   </div>`)
 }
 
-/* ── Saved views strip (fabric only) — renders into #fab-filter-bar as a
-   compact ViewTabs row (.pd-tabs-inline), not large category buttons. */
+/* ── CategoryTabs (fabric only) — renders into #fab-filter-bar as taxonomy
+   navigation (.cat-tabs), a distinct, quieter component from ViewTabs
+   (Table|Cards, above) and the Toolbar (below): text-forward, muted
+   counts, no button chrome at rest (§2/§25). */
 function renderCatalogSavedViews() {
   const bar = document.getElementById('fab-filter-bar')
   if (!bar) return
   if (division !== 'fabric') { bar.style.display = 'none'; return }
   bar.style.display = 'block'
   const activeKey = fabricFilter || 'all'
-  bar.innerHTML = `<div class="pd-tabs pd-tabs-inline">
+  bar.innerHTML = `<div class="cat-tabs">
     ${CAT_SAVED_VIEWS.map(v => {
       const n = allProducts.filter(p => !isArchived(p) && catSavedViewMatch(p, v.key)).length
-      return `<button class="pd-tab ${activeKey === v.key ? 'active' : ''}" onclick="setFabricFilter('${v.key === 'all' ? '' : v.key}')">${esc(v.label)}<span class="pd-tab-count">${n}</span></button>`
+      return `<button class="cat-tab ${activeKey === v.key ? 'active' : ''}" onclick="setFabricFilter('${v.key === 'all' ? '' : v.key}')">${esc(v.label)}<span class="cat-tab-count">${n}</span></button>`
     }).join('')}
   </div>`
 }
@@ -7213,17 +7273,22 @@ function onSearch(val) {
 }
 
 /* ── PageHeader primary action ── "+ New product" lives top-right of the
-   PageHeader (§9 button placement rule), not in a per-screen toolbar. */
+   PageHeader (§9 button placement rule), not in a per-screen toolbar.
+   Full 40px --control-h, same as every other primary action — this is
+   Level 1 (page identity), not a compact secondary surface. */
 function renderCatalogHeaderActions() {
   const el = document.getElementById('product-controls')
   if (!el) return
-  el.innerHTML = canEditDiv(division) ? `<button class="btn btn-primary btn-sm" onclick="openAdd()">+ New product</button>` : ''
+  el.innerHTML = canEditDiv(division) ? `<button class="btn btn-primary" onclick="openAdd()">+ New product</button>` : ''
 }
 
-/* ── DataToolbar ── the one shared toolbar for the Catalog list screen:
-   Search / Filter / Sort / Group by / Hide columns / •••. Built from
-   .page-toolbar + .btn + the shared .ws-pop popover primitive (§12b) —
-   no page-specific toolbar shell. */
+/* ── DataToolbar (PageHeader Level 3) ── the one shared toolbar for the
+   Catalog list screen: Search / Filter / Sort / Group / Columns / •••.
+   Built from .page-toolbar + .btn + the shared .ws-pop popover primitive
+   (§12b) — no page-specific toolbar shell. Every control is icon+label at
+   the full 40px --control-h (§24) — this is an operational action row,
+   not a compact secondary surface, and labels drop the "Sort:"/"Group
+   by:" prefix the leading icon already communicates (§1/§26). */
 let _catLastFacetValues = {}
 function renderCatalogToolbar() {
   const el = document.getElementById('cat-toolbar')
@@ -7240,12 +7305,12 @@ function renderCatalogToolbar() {
     </div>
 
     <div style="position:relative">
-      <button class="btn btn-secondary btn-sm cat-tb-btn ${filterCount ? 'has-value' : ''}" onclick="catTogglePop(event,'cat-pop-filter')">Filter${filterCount ? `<span class="cat-tb-btn-dot"></span>` : ''}</button>
+      <button class="btn btn-secondary cat-tb-btn ${filterCount ? 'has-value' : ''}" onclick="catTogglePop(event,'cat-pop-filter')">${siIcon('filter', 16)}Filter${filterCount ? `<span class="cat-tb-btn-dot"></span>` : ''}</button>
       <div class="ws-pop cat-pop" id="cat-pop-filter">${catFilterPopHtml(base)}</div>
     </div>
 
     <div style="position:relative">
-      <button class="btn btn-secondary btn-sm cat-tb-btn" onclick="catTogglePop(event,'cat-pop-sort')">Sort: ${esc(sortLabel)}</button>
+      <button class="btn btn-secondary cat-tb-btn" onclick="catTogglePop(event,'cat-pop-sort')">${siIcon('sort', 16)}${esc(sortLabel)}</button>
       <div class="ws-pop cat-pop" id="cat-pop-sort">
         <div class="cat-pop-title">Sort by</div>
         ${Object.entries(CAT_SORTS).map(([key, s]) => `<button type="button" class="cat-pop-row" onclick="catSetSort('${key}')">${catalogSort === key ? '✓ ' : ''}${esc(s.label)}</button>`).join('')}
@@ -7253,7 +7318,7 @@ function renderCatalogToolbar() {
     </div>
 
     <div style="position:relative">
-      <button class="btn btn-secondary btn-sm cat-tb-btn" onclick="catTogglePop(event,'cat-pop-group')">Group by: ${esc(groupLabel)}</button>
+      <button class="btn btn-secondary cat-tb-btn" onclick="catTogglePop(event,'cat-pop-group')">${siIcon('grid', 16)}${esc(groupLabel)}</button>
       <div class="ws-pop cat-pop" id="cat-pop-group">
         <button type="button" class="cat-pop-row" onclick="catSetGroupBy('none')">${catalogGroupBy === 'none' ? '✓ ' : ''}None</button>
         ${Object.entries(CAT_GROUP_DEFS).map(([key, g]) => `<button type="button" class="cat-pop-row" onclick="catSetGroupBy('${key}')">${catalogGroupBy === key ? '✓ ' : ''}${esc(g.label)}</button>`).join('')}
@@ -7262,7 +7327,7 @@ function renderCatalogToolbar() {
 
     ${catalogView === 'table' && division !== 'yarn' ? `
     <div style="position:relative">
-      <button class="btn btn-secondary btn-sm cat-tb-btn" onclick="catTogglePop(event,'cat-pop-cols')">Hide columns</button>
+      <button class="btn btn-secondary cat-tb-btn" onclick="catTogglePop(event,'cat-pop-cols')">${siIcon('columns', 16)}Columns</button>
       <div class="ws-pop cat-pop" id="cat-pop-cols">
         <div class="cat-pop-title">Columns</div>
         ${CAT_COLUMNS.filter(c => !c.alwaysOn).map(c => `
@@ -7276,8 +7341,8 @@ function renderCatalogToolbar() {
     <div class="cat-toolbar-spacer"></div>
 
     <div style="position:relative">
-      <button class="ws-icon-btn cat-tb-btn" onclick="catTogglePop(event,'cat-pop-more')" title="More">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M18 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /></svg>
+      <button class="icon-btn cat-tb-btn" onclick="catTogglePop(event,'cat-pop-more')" title="More">
+        ${siIcon('dots', 16)}
       </button>
       <div class="ws-pop cat-pop" id="cat-pop-more" style="right:0;left:auto">
         ${canEditDiv(division) ? `<button type="button" class="pop-menu-item" onclick="wsClosePopovers(); openImport()">Import products</button>` : ''}
@@ -7361,6 +7426,27 @@ function catColor(p) { return p.specs?.Color || '—' }
 function catWidth(p) { return p.specs?.Width || '—' }
 function catGSM(p) { return p.specs?.GSM || '—' }
 function catDye(p) { return p.specs?.['Dyed Method'] || '—' }
+// Composition strings are space-separated ("68% Modal 29% Polyester 3%
+// Spx"), not comma-delimited — split before each percentage so every
+// component survives as its own readable chunk (§14/§15: never blindly
+// truncate composition just to fit more cards per row).
+function catCompositionParts(p) {
+  const raw = catComposition(p)
+  if (raw === '—') return []
+  return raw.trim().split(/\s+(?=\d)/).map(s => s.trim()).filter(Boolean)
+}
+function catCompositionHtml(p) {
+  const parts = catCompositionParts(p)
+  if (!parts.length) return `<div class="card-comp card-comp-empty">—</div>`
+  if (parts.length <= 2) return `<div class="card-comp">${esc(parts.join(' · '))}</div>`
+  return `<div class="card-comp card-comp-stack">${parts.map(part => `<div>${esc(part)}</div>`).join('')}</div>`
+}
+// Weight + construction on one muted line under the composition block.
+function catTechLine(p) {
+  const gsm = catGSM(p)
+  const constr = CONST_META[inferConstruction(p)]?.label
+  return [gsm !== '—' ? gsm + ' GSM' : null, constr].filter(Boolean).join(' · ')
+}
 function catUpdated(p) { return p.updated_at || p.created_at ? dqRelTime(p.updated_at || p.created_at) : '—' }
 // specs.Price is a free-text field (e.g. "USD 4.80 / lb") entered by
 // editors — shown verbatim once the viewer has pricing visibility;
@@ -7454,15 +7540,20 @@ function catCardHtml(p) {
     ? `<div class="card-img"><img src="${thumb}" alt="${esc(p.name)}" loading="lazy" /></div>`
     : `<div class="card-img-placeholder"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--border)" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="1.5" stroke="var(--text-3)" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--text-3)" stroke-width="1.2" stroke-linecap="round"/></svg></div>`
   const isSelected = selectedProducts.some(s => s.id === p.id)
+  const techLine = catTechLine(p)
   return `<div class="card ${isSelected ? 'card-selected' : ''}" data-id="${p.id}" onclick="openCatalogDrawer(dec('${ep}'))">
     ${imgEl}
+    <input type="checkbox" class="card-check" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleProductSelect(dec('${ep}'))" aria-label="Select ${escAttr(p.name)}" />
     <div class="card-body">
+      <div class="card-name${p.name && p.name.length > 26 ? ' wrap-2' : ''}">${esc(p.name)}${productNameTag()}</div>
       <div class="card-meta">
         ${metaEl}
         <span class="card-meta-side">${lcPill(p)}</span>
       </div>
-      <div class="card-name">${esc(p.name)}${productNameTag()}</div>
-      <div class="card-desc">${esc(catComposition(p))}${catGSM(p) !== '—' ? ' · ' + esc(catGSM(p)) + ' GSM' : ''}</div>
+      <div class="card-tech-block">
+        ${catCompositionHtml(p)}
+        ${techLine ? `<div class="card-tech">${esc(techLine)}</div>` : ''}
+      </div>
       <div class="card-actions" onclick="event.stopPropagation()">
         <button class="btn btn-primary" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p) ? '' : `disabled title="${esc(tx('lifecycle.' + lc(p)))} products can't be requested"`}>${siIcon('package', 16)}Request sample</button>
         ${overflowMenuHtml([
@@ -7480,11 +7571,11 @@ function catCardHtml(p) {
 }
 function catCardsHtml(groups) {
   return groups.map(g => {
-    const grid = `<div class="pg-grid cat-cards-dense">${g.items.map(catCardHtml).join('')}</div>`
+    const grid = `<div class="pg-grid">${g.items.map(catCardHtml).join('')}</div>`
     if (g.key === null) return grid
     const collapsed = _catCollapsedGroups.has(g.key)
     return `<div class="const-section">
-      <div class="cat-cards-group-hdr" onclick="catToggleGroup('${escAttr(jsStr(g.key))}')" style="display:flex;align-items:center;gap:0.4rem;padding:0.3rem 0.1rem;cursor:pointer;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2)">
+      <div class="cat-cards-group-hdr" onclick="catToggleGroup('${escAttr(jsStr(g.key))}')" style="display:flex;align-items:center;gap:0.4rem;padding:0.3rem 0.1rem;margin-bottom:0.3rem;cursor:pointer;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2)">
         <svg width="9" height="9" viewBox="0 0 16 16" fill="none" style="transition:transform var(--dur-fast) var(--ease-out);transform:rotate(${collapsed ? '-90deg' : '0'})"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         ${esc(g.label)}<span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-3)">${g.items.length}</span>
       </div>
@@ -9727,7 +9818,7 @@ function toggleProductSelect(p) {
   if (card) {
     card.classList.toggle('card-selected', isNowSelected)
     const check = card.querySelector('.card-check')
-    if (check) check.textContent = isNowSelected ? '✓' : ''
+    if (check) check.checked = isNowSelected
   }
   const row = document.querySelector(`tr[data-id="${p.id}"]`)
   if (row) {
@@ -11160,8 +11251,10 @@ async function ycConfirmPrint(asPdf) {
     if (!el) return
     if (division === 'yarn') {
       el.innerHTML = canEditDiv('yarn')
-        ? `<button class="btn btn-primary btn-sm" onclick="openYarnCreator()">+ Add Yarn</button>
-           <button class="btn btn-secondary btn-sm" onclick="openAdd()" style="margin-left:8px">Quick Add</button>`
+        ? `<div style="display:flex;align-items:center;gap:var(--control-gap)">
+             <button class="btn btn-primary" onclick="openYarnCreator()">+ Add Yarn</button>
+             <button class="btn btn-secondary" onclick="openAdd()">Quick Add</button>
+           </div>`
         : ''
       return
     }
@@ -18407,11 +18500,11 @@ function wsCardsViewHtml(items, categories) {
     <div class="card" style="cursor:pointer" onclick="showSampleRecord('${it.id}')">
       ${imgEl}
       <div class="card-body">
+        <div class="card-name">${esc(p.name || '—')}</div>
         <div class="card-meta">
           ${recordIdHtml(p.code || '—', DIV_ICON[p.division] || DIV_ICON.all)}
           <span class="card-meta-side">${smpBadge(it.status)}</span>
         </div>
-        <div class="card-name">${esc(p.name || '—')}</div>
         <div class="card-desc">${esc(catName(it.category_id))} · ${esc(it.sample_type || '—')} · Qty ${it.quantity || 1}</div>
         <div style="margin-top:0.5rem">${wsPriceCellHtml(it)}</div>
       </div>
