@@ -1358,6 +1358,12 @@ or "this is the primary action" — an applied filter chip is neither.
 
 # Sidebar Navigation Tree (§52–§54)
 
+> **DEPRECATED — superseded by §61 "Sidebar Rearchitecture."** §52-56
+> describe the single flat `_navExpanded` tree that rendered every
+> accessible module simultaneously. That model is no longer in
+> `index.html`; do not reintroduce `_navExpanded`/`navToggleExpand()`/
+> `navToggleModule()`/`navModuleRowHtml()`. Kept below for history only.
+
 ## 52. Persistent tree, not a popover
 
 The sidebar's module/division navigation (`.mod-switch`/`.bu-switch`) has
@@ -2219,3 +2225,225 @@ done:
 - **ERP Table view** (`catTableHtml()`) row density is unchanged, same
   rationale as §42.5 — only its Search/Filter/Sort/Group/Columns toolbar
   (shared with Cards) picked up the 40px sizing.
+
+---
+
+# Sidebar Rearchitecture: Module Switcher + Active-Module Tree (§61)
+
+## 61. Deliberate reversal of the §52/§43.8 "no dropdown switcher" decision
+
+§43.8 (above) documents an earlier, deliberate rejection of a Monday-style
+dropdown module switcher in favor of the persistent always-visible tree
+built in §52-56. That rejection is **superseded here**, on purpose, not by
+accident: this pass was commissioned specifically to revisit it as an
+information-architecture problem, not a cosmetic one. The persistent tree
+correctly solved "don't hide navigation behind a popover you reopen every
+time" for a *single* module, but did not scale to multiple modules —
+every accessible module rendered simultaneously, multiple divisions could
+be expanded at once, and Catalog/Dispatch Queue/Inventory repeated once
+per division. §52-56 are kept below for history but are **deprecated**:
+`_navExpanded` (a flat `Set` of every expanded module+division key),
+`navToggleExpand()`, `navToggleModule()`, `navModuleRowHtml()` and the
+"every module renders every time" model no longer exist in `index.html`.
+Do not resurrect them; everything below is the current, load-bearing
+behavior of `renderSidebarTree()`.
+
+## 61.1 Four zones
+
+```
+GLOBAL              Dashboard
+FAVORITES           Favoritos — star shortcuts, or "Sin favoritos aún"
+MODULE SWITCHER     [IconTile] Muestras  ▾     ← the ONE way to change modules
+ACTIVE MODULE TREE  Divisiones (accordion) → Herramientas — active module only
+UTILITY             — divider — Website
+```
+
+Only the **active** module's own navigation ever renders in `#nav-tree`.
+Every other accessible module — Talento Humano, Index, and any future
+module — is reachable exclusively through the Module Switcher popover,
+never as a second permanent block stacked underneath. This is the direct
+fix for "the sidebar exposes too much information at once": the sidebar's
+length no longer grows with the number of modules in the platform, only
+with the active module's own navigation depth (§30 future-scalability —
+adding a 20th module adds one row to the switcher's list, zero rows to
+the permanent sidebar).
+
+## 61.2 Module Switcher (`.mod-switcher`)
+
+`renderModSwitcherTrigger(key)` renders `[IconTile] {module.label} ▾` as
+a `.nav-item` (so it inherits row height, hover, tooltip and the
+collapsed-rail 40×40 treatment for free) with an extra `.mod-switcher-chevron`.
+Clicking it (`toggleModuleSwitcher()`) opens `.mod-switcher-pop`, an
+ancestor-driven popover (same ".xxx.open .xxx-pop" family as the account
+menu, §12b) built by `renderModSwitcherPop()`:
+
+- A `.control-input` search field (`modSwitchFilter()`), filtering
+  `accessibleModules()` by label substring — no separate search index.
+- **Recientes** — up to 3 modules from `_navRecentModules`
+  (`localStorage: sierra_nav_recent_modules`, most-recent-first, pushed
+  in `syncModule()`), excluding whichever module is already active.
+  Hidden entirely once the user types a query — a search result list
+  doesn't need a "recent" preamble.
+- **Todos los módulos** — every module `accessibleModules()` returns,
+  rows built from `MODULES` config (`m.icon`, `m.color`, `m.label`) —
+  never a hardcoded per-module switcher list (§29). The active module's
+  row carries `.pop-menu-item.current` (bold, existing convention).
+
+Selecting a row (`modSwitchGo(key)`) closes the popover and calls the
+existing `enterModule(key)` — no new routing path. The outside-click
+listener next to `renderAcctMenu()`'s in `index.html` also closes
+`#mod-switcher`.
+
+## 61.3 Active-module tree: divisions (accordion) then tools
+
+`renderSidebarTree()` resolves `navDisplayModuleKey()` — `activeModule` if
+set, else `_navLastModule` (persisted, §61.6), else the user's first
+accessible module — and renders **only** that module:
+
+- **Muestras** — `authorizedDivisions()` render as `.nav-tree-div` rows
+  via `navDivisionRowHtml(d, expanded, isCurrent)`, under a "Divisiones"
+  `.s-label`. Exactly one division is expanded at a time
+  (`_navExpandedDivision.samples`, §61.4) — expanding SIERRA Yarn
+  collapses SIERRA Fabric automatically; there is no multi-expand state
+  to track. Below the divisions, `samplesSharedTools()` (Solicitudes/
+  Colecciones/Insights) render once under a "Herramientas" `.s-label` —
+  cross-division destinations are never nested inside every division
+  (§12 of the request).
+- **Every other module** (Talento Humano, Index, future modules with no
+  divisions) — just its `MODULES[key].tools` list (filtered by
+  `t.visible()`), under the same "Herramientas" label. No "Divisiones"
+  heading renders when a module has none — headings only appear when
+  their section has content.
+
+A new module is added to the tree by adding it to `MODULES` (and, if it
+has divisions, extending `renderSidebarTree()`'s `key === 'samples'`
+branch — currently only Muestras has divisions; a second divisioned
+module would generalize that branch into a `moduleDivisions(key)` lookup
+rather than duplicating the render loop) — never by hand-writing a new
+block of sidebar markup.
+
+## 61.4 Accordion + auto-expand-on-navigate (one mechanism, not two)
+
+`_navExpandedDivision` is a plain object keyed by module id
+(`{samples: 'fabric'}`), persisted to
+`localStorage: sierra_nav_expanded_division` — "last expanded division
+per module" (§17 of the request). Two ways it changes:
+
+1. **Manual** — `navToggleDivision(d)` (division row click): expands the
+   sidebar first if collapsed, then sets `_navExpandedDivision.samples`
+   to `d` (or `null` if `d` was already open — a real accordion, not a
+   one-way ratchet).
+2. **Automatic** — the active route auto-expands its parent (§18 of the
+   request): `renderSidebarTree()` derives the division from `_navLeaf`
+   (`'samples|fabric|catalog'` → `fabric`) and forces it into
+   `_navExpandedDivision.samples`. This only fires when `_navLeaf`
+   actually *changed* since the last render (`_navLeafExpandedFor`
+   guard) — otherwise a manual accordion click while parked on an
+   unrelated screen would be immediately overridden by this same check
+   on the re-render the click itself triggers. Browsing a different
+   division without navigating away from the current screen works
+   correctly because of this guard; don't remove it.
+
+## 61.5 Division row anatomy + IconTile (one identity signal)
+
+```
+[chevron]  [IconTile]  SIERRA Fabric
+```
+
+`.nav-icon-tile` (28×28, `border-radius:7px`, 16px icon) is the **only**
+place a division's identity color appears — `--tile-bg` set to
+`DIV_ACCENT[d].light`, `--tile-fg` to `DIV_ACCENT[d].accent`. Row text,
+the chevron and the row border all stay neutral (`--text-2`/`--text-3`).
+This replaces the old pattern of a bare colored SVG floating directly in
+the row (`style="color:${accent}"` on `.n-icon`) — chevron + floating
+colored icon + no tile was exactly the "competing signals" problem named
+in the request. The Module Switcher trigger and its popover rows reuse
+the same `.nav-icon-tile`, tinted from `MODULES[key].color` at ~12%
+opacity (`${m.color}1f`) for the tile background.
+
+**Child rows** (Catálogo/Cola de despacho/Inventario) use neutral utility
+icons, never the division's own shape: `NAV_ICON_CATALOG` is
+`DIV_ICON.all` (the existing generic 2×2 grid glyph, reused rather than
+drawing a parallel "catalog" icon), Cola de despacho/Inventario keep
+their existing neutral outline icons. Division identity belongs to the
+division row's IconTile only; a child icon communicates *function*
+(catalog/dispatch/inventory), not *whose* division it's in.
+
+## 61.6 Persistence
+
+| State | Key | Scope |
+|---|---|---|
+| Active module (survives Dashboard/Módulos-hub) | `localStorage: sierra_nav_last_module` (`_navLastModule`) | Cross-session |
+| Recent modules (Module Switcher) | `localStorage: sierra_nav_recent_modules` | Cross-session |
+| Expanded division per module | `localStorage: sierra_nav_expanded_division` | Cross-session |
+| Sidebar collapsed/expanded | `localStorage: sierra-sidebar` (unchanged — `toggleSidebar()`) | Cross-session |
+| Favorites | `localStorage: sierra_nav_favorites` (unchanged — §57) | Cross-session |
+| Current route/leaf | `_navLeaf` (in-memory) + `sessionStorage: sierra_active_module`/`sierra_route` (unchanged) | Per tab |
+
+Nothing here resets on an ordinary route change within the same module —
+only an explicit module switch or division toggle changes the persisted
+state, matching "don't reset navigation state every time the user changes
+route" (§17 of the request).
+
+## 61.7 Indentation, row height, typography (fixed scale, not ad hoc)
+
+```
+Level 0   Dashboard, Module Switcher trigger      padding-left: 0.55rem (base .nav-item)
+Level 1   .nav-tree-div, .nav-tree-leaf.lvl2       padding-left: 26px
+Level 2   .nav-tree-leaf.lvl3                      padding-left: 52px
+```
+
+Row height is `min-height`, not padding math: `.nav-item` (global/
+division rows) is 40px; `.nav-item.nav-tree-leaf` (any child screen or
+module-level tool) is 37px. Typography: base `.nav-item` is 14px/500
+(covers Dashboard, Website, division rows, the Module Switcher trigger);
+`.nav-tree-leaf` drops to 400 weight (still 14px) since a child screen is
+one step quieter than its division; `.active` always wins to 600
+regardless of level. Section headings (`.s-label`, `.mod-switch-hdr`) are
+~11px/650, uppercase, tracked, muted (`--text-3`) — never used for
+anything but a group label, and never so frequent they eat vertical
+rhythm (Favoritos / Divisiones / Herramientas — three per full render,
+at most).
+
+## 61.8 Active state: left indicator, not a bordered box
+
+`.nav-item.active` replaced its old `border-color:var(--border)` bordered
+rectangle with `background:var(--surface2)` + a 3px `var(--accent)` bar
+riding the row's left edge (`.nav-item.active::before`), plus bold text
+and a teal icon (`.nav-item:hover .n-icon, .nav-item.active .n-icon`,
+unchanged). This is the one combination in use — never background +
+border + colored text + colored icon simultaneously. Division/module rows
+are never `.active` — only a leaf can be "here" (unchanged from §54);
+`.nav-current-div` is a separate, purely structural marker (§61.9) that
+carries no visual treatment of its own in the expanded sidebar.
+
+## 61.9 Collapsed sidebar
+
+`.sidebar.collapsed` shows, top to bottom: Dashboard icon, the Module
+Switcher trigger as a 40×40 IconTile square (still opens the same
+popover — anchored to the right of the rail via
+`.sidebar.collapsed .mod-switcher-pop`, no forced re-expand needed since
+a popover doesn't require sidebar width), **only the current/expanded
+division's IconTile** (`.sidebar.collapsed .nav-tree-div:not(.nav-current-div)
+{ display:none }` — every other division disappears outright, not just
+its children, so the rail never becomes a second cramped copy of the
+tree), the module's shared tools as plain icon squares, then Website at
+the bottom. No brand wordmark in the rail — SIERRA identity lives once,
+in the Global System Bar (a pre-existing decision, unchanged). No nested
+chevrons collapsed (`.sidebar.collapsed .nav-tree-chevron{display:none}`,
+unchanged from §54). Every row keeps its `data-tip` tooltip
+(theme-native pill, unchanged mechanism).
+
+## 61.10 Navigation color budget
+
+Per the request's ~90/10 neutral/accent target: the only color sources
+left in the sidebar are (1) IconTiles — division and module identity,
+always contained to the 28×28 tile, never bleeding into text/border/
+background, and (2) the 3px teal active indicator + teal icon on the
+current leaf. Everything else — row text, chevrons, section labels,
+hover states — is neutral (`--text-2`/`--text-3`/`--surface2`). This is
+what §21 ("visual color budget") and §33 ("visual acceptance test — no
+many colors, many boxes, many repeated icons") ask for structurally, not
+just as a one-off polish pass — a new division added to `DIV_ACCENT`
+automatically stays inside this budget because color only ever enters
+through `--tile-bg`/`--tile-fg`.

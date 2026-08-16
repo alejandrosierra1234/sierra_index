@@ -1096,12 +1096,16 @@
     .pop-menu-sep { height:1px; background:var(--border); margin:0.3rem 0.2rem; }
     .pop-menu-hint { font-size:0.74rem; color:var(--text-3); margin:0.1rem 0.3rem 0.5rem; }
 
-    /* ── SIDEBAR NAVIGATION TREE ── persistent, non-popover hierarchy:
-       Módulos → divisions/screens, always in the DOM, expand/collapse via
-       a Set (_navExpanded) rather than a dropdown you reopen every time.
-       Built from .nav-item (so it inherits collapsed-rail, tooltip, hover
-       and active-state behavior for free) plus a chevron + indent per
-       depth. See renderSidebarTree() and SIERRA_DESIGN_SYSTEM.md §52. */
+    /* ── ACTIVE MODULE TREE (§4/§5/§29) ──────────────────────────────────
+       Four sidebar zones: Global (Dashboard) → Favorites → Module Switcher
+       → Active module tree (Divisions, accordion — one open at a time —
+       then Tools) → Utility (Website). Only the *active* module's
+       divisions/tools ever render here; every other module lives behind
+       the Module Switcher, never as a permanent peer block. Built from
+       .nav-item (inherits collapsed-rail, tooltip, hover, active-state)
+       plus a chevron + one fixed indentation step per depth. See
+       renderSidebarTree()/moduleSwitcher* in index.html and
+       SIERRA_DESIGN_SYSTEM.md §61. */
     .nav-fav-empty { padding:0.3rem 0.55rem 0.6rem; font-size:0.72rem; color:var(--text-3); }
     /* Favorite toggle — a small utility star, trailing in a favoritable
        leaf row. Hidden until hover/focus/favorited so it never competes
@@ -1118,19 +1122,56 @@
     .sidebar.collapsed .nav-fav-btn { display:none; }
     .nav-fav-list { display:flex; flex-direction:column; gap:1px; }
     .nav-fav-list .nav-item.nav-tree-leaf.lvl2 { padding-left:0.55rem; }
+    /* Chevrons (§25) — only ever on a row that actually expands/collapses
+       (a division). Small, neutral, never on a leaf. */
     .nav-tree-chevron { display:inline-flex; flex-shrink:0; color:var(--text-3); transition:transform var(--dur-fast) var(--ease-out); }
     .nav-tree-chevron.expanded { transform:rotate(90deg); }
     .nav-tree-children { display:flex; flex-direction:column; gap:1px; }
     .nav-tree-children.collapsed { display:none; }
-    .nav-item.nav-tree-div { padding:0.4rem 0.55rem 0.4rem 1.5rem; font-size:0.78rem; }
-    .nav-item.nav-tree-leaf.lvl2 { padding-left:1.5rem; font-size:0.8rem; }
-    .nav-item.nav-tree-leaf.lvl3 { padding:0.4rem 0.55rem 0.4rem 2.5rem; font-size:0.78rem; }
+    /* Indentation system (§11) — one fixed step per depth, never manual
+       positioning. Level 1 = division row / module-level tool (26px
+       content inset); Level 2 = a division's own screens (52px). */
+    .nav-item.nav-tree-div,
+    .nav-item.nav-tree-leaf.lvl2 { padding-left:26px; }
+    .nav-item.nav-tree-leaf.lvl3 { padding-left:52px; }
+    /* Child rows (§10/§22): 36-38px, regular weight — one step lighter
+       than the 40px/medium-weight division and global rows above them. */
+    .nav-item.nav-tree-leaf { min-height:37px; font-weight:400; }
+    .nav-item.nav-tree-leaf.active { font-weight:600; }
     .sidebar.collapsed .nav-tree-children,
     .sidebar.collapsed .nav-fav-empty { display:none !important; }
-    /* Collapsed rail: module rows read as plain icon squares, same as
-       Dashboard/Website below — no chevron clutter since there's nothing
-       to expand in place (a click re-opens the full sidebar). */
+    /* Collapsed rail (§15): only the current/expanded division's IconTile
+       shows — every other division row is hidden outright, not just its
+       children — so the rail never turns into a second, cramped copy of
+       the expanded tree. No chevron clutter since there's nothing to
+       expand in place (a click re-opens the full sidebar). */
     .sidebar.collapsed .nav-tree-chevron { display:none; }
+    .sidebar.collapsed .nav-tree-div:not(.nav-current-div) { display:none; }
+
+    /* ── MODULE SWITCHER (§3) — the one control for changing between
+       top-level INDEX modules (Muestras / Talento Humano / Index / …).
+       Anchored, searchable popover; ancestor-driven open mechanic, same
+       family as the account menu below. The active module's tree is the
+       only one ever rendered in #nav-tree — every other module lives
+       here, never as a permanent sidebar block (§4/§30). */
+    .mod-switcher { position:relative; }
+    .mod-switcher-trigger { justify-content:flex-start; }
+    .mod-switcher-chevron { display:inline-flex; flex-shrink:0; margin-left:auto; color:var(--text-3); }
+    .sidebar.collapsed .mod-switcher-chevron { display:none; }
+    .mod-switcher-pop {
+      position:absolute; left:0; right:0; top:calc(100% + 4px); min-width:240px;
+      background:var(--surface); border:1px solid var(--border); border-radius:12px;
+      box-shadow:var(--shadow-hover); padding:0.3rem; z-index:150;
+      opacity:0; pointer-events:none; transform:translateY(-4px) scale(0.98);
+      transition:opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+    }
+    .mod-switcher.open .mod-switcher-pop { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
+    .sidebar.collapsed .mod-switcher-pop { left:calc(100% + 10px); right:auto; top:0; width:260px; }
+    .mod-switch-search-wrap { padding:2px 4px 6px; }
+    .mod-switch-search-wrap .control-input { width:100%; height:32px; font-size:0.8rem; }
+    .mod-switch-list { display:flex; flex-direction:column; gap:1px; max-height:340px; overflow-y:auto; }
+    .mod-switch-hdr { font-size:0.62rem; font-weight:650; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); padding:0.5rem 0.6rem 0.25rem; }
+    .mod-switch-row-label { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
     /* ── Account menu ──
        Sidebar identity click opens this instead of jumping straight to the
@@ -1159,13 +1200,38 @@
     }
 
 
-    .s-label { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); padding:0.55rem 0.55rem 0.25rem; }
-    .nav-item { display:flex; align-items:center; gap:0.55rem; padding:0.48rem 0.55rem; border-radius:8px; cursor:pointer; font-size:0.82rem; color:var(--text-2); transition:background 0.12s, color 0.12s, border-color 0.12s, width 0.32s cubic-bezier(0.22,1,0.36,1), height 0.32s cubic-bezier(0.22,1,0.36,1), padding 0.32s cubic-bezier(0.22,1,0.36,1), gap 0.32s cubic-bezier(0.22,1,0.36,1), border-radius 0.32s cubic-bezier(0.22,1,0.36,1); border:1px solid transparent; background:none; width:100%; text-align:left; font-family:inherit; overflow:hidden; }
+    .s-label { font-size:0.66rem; font-weight:650; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); padding:0.55rem 0.55rem 0.3rem; }
+    /* Standard row height (§10): 40px for global/division rows, 36-38px for
+       child leaves (see .nav-tree-leaf below) — never an arbitrary height. */
+    .nav-item {
+      display:flex; align-items:center; gap:0.55rem; position:relative;
+      min-height:40px; padding:0 0.55rem; border-radius:8px; cursor:pointer;
+      font-size:0.875rem; font-weight:500; color:var(--text-2);
+      transition:background 0.12s, color 0.12s, border-color 0.12s, width 0.32s cubic-bezier(0.22,1,0.36,1), height 0.32s cubic-bezier(0.22,1,0.36,1), padding 0.32s cubic-bezier(0.22,1,0.36,1), gap 0.32s cubic-bezier(0.22,1,0.36,1), border-radius 0.32s cubic-bezier(0.22,1,0.36,1);
+      border:1px solid transparent; background:none; width:100%; text-align:left; font-family:inherit; overflow:hidden;
+    }
     .nav-item:hover { background:var(--surface2); color:var(--text); }
-    .nav-item.active { background:none; border-color:var(--border); color:var(--text); font-weight:600; }
-    [data-theme="dark"] .nav-item.active { background:rgba(255,255,255,0.05); border-color:var(--border); }
-    .n-icon { width:20px; height:20px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
-    .n-icon svg { width:20px; height:20px; }
+    /* Active state (§8/§26): a restrained ERP treatment — subtle surface +
+       a 3px teal indicator riding the row's left edge + stronger text.
+       Never a bordered box/pill; never combined with a colored icon AND
+       colored text AND a border all at once. */
+    .nav-item.active { background:var(--surface2); border-color:transparent; color:var(--text); font-weight:600; }
+    [data-theme="dark"] .nav-item.active { background:rgba(255,255,255,0.06); }
+    .nav-item.active::before {
+      content:''; position:absolute; left:0; top:6px; bottom:6px; width:3px;
+      border-radius:0 3px 3px 0; background:var(--accent);
+    }
+    .n-icon { width:18px; height:18px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+    .n-icon svg { width:18px; height:18px; }
+    /* IconTile (§6/§7/§23) — the one place a division/module identity
+       color is allowed to appear. Text, chevrons and borders stay neutral;
+       color is concentrated inside this tile only. */
+    .nav-icon-tile {
+      width:28px; height:28px; border-radius:7px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      background:var(--tile-bg, var(--surface2)); color:var(--tile-fg, var(--text-3));
+    }
+    .nav-icon-tile svg { width:16px; height:16px; }
 
     /* Sidebar user card at bottom */
     .sidebar-user { display:flex; align-items:center; gap:0.55rem; padding:0.5rem 0.4rem; border-radius:8px; cursor:pointer; transition:background 0.12s, width 0.32s cubic-bezier(0.22,1,0.36,1), height 0.32s cubic-bezier(0.22,1,0.36,1), padding 0.32s cubic-bezier(0.22,1,0.36,1), gap 0.32s cubic-bezier(0.22,1,0.36,1), border-radius 0.32s cubic-bezier(0.22,1,0.36,1); flex-shrink:0; overflow:hidden; }
@@ -5505,15 +5571,20 @@
 
       <button class="nav-item" id="nav-dash" data-tip="Dashboard" style="--item-color:#16cdbe" onclick="navGo('dashboard', showDashboard)"><span class="n-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l-2 0l9 -9l9 9l-2 0" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" /><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" /></svg></span><span class="nav-label">Dashboard</span></button>
 
-      <!-- Persistent navigation tree — replaces the old .mod-switch/.bu-switch
-           popover pair. Every accessible module, division and screen is
-           always in the DOM; expand state is a Set (_navExpanded), not a
-           dropdown that has to be reopened after every navigation. See
-           renderSidebarTree() and SIERRA_DESIGN_SYSTEM.md §52. -->
+      <!-- Four sidebar zones (§2/§4): Global (Dashboard, above) → Favorites
+           → Module Switcher (the one control for changing modules) →
+           Active module tree — divisions (accordion, one open at a time)
+           then shared tools, for the active module ONLY. Every other
+           module lives behind the switcher popover, never as a permanent
+           peer block. See renderSidebarTree()/moduleSwitcher* in
+           index.html and SIERRA_DESIGN_SYSTEM.md §61. -->
       <span class="s-label" style="margin-top:0.6rem">Favoritos</span>
       <div class="nav-fav-list" id="nav-fav-list"><div class="nav-fav-empty">Sin favoritos aún</div></div>
 
-      <span class="s-label" id="modules-label" style="margin-top:0.6rem">Módulos</span>
+      <div class="mod-switcher" id="mod-switcher" style="margin-top:0.6rem">
+        <button class="nav-item mod-switcher-trigger" id="mod-switcher-trigger" data-tip="Módulos" onclick="toggleModuleSwitcher()" aria-haspopup="true" aria-expanded="false"></button>
+        <div class="mod-switcher-pop" id="mod-switcher-pop"></div>
+      </div>
       <div id="nav-tree"></div>
       <div class="sidebar-spacer"></div>
       <div class="sidebar-bottom">
@@ -6962,7 +7033,7 @@ async function enterApp(user) {
   // by renderCatalogHeaderActions() (called from setDiv) — no standalone
   // #add-btn element exists anymore.
   // Access logs/Team/Insights visibility is computed declaratively inside
-  // the sidebar tree render (navModuleRowHtml's tool.visible() checks,
+  // the sidebar tree render (renderSidebarTree()'s tool.visible() checks,
   // insightsSections().length) — nothing to toggle here.
   renderSidebarTree()
   loadDraftCart()
@@ -8105,12 +8176,17 @@ document.addEventListener('click', e => {
   if (tb && !tb.contains(e.target)) tb.classList.remove('open')
   const th = document.getElementById('tb-theme')
   if (th && !th.contains(e.target)) th.classList.remove('open')
+  const ms = document.getElementById('mod-switcher')
+  if (ms && !ms.contains(e.target)) {
+    ms.classList.remove('open')
+    document.getElementById('mod-switcher-trigger')?.setAttribute('aria-expanded', 'false')
+  }
 })
 
 // renderSamplesFulfillmentNav()/renderSamplesCommercialNav() now live as
 // thin aliases to renderSidebarTree() (see MODULES/sidebar tree section) —
 // per-division dispatch/inventory visibility and the customer_service gate
-// are computed declaratively inside navDivisionRowHtml()/navModuleRowHtml()
+// are computed declaratively inside navDivisionRowHtml()/samplesSharedTools()
 // on every tree render instead of toggled on fixed DOM nodes.
 
 function updateSectionTitle() {
@@ -12602,17 +12678,19 @@ function showStyleGuide() {
             </div>
           </div>
           <div class="sg-canvas" style="margin-top:0.8rem">
-            <div class="sg-canvas-label">Navigation — sidebar tree</div>
-            <div class="sg-lede" style="margin:0 0 0.6rem">The sidebar is a persistent tree (<code>renderSidebarTree()</code>), not a
-            popover you reopen to move between screens. Every accessible module renders every time; a module row's chevron toggles its
-            children (<code>_navExpanded</code>, a Set persisted to <code>localStorage</code>), and Muestras nests each authorized
-            division the same way — division → Catálogo/Cola de despacho/Inventario. Active state is a thin <code>var(--accent)</code>
-            underline on the leaf plus <code>var(--accent-dark)</code> text (§ Color System §42), never a filled pill on the module or
-            division row — those are structure, not a destination. Collapsed sidebar hides all children and shows just the top-level
-            module icons; clicking one re-expands the sidebar rather than opening a flyout.</div>
+            <div class="sg-canvas-label">Navigation — Module Switcher + active module tree</div>
+            <div class="sg-lede" style="margin:0 0 0.6rem">Four zones, top to bottom: Global (Dashboard), Favorites, the Module
+            Switcher (<code>[IconTile] Module ▾</code> — an anchored, searchable popover listing Recientes + Todos los módulos), then
+            the active module's own tree (<code>renderSidebarTree()</code>) — nothing else. Muestras' divisions are an accordion
+            (<code>_navExpandedDivision</code>, one open per module, persisted to <code>localStorage</code>): expanding one collapses
+            whichever other division was open. Division identity lives in one 28px IconTile (<code>.nav-icon-tile</code>) — light
+            tint background, accent-colored icon — never on the row's text, chevron or border. Active state is a 3px
+            <code>var(--accent)</code> bar on the leaf's left edge plus a subtle surface and bold text, never a filled pill or bordered
+            box, and never on a module/division row — those are structure, not a destination. Collapsed sidebar shows the Module
+            Switcher and only the current division's IconTile — every other division and every other module disappears until expanded.</div>
             <div class="sg-usage">
-              <div class="sg-use"><b>Use</b>One tree for the whole app. A new screen becomes a leaf under its module/division in <code>navModuleRowHtml()</code>/<code>navDivisionRowHtml()</code>, never a new switcher or a second path to the same route.</div>
-              <div class="sg-nouse"><b>Don't</b>Reintroduce a popover for primary navigation, or give a module/division row the same filled-pill treatment as a leaf's active state — see §51 on not collapsing hierarchy levels into one look.</div>
+              <div class="sg-use"><b>Use</b>One tree, one module at a time. A new screen becomes a leaf under its division in <code>navDivisionRowHtml()</code>, or a shared destination in <code>samplesSharedTools()</code>/<code>MODULES[key].tools</code> — never a second permanent block or a parallel switcher.</div>
+              <div class="sg-nouse"><b>Don't</b>Render more than one module's tree at once, expand more than one division at once, or give a division row the same active treatment as a leaf — see §61 in the design system.</div>
             </div>
           </div>
         </section>
@@ -13297,47 +13375,82 @@ let activeModule = null
 // out of sync with what's actually on screen.
 function syncModule(key) {
   activeModule = key
-  if (key) sessionStorage.setItem('sierra_active_module', key)
-  else sessionStorage.removeItem('sierra_active_module')
+  if (key) {
+    sessionStorage.setItem('sierra_active_module', key)
+    // "Last module" persists across Dashboard/Módulos-hub visits (which
+    // call syncModule(null)) so the sidebar tree keeps showing the user's
+    // working module instead of going blank — §17/§30.
+    _navLastModule = key
+    localStorage.setItem('sierra_nav_last_module', key)
+    _navTrackRecentModule(key)
+  } else {
+    sessionStorage.removeItem('sierra_active_module')
+  }
   renderModuleSwitcher()
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   SIDEBAR NAVIGATION TREE — persistent, non-popover replacement for the
-   old .mod-switch/.bu-switch pair. Every accessible module, division and
-   screen renders every time (never hidden behind a dropdown); expand
-   state is a small Set, persisted to localStorage so it survives reload.
-   renderModuleSwitcher()/renderBuSwitcher()/renderSamplesFulfillmentNav()/
-   renderSamplesCommercialNav() are kept as thin aliases below so the many
-   existing call sites throughout setDiv()/showDispatchQueue()/etc. keep
-   working — they all just re-render this one tree, which reads current
-   state (division, activeModule, capabilities) fresh every time.
+   ACTIVE MODULE TREE + MODULE SWITCHER — see SIERRA_DESIGN_SYSTEM.md §61.
+   The sidebar shows ONLY the active module's own navigation (divisions in
+   an accordion — one open at a time — then shared tools); every other
+   module lives behind the Module Switcher popover, never as a permanent
+   peer block. renderModuleSwitcher()/renderBuSwitcher()/
+   renderSamplesFulfillmentNav()/renderSamplesCommercialNav() are kept as
+   thin aliases below so the many existing call sites throughout
+   setDiv()/showDispatchQueue()/etc. keep working — they all just
+   re-render the tree, which reads current state (division, activeModule,
+   capabilities) fresh every time.
    ══════════════════════════════════════════════════════════════════════ */
 let _navLeaf = null // 'samples|fiber|catalog', 'talento_humano|_|gafetes', 'dashboard', or null
-let _navExpanded = new Set(JSON.parse(localStorage.getItem('sierra_nav_expanded') || '["samples"]'))
-function _navSaveExpanded() { localStorage.setItem('sierra_nav_expanded', JSON.stringify([..._navExpanded])) }
-function navToggleExpand(key) {
-  if (_navExpanded.has(key)) _navExpanded.delete(key); else _navExpanded.add(key)
-  _navSaveExpanded()
-  renderSidebarTree()
+// Last _navLeaf value the accordion auto-expand (§18) already ran for —
+// so it fires once per actual navigation, not on every re-render.
+let _navLeafExpandedFor = undefined
+// The module the sidebar tree displays — survives syncModule(null) (Dashboard,
+// Módulos hub) so navigation doesn't disappear when the user briefly leaves
+// a module (§17 "persist active module").
+let _navLastModule = localStorage.getItem('sierra_nav_last_module') || null
+// Recently-used modules, most-recent-first — backs the Module Switcher's
+// "Recientes" section (§3).
+const NAV_RECENT_MOD_KEY = 'sierra_nav_recent_modules'
+let _navRecentModules = JSON.parse(localStorage.getItem(NAV_RECENT_MOD_KEY) || '[]')
+function _navTrackRecentModule(key) {
+  _navRecentModules = [key, ..._navRecentModules.filter(k => k !== key)].slice(0, 6)
+  localStorage.setItem(NAV_RECENT_MOD_KEY, JSON.stringify(_navRecentModules))
 }
-// Module-row click: expand the sidebar first if it's collapsed (a click on
-// a collapsed-rail icon must always do something useful — see §17b), then
-// toggle that module's children open.
-function navToggleModule(key) {
+// Accordion state (§5): the ONE expanded division per module, keyed by
+// module id, persisted so it survives reload — "last expanded division
+// per module" (§17). Expanding a new division collapses whichever one
+// was open for that module; there is nothing else to track.
+let _navExpandedDivision = JSON.parse(localStorage.getItem('sierra_nav_expanded_division') || '{}')
+function _navSaveExpandedDivision() { localStorage.setItem('sierra_nav_expanded_division', JSON.stringify(_navExpandedDivision)) }
+// Division-row click: expand the sidebar first if it's collapsed (a click
+// on a collapsed-rail icon must always do something useful), then toggle
+// the accordion — opening one division always closes whichever other one
+// was open for this module.
+function navToggleDivision(d) {
   const sb = document.getElementById('sidebar')
   if (sb && sb.classList.contains('collapsed')) toggleSidebar()
-  navToggleExpand(key)
+  const cur = _navExpandedDivision.samples
+  _navExpandedDivision.samples = cur === d ? null : d
+  _navSaveExpandedDivision()
+  renderSidebarTree()
 }
 // The one entry point every tree leaf's onclick calls: records which leaf
-// is now current (for the active-state underline/highlight), expands its
-// ancestor chain, runs the real navigation function, then re-renders.
+// is now current (for the active-state indicator), runs the real
+// navigation function, then re-renders — renderSidebarTree() itself
+// expands the leaf's parent division (§18 "active route auto-expands its
+// parent").
 function navGo(key, fn) {
   _navLeaf = key
   fn()
   renderSidebarTree()
 }
 const NAV_CHEVRON_SVG = '<svg viewBox="0 0 20 20" fill="none" width="10" height="10"><path d="M7 5l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+const NAV_CHEVRON_DOWN_SVG = '<svg viewBox="0 0 20 20" fill="none" width="10" height="10"><path d="M5 7l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+// Child screens use neutral utility icons (§24) — never the division's own
+// identity shape. DIV_ICON.all is the existing generic 2×2 grid glyph,
+// reused as-is instead of drawing a parallel "catalog" icon.
+const NAV_ICON_CATALOG = DIV_ICON.all
 const NAV_ICON_DISPATCH = '<svg viewBox="0 0 20 20" fill="none"><path d="M3 7l7-4 7 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 7l7 4 7-4M10 11v6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>'
 const NAV_ICON_INVENTORY = '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="4" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M4 8v6.5A1.5 1.5 0 0 0 5.5 16h9a1.5 1.5 0 0 0 1.5-1.5V8M8.5 11h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 const NAV_ICON_REQUESTS = '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="10" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="10" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M13.5 13.5v-1M13.5 16.5v-1M11.5 14.5h1M15.5 14.5h1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>'
@@ -13382,67 +13495,107 @@ function navLeafHtml(key, id, label, iconSvg, depthClass, fnExpr, extraAttrs) {
   </button>`
 }
 
-function navDivisionRowHtml(d) {
-  const key = 'samples|' + d
-  const expanded = _navExpanded.has(key)
-  const accent = (DIV_ACCENT[d] || DIV_ACCENT.all).accent
+// One division row + its (possibly collapsed) children. `expanded` and
+// `isCurrent` are computed once per render by renderSidebarTree() — this
+// function has no state of its own (§29 "render from configuration").
+function navDivisionRowHtml(d, expanded, isCurrent) {
+  const a = DIV_ACCENT[d] || DIV_ACCENT.all
   const showDisp = canDispatchDiv(d)
   const showInv = hasWarehouseAccess(d)
-  let children = navLeafHtml('samples|' + d + '|catalog', 'catalog', 'Catálogo', DIV_ICON[d] || '', 'lvl3', `function(){setDiv('${d}')}`)
+  let children = navLeafHtml('samples|' + d + '|catalog', 'catalog', 'Catálogo', NAV_ICON_CATALOG, 'lvl3', `function(){setDiv('${d}')}`)
   if (showDisp) children += navLeafHtml('samples|' + d + '|dispatch', 'dispatch', 'Cola de despacho', NAV_ICON_DISPATCH, 'lvl3', `function(){showDispatchQueue('${d}')}`)
   if (showInv) children += navLeafHtml('samples|' + d + '|inventory', 'inventory', 'Inventario', NAV_ICON_INVENTORY, 'lvl3', `function(){showWarehouseInventory('${d}')}`)
   return `
-    <button class="nav-item nav-tree-div" data-tip="${escAttr(DIV_LBL[d] || d)}" onclick="navToggleExpand('${key}')">
+    <button class="nav-item nav-tree-div${isCurrent ? ' nav-current-div' : ''}" data-tip="${escAttr(DIV_LBL[d] || d)}" onclick="navToggleDivision('${d}')">
       <span class="nav-tree-chevron${expanded ? ' expanded' : ''}">${NAV_CHEVRON_SVG}</span>
-      <span class="n-icon" style="color:${accent}">${DIV_ICON[d] || ''}</span>
+      <span class="nav-icon-tile" style="--tile-bg:${a.light};--tile-fg:${a.accent}">${DIV_ICON[d] || ''}</span>
       <span class="nav-label">${esc(DIV_LBL[d] || d)}</span>
     </button>
     <div class="nav-tree-children${expanded ? '' : ' collapsed'}">${children}</div>`
 }
 
-function navModuleRowHtml(key, m) {
-  const expanded = _navExpanded.has(key)
-  let children = ''
-  if (key === 'samples') {
-    children += authorizedDivisions().map(navDivisionRowHtml).join('')
-    if (can('read', 'customer_service')) {
-      children += navLeafHtml('samples|_|requests', 'requests', 'Solicitudes', NAV_ICON_REQUESTS, 'lvl2', 'showSampleCenter')
-      const n = (typeof sampleCart !== 'undefined' ? sampleCart.reduce((s, i) => s + i.qty, 0) : 0)
-      children += navLeafHtml('samples|_|collections', 'collections', 'Colecciones', NAV_ICON_COLLECTIONS, 'lvl2', 'openCollectionsNav', {
+// Muestras' cross-division destinations (§12 "shared destinations") — each
+// rendered once at module level under TOOLS, never nested inside every
+// division. Data-first so the tree renderer below stays one generic loop.
+function samplesSharedTools() {
+  const items = []
+  if (can('read', 'customer_service')) {
+    items.push({ key: 'samples|_|requests', id: 'requests', label: 'Solicitudes', icon: NAV_ICON_REQUESTS, fnExpr: 'showSampleCenter' })
+    const n = (typeof sampleCart !== 'undefined' ? sampleCart.reduce((s, i) => s + i.qty, 0) : 0)
+    items.push({
+      key: 'samples|_|collections', id: 'collections', label: 'Colecciones', icon: NAV_ICON_COLLECTIONS, fnExpr: 'openCollectionsNav',
+      extraAttrs: {
         elId: 'nav-cart', iconStyle: 'position:relative',
         badge: `<span class="cart-nav-badge" id="cart-nav-badge" style="display:${n ? 'flex' : 'none'}">${n}</span>`,
         trailing: `<span class="cart-nav-count" id="cart-nav-count">${n}</span>`,
-      })
-    }
-    if (insightsSections().length) children += navLeafHtml('samples|_|insights', 'insights', 'Insights', NAV_ICON_INSIGHTS, 'lvl2', 'showInsights')
-  } else {
-    children = (m.tools || []).filter(t => !t.visible || t.visible())
-      .map(t => navLeafHtml(key + '|_|' + t.id, t.id, t.label, t.icon, 'lvl2', t.run)).join('')
+      },
+    })
   }
-  return `
-    <button class="nav-item nav-tree-mod" data-tip="${escAttr(m.label)}" onclick="navToggleModule('${key}')">
-      <span class="nav-tree-chevron${expanded ? ' expanded' : ''}">${NAV_CHEVRON_SVG}</span>
-      <span class="n-icon" style="color:${m.color}">${m.icon}</span>
-      <span class="nav-label">${esc(m.label)}</span>
-    </button>
-    <div class="nav-tree-children${expanded ? '' : ' collapsed'}">${children}</div>`
+  if (insightsSections().length) items.push({ key: 'samples|_|insights', id: 'insights', label: 'Insights', icon: NAV_ICON_INSIGHTS, fnExpr: 'showInsights' })
+  return items
 }
 
-const NAV_MODULE_ORDER = ['samples', 'talento_humano', 'administracion']
+// The module the sidebar tree currently displays — the active module if
+// one is set, else the last one used (Dashboard/Módulos hub), else the
+// user's first accessible module. Never null while any module is
+// accessible, so the tree doesn't go blank between navigations.
+function navDisplayModuleKey() {
+  if (activeModule && MODULES[activeModule]) return activeModule
+  if (_navLastModule && MODULES[_navLastModule] && moduleAccessible(MODULES[_navLastModule])) return _navLastModule
+  return (accessibleModules()[0] || [])[0] || null
+}
+
+// Renders ONLY the active module's own tree (§4) — divisions in an
+// accordion (§5) then shared tools, driven entirely by MODULES/DIV_*
+// configuration (§29). Every other accessible module is reachable only
+// through the Module Switcher popover, never as a second permanent block.
 function renderSidebarTree() {
   const root = document.getElementById('nav-tree')
   if (!root) return
-  if (_navLeaf) {
-    const [mk, dk] = _navLeaf.split('|')
-    if (mk && mk !== 'dashboard') _navExpanded.add(mk)
-    if (dk && dk !== '_') _navExpanded.add(mk + '|' + dk)
-  }
   document.getElementById('nav-dash')?.classList.toggle('active', _navLeaf === 'dashboard')
   const mobCart = document.getElementById('mob-cart-btn')
   if (mobCart) mobCart.style.display = can('read', 'customer_service') ? 'flex' : 'none'
   _navAllLeaves = []
-  const mods = accessibleModules().sort((a, b) => NAV_MODULE_ORDER.indexOf(a[0]) - NAV_MODULE_ORDER.indexOf(b[0]))
-  root.innerHTML = mods.map(([key, m]) => navModuleRowHtml(key, m)).join('')
+
+  const key = navDisplayModuleKey()
+  renderModSwitcherTrigger(key)
+  const m = key && MODULES[key]
+  if (!m) { root.innerHTML = ''; renderNavFavorites(); updateCartFab(); return }
+
+  // Active route auto-expands its parent division (§18) — but only at the
+  // moment the leaf actually changes, not on every render. Otherwise a
+  // manual accordion click (browsing a different division while the old
+  // one is still "current") would get immediately overridden by this same
+  // check on the re-render the click itself triggers.
+  if (key === 'samples' && _navLeaf && _navLeaf !== _navLeafExpandedFor) {
+    const [mk, dk] = _navLeaf.split('|')
+    if (mk === 'samples' && dk && dk !== '_') { _navExpandedDivision.samples = dk; _navSaveExpandedDivision() }
+  }
+  _navLeafExpandedFor = _navLeaf
+
+  let html = ''
+  if (key === 'samples') {
+    const divs = authorizedDivisions()
+    const expandedDiv = _navExpandedDivision.samples && divs.includes(_navExpandedDivision.samples)
+      ? _navExpandedDivision.samples
+      : (divs[0] || null)
+    if (divs.length) {
+      html += `<span class="s-label" style="margin-top:0.5rem">Divisiones</span>`
+      html += divs.map(d => navDivisionRowHtml(d, d === expandedDiv, d === expandedDiv)).join('')
+    }
+    const tools = samplesSharedTools()
+    if (tools.length) {
+      html += `<span class="s-label" style="margin-top:0.5rem">Herramientas</span>`
+      html += tools.map(t => navLeafHtml(t.key, t.id, t.label, t.icon, 'lvl2', t.fnExpr, t.extraAttrs)).join('')
+    }
+  } else {
+    const tools = (m.tools || []).filter(t => !t.visible || t.visible())
+    if (tools.length) {
+      html += `<span class="s-label" style="margin-top:0.5rem">Herramientas</span>`
+      html += tools.map(t => navLeafHtml(key + '|_|' + t.id, t.id, t.label, t.icon, 'lvl2', t.run)).join('')
+    }
+  }
+  root.innerHTML = html
   renderNavFavorites()
   updateCartFab()
 }
@@ -13454,6 +13607,67 @@ function renderNavFavorites() {
     ? items.map(l => navLeafHtml(l.key, l.id, l.label, l.iconSvg, 'lvl2', l.fnExpr, { collect: false })).join('')
     : '<div class="nav-fav-empty">Sin favoritos aún</div>'
 }
+
+/* ── MODULE SWITCHER (§3) ──────────────────────────────────────────────
+   One anchored, searchable popover — the single control for changing
+   between top-level INDEX modules. Rows are built from accessibleModules()
+   (MODULES config), never a hardcoded per-module list. */
+let _modSwitchQuery = ''
+function renderModSwitcherTrigger(key) {
+  const btn = document.getElementById('mod-switcher-trigger')
+  if (!btn) return
+  const m = key && MODULES[key]
+  if (!m) {
+    btn.innerHTML = `<span class="nav-icon-tile">${DIV_ICON.all}</span><span class="nav-label">Módulos</span><span class="mod-switcher-chevron">${NAV_CHEVRON_DOWN_SVG}</span>`
+    btn.setAttribute('data-tip', 'Módulos')
+    return
+  }
+  btn.innerHTML = `<span class="nav-icon-tile" style="--tile-bg:${m.color}1f;--tile-fg:${m.color}">${m.icon}</span><span class="nav-label">${esc(m.label)}</span><span class="mod-switcher-chevron">${NAV_CHEVRON_DOWN_SVG}</span>`
+  btn.setAttribute('data-tip', m.label)
+}
+function toggleModuleSwitcher(force) {
+  const wrap = document.getElementById('mod-switcher')
+  if (!wrap) return
+  const willOpen = force !== undefined ? force : !wrap.classList.contains('open')
+  if (willOpen) { _modSwitchQuery = ''; renderModSwitcherPop() }
+  wrap.classList.toggle('open', willOpen)
+  document.getElementById('mod-switcher-trigger')?.setAttribute('aria-expanded', String(willOpen))
+  if (willOpen) requestAnimationFrame(() => document.getElementById('mod-switch-search')?.focus())
+}
+function modSwitchFilter(q) { _modSwitchQuery = q; renderModSwitcherPop() }
+function modSwitchGo(key) {
+  toggleModuleSwitcher(false)
+  enterModule(key)
+}
+function renderModSwitcherPop() {
+  const pop = document.getElementById('mod-switcher-pop')
+  if (!pop) return
+  const q = _modSwitchQuery.trim().toLowerCase()
+  const all = accessibleModules()
+  const filtered = q ? all.filter(([, m]) => m.label.toLowerCase().includes(q)) : all
+  const row = ([key, m]) => `
+    <button class="pop-menu-item mod-switch-row${key === activeModule ? ' current' : ''}" onclick="modSwitchGo('${key}')">
+      <span class="nav-icon-tile" style="--tile-bg:${m.color}1f;--tile-fg:${m.color}">${m.icon}</span>
+      <span class="mod-switch-row-label">${esc(m.label)}</span>
+    </button>`
+  let body
+  if (!q) {
+    const recent = _navRecentModules
+      .map(k => all.find(([kk]) => kk === k))
+      .filter(entry => entry && entry[0] !== activeModule)
+      .slice(0, 3)
+    body = (recent.length ? `<div class="mod-switch-hdr">Recientes</div>${recent.map(row).join('')}` : '')
+      + `<div class="mod-switch-hdr">Todos los módulos</div>${filtered.length ? filtered.map(row).join('') : '<div class="nav-fav-empty">Sin módulos disponibles</div>'}`
+  } else {
+    body = filtered.length ? filtered.map(row).join('') : '<div class="nav-fav-empty">Sin resultados</div>'
+  }
+  pop.innerHTML = `
+    <div class="mod-switch-search-wrap">
+      <input type="text" class="control-input" id="mod-switch-search" placeholder="Buscar módulos…" value="${escAttr(_modSwitchQuery)}" oninput="modSwitchFilter(this.value)" autocomplete="off">
+    </div>
+    <div class="mod-switch-list">${body}</div>`
+}
+
 // Aliases — every existing call site (setDiv, showDispatchQueue,
 // showWarehouseInventory, enterApp, setDefaultModule, ...) keeps working
 // unchanged; all four just re-render the one tree.
