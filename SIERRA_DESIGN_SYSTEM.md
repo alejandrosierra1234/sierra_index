@@ -250,12 +250,17 @@ implemented in the Dispatch/order workspace (§19 test case).
 
 ## 11. Status system
 
-Canonical: `.smp-badge` + `.smp-<status>` (already the single status
-pill system, backed by the `--success`/`--warning`/`--danger`/`--info`
-tokens). Every workflow status in the app — samples, collections,
-dispatch — renders through `smpBadge(status)`. Don't build a bespoke
+Superseded by the full **Status System** in §41 — five distinct
+component families (StatusBadge / LifecyclePill / RoleTag /
+ReadinessBadge / CategoryTag), not one generic tiny pill. `.smp-badge`
++ `.smp-<status>` is still the canonical StatusBadge for sample/
+collection workflow status, backed by the `--success`/`--warning`/
+`--danger`/`--info` tokens, and every workflow status still renders
+through `smpBadge(status)` — but it now returns an icon + label at the
+larger §41 anatomy, not a bare colored span. Don't build a bespoke
 colored `<span>` for a new status; add it to `SMP_STATUS_LABEL` +
-`.smp-<status>` instead.
+`SMP_STATUS_ICON` + `.smp-<status>` instead. Read §41 before touching
+any status/role/readiness/category component.
 
 ## 12. ContextPane content template
 
@@ -1665,3 +1670,168 @@ blind mass-replace was judged too large a blast radius for this pass;
 only the literals inside screens this pass was already editing, and that
 matched a token value exactly, were converted). Both flagged as future
 work, not silently assumed done.
+
+---
+
+# Status System (§41)
+
+This pass replaced the single tiny `.badge`/`.smp-badge` pill that every
+status, lifecycle, role, readiness and category value rendered through.
+Monday.com was used as a reference for **scale, hit area, iconography,
+spacing and control confidence only** — not for visual style. SIERRA's
+existing semantic color logic (`--success`/`--warning`/`--danger`/
+`--info`, the `sem-*` hue tokens) is unchanged; what changed is
+component anatomy: bigger, icon-supported, less pill-heavy, and split
+into distinct families so different kinds of information stop looking
+identical.
+
+## 41.1 Why one generic badge was wrong
+
+`Pending`, `Approved`, `Shipped`, `Active` and `Viewer` used to render
+through the same 20–24px, fully-rounded, color-only pill. A workflow
+status, a long-running lifecycle state, a permission role and a
+data-completeness warning are different *kinds* of information — they
+must look different so a user can tell which one they're reading
+without parsing the text.
+
+## 41.2 The five component families
+
+| # | Family | Component | Answers | Visual language |
+|---|---|---|---|---|
+| 1 | STATUS | `.status-badge` (canonical), aliased by `.badge` and `.smp-badge` | "What step of a workflow is this in?" | Tinted background, icon + label, 7px radius |
+| 2 | LIFECYCLE | `.lc-pill` | "What long-running state is this record in?" | Tinted background, **dot** (not an icon) + label — the dot is what keeps it visually distinct from StatusBadge at a glance |
+| 3 | ROLE | `.role-tag` | "What can this person do here?" | Neutral surface, icon + label, subtle border — never a lifecycle/status color |
+| 4 | READINESS / WARNING | `.readiness-badge` | "Is this record ready to act on?" | Tinted background, icon + label, **interactive** (button, opens a popover), trailing chevron |
+| 5 | ENTITY LABEL | `.category-tag` | "What category/attribute is this?" | Neutral surface, plain label, no semantic color |
+
+Every family shares one JS helper pattern — `siIcon(name)` for the icon
+markup and a `*Html()` render function per family (`statusBadgeHtml()`,
+`roleTagHtml()`, `lcPillFor()`) — so a screen never hand-builds a
+colored `<span>`. Add a new value to the relevant label/icon map
+(`SMP_STATUS_ICON`, `EMP_STATUS_ICON`, `BADGE_STATUS_ICON`,
+`READINESS_ICON`, `LIFECYCLE`) instead.
+
+## 41.3 Shared anatomy tokens
+
+```css
+--status-h: 32px;          /* StatusBadge / LifecyclePill / ReadinessBadge / CategoryTag height */
+--role-h: 30px;             /* RoleTag height — one notch down, it's metadata not a workflow state */
+--status-radius: 7px;       /* restrained rounded rectangle — NOT --r-pill */
+--status-font-size: 0.8125rem; /* 13px, medium/semibold — not tiny uppercase */
+--status-icon-size: 14px;   /* icon inside every status-family component */
+--status-px: 10px;          /* horizontal padding */
+--status-gap: 6px;          /* icon → label gap */
+```
+
+Full pills (`--r-pill`) are reserved for components that genuinely
+benefit from a pill shape (chips, counters) — status/role/readiness
+components use the restrained 7px radius so they read as compact ERP
+labels, not bubbles.
+
+## 41.4 Icon rules for status components
+
+- Anatomy is always `[icon] Label` — icon leading, never trailing,
+  except ReadinessBadge's chevron (it's an interactive control, so the
+  chevron communicates "opens a menu", same rule as StatusSelect/§30).
+- Icon size is fixed at `--status-icon-size` (14px) inside every
+  status-family component — never scaled up.
+- Icon + text + color always travel together. Color alone never carries
+  meaning (accessibility — colorblind users must be able to read the
+  icon/label).
+- The icon set lives in one place, `SI_ICON` in `index.html` (next to
+  `esc()`/`escAttr()`), rendered via `siIcon(name, size)` — inline SVG,
+  `stroke="currentColor"`, 24×24 viewBox. Add new icons there, never
+  inline a bespoke `<svg>` for a status.
+
+Current icon mapping:
+
+| Status family | Value | Icon |
+|---|---|---|
+| Sample/collection workflow (`SMP_STATUS_ICON`) | draft | file-edit |
+| | requested / preparing | clock |
+| | approved | check |
+| | ready / delivered | check-circle |
+| | picked_up | package |
+| | shipped | truck |
+| | returned / reprinted | rotate-ccw |
+| | damaged | alert-triangle |
+| | archived | archive |
+| Employee status (`EMP_STATUS_ICON`) | active | check-circle |
+| | inactive | pause-circle |
+| | terminated | x-circle |
+| | on_leave | clock |
+| | transferred | arrow-right-circle |
+| Badge lifecycle (`BADGE_STATUS_ICON`) | no_badge | minus-circle |
+| | ready_to_print | clock |
+| | printed | printer |
+| | cancelled | x-circle |
+| Readiness (`READINESS_ICON`) | ready | check-circle |
+| | missing | alert-triangle |
+| | blocked | x-circle |
+| RoleTag (`roleIconFor()`) | admin/owner | shield |
+| | manager | crown |
+| | dispatcher | truck |
+| | editor/contributor | pencil |
+| | viewer (default) | eye |
+
+## 41.5 Color architecture (unchanged, kept)
+
+Three-part relationship per status, already correct in this codebase —
+this pass did not touch it:
+
+- **Light tint** (`--success-bg`/`--warning-bg`/`--danger-bg`/
+  `--info-bg`, ~10–16% alpha) → component background.
+- **Strong/dark hue** (`--success`/`--warning-text`/`--danger`/`--info`)
+  → icon + text, via `currentColor` so the SVG icon always matches the
+  label without a second color declaration.
+- Dark mode redefines the same tokens at `:root` under
+  `[data-theme="dark"]` (see the token block near the top of
+  `index.html`) — status components need zero dark-mode-specific CSS of
+  their own because they're built entirely from tokens.
+
+## 41.6 Typography
+
+13px (`--status-font-size`), weight 600, sentence case ("Approved", not
+"APPROVED"). Uppercase is reserved for field labels/section headings
+(§19/§26) — status/role/readiness text is never uppercased.
+
+## 41.7 RoleTag is not a status
+
+Roles (Viewer/Contributor/Technical Editor/Admin/…) never use lifecycle
+semantic colors. `.role-tag` is neutral: `--surface2` background,
+`--border` outline, `--text-2` label, `--text-3` icon. Applied at the
+profile role indicator (`#prof-role-badge`, via `roleTagHtml()`) and the
+collaborator invite list (`wsInvitePersonRow()` — replaces the old
+`.ws-invite-owner-tag` pill with the shared component).
+
+## 41.8 ReadinessBadge is interactive
+
+`readinessPillHtml()` (Badge module) renders `.readiness-badge` as a
+real `<button>` — it opens the missing-fields popover — with a trailing
+chevron so it doesn't read as a static label. `Missing 2 fields` /
+`Ready` / `Blocked` map to `badge-ready-missing` / `badge-ready-yes` /
+`badge-ready-blocked`, sharing color tokens with the other status
+families but the interactive anatomy of §15 StatusSelect.
+
+## 41.9 Migration notes
+
+- `smpBadge(status)`, `badgeStatusBadgeHtml(status)` (badge/gafete
+  lifecycle), `empStatusBadgeHtml(status)` (employee status) and
+  `lcPillFor(status)` are the only places these render — every table
+  cell, card, and detail field calls through one of them. Fixing the
+  shared function/CSS propagates everywhere automatically (§27/§31 of
+  the ERP evolution brief) — screens were not hand-edited individually.
+- `.badge`/`.smp-badge` are kept as class-name aliases of the
+  `.status-badge` anatomy so existing `badge-<status>` modifier classes
+  (`.badge-active`, `.badge-pending`, …) didn't need renaming at every
+  call site — only the shared base rule and the render functions
+  changed.
+- Live reference: the Style Guide screen (`showStyleGuide()`,
+  `#sg-badges`) renders one example of all five families and is the
+  first place to check when adding a new status value.
+- Not yet migrated to a dedicated `.category-tag`: construction/
+  composition pills on Catalog cards (`.card-div-pill` family) and
+  saved-view chips — flagged as future work per §31, not silently
+  assumed done, since the fix pattern (swap the CSS class, verify no
+  layout regression) is now established here for whoever picks it up
+  next.
