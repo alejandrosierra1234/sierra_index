@@ -22,15 +22,26 @@
 
     /* ── TOKENS ── */
     :root {
-      --accent: #0f9d90;
-      --accent-dark: #0c7d73;
-      --accent-light: rgba(15,157,144,0.08);
-      --accent-rgb: 15,157,144;
+      /* ── SIERRA UI COLOR SYSTEM ──
+         Teal communicates INDEX interaction. Secondary colors communicate
+         information. These two systems must never be mixed — see
+         SIERRA_DESIGN_SYSTEM.md §"UI Color System & Semantic Color Rules".
+         --accent/--accent-dark/--accent-light are FIXED brand teal and are
+         never reassigned per division/module — applyDivisionAccent() below
+         only sets --div-* (small identity markers), it does not touch
+         these. */
+      --brand-teal: #16cdbe;
+      --brand-teal-light: #cffffb;
+      --brand-teal-dark: #007d73;
+      --accent: var(--brand-teal);
+      --accent-dark: var(--brand-teal-dark);
+      --accent-light: var(--brand-teal-light);
+      --accent-rgb: 22,205,190;
       --bg: #ffffff;
-      --bg-alt: #f6f6f6;
+      --bg-alt: #f5f5f5;
       --surface: #ffffff;
-      --surface2: #f7f7f7;
-      --border: #e4e4e7;
+      --surface2: #f5f5f5;
+      --border: #e5e5e5;
       /* ── TEXT CONTRAST LADDER ──
          Four steps, each with a defined job. Nothing that a user must
          read is allowed to sit below WCAG AA (4.5:1) on --bg; only
@@ -42,19 +53,55 @@
       --text-primary: #0b0b0b;      /* 19.6:1 — titles, values, active nav */
       --text-secondary: #444444;    /* 9.4:1  — body, inactive nav, metadata */
       --text-muted: #6b6b73;        /* 5.6:1  — labels, timestamps, captions */
-      --text-disabled: #a5a5ab;     /* 2.5:1  — disabled controls ONLY */
+      --text-disabled: #a4a4a4;     /* 2.5:1  — disabled controls ONLY */
       --text: var(--text-primary);
       --text-2: var(--text-secondary);
       --text-3: var(--text-muted);
       --shadow: 0 1px 2px rgba(0,0,0,0.05), 0 2px 8px rgba(0,0,0,0.04);
       --shadow-hover: 0 2px 6px rgba(0,0,0,0.07), 0 8px 24px rgba(0,0,0,0.06);
-      /* Semantic status — single source for badges, dots, pills, banners */
-      --success: #0a7a72;  --success-bg: rgba(15,168,156,0.10);
-      --warning-text: #8a6d00; --warning-bg: rgba(255,197,41,0.13); --warning-border: rgba(255,197,41,0.35);
-      --danger: #a0281e;   --danger-bg: rgba(200,0,0,0.08);
-      --info: #005fa3;     --info-bg: rgba(0,159,255,0.10);
-      /* Division identities */
-      --div-fiber: #009fff; --div-yarn: #9e00cb; --div-chem: #ff7824; --brand-teal: #16cdbe;
+
+      /* ── SECONDARY / SEMANTIC PALETTE ── identification only, NEVER used
+         for buttons, links, tabs, inputs, nav selection, hover or any
+         ordinary interaction. Each family has three levels used
+         consistently: light = subtle bg/chip, base = identifier/icon/
+         accent, dark = accessible text over the light bg. Do not improvise
+         additional shades. */
+      --sem-yellow-light: #efefaf;     --sem-yellow: #c4c412;     --sem-yellow-dark: #827e00;
+      --sem-green-light: #d1ffbe;      --sem-green: #3ed600;      --sem-green-dark: #2a9200;
+      --sem-blue-light: #c5e9ff;       --sem-blue: #009fff;       --sem-blue-dark: #004a86;
+      --sem-purple-light: #f6d8ff;     --sem-purple: #9e00cb;     --sem-purple-dark: #670084;
+      --sem-warmyellow-light: #fff0af; --sem-warmyellow: #ffc529; --sem-warmyellow-dark: #bb9800;
+      --sem-orange-light: #ffe3d2;     --sem-orange: #ff7824;     --sem-orange-dark: #cd4f00;
+      --sem-red-light: #ffc7c7;        --sem-red: #e80000;        --sem-red-dark: #b40b0b;
+      /* Theme-aware TEXT alias per family — light mode reads the accessible
+         -dark shade, dark mode is remapped above to a lightened variant so
+         nothing sits below AA on either surface. Use these for badge/chip
+         label color; use the plain -light/-dark tokens for backgrounds and
+         identifier accents. */
+      --sem-yellow-dark-text: var(--sem-yellow-dark);
+      --sem-green-dark-text: var(--sem-green-dark);
+      --sem-blue-dark-text: var(--sem-blue-dark);
+      --sem-purple-dark-text: var(--sem-purple-dark);
+      --sem-warmyellow-dark-text: var(--sem-warmyellow-dark);
+      --sem-orange-dark-text: var(--sem-orange-dark);
+      --sem-red-dark-text: var(--sem-red-dark);
+
+      /* Semantic status — single source for badges, dots, pills, banners.
+         Mapped onto the secondary palette (never onto brand teal, which
+         would blur "this is a status" with "this is interactive"). */
+      --success: var(--sem-green-dark);      --success-bg: rgba(62,214,0,0.12);      --success-border: rgba(62,214,0,0.35);
+      --warning-text: var(--sem-warmyellow-dark); --warning-bg: rgba(255,197,41,0.13); --warning-border: rgba(255,197,41,0.35);
+      --danger: var(--sem-red-dark);         --danger-bg: rgba(232,0,0,0.10);         --danger-border: rgba(232,0,0,0.35);
+      --info: var(--sem-blue-dark);          --info-bg: rgba(0,159,255,0.10);         --info-border: rgba(0,159,255,0.35);
+
+      /* Division / module identity — small markers only (dots, icons, thin
+         borders, chips). Set at runtime by applyDivisionAccent(); default
+         here is neutral (no division scoped). Never drives --accent. */
+      --div-color: var(--text-3);
+      --div-color-dark: var(--text-2);
+      --div-color-light: var(--surface2);
+      --div-fiber: var(--sem-purple);   --div-yarn: var(--sem-blue); --div-fabric: var(--sem-green);
+      --div-chem: var(--sem-red);       --div-garment: var(--sem-orange);
       /* ── APPLICATION SHELL TOKENS ──
          The shell (topbar/sidebar/workspace) is a distinct layer from the
          page content it hosts, so it gets its own tokens rather than
@@ -147,11 +194,20 @@
       --text-primary: #f2f2f4; --text-secondary: #c4c4ca; --text-muted: #9a9aa2; --text-disabled: #66666d;
       --surface-subtle: #232325; --surface-hover: #303033; --border-strong: #55555a;
       --shadow: 0 1px 2px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.25);
-      --warning-bg: #2a1f00; --warning-border: #4a3500; --warning-text: #f0b429;
       --shadow-hover: 0 2px 6px rgba(0,0,0,0.45), 0 8px 24px rgba(0,0,0,0.35);
-      --success: #2dd4c9; --success-bg: rgba(15,168,156,0.12);
-      --danger: #f87171;  --danger-bg: rgba(232,0,0,0.12);
-      --info: #60a5fa;    --info-bg: rgba(0,159,255,0.12);
+      /* Secondary palette text is re-measured for AA against #1c1c1e — the
+         official "dark" shade of each family is too dark to read on a dark
+         surface, so dark mode substitutes a lightened variant for TEXT
+         only. Backgrounds/identifiers (light/base) are unchanged — same
+         hue family, just re-tuned for contrast, never a new hue. */
+      --warning-bg: #2a1f00; --warning-border: #4a3500; --warning-text: #f0b429;
+      --success: #6be600;    --success-bg: rgba(62,214,0,0.16);   --success-border: rgba(62,214,0,0.4);
+      --danger: #ff6b6b;     --danger-bg: rgba(232,0,0,0.16);     --danger-border: rgba(232,0,0,0.4);
+      --info: #4db8ff;       --info-bg: rgba(0,159,255,0.16);     --info-border: rgba(0,159,255,0.4);
+      --sem-yellow-dark-text: #dede4a; --sem-green-dark-text: #6be600; --sem-blue-dark-text: #4db8ff;
+      --sem-purple-dark-text: #d074f0; --sem-warmyellow-dark-text: #ffc529; --sem-orange-dark-text: #ff9a5c;
+      --sem-red-dark-text: #ff6b6b;
+      --div-color: var(--text-secondary); --div-color-dark: var(--text-primary); --div-color-light: var(--surface2);
       /* Shell layer — deliberately layered, not a flat inverted canvas:
          workspace sits darkest, sidebar one step up, so depth still reads
          without relying on borders everywhere (§16). --shell-topbar is
@@ -226,7 +282,7 @@
       border-radius:10px; font-weight:600; letter-spacing:0.01em;
     }
     .auth-footer { text-align:center; margin-top:2.75rem; font-size:0.62rem; color:var(--text-3); letter-spacing:0.05em; }
-    .auth-err { background:rgba(220,53,69,0.06); border:1px solid rgba(220,53,69,0.14); border-radius:9px; padding:0.6rem 0.9rem; font-size:0.8rem; color:#c0392b; margin-bottom:0.65rem; display:none; }
+    .auth-err { background:rgba(220,53,69,0.06); border:1px solid rgba(220,53,69,0.14); border-radius:9px; padding:0.6rem 0.9rem; font-size:0.8rem; color:var(--danger); margin-bottom:0.65rem; display:none; }
     [data-theme="dark"] .auth-err { color:#fca5a5; background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.18); }
 
     /* ── FORMS ── */
@@ -386,9 +442,10 @@
     }
     .sb-icon-btn svg { width:19px; height:19px; }
     .sb-icon-btn:hover { background:var(--surface-hover); color:var(--text-primary); }
-    /* Fixed brand teal, not var(--accent) — --accent is reassigned per
-       DIVISION context (applyDivisionAccent()) and the top bar is global
-       chrome that must never shift color with the active division. */
+    /* var(--brand-teal) and var(--accent) are the same fixed value now
+       (--accent is never reassigned per division), kept as the explicit
+       brand token here since this is global chrome, not a themable
+       control. */
     .sb-icon-btn:focus-visible { outline:2px solid var(--brand-teal); outline-offset:-2px; }
     .sb-icon-btn[data-tip]:hover::after {
       content:attr(data-tip);
@@ -583,10 +640,10 @@
     .inv-row:last-child { border-bottom:none; }
     .inv-fmt { flex:1; color:var(--text-2); }
     .inv-qty { font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
-    .inv-qty-low { color:#ff9f0a; font-weight:700; }
-    .inv-qty-out { color:#e0442e; font-weight:700; }
+    .inv-qty-low { color:var(--warning-text); font-weight:700; }
+    .inv-qty-out { color:var(--danger); font-weight:700; }
     .inv-res { font-size:0.64rem; color:var(--text-3); }
-    .inv-low-tag { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#ff9f0a; background:rgba(255,159,10,0.12); padding:0.1rem 0.4rem; border-radius:10px; }
+    .inv-low-tag { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--warning-text); background:var(--warning-bg); padding:0.1rem 0.4rem; border-radius:10px; }
     .inv-adjust { border:1px solid var(--border); border-radius:12px; padding:0.7rem; margin:0.55rem 0 0.65rem; background:var(--surface); box-shadow:0 8px 28px rgba(0,0,0,0.05); }
     .invw { border:1px solid var(--border); border-radius:14px; padding:0.9rem 1rem; background:var(--surface); }
     .invw-title { font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-3); margin-bottom:0.5rem; }
@@ -709,7 +766,7 @@
     .ver-diff { border:1px solid var(--border); border-radius:10px; padding:0.6rem 0.7rem; margin-bottom:0.6rem; background:var(--surface2); }
     .ver-diff-title { font-size:0.72rem; font-weight:700; color:var(--text); margin-bottom:0.3rem; }
     .form-errors { background:rgba(192,57,43,0.06); border:1px solid rgba(192,57,43,0.25); border-radius:10px; padding:0.7rem 0.9rem; margin-bottom:1rem; }
-    .form-errors-title { font-size:0.75rem; font-weight:700; color:#c0392b; margin-bottom:0.3rem; }
+    .form-errors-title { font-size:0.75rem; font-weight:700; color:var(--danger); margin-bottom:0.3rem; }
     .form-errors li { font-size:0.76rem; color:var(--text-2); margin-left:1rem; margin-top:0.15rem; }
     .lc-pill { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.66rem; font-weight:600; padding:0.18rem 0.5rem; border-radius:7px; border:1px solid transparent; white-space:nowrap; }
     .lc-pill-sm { font-size:0.6rem; padding:0.1rem 0.4rem; }
@@ -817,7 +874,7 @@
       box-shadow:0 1px 4px rgba(0,0,0,0.08);
     }
     /* Danger */
-    .prof-signout { width:100%; margin-top:0.35rem; padding:0.7rem; border-radius:10px; border:none; background:none; font-family:inherit; font-size:0.85rem; font-weight:500; color:#c0392b; cursor:pointer; transition:background 0.12s; }
+    .prof-signout { width:100%; margin-top:0.35rem; padding:0.7rem; border-radius:10px; border:none; background:none; font-family:inherit; font-size:0.85rem; font-weight:500; color:var(--danger); cursor:pointer; transition:background 0.12s; }
     .prof-signout:hover { background:rgba(192,57,43,0.07); }
     [data-theme="dark"] .prof-signout { color:var(--danger); }
     [data-theme="dark"] .prof-signout:hover { background:var(--danger-bg); }
@@ -911,10 +968,14 @@
     .sidebar.collapsed .sidebar-bottom .nav-item { width:40px; height:40px; }
     .sidebar.collapsed .sidebar-spacer { width:100%; }
 
-    /* Icon color — neutral by default, own color on hover/active */
+    /* Icon color — neutral at rest, brand teal on hover/active. Nav
+       selection is an interaction state, so it is always teal regardless
+       of which tool/module the item points to — --item-color (still set
+       per-button for any future resting-state use) must never drive
+       hover/active; that would repaint navigation in a secondary color. */
     .nav-item .n-icon { color:var(--text-3); transition:color 0.15s; }
     .nav-item:hover .n-icon,
-    .nav-item.active .n-icon { color:var(--item-color, var(--text-2)); }
+    .nav-item.active .n-icon { color:var(--accent); }
 
     /* ── COLLAPSED TOOLTIPS — theme-native label pill ── */
     .sidebar.collapsed .nav-item,
@@ -963,7 +1024,7 @@
     }
     .pop-menu-item:hover, .ws-menu-item:hover, .card-more-item:hover { background:var(--surface-hover); color:var(--text-primary); }
     .pop-menu-item.current { color:var(--text); font-weight:600; }
-    .pop-menu-item.danger, .ws-menu-danger, .card-more-item.danger { color:#c0392b; }
+    .pop-menu-item.danger, .ws-menu-danger, .card-more-item.danger { color:var(--danger); }
     [data-theme="dark"] .pop-menu-item.danger,
     [data-theme="dark"] .ws-menu-danger,
     [data-theme="dark"] .card-more-item.danger { color:var(--danger); }
@@ -1533,7 +1594,7 @@
       border:none; background:none; color:var(--text-3); cursor:pointer; font-size:0.72rem; line-height:1; padding:0;
       transition:background 0.12s, color 0.12s;
     }
-    .team-chip-revoke:hover { background:rgba(192,57,43,0.12); color:#c0392b; }
+    .team-chip-revoke:hover { background:rgba(192,57,43,0.12); color:var(--danger); }
     .team-add-access { display:flex; gap:0.4rem; align-items:center; margin-top:0.55rem; flex-wrap:wrap; }
     .team-row-role { flex:0 0 150px; text-align:right; }
     .team-row-role-static { font-size:0.78rem; font-weight:600; color:var(--text-2); }
@@ -1546,14 +1607,10 @@
     }
 
     .badge { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.66rem; font-weight:600; padding:0.22rem 0.6rem; border-radius:7px; white-space:nowrap; }
-    .badge-pending  { background:rgba(255,197,41,0.13); color:#8a6d00; }
-    .badge-approved { background:rgba(15,168,156,0.10); color:#0a7a72; }
-    .badge-shipped  { background:rgba(0,159,255,0.10);  color:#005fa3; }
-    .badge-rejected { background:rgba(200,0,0,0.08);    color:#a0281e; }
-    [data-theme="dark"] .badge-pending  { background:rgba(255,197,41,0.12);  color:#ffc529; }
-    [data-theme="dark"] .badge-approved { background:rgba(15,168,156,0.12);  color:#2dd4c9; }
-    [data-theme="dark"] .badge-shipped  { background:rgba(0,159,255,0.12);   color:#60a5fa; }
-    [data-theme="dark"] .badge-rejected { background:rgba(232,0,0,0.12);     color:#f87171; }
+    .badge-pending  { background:var(--warning-bg); color:var(--warning-text); }
+    .badge-approved { background:var(--success-bg); color:var(--success); }
+    .badge-shipped  { background:var(--info-bg);    color:var(--info); }
+    .badge-rejected { background:var(--danger-bg);  color:var(--danger); }
 
 
     /* ── ADD FORM ── */
@@ -1729,9 +1786,9 @@
     .clock-card:last-child { border-right:none; }
     .clock-top { display:flex; align-items:center; gap:0.38rem; margin-bottom:0.42rem; min-width:0; }
     .clock-status { width:6px; height:6px; border-radius:50%; flex-shrink:0; background:var(--text-3); opacity:0.65; }
-    .clock-status.day { background:#1a8a5c; }
-    .clock-status.eve { background:#d4601a; }
-    .clock-status.night { background:#4f6fb5; }
+    .clock-status.day { background:var(--success); }
+    .clock-status.eve { background:var(--sem-orange); }
+    .clock-status.night { background:var(--sem-blue-dark); }
     .clock-city { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .clock-time { font-size:1.12rem; font-weight:500; font-variant-numeric:tabular-nums; letter-spacing:0; color:var(--text); line-height:1; }
     .clock-ampm { font-size:0.56rem; font-weight:600; margin-left:0.12rem; color:var(--text-3); letter-spacing:0.04em; }
@@ -1922,7 +1979,7 @@
     .cart-item-name { flex:1; min-width:0; font-size:0.83rem; font-weight:600; color:var(--text); line-height:1.3; }
     .cart-item-code { font-size:0.65rem; color:var(--text-3); font-weight:400; margin-top:0.1rem; }
     .cart-item-remove { background:none; border:none; cursor:pointer; color:var(--text-3); padding:0.15rem; flex-shrink:0; border-radius:6px; transition:color 0.12s, background 0.12s; }
-    .cart-item-remove:hover { color:#c0392b; background:var(--surface2); }
+    .cart-item-remove:hover { color:var(--danger); background:var(--surface2); }
     .cart-item-controls { display:flex; align-items:center; gap:0.55rem; padding-left:1.25rem; }
     /* Custom sample-type dropdown (matches platform menus) */
     .cart-type-dd { flex:1; position:relative; min-width:0; }
@@ -2039,8 +2096,8 @@
     .mc-price { font-size:1.35rem; font-weight:700; letter-spacing:-0.03em; font-variant-numeric:tabular-nums; line-height:1; margin-bottom:0.2rem; }
     .mc-unit { font-size:0.65rem; color:var(--text-3); margin-left:0.2rem; font-weight:500; }
     .mc-chg { font-size:0.72rem; font-weight:600; }
-    .mc-chg.up { color:#1a8a5c; }
-    .mc-chg.dn { color:#c0392b; }
+    .mc-chg.up { color:var(--success); }
+    .mc-chg.dn { color:var(--danger); }
     .mc-chg.flat { color:var(--text-3); }
     .mc-spark { height:32px; margin-top:0.7rem; position:relative; }
 
@@ -2056,8 +2113,8 @@
     .med-sub { font-size:0.62rem; color:var(--text-3); margin-top:0.15rem; }
     .med-price { font-size:1.9rem; font-weight:700; letter-spacing:-0.04em; font-variant-numeric:tabular-nums; text-align:right; }
     .med-chg { font-size:0.82rem; font-weight:600; text-align:right; margin-top:0.1rem; }
-    .med-chg.up { color:#1a8a5c; }
-    .med-chg.dn { color:#c0392b; }
+    .med-chg.up { color:var(--success); }
+    .med-chg.dn { color:var(--danger); }
     .med-chart { height:110px; margin-top:1.1rem; position:relative; }
     .med-foot { font-size:0.6rem; color:var(--text-3); margin-top:0.55rem; }
 
@@ -2893,7 +2950,7 @@
       --ink-3:      #6b6b6b;   /* keys / metadata */
       --rule:       #d0d0d0;   /* thin separators */
       --rule-strong:#000000;   /* the one strong rule, above the barcode */
-      --teal:       #0f9d90;   /* restrained SIERRA accent */
+      --teal:       #16cdbe;   /* fixed SIERRA brand teal, print stock */
       --lbl-pad-x:  3.5mm;
       --lbl-pad-t:  3mm;
       --lbl-pad-b:  2.5mm;
@@ -3532,27 +3589,23 @@
 
     /* Sample status badges */
     .smp-badge { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.66rem; font-weight:600; padding:0.22rem 0.6rem; border-radius:var(--r-pill); white-space:nowrap; }
-    .smp-draft      { background:rgba(255,120,36,0.10);  color:#a04800; border:1px dashed rgba(255,120,36,0.35); }
-    .smp-requested  { background:rgba(170,170,170,0.12); color:#555; }
-    .smp-approved   { background:rgba(15,168,156,0.10);  color:#0a7a72; }
-    .smp-preparing  { background:rgba(255,197,41,0.13);  color:#8a6d00; }
-    .smp-ready      { background:rgba(0,159,255,0.10);   color:#005fa3; }
-    .smp-picked_up  { background:rgba(158,0,203,0.10);   color:#7a008a; }
-    .smp-shipped    { background:rgba(0,159,255,0.13);   color:#005fa3; }
-    .smp-delivered  { background:rgba(26,138,92,0.12);   color:#1a6b3c; }
-    .smp-returned   { background:rgba(255,120,36,0.12);  color:#a04800; }
-    .smp-damaged    { background:rgba(192,57,43,0.10);   color:#a0281e; }
-    .smp-archived   { background:rgba(100,100,100,0.10); color:#666; }
-    [data-theme="dark"] .smp-draft      { background:rgba(255,120,36,0.12); color:#ff9955; }
-    [data-theme="dark"] .smp-requested  { background:rgba(200,200,200,0.08); color:#999; }
-    [data-theme="dark"] .smp-approved   { background:rgba(15,168,156,0.12); color:#2dd4c9; }
-    [data-theme="dark"] .smp-preparing  { background:rgba(255,197,41,0.12); color:#ffc529; }
-    [data-theme="dark"] .smp-ready      { background:rgba(0,159,255,0.12);  color:#60a5fa; }
-    [data-theme="dark"] .smp-shipped    { background:rgba(0,159,255,0.14);  color:#60a5fa; }
-    [data-theme="dark"] .smp-delivered  { background:rgba(26,138,92,0.14);  color:#34d399; }
-    [data-theme="dark"] .smp-returned   { background:rgba(255,120,36,0.14); color:#fb923c; }
-    [data-theme="dark"] .smp-damaged    { background:rgba(239,68,68,0.12);  color:#f87171; }
-    [data-theme="dark"] .smp-archived   { background:rgba(150,150,150,0.08);color:#888; }
+    /* Each status maps to one secondary family, consistently: neutral for
+       not-yet-active/archived, warm-yellow for in-progress, green for a
+       positive step, blue for in-transit/ready, purple for the one-off
+       hand-off step, orange for needs-attention, red for a problem. Never
+       brand teal — status is information, not an interactive affordance. */
+    .smp-draft      { background:var(--surface2);              color:var(--text-3);              border:1px dashed var(--border-strong); }
+    .smp-requested  { background:var(--surface2);              color:var(--text-3); }
+    .smp-approved   { background:rgba(62,214,0,0.12);          color:var(--sem-green-dark-text); }
+    .smp-preparing  { background:var(--warning-bg);            color:var(--warning-text); }
+    .smp-ready      { background:rgba(0,159,255,0.10);         color:var(--sem-blue-dark-text); }
+    .smp-picked_up  { background:rgba(158,0,203,0.10);         color:var(--sem-purple-dark-text); }
+    .smp-shipped    { background:rgba(0,159,255,0.13);         color:var(--sem-blue-dark-text); }
+    .smp-delivered  { background:rgba(62,214,0,0.15);          color:var(--sem-green-dark-text); }
+    .smp-returned   { background:var(--sem-orange-light);      color:var(--sem-orange-dark-text); }
+    .smp-damaged    { background:var(--danger-bg);             color:var(--danger); }
+    .smp-archived   { background:var(--surface2);              color:var(--text-3); }
+    [data-theme="dark"] .smp-returned { background:rgba(255,120,36,0.14); }
 
     /* ── PageMetrics ── compact inline counters that double as quick
        filters. Never oversized "dashboard cards". .page-metrics/.page-metric
@@ -3978,7 +4031,7 @@
       display:inline-flex; align-items:center; gap:0.3rem; align-self:flex-start; font-size:0.68rem; font-weight:600;
       background:var(--surface2); color:var(--text-2); border-radius:999px; padding:0.2rem 0.55rem;
     }
-    .colh-deadline.overdue { background:rgba(192,57,43,0.12); color:#c0392b; }
+    .colh-deadline.overdue { background:rgba(192,57,43,0.12); color:var(--danger); }
     .colh-new-card {
       border:1.5px dashed var(--border); border-radius:16px; padding:1.1rem 1.15rem; min-height:118px;
       background:none; cursor:pointer; font-family:inherit; color:var(--text-3);
@@ -4138,7 +4191,7 @@
       width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;
       transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
     }
-    .ws-invite-remove:hover { background:rgba(192,57,43,0.1); color:#c0392b; }
+    .ws-invite-remove:hover { background:rgba(192,57,43,0.1); color:var(--danger); }
     .ws-invite-row-form { flex-wrap:wrap; }
     .ws-invite-role-sel { flex-shrink:0; width:auto; }
     .ws-cap-checklist { padding:0.2rem 0.5rem 0.65rem 3.15rem; }
@@ -4352,32 +4405,23 @@
       white-space: nowrap;
     }
 
-    .badge-active { background: rgba(22, 205, 190, 0.12); color: #0a7a72; }
-    .badge-inactive { background: rgba(150, 150, 150, 0.12); color: #666; }
-    .badge-terminated { background: rgba(200, 0, 0, 0.12); color: #a0281e; }
-    .badge-on_leave { background: rgba(255, 197, 41, 0.12); color: #8a6d00; }
-    .badge-transferred { background: rgba(100, 150, 255, 0.12); color: #0047a3; }
+    .badge-active { background: var(--success-bg); color: var(--success); }
+    .badge-inactive { background: var(--surface2); color: var(--text-3); }
+    .badge-terminated { background: var(--danger-bg); color: var(--danger); }
+    .badge-on_leave { background: var(--warning-bg); color: var(--warning-text); }
+    .badge-transferred { background: var(--info-bg); color: var(--info); }
 
-    .badge-no-badge { background: rgba(100, 100, 100, 0.12); color: #555; }
-    .badge-draft { background: rgba(100, 100, 100, 0.12); color: #666; }
-    .badge-ready_to_print { background: rgba(255, 197, 41, 0.12); color: #8a6d00; }
-    .badge-printed { background: rgba(15, 168, 156, 0.12); color: #0a7a72; }
-    .badge-delivered { background: rgba(0, 159, 255, 0.12); color: #005fa3; }
-    .badge-info { background: rgba(0, 159, 255, 0.12); color: #005fa3; }
-
-    [data-theme="dark"] .badge-active { background: rgba(45, 212, 201, 0.15); color: #2dd4c9; }
-    [data-theme="dark"] .badge-inactive { background: rgba(150, 150, 150, 0.15); color: #aaa; }
-    [data-theme="dark"] .badge-terminated { background: rgba(248, 113, 113, 0.15); color: #f87171; }
-    [data-theme="dark"] .badge-on_leave { background: rgba(255, 197, 41, 0.15); color: #ffc529; }
-    [data-theme="dark"] .badge-transferred { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
+    .badge-no-badge { background: var(--surface2); color: var(--text-3); }
+    .badge-draft { background: var(--surface2); color: var(--text-3); }
+    .badge-ready_to_print { background: var(--warning-bg); color: var(--warning-text); }
+    .badge-printed { background: var(--success-bg); color: var(--success); }
+    .badge-delivered { background: var(--info-bg); color: var(--info); }
+    .badge-info { background: var(--info-bg); color: var(--info); }
 
     /* Badge Readiness — distinct from Employee Status / Badge Status */
-    .badge-ready-yes { background: rgba(22, 205, 190, 0.12); color: #0a7a72; border: none; cursor: pointer; }
-    .badge-ready-missing { background: rgba(255, 197, 41, 0.12); color: #8a6d00; border: none; cursor: pointer; }
-    .badge-ready-blocked { background: rgba(200, 0, 0, 0.12); color: #a0281e; border: none; cursor: pointer; }
-    [data-theme="dark"] .badge-ready-yes { background: rgba(45, 212, 201, 0.15); color: #2dd4c9; }
-    [data-theme="dark"] .badge-ready-missing { background: rgba(255, 197, 41, 0.15); color: #ffc529; }
-    [data-theme="dark"] .badge-ready-blocked { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+    .badge-ready-yes { background: var(--success-bg); color: var(--success); border: none; cursor: pointer; }
+    .badge-ready-missing { background: var(--warning-bg); color: var(--warning-text); border: none; cursor: pointer; }
+    .badge-ready-blocked { background: var(--danger-bg); color: var(--danger); border: none; cursor: pointer; }
 
     /* Employee Detail Drawer */
     .emp-detail-drawer.drawer { width: 680px; max-width: 92vw; }
@@ -4618,9 +4662,9 @@
     }
 
     .site-switcher-item.active {
-      background: #FFC52914;
+      background: var(--brand-teal-light);
       font-weight: 600;
-      color: #FFC529;
+      color: var(--brand-teal-dark);
     }
 
     .import-upload-zone {
@@ -4628,8 +4672,8 @@
     }
 
     .import-upload-zone:hover {
-      border-color: #FFC529;
-      background: rgba(255, 197, 41, 0.02);
+      border-color: var(--accent);
+      background: var(--accent-light);
     }
 
     .import-map-row {
@@ -4957,7 +5001,7 @@
     .badge-sierra-logo {
       width: 22mm;
       height: auto;
-      color: #0a7a72;
+      color: #007d73;
       font-weight: 700;
     }
 
@@ -6100,16 +6144,23 @@ const SB_URL = 'https://vhyddogeemohtqijohry.supabase.co'
 const SB_KEY = 'sb_publishable_9g8UJRbV3NxOlmQgPxjDqg_Xw6hFB0f'
 const sb = supabase.createClient(SB_URL, SB_KEY)
 
-const DIV_CLR = { fiber:'#7b2fa6', yarn:'#2e9e1f', fabric:'#0071e3', chemicals:'#d4601a', garment:'#0f9d90' }
+/* Division/module identity color — small identifiers only (dots, chips,
+   icons, thin borders), one fixed hex per division from the secondary
+   semantic palette. Single source of truth for DIV_ACCENT below — never
+   used to recolor interactive UI (that stays brand teal, see
+   applyDivisionAccent()). */
+const DIV_CLR = { fiber:'#9e00cb', yarn:'#009fff', fabric:'#3ed600', chemicals:'#e80000', garment:'#ff7824' }
 
-/* Per-person avatar color — deterministic pick from the brand palette so the
-   same person always lands on the same color (stable across renders/reloads),
-   not visually random per paint. Text color flips for contrast per swatch. */
+/* Per-person avatar color — deterministic pick from the secondary semantic
+   palette (never brand teal — teal is reserved for interaction) so the
+   same person always lands on the same color (stable across renders/
+   reloads, keyed off their persistent user id), not visually random per
+   paint. Text color flips for contrast per swatch. */
 const AVATAR_PALETTE = [
-  '#efefaf','#c4c412','#827e00','#cffffb','#16cdbe','#007d73',
-  '#d1ffbe','#3ed600','#2a9200','#c5e9ff','#009fff','#004a86',
-  '#f6d8ff','#9e00cb','#670084','#fff0af','#ffc529','#bb9800',
-  '#ffe3d2','#ff7824','#cd4f00','#ffc7c7','#e80000','#b40b0b',
+  '#efefaf','#c4c412','#827e00', '#d1ffbe','#3ed600','#2a9200',
+  '#c5e9ff','#009fff','#004a86', '#f6d8ff','#9e00cb','#670084',
+  '#fff0af','#ffc529','#bb9800', '#ffe3d2','#ff7824','#cd4f00',
+  '#ffc7c7','#e80000','#b40b0b',
 ]
 function avatarTextColor(hex) {
   const h = hex.replace('#', '')
@@ -6127,21 +6178,34 @@ function avatarStyle(seed) {
   const { bg, fg } = avatarColor(seed)
   return `background:${bg};color:${fg}`
 }
+/* Division IDENTITY colors — not the UI accent. Kept as {accent,dark,light}
+   for backward compatibility with call sites that read DIV_ACCENT[d].accent
+   for a small dot/icon/chip (bu switcher, module switcher — legitimate
+   local identifiers, see §"Active vs category color"), but
+   applyDivisionAccent() below no longer writes these onto --accent/
+   --accent-dark/--accent-light: interaction color is always brand teal,
+   regardless of which division/module is active. */
 const DIV_ACCENT = {
-  all:       { accent:'#0f9d90', dark:'#0c7d73', light:'rgba(15,157,144,0.08)' },
-  fiber:     { accent:'#7b2fa6', dark:'#612485', light:'rgba(123,47,166,0.08)' },
-  yarn:      { accent:'#2e9e1f', dark:'#237a17', light:'rgba(46,158,31,0.08)' },
-  fabric:    { accent:'#0071e3', dark:'#0059b3', light:'rgba(0,113,227,0.08)' },
-  chemicals: { accent:'#d4601a', dark:'#a84c13', light:'rgba(212,96,26,0.08)' },
-  garment:   { accent:'#0f9d90', dark:'#0c7d73', light:'rgba(15,157,144,0.08)' },
+  all:       { accent:'#16cdbe', dark:'#007d73', light:'#cffffb' },
+  fiber:     { accent:'#9e00cb', dark:'#670084', light:'#f6d8ff' },
+  yarn:      { accent:'#009fff', dark:'#004a86', light:'#c5e9ff' },
+  fabric:    { accent:'#3ed600', dark:'#2a9200', light:'#d1ffbe' },
+  chemicals: { accent:'#e80000', dark:'#b40b0b', light:'#ffc7c7' },
+  garment:   { accent:'#ff7824', dark:'#cd4f00', light:'#ffe3d2' },
 }
+// Sets the small module-identity markers (--div-color*) for the active
+// division. Deliberately does NOT touch --accent/--accent-dark/
+// --accent-light/--accent-rgb — those stay fixed brand teal everywhere in
+// the app, per the "teal = interaction, secondary = identity" rule. A
+// purple SIERRA Fiber folder gets a purple dot; it must never repaint the
+// buttons around it purple.
 function applyDivisionAccent(d) {
   const a = DIV_ACCENT[d] || DIV_ACCENT.all
-  document.documentElement.style.setProperty('--accent', a.accent)
-  document.documentElement.style.setProperty('--accent-dark', a.dark)
-  document.documentElement.style.setProperty('--accent-light', a.light)
-  const rgb = a.accent.replace('#', '').match(/.{1,2}/g)?.map(x => parseInt(x, 16)).join(',') || '15,157,144'
-  document.documentElement.style.setProperty('--accent-rgb', rgb)
+  document.documentElement.style.setProperty('--div-color', a.accent)
+  document.documentElement.style.setProperty('--div-color-dark', a.dark)
+  document.documentElement.style.setProperty('--div-color-light', a.light)
+  const rgb = a.accent.replace('#', '').match(/.{1,2}/g)?.map(x => parseInt(x, 16)).join(',') || '22,205,190'
+  document.documentElement.style.setProperty('--div-color-rgb', rgb)
 }
 const DIV_LBL = { fiber:'SIERRA Fiber', yarn:'SIERRA Yarn', fabric:'SIERRA Fabric', chemicals:'SIERRA Chemicals', garment:'SIERRA Apparel' }
 const PRODUCT_COUNTRIES = ['Guatemala', 'Honduras', 'El Salvador', 'Nicaragua', 'Turquía', 'Bangladesh', 'India']
@@ -6463,12 +6527,12 @@ function isDispatcher() { return canDispatchDiv() }
    searchable but can't be requested; archived is read-only; the public page
    never shows draft or archived. Missing/legacy rows count as 'available'. */
 const LIFECYCLE = {
-  draft:        { label:'Draft',             color:'#8e8e93' },
-  development:  { label:'Under Development', color:'#af52de' },
-  available:    { label:'Available',         color:'#34c759' },
-  reserved:     { label:'Reserved',          color:'#ff9f0a' },
-  discontinued: { label:'Discontinued',      color:'#e0442e' },
-  archived:     { label:'Archived',          color:'#98989d' },
+  draft:        { label:'Draft',             color:'var(--text-3)' },
+  development:  { label:'Under Development', color:'var(--sem-purple-dark-text)' },
+  available:    { label:'Available',         color:'var(--success)' },
+  reserved:     { label:'Reserved',          color:'var(--warning-text)' },
+  discontinued: { label:'Discontinued',      color:'var(--danger)' },
+  archived:     { label:'Archived',          color:'var(--text-3)' },
 }
 function lc(p) { return LIFECYCLE[p?.lifecycle] ? p.lifecycle : 'available' }
 function lcPill(p, sm) {
@@ -9709,7 +9773,7 @@ async function submitComment(productId) {
       : `Error: ${error.message}`
     toast(msg)
     const errEl = document.createElement('p')
-    errEl.style.cssText = 'font-size:0.75rem;color:#c0392b;margin-top:0.4rem;'
+    errEl.style.cssText = 'font-size:0.75rem;color:var(--danger);margin-top:0.4rem;'
     errEl.textContent = msg
     input.parentElement.appendChild(errEl)
     setTimeout(() => errEl.remove(), 5000)
@@ -11398,7 +11462,7 @@ async function generateTechnicalSheet() {
   const code = p.code || p.id.slice(0,6).toUpperCase()
   const specs = p.specs || {}
   const isFabric = p.division === 'fabric'
-  const divClr = DIV_CLR[p.division] || '#0f9d90'
+  const divClr = DIV_CLR[p.division] || '#16cdbe'
   const divLabel = DIV_LBL[p.division] || p.division
   const dateStr = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})
   const barcode = getProductBarcode(p)
@@ -12100,15 +12164,36 @@ function showStyleGuide() {
             <div class="sg-section-title">Color</div>
             <div class="sg-section-note">Tokens</div>
           </div>
+          <div class="sg-lede">Two systems, never mixed. <b>Teal communicates INDEX interaction</b> — primary actions, selection, focus, progress. <b>Secondary colors communicate information</b> — what a division/status/category <i>is</i>, never how a control behaves.</div>
+
+          <div class="sg-canvas-label" style="margin-top:0.6rem">UI color — fixed, never reassigned per division/module</div>
           <div class="sg-swatches">
-            <div class="sg-swatch"><div class="sg-swatch-chip" style="background:var(--accent)"></div><div class="sg-swatch-body"><div class="sg-swatch-name">Accent</div><div class="sg-swatch-val">var(--accent)</div></div></div>
-            <div class="sg-swatch"><div class="sg-swatch-chip" style="background:#009fff"></div><div class="sg-swatch-body"><div class="sg-swatch-name">Fiber</div><div class="sg-swatch-val">#009fff</div></div></div>
-            <div class="sg-swatch"><div class="sg-swatch-chip" style="background:#9e00cb"></div><div class="sg-swatch-body"><div class="sg-swatch-name">Yarn</div><div class="sg-swatch-val">#9e00cb</div></div></div>
-            <div class="sg-swatch"><div class="sg-swatch-chip" style="background:#ff7824"></div><div class="sg-swatch-body"><div class="sg-swatch-name">Chemicals</div><div class="sg-swatch-val">#ff7824</div></div></div>
+            <div class="sg-swatch"><div class="sg-swatch-chip" style="background:var(--brand-teal)"></div><div class="sg-swatch-body"><div class="sg-swatch-name">Primary Teal</div><div class="sg-swatch-val">var(--accent) · #16cdbe</div></div></div>
+            <div class="sg-swatch"><div class="sg-swatch-chip" style="background:var(--brand-teal-light)"></div><div class="sg-swatch-body"><div class="sg-swatch-name">Light Teal</div><div class="sg-swatch-val">var(--accent-light) · #cffffb</div></div></div>
+            <div class="sg-swatch"><div class="sg-swatch-chip" style="background:var(--brand-teal-dark)"></div><div class="sg-swatch-body"><div class="sg-swatch-name">Dark Teal</div><div class="sg-swatch-val">var(--accent-dark) · #007d73</div></div></div>
+          </div>
+
+          <div class="sg-canvas-label" style="margin-top:0.8rem">Division / module identity — small markers only (dots, chips, thin borders, icons). Never repaints buttons, tabs, or nav selection.</div>
+          <div class="sg-swatches">
+            ${Object.entries(DIV_ACCENT).filter(([k])=>k!=='all').map(([k,a]) => `<div class="sg-swatch"><div class="sg-swatch-chip" style="background:${a.accent}"></div><div class="sg-swatch-body"><div class="sg-swatch-name">${esc(DIV_LBL[k]||k)}</div><div class="sg-swatch-val">${a.accent}</div></div></div>`).join('')}
           </div>
 
           <div class="sg-canvas" style="margin-top:0.8rem">
-            <div class="sg-canvas-label">Avatar palette — AVATAR_PALETTE, deterministic per person</div>
+            <div class="sg-canvas-label">Secondary semantic palette — light / base / dark, identification only. Never a button, link, tab, input focus, hover or nav state.</div>
+            <div class="sg-table-scroll" style="border:none;padding:0"><table class="sg-table">
+              <tr><th>Family</th><th>Light</th><th>Base</th><th>Dark</th></tr>
+              <tr><td>Yellow / Olive</td><td class="sg-mono">#efefaf</td><td class="sg-mono">#c4c412</td><td class="sg-mono">#827e00</td></tr>
+              <tr><td>Green</td><td class="sg-mono">#d1ffbe</td><td class="sg-mono">#3ed600</td><td class="sg-mono">#2a9200</td></tr>
+              <tr><td>Blue</td><td class="sg-mono">#c5e9ff</td><td class="sg-mono">#009fff</td><td class="sg-mono">#004a86</td></tr>
+              <tr><td>Purple</td><td class="sg-mono">#f6d8ff</td><td class="sg-mono">#9e00cb</td><td class="sg-mono">#670084</td></tr>
+              <tr><td>Warm Yellow</td><td class="sg-mono">#fff0af</td><td class="sg-mono">#ffc529</td><td class="sg-mono">#bb9800</td></tr>
+              <tr><td>Orange</td><td class="sg-mono">#ffe3d2</td><td class="sg-mono">#ff7824</td><td class="sg-mono">#cd4f00</td></tr>
+              <tr><td>Red</td><td class="sg-mono">#ffc7c7</td><td class="sg-mono">#e80000</td><td class="sg-mono">#b40b0b</td></tr>
+            </table></div>
+          </div>
+
+          <div class="sg-canvas" style="margin-top:0.8rem">
+            <div class="sg-canvas-label">Avatar palette — AVATAR_PALETTE, deterministic per person id, secondary families only (never teal)</div>
             <div class="sg-swatches">
               ${AVATAR_PALETTE.map(hex => `<div class="sg-swatch"><div class="sg-swatch-chip" style="background:${hex}"></div><div class="sg-swatch-body"><div class="sg-swatch-name" style="font-family:monospace;font-weight:600">${hex}</div></div></div>`).join('')}
             </div>
@@ -12119,16 +12204,16 @@ function showStyleGuide() {
             <div class="sg-table-scroll" style="border:none;padding:0"><table class="sg-table">
               <tr><th>Token</th><th>Light</th><th>Dark</th><th>Role</th></tr>
               <tr><td>--bg</td><td class="sg-mono">#ffffff</td><td class="sg-mono">#1c1c1e</td><td>App canvas. Never place borders directly on it without a surface.</td></tr>
-              <tr><td>--bg-alt</td><td class="sg-mono">#f6f6f6</td><td class="sg-mono">#141416</td><td>Recessed areas: image placeholders, wells.</td></tr>
+              <tr><td>--bg-alt</td><td class="sg-mono">#f5f5f5</td><td class="sg-mono">#141416</td><td>Recessed areas: image placeholders, wells.</td></tr>
               <tr><td>--surface</td><td class="sg-mono">#ffffff</td><td class="sg-mono">#242426</td><td>Cards, panels, menus, modals.</td></tr>
-              <tr><td>--surface2</td><td class="sg-mono">#f7f7f7</td><td class="sg-mono">#2c2c2e</td><td>Inputs, hover fills, segmented-control tracks.</td></tr>
-              <tr><td>--border</td><td class="sg-mono">#ebebeb</td><td class="sg-mono">#3a3a3c</td><td>All hairlines. One border color platform-wide.</td></tr>
-              <tr><td>--text / -2 / -3</td><td class="sg-mono">#0b0b0b · #555 · #aaa</td><td class="sg-mono">#e8e8e8 · #9a9a9a · #636366</td><td>Primary, secondary, tertiary/label ink.</td></tr>
+              <tr><td>--surface2</td><td class="sg-mono">#f5f5f5</td><td class="sg-mono">#2c2c2e</td><td>Inputs, hover fills, segmented-control tracks.</td></tr>
+              <tr><td>--border</td><td class="sg-mono">#e5e5e5</td><td class="sg-mono">#3a3a3c</td><td>All hairlines. One border color platform-wide.</td></tr>
+              <tr><td>--text / -2 / -3</td><td class="sg-mono">#0b0b0b · #444444 · #6b6b73</td><td class="sg-mono">#f2f2f4 · #c4c4ca · #9a9aa2</td><td>Primary, secondary, tertiary/label ink.</td></tr>
             </table></div>
           </div>
 
           <div class="sg-canvas">
-            <div class="sg-canvas-label">Semantic status tokens</div>
+            <div class="sg-canvas-label">Semantic status tokens — mapped onto the secondary palette, never onto teal</div>
             <div class="sg-demo-row">
               <span class="badge badge-approved">Success</span>
               <span class="badge badge-pending">Warning</span>
@@ -12136,21 +12221,21 @@ function showStyleGuide() {
               <span class="badge badge-shipped">Info</span>
             </div>
             <div class="sg-table-scroll" style="border:none;padding:0"><table class="sg-table">
-              <tr><th>Token</th><th>Meaning</th><th>Applied to</th></tr>
-              <tr><td>--success / --success-bg</td><td>Approved, complete, in stock</td><td>Badges, status dots, progress complete</td></tr>
-              <tr><td>--warning-text / --warning-bg</td><td>Pending, attention, low stock</td><td>Badges, banners, lifecycle pills</td></tr>
-              <tr><td>--danger / --danger-bg</td><td>Rejected, destructive, error</td><td>Badges, delete actions, form errors</td></tr>
-              <tr><td>--info / --info-bg</td><td>Shipped, informational, neutral progress</td><td>Badges, hints</td></tr>
+              <tr><th>Token</th><th>Family</th><th>Meaning</th><th>Applied to</th></tr>
+              <tr><td>--success / --success-bg</td><td>Green</td><td>Approved, complete, in stock</td><td>Badges, status dots, progress complete</td></tr>
+              <tr><td>--warning-text / --warning-bg</td><td>Warm Yellow</td><td>Pending, attention, low stock</td><td>Badges, banners, lifecycle pills</td></tr>
+              <tr><td>--danger / --danger-bg</td><td>Red</td><td>Rejected, destructive, error</td><td>Badges, delete actions, form errors</td></tr>
+              <tr><td>--info / --info-bg</td><td>Blue</td><td>Shipped, informational, neutral progress</td><td>Badges, hints</td></tr>
             </table></div>
           </div>
 
           <div class="sg-usage">
-            <div class="sg-use"><b>Use</b>Semantic tokens for every status color. Division colors (Fiber, Yarn, Chemicals) only to identify a division — pills, nav, chart series.</div>
-            <div class="sg-nouse"><b>Don't</b>Hardcode hex values in components, use division colors to signal state, or use the accent for anything other than primary action and selection.</div>
+            <div class="sg-use"><b>Use</b>Teal (var(--accent)) for every primary action, selection, and focus state. Secondary tokens only to identify a division, status, category, tag or avatar — pills, dots, chips, thin borders, chart series. Semantic tokens (--success/--warning/--danger/--info) for every status color.</div>
+            <div class="sg-nouse"><b>Don't</b>Hardcode hex values in components, use a division/secondary color to signal interaction (buttons, tabs, links, hover, focus, nav selection), or let opening a division/module repaint the surrounding UI in its identity color — the active state stays teal (var(--accent-light) bg + var(--accent-dark) text); only a small dot/icon carries the division hue.</div>
           </div>
           <div class="sg-canvas">
             <div class="sg-canvas-label">Dark mode rules</div>
-            <div class="sg-lede" style="margin:0">Dark mode is a first-class theme, not an inversion. Surfaces step up in lightness with elevation (bg-alt → bg → surface → surface2); shadows get stronger, never lighter; saturated fills are dimmed to ~12% alpha washes; status text shifts to the lighter ramp (e.g. #2dd4c9 instead of #0a7a72). Test every new component in both themes before shipping.</div>
+            <div class="sg-lede" style="margin:0">Dark mode is a first-class theme, not an inversion. Surfaces step up in lightness with elevation (bg-alt → bg → surface → surface2); shadows get stronger, never lighter; saturated fills are dimmed to ~12–16% alpha washes; secondary-palette status text swaps to a lightened variant of the same family (e.g. --success reads #6be600 instead of #2a9200) so nothing drops below AA on a dark surface — never a different hue. Test every new component in both themes before shipping.</div>
           </div>
         </section>
 
@@ -12901,8 +12986,7 @@ function showStyleGuide() {
           <div class="sg-token-row"><span class="sg-token-k">Radius</span><span class="sg-token-v">4–18px scale</span></div>
           <div class="sg-token-row"><span class="sg-token-k">Border</span><span class="sg-token-v">var(--border)</span></div>
           <div class="sg-token-row"><span class="sg-token-k">Surface</span><span class="sg-token-v">var(--surface)</span></div>
-          <div class="sg-token-row"><span class="sg-token-k">Accent</span><span class="sg-token-v">#0f9d90</span></div>
-          <div class="sg-token-row"><span class="sg-token-k">Brand teal</span><span class="sg-token-v">#16cdbe</span></div>
+          <div class="sg-token-row"><span class="sg-token-k">Accent (fixed)</span><span class="sg-token-v">#16cdbe</span></div>
           <div class="sg-token-row"><span class="sg-token-k">Motion</span><span class="sg-token-v">120–280ms</span></div>
           <div class="sg-token-row"><span class="sg-token-k">Focus</span><span class="sg-token-v">2px accent ring</span></div>
         </div>
@@ -15145,7 +15229,7 @@ async function printBadge() {
         .badge-sierra-logo {
           width: 25mm;
           height: auto;
-          color: #0a7a72;
+          color: #007d73;
           font-weight: 700;
         }
         .badge-company-bar {
@@ -15551,13 +15635,14 @@ async function renderDashNotifs() {
     if (section) section.style.display = ''
     el.innerHTML = `<div class="dash-notif-list">${data.map(n => {
       const time = new Date(n.created_at).toLocaleDateString('en-US', { day:'numeric', month:'short' })
-      const iconColor = n.type?.includes('sample') ? '#16cdbe' : '#0071e3'
       const isGood = n.type?.includes('approved') || n.type?.includes('ready') || n.type?.includes('delivered')
+      const iconColor = isGood ? 'var(--success)' : 'var(--text-secondary)'
+      const iconBg = isGood ? 'var(--success-bg)' : 'var(--surface2)'
       const iconSvg = isGood
         ? `<svg viewBox="0 0 20 20" fill="none" style="width:15px;height:15px"><circle cx="10" cy="10" r="7" stroke="${iconColor}" stroke-width="1.4"/><path d="M7 10l2 2 4-4" stroke="${iconColor}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`
         : `<svg viewBox="0 0 20 20" fill="none" style="width:15px;height:15px"><path d="M10 3a5 5 0 0 1 5 5v3l1.5 2H3.5L5 11V8a5 5 0 0 1 5-5z" stroke="${iconColor}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`
       return `<div class="dash-notif-item${n.read ? '' : ' unread'}" onclick="openNotif('${n.id}','${n.resource_type||''}','${n.resource_id||''}')">
-        <div class="dash-notif-icon" style="background:${iconColor}18;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${iconSvg}</div>
+        <div class="dash-notif-icon" style="background:${iconBg};width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${iconSvg}</div>
         <div style="flex:1;min-width:0">
           <div class="dash-notif-title" style="font-size:0.78rem;font-weight:500;line-height:1.3;margin-bottom:0.15rem">${esc(n.title)}</div>
           <div style="font-size:0.65rem;color:var(--text-3)">${time}</div>
@@ -15631,7 +15716,7 @@ async function fetchCommodityCard(cfg) {
   const spark = document.getElementById(`mc-spark-${cfg.id}`)
   if (spark) {
     if (dashCharts[`spark-${cfg.id}`]) { try { dashCharts[`spark-${cfg.id}`].destroy() } catch {} }
-    const col = chg >= 0 ? '#1a8a5c' : '#c0392b'
+    const col = chg >= 0 ? 'var(--success)' : 'var(--danger)'
     dashCharts[`spark-${cfg.id}`] = new Chart(spark.getContext('2d'), {
       type: 'line',
       data: { labels: closes.map((_,i)=>i), datasets: [{ data: closes, borderColor: col, borderWidth: 1.5, fill: false, tension: 0.35, pointRadius: 0 }] },
@@ -15690,7 +15775,7 @@ function renderMarketExpand(id) {
       const canvas = document.getElementById(`chart-expand-${id}`)
       if (!canvas) return
       if (dashCharts['expand']) { try { dashCharts['expand'].destroy() } catch {} }
-      const col = data.chg >= 0 ? '#1a8a5c' : '#c0392b'
+      const col = data.chg >= 0 ? 'var(--success)' : 'var(--danger)'
       const ctx = canvas.getContext('2d')
       const grad = ctx.createLinearGradient(0, 0, 0, 110)
       grad.addColorStop(0, col + '28'); grad.addColorStop(1, col + '00')
@@ -15820,7 +15905,7 @@ function renderMarketDetail(id) {
     if (!canvas || !data.closes) return
     if (dashCharts['detail']) { try { dashCharts['detail'].destroy() } catch {} dashCharts['detail'] = null }
     const ctx = canvas.getContext('2d')
-    const col = data.chg >= 0 ? '#1a8a5c' : '#c0392b'
+    const col = data.chg >= 0 ? 'var(--success)' : 'var(--danger)'
     const grad = ctx.createLinearGradient(0, 0, 0, 140)
     grad.addColorStop(0, col + '38'); grad.addColorStop(1, col + '00')
     dashCharts['detail'] = new Chart(ctx, {
@@ -17234,7 +17319,7 @@ function printShippingGuide() {
       </tr>`).join('')}</tbody>
     </table>
     ${s.excludedItems?.length ? `
-    <div class="sg-note" style="border-color:#c0392b40">
+    <div class="sg-note" style="border-color:var(--danger-border)">
       <strong>Not included in this package:</strong>
       ${s.excludedItems.map(i => `<div style="margin-top:0.3rem">• ${esc(i.name)}${i.code ? ' ('+esc(i.code)+')' : ''} — ${esc(i.reason)}</div>`).join('')}
     </div>` : ''}
@@ -17971,7 +18056,7 @@ async function showCollectionRecord(collectionId, backTo) {
         ${categories.map(c => `<option value="${c.id}">Mover a: ${esc(c.name)}</option>`).join('')}
       </select>
       <button class="btn btn-secondary btn-sm" onclick="wsBulkMoveCategory('${col.id}')">Mover</button>
-      <button class="btn btn-secondary btn-sm" style="color:#c0392b" onclick="wsBulkRemove('${col.id}')">Quitar</button>
+      <button class="btn btn-secondary btn-sm" style="color:var(--danger)" onclick="wsBulkRemove('${col.id}')">Quitar</button>
       <button class="btn btn-secondary btn-sm" onclick="wsClearSelection()">Cancelar</button>
     </div>` : ''}
     <div class="srd-card">
@@ -18201,7 +18286,7 @@ function wsRenderStatsCharts() {
   const constKeys = Object.keys(constCounts).sort((a, b) => (CONST_META[a]?.order || 99) - (CONST_META[b]?.order || 99))
   const constCanvas = document.getElementById('ws-stat-const-chart')
   if (constCanvas && constKeys.length) {
-    const accent = getComputedStyle(document.body).getPropertyValue('--accent').trim() || '#0071e3'
+    const accent = getComputedStyle(document.body).getPropertyValue('--accent').trim() || '#16cdbe'
     _wsStatCharts.constr = new Chart(constCanvas.getContext('2d'), {
       type: 'bar',
       data: {
@@ -19045,7 +19130,7 @@ function dqRenderTable() {
     <tbody>${rows.map(c => `
       <tr onclick="showDispatch('${c.id}')">
         <td class="dq-row-id">${dqIsOverdue(c) ? '<span class="dq-overdue-dot" title="Overdue"></span>' : ''}${esc(c.collection_id)}<div class="dq-row-kind">${c.name ? 'Collection' : 'Quick request'}</div></td>
-        <td class="dq-row-name">${esc(c.name || '—')}${c.priority==='urgent' ? ' <span style="color:#c0392b;font-weight:700">· Urgent</span>' : ''}</td>
+        <td class="dq-row-name">${esc(c.name || '—')}${c.priority==='urgent' ? ' <span style="color:var(--danger);font-weight:700">· Urgent</span>' : ''}</td>
         <td>${esc(c.customer || '—')}</td>
         <td>${esc(c.requesterName)}</td>
         <td style="text-align:center">${c.itemCount}</td>
@@ -19124,7 +19209,7 @@ function dispatchRowHtml(i) {
     : i.verified
       ? `<button class="btn btn-secondary btn-sm" onclick="dispatchRevealExclude('${i.id}')">Undo</button>`
       : `<button class="btn btn-primary btn-sm" onclick="dispatchVerify('${i.id}')">Scan</button>
-         <button class="btn btn-secondary btn-sm" style="color:#c0392b" onclick="dispatchRevealExclude('${i.id}')">Unavailable</button>`
+         <button class="btn btn-secondary btn-sm" style="color:var(--danger)" onclick="dispatchRevealExclude('${i.id}')">Unavailable</button>`
   const needsSticker = i.price != null
   const labelFlags = [
     !i.excluded && !i.label_printed_at ? `<button class="btn btn-secondary btn-sm" onclick="printBaseLabelFor('${i.id}')" title="Label needed">🏷</button>` : '',
@@ -20012,11 +20097,11 @@ function invStatusOf(stocks) {
   if (!stocks.length) return null
   const avail = stocks.reduce((t, s) => t + (s.qty - s.reserved), 0)
   const reserved = stocks.reduce((t, s) => t + s.reserved, 0)
-  if (avail <= 0) return { label: 'Out of Stock', color: '#e0442e' }
+  if (avail <= 0) return { label: 'Out of Stock', color: 'var(--danger)' }
   if (stocks.some(s => s.min_qty > 0 && (s.qty - s.reserved) <= s.min_qty))
-    return { label: 'Low Stock', color: '#ff9f0a' }
-  if (reserved > 0) return { label: `Available · ${reserved} reserved`, color: '#34c759' }
-  return { label: 'Available', color: '#34c759' }
+    return { label: 'Low Stock', color: 'var(--warning-text)' }
+  if (reserved > 0) return { label: `Available · ${reserved} reserved`, color: 'var(--success)' }
+  return { label: 'Available', color: 'var(--success)' }
 }
 
 // Samples & Inventory operational summary (§10 of the brief) — Inventory
@@ -20483,7 +20568,7 @@ const insFmtH = h => h == null ? '—' : h < 48 ? `${h.toFixed(1)} h` : `${(h / 
 function insTrendChip(pct) {
   if (pct == null) return ''
   const up = pct > 0, flat = pct === 0
-  const color = flat ? 'var(--text-3)' : up ? '#34c759' : '#e0442e'
+  const color = flat ? 'var(--text-3)' : up ? 'var(--success)' : 'var(--danger)'
   return `<span class="ins-trend" style="color:${color}">${flat ? '—' : up ? '↑' : '↓'} ${Math.abs(pct)}%</span>`
 }
 function insCard(title, value, sub, onclick) {
@@ -20729,11 +20814,11 @@ function insObservations(D, P) {
     .sort((a, b) => Math.abs(b[1].pct) - Math.abs(a[1].pct)).slice(0, 3)
     .forEach(([k, g]) => obs.push({
       text: `${k} requests ${g.pct > 0 ? 'increased' : 'decreased'} ${Math.abs(g.pct)}% vs the previous ${P} days.`,
-      pct: g.pct, color: g.pct > 0 ? '#34c759' : '#e0442e',
+      pct: g.pct, color: g.pct > 0 ? 'var(--success)' : 'var(--danger)',
     }))
   // fastest growing construction
   const fastest = Object.entries(constGrowth).filter(([, g]) => g.cur >= 2).sort((a, b) => b[1].pct - a[1].pct)[0]
-  if (fastest && fastest[1].pct > 0) obs.push({ text: `${fastest[0]} is the fastest growing construction.`, color: '#34c759' })
+  if (fastest && fastest[1].pct > 0) obs.push({ text: `${fastest[0]} is the fastest growing construction.`, color: 'var(--success)' })
   // customer volume
   insCount(D.samples.filter(s => insIn(s, P) && s.collection_id), s => s.customer).slice(0, 2)
     .forEach(([c, n]) => { if (n >= 2) {
@@ -20743,18 +20828,18 @@ function insObservations(D, P) {
   // format growth
   Object.entries(insGrowth(D.samples, s => s.sample_type, P))
     .filter(([, g]) => g.cur + g.prev >= 3 && Math.abs(g.pct) >= 25).slice(0, 2)
-    .forEach(([k, g]) => obs.push({ text: `${k} samples ${g.pct > 0 ? 'increased' : 'decreased'} ${Math.abs(g.pct)}%.`, pct: g.pct, color: g.pct > 0 ? '#34c759' : '#e0442e' }))
+    .forEach(([k, g]) => obs.push({ text: `${k} samples ${g.pct > 0 ? 'increased' : 'decreased'} ${Math.abs(g.pct)}%.`, pct: g.pct, color: g.pct > 0 ? 'var(--success)' : 'var(--danger)' }))
   // low inventory per location
   D.locations.forEach(l => {
     const low = D.stocks.filter(s => s.location_id === l.id && s.min_qty > 0 && (s.qty - s.reserved) <= s.min_qty)
-    if (low.length) obs.push({ text: `${l.name} has ${low.length} format${low.length > 1 ? 's' : ''} below the minimum threshold.`, color: '#ff9f0a' })
+    if (low.length) obs.push({ text: `${l.name} has ${low.length} format${low.length > 1 ? 's' : ''} below the minimum threshold.`, color: 'var(--warning-text)' })
   })
   // silent divisions
   AUTH_DIVISIONS.forEach(d => {
     const last = D.samples.find(s => D.productById[s.product_id]?.division === d)
     if (D.products.some(p => p.division === d) && last) {
       const days = Math.floor((Date.now() - new Date(last.created_at)) / 86400000)
-      if (days >= 30) obs.push({ text: `The ${DIV_LBL[d] || d} division has not received requests in ${days} days.`, color: '#ff9f0a' })
+      if (days >= 30) obs.push({ text: `The ${DIV_LBL[d] || d} division has not received requests in ${days} days.`, color: 'var(--warning-text)' })
     }
   })
   return obs.slice(0, 8)
