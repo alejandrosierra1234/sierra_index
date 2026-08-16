@@ -1844,7 +1844,10 @@ families but the interactive anatomy of §15 StatusSelect.
   saved-view chips — flagged as future work per §31, not silently
   assumed done, since the fix pattern (swap the CSS class, verify no
   layout regression) is now established here for whoever picks it up
-  next.
+  next. §42.2 resized `.card-div-pill` onto the shared 32px/7px status
+  shell (so it no longer visually drifts from its sibling `.rec-id`
+  RecordID pill in the same row) without renaming the class — the
+  class-swap-to-`.category-tag` migration itself is still open.
 
 ## 41.10 App-wide icon migration (Tabler), scope and remainder
 
@@ -1903,3 +1906,152 @@ redrawn by hand — so a future contributor extending `SI_ICON` should
 do the same: find the closest-matching icon in the Tabler outline set,
 copy its `<path>` elements (dropping the inert `M0 0h24v24H0z` bounding
 placeholder), and add it as a new `SI_ICON` key.
+
+## 42. Product Card component grammar: RecordID, and the 32/40 rule
+
+§41 fixed *color* — five distinct status families instead of one generic
+badge. It didn't touch *size, radius, border weight or type* — a Catalog
+card still mixed a 20px division chip, a barely-rendered lifecycle pill,
+a thin 24px outline button and a 30px, differently-radiused overflow
+button in one row. This pass fixes that: one card row, one shared
+interaction baseline.
+
+### 42.1 The rule: 32px = information, 40px = interaction
+
+Every control on a card (and, by extension, everywhere else) is one of
+exactly two heights:
+
+| Height | Meaning | Components |
+|---|---|---|
+| **32px** (`--status-h`) | Information — read, not clicked | `.status-badge`, `.lc-pill`, `.role-tag`(30px, one notch down — see §41.3), `.category-tag`/`.card-div-pill`, `.rec-id` (RecordID) |
+| **40px** (`--control-h`) | Interaction — a control | `.btn`, `.icon-btn`, form inputs/selects |
+
+A 28px "small/metadata" tier is reserved for micro-elements that sit
+*inside* a 32/40px control (tags, inline chips) rather than beside one —
+nothing on the Catalog card needed it, so no new components were forced
+onto it this pass. Don't invent a third row-level height. The one
+sanctioned exception is `--control-h-sm` (36px) for controls inside an
+already-compact secondary surface — a table row, a popover, a drawer
+footer — never mixed with `--control-h` in the same group (see §8/§23,
+unchanged by this pass). Catalog's own **table row** actions
+(`catRowActionsHtml`) are exactly that exception: `.btn.btn-primary.
+btn-sm` + `overflowMenuHtml()` at 36px, deliberately smaller than the
+40px card row a few pixels away in the same screen's Cards view.
+
+### 42.2 RecordID — a dedicated component, not a repurposed chip
+
+`YRN-000045` used to render through `.card-div-pill` — the same class
+used for the "all products" view's *division* chip — so a record code
+and a division category tag were, literally, the same component wearing
+different text. They answer different questions ("what record is this"
+vs "what division is this") and now look different:
+
+```
+.rec-id            → 32px, --status-radius (7px), --info/--info-bg (blue
+                      identity tint), 13px Replica Mono code, 14px leading
+                      icon (the division's existing DIV_ICON glyph — no
+                      new icon set), no hover/shadow.
+.rec-id.is-click    → only when the identifier itself is a real trigger:
+                      subtle background shift, nothing else. A RecordID
+                      is not a CTA and must never look like one.
+```
+
+Built by `recordIdHtml(code, iconSvg, opts)` (next to `catCode()` in
+`index.html`) — the one place a record identifier chip is constructed.
+Call sites: `catCardHtml()` (Catalog Cards view, single-division only —
+the "all products" view still needs the division category tag, so it
+keeps `.card-div-pill` there), `wsCardsViewHtml()` (Collection sample
+cards), and the Fabric/Yarn quick-view Drawer headers that used to
+hand-roll `<span style="font-size:0.72rem...">`. `.card-div-pill` itself
+was resized to the same 32px/7px shell (still its own identity-tinted
+background per division) so the two pills in a card's meta row read as
+one system even when they're not literally the same component.
+
+### 42.3 Card action row — one interaction baseline
+
+`Request sample` was `.cat-req-btn`: a bespoke, ~24px, 7px-radius,
+outline-only button — visually *weaker* than the 32px status pill above
+it, the opposite of the intended hierarchy (primary action should read
+as more prominent than a status label, never less). It's gone. The card
+row now uses the same two canonical components every other action group
+in the app uses:
+
+- **Primary action** — `.btn.btn-primary` (unchanged component, just
+  finally used here): 40px, `--control-radius` (8px), filled brand teal
+  (`--accent` / `--brand-teal` `#16cdbe`, hover `--accent-dark` /
+  `--brand-teal-dark` `#007d73`), leading icon (`package`) + label.
+- **Overflow** — `overflowMenuHtml(items, {btnClass:'icon-btn', title:
+  'More'})`. `.card-more-btn.icon-btn` already existed (§ "A ••• trigger
+  sitting in an action group is an IconButton") but nothing on the card
+  passed it — the overflow trigger was rendering through the bare,
+  smaller default. Now it does: 40×40, `--control-radius`, same
+  `--border-strong` border as every other `.icon-btn`, tooltip.
+
+`.card-more-btn`'s own *default* (no modifier — used by every other
+overflow trigger in the app: employee rows, the product-detail image
+gallery, etc.) was also standardized to `--control-h-sm`/`--control-
+radius`/`--border-strong`/`--surface`, replacing a hardcoded `30px`/`8px`/
+`var(--border)` that had already drifted out of sync with `--control-h-sm`
+(36px) elsewhere on the same screens (e.g. the Talento Humano row, where
+a 36px `.btn-sm` already sat next to the old 30px overflow trigger).
+`.card-actions`/`.cat-row-actions` gap now reads `--control-gap` instead
+of a hand-picked `0.5rem`/`0.3rem`.
+
+### 42.4 Lifecycle pill — the "outlined" look was a CSS bug, not a style
+
+`Available` visibly read as a thin, unfilled outline. Root cause:
+`LIFECYCLE.available.color` is `'var(--success)'` (a custom-property
+*reference*, not a literal hex string), and `lcPillFor()` built its
+inline style as `` `background:${m.color}15` `` — string-concatenating an
+alpha suffix onto a `var()` call. `background:var(--success)15` is
+invalid CSS; the browser drops the whole declaration and falls back to
+the base `.lc-pill` rule's `border:1px solid transparent` — a pill with
+no fill and no border at all, just colored text and a dot. This only
+ever worked for `.card-div-pill`/division colors because `DIV_CLR`
+stores literal hex (`'#009fff'`), where the same suffix trick is valid.
+
+Fixed by switching to `color-mix()` — the same technique the app's own
+`.status-static`/`.pd-status-select` components already use for this
+exact "tint a token-based color" problem:
+
+```js
+background: color-mix(in srgb, var(--success) 16%, var(--surface))
+color:      color-mix(in srgb, var(--success) 80%, var(--text-primary))
+```
+
+This is a global fix (`lcPillFor()` is the only renderer for `.lc-pill`,
+per §41.9's migration-notes pattern) — every lifecycle pill everywhere
+in the app now renders a real soft fill instead of the broken outline,
+not just the ones on Catalog cards. Cards render lifecycle at the full
+32px `--status-h` (`lcPill(p)`); the ERP table's `availability` column
+keeps the compact `lcPill(p, true)` (30px `--role-h`) as the sanctioned
+compact-surface exception from §42.1.
+
+### 42.5 Scope and what's deliberately not touched
+
+Covered by construction (all five divisions — Fiber/Yarn/Fabric/
+Chemicals/Apparel — share `catCardHtml()`, and Collections' sample cards
+share the same `.card`/`.rec-id` primitives): the fix is in the shared
+renderer, so "only the data changes" per division/screen holds without
+per-screen edits, matching §16/§18's ownership rule.
+
+Not in scope for this pass, flagged rather than silently assumed done
+(same pattern as §41.9/§41.10's "not yet migrated" notes):
+
+- **ERP table row density** (the main Catalog/Sample Center table view)
+  was left at its existing compact rhythm — only its two action controls
+  were brought onto the sanctioned 36px `--control-h-sm` tier already
+  documented for "compact secondary surfaces." Re-flowing full table row
+  height is a separate, much larger-blast-radius change and wasn't
+  requested by the card-consistency problem this pass was scoped to.
+- **The global `--r-*` radius scale** (`--r-sm:7px`/`--r-md:10px`/
+  `--r-lg:12px`, used app-wide well beyond cards) was left as-is rather
+  than renumbered to a fresh 6/8/12 scale — the status-family radius
+  (`--status-radius`, 7px) and control radius (`--control-radius`, 8px)
+  already give every component touched in this pass one shared, sourced
+  value each; introducing a second, slightly different radius scale
+  alongside the existing one would itself be a consistency regression.
+- **Employee/Talento Humano cards** and other non-Catalog card surfaces
+  weren't audited beyond confirming `.card-more-btn`'s base-rule fix
+  (§42.3) also benefits their row actions — no dedicated employee card
+  grid exists yet to migrate.
