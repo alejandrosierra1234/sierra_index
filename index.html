@@ -7626,17 +7626,17 @@ function renderAcctMenu() {
   const dark = document.documentElement.getAttribute('data-theme') !== 'light'
   const admin = isAdmin()
   const items = []
-  items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); openProfile()">My profile</button>`)
-  items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); toggleNotifications()">Notifications</button>`)
-  items.push(`<button class="pop-menu-item" onclick="toggleTheme(); renderAcctMenu()"><span style="flex:1">Appearance</span><span style="color:var(--text-3);font-size:0.72rem">${dark ? 'Dark' : 'Light'}</span></button>`)
+  items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); openProfile()">Mi perfil</button>`)
+  items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); toggleNotifications()">Notificaciones</button>`)
+  items.push(`<button class="pop-menu-item" onclick="toggleTheme(); renderAcctMenu()"><span style="flex:1">Apariencia</span><span style="color:var(--text-3);font-size:0.72rem">${dark ? 'Oscuro' : 'Claro'}</span></button>`)
   if (admin) {
     items.push(`<div class="pop-menu-sep"></div>`)
-    items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); showUserManagement()">Team</button>`)
-    items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); showAccessLogs()">Access logs</button>`)
+    items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); showUserManagement()">Equipo y Permisos</button>`)
+    items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); showAccessLogs()">Registro de accesos</button>`)
   }
   items.push(`<div class="pop-menu-sep"></div>`)
-  items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); openHelp()">Help</button>`)
-  items.push(`<button class="pop-menu-item danger" onclick="toggleAcctMenu(false); logout()">Log out</button>`)
+  items.push(`<button class="pop-menu-item" onclick="toggleAcctMenu(false); openHelp()">Ayuda</button>`)
+  items.push(`<button class="pop-menu-item danger" onclick="toggleAcctMenu(false); logout()">Cerrar sesión</button>`)
   pop.innerHTML = items.join('')
 }
 function toggleAcctMenu(force) {
@@ -12905,7 +12905,12 @@ const MODULES = {
     // lifecycle) is intentionally cross-division: a Collection can mix
     // Fabric and Garment items headed to the same NT warehouse.
     domains: [...AUTH_DIVISIONS, ...AUTH_WAREHOUSES, 'customer_service'],
-    color: '#16cdbe',
+    // Was brand teal (#16cdbe) — reserved for interaction, never identity
+    // (§42/§44). Muestras' own divisions already carry purple/blue/green/
+    // red/orange identity via DIV_ACCENT; the module tile itself uses the
+    // unclaimed Yellow/Olive secondary family so it reads as one more
+    // identity color, not "the app's interactive accent painted on a tile."
+    color: '#c4c412',
     icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 10a7 7 0 0114 0v3.5a1.5 1.5 0 01-1.5 1.5H14v-5h3a5 5 0 00-10 0h3v5H4.5A1.5 1.5 0 013 13.5V10z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
     tools: [], // contextual — Muestras jumps straight into showSamplesHome(), see enterModule()
   },
@@ -13166,11 +13171,11 @@ function showModuleHub() {
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
   const mods = accessibleModules()
-  if (!mods.length) { pg.innerHTML = '<div class="empty"><p>No tienes acceso a ningún módulo todavía. Pide a un editor que te lo asigne en Administración.</p></div>'; return }
+  if (!mods.length) { pg.innerHTML = emptyStateHtml({ title: 'Sin módulos asignados', desc: 'Pide a un editor que te asigne acceso a un módulo en Administración.' }); return }
   pg.innerHTML = `<div class="pg-grid">${mods.map(([key, m]) => `
     <div class="card-wrap">
       <div class="card" onclick="enterModule('${key}')" style="cursor:pointer;padding:1.25rem">
-        <div style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:${m.color}14;color:${m.color};margin-bottom:0.85rem">${m.icon}</div>
+        <div style="width:44px;height:44px;border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;background:${m.color}14;color:${m.color};margin-bottom:0.85rem">${m.icon}</div>
         <div class="card-name" style="font-size:1rem">${esc(m.label)}</div>
         <div class="card-desc">${key === 'samples' ? esc(samplesModuleDesc()) : `${m.tools.length} herramienta${m.tools.length !== 1 ? 's' : ''}`}</div>
       </div>
@@ -13197,7 +13202,7 @@ function showModuleTools(key) {
     <div class="pg-grid">${m.tools.map(t => `
     <div class="card-wrap">
       <div class="card" onclick="${t.run}()" style="cursor:pointer;padding:1.25rem">
-        <div style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:${m.color}14;color:${m.color};margin-bottom:0.85rem">${t.icon}</div>
+        <div style="width:44px;height:44px;border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;background:${m.color}14;color:${m.color};margin-bottom:0.85rem">${t.icon}</div>
         <div class="card-name" style="font-size:1rem">${esc(t.label)}</div>
         <div class="card-desc">${esc(t.desc)}</div>
       </div>
@@ -15338,7 +15343,7 @@ function showDashboard() {
   Object.values(dashCharts).forEach(c => { try { c.destroy() } catch {} })
   dashCharts = {}
 
-  document.getElementById('tb-section').textContent = 'Home'
+  document.getElementById('tb-section').textContent = 'Inicio'
   document.getElementById('view-styleguide').style.display = 'none'
   document.getElementById('view-products').style.display = 'none'
 
@@ -15348,14 +15353,14 @@ function showDashboard() {
   const now = new Date()
   const hr = now.getHours()
   const firstName = (profile?.full_name || me?.email?.split('@')[0] || '').split(' ')[0]
-  const greeting = hr < 5 ? `Good night, ${firstName}` : hr < 12 ? `Good morning, ${firstName}` : hr < 17 ? `Good afternoon, ${firstName}` : `Good evening, ${firstName}`
-  const dateStr = now.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })
+  const greeting = hr < 5 ? `Buenas noches, ${firstName}` : hr < 12 ? `Buenos días, ${firstName}` : hr < 17 ? `Buenas tardes, ${firstName}` : `Buenas noches, ${firstName}`
+  const dateStr = now.toLocaleDateString('es-MX', { weekday:'long', month:'long', day:'numeric' })
 
   const recentItems = getRecentlyViewed().slice(0, 4)
   const recentHtml = recentItems.length ? `
   <div class="dash-section">
     <div class="dash-section-hdr">
-      <div class="dash-section-label">Continue Working</div>
+      <div class="dash-section-label">Continuar trabajando</div>
     </div>
     <div class="recent-grid">
       ${recentItems.map(p => `
@@ -15375,7 +15380,7 @@ function showDashboard() {
     <div class="dash-date">${dateStr}</div>
     <div class="dash-search-trigger" onclick="openSpotlight()" role="button" tabindex="0">
       <span class="dst-icon"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
-      <span class="dst-text">Search products, fabrics, yarns, lots…</span>
+      <span class="dst-text">Buscar productos, telas, hilos, lotes…</span>
       <kbd class="dst-kbd">⌘ K</kbd>
     </div>
   </div>
@@ -15384,24 +15389,24 @@ function showDashboard() {
   <div class="dash-col">
 
     <div class="dash-section" id="dash-clocks-section">
-      <div class="dash-section-hdr"><div class="dash-section-label">World Time</div></div>
+      <div class="dash-section-hdr"><div class="dash-section-label">Horarios</div></div>
       <div class="dash-clocks" id="dash-clock-cards"></div>
     </div>
 
     <div class="dash-section" id="dash-notif-section" style="display:none">
       <div class="dash-section-hdr">
-        <div class="dash-section-label">Notifications</div>
-        <button class="dash-section-meta" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:0.65rem;padding:0" onclick="toggleNotifications()">See all →</button>
+        <div class="dash-section-label">Notificaciones</div>
+        <button class="dash-section-meta" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:0.65rem;padding:0" onclick="toggleNotifications()">Ver todas →</button>
       </div>
       <div id="dash-notif-list"></div>
     </div>
 
     <div class="dash-section" id="pending-samples-section">
       <div class="dash-section-hdr">
-        <div class="dash-section-label">Pending Samples</div>
-        <button class="dash-section-meta" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:0.65rem;padding:0" onclick="showSampleCenter()">View all →</button>
+        <div class="dash-section-label">Muestras pendientes</div>
+        <button class="dash-section-meta" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:0.65rem;padding:0" onclick="showSampleCenter()">Ver todas →</button>
       </div>
-      <div id="pending-smp-list"><div style="font-size:0.78rem;color:var(--text-3)">Loading…</div></div>
+      <div id="pending-smp-list"><div style="font-size:0.78rem;color:var(--text-3)">Cargando…</div></div>
     </div>
 
     ${recentHtml}
@@ -15416,23 +15421,23 @@ function showDashboard() {
   <div class="dash-side">
 
     <div class="dash-section" style="margin-top:0">
-      <div class="dash-section-hdr"><div class="dash-section-label">Actions</div></div>
+      <div class="dash-section-hdr"><div class="dash-section-label">Acciones</div></div>
       <div class="dash-act-row">
         <button class="dash-act" onclick="openScanMode()">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="13" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M13 13h4M13 17h4M17 13v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Scan
+          Escanear
         </button>
         <button class="dash-act" onclick="showSampleCenter()">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="11" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M14 11v6M11 14h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Samples
+          Muestras
         </button>
         <button class="dash-act" onclick="openCollectionsNav()">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          Request
+          Solicitar
         </button>
         ${isEditor() ? `<button class="dash-act" onclick="showModuleHub()">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="3" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="11" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="11" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
-          Catalog
+          Catálogo
         </button>` : ''}
       </div>
     </div>
@@ -15441,7 +15446,7 @@ function showDashboard() {
 
     <div class="dash-section">
       <div class="dash-section-hdr">
-        <div class="dash-section-label">Market</div>
+        <div class="dash-section-label">Mercado</div>
         <div class="dash-section-meta" id="market-updated"></div>
       </div>
       <div class="market-cards-wrap">
@@ -15609,7 +15614,7 @@ async function renderDashNotifs() {
     if (!data?.length) return
     if (section) section.style.display = ''
     el.innerHTML = `<div class="dash-notif-list">${data.map(n => {
-      const time = new Date(n.created_at).toLocaleDateString('en-US', { day:'numeric', month:'short' })
+      const time = new Date(n.created_at).toLocaleDateString('es-MX', { day:'numeric', month:'short' })
       const isGood = n.type?.includes('approved') || n.type?.includes('ready') || n.type?.includes('delivered')
       const iconColor = isGood ? 'var(--success)' : 'var(--text-secondary)'
       const iconBg = isGood ? 'var(--success-bg)' : 'var(--surface2)'
@@ -15841,7 +15846,7 @@ function renderMarketDetail(id) {
       <div class="market-detail-sub">${cfg.exchange}</div>
       <div style="margin-top:1.75rem;flex:1;display:flex;flex-direction:column;justify-content:center">
         <div style="font-size:2.2rem;font-weight:700;color:var(--text-3);letter-spacing:-0.03em">—</div>
-        <div style="font-size:0.78rem;color:var(--text-3);margin-top:0.65rem;line-height:1.6">No live price available via free API.<br>Reference: <a href="https://www.pciwood.com/polyester-prices" target="_blank" style="color:var(--accent);text-decoration:none">PCI Wood Mackenzie</a> · CCFEI · SHFE</div>
+        <div style="font-size:0.78rem;color:var(--text-3);margin-top:0.65rem;line-height:1.6">Sin precio en vivo disponible vía API gratuita.<br>Referencia: <a href="https://www.pciwood.com/polyester-prices" target="_blank" style="color:var(--accent);text-decoration:none">PCI Wood Mackenzie</a> · CCFEI · SHFE</div>
       </div>`
     return
   }
@@ -15850,7 +15855,7 @@ function renderMarketDetail(id) {
     detail.innerHTML = `
       <div class="market-detail-name">${cfg.name}</div>
       <div class="market-detail-sub">${cfg.exchange} · ${cfg.symbol} · ${cfg.unit}</div>
-      <div style="margin-top:1.5rem;font-size:0.82rem;color:var(--text-3)">Loading…</div>`
+      <div style="margin-top:1.5rem;font-size:0.82rem;color:var(--text-3)">Cargando…</div>`
     return
   }
 
@@ -15861,7 +15866,7 @@ function renderMarketDetail(id) {
 
   detail.innerHTML = `
     <div style="display:flex;align-items:center;gap:0.75rem">
-      <div style="width:36px;height:36px;background:${cfg.color}18;border-radius:10px;display:flex;align-items:center;justify-content:center;color:${cfg.color};flex-shrink:0">
+      <div style="width:36px;height:36px;background:${cfg.color}18;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:${cfg.color};flex-shrink:0">
         <svg viewBox="0 0 20 20" style="width:22px;height:22px">${cfg.icon?.match(/<svg[^>]*>([\s\S]*)<\/svg>/)?.[1]||''}</svg>
       </div>
       <div>
@@ -16072,9 +16077,9 @@ async function showAccessLogs() {
   syncModule('administracion')
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
-  document.getElementById('tb-section').textContent = 'Access Logs'
+  document.getElementById('tb-section').textContent = 'Registro de accesos'
   document.getElementById('product-controls').style.display = 'none'
-  document.getElementById('sec-title').textContent = 'Access Logs'
+  document.getElementById('sec-title').textContent = 'Registro de accesos'
   document.getElementById('sec-sub').textContent = 'Historial de inicios de sesión — visible solo para administradores'
 
   const pg = document.getElementById('pg')
@@ -16176,21 +16181,23 @@ async function showUserManagement() {
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
   document.getElementById('tb-section').textContent = tx('team.title')
-  document.getElementById('product-controls').style.display = 'none'
+  const productControls = document.getElementById('product-controls')
+  productControls.style.display = ''
+  productControls.innerHTML = ''
   document.getElementById('sec-title').textContent = tx('team.title')
   document.getElementById('sec-sub').textContent = tx('team.subtitle')
 
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
-  pg.innerHTML = '<div class="empty"><div class="empty-icon">⌛</div><p>Loading…</p></div>'
+  pg.innerHTML = '<div class="empty"><p>Cargando…</p></div>'
 
   const [profRes, grantRes] = await Promise.all([
     sb.from('profiles').select('id,full_name,email,role,created_at').order('created_at', { ascending: true }),
     sb.from('capability_grants').select('id,user_id,domain,capability,resource_id,expires_at'),
   ])
-  if (profRes.error) { pg.innerHTML = `<div class="empty"><p>Error: ${esc(profRes.error.message)}</p></div>`; return }
+  if (profRes.error) { pg.innerHTML = emptyStateHtml({ title: 'No se pudo cargar', desc: profRes.error.message }); return }
   const data = profRes.data
-  if (!data.length) { pg.innerHTML = '<div class="empty"><p>No users yet.</p></div>'; return }
+  if (!data.length) { pg.innerHTML = emptyStateHtml({ title: 'Sin usuarios todavía' }); return }
   // grants table may not be migrated yet — render legacy-only view in that case
   _teamGrants = grantRes.error ? null : (grantRes.data || []).filter(g => !g.resource_id)
 
@@ -16206,13 +16213,14 @@ async function showUserManagement() {
   // Team: no create/grant/revoke/role controls, just the roster and chips.
   const canManagePlatform = can('admin', 'platform')
 
+  // Primary/creation action lives in the PageHeader's action slot (§9),
+  // not hand-rolled inside the list body.
+  productControls.innerHTML = canManagePlatform ? `<button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    ${tx('team.createAccount')}
+  </button>` : ''
+
   pg.innerHTML = `
-  <div style="display:flex;justify-content:flex-end;margin-bottom:0.85rem">
-    ${canManagePlatform ? `<button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      ${tx('team.createAccount')}
-    </button>` : ''}
-  </div>
   <div class="team-list">
     ${data.map(u => {
       const name = u.full_name || (u.email||'?').split('@')[0]
@@ -16568,13 +16576,17 @@ let spotlightFocusIdx = -1
 let spotlightDiv = null   // active division filter
 let recentSearches = JSON.parse(localStorage.getItem('sierra-recent-searches') || '[]')
 
+// Sourced from the single division-color registry (DIV_ACCENT, §46) —
+// this list used to hardcode its own hex values and had drifted out of
+// sync with it (Yarn/Fabric swapped, Chemicals/Apparel swapped, Apparel
+// using the reserved-for-interaction brand teal as an identity color).
 const SPOT_DIVS = [
-  { key:'fiber',     label:'SIERRA Fiber',     color:'#9e00cb' },
-  { key:'yarn',      label:'SIERRA Yarn',      color:'#3ed600' },
-  { key:'fabric',    label:'SIERRA Fabric',    color:'#009fff' },
-  { key:'chemicals', label:'SIERRA Chemicals', color:'#ff7824' },
-  { key:'garment',   label:'SIERRA Apparel',   color:'#16cdbe' },
-]
+  { key:'fiber',     label:'SIERRA Fiber' },
+  { key:'yarn',      label:'SIERRA Yarn' },
+  { key:'fabric',    label:'SIERRA Fabric' },
+  { key:'chemicals', label:'SIERRA Chemicals' },
+  { key:'garment',   label:'SIERRA Apparel' },
+].map(d => ({ ...d, color: DIV_ACCENT[d.key].accent }))
 
 async function openSpotlight() {
   spotlightDiv = null
@@ -17328,14 +17340,14 @@ async function showSampleCenter() {
   syncModule('samples')
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
-  document.getElementById('sec-title').textContent = 'Sample Center'
-  document.getElementById('sec-sub').textContent = 'Track every physical sample from request to archive'
+  document.getElementById('sec-title').textContent = 'Centro de Muestras'
+  document.getElementById('sec-sub').textContent = 'Rastrea cada muestra física desde la solicitud hasta el archivo'
   document.getElementById('product-controls').style.display = 'none'
   document.getElementById('view-products').style.display = 'block'
 
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
-  pg.innerHTML = '<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>Loading samples…</p></div>'
+  pg.innerHTML = '<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>Cargando muestras…</p></div>'
 
   let q = sb.from('samples')
     .select('*, products(name,division,code), profiles!requested_by(full_name)')
@@ -17358,9 +17370,9 @@ async function showSampleCenter() {
     pg.innerHTML = needsSetup
       ? `<div class="empty" style="padding:3rem 1rem">
           <div style="font-size:2rem;margin-bottom:1rem;opacity:0.5">⚗</div>
-          <p style="font-weight:600;margin-bottom:0.5rem">Sample Center not set up yet</p>
+          <p style="font-weight:600;margin-bottom:0.5rem">Centro de Muestras no configurado todavía</p>
           <p style="font-size:0.78rem;line-height:1.6;max-width:380px;margin:0 auto">
-            Run <strong>samples_schema.sql</strong> in your Supabase SQL Editor to enable full sample traceability.
+            Ejecuta <strong>samples_schema.sql</strong> en el SQL Editor de Supabase para habilitar la trazabilidad completa de muestras.
           </p>
           <p style="font-size:0.68rem;color:var(--text-3);margin-top:1rem;font-family:monospace">${esc(error.code||'')} — ${esc(error.message||'')}</p>
         </div>`
@@ -17369,7 +17381,7 @@ async function showSampleCenter() {
   }
 
   if (!data?.length) {
-    pg.innerHTML = `<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>No samples yet. Request one from any product page.</p></div>`
+    pg.innerHTML = `<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>Sin muestras todavía. Solicita una desde cualquier página de producto.</p></div>`
     return
   }
 
@@ -17378,16 +17390,16 @@ async function showSampleCenter() {
   data.forEach(s => { if (s.collection_id) collectionCounts[s.collection_id] = (collectionCounts[s.collection_id] || 0) + 1 })
 
   const collectionsHtml = (collections?.length ? `
-    <div class="srd-section-label" style="margin-top:0">Collections</div>
+    <div class="srd-section-label" style="margin-top:0">Colecciones</div>
     <div class="smp-list" style="margin-bottom:2rem">
       ${collections.map(c => {
         const n = collectionCounts[c.id] || 0
-        const date = new Date(c.created_at).toLocaleDateString('en-US', { day:'2-digit', month:'short', year:'numeric' })
+        const date = new Date(c.created_at).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' })
         return `<div class="smp-row" onclick="showCollectionRecord('${c.id}','showSampleCenter')">
           <div class="smp-row-id">${esc(c.collection_id)}</div>
           <div class="smp-row-product">
-            <div class="smp-row-name">${esc(c.delivery_method||'Pickup')}${c.customer ? ' · ' + esc(c.customer) : ''}</div>
-            <div class="smp-row-meta"><span class="smp-id-inline">${esc(c.collection_id)} · </span>${n} sample${n!==1?'s':''}${c.priority==='urgent' ? ' · Urgent' : ''}</div>
+            <div class="smp-row-name">${esc(c.delivery_method||'Recolección')}${c.customer ? ' · ' + esc(c.customer) : ''}</div>
+            <div class="smp-row-meta"><span class="smp-id-inline">${esc(c.collection_id)} · </span>${n} muestra${n!==1?'s':''}${c.priority==='urgent' ? ' · Urgente' : ''}</div>
           </div>
           <div class="smp-row-type">${esc(c.recipient||'')}</div>
           <div class="smp-row-right">
@@ -17419,14 +17431,14 @@ async function showSampleCenter() {
   smpStatusFilter = 'all'; smpDivFilter = 'all'
   const activeStatuses = ORDER.filter(s => statusGroups[s]?.length)
   let html = collectionsHtml + `
-    <div class="srd-section-label" style="${collectionsHtml ? '' : 'margin-top:0'}">Individual Samples</div>
+    <div class="srd-section-label" style="${collectionsHtml ? '' : 'margin-top:0'}">Muestras individuales</div>
     ${activeDivs.length > 1 ? `
     <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.6rem" id="smp-div-tabs">
-      <button class="div-toolbar-btn active" id="smp-divtab-all" onclick="filterSampleDivision('all',this)" style="background:var(--surface2);color:var(--text)">All divisions (${data.length})</button>
+      <button class="div-toolbar-btn active" id="smp-divtab-all" onclick="filterSampleDivision('all',this)">Todas las divisiones (${data.length})</button>
       ${activeDivs.map(d => `<button class="div-toolbar-btn" id="smp-divtab-${d}" onclick="filterSampleDivision('${d}',this)"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${DIV_CLR[d]};margin-right:0.35rem"></span>${DIV_LBL[d]} (${divGroups[d].length})</button>`).join('')}
     </div>` : ''}
     <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:1.5rem" id="smp-filter-tabs">
-      <button class="div-toolbar-btn active" id="smp-tab-all" onclick="filterSampleRows('all',this)" style="background:var(--surface2);color:var(--text)">All (${data.length})</button>
+      <button class="div-toolbar-btn active" id="smp-tab-all" onclick="filterSampleRows('all',this)">Todas (${data.length})</button>
       ${activeStatuses.map(s => `<button class="div-toolbar-btn" id="smp-tab-${s}" onclick="filterSampleRows('${s}',this)">${SMP_STATUS_LABEL[s]} (${statusGroups[s].length})</button>`).join('')}
     </div>
     <div class="smp-list" id="smp-list">`
@@ -17437,7 +17449,7 @@ async function showSampleCenter() {
     const code = s.products?.code || ''
     const div = s.products?.division ? DIV_LBL[s.products.division] : '—'
     const requester = s.profiles?.full_name || '—'
-    const date = new Date(s.created_at).toLocaleDateString('en-US', { day:'2-digit', month:'short', year:'numeric' })
+    const date = new Date(s.created_at).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' })
     html += `<div class="smp-row" data-status="${s.status}" data-division="${esc(s.products?.division || '')}" onclick="showSampleRecord('${s.id}')">
       <div class="smp-row-id">${esc(s.sample_id)}</div>
       <div class="smp-row-product">
@@ -17465,27 +17477,15 @@ function applySmpFilters() {
 
 function filterSampleRows(status, btn) {
   smpStatusFilter = status
-  document.querySelectorAll('#smp-filter-tabs button').forEach(b => {
-    b.classList.remove('active')
-    b.style.background = 'none'
-    b.style.color = 'var(--text-2)'
-  })
+  document.querySelectorAll('#smp-filter-tabs button').forEach(b => b.classList.remove('active'))
   btn.classList.add('active')
-  btn.style.background = 'var(--surface2)'
-  btn.style.color = 'var(--text)'
   applySmpFilters()
 }
 
 function filterSampleDivision(div, btn) {
   smpDivFilter = div
-  document.querySelectorAll('#smp-div-tabs button').forEach(b => {
-    b.classList.remove('active')
-    b.style.background = 'none'
-    b.style.color = 'var(--text-2)'
-  })
+  document.querySelectorAll('#smp-div-tabs button').forEach(b => b.classList.remove('active'))
   btn.classList.add('active')
-  btn.style.background = 'var(--surface2)'
-  btn.style.color = 'var(--text)'
   applySmpFilters()
 }
 
@@ -17681,8 +17681,8 @@ async function showCollectionsHub() {
   _colhTab = _colhTab || 'draft'
   pg.innerHTML = `
     <div class="colh-tabs">
-      <button class="div-toolbar-btn${_colhTab==='draft'?' active':''}" onclick="colhSetTab('draft')" style="${_colhTab==='draft'?'background:var(--surface2);color:var(--text)':''}">En progreso (${mine.filter(c=>c.status==='draft').length})</button>
-      <button class="div-toolbar-btn${_colhTab==='sent'?' active':''}" onclick="colhSetTab('sent')" style="${_colhTab==='sent'?'background:var(--surface2);color:var(--text)':''}">Enviadas (${mine.filter(c=>c.status!=='draft').length})</button>
+      <button class="div-toolbar-btn${_colhTab==='draft'?' active':''}" onclick="colhSetTab('draft')">En progreso (${mine.filter(c=>c.status==='draft').length})</button>
+      <button class="div-toolbar-btn${_colhTab==='sent'?' active':''}" onclick="colhSetTab('sent')">Enviadas (${mine.filter(c=>c.status!=='draft').length})</button>
     </div>
     <div class="colh-grid" id="colh-grid"></div>`
   await colhRenderGrid(mine)
@@ -17796,14 +17796,14 @@ async function startBlankDraft() {
    others into, instead of rebuilding a recurring order from scratch. */
 async function cloneCollectionToDraft(sourceId) {
   const { data, error } = await sb.rpc('clone_collection_to_draft', { p_source_id: sourceId })
-  if (error || !data) { toast('Could not start from this collection: ' + (error?.message || 'unknown error')); return }
+  if (error || !data) { toast('No se pudo iniciar desde esta colección: ' + (error?.message || 'error desconocido')); return }
   draftCollectionId = data.collection_id
   draftCollectionRef = data.collection_ref
   try { localStorage.setItem('sierra_draft_collection_id', draftCollectionId) } catch {}
   invalidateDraftsCache()
   Audit.log('collection', draftCollectionId, null, 'created',
     `Draft ${draftCollectionRef} started from an existing collection`)
-  toast(`New draft ${draftCollectionRef} started — edit it freely before submitting`)
+  toast(`Nuevo borrador ${draftCollectionRef} iniciado — edítalo libremente antes de enviarlo`)
   showCollectionRecord(draftCollectionId, 'showCollectionsHub')
 }
 
