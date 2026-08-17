@@ -2519,6 +2519,27 @@ badly-distributed things" rather than a new defect class:
   across two disconnected locations in the sheet is exactly the kind of
   thing that makes a file hard to trust. Merged into the one declaration.
 
+A follow-up report ("the toggle looks hidden/white, everything's
+misaligned when collapsed") turned out to be neither of the above —
+static-render audits (this doc's usual method) can't catch it because it
+only appears on `:hover`. Root cause: `.sidebar-edge-toggle:hover` (and,
+identically, `.inv-move-scan-btn:hover`) set `border-color:var(--border2)`
+— a token that has never been defined anywhere in this stylesheet. Per
+the CSS spec, a `var()` reference to an undefined custom property is
+"guaranteed-invalid," and for a non-inherited property like
+`border-color` that resolves to the property's initial value,
+`currentcolor` — which in that same rule is `var(--text)`, a near-white
+tone in dark mode. So on hover the button's border silently became
+near-white regardless of theme, reading as a hollow, disconnected ring
+against the dark shell — easy to mistake for a positioning bug since it
+only shows up mid-interaction, never in a plain screenshot of the resting
+state. Both call sites now reference `--border-strong` (already defined,
+already the token this app uses for "control borders — must be
+visible"). No new token introduced. Lesson for future audits: grep any
+`var(--token)` found in a diff against its `:root`/`[data-theme]`
+definitions before trusting it — an undefined custom property fails
+silent, not loud.
+
 ---
 
 # Inventory Workspace Recomposition (§62)
