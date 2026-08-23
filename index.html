@@ -5215,6 +5215,30 @@
       color: var(--text-primary);
     }
 
+    /* Birthday Card Generator — three columns (controls / preview /
+       info), matching the brief's layout. Reuses .badge-issuance-workspace/
+       .issuance-header/.issuance-back rather than a parallel set of
+       page-chrome classes. */
+    .cg-content { display: grid; grid-template-columns: minmax(240px, 22%) 1fr minmax(230px, 22%); gap: var(--content-gap); flex: 1; min-height: 0; align-items: start; }
+    @media (max-width: 1100px) { .cg-content { grid-template-columns: 1fr; } }
+    .cg-panel { display: flex; flex-direction: column; gap: 0.9rem; min-width: 0; }
+    .cg-controls, .cg-info { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--panel-padding); }
+    .cg-field { display: flex; flex-direction: column; gap: 5px; }
+    .cg-field input[type=text], .cg-field textarea, .cg-field select {
+      width: 100%; box-sizing: border-box; font: inherit; font-size: 0.85rem; color: var(--text-primary);
+      padding: 7px 10px; border: 1px solid var(--border-strong); border-radius: var(--control-radius); background: var(--surface);
+    }
+    .cg-field textarea { resize: vertical; }
+    .cg-field input:disabled, .cg-field textarea:disabled { opacity: 0.6; cursor: not-allowed; }
+    .cg-preview { align-items: center; }
+    .cg-preview-canvas { width: 100%; max-width: 640px; border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 6px 20px rgba(0,0,0,0.08); }
+    .cg-info-row { display: flex; }
+    .cg-info-note { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-3); }
+    .cg-info-note-warn { color: var(--warning-text); }
+    .cg-info-meta { display: flex; flex-direction: column; gap: 4px; font-size: 0.78rem; color: var(--text-3); }
+    .cg-actions { display: flex; flex-direction: column; gap: 6px; }
+    .cg-actions .btn { width: 100%; justify-content: center; }
+
     /* Badge Preview */
     .issuance-preview-panel {
       display: flex;
@@ -8419,18 +8443,20 @@ const FIELD_EMPTY_TEXT = 'No especificado'
 //         copy (bool|string — string copies that instead of the text value),
 //         span (2 = double-width inside a 2/3-up field grid),
 //         multiline (bool), lg (bool — prominent value for the handful of
-//         fields a user reaches for first), date (bool), zeroAsEmpty (bool),
+//         fields a user reaches for first), date (bool, en-US), dateEs
+//         (bool, es-GT — for screens that are entirely in Spanish, like
+//         Talento Humano), zeroAsEmpty (bool),
 //         always (bool — render even when empty, as "Not specified"),
 //         icon (SI_ICON name — rendered ahead of the label, muted) }
 function dataFieldHtml(opts) {
-  const { label, value, html, copy, span, multiline, lg, date, zeroAsEmpty, icon } = opts
+  const { label, value, html, copy, span, multiline, lg, date, dateEs, zeroAsEmpty, icon } = opts
   const isZeroEmpty = zeroAsEmpty && (value === 0 || value === '0')
   const rawHasValue = html != null || (value !== null && value !== undefined && String(value) !== '')
   const hasValue = rawHasValue && !isZeroEmpty
   if (!hasValue && !opts.always && !zeroAsEmpty) return ''
   const copyVal = hasValue ? (copy === true ? String(value ?? '') : (typeof copy === 'string' ? copy : null)) : null
   const displayVal = html != null ? html
-    : (hasValue ? esc(date ? (fmtHumanDate(value) ?? String(value)) : String(value)) : FIELD_EMPTY_TEXT)
+    : (hasValue ? esc(dateEs ? (hrFmtDate(value) ?? String(value)) : date ? (fmtHumanDate(value) ?? String(value)) : String(value)) : FIELD_EMPTY_TEXT)
   const cls = ['data-field',
     span === 2 ? 'data-field-span-2' : '',
     multiline ? 'data-field-multiline' : '',
@@ -13982,6 +14008,7 @@ let _badge = {
   events: [],                 // badge audit events
   movements: [],               // employee_movements for active site (recent + scheduled)
   tasks: [],                    // open employee_tasks for active site
+  birthdayCards: [],            // birthday_cards for active site (all statuses, all years present)
   templates: {},              // badge templates by site
   companies: {},              // companies by country
   countries: []               // list of countries
@@ -14063,8 +14090,7 @@ function empGroupedList(list) {
 }
 
 let _badge_ui = {
-  view: 'overview',           // 'overview', 'employees', 'badge-queue', 'history', 'companies', 'settings'
-  momentFilter: null,          // null | 'birthday_today' | 'birthday_7' | 'birthday_30' | 'anniversary_30' — set from Overview cards
+  view: 'overview',           // 'overview', 'employees', 'moments', 'badge-queue', 'history', 'companies', 'settings'
   employeeView: 'table',      // 'table' | 'cards'
   employeeSearch: '',
   filters: {                  // multi-select facet filters, each a Set of values
@@ -14087,7 +14113,13 @@ let _badge_ui = {
   selectedEmployeeId: null,
   detailTab: 'overview',      // 'overview' | 'badge' | 'activity'
   editingEmployee: false,
-  issuanceInProgress: null    // badge issuance being created
+  issuanceInProgress: null,   // badge issuance being created
+  moments: {                   // Momentos workspace filters
+    search: '', range: '30',   // 'today' | '7' | '30' | 'all'
+    types: new Set(['birthday', 'anniversary', 'new_hire']),
+    department: new Set(), status: new Set(),
+  },
+  cardGenerator: null          // { employeeId, year, card, draft: {display_name, position, message, template_id, format}, saving }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -14194,6 +14226,11 @@ async function loadBadgeData() {
       .in('status', ['open', 'in_progress', 'blocked'])
       .order('due_date', { ascending: true })
     _badge.tasks = tasks || []
+
+    const { data: cards } = await sb.from('birthday_cards')
+      .select('id, employee_id, moment_type, event_year, status, template_id, content, asset_png_url, asset_pdf_generated_at, skip_reason, created_by, approved_by, created_at, updated_at, approved_at, completed_at')
+      .eq('site_id', _badge.activeSite)
+    _badge.birthdayCards = cards || []
   }
 }
 
@@ -14210,15 +14247,17 @@ function renderBadgeModule() {
 
   pg.innerHTML = `
     <div class="badge-module-root">
-      ${_badge_ui.view === 'issuance' ? '' : renderBadgeTabs()}
+      ${_badge_ui.view === 'issuance' || _badge_ui.view === 'card-generator' ? '' : renderBadgeTabs()}
       <div class="badge-main-panel">
         ${_badge_ui.view === 'overview' ? renderOverviewView() : ''}
         ${_badge_ui.view === 'employees' ? renderEmployeesView() : ''}
+        ${_badge_ui.view === 'moments' ? renderMomentosView() : ''}
         ${_badge_ui.view === 'badge-queue' ? renderBadgeQueueView() : ''}
         ${_badge_ui.view === 'history' ? renderHistoryView() : ''}
         ${_badge_ui.view === 'companies' ? renderCompaniesView() : ''}
         ${_badge_ui.view === 'settings' ? renderSettingsView() : ''}
         ${_badge_ui.view === 'issuance' ? renderBadgeIssuanceView() : ''}
+        ${_badge_ui.view === 'card-generator' ? renderCardGeneratorView() : ''}
       </div>
     </div>
   `
@@ -14262,6 +14301,7 @@ function renderBadgeTabs() {
   const navItems = [
     { id: 'overview', label: 'Resumen' },
     { id: 'employees', label: 'Colaboradores' },
+    { id: 'moments', label: 'Momentos' },
     { id: 'badge-queue', label: 'Cola de gafetes' },
     { id: 'history', label: 'Historial' },
     { id: 'companies', label: 'Empresas' },
@@ -14532,7 +14572,6 @@ function empActiveFilterCount() {
 function empClearFilters() {
   Object.values(_badge_ui.filters).forEach(s => s.clear())
   _badge_ui.quickFilter = null
-  _badge_ui.momentFilter = null
   renderBadgeModule()
 }
 function empRemoveFilterChipVal(key, val) {
@@ -14545,7 +14584,6 @@ function empFilterChipsHtml() {
     _badge_ui.filters[key].forEach(v => chips.push({ key, val: v, label: `${empFilterGroupLabel(key)}: ${empFilterValueLabel(key, v)}`, onRemove: `empRemoveFilterChipVal('${key}','${jsStr(v)}')` }))
   })
   if (_badge_ui.quickFilter) chips.push({ label: QUICK_FILTER_LABELS[_badge_ui.quickFilter] || _badge_ui.quickFilter, onRemove: 'empClearQuickFilter()' })
-  if (_badge_ui.momentFilter) chips.push({ label: MOMENT_FILTER_LABELS[_badge_ui.momentFilter] || _badge_ui.momentFilter, onRemove: 'empClearMomentFilter()' })
   if (!chips.length) return ''
   return `<div class="emp-filter-chips">
     ${chips.map(c => `<span class="emp-filter-chip">${esc(c.label)}<button type="button" onclick="${c.onRemove}" aria-label="Quitar filtro">✕</button></span>`).join('')}
@@ -14560,10 +14598,6 @@ const QUICK_FILTER_LABELS = {
   badge_attention: 'Gafete requiere atención', pending_print: 'Pendiente de imprimir',
   ready_delivery: 'Listo para entrega', new_hires: 'Nuevo ingreso (30 días)',
   upcoming_hires: 'Ingreso próximo',
-}
-const MOMENT_FILTER_LABELS = {
-  birthday_today: 'Cumpleaños hoy', birthday_7: 'Cumpleaños en 7 días',
-  birthday_30: 'Cumpleaños en 30 días', anniversary_30: 'Aniversario en 30 días',
 }
 function empFilteredList() {
   const q = (_badge_ui.employeeSearch || '').toLowerCase()
@@ -14591,19 +14625,6 @@ function empFilteredList() {
       const h = parseDateOnly(e.hire_date)
       if (!h || h <= hrToday()) return false
     }
-    if (_badge_ui.momentFilter) {
-      const mf = _badge_ui.momentFilter
-      if (mf === 'anniversary_30') {
-        const d = empNextAnniversary(e)?.daysUntil
-        if (d == null || d > 30) return false
-      } else {
-        const d = empNextBirthday(e)?.daysUntil
-        if (d == null) return false
-        if (mf === 'birthday_today' && d !== 0) return false
-        if (mf === 'birthday_7' && d > 7) return false
-        if (mf === 'birthday_30' && d > 30) return false
-      }
-    }
     return true
   })
   const sorter = EMP_SORTS[_badge_ui.sort]?.fn
@@ -14611,30 +14632,22 @@ function empFilteredList() {
   return list
 }
 // Deep-link from an Overview metric into the Employees table, pre-filtered.
+// (Birthday/anniversary metrics deep-link into Momentos instead — see
+// goToMomentos() — since that workspace now owns those concerns.)
 function goToEmployeesQuick(quickFilter) {
   Object.values(_badge_ui.filters).forEach(s => s.clear())
-  _badge_ui.momentFilter = null
   _badge_ui.quickFilter = quickFilter || null
-  _badge_ui.view = 'employees'
-  renderBadgeModule()
-}
-function goToEmployeesMoment(momentFilter) {
-  Object.values(_badge_ui.filters).forEach(s => s.clear())
-  _badge_ui.quickFilter = null
-  _badge_ui.momentFilter = momentFilter || null
   _badge_ui.view = 'employees'
   renderBadgeModule()
 }
 function goToEmployeesStatus(status) {
   Object.values(_badge_ui.filters).forEach(s => s.clear())
   _badge_ui.quickFilter = null
-  _badge_ui.momentFilter = null
   _badge_ui.filters.employee_status.add(status)
   _badge_ui.view = 'employees'
   renderBadgeModule()
 }
 function empClearQuickFilter() { _badge_ui.quickFilter = null; renderBadgeModule() }
-function empClearMomentFilter() { _badge_ui.momentFilter = null; renderBadgeModule() }
 
 /* ── Bulk selection ── */
 function toggleEmpSelect(id) {
@@ -14737,6 +14750,7 @@ function overviewMetrics() {
     badgeAttention: emps.filter(e => badgeReadinessState(e).state !== 'ready'),
     pendingPrint: _badge.badges.filter(b => b.status === 'ready_to_print'),
     readyDelivery: _badge.badges.filter(b => b.status === 'printed'),
+    birthdayBlocked: computeMoments().filter(mo => mo.type === 'birthday' && mo.state === 'incomplete'),
     openTasks: _badge.tasks,
     recentMovements: _badge.movements.filter(m => m.status === 'applied').slice(0, 5),
   }
@@ -14769,7 +14783,11 @@ function ovAttentionItems(m) {
   })
   if (m.birthdaysToday.length) items.push({
     severity: 'info', text: `${m.birthdaysToday.length} colaborador${m.birthdaysToday.length !== 1 ? 'es' : ''} cumple${m.birthdaysToday.length === 1 ? '' : 'n'} años hoy`,
-    onClick: `goToEmployeesMoment('birthday_today')`,
+    onClick: `goToMomentos({ types: ['birthday'], range: 'today' })`,
+  })
+  if (m.birthdayBlocked.length) items.push({
+    severity: 'warning', text: `${m.birthdayBlocked.length} tarjeta${m.birthdayBlocked.length !== 1 ? 's' : ''} de cumpleaños no se puede${m.birthdayBlocked.length !== 1 ? 'n' : ''} preparar — falta información`,
+    onClick: `goToMomentos({ types: ['birthday'], range: 'all', status: 'incomplete' })`,
   })
   if (m.incomplete.length) items.push({
     severity: 'info', text: `${m.incomplete.length} registro${m.incomplete.length !== 1 ? 's' : ''} de colaborador con información incompleta`,
@@ -14790,10 +14808,11 @@ function renderOverviewView() {
         ${ovTileHtml({ value: m.active.length, label: 'Colaboradores activos', onClick: `goToEmployeesStatus('active')` })}
         ${ovTileHtml({ value: m.newHires.length, label: 'Nuevos ingresos (30 días)', onClick: `goToEmployeesQuick('new_hires')` })}
         ${ovTileHtml({ value: m.upcomingHires.length, label: 'Ingresos próximos', onClick: `goToEmployeesQuick('upcoming_hires')` })}
-        ${ovTileHtml({ value: m.birthdaysToday.length, label: 'Cumpleaños hoy', tone: m.birthdaysToday.length ? 'info' : null, onClick: `goToEmployeesMoment('birthday_today')` })}
-        ${ovTileHtml({ value: m.birthdays7.length, label: 'Cumpleaños en 7 días', onClick: `goToEmployeesMoment('birthday_7')` })}
-        ${ovTileHtml({ value: m.birthdays30.length, label: 'Cumpleaños en 30 días', onClick: `goToEmployeesMoment('birthday_30')` })}
-        ${ovTileHtml({ value: m.anniversaries30.length, label: 'Aniversarios en 30 días', onClick: `goToEmployeesMoment('anniversary_30')` })}
+        ${ovTileHtml({ value: m.birthdaysToday.length, label: 'Cumpleaños hoy', tone: m.birthdaysToday.length ? 'info' : null, onClick: `goToMomentos({ types: ['birthday'], range: 'today' })` })}
+        ${ovTileHtml({ value: m.birthdays7.length, label: 'Cumpleaños en 7 días', onClick: `goToMomentos({ types: ['birthday'], range: '7' })` })}
+        ${ovTileHtml({ value: m.birthdays30.length, label: 'Cumpleaños en 30 días', onClick: `goToMomentos({ types: ['birthday'], range: '30' })` })}
+        ${ovTileHtml({ value: m.anniversaries30.length, label: 'Aniversarios en 30 días', onClick: `goToMomentos({ types: ['anniversary'], range: '30' })` })}
+        ${ovTileHtml({ value: m.birthdayBlocked.length, label: 'Tarjetas bloqueadas', tone: m.birthdayBlocked.length ? 'warning' : null, onClick: `goToMomentos({ types: ['birthday'], range: 'all', status: 'incomplete' })` })}
         ${ovTileHtml({ value: m.incomplete.length, label: 'Registros incompletos', tone: m.incomplete.length ? 'warning' : null, onClick: `goToEmployeesQuick('incomplete')` })}
         ${ovTileHtml({ value: m.missingPhoto.length, label: 'Sin fotografía', tone: m.missingPhoto.length ? 'warning' : null, onClick: `goToEmployeesQuick('missing_photo')` })}
         ${ovTileHtml({ value: m.badgeAttention.length, label: 'Gafetes que requieren atención', tone: m.badgeAttention.length ? 'warning' : null, onClick: `goToEmployeesQuick('badge_attention')` })}
@@ -14808,6 +14827,157 @@ function renderOverviewView() {
             </button>`).join('')
           : `<div class="ov-attention-empty">${siIcon('check-circle', 15)}<span>Todo al día — nada requiere atención en ${esc(_badge.sites.find(s => s.id === _badge.activeSite)?.name || 'esta sede')}.</span></div>`}
       </div>
+    </div>
+  `
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   MOMENTOS — the unified operational queue for birthdays, work
+   anniversaries, and new hires. Every row is computed from real
+   employee data (computeMoments()); nothing here is a stored "event"
+   except the birthday_cards row a moment links to once card work has
+   actually started. ══════════════════════════════════════════════════ */
+function goToMomentos(opts = {}) {
+  const mo = _badge_ui.moments
+  mo.search = ''; mo.department.clear(); mo.status.clear()
+  mo.types = new Set(opts.types || ['birthday', 'anniversary', 'new_hire'])
+  mo.range = opts.range || 'all'
+  if (opts.status) mo.status.add(opts.status)
+  _badge_ui.view = 'moments'
+  renderBadgeModule()
+}
+function momentsFilteredList() {
+  const mo = _badge_ui.moments
+  const q = (mo.search || '').toLowerCase()
+  const rangeDays = { today: 0, '7': 7, '30': 30, all: null }[mo.range]
+  return computeMoments().filter(m => {
+    if (!mo.types.has(m.type)) return false
+    if (rangeDays != null && Math.abs(m.daysUntil) > rangeDays) return false
+    if (mo.department.size && !mo.department.has(m.employee.department)) return false
+    if (mo.status.size && !mo.status.has(m.state)) return false
+    if (q) {
+      const hay = [m.employee.first_name, m.employee.last_name, m.employee.department, m.employee.position].filter(Boolean).join(' ').toLowerCase()
+      if (!hay.includes(q)) return false
+    }
+    return true
+  })
+}
+function momentsSetSearch(v) { _badge_ui.moments.search = v; renderBadgeModule() }
+function momentsSetRange(r) { _badge_ui.moments.range = r; renderBadgeModule() }
+function momentsToggleType(t, checked) {
+  if (checked) _badge_ui.moments.types.add(t); else _badge_ui.moments.types.delete(t)
+  renderBadgeModule()
+}
+function momentsDeptOptions() { return [...new Set(_badge.employees.map(e => e.department).filter(Boolean))].sort() }
+function momentsToggleDept(d, checked) {
+  if (checked) _badge_ui.moments.department.add(d); else _badge_ui.moments.department.delete(d)
+  renderBadgeModule()
+}
+function momentsToggleStatus(s, checked) {
+  if (checked) _badge_ui.moments.status.add(s); else _badge_ui.moments.status.delete(s)
+  renderBadgeModule()
+}
+function momentsClearFilters() {
+  const mo = _badge_ui.moments
+  mo.search = ''; mo.department.clear(); mo.status.clear(); mo.range = '30'
+  mo.types = new Set(['birthday', 'anniversary', 'new_hire'])
+  renderBadgeModule()
+}
+function momentDaysLabel(m) {
+  if (m.daysUntil === 0) return 'Hoy'
+  if (m.daysUntil > 0) return `En ${m.daysUntil} día${m.daysUntil !== 1 ? 's' : ''}`
+  return `Hace ${-m.daysUntil} día${-m.daysUntil !== 1 ? 's' : ''}`
+}
+function momentActionHtml(m) {
+  const canWrite = can('write', 'talento_humano')
+  if (m.type !== 'birthday') return '<span style="color:var(--text-3)">—</span>'
+  if (!canWrite) return '<span style="color:var(--text-3)">—</span>'
+  switch (m.state) {
+    case 'excluded': return '<span style="color:var(--text-3)">—</span>'
+    case 'incomplete': return `<button type="button" class="btn btn-sm btn-secondary" onclick="viewEmployeeDetail('${m.employee.id}')">Completar datos</button>`
+    case 'ready': return `<button type="button" class="btn btn-sm btn-primary" onclick="openBirthdayCardGenerator('${m.employee.id}',${m.year})">Preparar tarjeta</button>`
+    case 'draft': return `<button type="button" class="btn btn-sm btn-secondary" onclick="openBirthdayCardGenerator('${m.employee.id}',${m.year})">Continuar borrador</button>`
+    case 'pending_approval': return `<button type="button" class="btn btn-sm btn-secondary" onclick="openBirthdayCardGenerator('${m.employee.id}',${m.year})">Ver / aprobar</button>`
+    case 'approved': return `<button type="button" class="btn btn-sm btn-secondary" onclick="openBirthdayCardGenerator('${m.employee.id}',${m.year})">Exportar</button>`
+    case 'completed': return `<button type="button" class="btn btn-sm btn-ghost" onclick="openBirthdayCardGenerator('${m.employee.id}',${m.year})">Ver tarjeta</button>`
+    case 'skipped': return `<button type="button" class="btn btn-sm btn-ghost" onclick="openBirthdayCardGenerator('${m.employee.id}',${m.year})">Reabrir</button>`
+    default: return '—'
+  }
+}
+function momentRowHtml(m) {
+  const emp = m.employee
+  return `<tr>
+    <td class="emp-td-trunc-wide"><div class="emp-cell">
+      ${emp.photo_url ? `<img src="${esc(emp.photo_url)}" class="emp-avatar" />` : `<div class="emp-avatar emp-avatar-init">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</div>`}
+      <div class="emp-name">${esc(emp.first_name)} ${esc(emp.last_name)}</div>
+    </div></td>
+    <td style="white-space:nowrap">${siIcon(MOMENT_TYPE_ICON[m.type], 13)} ${esc(momentTypeLabel(m.type))}${m.type === 'anniversary' ? ` (${m.years})` : ''}</td>
+    <td style="white-space:nowrap">${hrFmtDate(m.date)}</td>
+    <td style="white-space:nowrap;font-weight:600">${esc(momentDaysLabel(m))}</td>
+    <td class="emp-td-trunc" title="${escAttr(emp.department || '')}">${esc(emp.department || '—')}</td>
+    <td>${bcStatusBadgeHtml(m.state)}</td>
+    <td onclick="event.stopPropagation()">${momentActionHtml(m)}</td>
+  </tr>`
+}
+function renderMomentosView() {
+  if (!_badge.activeSite) return emptyStateHtml({ title: 'Selecciona una sede', desc: 'Elige una sede activa para ver sus momentos.' })
+  const mo = _badge_ui.moments
+  const list = momentsFilteredList()
+  const deptOpts = momentsDeptOptions()
+  const statusOpts = ['incomplete', 'ready', 'draft', 'pending_approval', 'approved', 'completed', 'skipped', 'excluded']
+  return `
+    <div class="badge-employees-view">
+      <div class="page-toolbar">
+        <div class="cat-toolbar-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+          <input type="text" placeholder="Buscar colaborador…" value="${escAttr(mo.search)}" oninput="momentsSetSearch(this.value)" />
+        </div>
+        <div class="pd-tabs pd-tabs-inline" style="max-width:340px;margin:0">
+          ${['today', '7', '30', 'all'].map(r => `<button class="pd-tab ${mo.range === r ? 'active' : ''}" onclick="momentsSetRange('${r}')">${{ today: 'Hoy', '7': '7 días', '30': '30 días', all: 'Todos' }[r]}</button>`).join('')}
+        </div>
+        <div style="position:relative">
+          <button class="btn btn-secondary btn-sm cat-tb-btn ${mo.types.size < 3 ? 'has-value' : ''}" onclick="catTogglePop(event,'mo-pop-type')">Tipo</button>
+          <div class="ws-pop cat-pop" id="mo-pop-type">
+            <div class="cat-pop-title">Tipo de momento</div>
+            ${['birthday', 'anniversary', 'new_hire'].map(t => `
+              <label class="cat-pop-row" style="cursor:pointer">
+                <input type="checkbox" ${mo.types.has(t) ? 'checked' : ''} onchange="momentsToggleType('${t}', this.checked)" />
+                ${esc(momentTypeLabel(t))}
+              </label>`).join('')}
+          </div>
+        </div>
+        ${deptOpts.length ? `<div style="position:relative">
+          <button class="btn btn-secondary btn-sm cat-tb-btn ${mo.department.size ? 'has-value' : ''}" onclick="catTogglePop(event,'mo-pop-dept')">Departamento</button>
+          <div class="ws-pop cat-pop" id="mo-pop-dept">
+            <div class="cat-pop-title">Departamento</div>
+            ${deptOpts.map(d => `
+              <label class="cat-pop-row" style="cursor:pointer">
+                <input type="checkbox" ${mo.department.has(d) ? 'checked' : ''} onchange="momentsToggleDept('${jsStr(d)}', this.checked)" />
+                ${esc(d)}
+              </label>`).join('')}
+          </div>
+        </div>` : ''}
+        <div style="position:relative">
+          <button class="btn btn-secondary btn-sm cat-tb-btn ${mo.status.size ? 'has-value' : ''}" onclick="catTogglePop(event,'mo-pop-status')">Estado</button>
+          <div class="ws-pop cat-pop" id="mo-pop-status">
+            <div class="cat-pop-title">Estado</div>
+            ${statusOpts.map(s => `
+              <label class="cat-pop-row" style="cursor:pointer">
+                <input type="checkbox" ${mo.status.has(s) ? 'checked' : ''} onchange="momentsToggleStatus('${s}', this.checked)" />
+                ${esc(BC_STATUS_LABELS[s] || s)}
+              </label>`).join('')}
+          </div>
+        </div>
+        <div class="cat-toolbar-spacer"></div>
+        <button class="btn btn-ghost btn-sm" onclick="momentsClearFilters()">Limpiar filtros</button>
+      </div>
+      ${list.length ? `
+      <div class="erp-table-wrap" style="max-height:calc(100vh - 360px)">
+        <table class="erp-table">
+          <thead><tr><th>Colaborador</th><th>Tipo</th><th>Fecha</th><th>Días</th><th>Departamento</th><th>Estado</th><th>Acción</th></tr></thead>
+          <tbody>${list.map(momentRowHtml).join('')}</tbody>
+        </table>
+      </div>` : emptyStateHtml({ title: 'Sin momentos en este rango', desc: 'Ajusta los filtros o el rango de fechas.', actionLabel: 'Limpiar filtros', actionOnClick: 'momentsClearFilters()' })}
     </div>
   `
 }
@@ -15305,7 +15475,7 @@ function renderEmpOverviewTab(emp) {
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
   const identity = dataFieldsHtml([
     { label: 'Nombre preferido', value: emp.preferred_name, icon: 'user' },
-    { label: 'Fecha de nacimiento', value: emp.birth_date, icon: 'calendar', date: true },
+    { label: 'Fecha de nacimiento', value: emp.birth_date, icon: 'calendar', dateEs: true },
     { label: 'Documento', value: emp.identification_number, icon: 'credit-card', copy: true },
     { label: 'Tipo de documento', value: emp.identification_type, icon: 'file' },
     { label: 'Teléfono', value: emp.phone, icon: 'phone', copy: true },
@@ -15316,7 +15486,7 @@ function renderEmpOverviewTab(emp) {
     { label: 'Departamento', value: emp.department, icon: 'building' },
     { label: 'Puesto', value: emp.position, icon: 'briefcase' },
     { label: 'Supervisor inmediato', value: emp.supervisor_name, icon: 'users' },
-    { label: 'Fecha de ingreso', value: emp.hire_date, icon: 'calendar', date: true },
+    { label: 'Fecha de ingreso', value: emp.hire_date, icon: 'calendar', dateEs: true },
     { label: 'Categoría', value: emp.employee_category, icon: 'briefcase' },
     { label: 'Empresa', value: emp.company, icon: 'building' },
     { label: 'País', value: emp.country, icon: 'globe' },
@@ -15326,8 +15496,8 @@ function renderEmpOverviewTab(emp) {
   const nextAnniv = empNextAnniversary(emp)
   const moments = dataFieldsHtml([
     { label: 'Antigüedad', value: seniority ? `${seniority.years} año${seniority.years !== 1 ? 's' : ''}, ${seniority.months} mes${seniority.months !== 1 ? 'es' : ''}` : null, icon: 'clock' },
-    { label: 'Próximo cumpleaños', value: nextBday ? `${fmtHumanDate(nextBday.date)} · ${nextBday.daysUntil === 0 ? 'hoy' : `en ${nextBday.daysUntil} día${nextBday.daysUntil !== 1 ? 's' : ''}`}` : null, icon: 'star' },
-    { label: 'Próximo aniversario', value: nextAnniv ? `${fmtHumanDate(nextAnniv.date)} · ${nextAnniv.years} año${nextAnniv.years !== 1 ? 's' : ''}${nextAnniv.milestone ? ' 🎉' : ''}` : null, icon: 'crown' },
+    { label: 'Próximo cumpleaños', value: nextBday ? `${hrFmtDate(nextBday.date)} · ${nextBday.daysUntil === 0 ? 'hoy' : `en ${nextBday.daysUntil} día${nextBday.daysUntil !== 1 ? 's' : ''}`}` : null, icon: 'star' },
+    { label: 'Próximo aniversario', value: nextAnniv ? `${hrFmtDate(nextAnniv.date)} · ${nextAnniv.years} año${nextAnniv.years !== 1 ? 's' : ''}${nextAnniv.milestone ? ' 🎉' : ''}` : null, icon: 'crown' },
   ], { cols: 2 })
   const emergency = dataFieldsHtml([
     { label: 'Contacto de emergencia', value: emp.emergency_contact_name, icon: 'user', span: 2 },
@@ -15339,8 +15509,8 @@ function renderEmpOverviewTab(emp) {
     { label: 'Condiciones de salud', value: emp.health_conditions, icon: 'activity', span: 2, multiline: true, always: true },
   ], { cols: 2 }) : ''
   const system = dataFieldsHtml([
-    { label: 'Última actualización', value: emp.updated_at, icon: 'calendar', date: true },
-    { label: 'Registro creado', value: emp.created_at, icon: 'calendar', date: true },
+    { label: 'Última actualización', value: emp.updated_at, icon: 'calendar', dateEs: true },
+    { label: 'Registro creado', value: emp.created_at, icon: 'calendar', dateEs: true },
   ], { cols: 2 })
   return `
     ${can('write', 'talento_humano') ? `<div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem"><button class="btn btn-secondary btn-sm" onclick="empStartEdit()">Editar</button></div>` : ''}
@@ -15464,9 +15634,9 @@ function renderEmpBadgeTab(emp) {
   const currentBlock = b
     ? dataBlockHtml('Gafete actual', dataFieldsHtml([
         { label: 'Estado', html: getBadgeStatus(emp).badge },
-        { label: 'Creado', value: b.created_at, date: true },
-        { label: 'Última impresión', value: b.printed_at, date: true },
-        { label: 'Última entrega', value: b.delivered_at, date: true },
+        { label: 'Creado', value: b.created_at, dateEs: true },
+        { label: 'Última impresión', value: b.printed_at, dateEs: true },
+        { label: 'Última entrega', value: b.delivered_at, dateEs: true },
         { label: 'Reimpresión', value: b.is_reprint ? 'Sí' : 'No' },
       ], { cols: 2 }))
     : emptyStateHtml({ title: 'Sin gafete', desc: 'Crea un gafete una vez que los datos del colaborador estén completos.' })
@@ -15908,6 +16078,15 @@ function hrToday() {
   const y = +parts.find(p => p.type === 'year').value, m = +parts.find(p => p.type === 'month').value, d = +parts.find(p => p.type === 'day').value
   return new Date(Date.UTC(y, m - 1, d))
 }
+// Spanish date formatting for Talento Humano — the shared fmtHumanDate()
+// hardcodes 'en-US' and is used across other, English-labeled screens;
+// this module is entirely in Spanish, so its own dates use 'es-GT'.
+function hrFmtDate(d) {
+  if (!d) return null
+  const date = d instanceof Date ? d : parseDateOnly(d)
+  if (!date) return null
+  return date.toLocaleDateString('es-GT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+}
 function parseDateOnly(v) {
   if (!v) return null
   const d = new Date(String(v).slice(0, 10) + 'T00:00:00Z')
@@ -16044,6 +16223,525 @@ function empOverallCompleteness(emp) {
   const fields = [...seen.values()]
   const missing = fields.filter(f => !emp[f.field])
   return { percent: fields.length ? Math.round(((fields.length - missing.length) / fields.length) * 100) : 100, missing }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   BIRTHDAY CARD WORKFLOW — a focused state model, not a generic workflow
+   engine. Two kinds of state:
+     - DERIVED (no DB row yet): 'excluded' (inactive employee), 'incomplete'
+       (blocked on missing data), 'ready' (can start a draft).
+     - PERSISTED (a birthday_cards row exists): 'draft', 'pending_approval',
+       'approved', 'completed', 'skipped'.
+   BC_TRANSITIONS is the single source of truth for which persisted-state
+   moves are legal; every mutating action below checks it before writing,
+   so an invalid transition is refused in the UI layer even before RLS
+   would refuse it server-side (approval is enforced in both places —
+   see update25.sql). ══════════════════════════════════════════════════ */
+const BC_STATUS_LABELS = {
+  excluded: 'Inactivo', incomplete: 'Información incompleta', ready: 'Listo',
+  draft: 'Borrador', pending_approval: 'Pendiente de aprobación', approved: 'Aprobado',
+  completed: 'Completado', skipped: 'Omitido',
+}
+const BC_STATUS_ICON = {
+  excluded: 'minus-circle', incomplete: 'alert-triangle', ready: 'check-circle',
+  draft: 'file-edit', pending_approval: 'clock', approved: 'check-circle',
+  completed: 'check-circle', skipped: 'x-circle',
+}
+const BC_STATUS_CLASS = {
+  excluded: 'badge-inactive', incomplete: 'badge-ready-missing', ready: 'badge-ready-yes',
+  draft: 'badge-draft', pending_approval: 'badge-ready_to_print', approved: 'badge-printed',
+  completed: 'badge-delivered', skipped: 'badge-cancelled',
+}
+function bcStatusBadgeHtml(state) {
+  return statusBadgeHtml(BC_STATUS_ICON[state] || 'clock', BC_STATUS_LABELS[state] || state, BC_STATUS_CLASS[state] || 'badge-info')
+}
+const BC_TRANSITIONS = {
+  draft: ['pending_approval', 'skipped'],
+  pending_approval: ['approved', 'draft', 'skipped'],
+  approved: ['completed', 'skipped'],
+  completed: [],
+  skipped: ['draft'],
+}
+function bcCanTransition(from, to) { return from === to || (BC_TRANSITIONS[from] || []).includes(to) }
+
+// Placeholder professional template, defined here (not hardcoded page
+// markup) so a real brand asset can replace visual values later without
+// touching the workflow. Colors are the actual SIERRA brand tokens
+// (--brand-teal / --brand-teal-dark), not invented ones. Percentages are
+// resolved against canvasWidth/canvasHeight when rendering.
+const BIRTHDAY_TEMPLATES = {
+  sierra_classic: {
+    id: 'sierra_classic',
+    name: 'SIERRA Clásico',
+    description: 'Plantilla estándar — reemplazar el fondo/marca cuando exista el diseño oficial.',
+    company: null, // null = applies to any company/site
+    active: true,
+    widthMm: 152, heightMm: 102,          // print size (~6x4in postcard)
+    canvasWidth: 1520, canvasHeight: 1020, // SVG working canvas (10px/mm)
+    background: '#0b2e2a',
+    accent: '#16cdbe',
+    safeAreaPct: 0.06,
+    photo: { xPct: 0.055, yPct: 0.16, wPct: 0.34, hPct: 0.68 },
+    nameText: { xPct: 0.46, yPct: 0.34, maxWidthPct: 0.48, sizePx: 62, weight: 700, color: '#ffffff' },
+    positionText: { xPct: 0.46, yPct: 0.43, maxWidthPct: 0.48, sizePx: 30, weight: 400, color: '#bfe9e3' },
+    messageText: { xPct: 0.46, yPct: 0.54, maxWidthPct: 0.48, sizePx: 26, weight: 400, color: '#eafaf7', lineHeightPx: 36, maxLines: 4 },
+    brandText: { xPct: 0.055, yPct: 0.92, sizePx: 22, weight: 700, color: '#16cdbe', text: 'SIERRA' },
+    exportFormats: ['png', 'pdf'],
+  },
+}
+function activeBirthdayTemplates() { return Object.values(BIRTHDAY_TEMPLATES).filter(t => t.active) }
+const BC_DEFAULT_MESSAGE = '¡Feliz cumpleaños! Gracias por ser parte del equipo SIERRA.'
+
+function birthdayCardFor(employeeId, year) {
+  return _badge.birthdayCards.find(c => c.employee_id === employeeId && c.event_year === year && c.moment_type === 'birthday') || null
+}
+// The one place that decides "where is this employee's birthday card
+// right now" — derived state when no row exists, the row's own status
+// once one does.
+function birthdayMomentState(emp, year) {
+  const card = birthdayCardFor(emp.id, year)
+  if (card) return { state: card.status, card, completeness: null }
+  if (emp.employee_status !== 'active') return { state: 'excluded', card: null, completeness: null }
+  const completeness = evalCompleteness(emp, 'birthday_card')
+  return { state: completeness.blocked ? 'incomplete' : 'ready', card: null, completeness }
+}
+
+/* ── Moments — birthdays, work anniversaries, new hires, computed from
+   real employee data. Never a stored "event" row for something that's
+   fully derivable; a birthday_cards row exists only once real card work
+   has started. ── */
+function computeMoments() {
+  const today = hrToday()
+  const moments = []
+  _badge.employees.forEach(emp => {
+    const bday = empNextBirthday(emp)
+    if (bday) {
+      const year = bday.date.getUTCFullYear()
+      const ms = birthdayMomentState(emp, year)
+      moments.push({
+        id: `birthday-${emp.id}-${year}`, type: 'birthday', employee: emp,
+        date: bday.date, daysUntil: bday.daysUntil, year, state: ms.state, card: ms.card, completeness: ms.completeness,
+      })
+    }
+    const anniv = empNextAnniversary(emp)
+    if (anniv) {
+      moments.push({
+        id: `anniversary-${emp.id}-${anniv.date.getUTCFullYear()}`, type: 'anniversary', employee: emp,
+        date: anniv.date, daysUntil: anniv.daysUntil, years: anniv.years, milestone: anniv.milestone,
+        state: emp.employee_status === 'active' ? 'ready' : 'excluded', card: null, completeness: null,
+      })
+    }
+    const hire = parseDateOnly(emp.hire_date)
+    if (hire) {
+      const sinceDays = daysBetween(hire, today) // >=0 already hired, <0 still upcoming
+      if (sinceDays >= -30 && sinceDays <= 30) {
+        moments.push({
+          id: `new_hire-${emp.id}`, type: 'new_hire', employee: emp,
+          date: hire, daysUntil: -sinceDays, state: 'ready', card: null, completeness: null,
+        })
+      }
+    }
+  })
+  return moments.sort((a, b) => a.date - b.date)
+}
+function momentTypeLabel(type) { return { birthday: 'Cumpleaños', anniversary: 'Aniversario', new_hire: 'Nuevo ingreso' }[type] || type }
+const MOMENT_TYPE_ICON = { birthday: 'star', anniversary: 'crown', new_hire: 'user-plus' }
+
+/* ══════════════════════════════════════════════════════════════════════
+   BIRTHDAY CARD GENERATOR — template-based, not drag-and-drop. The card
+   is rendered once as SVG (cgPreviewSvgHtml) and that exact markup
+   serves both the live on-screen preview and, rasterized through a
+   canvas, the PNG export — one source of truth, no drift between what a
+   user approves and what gets exported. No new dependency: SVG + Canvas
+   are native, and JsBarcode (already loaded for badges) proves this
+   codebase already treats SVG as first-class. ══════════════════════ */
+let _cgMeasureCanvas = null
+function cgMeasureTextWidth(text, weight, sizePx) {
+  if (!_cgMeasureCanvas) _cgMeasureCanvas = document.createElement('canvas')
+  const ctx = _cgMeasureCanvas.getContext('2d')
+  ctx.font = `${weight} ${sizePx}px Replica, sans-serif`
+  return ctx.measureText(text).width
+}
+// Shrinks font size until the string fits maxWidthPx; if it still
+// doesn't fit at the minimum size, ellipsizes. Handles long names and
+// long position titles without ever overflowing the card.
+function cgFitSingleLine(text, maxWidthPx, sizePx, weight, minSizePx = 20) {
+  let size = sizePx
+  while (size > minSizePx && cgMeasureTextWidth(text, weight, size) > maxWidthPx) size -= 2
+  let display = text
+  if (cgMeasureTextWidth(display, weight, size) > maxWidthPx) {
+    while (display.length > 1 && cgMeasureTextWidth(display + '…', weight, size) > maxWidthPx) display = display.slice(0, -1)
+    display += '…'
+  }
+  return { text: display, size }
+}
+// Word-wraps into at most maxLines; ellipsizes the last line if the
+// message is longer than that. Handles special characters fine (plain
+// string measurement, no markup parsing).
+function cgWrapLines(text, maxWidthPx, sizePx, weight, maxLines) {
+  const words = String(text || '').trim().split(/\s+/).filter(Boolean)
+  if (!words.length) return []
+  const lines = []
+  let current = ''
+  for (const w of words) {
+    const test = current ? current + ' ' + w : w
+    if (current && cgMeasureTextWidth(test, weight, sizePx) > maxWidthPx) {
+      lines.push(current)
+      current = w
+      if (lines.length === maxLines) { current = ''; break }
+    } else current = test
+  }
+  if (current && lines.length < maxLines) lines.push(current)
+  const usedWords = lines.join(' ').split(/\s+/).filter(Boolean).length
+  if (lines.length === maxLines && usedWords < words.length) {
+    let last = lines[maxLines - 1]
+    while (last.length > 1 && cgMeasureTextWidth(last + '…', weight, sizePx) > maxWidthPx) last = last.slice(0, -1)
+    lines[maxLines - 1] = last + '…'
+  }
+  return lines
+}
+function cgPreviewSvgHtml(emp, tmpl, draft) {
+  const W = tmpl.canvasWidth, H = tmpl.canvasHeight
+  const name = draft.display_name || `${emp.first_name} ${emp.last_name}`
+  const nameFit = cgFitSingleLine(name, tmpl.nameText.maxWidthPct * W, tmpl.nameText.sizePx, tmpl.nameText.weight)
+  const posFit = draft.position ? cgFitSingleLine(draft.position, tmpl.positionText.maxWidthPct * W, tmpl.positionText.sizePx, tmpl.positionText.weight, 16) : null
+  const msgLines = draft.message ? cgWrapLines(draft.message, tmpl.messageText.maxWidthPct * W, tmpl.messageText.sizePx, tmpl.messageText.weight, tmpl.messageText.maxLines) : []
+  const photoX = tmpl.photo.xPct * W, photoY = tmpl.photo.yPct * H, photoW = tmpl.photo.wPct * W, photoH = tmpl.photo.hPct * H
+  const clipId = 'cg-clip-' + emp.id
+  return `<svg id="cg-preview-svg" viewBox="0 0 ${W} ${H}" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="display:block">
+    <defs><clipPath id="${clipId}"><rect x="${photoX}" y="${photoY}" width="${photoW}" height="${photoH}" rx="${photoW * 0.06}" /></clipPath></defs>
+    <rect x="0" y="0" width="${W}" height="${H}" fill="${tmpl.background}" />
+    ${emp.photo_url
+      ? `<image href="${escAttr(emp.photo_url)}" x="${photoX}" y="${photoY}" width="${photoW}" height="${photoH}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})" />`
+      : `<rect x="${photoX}" y="${photoY}" width="${photoW}" height="${photoH}" rx="${photoW * 0.06}" fill="rgba(255,255,255,0.14)" />
+         <text x="${photoX + photoW / 2}" y="${photoY + photoH / 2 + photoW * 0.09}" font-family="Replica, sans-serif" font-size="${photoW * 0.28}" font-weight="700" fill="#ffffff" text-anchor="middle">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</text>`}
+    <text x="${tmpl.nameText.xPct * W}" y="${tmpl.nameText.yPct * H}" font-family="Replica, sans-serif" font-size="${nameFit.size}" font-weight="${tmpl.nameText.weight}" fill="${tmpl.nameText.color}">${esc(nameFit.text)}</text>
+    ${posFit ? `<text x="${tmpl.positionText.xPct * W}" y="${tmpl.positionText.yPct * H}" font-family="Replica, sans-serif" font-size="${posFit.size}" font-weight="${tmpl.positionText.weight}" fill="${tmpl.positionText.color}">${esc(posFit.text)}</text>` : ''}
+    ${msgLines.map((line, i) => `<text x="${tmpl.messageText.xPct * W}" y="${tmpl.messageText.yPct * H + i * tmpl.messageText.lineHeightPx}" font-family="Replica, sans-serif" font-size="${tmpl.messageText.sizePx}" font-weight="${tmpl.messageText.weight}" fill="${tmpl.messageText.color}">${esc(line)}</text>`).join('')}
+    <text x="${tmpl.brandText.xPct * W}" y="${tmpl.brandText.yPct * H}" font-family="Replica Mono, monospace" font-size="${tmpl.brandText.sizePx}" font-weight="${tmpl.brandText.weight}" fill="${tmpl.brandText.color}" letter-spacing="2">${esc(tmpl.brandText.text)}</text>
+  </svg>`
+}
+// Targeted re-render of just the preview subtree on every keystroke —
+// never a full renderBadgeModule(), which would rebuild the <input>
+// elements and lose cursor position mid-typing.
+function cgUpdatePreview() {
+  const cg = _badge_ui.cardGenerator
+  const emp = cg && _badge.employees.find(e => e.id === cg.employeeId)
+  const tmpl = cg && BIRTHDAY_TEMPLATES[cg.draft.template_id]
+  const wrap = document.getElementById('cg-preview-svg-wrap')
+  if (wrap && emp && tmpl) wrap.innerHTML = cgPreviewSvgHtml(emp, tmpl, cg.draft)
+}
+function cgOnInput(field, value) {
+  if (!_badge_ui.cardGenerator) return
+  _badge_ui.cardGenerator.draft[field] = value
+  cgUpdatePreview()
+}
+function cgOnTemplateChange(templateId) {
+  if (!_badge_ui.cardGenerator) return
+  _badge_ui.cardGenerator.draft.template_id = templateId
+  renderBadgeModule() // template swap changes layout/right-panel context — full re-render is fine (select, not text input)
+}
+
+function cgLoadImageEl(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error('no se pudo cargar la imagen'))
+    img.src = url
+  })
+}
+async function cgCheckPhotoQuality(url) {
+  if (!url) return { ok: false, message: 'Sin fotografía' }
+  try {
+    const img = await cgLoadImageEl(url)
+    if (img.naturalWidth < 300 || img.naturalHeight < 300) return { ok: false, message: `Resolución baja (${img.naturalWidth}×${img.naturalHeight}px) — puede verse pixelada al imprimir` }
+    return { ok: true, message: `${img.naturalWidth}×${img.naturalHeight}px` }
+  } catch { return { ok: false, message: 'No se pudo verificar la fotografía' } }
+}
+async function cgEnsureFontsReady() {
+  if (!document.fonts?.load) return
+  try { await Promise.all([document.fonts.load('700 60px Replica'), document.fonts.load('400 28px Replica')]) } catch (_) {}
+}
+
+/* ── Entry point + persistence. Find-or-create, never a blind insert:
+   birthdayCardFor() is always checked first, and the DB's
+   unique(employee_id, moment_type, event_year) is the hard backstop
+   against a duplicate card for the same employee/year even if two tabs
+   race. ── */
+function openBirthdayCardGenerator(empId, year) {
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp) return
+  const card = birthdayCardFor(empId, year)
+  const tmplId = card?.template_id && BIRTHDAY_TEMPLATES[card.template_id] ? card.template_id : (activeBirthdayTemplates()[0]?.id || 'sierra_classic')
+  const content = card?.content || {}
+  _badge_ui.cardGenerator = {
+    employeeId: empId, year, saving: false, photoQuality: null,
+    draft: {
+      template_id: tmplId,
+      display_name: content.display_name || emp.preferred_name || `${emp.first_name} ${emp.last_name}`,
+      position: content.position != null ? content.position : (emp.position || ''),
+      message: content.message != null ? content.message : BC_DEFAULT_MESSAGE,
+      format: content.format || 'png',
+    },
+  }
+  _badge_ui.view = 'card-generator'
+  renderBadgeModule()
+  cgCheckPhotoQuality(emp.photo_url).then(q => {
+    if (_badge_ui.cardGenerator?.employeeId === empId && _badge_ui.view === 'card-generator') {
+      _badge_ui.cardGenerator.photoQuality = q
+      renderBadgeModule()
+    }
+  })
+}
+function closeCardGenerator() {
+  _badge_ui.cardGenerator = null
+  _badge_ui.view = 'moments'
+  renderBadgeModule()
+}
+async function bcPersistContent() {
+  const cg = _badge_ui.cardGenerator
+  const emp = _badge.employees.find(e => e.id === cg.employeeId)
+  const existing = birthdayCardFor(cg.employeeId, cg.year)
+  const content = { display_name: cg.draft.display_name, position: cg.draft.position, message: cg.draft.message, format: cg.draft.format }
+  if (existing) {
+    const { data, error } = await sb.from('birthday_cards').update({ content, template_id: cg.draft.template_id }).eq('id', existing.id).select().single()
+    if (error) { toast('Error al guardar: ' + error.message); return null }
+    Object.assign(existing, data)
+    return existing
+  }
+  const { data, error } = await sb.from('birthday_cards').insert({
+    employee_id: cg.employeeId, site_id: _badge.activeSite, moment_type: 'birthday',
+    event_year: cg.year, status: 'draft', template_id: cg.draft.template_id, content,
+    created_by: me?.id,
+  }).select().single()
+  if (error) { toast('Error al guardar: ' + (error.message.includes('duplicate') ? 'ya existe una tarjeta para este colaborador y año' : error.message)); return null }
+  _badge.birthdayCards.push(data)
+  Audit.log('employee', cg.employeeId, emp, 'birthday_card_created', `Borrador de tarjeta de cumpleaños creado (${cg.year})`)
+  return data
+}
+async function bcSaveDraft() {
+  const cg = _badge_ui.cardGenerator; if (!cg) return
+  cg.saving = true; renderBadgeModule()
+  const row = await bcPersistContent()
+  cg.saving = false
+  if (row) toast('Borrador guardado')
+  renderBadgeModule()
+}
+async function bcTransition(nextStatus, extra = {}) {
+  const cg = _badge_ui.cardGenerator; if (!cg) return
+  let existing = birthdayCardFor(cg.employeeId, cg.year)
+  const from = existing?.status || 'draft'
+  if (!bcCanTransition(from, nextStatus)) { toast('Ese cambio de estado no está permitido desde aquí'); return }
+  if (nextStatus === 'approved' && !can('approve', 'talento_humano')) { toast('No tienes permiso para aprobar tarjetas'); return }
+  if (nextStatus === 'completed' && !existing?.asset_png_url) { toast('Exporta el PNG antes de marcar la tarjeta como completada'); return }
+  cg.saving = true; renderBadgeModule()
+  if (!existing) existing = await bcPersistContent()
+  if (!existing) { cg.saving = false; renderBadgeModule(); return }
+  const fields = { ...extra }
+  if (nextStatus === 'approved') { fields.approved_by = me?.id; fields.approved_at = new Date().toISOString() }
+  if (nextStatus === 'completed') fields.completed_at = new Date().toISOString()
+  const { data, error } = await sb.from('birthday_cards').update({ status: nextStatus, ...fields }).eq('id', existing.id).select().single()
+  cg.saving = false
+  if (error) { toast('Error al actualizar: ' + error.message); renderBadgeModule(); return }
+  Object.assign(existing, data)
+  const emp = _badge.employees.find(e => e.id === cg.employeeId)
+  Audit.log('employee', cg.employeeId, emp, 'birthday_card_' + nextStatus, `Tarjeta de cumpleaños — ${BC_STATUS_LABELS[nextStatus] || nextStatus}`)
+  toast(BC_STATUS_LABELS[nextStatus] || nextStatus)
+  renderBadgeModule()
+}
+function bcSkip() {
+  const reason = (prompt('Motivo para omitir esta tarjeta (opcional):') || '').trim() || null
+  bcTransition('skipped', { skip_reason: reason })
+}
+async function bcExportPng() {
+  const cg = _badge_ui.cardGenerator; if (!cg) return
+  const emp = _badge.employees.find(e => e.id === cg.employeeId)
+  const tmpl = BIRTHDAY_TEMPLATES[cg.draft.template_id]
+  if (!emp || !tmpl) return
+  cg.saving = true; renderBadgeModule()
+  try {
+    let existing = birthdayCardFor(cg.employeeId, cg.year)
+    if (!existing) existing = await bcPersistContent()
+    if (!existing) throw new Error('no se pudo guardar la tarjeta antes de exportar')
+    await cgEnsureFontsReady()
+    const svgMarkup = cgPreviewSvgHtml(emp, tmpl, cg.draft)
+    const svgBlob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' })
+    const svgUrl = URL.createObjectURL(svgBlob)
+    let pngBlob
+    try {
+      const img = await cgLoadImageEl(svgUrl)
+      const canvas = document.createElement('canvas')
+      canvas.width = tmpl.canvasWidth; canvas.height = tmpl.canvasHeight
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, tmpl.canvasWidth, tmpl.canvasHeight)
+      pngBlob = await new Promise(res => canvas.toBlob(res, 'image/png'))
+    } finally { URL.revokeObjectURL(svgUrl) }
+    if (!pngBlob) throw new Error('el navegador no pudo generar el PNG (posible restricción de seguridad con la fotografía)')
+    const path = `birthday-cards/${emp.id}-${cg.year}-${Date.now()}.png`
+    const { error: upErr } = await sb.storage.from('product-images').upload(path, pngBlob, { contentType: 'image/png', upsert: false })
+    if (upErr) throw upErr
+    const { data: pub } = sb.storage.from('product-images').getPublicUrl(path)
+    const { data, error } = await sb.from('birthday_cards').update({ asset_png_url: pub.publicUrl }).eq('id', existing.id).select().single()
+    if (error) throw error
+    Object.assign(existing, data)
+    Audit.log('employee', cg.employeeId, emp, 'birthday_card_exported', 'Tarjeta de cumpleaños exportada (PNG)')
+    toast('PNG exportado')
+  } catch (e) {
+    toast('Error al exportar PNG: ' + e.message)
+  } finally {
+    cg.saving = false
+    renderBadgeModule()
+  }
+}
+function bcExportPdf() {
+  const cg = _badge_ui.cardGenerator; if (!cg) return
+  const emp = _badge.employees.find(e => e.id === cg.employeeId)
+  const tmpl = BIRTHDAY_TEMPLATES[cg.draft.template_id]
+  const root = document.getElementById('print-root')
+  if (!emp || !tmpl || !root) { toast('No se pudo preparar la impresión'); return }
+  root.innerHTML = `<div style="width:${tmpl.widthMm}mm;height:${tmpl.heightMm}mm">${cgPreviewSvgHtml(emp, tmpl, cg.draft)}</div>`
+  let pageStyle = document.getElementById('cg-page-size-style')
+  if (!pageStyle) { pageStyle = document.createElement('style'); pageStyle.id = 'cg-page-size-style'; document.head.appendChild(pageStyle) }
+  pageStyle.textContent = `@media print { @page { size: ${tmpl.widthMm}mm ${tmpl.heightMm}mm; margin: 0; } }`
+  window.print()
+  setTimeout(() => { root.innerHTML = ''; pageStyle.textContent = '' }, 1200)
+  const existing = birthdayCardFor(cg.employeeId, cg.year)
+  if (existing) {
+    sb.from('birthday_cards').update({ asset_pdf_generated_at: new Date().toISOString() }).eq('id', existing.id)
+      .then(({ error }) => { if (!error) { existing.asset_pdf_generated_at = new Date().toISOString(); Audit.log('employee', cg.employeeId, emp, 'birthday_card_exported', 'Tarjeta de cumpleaños exportada (PDF)') } })
+  }
+}
+
+/* ── The generator screen itself. A dedicated view (not a drawer) —
+   this is complex creation, the same reasoning that already put badge
+   issuance on its own page (§ renderBadgeIssuanceView). Blocked
+   employees never reach the 3-panel layout: they get a focused
+   "here's exactly what's missing" screen with a direct resolution
+   action per issue, recomputed fresh on every render (never a stale
+   cached readiness). ── */
+function renderCardGeneratorView() {
+  const cg = _badge_ui.cardGenerator
+  if (!cg) { _badge_ui.view = 'moments'; return renderMomentosView() }
+  const emp = _badge.employees.find(e => e.id === cg.employeeId)
+  if (!emp) { closeCardGenerator(); return '' }
+  const ms = birthdayMomentState(emp, cg.year)
+  const backBtn = `<button type="button" class="issuance-back" onclick="closeCardGenerator()">
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M12.5 4.5L6 10l6.5 5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Momentos
+  </button>`
+
+  if (ms.state === 'excluded') {
+    return `<div class="badge-issuance-workspace">${backBtn}${emptyStateHtml({
+      title: 'Colaborador inactivo', desc: `${esc(emp.first_name)} ${esc(emp.last_name)} no está activo — los colaboradores inactivos no entran al flujo automático de tarjetas de cumpleaños. Un usuario autorizado puede incluirlo manualmente cambiando su estado.`,
+      actionLabel: 'Ver colaborador', actionOnClick: `closeCardGenerator();viewEmployeeDetail('${emp.id}')`,
+    })}</div>`
+  }
+  if (ms.state === 'incomplete') {
+    const c = ms.completeness
+    const issues = [...c.missingRequired.map(f => ({ ...f, blocking: true })), ...c.missingRecommended.map(f => ({ ...f, blocking: false }))]
+    return `<div class="badge-issuance-workspace">${backBtn}
+      <div class="issuance-header"><div>
+        <div class="issuance-title">No se puede preparar la tarjeta</div>
+        <div class="issuance-subtitle">${esc(emp.first_name)} ${esc(emp.last_name)} — falta información requerida</div>
+      </div></div>
+      <div class="ov-attention">
+        ${issues.map(i => `<div class="ov-attention-row ov-attention-${i.blocking ? 'danger' : 'warning'}" style="cursor:default">
+          ${siIcon(i.blocking ? 'x-circle' : 'alert-triangle', 15)}
+          <span><b>${esc(i.message)}</b>${i.consequence ? ` — ${esc(i.consequence)}` : ''}</span>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="closeCardGenerator();viewEmployeeDetail('${emp.id}')">Completar datos</button>
+        </div>`).join('')}
+      </div>
+    </div>`
+  }
+
+  // ready, or a card row already exists (draft/pending_approval/approved/completed/skipped)
+  const tmpl = BIRTHDAY_TEMPLATES[cg.draft.template_id] || activeBirthdayTemplates()[0]
+  const card = ms.card
+  const canWrite = can('write', 'talento_humano')
+  const canApprove = can('approve', 'talento_humano')
+  // status drives which transitions are legal (a not-yet-created card is
+  // treated as 'draft' baseline so "Enviar a aprobación" etc. are already
+  // enabled); displayStatus is what the pill actually shows, so a card
+  // that hasn't been started yet correctly reads "Listo", not "Borrador".
+  const status = card?.status || 'draft'
+  const displayStatus = card ? card.status : 'ready'
+  const saveDisabled = cg.saving || !canWrite || status === 'completed'
+  return `
+    <div class="badge-issuance-workspace">
+      ${backBtn}
+      <div class="issuance-header">
+        <div>
+          <div class="issuance-title">Tarjeta de cumpleaños</div>
+          <div class="issuance-subtitle">${esc(emp.first_name)} ${esc(emp.last_name)} · ${cg.year}${emp.department ? ' · ' + esc(emp.department) : ''}</div>
+        </div>
+        <div class="issuance-header-actions">${bcStatusBadgeHtml(displayStatus)}</div>
+      </div>
+      <div class="cg-content">
+        <div class="cg-panel cg-controls">
+          <div class="data-block-title"><span>Controles</span></div>
+          <label class="cg-field"><span class="data-field-label">${siIcon('file', 12)}Plantilla</span>
+            <select onchange="cgOnTemplateChange(this.value)">
+              ${activeBirthdayTemplates().map(t => `<option value="${escAttr(t.id)}" ${t.id === tmpl.id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}
+            </select>
+          </label>
+          <div class="cg-field"><span class="data-field-label">${siIcon('camera', 12)}Fotografía</span>
+            <div style="display:flex;align-items:center;gap:10px">
+              ${emp.photo_url ? `<img src="${esc(emp.photo_url)}" style="width:44px;height:44px;border-radius:8px;object-fit:cover" />` : `<div class="emp-avatar emp-avatar-init" style="width:44px;height:44px">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</div>`}
+              <button type="button" class="btn btn-ghost btn-sm" onclick="closeCardGenerator();viewEmployeeDetail('${emp.id}')" style="padding:0;color:var(--accent)">Cambiar en el perfil</button>
+            </div>
+          </div>
+          <label class="cg-field"><span class="data-field-label">${siIcon('user', 12)}Nombre a mostrar</span>
+            <input type="text" value="${escAttr(cg.draft.display_name)}" oninput="cgOnInput('display_name', this.value)" ${!canWrite ? 'disabled' : ''} />
+          </label>
+          <label class="cg-field"><span class="data-field-label">${siIcon('briefcase', 12)}Puesto</span>
+            <input type="text" value="${escAttr(cg.draft.position)}" oninput="cgOnInput('position', this.value)" ${!canWrite ? 'disabled' : ''} />
+          </label>
+          <label class="cg-field"><span class="data-field-label">${siIcon('message', 12)}Mensaje</span>
+            <textarea rows="3" oninput="cgOnInput('message', this.value)" ${!canWrite ? 'disabled' : ''}>${esc(cg.draft.message)}</textarea>
+          </label>
+          <label class="cg-field"><span class="data-field-label">${siIcon('download', 12)}Formato de salida</span>
+            <select onchange="cgOnInput('format', this.value)">
+              <option value="png" ${cg.draft.format === 'png' ? 'selected' : ''}>PNG</option>
+              <option value="pdf" ${cg.draft.format === 'pdf' ? 'selected' : ''}>PDF</option>
+              <option value="both" ${cg.draft.format === 'both' ? 'selected' : ''}>PNG y PDF</option>
+            </select>
+          </label>
+          <div class="cg-field"><span class="data-field-label">${siIcon('building', 12)}Empresa / Sede</span>
+            <div class="data-field-value">${esc([emp.company, _badge.sites.find(s => s.id === _badge.activeSite)?.name].filter(Boolean).join(' · ') || '—')}</div>
+          </div>
+        </div>
+
+        <div class="cg-panel cg-preview">
+          <div id="cg-preview-svg-wrap" class="cg-preview-canvas" style="aspect-ratio:${tmpl.canvasWidth}/${tmpl.canvasHeight}">${cgPreviewSvgHtml(emp, tmpl, cg.draft)}</div>
+        </div>
+
+        <div class="cg-panel cg-info">
+          <div class="data-block-title"><span>Estado</span></div>
+          <div class="cg-info-row">${bcStatusBadgeHtml(displayStatus)}</div>
+          ${cg.photoQuality ? `<div class="cg-info-note ${cg.photoQuality.ok ? '' : 'cg-info-note-warn'}">${siIcon(cg.photoQuality.ok ? 'check-circle' : 'alert-triangle', 13)} ${esc(cg.photoQuality.message)}</div>` : `<div class="cg-info-note">Verificando fotografía…</div>`}
+          ${card ? `<div class="data-block-title" style="margin-top:1rem"><span>Actividad</span></div>
+            <div class="cg-info-meta">
+              <div>Creado ${hrFmtDate(card.created_at)}</div>
+              ${card.approved_at ? `<div>Aprobado ${hrFmtDate(card.approved_at)}</div>` : ''}
+              ${card.completed_at ? `<div>Completado ${hrFmtDate(card.completed_at)}</div>` : ''}
+              ${card.asset_png_url ? `<div><a href="${esc(card.asset_png_url)}" target="_blank" rel="noopener" style="color:var(--accent)">Ver PNG exportado</a></div>` : ''}
+            </div>` : ''}
+          <div class="data-block-title" style="margin-top:1rem"><span>Acciones</span></div>
+          <div class="cg-actions">
+            ${canWrite && status !== 'completed' && status !== 'skipped' ? `<button class="btn btn-secondary btn-sm" ${saveDisabled ? 'disabled' : ''} onclick="bcSaveDraft()">Guardar borrador</button>` : ''}
+            ${canWrite && bcCanTransition(status, 'pending_approval') ? `<button class="btn btn-secondary btn-sm" onclick="bcTransition('pending_approval')">Enviar a aprobación</button>` : ''}
+            ${canWrite && bcCanTransition(status, 'approved') ? `<button class="btn ${canApprove ? 'btn-primary' : 'btn-secondary'} btn-sm" ${canApprove ? '' : 'disabled title="No tienes permiso para aprobar"'} onclick="bcTransition('approved')">Aprobar</button>` : ''}
+            ${canWrite ? `<button class="btn btn-secondary btn-sm" onclick="bcExportPng()">Exportar PNG</button>` : ''}
+            ${canWrite ? `<button class="btn btn-secondary btn-sm" onclick="bcExportPdf()">Exportar PDF</button>` : ''}
+            ${canWrite && bcCanTransition(status, 'completed') ? `<button class="btn btn-primary btn-sm" onclick="bcTransition('completed')">Marcar completada</button>` : ''}
+            ${canWrite && bcCanTransition(status, 'skipped') ? `<button class="btn btn-ghost btn-sm" onclick="bcSkip()">Omitir</button>` : ''}
+            ${canWrite && status === 'skipped' ? `<button class="btn btn-secondary btn-sm" onclick="bcTransition('draft')">Reabrir</button>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+  `
 }
 
 function showBadgeReadinessWarning(emp, readiness) {
