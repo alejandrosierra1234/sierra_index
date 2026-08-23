@@ -13723,7 +13723,7 @@ function renderModSwitcherTrigger(key) {
     btn.setAttribute('data-tip', 'Módulos')
     return
   }
-  btn.innerHTML = `<span class="nav-icon-tile" style="--tile-bg:${m.color}1f;--tile-fg:${m.color}">${m.icon}</span><span class="nav-label">${esc(m.label)}</span><span class="mod-switcher-chevron">${NAV_CHEVRON_DOWN_SVG}</span>`
+  btn.innerHTML = `<span class="nav-icon-tile" style="--tile-bg:color-mix(in srgb, ${m.color} 16%, var(--surface));--tile-fg:color-mix(in srgb, ${m.color} 78%, var(--text-primary))">${m.icon}</span><span class="nav-label">${esc(m.label)}</span><span class="mod-switcher-chevron">${NAV_CHEVRON_DOWN_SVG}</span>`
   btn.setAttribute('data-tip', m.label)
 }
 function toggleModuleSwitcher(force) {
@@ -13748,7 +13748,7 @@ function renderModSwitcherPop() {
   const filtered = q ? all.filter(([, m]) => m.label.toLowerCase().includes(q)) : all
   const row = ([key, m]) => `
     <button class="pop-menu-item mod-switch-row${key === activeModule ? ' current' : ''}" onclick="modSwitchGo('${key}')">
-      <span class="nav-icon-tile" style="--tile-bg:${m.color}1f;--tile-fg:${m.color}">${m.icon}</span>
+      <span class="nav-icon-tile" style="--tile-bg:color-mix(in srgb, ${m.color} 16%, var(--surface));--tile-fg:color-mix(in srgb, ${m.color} 78%, var(--text-primary))">${m.icon}</span>
       <span class="mod-switch-row-label">${esc(m.label)}</span>
     </button>`
   let body
@@ -13818,7 +13818,7 @@ function showModuleHub() {
   pg.innerHTML = `<div class="pg-grid">${mods.map(([key, m]) => `
     <div class="card-wrap">
       <div class="card" onclick="enterModule('${key}')" style="cursor:pointer;padding:1.25rem">
-        <div style="width:44px;height:44px;border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;background:${m.color}14;color:${m.color};margin-bottom:0.85rem">${m.icon}</div>
+        <div style="width:44px;height:44px;border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;background:color-mix(in srgb, ${m.color} 14%, var(--surface));color:color-mix(in srgb, ${m.color} 78%, var(--text-primary));margin-bottom:0.85rem">${m.icon}</div>
         <div class="card-name" style="font-size:1rem">${esc(m.label)}</div>
         <div class="card-desc">${key === 'samples' ? esc(samplesModuleDesc()) : `${m.tools.length} herramienta${m.tools.length !== 1 ? 's' : ''}`}</div>
       </div>
@@ -13845,7 +13845,7 @@ function showModuleTools(key) {
     <div class="pg-grid">${m.tools.map(t => `
     <div class="card-wrap">
       <div class="card" onclick="${t.run}()" style="cursor:pointer;padding:1.25rem">
-        <div style="width:44px;height:44px;border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;background:${m.color}14;color:${m.color};margin-bottom:0.85rem">${t.icon}</div>
+        <div style="width:44px;height:44px;border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;background:color-mix(in srgb, ${m.color} 14%, var(--surface));color:color-mix(in srgb, ${m.color} 78%, var(--text-primary));margin-bottom:0.85rem">${t.icon}</div>
         <div class="card-name" style="font-size:1rem">${esc(t.label)}</div>
         <div class="card-desc">${esc(t.desc)}</div>
       </div>
@@ -16521,7 +16521,7 @@ function renderMarketDetail(id) {
 
   detail.innerHTML = `
     <div style="display:flex;align-items:center;gap:0.75rem">
-      <div style="width:36px;height:36px;background:${cfg.color}18;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:${cfg.color};flex-shrink:0">
+      <div style="width:36px;height:36px;background:color-mix(in srgb, ${cfg.color} 16%, var(--surface));border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:color-mix(in srgb, ${cfg.color} 78%, var(--text-primary));flex-shrink:0">
         <svg viewBox="0 0 20 20" style="width:22px;height:22px">${cfg.icon?.match(/<svg[^>]*>([\s\S]*)<\/svg>/)?.[1]||''}</svg>
       </div>
       <div>
@@ -20786,7 +20786,7 @@ async function loadPdInventory(p) {
   // & Inventory summary below, via renderPdSamplesSummary.
   const st = invStatusOf(_pdStocks)
   const availChipHtml = st
-    ? `<span class="lc-pill" style="background:${st.color}18;color:${st.color};border-color:${st.color}40"><span class="lc-dot" style="background:${st.color}"></span>${st.label}</span>`
+    ? `<span class="lc-pill" style="background:color-mix(in srgb, ${st.color} 16%, var(--surface));color:color-mix(in srgb, ${st.color} 80%, var(--text-primary));border-color:color-mix(in srgb, ${st.color} 40%, var(--border))"><span class="lc-dot" style="background:${st.color}"></span>${st.label}</span>`
     : PD_SA_NONE
   setPdSaSlot('pd-avail-ov', availChipHtml)
   setPdSaSlot('pd-sa-status', availChipHtml)
