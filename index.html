@@ -3887,7 +3887,8 @@
        accident because nobody set a width on it. */
     .erp-table td, .dq-table td, .pick-table td { padding:0.42rem 0.7rem; border-bottom:1px solid var(--border); vertical-align:middle; white-space:nowrap; }
     .erp-table td.td-wrap, .dq-table td.td-wrap, .pick-table td.td-wrap { white-space:normal; }
-    .erp-table td.emp-td-trunc, .erp-table td.td-trunc { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:1px; height:46px; }
+    .erp-table td.emp-td-trunc, .erp-table td.td-trunc { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; height:46px; }
+    .erp-table td.emp-td-trunc-wide { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:320px; height:46px; }
     .erp-table tbody tr:last-child td, .dq-table tbody tr:last-child td, .pick-table tbody tr:last-child td { border-bottom:none; }
     .erp-table tbody tr.is-clickable, .dq-table tbody tr { cursor:pointer; transition:background var(--dur-fast) var(--ease-out); }
     .erp-table tbody tr.is-clickable:hover, .dq-table tbody tr:hover { background:var(--surface2); }
@@ -13920,21 +13921,26 @@ let _badge = {
 // Employee master-data table — column definitions (Section 8/9 of the ERP
 // refactor brief). Sensitive fields are gated behind write access at both
 // the Columns menu and the cell renderer.
+// Default columns favor employee master data (identity, org placement,
+// status) — this is a Colaboradores directory first; badge-specific
+// columns (photo upload, badge status, last badge) are opt-in via the
+// Columns menu, not shown by default, so the roster reads as people
+// data rather than a badge queue.
 const EMPLOYEE_COLUMNS = [
   { key: 'employee',                    label: 'Colaborador',        alwaysOn: true },
   { key: 'employee_code',               label: 'Código',             alwaysOn: true },
-  { key: 'photo',                       label: 'Foto',               default: true },
   { key: 'department',                  label: 'Departamento',       default: true },
   { key: 'position',                    label: 'Puesto',             default: true },
+  { key: 'employee_status',             label: 'Estado',             alwaysOn: true },
+  { key: 'readiness',                   label: 'Datos completos',    default: true },
   { key: 'identification_number',       label: 'Documento' },
   { key: 'emergency_contact_name',      label: 'Contacto de emergencia', sensitive: true },
   { key: 'emergency_contact_phone',     label: 'Teléfono de emergencia', sensitive: true },
   { key: 'blood_type',                  label: 'Tipo de sangre',     sensitive: true },
   { key: 'health_conditions',           label: 'Condiciones de salud', sensitive: true },
-  { key: 'employee_status',             label: 'Estado',             alwaysOn: true },
-  { key: 'readiness',                   label: 'Preparación',        alwaysOn: true },
-  { key: 'badge_status',                label: 'Gafete',             alwaysOn: true },
-  { key: 'last_badge',                  label: 'Último gafete',      default: true },
+  { key: 'photo',                       label: 'Foto' },
+  { key: 'badge_status',                label: 'Gafete' },
+  { key: 'last_badge',                  label: 'Último gafete' },
   { key: 'updated_at',                  label: 'Actualizado' },
 ]
 const EMPLOYEE_DEFAULT_COLS = EMPLOYEE_COLUMNS.filter(c => c.alwaysOn || c.default).map(c => c.key)
@@ -14270,11 +14276,11 @@ function empToggleColumn(key, checked) {
 }
 function empColCellHtml(emp, key) {
   switch (key) {
-    case 'employee': { const fullName = `${emp.first_name} ${emp.last_name}`; return `<td class="emp-td-trunc" title="${escAttr(fullName)}"><div class="emp-cell">
+    case 'employee': { const fullName = `${emp.first_name} ${emp.last_name}`; return `<td class="emp-td-trunc-wide" title="${escAttr(fullName)}"><div class="emp-cell">
         ${emp.photo_url ? `<img src="${esc(emp.photo_url)}" class="emp-avatar" />` : `<div class="emp-avatar emp-avatar-init">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</div>`}
         <div class="emp-name emp-row-name-link">${esc(fullName)}</div>
       </div></td>` }
-    case 'employee_code': return `<td class="emp-td-trunc"><code>${esc(emp.employee_code || '—')}</code></td>`
+    case 'employee_code': return `<td><code>${esc(emp.employee_code || '—')}</code></td>`
     case 'photo': return `<td onclick="event.stopPropagation()">${empPhotoCellHtml(emp)}</td>`
     case 'department': return `<td class="emp-td-trunc" title="${escAttr(emp.department || '')}">${esc(emp.department || '—')}</td>`
     case 'position': return `<td class="emp-td-trunc" title="${escAttr(emp.position || '')}">${esc(emp.position || '—')}</td>`
@@ -14283,7 +14289,7 @@ function empColCellHtml(emp, key) {
     case 'emergency_contact_phone': return `<td class="emp-td-trunc">${esc(emp.emergency_contact_phone || '—')}</td>`
     case 'blood_type': return `<td class="emp-td-trunc">${esc(emp.blood_type || '—')}</td>`
     case 'health_conditions': return `<td class="emp-td-trunc" title="${escAttr(emp.health_conditions || '')}">${esc(emp.health_conditions || '—')}</td>`
-    case 'employee_status': return `<td class="emp-td-trunc">${empStatusBadgeHtml(emp.employee_status)}</td>`
+    case 'employee_status': return `<td>${empStatusBadgeHtml(emp.employee_status)}</td>`
     case 'readiness': return `<td onclick="event.stopPropagation()">${readinessPillHtml(emp, 'emp-ready-' + emp.id)}</td>`
     case 'badge_status': return `<td>${getBadgeStatus(emp).badge}</td>`
     case 'last_badge': { const b = empLatestBadge(emp); return `<td style="white-space:nowrap;color:var(--text-3)">${b ? new Date(b.created_at).toLocaleDateString() : '—'}</td>` }
@@ -14299,7 +14305,7 @@ function empRowActionsHtml(emp) {
     { label: 'Ver historial', onClick: `_badge_ui.view='history'; renderBadgeModule()` },
   ]
   return `<td class="cat-row-actions" onclick="event.stopPropagation()">
-    ${canWrite && !b ? `<button class="btn btn-sm btn-primary emp-create-badge-btn" onclick="startBadgeIssuance('${emp.id}')">+ Crear gafete</button>` : ''}
+    ${canWrite && !b ? `<button class="btn btn-sm btn-secondary emp-create-badge-btn" onclick="startBadgeIssuance('${emp.id}')">+ Crear gafete</button>` : ''}
     ${canWrite && b ? `<button class="btn btn-sm btn-secondary" onclick="startBadgeIssuance('${emp.id}')">${b.status === 'printed' || b.status === 'delivered' ? 'Reimprimir' : 'Continuar'}</button>` : ''}
     ${overflowMenuHtml(menuItems)}
   </td>`
@@ -14358,13 +14364,13 @@ function empCardHtml(emp) {
     ${emp.photo_url ? `<div class="card-img"><img src="${esc(emp.photo_url)}" alt="${esc(emp.first_name)}" loading="lazy" /></div>` : `<div class="card-img-placeholder"><span style="font-size:1.3rem;font-weight:700;color:var(--text-secondary)">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</span></div>`}
     <div class="card-body">
       <div class="card-meta">
-        <span class="badge ${readinessClass(st.state)}">${esc(st.label)}</span>
-        <span class="card-meta-side">${getBadgeStatus(emp).badge}</span>
+        ${empStatusBadgeHtml(emp.employee_status)}
+        <span class="card-meta-side"><span class="badge ${readinessClass(st.state)}">${esc(st.label)}</span></span>
       </div>
       <div class="card-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escAttr(emp.first_name + ' ' + emp.last_name)}">${esc(emp.first_name)} ${esc(emp.last_name)}</div>
       <div class="card-desc" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escAttr((emp.department || '') + (emp.position ? ' · ' + emp.position : ''))}">${esc(emp.department || '—')}${emp.position ? ' · ' + esc(emp.position) : ''}</div>
       ${canWrite ? `<div class="card-actions" onclick="event.stopPropagation()">
-        <button class="btn btn-sm ${b ? 'btn-secondary' : 'btn-primary'}" onclick="startBadgeIssuance('${emp.id}')">${b ? 'Ver / imprimir' : '+ Crear gafete'}</button>
+        <button class="btn btn-sm btn-secondary" onclick="startBadgeIssuance('${emp.id}')">${b ? 'Ver / imprimir' : '+ Crear gafete'}</button>
       </div>` : ''}
     </div>
   </div>`
@@ -14395,7 +14401,7 @@ function empFilterOptions(key) {
   return []
 }
 function empFilterGroupLabel(key) {
-  return { department: 'Departamento', position: 'Puesto', employee_status: 'Estado', badge_status: 'Gafete', readiness: 'Preparación' }[key] || key
+  return { department: 'Departamento', position: 'Puesto', employee_status: 'Estado', badge_status: 'Gafete', readiness: 'Datos completos' }[key] || key
 }
 function empFilterValueLabel(key, val) {
   if (key === 'badge_status') return BADGE_STATUS_LABELS[val] || val
