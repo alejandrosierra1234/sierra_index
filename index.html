@@ -2618,6 +2618,9 @@
     }
     .data-field:hover .data-field-copy, .data-field-copy:focus-visible { opacity:1; }
     .data-field-copy:hover { color:var(--text-primary); background:var(--surface-hover); }
+    .field-copy-done, .emp-detail-hdr-code-copy.field-copy-done { color:var(--success) !important; opacity:1; }
+
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 
     /* ══ CompletenessIndicator ══ a control, not a chip: same height as
        the buttons beside it, a real border, and a chevron-free but
@@ -4717,31 +4720,91 @@
     /* Employee Detail Drawer — photo carries identity here (§ "más
        protagonismo"): a large square portrait, not a small chip, echoing
        the emphasis a business card or a Contacts app gives a person's
-       photo before any of their data. */
-    .emp-detail-drawer.drawer { width: 680px; max-width: 92vw; }
-    .emp-detail-hdr { display: flex; align-items: flex-start; gap: 18px; padding: 1.4rem 1.5rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+       photo before any of their data. Width is responsive: compact enough
+       (520–680px) to keep the employee list behind it legible, never the
+       old fixed 680px that ate most of a laptop viewport. */
+    .emp-detail-drawer.drawer { width: clamp(520px, 38vw, 680px); max-width: 92vw; z-index: 399; }
+    @media (max-width: 900px) { .emp-detail-drawer.drawer { width: 82vw; } }
+    @media (max-width: 640px) { .emp-detail-drawer.drawer { width: 100vw; max-width: 100vw; } }
+    /* The drawer is intentionally narrow (520–680px), so the header actions
+       (primary CTA + overflow + close) always get their own row rather than
+       squeezing the name/org column into a vertical sliver at any width. */
+    .emp-detail-hdr { flex-wrap: wrap; }
+    .emp-detail-hdr-actions { flex-basis: 100%; justify-content: flex-end; order: 3; margin-top: 10px; }
+    .emp-detail-hdr { display: flex; align-items: flex-start; gap: 16px; padding: 1.1rem 1.25rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
     .emp-detail-hdr-photo { position: relative; flex-shrink: 0; cursor: pointer; display: block; }
-    .emp-detail-hdr-photo img, .emp-detail-hdr-photo .emp-avatar-init { width: 88px; height: 88px; border-radius: 18px; object-fit: cover; box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 4px 14px rgba(0,0,0,0.08); }
-    .emp-detail-hdr-photo .emp-avatar-init { display: flex; align-items: center; justify-content: center; background: var(--surface2); font-size: 1.7rem; font-weight: 700; color: var(--text-secondary); }
+    .emp-detail-hdr-photo img, .emp-detail-hdr-photo .emp-avatar-init { width: 68px; height: 68px; border-radius: 16px; object-fit: cover; box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 4px 14px rgba(0,0,0,0.08); }
+    .emp-detail-hdr-photo .emp-avatar-init { display: flex; align-items: center; justify-content: center; background: var(--surface2); font-size: 1.3rem; font-weight: 700; color: var(--text-secondary); }
     .emp-detail-hdr-photo-cam {
-      position: absolute; bottom: -4px; right: -4px; width: 26px; height: 26px; border-radius: 50%;
+      position: absolute; bottom: -4px; right: -4px; width: 24px; height: 24px; border-radius: 50%;
       background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
       color: var(--text-secondary); box-shadow: 0 1px 3px rgba(0,0,0,0.15);
     }
-    .emp-detail-hdr-photo:hover .emp-detail-hdr-photo-cam { color: var(--accent); border-color: var(--accent); }
-    .emp-detail-hdr-main { flex: 1; min-width: 0; padding-top: 2px; }
-    .emp-detail-hdr-name { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.015em; color: var(--text-primary); margin: 0 0 7px; }
-    .emp-detail-hdr-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.78rem; color: var(--text-3); margin-bottom: 0; }
-    .emp-detail-hdr-code { display: inline-flex; align-items: center; gap: 3px; }
+    .emp-detail-hdr-photo:hover .emp-detail-hdr-photo-cam, .emp-detail-hdr-photo:focus-within .emp-detail-hdr-photo-cam { color: var(--accent); border-color: var(--accent); }
+    .emp-detail-hdr-main { flex: 1; min-width: 0; padding-top: 1px; }
+    .emp-detail-hdr-name { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.015em; color: var(--text-primary); margin: 0 0 4px; line-height: 1.25; overflow-wrap: break-word; }
+    /* Hierarchy below the name: code·status on one line, then site/dept,
+       then position — never more than one colored chip per line, joined
+       with a single readable middle dot rather than stacked pills. */
+    .emp-detail-hdr-meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; font-size: 0.78rem; color: var(--text-3); margin-bottom: 3px; }
+    .emp-detail-hdr-code { display: inline-flex; align-items: center; gap: 2px; }
     .emp-detail-hdr-code-copy {
-      background: none; border: none; padding: 2px; margin: 0; cursor: pointer; color: var(--text-muted);
+      background: none; border: none; padding: 3px; margin: 0; cursor: pointer; color: var(--text-muted);
       display: inline-flex; border-radius: var(--r-xs); transition: color var(--dur-fast), background var(--dur-fast);
+      min-width: 22px; min-height: 22px; align-items: center; justify-content: center;
     }
     .emp-detail-hdr-code-copy:hover { color: var(--text-primary); background: var(--surface-hover); }
-    .emp-detail-hdr-org { font-size: 0.8rem; color: var(--text-secondary); margin-top: 7px; }
+    .emp-detail-hdr-org { font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px; }
+    .emp-detail-hdr-position { font-size: 0.78rem; color: var(--text-3); margin-top: 2px; }
     .emp-detail-hdr-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: flex-start; }
-    .emp-detail-tabs { padding: 0 1.5rem; flex-shrink: 0; }
-    .emp-detail-body { flex: 1; overflow-y: auto; padding: 1.25rem 1.5rem 2rem; }
+    .emp-detail-tabs { padding: 0 1.25rem; flex-shrink: 0; }
+    .emp-detail-body { flex: 1; overflow-y: auto; padding: 1.1rem 1.25rem 2rem; }
+
+    /* Profile completeness — a single actionable line under the header,
+       not a colored pill jammed next to the status badge. Neutral by
+       default; only turns yellow when something is genuinely actionable,
+       red only when a real operation (badge issuance) is blocked. */
+    .emp-completeness { border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .emp-completeness-toggle {
+      width: 100%; display: flex; align-items: center; gap: 8px; padding: 0.55rem 1.25rem;
+      background: none; border: none; cursor: pointer; font: inherit; text-align: left; color: var(--text-secondary);
+      min-height: 44px; box-sizing: border-box;
+    }
+    .emp-completeness-toggle:hover { background: var(--surface-hover); }
+    .emp-completeness-bar { width: 46px; height: 5px; border-radius: 3px; background: var(--surface2); overflow: hidden; flex-shrink: 0; }
+    .emp-completeness-bar-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+    .emp-completeness.state-warning .emp-completeness-bar-fill { background: var(--warning-text); }
+    .emp-completeness.state-blocked .emp-completeness-bar-fill { background: var(--danger); }
+    .emp-completeness.state-ready .emp-completeness-bar-fill { background: var(--success); }
+    .emp-completeness-label { font-size: 0.78rem; flex: 1; min-width: 0; }
+    .emp-completeness-icon { display: inline-flex; flex-shrink: 0; }
+    .emp-completeness.state-warning .emp-completeness-icon { color: var(--warning-text); }
+    .emp-completeness.state-blocked .emp-completeness-icon { color: var(--danger); }
+    .emp-completeness.state-ready .emp-completeness-icon { color: var(--success); }
+    .emp-completeness-detail { padding: 0 1.25rem 0.75rem; }
+    .emp-completeness-row { display: flex; align-items: flex-start; gap: 8px; padding: 0.4rem 0; font-size: 0.78rem; color: var(--text-secondary); border-top: 1px solid var(--border); }
+    .emp-completeness-row:first-child { border-top: none; }
+    .emp-completeness-row-main { flex: 1; min-width: 0; }
+    .emp-completeness-row-field { font-weight: 600; color: var(--text-primary); }
+    .emp-completeness-row-why { color: var(--text-3); margin-top: 1px; }
+
+    /* Restricted / sensitive section (Personal tab) — labeled and gated,
+       never hidden with CSS after being rendered for everyone. */
+    .data-block-restricted { border: 1px solid var(--border); border-radius: var(--r-md, 10px); padding: 0.85rem 1rem; background: var(--surface2); }
+    .data-block-restricted-hd { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 600; color: var(--text-3); margin-bottom: 0.6rem; }
+
+    /* Touch devices can't hover to reveal a copy action — keep it visible. */
+    @media (hover: none) {
+      .data-field-copy, .emp-detail-hdr-code-copy { opacity: 1; }
+    }
+
+    /* Sticky footer while editing — Save/Cancel always reachable without
+       scrolling the whole form, and visually pinned to the drawer edge. */
+    .emp-detail-edit-footer {
+      position: sticky; bottom: 0; display: flex; gap: 0.5rem; justify-content: flex-end;
+      padding: 0.75rem 1.25rem; margin: 1rem -1.25rem -2rem; background: var(--surface);
+      border-top: 1px solid var(--border); box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+    }
 
     /* Edit form reuses DataField's label-over-value geometry (icon +
        uppercase label, same data-fields-2 grid) so a field sits in the
@@ -6451,7 +6514,7 @@
   </div>
 </div>
 
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script>
 const SB_URL = 'https://vhyddogeemohtqijohry.supabase.co'
@@ -8150,6 +8213,7 @@ const SI_ICON = {
   crown:                `<path d="M12 6l4 6l5 -4l-2 10h-14l-2 -10l5 4l4 -6" />`,
   refresh:              `<path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" /><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" />`,
   'chevron-down':       `<path d="M6 9l6 6l6 -6" />`,
+  'chevron-up':         `<path d="M6 15l6 -6l6 6" />`,
   search:               `<path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" />`,
   x:                    `<path d="M18 6l-12 12" /><path d="M6 6l12 12" />`,
   plus:                 `<path d="M12 5l0 14" /><path d="M5 12l14 0" />`,
@@ -8401,12 +8465,20 @@ function updateSectionTitle() {
 /* ── PRODUCT DETAIL (full page) ── */
 function openFicha(p) { showProductDetail(p) }   // backward compat
 
-function copyToClipboard(text) {
-  navigator.clipboard?.writeText(text).then(() => toast('Copiado')).catch(() => {
-    const ta = document.createElement('textarea'); ta.value = text
-    document.body.appendChild(ta); ta.select(); document.execCommand('copy')
-    document.body.removeChild(ta); toast('Copiado')
-  })
+function copyToClipboard(text, message) {
+  const msg = message || 'Copiado'
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(() => toast(msg)).catch(() => copyToClipboardFallback(text, msg))
+  } else {
+    copyToClipboardFallback(text, msg)
+  }
+}
+function copyToClipboardFallback(text, msg) {
+  const ta = document.createElement('textarea'); ta.value = text
+  ta.style.position = 'fixed'; ta.style.opacity = '0'
+  document.body.appendChild(ta); ta.select()
+  try { document.execCommand('copy'); toast(msg) } catch (_) { toast('No se pudo copiar') }
+  document.body.removeChild(ta)
 }
 
 function shareProduct(p) {
@@ -8422,6 +8494,23 @@ function shareProduct(p) {
    12-column RecordGrid. Nothing in a screen may hand-roll a spec table,
    a bespoke label style, or a per-field horizontal row. ══════════════ */
 const FIELD_COPY_ICON = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" stroke="currentColor" stroke-width="1.4"/></svg>`
+const FIELD_COPY_CHECK_ICON = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+
+// Copies one field's raw value (never the label) and briefly swaps the
+// trigger's icon to a checkmark so the click has visible confirmation
+// beyond the toast — used by every per-field copy button in the app.
+function copyFieldValue(btnEl, text, label) {
+  copyToClipboard(text, label ? `${label} copiado` : 'Copiado')
+  if (!btnEl) return
+  if (!btnEl.dataset.originalIcon) btnEl.dataset.originalIcon = btnEl.innerHTML
+  btnEl.innerHTML = FIELD_COPY_CHECK_ICON
+  btnEl.classList.add('field-copy-done')
+  clearTimeout(btnEl._copyTimer)
+  btnEl._copyTimer = setTimeout(() => {
+    btnEl.innerHTML = btnEl.dataset.originalIcon
+    btnEl.classList.remove('field-copy-done')
+  }, 1400)
+}
 
 // Human-friendly value formatting: never show raw DB shapes (ISO
 // timestamps, meaningless "0") when a human-readable representation
@@ -8466,7 +8555,7 @@ function dataFieldHtml(opts) {
     <div class="data-field-label">${icon ? `<span class="data-field-label-icon">${siIcon(icon, 12)}</span>` : ''}${esc(label)}</div>
     <div class="data-field-value">
       <span class="data-field-value-text">${displayVal}</span>
-      ${copyVal ? `<button type="button" class="data-field-copy" onclick="event.stopPropagation();copyToClipboard('${jsStr(copyVal)}')" title="Copiar ${escAttr(label)}" aria-label="Copiar ${escAttr(label)}">${FIELD_COPY_ICON}</button>` : ''}
+      ${copyVal ? `<button type="button" class="data-field-copy" onclick="event.stopPropagation();copyFieldValue(this,'${jsStr(copyVal)}','${escAttr(label)}')" title="Copiar ${escAttr(label)}" aria-label="Copiar ${escAttr(label)}">${FIELD_COPY_ICON}</button>` : ''}
     </div>
   </div>`
 }
@@ -14111,8 +14200,10 @@ let _badge_ui = {
   importStep: null,           // null, 'upload', 'map', 'validate', 'review', 'complete'
   importData: null,           // Excel rows being imported
   selectedEmployeeId: null,
-  detailTab: 'overview',      // 'overview' | 'badge' | 'activity'
+  detailTab: 'overview',      // 'overview' | 'personal' | 'badge' | 'activity'
   editingEmployee: false,
+  completenessOpen: false,    // profile completeness detail expanded in the drawer header
+  detailReturnFocusEl: null,  // element to return keyboard focus to when the detail drawer closes
   issuanceInProgress: null,   // badge issuance being created
   moments: {                   // Momentos workspace filters
     search: '', range: '30',   // 'today' | '7' | '30' | 'all'
@@ -15357,66 +15448,163 @@ function filterEmployees(query) {
    it reads exactly like the rest of the app's record screens. ══════════ */
 
 function viewEmployeeDetail(empId, tab) {
+  document.getElementById('employee-detail-drawer-backdrop')?.remove()
   document.getElementById('employee-detail-drawer')?.remove()
   const emp = _badge.employees.find(e => e.id === empId)
   if (!emp) return
   _badge_ui.selectedEmployeeId = empId
-  _badge_ui.detailTab = tab || 'overview'
+  _badge_ui.detailTab = (tab && tab !== 'personal') || (tab === 'personal' && can('write', 'talento_humano')) ? tab : 'overview'
   _badge_ui.editingEmployee = false
+  // Remember what to return keyboard focus to once the drawer closes.
+  _badge_ui.detailReturnFocusEl = document.activeElement && document.activeElement !== document.body ? document.activeElement : null
+  const backdrop = document.createElement('div')
+  backdrop.className = 'drawer-backdrop'
+  backdrop.id = 'employee-detail-drawer-backdrop'
+  backdrop.onclick = () => closeEmployeeDetail()
+  document.body.appendChild(backdrop)
   const drawer = document.createElement('div')
   drawer.className = 'drawer drawer-right emp-detail-drawer'
   drawer.id = 'employee-detail-drawer'
+  drawer.setAttribute('role', 'dialog')
+  drawer.setAttribute('aria-modal', 'true')
+  drawer.setAttribute('aria-label', 'Detalle de colaborador')
+  drawer.addEventListener('keydown', empDetailTrapFocus)
   document.body.appendChild(drawer)
   renderEmployeeDetailDrawer(emp)
-  setTimeout(() => drawer.classList.add('open'), 10)
+  requestAnimationFrame(() => {
+    backdrop.classList.add('open')
+    drawer.classList.add('open')
+    drawer.querySelector('.icon-btn-quiet')?.focus()
+  })
+}
+
+// Keyboard focus stays inside the open drawer (Tab/Shift+Tab wrap at the
+// edges) — required so screen-reader and keyboard-only users can't tab
+// out into the employee list hidden behind the overlay.
+function empDetailTrapFocus(e) {
+  if (e.key !== 'Tab') return
+  const drawer = document.getElementById('employee-detail-drawer')
+  if (!drawer) return
+  const focusable = [...drawer.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+    .filter(el => !el.disabled && el.offsetParent !== null)
+  if (!focusable.length) return
+  const first = focusable[0], last = focusable[focusable.length - 1]
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+}
+
+// Overall profile completeness — distinct from badge-issuance readiness
+// (checkBadgeReadiness/badgeReadinessState, still surfaced on the Badge
+// tab and the header's primary action). This one judges the record as a
+// whole: identity, contact and org data a usable ERP profile needs.
+// Each missing field says which workflow it feeds, so "80% complete" is
+// never a vague nag — every gap has a stated reason and a way to fix it.
+const EMP_COMPLETENESS_FIELDS = [
+  { field: 'photo_url', label: 'Fotografía', why: 'Requerida para el gafete', action: 'photo' },
+  { field: 'birth_date', label: 'Fecha de nacimiento', why: 'Requerida para el flujo de cumpleaños' },
+  { field: 'email', label: 'Correo', why: 'Recomendado para contacto' },
+  { field: 'phone', label: 'Teléfono', why: 'Recomendado para contacto' },
+  { field: 'department', label: 'Departamento', why: 'Requerido para reportes organizacionales' },
+  { field: 'position', label: 'Puesto', why: 'Requerido para el gafete y reportes' },
+  { field: 'hire_date', label: 'Fecha de ingreso', why: 'Requerida para calcular antigüedad' },
+  { field: 'emergency_contact_name', label: 'Contacto de emergencia', why: 'Recomendado por seguridad' },
+]
+function empCompleteness(emp) {
+  const missing = EMP_COMPLETENESS_FIELDS.filter(f => !emp[f.field])
+  const total = EMP_COMPLETENESS_FIELDS.length
+  const pct = Math.round(((total - missing.length) / total) * 100)
+  return { pct, missing, state: pct === 100 ? 'ready' : 'warning' }
+}
+function empCompletenessHtml(emp) {
+  const c = empCompleteness(emp)
+  const popId = 'emp-completeness-detail'
+  return `<div class="emp-completeness state-${c.state}">
+    <button type="button" class="emp-completeness-toggle" onclick="toggleEmpCompleteness()" aria-expanded="${_badge_ui.completenessOpen ? 'true' : 'false'}" aria-controls="${popId}">
+      <span class="emp-completeness-icon">${siIcon(c.state === 'ready' ? 'check-circle' : 'alert-triangle', 14)}</span>
+      <span class="emp-completeness-bar"><span class="emp-completeness-bar-fill" style="width:${c.pct}%"></span></span>
+      <span class="emp-completeness-label">Perfil ${c.pct}% completo</span>
+      <span class="emp-completeness-icon">${siIcon(_badge_ui.completenessOpen ? 'chevron-up' : 'chevron-down', 14)}</span>
+    </button>
+    ${_badge_ui.completenessOpen ? `<div class="emp-completeness-detail" id="${popId}">
+      ${c.missing.length ? c.missing.map(m => `
+        <div class="emp-completeness-row">
+          <span class="emp-completeness-icon">${siIcon('alert-triangle', 13)}</span>
+          <div class="emp-completeness-row-main">
+            <div class="emp-completeness-row-field">${esc(m.label)}</div>
+            <div class="emp-completeness-row-why">${esc(m.why)}</div>
+          </div>
+        </div>
+      `).join('') + (can('write', 'talento_humano') ? `<button type="button" class="btn btn-secondary btn-sm" style="margin-top:0.5rem" onclick="empStartEdit()">Completar información</button>` : '')
+        : `<div class="emp-completeness-row"><div class="emp-completeness-row-main">Toda la información recomendada está completa.</div></div>`}
+    </div>` : ''}
+  </div>`
+}
+function toggleEmpCompleteness() {
+  _badge_ui.completenessOpen = !_badge_ui.completenessOpen
+  const emp = _badge.employees.find(e => e.id === _badge_ui.selectedEmployeeId)
+  if (emp) renderEmployeeDetailDrawer(emp)
+}
+
+// Header primary action depends on employee/badge state — never a blind
+// "Crear gafete" when the record isn't eligible or already has one.
+function empDetailPrimaryActionHtml(emp) {
+  if (!can('write', 'talento_humano')) return ''
+  const b = empLatestBadge(emp)
+  if (!emp.photo_url) return `<button class="btn btn-primary btn-sm" onclick="empStartEdit()">Agregar fotografía</button>`
+  if (!b) return `<button class="btn btn-primary btn-sm" onclick="startBadgeIssuance('${emp.id}')">+ Crear gafete</button>`
+  if (b.status === 'printed' || b.status === 'delivered') return `<button class="btn btn-secondary btn-sm" onclick="startBadgeIssuance('${emp.id}')">Reimprimir</button>`
+  return `<button class="btn btn-secondary btn-sm" onclick="startBadgeIssuance('${emp.id}')">Ver gafete</button>`
 }
 
 function renderEmployeeDetailDrawer(emp) {
   const drawer = document.getElementById('employee-detail-drawer')
   if (!drawer) return
   const canWrite = can('write', 'talento_humano')
-  const b = empLatestBadge(emp)
+  const canSeePersonal = can('write', 'talento_humano') // Personal tab holds identity/emergency/medical data
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
-  const seniority = empSeniority(emp)
-  const orgLine = [emp.company, site?.name, emp.department, emp.position].filter(Boolean).join(' · ')
+  const orgMeta = [emp.company, site?.name, emp.department].filter(Boolean).join(' · ')
   drawer.innerHTML = `
     <div class="drawer-content">
       <div class="emp-detail-hdr">
         <label class="emp-detail-hdr-photo" title="${canWrite ? 'Cambiar fotografía' : ''}">
-          ${emp.photo_url ? `<img src="${esc(emp.photo_url)}" />` : `<div class="emp-avatar-init">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</div>`}
-          ${canWrite ? `<span class="emp-detail-hdr-photo-cam"><svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M4 7h2l1.5-2h5L14 7h2a1 1 0 011 1v7a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><circle cx="10" cy="11.5" r="2.3" stroke="currentColor" stroke-width="1.3"/></svg></span>
+          ${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" />` : `<div class="emp-avatar-init" aria-hidden="true">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</div>`}
+          ${canWrite ? `<span class="emp-detail-hdr-photo-cam" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M4 7h2l1.5-2h5L14 7h2a1 1 0 011 1v7a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><circle cx="10" cy="11.5" r="2.3" stroke="currentColor" stroke-width="1.3"/></svg></span>
+          <span class="sr-only">Cambiar fotografía de ${esc(emp.first_name)} ${esc(emp.last_name)}</span>
           <input type="file" accept="image/*" style="display:none" onchange="uploadEmployeeDetailPhoto('${emp.id}', this)" />` : ''}
         </label>
         <div class="emp-detail-hdr-main">
-          <div class="emp-detail-hdr-name">${esc(emp.first_name)} ${esc(emp.last_name)}</div>
+          <div class="emp-detail-hdr-name">${esc(emp.first_name)} ${esc(emp.last_name)}${esc(emp.preferred_name ? ` "${emp.preferred_name}"` : '')}</div>
           <div class="emp-detail-hdr-meta">
-            ${emp.employee_code ? `<span class="emp-detail-hdr-code"><code>${esc(emp.employee_code)}</code><button type="button" class="emp-detail-hdr-code-copy" onclick="event.stopPropagation();copyToClipboard('${jsStr(emp.employee_code)}')" title="Copiar código" aria-label="Copiar código">${FIELD_COPY_ICON}</button></span>` : ''}
+            ${emp.employee_code ? `<span class="emp-detail-hdr-code"><code>${esc(emp.employee_code)}</code><button type="button" class="emp-detail-hdr-code-copy" onclick="event.stopPropagation();copyFieldValue(this,'${jsStr(emp.employee_code)}','Código de colaborador')" title="Copiar código" aria-label="Copiar código de colaborador">${FIELD_COPY_ICON}</button></span>` : ''}
+            ${emp.employee_code ? '<span aria-hidden="true">·</span>' : ''}
             ${empStatusBadgeHtml(emp.employee_status)}
-            ${readinessPillHtml(emp, 'emp-detail-ready-pop', `wsClosePopovers();empStartEdit()`)}
           </div>
-          ${orgLine || seniority ? `<div class="emp-detail-hdr-org">${esc(orgLine)}${seniority ? `${orgLine ? ' · ' : ''}Antigüedad: ${seniority.years} año${seniority.years !== 1 ? 's' : ''}, ${seniority.months} mes${seniority.months !== 1 ? 'es' : ''}` : ''}</div>` : ''}
+          ${orgMeta ? `<div class="emp-detail-hdr-org">${esc(orgMeta)}</div>` : ''}
+          ${emp.position ? `<div class="emp-detail-hdr-position">${esc(emp.position)}</div>` : ''}
         </div>
         <div class="emp-detail-hdr-actions">
-          ${canWrite ? (b
-            ? `<button class="btn btn-secondary btn-sm" onclick="startBadgeIssuance('${emp.id}')">${b.status === 'printed' || b.status === 'delivered' ? 'Reimprimir' : 'Ver gafete'}</button>`
-            : `<button class="btn btn-primary btn-sm" onclick="startBadgeIssuance('${emp.id}')">+ Crear gafete</button>`
-          ) : ''}
+          ${empDetailPrimaryActionHtml(emp)}
           ${overflowMenuHtml([
             ...(canWrite ? [{ label: 'Editar colaborador', onClick: `empStartEdit()` }] : []),
+            { label: 'Copiar resumen del colaborador', onClick: `copyEmployeeSummary('${emp.id}')` },
+            { label: 'Copiar información organizacional', onClick: `copyEmployeeOrgInfo('${emp.id}')` },
             { label: 'Ver historial', onClick: `closeEmployeeDetail(); _badge_ui.view='history'; renderBadgeModule()` },
-          ], { btnClass: 'menu-below' })}
-          <button class="icon-btn icon-btn-quiet" onclick="closeEmployeeDetail()"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+          ], { btnClass: 'menu-below', title: 'Más acciones' })}
+          <button class="icon-btn icon-btn-quiet" onclick="closeEmployeeDetail()" title="Cerrar" aria-label="Cerrar detalle de colaborador"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
         </div>
       </div>
+      ${empCompletenessHtml(emp)}
       <div class="emp-detail-tabs">
-        <div class="record-tabs" role="tablist">
-          <button class="record-tab ${_badge_ui.detailTab === 'overview' ? 'active' : ''}" role="tab" onclick="switchEmpDetailTab('overview')">Resumen</button>
-          <button class="record-tab ${_badge_ui.detailTab === 'badge' ? 'active' : ''}" role="tab" onclick="switchEmpDetailTab('badge')">Gafete</button>
-          <button class="record-tab ${_badge_ui.detailTab === 'activity' ? 'active' : ''}" role="tab" onclick="switchEmpDetailTab('activity')">Actividad</button>
+        <div class="record-tabs" role="tablist" aria-label="Secciones del colaborador">
+          <button class="record-tab ${_badge_ui.detailTab === 'overview' ? 'active' : ''}" role="tab" id="emp-tab-overview" aria-selected="${_badge_ui.detailTab === 'overview'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'overview' ? '0' : '-1'}" onclick="switchEmpDetailTab('overview')" onkeydown="empTabKeydown(event,'overview')">Resumen</button>
+          ${canSeePersonal ? `<button class="record-tab ${_badge_ui.detailTab === 'personal' ? 'active' : ''}" role="tab" id="emp-tab-personal" aria-selected="${_badge_ui.detailTab === 'personal'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'personal' ? '0' : '-1'}" onclick="switchEmpDetailTab('personal')" onkeydown="empTabKeydown(event,'personal')">Personal</button>` : ''}
+          <button class="record-tab ${_badge_ui.detailTab === 'badge' ? 'active' : ''}" role="tab" id="emp-tab-badge" aria-selected="${_badge_ui.detailTab === 'badge'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'badge' ? '0' : '-1'}" onclick="switchEmpDetailTab('badge')" onkeydown="empTabKeydown(event,'badge')">Gafete</button>
+          <button class="record-tab ${_badge_ui.detailTab === 'activity' ? 'active' : ''}" role="tab" id="emp-tab-activity" aria-selected="${_badge_ui.detailTab === 'activity'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'activity' ? '0' : '-1'}" onclick="switchEmpDetailTab('activity')" onkeydown="empTabKeydown(event,'activity')">Actividad</button>
         </div>
       </div>
-      <div class="drawer-body emp-detail-body">
+      <div class="drawer-body emp-detail-body" role="tabpanel" id="emp-tab-panel" aria-labelledby="emp-tab-${_badge_ui.detailTab}">
         ${_badge_ui.detailTab === 'overview' ? renderEmpOverviewTab(emp) : ''}
+        ${_badge_ui.detailTab === 'personal' && canSeePersonal ? renderEmpPersonalTab(emp) : ''}
         ${_badge_ui.detailTab === 'badge' ? renderEmpBadgeTab(emp) : ''}
         ${_badge_ui.detailTab === 'activity' ? renderEmpActivityTab(emp) : ''}
       </div>
@@ -15425,7 +15613,23 @@ function renderEmployeeDetailDrawer(emp) {
   if (_badge_ui.detailTab === 'activity') loadEmpActivity(emp.id)
 }
 
+// Arrow-key navigation across tabs per WAI-ARIA tablist pattern.
+function empTabKeydown(e, current) {
+  const order = ['overview', 'personal', 'badge', 'activity'].filter(k => document.getElementById('emp-tab-' + k))
+  const idx = order.indexOf(current)
+  let next = null
+  if (e.key === 'ArrowRight') next = order[(idx + 1) % order.length]
+  else if (e.key === 'ArrowLeft') next = order[(idx - 1 + order.length) % order.length]
+  else if (e.key === 'Home') next = order[0]
+  else if (e.key === 'End') next = order[order.length - 1]
+  if (!next) return
+  e.preventDefault()
+  switchEmpDetailTab(next)
+  document.getElementById('emp-tab-' + next)?.focus()
+}
+
 function switchEmpDetailTab(tab) {
+  if (_badge_ui.editingEmployee && !confirm('Tienes cambios sin guardar. ¿Salir sin guardar?')) return
   _badge_ui.detailTab = tab
   _badge_ui.editingEmployee = false
   const emp = _badge.employees.find(e => e.id === _badge_ui.selectedEmployeeId)
@@ -15433,12 +15637,54 @@ function switchEmpDetailTab(tab) {
 }
 
 function closeEmployeeDetail() {
+  if (_badge_ui.editingEmployee && !confirm('Tienes cambios sin guardar. ¿Cerrar sin guardar?')) return
   const drawer = document.getElementById('employee-detail-drawer')
-  if (drawer) {
-    drawer.classList.remove('open')
-    setTimeout(() => drawer.remove(), 300)
-  }
+  const backdrop = document.getElementById('employee-detail-drawer-backdrop')
+  if (drawer) { drawer.classList.remove('open'); setTimeout(() => drawer.remove(), 300) }
+  if (backdrop) { backdrop.classList.remove('open'); setTimeout(() => backdrop.remove(), 300) }
   _badge_ui.selectedEmployeeId = null
+  _badge_ui.editingEmployee = false
+  // Return keyboard focus to whatever opened the drawer (the employee row).
+  if (_badge_ui.detailReturnFocusEl && document.contains(_badge_ui.detailReturnFocusEl)) _badge_ui.detailReturnFocusEl.focus()
+  _badge_ui.detailReturnFocusEl = null
+}
+
+// Plain-text, copy-safe employee summary — no medical data, identification
+// numbers, home address or emergency contact, no internal timestamps.
+function empSummaryText(emp) {
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const lines = [
+    `Nombre: ${emp.first_name} ${emp.last_name}`,
+    emp.employee_code ? `Código de colaborador: ${emp.employee_code}` : null,
+    emp.company ? `Empresa: ${emp.company}` : null,
+    site?.name ? `Sede: ${site.name}` : null,
+    emp.department ? `Departamento: ${emp.department}` : null,
+    emp.position ? `Puesto: ${emp.position}` : null,
+    `Estado: ${EMP_STATUS_LABELS[emp.employee_status] || emp.employee_status || ''}`,
+  ].filter(Boolean)
+  return lines.join('\n')
+}
+function copyEmployeeSummary(empId) {
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp) return
+  copyToClipboard(empSummaryText(emp), 'Resumen del colaborador copiado')
+}
+function empOrgInfoText(emp) {
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const lines = [
+    emp.company ? `Empresa: ${emp.company}` : null,
+    site?.name ? `Sede: ${site.name}` : null,
+    emp.department ? `Departamento: ${emp.department}` : null,
+    emp.position ? `Puesto: ${emp.position}` : null,
+    emp.supervisor_name ? `Supervisor inmediato: ${emp.supervisor_name}` : null,
+    emp.hire_date ? `Fecha de ingreso: ${hrFmtDate(emp.hire_date)}` : null,
+  ].filter(Boolean)
+  return lines.join('\n')
+}
+function copyEmployeeOrgInfo(empId) {
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp) return
+  copyToClipboard(empOrgInfoText(emp), 'Información organizacional copiada')
 }
 
 async function uploadEmployeeDetailPhoto(empId, inputEl) {
@@ -15461,66 +15707,108 @@ async function uploadEmployeeDetailPhoto(empId, inputEl) {
   renderBadgeModule()
 }
 
-/* ── Overview tab: structured, grouped, two-column where space allows.
-   Employee code and status live only in the header (photo/name strip) —
-   they never repeat down here, so nothing on this tab says the same
-   fact twice. Health/blood type only render for staff with write access
-   — the fields still exist as data, just gated at both the column list
-   and here. Every field that has a natural glyph (phone, mail, id, blood
-   type…) carries it, so the eye can scan the shape of a section before
-   reading a single word. ── */
+/* ── Overview tab: the everyday-use summary — organization, contact,
+   next relevant moment, badge summary, and system metadata pushed into a
+   secondary collapsible block. Identity, emergency contact and medical
+   information live on the Personal tab instead, so nothing sensitive is
+   ever the first thing an unrelated viewer sees when the drawer opens. ── */
 function renderEmpOverviewTab(emp) {
   if (_badge_ui.editingEmployee) return renderEmpOverviewEditForm(emp)
-  const canWrite = can('write', 'talento_humano')
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const seniority = empSeniority(emp)
+  const org = dataFieldsHtml([
+    { label: 'Empresa', value: emp.company, icon: 'building', copy: true },
+    { label: 'Sede', value: site?.name, icon: 'map-pin', copy: true },
+    { label: 'Departamento', value: emp.department, icon: 'building', copy: true },
+    { label: 'Puesto', value: emp.position, icon: 'briefcase', copy: true },
+    { label: 'Supervisor inmediato', value: emp.supervisor_name, icon: 'users', copy: true },
+    { label: 'Fecha de ingreso', value: emp.hire_date, icon: 'calendar', dateEs: true, copy: emp.hire_date ? hrFmtDate(emp.hire_date) : false },
+    { label: 'Antigüedad', value: seniority ? `${seniority.years} año${seniority.years !== 1 ? 's' : ''}, ${seniority.months} mes${seniority.months !== 1 ? 'es' : ''}` : null, icon: 'clock' },
+    { label: 'Categoría', value: emp.employee_category, icon: 'briefcase' },
+  ], { cols: 2 })
+  const contact = dataFieldsHtml([
+    { label: 'Correo', value: emp.email, icon: 'mail', copy: true },
+    { label: 'Teléfono', value: emp.phone, icon: 'phone', copy: true },
+  ], { cols: 2 })
+  const nextBday = empNextBirthday(emp)
+  const nextAnniv = empNextAnniversary(emp)
+  const moments = dataFieldsHtml([
+    { label: 'Próximo cumpleaños', value: nextBday ? `${hrFmtDate(nextBday.date)} · ${nextBday.daysUntil === 0 ? 'hoy' : `en ${nextBday.daysUntil} día${nextBday.daysUntil !== 1 ? 's' : ''}`}` : null, icon: 'star' },
+    { label: 'Próximo aniversario', value: nextAnniv ? `${hrFmtDate(nextAnniv.date)} · ${nextAnniv.years} año${nextAnniv.years !== 1 ? 's' : ''}${nextAnniv.milestone ? ' 🎉' : ''}` : null, icon: 'crown' },
+  ], { cols: 2 })
+  return `
+    <div class="data-column">
+      ${dataBlockHtml('Organización', org, { aside: canEditEmpField() ? '<button type="button" class="btn btn-ghost btn-sm" onclick="empStartEdit()" style="padding:2px 6px">Editar</button>' : null })}
+      ${contact ? dataBlockHtml('Contacto', contact) : dataBlockHtml('Contacto', emptyStateHtml({ title: 'Sin información de contacto', desc: 'Agrega un correo o teléfono para este colaborador.', actionLabel: canEditEmpField() ? 'Completar' : null, actionOnClick: 'empStartEdit()' }))}
+      ${moments ? dataBlockHtml('Próximo momento', moments) : ''}
+      ${dataBlockHtml('Gafete', empBadgeSummaryHtml(emp))}
+    </div>
+    <details class="emp-system-details" style="margin-top:0.9rem">
+      <summary style="cursor:pointer;font-size:0.72rem;font-weight:600;color:var(--text-3);letter-spacing:0.02em;padding:0.3rem 0">Información del sistema</summary>
+      <div style="margin-top:0.5rem">
+        ${dataFieldsHtml([
+          { label: 'Registro creado', value: emp.created_at, icon: 'calendar', dateEs: true },
+          { label: 'Última actualización', value: emp.updated_at, icon: 'calendar', dateEs: true },
+        ], { cols: 2 })}
+      </div>
+    </details>
+  `
+}
+function canEditEmpField() { return can('write', 'talento_humano') }
+
+// Compact badge summary for Overview — status, last issue/delivery, one
+// contextual action. The full lifecycle detail still lives on the
+// dedicated Gafete tab; this is the "at a glance" version.
+function empBadgeSummaryHtml(emp) {
+  const b = empLatestBadge(emp)
+  if (!b) {
+    return emptyStateHtml({
+      title: 'Sin gafete', desc: 'Este colaborador todavía no tiene un gafete emitido.',
+      actionLabel: canEditEmpField() ? '+ Crear gafete' : null, actionOnClick: `startBadgeIssuance('${emp.id}')`,
+    })
+  }
+  return dataFieldsHtml([
+    { label: 'Estado', html: getBadgeStatus(emp).badge },
+    { label: 'Última emisión', value: b.printed_at, icon: 'calendar', dateEs: true },
+    { label: 'Entrega', value: b.delivered_at ? `Entregado · ${hrFmtDate(b.delivered_at)}` : 'Pendiente de entrega', icon: 'check-circle' },
+  ], { cols: 2 }) + (canEditEmpField() ? `<div style="margin-top:0.6rem"><button class="btn btn-secondary btn-sm" onclick="startBadgeIssuance('${emp.id}')">${b.status === 'printed' || b.status === 'delivered' ? 'Reimprimir' : 'Continuar emisión'}</button></div>` : '')
+}
+
+/* ── Personal tab: identity, emergency contact, and restricted (medical)
+   information. This tab only renders at all when the caller has write
+   access to talento_humano (gated at the tab-list level too, so an
+   unauthorized user never even sees "Personal" as an option) — never
+   rendered-then-hidden with CSS. ── */
+function renderEmpPersonalTab(emp) {
+  if (_badge_ui.editingEmployee) return renderEmpOverviewEditForm(emp)
   const identity = dataFieldsHtml([
     { label: 'Nombre preferido', value: emp.preferred_name, icon: 'user' },
     { label: 'Fecha de nacimiento', value: emp.birth_date, icon: 'calendar', dateEs: true },
     { label: 'Documento', value: emp.identification_number, icon: 'credit-card', copy: true },
     { label: 'Tipo de documento', value: emp.identification_type, icon: 'file' },
-    { label: 'Teléfono', value: emp.phone, icon: 'phone', copy: true },
-    { label: 'Correo', value: emp.email, icon: 'mail', copy: true },
-  ], { cols: 2 })
-  const org = dataFieldsHtml([
-    { label: 'Sede', value: site?.name, icon: 'map-pin' },
-    { label: 'Departamento', value: emp.department, icon: 'building' },
-    { label: 'Puesto', value: emp.position, icon: 'briefcase' },
-    { label: 'Supervisor inmediato', value: emp.supervisor_name, icon: 'users' },
-    { label: 'Fecha de ingreso', value: emp.hire_date, icon: 'calendar', dateEs: true },
-    { label: 'Categoría', value: emp.employee_category, icon: 'briefcase' },
-    { label: 'Empresa', value: emp.company, icon: 'building' },
     { label: 'País', value: emp.country, icon: 'globe' },
   ], { cols: 2 })
-  const seniority = empSeniority(emp)
-  const nextBday = empNextBirthday(emp)
-  const nextAnniv = empNextAnniversary(emp)
-  const moments = dataFieldsHtml([
-    { label: 'Antigüedad', value: seniority ? `${seniority.years} año${seniority.years !== 1 ? 's' : ''}, ${seniority.months} mes${seniority.months !== 1 ? 'es' : ''}` : null, icon: 'clock' },
-    { label: 'Próximo cumpleaños', value: nextBday ? `${hrFmtDate(nextBday.date)} · ${nextBday.daysUntil === 0 ? 'hoy' : `en ${nextBday.daysUntil} día${nextBday.daysUntil !== 1 ? 's' : ''}`}` : null, icon: 'star' },
-    { label: 'Próximo aniversario', value: nextAnniv ? `${hrFmtDate(nextAnniv.date)} · ${nextAnniv.years} año${nextAnniv.years !== 1 ? 's' : ''}${nextAnniv.milestone ? ' 🎉' : ''}` : null, icon: 'crown' },
-  ], { cols: 2 })
   const emergency = dataFieldsHtml([
-    { label: 'Contacto de emergencia', value: emp.emergency_contact_name, icon: 'user', span: 2 },
+    { label: 'Contacto de emergencia', value: emp.emergency_contact_name, icon: 'user', span: 2, copy: true },
     { label: 'Teléfono de emergencia', value: emp.emergency_contact_phone, icon: 'phone', copy: true },
     { label: 'Parentesco', value: emp.emergency_contact_relationship, icon: 'users' },
   ], { cols: 2 })
-  const medical = canWrite ? dataFieldsHtml([
+  const hasMedical = !!(emp.blood_type || emp.health_conditions)
+  const medicalFields = dataFieldsHtml([
     { label: 'Tipo de sangre', value: emp.blood_type, icon: 'droplet', always: true },
     { label: 'Condiciones de salud', value: emp.health_conditions, icon: 'activity', span: 2, multiline: true, always: true },
-  ], { cols: 2 }) : ''
-  const system = dataFieldsHtml([
-    { label: 'Última actualización', value: emp.updated_at, icon: 'calendar', dateEs: true },
-    { label: 'Registro creado', value: emp.created_at, icon: 'calendar', dateEs: true },
   ], { cols: 2 })
   return `
-    ${can('write', 'talento_humano') ? `<div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem"><button class="btn btn-secondary btn-sm" onclick="empStartEdit()">Editar</button></div>` : ''}
     <div class="data-column">
-      ${dataBlockHtml('Identidad', identity)}
-      ${dataBlockHtml('Organización', org)}
-      ${moments ? dataBlockHtml('Momentos', moments) : ''}
-      ${dataBlockHtml('Emergencia', emergency)}
-      ${canWrite ? dataBlockHtml('Información médica', medical) : ''}
-      ${dataBlockHtml('Sistema', system)}
+      ${dataBlockHtml('Identidad', identity, { aside: '<button type="button" class="btn btn-ghost btn-sm" onclick="empStartEdit()" style="padding:2px 6px">Editar</button>' })}
+      ${dataBlockHtml('Contacto de emergencia', emergency)}
+      <div>
+        <div class="data-block-title"><span>Información restringida</span></div>
+        <div class="data-block-restricted">
+          <div class="data-block-restricted-hd">${siIcon('shield', 12)} Visible solo para personal autorizado de Talento Humano${!hasMedical ? ' · Sin información registrada' : ''}</div>
+          ${medicalFields}
+        </div>
+      </div>
     </div>
   `
 }
@@ -15580,7 +15868,7 @@ function renderEmpOverviewEditForm(emp) {
       ${dataBlockHtml('Emergencia', emergency)}
       ${canWrite ? dataBlockHtml('Información médica', medical) : ''}
     </div>
-    <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1.5rem">
+    <div class="emp-detail-edit-footer">
       <button class="btn btn-secondary btn-sm" onclick="empCancelEdit()">Cancelar</button>
       <button class="btn btn-primary btn-sm" onclick="empSaveEdit('${emp.id}')">Guardar</button>
     </div>
@@ -18395,6 +18683,8 @@ document.querySelectorAll('.overlay').forEach(el => { el.addEventListener('click
 /* Escape closes the label drawer (and any open overlay) */
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return
+  const empDrawer = document.getElementById('employee-detail-drawer')
+  if (empDrawer && empDrawer.classList.contains('open')) { closeEmployeeDetail(); return }
   const drawer = document.getElementById('m-label')
   if (drawer && drawer.classList.contains('open')) { closeLabel(); return }
   const ycDrawer = document.getElementById('m-yarn')
