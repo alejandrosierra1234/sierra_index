@@ -111,7 +111,7 @@ create trigger trg_birthday_cards_guard_approval
 create or replace function birthday_card_roster(p_site_id uuid)
 returns table (
   id uuid, first_name text, last_name text, preferred_name text,
-  position text, department text, photo_url text, employee_status text,
+  "position" text, department text, photo_url text, employee_status text,
   birth_date date
 ) language plpgsql security definer stable as $$
 begin
