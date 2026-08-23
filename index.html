@@ -8347,7 +8347,7 @@ function fmtHumanDate(v) {
 
 // A missing value is written for a human, never left as a DB null and
 // never rendered in disabled-gray: "Not specified" reads as information.
-const FIELD_EMPTY_TEXT = 'Not specified'
+const FIELD_EMPTY_TEXT = 'No especificado'
 
 // opts: { label, value, html (pre-rendered value markup, overrides value),
 //         copy (bool|string — string copies that instead of the text value),
@@ -14219,15 +14219,16 @@ function readinessClass(state) {
   return state === 'ready' ? 'badge-ready-yes' : state === 'missing' ? 'badge-ready-missing' : 'badge-ready-blocked'
 }
 const READINESS_ICON = { ready: 'check-circle', missing: 'alert-triangle', blocked: 'x-circle' }
-function readinessPillHtml(emp, popId) {
+function readinessPillHtml(emp, popId, completeAction) {
   const st = badgeReadinessState(emp)
+  const action = completeAction || `wsClosePopovers();viewEmployeeDetail('${emp.id}')`
   return `<div style="position:relative">
     <button type="button" class="readiness-badge ${readinessClass(st.state)}" onclick="catTogglePop(event,'${popId}')">${siIcon(READINESS_ICON[st.state] || 'alert-triangle')}<span>${esc(st.label)}</span>${siIcon('chevron-down', 12)}</button>
     <div class="ws-pop completeness-pop" id="${popId}">
       ${st.allIssues.length
         ? `<div class="completeness-pop-hd">Preparación del gafete — ${esc(st.label)}</div>
            ${st.allIssues.map(i => `<div class="completeness-missing-row">${i.level === 'error' ? '⛔' : '⚠️'}&nbsp; ${esc(i.message)}</div>`).join('')}
-           <button type="button" class="btn btn-primary btn-sm completeness-pop-action" onclick="wsClosePopovers();viewEmployeeDetail('${emp.id}')">Completar datos</button>`
+           <button type="button" class="btn btn-primary btn-sm completeness-pop-action" onclick="${action}">Completar datos</button>`
         : `<div class="completeness-pop-ok">✓ Listo para emitir el gafete</div>`}
     </div>
   </div>`
@@ -14957,7 +14958,7 @@ function renderEmployeeDetailDrawer(emp) {
           <div class="emp-detail-hdr-meta">
             <code>${esc(emp.employee_code || '—')}</code>
             ${empStatusBadgeHtml(emp.employee_status)}
-            <span class="badge ${readinessClass(st.state)}">${esc(st.label)}</span>
+            ${readinessPillHtml(emp, 'emp-detail-ready-pop', `wsClosePopovers();empStartEdit()`)}
           </div>
           <div class="emp-detail-hdr-org">${esc(site?.name || '')}${emp.department ? ' · ' + esc(emp.department) : ''}${emp.position ? ' · ' + esc(emp.position) : ''}</div>
         </div>
@@ -15063,11 +15064,13 @@ function renderEmpOverviewTab(emp) {
   ], { cols: 2 })
   return `
     ${can('write', 'talento_humano') ? `<div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem"><button class="btn btn-secondary btn-sm" onclick="empStartEdit()">Editar</button></div>` : ''}
-    ${dataBlockHtml('Identidad', identity)}
-    ${dataBlockHtml('Organización', org)}
-    ${dataBlockHtml('Emergencia', emergency)}
-    ${canWrite ? dataBlockHtml('Información médica', medical) : ''}
-    ${dataBlockHtml('Sistema', system)}
+    <div class="data-column">
+      ${dataBlockHtml('Identidad', identity)}
+      ${dataBlockHtml('Organización', org)}
+      ${dataBlockHtml('Emergencia', emergency)}
+      ${canWrite ? dataBlockHtml('Información médica', medical) : ''}
+      ${dataBlockHtml('Sistema', system)}
+    </div>
   `
 }
 
