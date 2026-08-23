@@ -4559,6 +4559,43 @@
       gap: var(--panel-gap);
     }
 
+    /* Overview — dense metric tiles (never oversized dashboard cards) +
+       a ranked attention list. Teal is reserved for the count itself on
+       hover/focus, not a fill; tone modifiers use warning/danger only
+       when the number represents an actual problem. */
+    .ov-view { display: flex; flex-direction: column; gap: 1.1rem; }
+    .ov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .ov-tile {
+      text-align: left; border: 1px solid var(--border); border-radius: var(--panel-radius);
+      background: var(--surface); padding: 0.7rem 0.85rem; cursor: pointer; font: inherit; color: inherit;
+      display: flex; flex-direction: column; gap: 2px; transition: border-color var(--dur-fast), background var(--dur-fast);
+    }
+    .ov-tile:hover { border-color: var(--accent); background: var(--surface2); }
+    .ov-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .ov-tile-value { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+    .ov-tile-label { font-size: 0.72rem; color: var(--text-3); font-weight: 600; }
+    .ov-tile-sub { font-size: 0.68rem; color: var(--text-3); }
+    .ov-tile-warning .ov-tile-value { color: var(--warning-text); }
+    .ov-tile-danger .ov-tile-value { color: var(--danger); }
+    .ov-tile-info .ov-tile-value { color: var(--info); }
+
+    .ov-attention { border: 1px solid var(--border); border-radius: var(--panel-radius); overflow: hidden; }
+    .ov-attention-hd { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--border); background: var(--surface2); }
+    .ov-attention-row {
+      width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; font: inherit;
+      border: none; border-bottom: 1px solid var(--border); background: var(--surface); color: var(--text-primary);
+      padding: 0.65rem 0.85rem; cursor: pointer; font-size: 0.82rem;
+    }
+    .ov-attention-row:last-child { border-bottom: none; }
+    .ov-attention-row:hover { background: var(--surface2); }
+    .ov-attention-row span { flex: 1; }
+    .ov-attention-row svg:last-child { color: var(--text-3); flex-shrink: 0; }
+    .ov-attention-danger svg:first-child { color: var(--danger); flex-shrink: 0; }
+    .ov-attention-warning svg:first-child { color: var(--warning-text); flex-shrink: 0; }
+    .ov-attention-info svg:first-child { color: var(--info); flex-shrink: 0; }
+    .ov-attention-empty { display: flex; align-items: center; gap: 10px; padding: 0.9rem 0.85rem; color: var(--text-3); font-size: 0.82rem; background: var(--surface); }
+    .ov-attention-empty svg { color: var(--success); flex-shrink: 0; }
+
     .emp-freshness {
       display: flex;
       align-items: center;
@@ -4701,6 +4738,7 @@
       display: inline-flex; border-radius: var(--r-xs); transition: color var(--dur-fast), background var(--dur-fast);
     }
     .emp-detail-hdr-code-copy:hover { color: var(--text-primary); background: var(--surface-hover); }
+    .emp-detail-hdr-org { font-size: 0.8rem; color: var(--text-secondary); margin-top: 7px; }
     .emp-detail-hdr-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: flex-start; }
     .emp-detail-tabs { padding: 0 1.5rem; flex-shrink: 0; }
     .emp-detail-body { flex: 1; overflow-y: auto; padding: 1.25rem 1.5rem 2rem; }
@@ -13942,6 +13980,8 @@ let _badge = {
   employees: [],              // employees for active site
   badges: [],                 // badge issuances
   events: [],                 // badge audit events
+  movements: [],               // employee_movements for active site (recent + scheduled)
+  tasks: [],                    // open employee_tasks for active site
   templates: {},              // badge templates by site
   companies: {},              // companies by country
   countries: []               // list of countries
@@ -13960,15 +14000,16 @@ const EMPLOYEE_COLUMNS = [
   { key: 'employee_code',               label: 'Código',             alwaysOn: true },
   { key: 'department',                  label: 'Departamento',       default: true },
   { key: 'position',                    label: 'Puesto',             default: true },
+  { key: 'next_moment',                  label: 'Próximo momento',    default: true },
   { key: 'employee_status',             label: 'Estado',             alwaysOn: true },
   { key: 'readiness',                   label: 'Datos completos',    default: true },
+  { key: 'badge_status',                label: 'Gafete',             default: true },
   { key: 'identification_number',       label: 'Documento' },
   { key: 'emergency_contact_name',      label: 'Contacto de emergencia', sensitive: true },
   { key: 'emergency_contact_phone',     label: 'Teléfono de emergencia', sensitive: true },
   { key: 'blood_type',                  label: 'Tipo de sangre',     sensitive: true },
   { key: 'health_conditions',           label: 'Condiciones de salud', sensitive: true },
   { key: 'photo',                       label: 'Foto' },
-  { key: 'badge_status',                label: 'Gafete' },
   { key: 'last_badge',                  label: 'Último gafete' },
   { key: 'updated_at',                  label: 'Actualizado' },
 ]
@@ -14022,7 +14063,8 @@ function empGroupedList(list) {
 }
 
 let _badge_ui = {
-  view: 'employees',          // 'employees', 'badge-queue', 'history', 'companies', 'settings'
+  view: 'overview',           // 'overview', 'employees', 'badge-queue', 'history', 'companies', 'settings'
+  momentFilter: null,          // null | 'birthday_today' | 'birthday_7' | 'birthday_30' | 'anniversary_30' — set from Overview cards
   employeeView: 'table',      // 'table' | 'cards'
   employeeSearch: '',
   filters: {                  // multi-select facet filters, each a Set of values
@@ -14055,8 +14097,9 @@ let _badge_ui = {
 // Colaboradores (staff directory) and Gafetes (badge creator) are the
 // same underlying screen/state (_badge/_badge_ui) with two entry points,
 // not two components — see MODULES.talento_humano.tools. Colaboradores
-// always lands on the roster tab; Gafetes keeps its original behavior
-// (whatever tab was last open, defaulting to the roster on first load).
+// always lands on Overview (the module's operational home); Gafetes
+// keeps its original behavior (whatever tab was last open, defaulting
+// to Overview on first load).
 async function enterBadgeModule(toolId, title) {
   _navLeaf = 'talento_humano|_|' + toolId
   syncModule('talento_humano')
@@ -14081,7 +14124,7 @@ async function enterBadgeModule(toolId, title) {
   renderBadgeModule()
 }
 async function showColaboradores() {
-  _badge_ui.view = 'employees'
+  _badge_ui.view = 'overview'
   await enterBadgeModule('colaboradores', 'Colaboradores')
 }
 async function showGafetes() {
@@ -14133,6 +14176,25 @@ async function loadBadgeData() {
       _badge.badges = badges || []
     }
   }
+
+  // Load recent/scheduled movements and open tasks for active site.
+  // Tolerant of the tables not existing yet (update24.sql not applied)
+  // — Overview simply shows zero-state rather than failing to load.
+  if (_badge.activeSite) {
+    const { data: movements } = await sb.from('employee_movements')
+      .select('id, employee_id, movement_type, field, previous_value, new_value, effective_date, reason, note, status, applied_at, created_at')
+      .eq('site_id', _badge.activeSite)
+      .order('effective_date', { ascending: false })
+      .limit(50)
+    _badge.movements = movements || []
+
+    const { data: tasks } = await sb.from('employee_tasks')
+      .select('id, employee_id, task_type, title, priority, due_date, status, blocking_impact, created_at')
+      .eq('site_id', _badge.activeSite)
+      .in('status', ['open', 'in_progress', 'blocked'])
+      .order('due_date', { ascending: true })
+    _badge.tasks = tasks || []
+  }
 }
 
 // ONE PageHeader (the shared #sec-title/#sec-sub content-hdr) carries the
@@ -14150,6 +14212,7 @@ function renderBadgeModule() {
     <div class="badge-module-root">
       ${_badge_ui.view === 'issuance' ? '' : renderBadgeTabs()}
       <div class="badge-main-panel">
+        ${_badge_ui.view === 'overview' ? renderOverviewView() : ''}
         ${_badge_ui.view === 'employees' ? renderEmployeesView() : ''}
         ${_badge_ui.view === 'badge-queue' ? renderBadgeQueueView() : ''}
         ${_badge_ui.view === 'history' ? renderHistoryView() : ''}
@@ -14197,6 +14260,7 @@ function siteSwitcherPopHtml() {
 
 function renderBadgeTabs() {
   const navItems = [
+    { id: 'overview', label: 'Resumen' },
     { id: 'employees', label: 'Colaboradores' },
     { id: 'badge-queue', label: 'Cola de gafetes' },
     { id: 'history', label: 'Historial' },
@@ -14320,6 +14384,7 @@ function empColCellHtml(emp, key) {
     case 'blood_type': return `<td class="emp-td-trunc">${esc(emp.blood_type || '—')}</td>`
     case 'health_conditions': return `<td class="emp-td-trunc" title="${escAttr(emp.health_conditions || '')}">${esc(emp.health_conditions || '—')}</td>`
     case 'employee_status': return `<td>${empStatusBadgeHtml(emp.employee_status)}</td>`
+    case 'next_moment': { const nm = empNextMoment(emp); return `<td style="white-space:nowrap;color:var(--text-3)">${nm ? `${esc(nm.label)} · ${nm.daysUntil === 0 ? 'hoy' : `en ${nm.daysUntil} día${nm.daysUntil !== 1 ? 's' : ''}`}` : '—'}</td>` }
     case 'readiness': return `<td onclick="event.stopPropagation()">${readinessPillHtml(emp, 'emp-ready-' + emp.id)}</td>`
     case 'badge_status': return `<td>${getBadgeStatus(emp).badge}</td>`
     case 'last_badge': { const b = empLatestBadge(emp); return `<td style="white-space:nowrap;color:var(--text-3)">${b ? new Date(b.created_at).toLocaleDateString() : '—'}</td>` }
@@ -14466,6 +14531,8 @@ function empActiveFilterCount() {
 }
 function empClearFilters() {
   Object.values(_badge_ui.filters).forEach(s => s.clear())
+  _badge_ui.quickFilter = null
+  _badge_ui.momentFilter = null
   renderBadgeModule()
 }
 function empRemoveFilterChipVal(key, val) {
@@ -14475,16 +14542,29 @@ function empRemoveFilterChipVal(key, val) {
 function empFilterChipsHtml() {
   const chips = []
   Object.keys(_badge_ui.filters).forEach(key => {
-    _badge_ui.filters[key].forEach(v => chips.push({ key, val: v, label: `${empFilterGroupLabel(key)}: ${empFilterValueLabel(key, v)}` }))
+    _badge_ui.filters[key].forEach(v => chips.push({ key, val: v, label: `${empFilterGroupLabel(key)}: ${empFilterValueLabel(key, v)}`, onRemove: `empRemoveFilterChipVal('${key}','${jsStr(v)}')` }))
   })
+  if (_badge_ui.quickFilter) chips.push({ label: QUICK_FILTER_LABELS[_badge_ui.quickFilter] || _badge_ui.quickFilter, onRemove: 'empClearQuickFilter()' })
+  if (_badge_ui.momentFilter) chips.push({ label: MOMENT_FILTER_LABELS[_badge_ui.momentFilter] || _badge_ui.momentFilter, onRemove: 'empClearMomentFilter()' })
   if (!chips.length) return ''
   return `<div class="emp-filter-chips">
-    ${chips.map(c => `<span class="emp-filter-chip">${esc(c.label)}<button type="button" onclick="empRemoveFilterChipVal('${c.key}','${jsStr(c.val)}')" aria-label="Quitar filtro">✕</button></span>`).join('')}
+    ${chips.map(c => `<span class="emp-filter-chip">${esc(c.label)}<button type="button" onclick="${c.onRemove}" aria-label="Quitar filtro">✕</button></span>`).join('')}
     <button type="button" class="emp-filter-clear" onclick="empClearFilters()">Limpiar todo</button>
   </div>`
 }
 function empSetSort(key) { _badge_ui.sort = key; wsClosePopovers(); renderBadgeModule() }
 
+// Quick filter labels — for the Overview → Employees deep-link chip.
+const QUICK_FILTER_LABELS = {
+  missing_photo: 'Sin fotografía', incomplete: 'Registro incompleto',
+  badge_attention: 'Gafete requiere atención', pending_print: 'Pendiente de imprimir',
+  ready_delivery: 'Listo para entrega', new_hires: 'Nuevo ingreso (30 días)',
+  upcoming_hires: 'Ingreso próximo',
+}
+const MOMENT_FILTER_LABELS = {
+  birthday_today: 'Cumpleaños hoy', birthday_7: 'Cumpleaños en 7 días',
+  birthday_30: 'Cumpleaños en 30 días', anniversary_30: 'Aniversario en 30 días',
+}
 function empFilteredList() {
   const q = (_badge_ui.employeeSearch || '').toLowerCase()
   const canId = can('write', 'talento_humano')
@@ -14498,12 +14578,63 @@ function empFilteredList() {
     if (_badge_ui.filters.employee_status.size && !_badge_ui.filters.employee_status.has(e.employee_status)) return false
     if (_badge_ui.filters.badge_status.size && !_badge_ui.filters.badge_status.has(getBadgeStatus(e).status)) return false
     if (_badge_ui.filters.readiness.size && !_badge_ui.filters.readiness.has(badgeReadinessState(e).state)) return false
+    if (_badge_ui.quickFilter === 'missing_photo' && e.photo_url) return false
+    if (_badge_ui.quickFilter === 'incomplete' && empOverallCompleteness(e).percent >= 100) return false
+    if (_badge_ui.quickFilter === 'badge_attention' && badgeReadinessState(e).state === 'ready') return false
+    if (_badge_ui.quickFilter === 'pending_print' && getBadgeStatus(e).status !== 'ready_to_print') return false
+    if (_badge_ui.quickFilter === 'ready_delivery' && getBadgeStatus(e).status !== 'printed') return false
+    if (_badge_ui.quickFilter === 'new_hires') {
+      const h = parseDateOnly(e.hire_date)
+      if (!h || h > hrToday() || daysBetween(h, hrToday()) > 30) return false
+    }
+    if (_badge_ui.quickFilter === 'upcoming_hires') {
+      const h = parseDateOnly(e.hire_date)
+      if (!h || h <= hrToday()) return false
+    }
+    if (_badge_ui.momentFilter) {
+      const mf = _badge_ui.momentFilter
+      if (mf === 'anniversary_30') {
+        const d = empNextAnniversary(e)?.daysUntil
+        if (d == null || d > 30) return false
+      } else {
+        const d = empNextBirthday(e)?.daysUntil
+        if (d == null) return false
+        if (mf === 'birthday_today' && d !== 0) return false
+        if (mf === 'birthday_7' && d > 7) return false
+        if (mf === 'birthday_30' && d > 30) return false
+      }
+    }
     return true
   })
   const sorter = EMP_SORTS[_badge_ui.sort]?.fn
   if (sorter) list = [...list].sort(sorter)
   return list
 }
+// Deep-link from an Overview metric into the Employees table, pre-filtered.
+function goToEmployeesQuick(quickFilter) {
+  Object.values(_badge_ui.filters).forEach(s => s.clear())
+  _badge_ui.momentFilter = null
+  _badge_ui.quickFilter = quickFilter || null
+  _badge_ui.view = 'employees'
+  renderBadgeModule()
+}
+function goToEmployeesMoment(momentFilter) {
+  Object.values(_badge_ui.filters).forEach(s => s.clear())
+  _badge_ui.quickFilter = null
+  _badge_ui.momentFilter = momentFilter || null
+  _badge_ui.view = 'employees'
+  renderBadgeModule()
+}
+function goToEmployeesStatus(status) {
+  Object.values(_badge_ui.filters).forEach(s => s.clear())
+  _badge_ui.quickFilter = null
+  _badge_ui.momentFilter = null
+  _badge_ui.filters.employee_status.add(status)
+  _badge_ui.view = 'employees'
+  renderBadgeModule()
+}
+function empClearQuickFilter() { _badge_ui.quickFilter = null; renderBadgeModule() }
+function empClearMomentFilter() { _badge_ui.momentFilter = null; renderBadgeModule() }
 
 /* ── Bulk selection ── */
 function toggleEmpSelect(id) {
@@ -14576,6 +14707,109 @@ function empFreshnessHtml() {
     <span><b>${esc(site?.name || '')}</b> · ${n} colaborador${n !== 1 ? 'es' : ''}</span>
     ${latest ? `<span>Actualizado ${new Date(latest).toLocaleDateString()} · ${new Date(latest).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>` : ''}
   </div>`
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   OVERVIEW — the module's operational home. Every metric here is a real
+   aggregation over already-loaded site data (no decorative charts, no
+   placeholder numbers); every tile is a deep-link into a pre-filtered
+   Employees view, never a dead end. "Needs attention" ranks real issues
+   by whether they actually block a workflow (danger) vs. are worth
+   fixing soon (warning) vs. are just an operational reminder (info) —
+   never a generic "3 things to check" list. ══════════════════════════ */
+function overviewMetrics() {
+  const emps = _badge.employees
+  const today = hrToday()
+  const active = emps.filter(e => e.employee_status === 'active')
+  const withinDays = (fn, max, min = 0) => active.filter(e => { const d = fn(e)?.daysUntil; return d != null && d >= min && d <= max })
+  return {
+    total: emps.length,
+    active,
+    newHires: emps.filter(e => { const h = parseDateOnly(e.hire_date); return h && h <= today && daysBetween(h, today) <= 30 }),
+    upcomingHires: emps.filter(e => { const h = parseDateOnly(e.hire_date); return h && h > today }),
+    birthdaysToday: withinDays(empNextBirthday, 0),
+    birthdays7: withinDays(empNextBirthday, 7),
+    birthdays30: withinDays(empNextBirthday, 30),
+    anniversaries30: withinDays(empNextAnniversary, 30),
+    incomplete: emps.filter(e => empOverallCompleteness(e).percent < 100),
+    missingPhoto: emps.filter(e => !e.photo_url),
+    missingCode: emps.filter(e => !e.employee_code),
+    badgeAttention: emps.filter(e => badgeReadinessState(e).state !== 'ready'),
+    pendingPrint: _badge.badges.filter(b => b.status === 'ready_to_print'),
+    readyDelivery: _badge.badges.filter(b => b.status === 'printed'),
+    openTasks: _badge.tasks,
+    recentMovements: _badge.movements.filter(m => m.status === 'applied').slice(0, 5),
+  }
+}
+function ovTileHtml({ value, label, sub, tone, onClick }) {
+  const cls = ['ov-tile', tone ? `ov-tile-${tone}` : ''].filter(Boolean).join(' ')
+  return `<button type="button" class="${cls}" onclick="${onClick}">
+    <div class="ov-tile-value">${value}</div>
+    <div class="ov-tile-label">${esc(label)}</div>
+    ${sub ? `<div class="ov-tile-sub">${esc(sub)}</div>` : ''}
+  </button>`
+}
+function ovAttentionItems(m) {
+  const items = []
+  if (m.missingCode.length) items.push({
+    severity: 'danger', text: `${m.missingCode.length} colaborador${m.missingCode.length !== 1 ? 'es' : ''} sin código oficial — el gafete no puede generarse hasta resolverlo`,
+    onClick: `goToEmployeesQuick('badge_attention')`,
+  })
+  if (m.pendingPrint.length) items.push({
+    severity: 'warning', text: `${m.pendingPrint.length} gafete${m.pendingPrint.length !== 1 ? 's' : ''} esperando impresión`,
+    onClick: `goToEmployeesQuick('pending_print')`,
+  })
+  if (m.readyDelivery.length) items.push({
+    severity: 'warning', text: `${m.readyDelivery.length} gafete${m.readyDelivery.length !== 1 ? 's' : ''} impreso${m.readyDelivery.length !== 1 ? 's' : ''} pendiente${m.readyDelivery.length !== 1 ? 's' : ''} de entrega`,
+    onClick: `goToEmployeesQuick('ready_delivery')`,
+  })
+  if (m.missingPhoto.length) items.push({
+    severity: 'warning', text: `${m.missingPhoto.length} colaborador${m.missingPhoto.length !== 1 ? 'es' : ''} sin fotografía`,
+    onClick: `goToEmployeesQuick('missing_photo')`,
+  })
+  if (m.birthdaysToday.length) items.push({
+    severity: 'info', text: `${m.birthdaysToday.length} colaborador${m.birthdaysToday.length !== 1 ? 'es' : ''} cumple${m.birthdaysToday.length === 1 ? '' : 'n'} años hoy`,
+    onClick: `goToEmployeesMoment('birthday_today')`,
+  })
+  if (m.incomplete.length) items.push({
+    severity: 'info', text: `${m.incomplete.length} registro${m.incomplete.length !== 1 ? 's' : ''} de colaborador con información incompleta`,
+    onClick: `goToEmployeesQuick('incomplete')`,
+  })
+  const order = { danger: 0, warning: 1, info: 2 }
+  return items.sort((a, b) => order[a.severity] - order[b.severity])
+}
+const OV_SEVERITY_ICON = { danger: 'x-circle', warning: 'alert-triangle', info: 'info' }
+function renderOverviewView() {
+  if (!_badge.activeSite) return emptyStateHtml({ title: 'Selecciona una sede', desc: 'Elige una sede activa para ver su resumen operativo.' })
+  const m = overviewMetrics()
+  const attention = ovAttentionItems(m)
+  return `
+    <div class="ov-view">
+      ${empFreshnessHtml()}
+      <div class="ov-grid">
+        ${ovTileHtml({ value: m.active.length, label: 'Colaboradores activos', onClick: `goToEmployeesStatus('active')` })}
+        ${ovTileHtml({ value: m.newHires.length, label: 'Nuevos ingresos (30 días)', onClick: `goToEmployeesQuick('new_hires')` })}
+        ${ovTileHtml({ value: m.upcomingHires.length, label: 'Ingresos próximos', onClick: `goToEmployeesQuick('upcoming_hires')` })}
+        ${ovTileHtml({ value: m.birthdaysToday.length, label: 'Cumpleaños hoy', tone: m.birthdaysToday.length ? 'info' : null, onClick: `goToEmployeesMoment('birthday_today')` })}
+        ${ovTileHtml({ value: m.birthdays7.length, label: 'Cumpleaños en 7 días', onClick: `goToEmployeesMoment('birthday_7')` })}
+        ${ovTileHtml({ value: m.birthdays30.length, label: 'Cumpleaños en 30 días', onClick: `goToEmployeesMoment('birthday_30')` })}
+        ${ovTileHtml({ value: m.anniversaries30.length, label: 'Aniversarios en 30 días', onClick: `goToEmployeesMoment('anniversary_30')` })}
+        ${ovTileHtml({ value: m.incomplete.length, label: 'Registros incompletos', tone: m.incomplete.length ? 'warning' : null, onClick: `goToEmployeesQuick('incomplete')` })}
+        ${ovTileHtml({ value: m.missingPhoto.length, label: 'Sin fotografía', tone: m.missingPhoto.length ? 'warning' : null, onClick: `goToEmployeesQuick('missing_photo')` })}
+        ${ovTileHtml({ value: m.badgeAttention.length, label: 'Gafetes que requieren atención', tone: m.badgeAttention.length ? 'warning' : null, onClick: `goToEmployeesQuick('badge_attention')` })}
+        ${ovTileHtml({ value: m.pendingPrint.length, label: 'Pendientes de imprimir', onClick: `_badge_ui.view='badge-queue'; renderBadgeModule()` })}
+        ${ovTileHtml({ value: m.readyDelivery.length, label: 'Listos para entrega', onClick: `_badge_ui.view='badge-queue'; renderBadgeModule()` })}
+      </div>
+      <div class="ov-attention">
+        <div class="ov-attention-hd">Requiere atención</div>
+        ${attention.length
+          ? attention.map(it => `<button type="button" class="ov-attention-row ov-attention-${it.severity}" onclick="${it.onClick}">
+              ${siIcon(OV_SEVERITY_ICON[it.severity], 15)}<span>${it.text}</span>${siIcon('chevron-right', 14)}
+            </button>`).join('')
+          : `<div class="ov-attention-empty">${siIcon('check-circle', 15)}<span>Todo al día — nada requiere atención en ${esc(_badge.sites.find(s => s.id === _badge.activeSite)?.name || 'esta sede')}.</span></div>`}
+      </div>
+    </div>
+  `
 }
 
 /* ── Toolbar — one coherent control cluster: Import, Search, Filter, Sort,
@@ -14972,6 +15206,9 @@ function renderEmployeeDetailDrawer(emp) {
   if (!drawer) return
   const canWrite = can('write', 'talento_humano')
   const b = empLatestBadge(emp)
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const seniority = empSeniority(emp)
+  const orgLine = [emp.company, site?.name, emp.department, emp.position].filter(Boolean).join(' · ')
   drawer.innerHTML = `
     <div class="drawer-content">
       <div class="emp-detail-hdr">
@@ -14987,6 +15224,7 @@ function renderEmployeeDetailDrawer(emp) {
             ${empStatusBadgeHtml(emp.employee_status)}
             ${readinessPillHtml(emp, 'emp-detail-ready-pop', `wsClosePopovers();empStartEdit()`)}
           </div>
+          ${orgLine || seniority ? `<div class="emp-detail-hdr-org">${esc(orgLine)}${seniority ? `${orgLine ? ' · ' : ''}Antigüedad: ${seniority.years} año${seniority.years !== 1 ? 's' : ''}, ${seniority.months} mes${seniority.months !== 1 ? 'es' : ''}` : ''}</div>` : ''}
         </div>
         <div class="emp-detail-hdr-actions">
           ${canWrite ? (b
@@ -15066,6 +15304,8 @@ function renderEmpOverviewTab(emp) {
   const canWrite = can('write', 'talento_humano')
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
   const identity = dataFieldsHtml([
+    { label: 'Nombre preferido', value: emp.preferred_name, icon: 'user' },
+    { label: 'Fecha de nacimiento', value: emp.birth_date, icon: 'calendar', date: true },
     { label: 'Documento', value: emp.identification_number, icon: 'credit-card', copy: true },
     { label: 'Tipo de documento', value: emp.identification_type, icon: 'file' },
     { label: 'Teléfono', value: emp.phone, icon: 'phone', copy: true },
@@ -15075,8 +15315,19 @@ function renderEmpOverviewTab(emp) {
     { label: 'Sede', value: site?.name, icon: 'map-pin' },
     { label: 'Departamento', value: emp.department, icon: 'building' },
     { label: 'Puesto', value: emp.position, icon: 'briefcase' },
+    { label: 'Supervisor inmediato', value: emp.supervisor_name, icon: 'users' },
+    { label: 'Fecha de ingreso', value: emp.hire_date, icon: 'calendar', date: true },
+    { label: 'Categoría', value: emp.employee_category, icon: 'briefcase' },
     { label: 'Empresa', value: emp.company, icon: 'building' },
     { label: 'País', value: emp.country, icon: 'globe' },
+  ], { cols: 2 })
+  const seniority = empSeniority(emp)
+  const nextBday = empNextBirthday(emp)
+  const nextAnniv = empNextAnniversary(emp)
+  const moments = dataFieldsHtml([
+    { label: 'Antigüedad', value: seniority ? `${seniority.years} año${seniority.years !== 1 ? 's' : ''}, ${seniority.months} mes${seniority.months !== 1 ? 'es' : ''}` : null, icon: 'clock' },
+    { label: 'Próximo cumpleaños', value: nextBday ? `${fmtHumanDate(nextBday.date)} · ${nextBday.daysUntil === 0 ? 'hoy' : `en ${nextBday.daysUntil} día${nextBday.daysUntil !== 1 ? 's' : ''}`}` : null, icon: 'star' },
+    { label: 'Próximo aniversario', value: nextAnniv ? `${fmtHumanDate(nextAnniv.date)} · ${nextAnniv.years} año${nextAnniv.years !== 1 ? 's' : ''}${nextAnniv.milestone ? ' 🎉' : ''}` : null, icon: 'crown' },
   ], { cols: 2 })
   const emergency = dataFieldsHtml([
     { label: 'Contacto de emergencia', value: emp.emergency_contact_name, icon: 'user', span: 2 },
@@ -15096,6 +15347,7 @@ function renderEmpOverviewTab(emp) {
     <div class="data-column">
       ${dataBlockHtml('Identidad', identity)}
       ${dataBlockHtml('Organización', org)}
+      ${moments ? dataBlockHtml('Momentos', moments) : ''}
       ${dataBlockHtml('Emergencia', emergency)}
       ${canWrite ? dataBlockHtml('Información médica', medical) : ''}
       ${dataBlockHtml('Sistema', system)}
@@ -15112,7 +15364,7 @@ function empEditFieldHtml(label, key, emp, opts = {}) {
     ? `<select id="edemp-${key}">${opts.select.map(o => `<option value="${escAttr(o.value ?? o)}" ${val === (o.value ?? o) ? 'selected' : ''}>${esc(o.label ?? o)}</option>`).join('')}</select>`
     : opts.textarea
     ? `<textarea id="edemp-${key}" rows="2">${esc(val)}</textarea>`
-    : `<input type="text" id="edemp-${key}" value="${escAttr(val)}" />`
+    : `<input type="${opts.type || 'text'}" id="edemp-${key}" value="${escAttr(String(val).slice(0, opts.type === 'date' ? 10 : undefined))}" />`
   const cls = ['data-field', 'emp-edit-field', opts.span === 2 ? 'data-field-span-2' : ''].filter(Boolean).join(' ')
   return `<div class="${cls}">
     <div class="data-field-label">${opts.icon ? `<span class="data-field-label-icon">${siIcon(opts.icon, 12)}</span>` : ''}${esc(label)}</div>
@@ -15125,6 +15377,8 @@ function renderEmpOverviewEditForm(emp) {
   const identity = `<div class="data-fields-2">
     ${empEditFieldHtml('Nombre', 'first_name', emp, { icon: 'user' })}
     ${empEditFieldHtml('Apellido', 'last_name', emp, { icon: 'user' })}
+    ${empEditFieldHtml('Nombre preferido', 'preferred_name', emp, { icon: 'user' })}
+    ${empEditFieldHtml('Fecha de nacimiento', 'birth_date', emp, { icon: 'calendar', type: 'date' })}
     ${empEditFieldHtml('Documento', 'identification_number', emp, { icon: 'credit-card' })}
     ${empEditFieldHtml('Tipo de documento', 'identification_type', emp, { icon: 'file' })}
     ${empEditFieldHtml('Teléfono', 'phone', emp, { icon: 'phone' })}
@@ -15133,6 +15387,9 @@ function renderEmpOverviewEditForm(emp) {
   const org = `<div class="data-fields-2">
     ${empEditFieldHtml('Departamento', 'department', emp, { icon: 'building' })}
     ${empEditFieldHtml('Puesto', 'position', emp, { icon: 'briefcase' })}
+    ${empEditFieldHtml('Supervisor inmediato', 'supervisor_name', emp, { icon: 'users' })}
+    ${empEditFieldHtml('Fecha de ingreso', 'hire_date', emp, { icon: 'calendar', type: 'date' })}
+    ${empEditFieldHtml('Categoría', 'employee_category', emp, { icon: 'briefcase' })}
     ${empEditFieldHtml('Empresa', 'company', emp, { icon: 'building' })}
     ${empEditFieldHtml('País', 'country', emp, { icon: 'globe', select: PRODUCT_COUNTRIES })}
     ${empEditFieldHtml('Estado', 'employee_status', emp, { select: statusOptions })}
@@ -15171,7 +15428,8 @@ function empCancelEdit() {
   if (emp) renderEmployeeDetailDrawer(emp)
 }
 async function empSaveEdit(empId) {
-  const fields = ['first_name', 'last_name', 'department', 'position', 'company', 'country', 'employee_status',
+  const fields = ['first_name', 'last_name', 'preferred_name', 'birth_date', 'department', 'position',
+    'supervisor_name', 'hire_date', 'employee_category', 'company', 'country', 'employee_status',
     'phone', 'email', 'identification_type', 'identification_number',
     'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship']
   if (can('write', 'talento_humano')) fields.push('blood_type', 'health_conditions')
@@ -15634,6 +15892,158 @@ function checkBadgeReadiness(emp) {
     warnings,
     allIssues: issues
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   CALCULATED EMPLOYEE DATA — seniority, next birthday/anniversary, age.
+   Site-local "today" (America/Guatemala by default) so a birthday isn't
+   off by a day for a user in a different browser timezone. Dates are
+   stored as plain 'date' columns (no time component) so all math here
+   is done in UTC-anchored midnight values — never new Date(str) directly
+   against local time, which is what causes the classic timezone-shift
+   bug on date-only values. ══════════════════════════════════════════ */
+const HR_TIMEZONE = 'America/Guatemala'
+function hrToday() {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: HR_TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date())
+  const y = +parts.find(p => p.type === 'year').value, m = +parts.find(p => p.type === 'month').value, d = +parts.find(p => p.type === 'day').value
+  return new Date(Date.UTC(y, m - 1, d))
+}
+function parseDateOnly(v) {
+  if (!v) return null
+  const d = new Date(String(v).slice(0, 10) + 'T00:00:00Z')
+  return isNaN(d.getTime()) ? null : d
+}
+// Next occurrence of a month/day on or after `today`. Feb 29 is observed
+// on Feb 28 in non-leap years — moving a birthday a day earlier, never
+// forward into March.
+function nextAnnualOccurrence(dateOnly, today) {
+  if (!dateOnly) return null
+  const month = dateOnly.getUTCMonth(), day = dateOnly.getUTCDate()
+  const isLeapDay = month === 1 && day === 29
+  const occursIn = (year) => {
+    const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
+    return new Date(Date.UTC(year, month, isLeapDay && !leap ? 28 : day))
+  }
+  let next = occursIn(today.getUTCFullYear())
+  if (next < today) next = occursIn(today.getUTCFullYear() + 1)
+  return next
+}
+function daysBetween(a, b) { return Math.round((b - a) / 86400000) }
+
+function empAge(emp) {
+  const b = parseDateOnly(emp.birth_date)
+  if (!b) return null
+  const today = hrToday()
+  let age = today.getUTCFullYear() - b.getUTCFullYear()
+  if (today.getUTCMonth() < b.getUTCMonth() || (today.getUTCMonth() === b.getUTCMonth() && today.getUTCDate() < b.getUTCDate())) age--
+  return age
+}
+function empSeniority(emp) {
+  const hire = parseDateOnly(emp.hire_date)
+  if (!hire) return null
+  const today = hrToday()
+  if (hire > today) return null // future/scheduled hire — no seniority yet
+  let years = today.getUTCFullYear() - hire.getUTCFullYear()
+  let months = today.getUTCMonth() - hire.getUTCMonth()
+  if (today.getUTCDate() < hire.getUTCDate()) months--
+  if (months < 0) { years--; months += 12 }
+  return { years, months }
+}
+function empNextBirthday(emp) {
+  const b = parseDateOnly(emp.birth_date)
+  if (!b) return null
+  const today = hrToday()
+  const date = nextAnnualOccurrence(b, today)
+  return { date, daysUntil: daysBetween(today, date) }
+}
+const ANNIVERSARY_MILESTONES = [1, 3, 5, 10, 15, 20, 25, 30, 35, 40]
+function empNextAnniversary(emp) {
+  const hire = parseDateOnly(emp.hire_date)
+  if (!hire) return null
+  const today = hrToday()
+  if (hire > today) return null // not hired yet — no anniversary to count
+  const date = nextAnnualOccurrence(hire, today)
+  const years = date.getUTCFullYear() - hire.getUTCFullYear()
+  return { date, daysUntil: daysBetween(today, date), years, milestone: ANNIVERSARY_MILESTONES.includes(years) }
+}
+// The one moment a table/list shows per employee — whichever of
+// birthday/anniversary comes first. Used for the Employees "Next moment"
+// column and the Moments queue.
+function empNextMoment(emp) {
+  const candidates = []
+  const bday = empNextBirthday(emp)
+  if (bday) candidates.push({ type: 'birthday', label: 'Cumpleaños', ...bday })
+  const anniv = empNextAnniversary(emp)
+  if (anniv) candidates.push({ type: 'anniversary', label: `Aniversario${anniv.years ? ` (${anniv.years} año${anniv.years !== 1 ? 's' : ''})` : ''}`, ...anniv })
+  if (!candidates.length) return null
+  candidates.sort((a, b) => a.daysUntil - b.daysUntil)
+  return candidates[0]
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   DATA COMPLETENESS ENGINE — one scorer, many workflow-specific
+   requirement sets. checkBadgeReadiness() below stays as the dedicated,
+   already-wired badge-readiness pill (table column, header pill,
+   popover) — this is the complementary, general-purpose engine that
+   answers "what's missing for X, and why does it matter" across
+   multiple workflows (badge, birthday card, …) for the Overview
+   dashboard and future card-generation flows, without a bespoke
+   completeness rule hardcoded into each screen. ══════════════════════ */
+const COMPLETENESS_WORKFLOWS = {
+  badge: {
+    label: 'Gafete',
+    required: [
+      { field: 'employee_code', message: 'Código oficial de colaborador', consequence: 'El gafete no puede generarse: falta el código de barras.' },
+      { field: 'first_name', message: 'Nombre' },
+      { field: 'last_name', message: 'Apellido' },
+    ],
+    recommended: [
+      { field: 'photo_url', message: 'Fotografía', consequence: 'El gafete no puede imprimirse sin fotografía.' },
+      { field: 'blood_type', message: 'Tipo de sangre', consequence: 'El reverso del gafete quedará sin tipo de sangre.' },
+    ],
+  },
+  birthday_card: {
+    label: 'Tarjeta de cumpleaños',
+    required: [
+      { field: 'birth_date', message: 'Fecha de nacimiento', consequence: 'No se puede detectar ni preparar el cumpleaños sin esta fecha.' },
+      { field: 'photo_url', message: 'Fotografía', consequence: 'La tarjeta de cumpleaños requiere una fotografía.' },
+    ],
+    recommended: [
+      { field: 'preferred_name', message: 'Nombre preferido', consequence: 'La tarjeta usará el nombre legal completo.' },
+    ],
+    extra(emp) {
+      return emp.employee_status !== 'active'
+        ? [{ level: 'error', field: 'employee_status', message: 'Colaborador inactivo', consequence: 'Los colaboradores inactivos no entran al flujo automático de cumpleaños.' }]
+        : []
+    },
+  },
+}
+function evalCompleteness(emp, workflowKey) {
+  const wf = COMPLETENESS_WORKFLOWS[workflowKey]
+  if (!wf) return null
+  const missingRequired = wf.required.filter(f => !emp[f.field])
+  const missingRecommended = (wf.recommended || []).filter(f => !emp[f.field])
+  const extra = wf.extra ? wf.extra(emp) : []
+  const totalChecked = wf.required.length + (wf.recommended || []).length
+  const satisfied = totalChecked - missingRequired.length - missingRecommended.length
+  return {
+    workflow: workflowKey, label: wf.label,
+    percent: totalChecked ? Math.round((satisfied / totalChecked) * 100) : 100,
+    blocked: missingRequired.length > 0 || extra.some(e => e.level === 'error'),
+    missingRequired, missingRecommended, extra,
+  }
+}
+// General "record completeness" — union of every workflow's fields,
+// deduplicated. Used where completeness isn't tied to one specific
+// process (e.g. the Overview "incomplete records" metric).
+function empOverallCompleteness(emp) {
+  const seen = new Map()
+  Object.values(COMPLETENESS_WORKFLOWS).forEach(wf => {
+    ;[...wf.required, ...(wf.recommended || [])].forEach(f => { if (!seen.has(f.field)) seen.set(f.field, f) })
+  })
+  const fields = [...seen.values()]
+  const missing = fields.filter(f => !emp[f.field])
+  return { percent: fields.length ? Math.round(((fields.length - missing.length) / fields.length) * 100) : 100, missing }
 }
 
 function showBadgeReadinessWarning(emp, readiness) {
