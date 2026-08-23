@@ -13408,6 +13408,18 @@ const MODULES = {
     icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.2" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 17c0-3.6 2.9-5.4 6.5-5.4s6.5 1.8 6.5 5.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
     tools: [
       {
+        // The company-wide staff directory (employees/companies/sites) —
+        // separate from Index → Team (platform login accounts). Same
+        // underlying screen as Gafetes below (one screen, two doors in,
+        // see enterBadgeModule()): this one always lands on the roster,
+        // Gafetes always lands where it always has.
+        id: 'colaboradores',
+        label: 'Colaboradores',
+        desc: 'Directorio de personal por empresa: datos de contacto, puesto, estado y gafete',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 7.5h6M7 10.5h6M7 13.5h3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+        run: 'showColaboradores',
+      },
+      {
         id: 'gafetes',
         label: 'Creador de Gafetes',
         desc: 'Diseña, guarda e imprime gafetes de identificación del personal',
@@ -14005,17 +14017,22 @@ let _badge_ui = {
 // ENTRY POINT: Show Gafetes module
 // ═══════════════════════════════════════════════════════════════════════
 
-async function showGafetes() {
-  _navLeaf = 'talento_humano|_|gafetes'
+// Colaboradores (staff directory) and Gafetes (badge creator) are the
+// same underlying screen/state (_badge/_badge_ui) with two entry points,
+// not two components — see MODULES.talento_humano.tools. Colaboradores
+// always lands on the roster tab; Gafetes keeps its original behavior
+// (whatever tab was last open, defaulting to the roster on first load).
+async function enterBadgeModule(toolId, title) {
+  _navLeaf = 'talento_humano|_|' + toolId
   syncModule('talento_humano')
   sessionStorage.setItem('sierra_route', 'module:talento_humano')
   clearHash()
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
-  document.getElementById('tb-section').textContent = 'Gafetes Administrativos'
+  document.getElementById('tb-section').textContent = title
   // ONE page header (content-hdr) — the site switcher lives in its right
   // slot, never a second floating title inside the module body.
-  document.getElementById('sec-title').textContent = 'Gafetes Administrativos'
+  document.getElementById('sec-title').textContent = title
   document.getElementById('sec-sub').textContent = 'Talento Humano'
   const controls = document.getElementById('product-controls')
   controls.style.display = 'flex'
@@ -14027,6 +14044,13 @@ async function showGafetes() {
   // Load initial data
   await loadBadgeData()
   renderBadgeModule()
+}
+async function showColaboradores() {
+  _badge_ui.view = 'employees'
+  await enterBadgeModule('colaboradores', 'Colaboradores')
+}
+async function showGafetes() {
+  await enterBadgeModule('gafetes', 'Gafetes Administrativos')
 }
 
 async function loadBadgeData() {
