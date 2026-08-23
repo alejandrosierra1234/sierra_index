@@ -38,7 +38,20 @@
       --accent-dark: var(--brand-teal-dark);
       --accent-light: var(--brand-teal-light);
       --accent-rgb: 22,205,190;
-      --accent-ink: #fff; /* text/icon color on a solid --accent fill — matches .btn-primary's color:#fff, fixed like --accent itself */
+      --accent-ink: #fff; /* text/icon color for a small solid --accent chip/dot (e.g. .ord-step), NOT for filled buttons — .btn-primary uses --interactive-primary-* below, since white text fails AA directly on bright teal */
+      /* ── INTERACTION TOKENS ──
+         --accent (bright teal) is BRAND: focus rings, selected markers,
+         progress, icons, controlled accents. It never sits under white
+         text — #16cdbe on white text is ~1.8:1, far under AA. Filled
+         primary actions use the accessible dark teal instead. */
+      --interactive-primary-bg: var(--brand-teal-dark);
+      --interactive-primary-text: #fff;
+      --interactive-primary-hover: #00655d;   /* darker step of brand-teal-dark, verified >4.5:1 with white */
+      --interactive-primary-pressed: #004f49;
+      --interactive-focus: var(--brand-teal);
+      --interactive-selected-bg: var(--brand-teal-light);
+      --interactive-selected-text: var(--text-primary);
+      --interactive-link: var(--brand-teal-dark);
       --bg: #ffffff;
       --bg-alt: #f5f5f5;
       --surface: #ffffff;
@@ -209,6 +222,16 @@
       --sem-purple-dark-text: #d074f0; --sem-warmyellow-dark-text: #ffc529; --sem-orange-dark-text: #ff9a5c;
       --sem-red-dark-text: #ff6b6b;
       --div-color: var(--text-secondary); --div-color-dark: var(--text-primary); --div-color-light: var(--surface2);
+      /* Interaction tokens re-tuned for dark: filled primary stays the
+         same accessible dark teal (it already reads fine on dark
+         surfaces); selection uses a translucent teal wash instead of the
+         light-mode's solid pale fill, per dark-mode selected-state rule. */
+      --interactive-primary-bg: var(--brand-teal-dark);
+      --interactive-primary-hover: #04988c;
+      --interactive-primary-pressed: #04b0a2;
+      --interactive-selected-bg: rgba(22,205,190,0.16);
+      --interactive-selected-text: var(--text-primary);
+      --interactive-link: #4ce0d3;
       /* Shell layer — deliberately layered, not a flat inverted canvas:
          workspace sits darkest, sidebar one step up, so depth still reads
          without relying on borders everywhere (§16). --shell-topbar is
@@ -337,9 +360,9 @@
     }
     .btn svg { width:var(--icon-size-control); height:var(--icon-size-control); flex-shrink:0; }
     .btn-full { width:100%; }
-    .btn-primary { background:var(--accent); color:#fff; border-color:var(--accent); }
-    .btn-primary:hover { background:var(--accent-dark); border-color:var(--accent-dark); }
-    .btn-primary:active { background:var(--accent-dark); transform:translateY(0.5px); }
+    .btn-primary { background:var(--interactive-primary-bg); color:var(--interactive-primary-text); border-color:var(--interactive-primary-bg); }
+    .btn-primary:hover { background:var(--interactive-primary-hover); border-color:var(--interactive-primary-hover); }
+    .btn-primary:active { background:var(--interactive-primary-pressed); border-color:var(--interactive-primary-pressed); transform:translateY(0.5px); }
     .btn-secondary {
       background:var(--surface); color:var(--text-primary); border-color:var(--border-strong);
     }
@@ -595,7 +618,7 @@
     .prof-hero { display:flex; flex-direction:column; align-items:center; gap:0.55rem; padding:1.5rem 0 1.25rem; }
     .profile-avatar-lg {
       width:88px; height:88px; border-radius:50%;
-      background:var(--accent); color:#fff;
+      background:var(--interactive-primary-bg); color:var(--interactive-primary-text);
       font-size:1.65rem; font-weight:700;
       display:flex; align-items:center; justify-content:center;
       overflow:hidden; position:relative; cursor:pointer;
@@ -1498,10 +1521,10 @@
     .div-toolbar-btn.active { background:var(--surface2); color:var(--text); }
     .div-toolbar-btn svg { width:14px; height:14px; flex-shrink:0; }
     .div-toolbar-btn-primary {
-      background:var(--accent); color:#fff;
-      box-shadow:0 2px 8px color-mix(in srgb, var(--accent) 45%, transparent);
+      background:var(--interactive-primary-bg); color:var(--interactive-primary-text);
+      box-shadow:0 2px 8px color-mix(in srgb, var(--interactive-primary-bg) 45%, transparent);
     }
-    .div-toolbar-btn-primary:hover { background:var(--accent-dark); color:#fff; }
+    .div-toolbar-btn-primary:hover { background:var(--interactive-primary-hover); color:var(--interactive-primary-text); }
     /* Icon-only quick actions (Scan) — sits beside Search, before the mode/create actions */
     .div-toolbar-icon-btn {
       display:flex; align-items:center; justify-content:center;
@@ -2023,14 +2046,19 @@
     .dash-side-sep { height:1px; background:var(--border); margin:0.85rem 0; }
 
     /* Style guide */
-    .sg-wrap { max-width:1040px; margin:0 auto; padding-bottom:3rem; }
+    /* The guide fills the workspace between sidebar and viewport edge —
+       it is the platform's working reference, not a centered document.
+       Prose still gets a readable measure via max-width on the text
+       elements themselves (.sg-sub/.sg-title/.sg-lede), never on the
+       page shell. */
+    .sg-wrap { width:100%; max-width:none; padding-bottom:3rem; }
     .sg-hero { margin-bottom:2.2rem; }
     .sg-eyebrow { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--accent); margin-bottom:0.55rem; }
-    .sg-title { font-size:2.05rem; font-weight:700; letter-spacing:0; line-height:1.04; color:var(--text); max-width:620px; }
-    .sg-sub { font-size:0.86rem; color:var(--text-2); line-height:1.55; max-width:620px; margin-top:0.85rem; }
-    .sg-layout { display:grid; grid-template-columns:minmax(0,1fr) 240px; gap:2.5rem; align-items:start; }
+    .sg-title { font-size:2.05rem; font-weight:700; letter-spacing:0; line-height:1.04; color:var(--text); max-width:640px; }
+    .sg-sub { font-size:0.86rem; color:var(--text-2); line-height:1.55; max-width:640px; margin-top:0.85rem; }
+    .sg-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(240px,300px); gap:clamp(24px,3vw,40px); align-items:start; }
     .sg-main { display:flex; flex-direction:column; gap:2rem; min-width:0; }
-    .sg-side { position:sticky; top:1.5rem; display:flex; flex-direction:column; gap:0.9rem; }
+    .sg-side { position:sticky; top:1.5rem; display:flex; flex-direction:column; gap:0.9rem; max-width:300px; }
     .sg-section { border-top:1px solid var(--border); padding-top:1.25rem; }
     .sg-section:first-child { border-top:none; padding-top:0; }
     .sg-section-h { display:flex; align-items:baseline; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
@@ -2057,7 +2085,7 @@
     .sg-component-text { font-size:0.74rem; color:var(--text-3); line-height:1.5; margin-bottom:0.8rem; }
     .sg-demo-row { display:flex; align-items:center; gap:0.55rem; flex-wrap:wrap; }
     .sg-demo-btn { display:inline-flex; align-items:center; gap:0.42rem; border:1px solid var(--border); border-radius:8px; padding:0.48rem 0.68rem; background:var(--surface2); color:var(--text); font-size:0.75rem; font-weight:600; }
-    .sg-demo-btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .sg-demo-btn.primary { background:var(--interactive-primary-bg); border-color:var(--interactive-primary-bg); color:var(--interactive-primary-text); }
     .sg-demo-pill { border:1px solid var(--border); border-radius:6px; padding:0.24rem 0.48rem; font-size:0.64rem; font-weight:700; color:var(--text-2); text-transform:uppercase; letter-spacing:0.08em; }
     .sg-demo-field { height:34px; min-width:160px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); color:var(--text-3); display:flex; align-items:center; padding:0 0.65rem; font-size:0.74rem; }
     .sg-rules { display:grid; grid-template-columns:repeat(2,1fr); gap:0.75rem; }
@@ -2235,10 +2263,10 @@
     .cart-together svg { color:var(--accent); margin-top:1px; }
     .cart-submit {
       width:100%; padding:0.75rem; border:none; border-radius:9px;
-      background:var(--accent); color:#fff; font-family:inherit; font-size:0.85rem; font-weight:600;
+      background:var(--interactive-primary-bg); color:var(--interactive-primary-text); font-family:inherit; font-size:0.85rem; font-weight:600;
       cursor:pointer; transition:background 0.15s, transform 0.1s;
     }
-    .cart-submit:hover { background:var(--accent-dark); }
+    .cart-submit:hover { background:var(--interactive-primary-hover); }
     .cart-submit:active { transform:scale(0.99); }
     .cart-submit:disabled { opacity:0.5; cursor:default; }
     @media (max-width:700px) {
@@ -2249,9 +2277,6 @@
       .dash-wrap { grid-template-columns:1fr; gap:0; max-width:100%; }
       .dash-wrap, .dash-col, .dash-side, .market-cards-wrap { min-width:0; }
       .dash-side { position:static; }
-      .sg-layout { grid-template-columns:1fr; gap:1.7rem; }
-      .sg-side { position:static; }
-      .sg-principles, .sg-swatches { grid-template-columns:1fr 1fr; }
       .dash-act-row { flex-direction:row; flex-wrap:wrap; }
       .dash-act { width:auto; }
       .dash-side .market-cards { flex-direction:row; overflow-x:auto; min-width:0; }
@@ -2505,14 +2530,14 @@
     .rg-12 { grid-column:1 / -1;  min-width:0; }
     /* Nested grid: a 8-col region subdivided into its own 12 columns */
     .record-subgrid {
-      display:grid; grid-template-columns:repeat(3, minmax(0,1fr));
+      display:grid; grid-template-columns:repeat(3, minmax(180px,1fr));
       gap:var(--record-section-gap) var(--record-column-gap); align-items:start;
     }
     /* .equal makes every block in a row share one height — the right
        behaviour when blocks carry a surface (Technical), wrong when they
        are bare columns of fields (Overview), which read better top-aligned. */
     .record-subgrid.equal { align-items:stretch; }
-    .record-subgrid.cols-2 { grid-template-columns:repeat(2, minmax(0,1fr)); }
+    .record-subgrid.cols-2 { grid-template-columns:repeat(2, minmax(200px,1fr)); }
     .record-section { margin-top:var(--record-section-gap); }
 
     /* ══ DataColumn ══ a stack of blocks read top-to-bottom. The column
@@ -2560,8 +2585,14 @@
     .data-field-value {
       display:block; max-width:100%;
       font-size:var(--field-value-size); font-weight:500; color:var(--text-primary); line-height:1.45;
+      font-variant-numeric:tabular-nums;
     }
-    .data-field-value-text { overflow-wrap:break-word; min-width:0; }
+    /* Wrap at word boundaries first — identifiers, lot numbers and short
+       values must never break mid-character. overflow-wrap:break-word
+       is a last-resort fallback for a single token wider than the
+       column, not the default behavior (was breaking "Honduras" etc.
+       whenever a narrow grid column made overflow-wrap fire early). */
+    .data-field-value-text { word-break:normal; overflow-wrap:break-word; min-width:0; }
     .data-field-lg .data-field-value { font-size:var(--field-value-size-lg); font-weight:650; letter-spacing:-0.015em; }
     .data-field-empty .data-field-value { color:var(--text-muted); font-weight:400; }
     .data-field-multiline .data-field-value { display:block; white-space:pre-line; }
@@ -2819,11 +2850,11 @@
        arbitrarily because nothing has a hand-set width. */
     @media (max-width:1080px) {
       .rg-3, .rg-4, .rg-5, .rg-6, .rg-7, .rg-8, .rg-9 { grid-column:1 / -1; }
-      .record-subgrid { grid-template-columns:repeat(3, minmax(0,1fr)); }
+      .record-subgrid { grid-template-columns:repeat(3, minmax(160px,1fr)); }
       .object-header { position:static; }
     }
     @media (max-width:860px) {
-      .record-subgrid, .record-subgrid.cols-2 { grid-template-columns:repeat(2, minmax(0,1fr)); }
+      .record-subgrid, .record-subgrid.cols-2 { grid-template-columns:repeat(2, minmax(180px,1fr)); }
       .data-fields-3 { grid-template-columns:repeat(2, minmax(0,1fr)); }
       .object-header-main { flex-direction:column; gap:14px; }
       .object-header-aside { justify-content:flex-start; }
@@ -3418,7 +3449,7 @@
       font-weight: 600; cursor: pointer; transition: background 0.1s, color 0.1s, border-color 0.1s;
     }
     .yc-seg-btn:hover { background: var(--surface-hover); }
-    .yc-seg-btn.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .yc-seg-btn.is-active { background: var(--interactive-primary-bg); border-color: var(--interactive-primary-bg); color: var(--interactive-primary-text); }
     .yc-other-input { margin-top: 8px; }
 
     .yc-hint { font-size: 12px; color: var(--text-muted); margin-top: 8px; line-height: 1.45; }
@@ -3908,7 +3939,7 @@
     .cat-toolbar-search input { width:100%; padding-left:1.9rem !important; }
     .cat-toolbar-spacer { flex:1; }
     .cat-tb-btn { position:relative; display:inline-flex; align-items:center; gap:0.35rem; }
-    .cat-tb-btn.has-value { border-color:var(--accent); color:var(--accent-ink,var(--text)); }
+    .cat-tb-btn.has-value { border-color:var(--accent); color:var(--accent-dark,var(--text)); }
     .cat-tb-btn-dot { width:6px; height:6px; border-radius:50%; background:var(--accent); }
     .cat-pop { min-width:230px; max-height:340px; overflow-y:auto; }
     .cat-pop-title { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-3); padding:0.3rem 0.5rem 0.4rem; }
@@ -3966,7 +3997,7 @@
     /* ── WorkflowStepper ── */
     .ord-steps { display:flex; align-items:center; flex-wrap:wrap; gap:0.25rem; margin-bottom:var(--section-gap); }
     .ord-step { font-size:0.66rem; font-weight:600; color:var(--text-3); padding:0.32rem 0.65rem; border-radius:var(--r-pill); background:var(--surface2); white-space:nowrap; }
-    .ord-step.current { color:var(--accent-ink); background:var(--accent); }
+    .ord-step.current { color:var(--interactive-primary-text); background:var(--interactive-primary-bg); }
     .ord-step.done { color:var(--text-2); }
     .ord-arrow { color:var(--text-3); font-size:0.65rem; }
     .pick-scan-dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
@@ -13089,8 +13120,9 @@ function showStyleGuide() {
             <div class="sg-section-note">Spotlight</div>
           </div>
           <div class="sg-canvas" style="padding:0.6rem">
-            <div class="spotlight-row" style="cursor:default"><span class="spotlight-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg></span><span class="spotlight-row-info"><span class="spotlight-row-title">Cotton Jersey 180g</span><span class="spotlight-row-sub">SIERRA Fabric · FAB-1024</span></span></div>
-            <div class="spotlight-row focused" style="cursor:default"><span class="spotlight-row-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="spotlight-row-info"><span class="spotlight-row-title">New product</span><span class="spotlight-row-sub">Action</span></span></div>
+            <div class="sg-canvas-label">Result rows — canonical markup (.spotlight-row-info wraps two stacked DIVs; title and metadata never share a line)</div>
+            <div class="spotlight-row" style="cursor:default"><div class="spotlight-row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg></div><div class="spotlight-row-info"><div class="spotlight-row-title">Cotton Jersey <mark class="sh">180g</mark></div><div class="spotlight-row-sub">SIERRA Fabric · FAB-1024</div></div><span class="spotlight-row-badge" style="background:var(--sem-green-light);color:var(--sem-green-dark-text)">Fabric</span></div>
+            <div class="spotlight-row focused" style="cursor:default"><div class="spotlight-row-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></div><div class="spotlight-row-info"><div class="spotlight-row-title">New product</div><div class="spotlight-row-sub">Action</div></div></div>
           </div>
           <div class="sg-usage">
             <div class="sg-use"><b>Use</b>Spotlight as the global entry point for search and commands: <span class="sg-kbd">⌘</span> <span class="sg-kbd">K</span> opens, type to filter products and actions, <span class="sg-kbd">↑↓</span> navigate, <span class="sg-kbd">↵</span> opens, <span class="sg-kbd">esc</span> closes. Results grouped under micro-labels with highlighted matches. Full-screen takeover on mobile.</div>
