@@ -4624,6 +4624,78 @@
     .emp-filter-clear { font-size: 0.74rem; font-weight: 600; color: var(--text-3); background: none; border: none; cursor: pointer; padding: 0 4px; }
     .emp-filter-clear:hover { color: var(--text-primary); }
 
+    /* ── Organización workspace ── */
+    .filter-count-badge { display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; padding:0 4px; border-radius:8px; background:var(--teal); color:#fff; font-size:0.62rem; font-weight:700; margin-left:4px; }
+    .org-view-switch { display:flex; gap:0.4rem; margin:0.9rem 0 0.8rem; border-bottom:1px solid var(--border); }
+    .org-view-btn { padding:0.5rem 0.2rem; margin-right:1.1rem; background:none; border:none; border-bottom:2px solid transparent; font-size:0.85rem; font-weight:600; color:var(--text-secondary); cursor:pointer; }
+    .org-view-btn.active { color:var(--teal); border-bottom-color:var(--teal); }
+    .org-view-btn:hover { color:var(--text-primary); }
+    .org-toolbar { display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.6rem; }
+    .org-search-wrap { position:relative; flex:1; min-width:220px; max-width:420px; }
+    .org-search-input { width:100%; padding:0.5rem 0.7rem 0.5rem 2rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:0.85rem; min-height:38px; }
+    .org-search-input:focus-visible { outline:2px solid var(--teal); outline-offset:1px; }
+    .org-result-count { font-size:0.76rem; color:var(--text-3); margin-bottom:0.6rem; }
+    .org-issue-chip { display:inline-flex; align-items:center; gap:4px; font-size:0.66rem; font-weight:600; padding:0.15rem 0.4rem; border-radius:8px; white-space:nowrap; margin:1px 3px 1px 0; border:1px solid transparent; }
+    .org-issue-review { background:var(--warning-bg); color:var(--warning-text); border-color:var(--warning-border); }
+    .org-issue-blocking { background:var(--danger-bg); color:var(--danger); border-color:var(--danger-border); }
+
+    .org-chart-controls { display:flex; align-items:center; justify-content:space-between; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.6rem; }
+    .org-chart-controls-group { display:flex; align-items:center; gap:0.3rem; }
+    .org-zoom-label { font-size:0.72rem; color:var(--text-3); min-width:2.6em; text-align:center; font-variant-numeric:tabular-nums; }
+    .org-chart-viewport { overflow:auto; border:1px solid var(--border); border-radius:var(--panel-radius); background:var(--surface2); min-height:360px; max-height:calc(100vh - 480px); position:relative; }
+    .org-chart-canvas { display:inline-block; min-width:100%; padding:1.2rem 1.4rem 2rem; transform-origin:top left; }
+    .org-tree, .org-node-children { list-style:none; margin:0; padding:0; }
+    .org-node-children { margin-left:26px; padding-left:18px; border-left:1px dashed var(--border); margin-top:2px; }
+    .org-tree > li { margin-bottom:2px; }
+    .org-node-row { display:flex; align-items:flex-start; gap:2px; margin:3px 0; }
+    .org-expand-btn, .org-expand-spacer { width:22px; height:22px; min-width:22px; display:flex; align-items:center; justify-content:center; margin-top:9px; }
+    .org-expand-btn { border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--text-secondary); cursor:pointer; padding:0; }
+    .org-expand-btn:hover { background:var(--surface-hover,var(--surface2)); color:var(--text-primary); }
+    .org-node-card {
+      display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border); border-radius:10px;
+      padding:0.45rem 0.6rem; min-width:230px; max-width:280px; cursor:pointer; position:relative;
+    }
+    .org-node-card:hover { border-color:var(--teal); }
+    .org-node-card:focus-visible, .org-node-card.is-selected { outline:none; border-color:var(--teal); box-shadow:0 0 0 2px color-mix(in srgb, var(--teal) 35%, transparent); }
+    .org-node-card.is-focused { background:color-mix(in srgb, var(--teal) 8%, var(--surface)); }
+    .org-node-card.has-issue { border-color:var(--warning-border); }
+    .org-node-card.has-blocking-issue { border-color:var(--danger-border); }
+    .org-node-avatar { width:30px; height:30px; min-width:30px; border-radius:50%; overflow:hidden; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:700; color:var(--text-secondary); }
+    .org-node-avatar img { width:100%; height:100%; object-fit:cover; }
+    .org-node-main { min-width:0; flex:1; }
+    .org-node-name { font-size:0.82rem; font-weight:650; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .org-node-meta { font-size:0.72rem; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .org-node-sub { font-size:0.66rem; color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .org-node-cross { font-size:0.62rem; color:var(--warning-text); display:flex; align-items:center; gap:3px; margin-top:1px; }
+    .org-node-side { display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+    .org-node-reports { font-size:0.66rem; color:var(--text-secondary); display:flex; align-items:center; gap:2px; white-space:nowrap; }
+    .org-node-warn { color:var(--warning-text); display:flex; }
+    .org-node-card.has-blocking-issue .org-node-warn { color:var(--danger); }
+    .org-node-open { position:absolute; top:2px; right:2px; width:20px; height:20px; border:none; background:none; color:var(--text-3); cursor:pointer; display:flex; align-items:center; justify-content:center; border-radius:5px; opacity:0; }
+    .org-node-card:hover .org-node-open, .org-node-card:focus-visible .org-node-open { opacity:1; }
+    .org-node-open:hover { background:var(--surface2); color:var(--text-primary); }
+    .org-selected-panel { display:flex; align-items:center; justify-content:space-between; gap:0.8rem; flex-wrap:wrap; margin-top:0.8rem; padding:0.6rem 0.8rem; border:1px solid var(--border); border-radius:10px; background:var(--surface2); font-size:0.82rem; }
+    .org-selected-actions { display:flex; gap:0.4rem; flex-wrap:wrap; }
+
+    .org-candidate-list { max-height:220px; overflow:auto; border:1px solid var(--border); border-radius:8px; }
+    .org-candidate-row { display:flex; align-items:center; justify-content:space-between; gap:0.5rem; width:100%; text-align:left; padding:0.5rem 0.7rem; background:none; border:none; border-bottom:1px solid var(--border); cursor:pointer; min-height:44px; }
+    .org-candidate-row:last-child { border-bottom:none; }
+    .org-candidate-row:hover { background:var(--surface2); }
+    .org-candidate-flag { font-size:0.62rem; font-weight:700; padding:0.1rem 0.35rem; border-radius:6px; background:var(--warning-bg); color:var(--warning-text); white-space:nowrap; }
+    .org-candidate-picked { display:flex; align-items:center; gap:0.6rem; padding:0.5rem 0.6rem; border:1px solid var(--border); border-radius:8px; margin-bottom:0.5rem; }
+    .org-impact-preview { margin-top:1rem; padding:0.7rem 0.8rem; border:1px solid var(--border); border-radius:10px; background:var(--surface2); }
+    .org-impact-row { display:flex; justify-content:space-between; gap:0.6rem; font-size:0.8rem; padding:0.2rem 0; }
+    .org-confirm-cross { display:flex; align-items:flex-start; gap:6px; font-size:0.78rem; margin-top:0.6rem; color:var(--warning-text); cursor:pointer; }
+
+    @media (max-width: 780px) {
+      .org-chart-viewport { max-height:calc(100vh - 380px); }
+      .org-node-card { min-width:0; max-width:none; }
+      .org-chart-controls-group .btn span { display:none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .org-chart-canvas, .org-expand-btn svg { transition:none !important; }
+    }
+
     .emp-photo-cell { display: flex; align-items: center; gap: 6px; }
     .emp-photo-thumb { width: 30px; height: 30px; border-radius: 7px; object-fit: cover; flex-shrink: 0; }
     .emp-photo-missing {
@@ -8268,6 +8340,12 @@ const SI_ICON = {
   mail:                 `<path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10z" /><path d="M3 7l9 6l9 -6" />`,
   'credit-card':        `<path d="M3 5m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" /><path d="M3 10l18 0" />`,
   droplet:              `<path d="M7.501 19.35a7.5 7.5 0 0 0 9.201 -.998a7.487 7.487 0 0 0 2.078 -6.86c-.238 -1.163 -.9 -2.24 -1.879 -3.36l-4.9 -5.632l-4.9 5.633c-.98 1.119 -1.64 2.196 -1.88 3.36a7.49 7.49 0 0 0 2.28 6.858z" />`,
+  'alert-circle':       `<path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 8v4" /><path d="M12 16h.01" />`,
+  'zoom-in':            `<path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /><path d="M7 10l6 0" /><path d="M10 7l0 6" />`,
+  'zoom-out':           `<path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /><path d="M7 10l6 0" />`,
+  maximize:             `<path d="M16 4l4 0l0 4" /><path d="M14 10l6 -6" /><path d="M8 20l-4 0l0 -4" /><path d="M4 20l6 -6" /><path d="M16 20l4 0l0 -4" /><path d="M14 14l6 6" /><path d="M8 4l-4 0l0 4" /><path d="M4 4l6 6" />`,
+  'chevrons-down':      `<path d="M7 7l5 5l5 -5" /><path d="M7 13l5 5l5 -5" />`,
+  'chevrons-up':        `<path d="M7 17l5 -5l5 5" /><path d="M7 11l5 -5l5 5" />`,
 }
 function siIcon(name, size = 14) {
   const d = SI_ICON[name]
@@ -14100,7 +14178,10 @@ let _badge = {
   birthdayCards: [],            // birthday_cards for active site (all statuses, all years present)
   templates: {},              // badge templates by site
   companies: {},              // companies by country
-  countries: []               // list of countries
+  countries: [],              // list of countries
+  reportingRelationships: [],  // current + historical employee_reporting_relationships touching the active-site roster
+  supervisorReviews: [],       // employee_supervisor_review rows (legacy supervisor_name migration queue)
+  orgExtraEmployees: {}        // employee id -> lightweight employee record, for managers/reports outside the active site
 }
 
 // Employee master-data table — column definitions (Section 8/9 of the ERP
@@ -14179,7 +14260,7 @@ function empGroupedList(list) {
 }
 
 let _badge_ui = {
-  view: 'overview',           // 'overview', 'employees', 'moments', 'badge-queue', 'history', 'companies', 'settings'
+  view: 'overview',           // 'overview', 'employees', 'organization', 'moments', 'badge-queue', 'history', 'companies', 'settings'
   employeeView: 'table',      // 'table' | 'cards'
   employeeSearch: '',
   filters: {                  // multi-select facet filters, each a Set of values
@@ -14210,7 +14291,48 @@ let _badge_ui = {
     types: new Set(['birthday', 'anniversary', 'new_hire']),
     department: new Set(), status: new Set(),
   },
-  cardGenerator: null          // { employeeId, year, card, draft: {display_name, position, message, template_id, format}, saving }
+  cardGenerator: null,         // { employeeId, year, card, draft: {display_name, position, message, template_id, format}, saving }
+  org: (() => {                // Organización workspace — persisted for the session (sessionStorage)
+    const dflt = {
+      view: 'chart',            // 'chart' | 'directory'
+      search: '',
+      filters: { company: new Set(), country: new Set(), department: new Set(), employee_status: new Set(['active']), issue: new Set() },
+      expanded: [],             // array (serializable) of expanded employee ids in the chart
+      focusId: null,            // employee id centered/highlighted in the chart
+      selectedId: null,         // employee id selected in directory/chart
+      zoom: 1,
+      assign: null,             // { employeeId, managerQuery, managerId, effectiveDate, reason, note, confirmCross } — active manager-assignment drawer
+      sort: 'name_asc',
+    }
+    try {
+      const stored = JSON.parse(sessionStorage.getItem('sierra_org_ui'))
+      if (stored && typeof stored === 'object') {
+        return {
+          ...dflt, ...stored,
+          filters: {
+            company: new Set(stored.filters?.company || []),
+            country: new Set(stored.filters?.country || []),
+            department: new Set(stored.filters?.department || []),
+            employee_status: new Set(stored.filters?.employee_status || ['active']),
+            issue: new Set(stored.filters?.issue || []),
+          },
+          expanded: Array.isArray(stored.expanded) ? stored.expanded : [],
+          assign: null,
+        }
+      }
+    } catch {}
+    return dflt
+  })()
+}
+// Persist Organización view/filters for the session (survives navigating
+// away and back, and a reload) — never survives across users/devices.
+function persistOrgUi() {
+  try {
+    sessionStorage.setItem('sierra_org_ui', JSON.stringify({
+      ...( _badge_ui.org ), assign: null,
+      filters: Object.fromEntries(Object.entries(_badge_ui.org.filters).map(([k, v]) => [k, [...v]])),
+    }))
+  } catch {}
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -14322,7 +14444,61 @@ async function loadBadgeData() {
       .select('id, employee_id, moment_type, event_year, status, template_id, content, asset_png_url, asset_pdf_generated_at, skip_reason, created_by, approved_by, created_at, updated_at, approved_at, completed_at')
       .eq('site_id', _badge.activeSite)
     _badge.birthdayCards = cards || []
+
+    await loadOrgReportingData()
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// ORGANIZACIÓN — data loading. Tolerant of update26.sql not being applied
+// yet (the workspace shows its "migration not applied" empty state
+// instead of failing the whole module load — see renderOrganizationView).
+// ══════════════════════════════════════════════════════════════════════
+async function loadOrgReportingData() {
+  const siteEmpIds = _badge.employees.map(e => e.id)
+  if (!siteEmpIds.length) { _badge.reportingRelationships = []; _badge.supervisorReviews = []; _badge.orgExtraEmployees = {}; return }
+
+  // Give any future-dated relationship whose effective date has arrived a
+  // chance to become current before we read the "current" set.
+  if (can('write', 'talento_humano')) {
+    try { await sb.rpc('activate_due_reporting_relationships') } catch {}
+  }
+
+  const { data: rels, error: relErr } = await sb.from('employee_reporting_relationships')
+    .select('id, employee_id, manager_employee_id, relationship_type, effective_from, effective_to, is_current, site_id, reason, note, created_by, created_at, updated_by, updated_at')
+    .or(`employee_id.in.(${siteEmpIds.join(',')}),manager_employee_id.in.(${siteEmpIds.join(',')})`)
+  if (relErr) { _badge.reportingRelationshipsUnavailable = true; _badge.reportingRelationships = []; return }
+  _badge.reportingRelationshipsUnavailable = false
+  _badge.reportingRelationships = rels || []
+
+  const { data: reviews } = await sb.from('employee_supervisor_review')
+    .select('id, employee_id, legacy_supervisor_name, match_status, candidate_employee_ids, resolved_manager_employee_id, resolved_at, created_at')
+    .in('employee_id', siteEmpIds)
+  _badge.supervisorReviews = reviews || []
+
+  // Employees referenced by a relationship (as manager or report) who
+  // aren't in the active-site roster — fetched read-only, minimal fields,
+  // so cross-site/cross-company chains render without switching context.
+  const siteSet = new Set(siteEmpIds)
+  const extraIds = new Set()
+  ;(rels || []).forEach(r => {
+    if (!siteSet.has(r.employee_id)) extraIds.add(r.employee_id)
+    if (!siteSet.has(r.manager_employee_id)) extraIds.add(r.manager_employee_id)
+  })
+  ;(reviews || []).forEach(r => (r.candidate_employee_ids || []).forEach(id => { if (!siteSet.has(id)) extraIds.add(id) }))
+  _badge.orgExtraEmployees = {}
+  if (extraIds.size) {
+    const { data: extras } = await sb.from('employees')
+      .select('id, first_name, last_name, employee_code, position, department, company, country, site_id, employee_status, photo_url, hire_date')
+      .in('id', [...extraIds])
+    ;(extras || []).forEach(e => { _badge.orgExtraEmployees[e.id] = e })
+  }
+}
+
+// Any employee touched by the org graph — active-site roster first,
+// falling back to the lightweight cross-site/company records.
+function orgEmpById(id) {
+  return _badge.employees.find(e => e.id === id) || _badge.orgExtraEmployees[id] || null
 }
 
 // ONE PageHeader (the shared #sec-title/#sec-sub content-hdr) carries the
@@ -14342,6 +14518,7 @@ function renderBadgeModule() {
       <div class="badge-main-panel">
         ${_badge_ui.view === 'overview' ? renderOverviewView() : ''}
         ${_badge_ui.view === 'employees' ? renderEmployeesView() : ''}
+        ${_badge_ui.view === 'organization' ? renderOrganizationView() : ''}
         ${_badge_ui.view === 'moments' ? renderMomentosView() : ''}
         ${_badge_ui.view === 'badge-queue' ? renderBadgeQueueView() : ''}
         ${_badge_ui.view === 'history' ? renderHistoryView() : ''}
@@ -14392,6 +14569,7 @@ function renderBadgeTabs() {
   const navItems = [
     { id: 'overview', label: 'Resumen' },
     { id: 'employees', label: 'Colaboradores' },
+    { id: 'organization', label: 'Organización' },
     { id: 'moments', label: 'Momentos' },
     { id: 'badge-queue', label: 'Cola de gafetes' },
     { id: 'history', label: 'Historial' },
@@ -15739,6 +15917,7 @@ function renderEmpOverviewTab(emp) {
   return `
     <div class="data-column">
       ${dataBlockHtml('Organización', org, { aside: canEditEmpField() ? '<button type="button" class="btn btn-ghost btn-sm" onclick="empStartEdit()" style="padding:2px 6px">Editar</button>' : null })}
+      ${orgProfileSectionHtml(emp)}
       ${contact ? dataBlockHtml('Contacto', contact) : dataBlockHtml('Contacto', emptyStateHtml({ title: 'Sin información de contacto', desc: 'Agrega un correo o teléfono para este colaborador.', actionLabel: canEditEmpField() ? 'Completar' : null, actionOnClick: 'empStartEdit()' }))}
       ${moments ? dataBlockHtml('Próximo momento', moments) : ''}
       ${dataBlockHtml('Gafete', empBadgeSummaryHtml(emp))}
@@ -18894,6 +19073,1019 @@ document.addEventListener('keydown', e => {
     closeScanMode()
   }
 })
+
+/* ══════════════════════════════════════════════════════════════════════
+   ORGANIZACIÓN — Talento Humano workspace: Organigrama + Directorio
+   organizacional, generated entirely from employee_reporting_relationships
+   (update26.sql). No payroll/compensation data anywhere in this section.
+
+   Section map:
+   1. Hierarchy core — pure functions (no DOM, no globals mutated),
+      reused by the chart, the directory, the profile section and the
+      manual validation harness (runOrgValidationHarness()).
+   2. Issue detection.
+   3. Workspace shell + overview metrics.
+   4. Directorio organizacional (table).
+   5. Organigrama (progressive tree).
+   6. Assign/change manager drawer.
+   7. Employee-profile "Estructura organizacional" section.
+   ══════════════════════════════════════════════════════════════════════ */
+
+// ── 1. HIERARCHY CORE ──────────────────────────────────────────────────
+function orgCurrentManagerRelationship(employeeId, rels = _badge.reportingRelationships) {
+  const list = rels.filter(r => r.employee_id === employeeId && r.relationship_type === 'immediate_manager' && r.is_current)
+  return list[0] || null
+}
+function orgDirectReportIds(managerId, rels = _badge.reportingRelationships) {
+  return rels.filter(r => r.manager_employee_id === managerId && r.relationship_type === 'immediate_manager' && r.is_current).map(r => r.employee_id)
+}
+function orgDirectReportCount(managerId, rels = _badge.reportingRelationships) { return orgDirectReportIds(managerId, rels).length }
+
+// Would `managerId` become an ancestor of `employeeId`'s own descendants
+// (a cycle), or is it the employee itself (self-report)? Pure — the
+// relationship list is passed explicitly so it is unit-testable without
+// touching global state. Mirrors the DB trigger in update26.sql; the UI
+// check runs first for instant feedback, the DB check is the real gate.
+function orgWouldCreateCycle(employeeId, managerId, rels = _badge.reportingRelationships) {
+  if (!employeeId || !managerId) return false
+  if (employeeId === managerId) return true
+  const visited = new Set()
+  let current = managerId, hops = 0
+  while (current && hops < 10000) {
+    hops++
+    if (current === employeeId) return true
+    if (visited.has(current)) return false
+    visited.add(current)
+    const rel = orgCurrentManagerRelationship(current, rels)
+    current = rel ? rel.manager_employee_id : null
+  }
+  return false
+}
+// All transitive reports of an employee — used for the "how many reports
+// move with this change" impact preview and to exclude cycle-causing
+// candidates from the manager picker.
+function orgDescendantIds(employeeId, rels = _badge.reportingRelationships) {
+  const out = new Set(), queue = [employeeId]
+  while (queue.length) {
+    const id = queue.shift()
+    orgDirectReportIds(id, rels).forEach(childId => { if (!out.has(childId)) { out.add(childId); queue.push(childId) } })
+  }
+  return out
+}
+function orgEmpById(id) { return _badge.employees.find(e => e.id === id) || _badge.orgExtraEmployees[id] || null }
+function orgFullName(emp) { return emp ? `${emp.first_name} ${emp.last_name}`.trim() : '' }
+function orgSiteName(emp) { return emp ? (_badge.sites.find(s => s.id === emp.site_id)?.name || null) : null }
+// Real organizational levels only — company → site → department →
+// position. A missing level is skipped, never invented.
+function orgPathOf(employeeId) {
+  const emp = orgEmpById(employeeId)
+  if (!emp) return []
+  return [emp.company, orgSiteName(emp), emp.department, emp.position].filter(Boolean)
+}
+function orgPathText(employeeId) { return ['SIERRA', ...orgPathOf(employeeId)].join(' → ') }
+
+// Builds a forest restricted to `scopeIds`: roots are employees with no
+// current manager, or whose manager falls outside the scope (multiple
+// roots are expected and displayed as separate top-level branches — no
+// fake umbrella manager is ever invented).
+function orgBuildForest(scopeIds, rels = _badge.reportingRelationships) {
+  const scopeSet = new Set(scopeIds)
+  const childrenMap = new Map()
+  scopeIds.forEach(id => childrenMap.set(id, []))
+  scopeIds.forEach(id => {
+    const rel = orgCurrentManagerRelationship(id, rels)
+    if (rel && scopeSet.has(rel.manager_employee_id)) childrenMap.get(rel.manager_employee_id).push(id)
+  })
+  childrenMap.forEach(list => list.sort((a, b) => orgFullName(orgEmpById(a)).localeCompare(orgFullName(orgEmpById(b)))))
+  const roots = scopeIds
+    .filter(id => { const rel = orgCurrentManagerRelationship(id, rels); return !rel || !scopeSet.has(rel.manager_employee_id) })
+    .sort((a, b) => orgFullName(orgEmpById(a)).localeCompare(orgFullName(orgEmpById(b))))
+  return { roots, childrenMap }
+}
+// Path of ids from a scope root down to `employeeId`, for "expand from
+// root and center" on search — empty if the employee isn't in scope.
+function orgAncestorChain(employeeId, scopeIds, rels = _badge.reportingRelationships) {
+  const scopeSet = new Set(scopeIds)
+  if (!scopeSet.has(employeeId)) return []
+  const chain = [employeeId]
+  let current = employeeId
+  let hops = 0
+  while (hops++ < 200) {
+    const rel = orgCurrentManagerRelationship(current, rels)
+    if (!rel || !scopeSet.has(rel.manager_employee_id)) break
+    chain.unshift(rel.manager_employee_id)
+    current = rel.manager_employee_id
+  }
+  return chain
+}
+
+// ── 2. ISSUE DETECTION ── every issue names what's wrong, why it
+// matters, how to resolve it, and whether it blocks publication (a real
+// data-integrity problem the UI cannot fix) or is a review item (a
+// normal HR follow-up). Nothing here is a vague "relationship issue". ──
+const ORG_ISSUE_DEFS = {
+  no_manager: { label: 'Sin jefe inmediato', severity: 'review', blocks: false,
+    why: 'No se puede ubicar a este colaborador en el organigrama ni calcular su cadena de reporte.',
+    resolve: 'Asigna un jefe inmediato desde su perfil o desde el Directorio organizacional.' },
+  legacy_unmatched: { label: 'Supervisor histórico sin coincidencia', severity: 'review', blocks: false,
+    why: 'El valor histórico de "Supervisor inmediato" no coincide con ningún colaborador activo — no se creó ninguna relación automáticamente.',
+    resolve: 'Revisa el valor histórico en la cola de revisión y asigna manualmente el jefe correcto, si corresponde.' },
+  legacy_ambiguous: { label: 'Supervisor histórico ambiguo', severity: 'review', blocks: false,
+    why: 'El nombre histórico coincide con más de un colaborador activo; el sistema nunca elige por ti.',
+    resolve: 'Elige manualmente al colaborador correcto entre los candidatos, en la cola de revisión.' },
+  inactive_manager: { label: 'Jefe inmediato inactivo', severity: 'review', blocks: false,
+    why: 'El jefe inmediato asignado ya no está activo, pero la relación sigue vigente.',
+    resolve: 'Asigna un nuevo jefe inmediato activo.' },
+  cross_company: { label: 'Jefe en otra empresa', severity: 'review', blocks: false,
+    why: 'El colaborador y su jefe inmediato pertenecen a empresas distintas.',
+    resolve: 'Confirma que la relación entre empresas es intencional, o corrígela.' },
+  cross_site: { label: 'Jefe en otra sede', severity: 'review', blocks: false,
+    why: 'El colaborador y su jefe inmediato pertenecen a sedes distintas.',
+    resolve: 'Confirma que la relación entre sedes es intencional, o corrígela.' },
+  future_relationship: { label: 'Relación futura marcada vigente', severity: 'blocking', blocks: true,
+    why: 'Una relación con fecha de inicio futura aparece como vigente antes de tiempo — un problema de integridad de datos.',
+    resolve: 'Pide a un administrador que revise el registro en Supabase (activate_due_reporting_relationships).' },
+  expired_current: { label: 'Relación vencida marcada vigente', severity: 'blocking', blocks: true,
+    why: 'Esta relación tiene fecha de fin en el pasado pero sigue marcada como vigente.',
+    resolve: 'Pide a un administrador que cierre la relación vencida.' },
+  multiple_current_managers: { label: 'Más de un jefe vigente', severity: 'blocking', blocks: true,
+    why: 'Este colaborador tiene más de una relación de jefe inmediato vigente al mismo tiempo.',
+    resolve: 'Pide a un administrador que resuelva el conflicto de datos.' },
+}
+function orgIssuesFor(employeeId) {
+  const emp = orgEmpById(employeeId)
+  if (!emp) return []
+  const issues = []
+  const relsForEmp = _badge.reportingRelationships.filter(r => r.employee_id === employeeId && r.relationship_type === 'immediate_manager')
+  const current = relsForEmp.filter(r => r.is_current)
+  if (current.length > 1) issues.push({ type: 'multiple_current_managers', employeeId })
+  const rel = current[0]
+  const today = hrToday()
+  if (rel) {
+    const mgr = orgEmpById(rel.manager_employee_id)
+    if (mgr && mgr.employee_status !== 'active') issues.push({ type: 'inactive_manager', employeeId, managerId: mgr.id })
+    if (mgr && emp.company && mgr.company && emp.company !== mgr.company) issues.push({ type: 'cross_company', employeeId, managerId: mgr.id })
+    if (mgr && emp.site_id && mgr.site_id && emp.site_id !== mgr.site_id) issues.push({ type: 'cross_site', employeeId, managerId: mgr.id })
+    const from = parseDateOnly(rel.effective_from)
+    if (from && from > today) issues.push({ type: 'future_relationship', employeeId })
+    const to = parseDateOnly(rel.effective_to)
+    if (to && to < today) issues.push({ type: 'expired_current', employeeId })
+  } else if (emp.employee_status === 'active') {
+    const review = _badge.supervisorReviews.find(r => r.employee_id === employeeId && ['unmatched', 'ambiguous'].includes(r.match_status))
+    issues.push(review
+      ? { type: review.match_status === 'unmatched' ? 'legacy_unmatched' : 'legacy_ambiguous', employeeId, review }
+      : { type: 'no_manager', employeeId })
+  }
+  return issues
+}
+function orgIssueChipHtml(issue) {
+  const def = ORG_ISSUE_DEFS[issue.type]
+  if (!def) return ''
+  const tone = def.blocks ? 'org-issue-blocking' : 'org-issue-review'
+  return `<span class="org-issue-chip ${tone}" title="${escAttr(def.why)}">${siIcon(def.blocks ? 'alert-triangle' : 'alert-circle', 11)} ${esc(def.label)}</span>`
+}
+function orgAllIssues() {
+  return _badge.employees.flatMap(e => orgIssuesFor(e.id))
+}
+
+// ── 3. WORKSPACE SHELL + OVERVIEW METRICS ──────────────────────────────
+function orgSetView(v) { _badge_ui.org.view = v; persistOrgUi(); renderBadgeModule() }
+function orgSetOrgFilter(key, val, checked) {
+  if (checked) _badge_ui.org.filters[key].add(val); else _badge_ui.org.filters[key].delete(val)
+  persistOrgUi(); renderBadgeModule()
+}
+function orgRemoveFilterChip(key, val) { _badge_ui.org.filters[key].delete(val); persistOrgUi(); renderBadgeModule() }
+function orgClearFilters() {
+  Object.values(_badge_ui.org.filters).forEach(s => s.clear())
+  persistOrgUi(); renderBadgeModule()
+}
+function orgActiveFilterCount() { return Object.values(_badge_ui.org.filters).reduce((n, s) => n + s.size, 0) }
+const ORG_FILTER_LABELS = { company: 'Empresa', country: 'País', department: 'Departamento', employee_status: 'Estado', issue: 'Problema de jerarquía' }
+function orgFilterValueLabel(key, val) {
+  if (key === 'employee_status') return EMP_STATUS_LABELS[val] || val
+  if (key === 'issue') return ORG_ISSUE_DEFS[val]?.label || val
+  return val
+}
+function orgScopeEmployees() {
+  // Active-site roster, filtered by the Organización facet filters. The
+  // default (employee_status = active) hides inactive people from the
+  // current chart per spec, while historical/full data stays reachable
+  // through the Directorio (status filter can be cleared there).
+  return _badge.employees.filter(e => {
+    const f = _badge_ui.org.filters
+    if (f.company.size && !f.company.has(e.company)) return false
+    if (f.country.size && !f.country.has(e.country)) return false
+    if (f.department.size && !f.department.has(e.department)) return false
+    if (f.employee_status.size && !f.employee_status.has(e.employee_status)) return false
+    if (f.issue.size) {
+      const empIssueTypes = new Set(orgIssuesFor(e.id).map(i => i.type))
+      if (![...f.issue].some(t => empIssueTypes.has(t))) return false
+    }
+    // Future-hires never appear as active members before their start date.
+    if (e.employee_status === 'active') {
+      const hire = parseDateOnly(e.hire_date)
+      if (hire && hire > hrToday()) return false
+    }
+    return true
+  })
+}
+function orgFilterOptions(key) {
+  if (key === 'company') return [...new Set(_badge.employees.map(e => e.company).filter(Boolean))].sort()
+  if (key === 'country') return [...new Set(_badge.employees.map(e => e.country).filter(Boolean))].sort()
+  if (key === 'department') return [...new Set(_badge.employees.map(e => e.department).filter(Boolean))].sort()
+  if (key === 'employee_status') return ['active', 'inactive', 'terminated', 'on_leave', 'transferred']
+  if (key === 'issue') return Object.keys(ORG_ISSUE_DEFS)
+  return []
+}
+let _orgLastFilterValues = {}
+function orgFilterPopHtml() {
+  const groups = ['company', 'country', 'department', 'employee_status', 'issue']
+  let html = groups.map(key => {
+    const opts = orgFilterOptions(key)
+    _orgLastFilterValues[key] = opts
+    if (!opts.length) return ''
+    return `<div class="cat-pop-title">${esc(ORG_FILTER_LABELS[key])}</div>${opts.map((v, i) => `
+      <label class="cat-pop-row" style="cursor:pointer">
+        <input type="checkbox" ${_badge_ui.org.filters[key].has(v) ? 'checked' : ''} onchange="orgSetOrgFilter('${key}', _orgLastFilterValues['${key}'][${i}], this.checked)" />
+        ${esc(orgFilterValueLabel(key, v))}
+      </label>`).join('')}`
+  }).join('')
+  if (!html) html = `<div class="ws-pop-hint">Aún no hay atributos por filtrar.</div>`
+  if (orgActiveFilterCount()) html += `<div class="cat-pop-ftr"><button type="button" class="btn btn-secondary btn-sm" onclick="orgClearFilters()">Limpiar filtros</button></div>`
+  return html
+}
+function orgFilterChipsHtml() {
+  const chips = []
+  Object.keys(_badge_ui.org.filters).forEach(key => {
+    _badge_ui.org.filters[key].forEach(v => chips.push({ label: `${ORG_FILTER_LABELS[key]}: ${orgFilterValueLabel(key, v)}`, onRemove: `orgRemoveFilterChip('${key}','${jsStr(v)}')` }))
+  })
+  if (!chips.length) return ''
+  return `<div class="emp-filter-chips" style="margin-bottom:0.7rem">
+    ${chips.map(c => `<span class="emp-filter-chip">${esc(c.label)}<button type="button" onclick="${c.onRemove}" aria-label="Quitar filtro">✕</button></span>`).join('')}
+    <button type="button" class="emp-filter-clear" onclick="orgClearFilters()">Limpiar todo</button>
+  </div>`
+}
+
+function orgMetrics() {
+  const scope = orgScopeEmployees()
+  const active = scope.filter(e => e.employee_status === 'active')
+  const withManager = active.filter(e => orgCurrentManagerRelationship(e.id))
+  const withoutManager = active.filter(e => !orgCurrentManagerRelationship(e.id))
+  const managerIds = new Set(_badge.reportingRelationships.filter(r => r.relationship_type === 'immediate_manager' && r.is_current).map(r => r.manager_employee_id))
+  const inactiveManagersWithReports = [...managerIds].map(orgEmpById).filter(m => m && m.employee_status !== 'active' && orgDirectReportCount(m.id) > 0)
+  const crossSite = active.filter(e => orgIssuesFor(e.id).some(i => i.type === 'cross_site'))
+  const unresolvedLegacy = _badge.supervisorReviews.filter(r => ['unmatched', 'ambiguous'].includes(r.match_status))
+  const totalManagers = [...managerIds].filter(id => active.some(e => e.id === id) || orgEmpById(id)).length
+  const avgReports = totalManagers ? (withManager.length / totalManagers) : 0
+  return { scope, active, withManager, withoutManager, inactiveManagersWithReports, crossSite, unresolvedLegacy, totalManagers, avgReports }
+}
+function orgMetricTileHtml(value, label, onClick, tone) { return ovTileHtml({ value, label, onClick, tone }) }
+function orgGoToDirectoryFiltered(fn) {
+  orgClearFilters()
+  fn()
+  _badge_ui.org.view = 'directory'
+  persistOrgUi(); renderBadgeModule()
+}
+
+function renderOrganizationView() {
+  if (_badge.reportingRelationshipsUnavailable) return orgMigrationNotAppliedHtml()
+  const m = orgMetrics()
+  return `
+    <div class="org-workspace">
+      <div class="ov-grid">
+        ${orgMetricTileHtml(m.active.length, 'Colaboradores activos en alcance', `orgGoToDirectoryFiltered(()=>{})`)}
+        ${orgMetricTileHtml(m.withManager.length, 'Con jefe asignado', `orgGoToDirectoryFiltered(()=>{})`)}
+        ${orgMetricTileHtml(m.withoutManager.length, 'Sin jefe asignado', `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('no_manager'))`, m.withoutManager.length ? 'warning' : null)}
+        ${orgMetricTileHtml(m.inactiveManagersWithReports.length, 'Jefes inactivos con reportes activos', `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('inactive_manager'))`, m.inactiveManagersWithReports.length ? 'warning' : null)}
+        ${orgMetricTileHtml(m.crossSite.length, 'Relaciones entre sedes por revisar', `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('cross_site'))`, m.crossSite.length ? 'warning' : null)}
+        ${orgMetricTileHtml(m.unresolvedLegacy.length, 'Supervisores históricos sin resolver', `orgShowLegacyReviewQueue()`, m.unresolvedLegacy.length ? 'warning' : null)}
+        ${orgMetricTileHtml(m.totalManagers, 'Jefes en el alcance actual', `orgGoToDirectoryFiltered(()=>{})`)}
+        ${orgMetricTileHtml(m.avgReports.toFixed(1), 'Reportes directos, promedio', `orgGoToDirectoryFiltered(()=>{})`)}
+      </div>
+      <div class="org-view-switch" role="tablist" aria-label="Vista de Organización">
+        <button class="org-view-btn ${_badge_ui.org.view === 'chart' ? 'active' : ''}" role="tab" aria-selected="${_badge_ui.org.view === 'chart'}" onclick="orgSetView('chart')">Organigrama</button>
+        <button class="org-view-btn ${_badge_ui.org.view === 'directory' ? 'active' : ''}" role="tab" aria-selected="${_badge_ui.org.view === 'directory'}" onclick="orgSetView('directory')">Directorio organizacional</button>
+      </div>
+      <div class="org-toolbar">
+        <div class="org-search-wrap">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3)"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M17 17l-3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <input type="text" class="org-search-input" placeholder="Buscar por nombre, código, puesto o departamento…" value="${escAttr(_badge_ui.org.search)}" oninput="orgOnSearchInput(this.value)" aria-label="Buscar colaborador" />
+        </div>
+        <div style="position:relative">
+          <button class="btn btn-secondary btn-sm" onclick="catTogglePop(event,'org-filter-pop')">${siIcon('filter', 13)} Filtros ${orgActiveFilterCount() ? `<span class="filter-count-badge">${orgActiveFilterCount()}</span>` : ''}</button>
+          <div class="ws-pop cat-pop" id="org-filter-pop" style="right:0;left:auto;min-width:260px">${orgFilterPopHtml()}</div>
+        </div>
+        ${can('write', 'talento_humano') ? `<button class="btn btn-ghost btn-sm" onclick="orgShowLegacyReviewQueue()">Cola de revisión${m.unresolvedLegacy.length ? ` (${m.unresolvedLegacy.length})` : ''}</button>` : ''}
+      </div>
+      ${orgFilterChipsHtml()}
+      <div class="org-result-count">${m.scope.length} colaborador${m.scope.length !== 1 ? 'es' : ''} en el alcance actual${orgActiveFilterCount() ? ' · filtros activos' : ''}</div>
+      ${_badge_ui.org.view === 'chart' ? renderOrgChartView() : renderOrgDirectoryView()}
+    </div>
+  `
+}
+function orgOnSearchInput(v) {
+  _badge_ui.org.search = v
+  clearTimeout(_orgSearchDebounce)
+  _orgSearchDebounce = setTimeout(() => { persistOrgUi(); renderBadgeModule(); orgFocusFirstSearchResult() }, 220)
+}
+let _orgSearchDebounce = null
+function orgMigrationNotAppliedHtml() {
+  return `<div class="org-workspace">
+    ${emptyStateHtml({
+      title: 'La migración de Organización aún no se ha aplicado',
+      desc: 'El módulo necesita la tabla employee_reporting_relationships (update26.sql). Pide a un administrador que ejecute update26.sql en Supabase > SQL Editor y recargue esta página. Mientras tanto, el campo histórico "Supervisor inmediato" sigue disponible en cada colaborador.',
+    })}
+  </div>`
+}
+
+// ── 4. DIRECTORIO ORGANIZACIONAL ────────────────────────────────────────
+const ORG_SORTS = {
+  name_asc: { label: 'Nombre (A–Z)', fn: (a, b) => orgFullName(a).localeCompare(orgFullName(b)) },
+  code_asc: { label: 'Código', fn: (a, b) => (a.employee_code || '').localeCompare(b.employee_code || '') },
+  department: { label: 'Departamento', fn: (a, b) => (a.department || '').localeCompare(b.department || '') },
+  reports_desc: { label: 'Más reportes directos', fn: (a, b) => orgDirectReportCount(b.id) - orgDirectReportCount(a.id) },
+}
+function orgDirectorySetSort(key) { _badge_ui.org.sort = key; wsClosePopovers(); persistOrgUi(); renderBadgeModule() }
+function orgDirectoryList() {
+  const q = (_badge_ui.org.search || '').toLowerCase().trim()
+  let list = orgScopeEmployees().filter(e => {
+    if (!q) return true
+    const hay = [e.first_name, e.last_name, e.employee_code, e.position, e.department].filter(Boolean).join(' ').toLowerCase()
+    return hay.includes(q)
+  })
+  const sorter = ORG_SORTS[_badge_ui.org.sort]?.fn || ORG_SORTS.name_asc.fn
+  return [...list].sort(sorter)
+}
+function orgRelationshipStatusLabel(rel) {
+  if (!rel) return '—'
+  if (!rel.is_current) return 'Histórica'
+  const from = parseDateOnly(rel.effective_from)
+  if (from && from > hrToday()) return 'Programada'
+  return 'Vigente'
+}
+function renderOrgDirectoryView() {
+  const list = orgDirectoryList()
+  if (!list.length) {
+    return emptyStateHtml({
+      title: 'No encontramos colaboradores con estos criterios',
+      desc: 'Ajusta la búsqueda o los filtros del Directorio organizacional.',
+      actionLabel: 'Limpiar filtros', actionOnClick: 'orgClearFilters()',
+    })
+  }
+  return `
+  <div class="erp-table-wrap" style="max-height:calc(100vh - 460px)">
+    <table class="erp-table">
+      <thead><tr>
+        <th style="cursor:pointer" onclick="orgDirectorySetSort('name_asc')">Colaborador</th>
+        <th style="cursor:pointer" onclick="orgDirectorySetSort('code_asc')">Código</th>
+        <th>Empresa</th><th>Sede</th>
+        <th style="cursor:pointer" onclick="orgDirectorySetSort('department')">Departamento</th>
+        <th>Puesto</th><th>Jefe inmediato</th>
+        <th style="cursor:pointer" onclick="orgDirectorySetSort('reports_desc')">Reportes directos</th>
+        <th>Estado relación</th><th>Fecha efectiva</th><th>Problema</th><th>Acciones</th>
+      </tr></thead>
+      <tbody>
+        ${list.map(e => {
+          const rel = orgCurrentManagerRelationship(e.id)
+          const mgr = rel ? orgEmpById(rel.manager_employee_id) : null
+          const issues = orgIssuesFor(e.id)
+          const reportCount = orgDirectReportCount(e.id)
+          return `<tr class="is-clickable" onclick="viewEmployeeDetail('${e.id}')">
+            <td class="emp-td-trunc" title="${escAttr(orgFullName(e))}">${esc(orgFullName(e))}</td>
+            <td onclick="event.stopPropagation()"><code>${esc(e.employee_code || '—')}</code>${e.employee_code ? `<button type="button" class="emp-detail-hdr-code-copy" onclick="copyFieldValue(this,'${jsStr(e.employee_code)}','Código')" title="Copiar código">${FIELD_COPY_ICON}</button>` : ''}</td>
+            <td class="emp-td-trunc">${esc(e.company || '—')}</td>
+            <td class="emp-td-trunc">${esc(orgSiteName(e) || '—')}</td>
+            <td class="emp-td-trunc" title="${escAttr(e.department || '')}">${esc(e.department || '—')}</td>
+            <td class="emp-td-trunc" title="${escAttr(e.position || '')}">${esc(e.position || '—')}</td>
+            <td class="emp-td-trunc" onclick="event.stopPropagation()">
+              ${mgr ? `<a href="#" onclick="event.preventDefault();viewEmployeeDetail('${mgr.id}')">${esc(orgFullName(mgr))}</a>` : '<span style="color:var(--text-3)">—</span>'}
+              ${mgr ? `<button type="button" class="emp-detail-hdr-code-copy" onclick="copyFieldValue(this,'${jsStr(orgFullName(mgr))}','Jefe inmediato')" title="Copiar jefe inmediato">${FIELD_COPY_ICON}</button>` : ''}
+            </td>
+            <td data-num>${reportCount || '—'}</td>
+            <td>${orgRelationshipStatusLabel(rel)}</td>
+            <td>${rel ? hrFmtDate(rel.effective_from) : '—'}</td>
+            <td>${issues.length ? issues.map(orgIssueChipHtml).join('') : `<span style="color:var(--text-3)">—</span>`}</td>
+            <td onclick="event.stopPropagation()">
+              ${overflowMenuHtml([
+                { label: 'Ver en organigrama', onClick: `orgFocusInChart('${e.id}')` },
+                { label: 'Copiar resumen organizacional', onClick: `orgCopySummary('${e.id}')` },
+                ...(can('write', 'talento_humano') ? [{ label: 'Cambiar jefe inmediato', onClick: `orgOpenAssignManager('${e.id}')` }] : []),
+              ], { btnClass: 'menu-below', title: 'Acciones' })}
+            </td>
+          </tr>`
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`
+}
+// Copy-safe organizational summary — matches the field set the spec
+// calls out exactly (name, code, company, site, department, position,
+// immediate manager). No payroll, no identification, no medical data.
+function orgSummaryText(employeeId) {
+  const emp = orgEmpById(employeeId)
+  if (!emp) return ''
+  const rel = orgCurrentManagerRelationship(employeeId)
+  const mgr = rel ? orgEmpById(rel.manager_employee_id) : null
+  return [
+    `Nombre: ${orgFullName(emp)}`,
+    emp.employee_code ? `Código de colaborador: ${emp.employee_code}` : null,
+    emp.company ? `Empresa: ${emp.company}` : null,
+    orgSiteName(emp) ? `Sede: ${orgSiteName(emp)}` : null,
+    emp.department ? `Departamento: ${emp.department}` : null,
+    emp.position ? `Puesto: ${emp.position}` : null,
+    `Jefe inmediato: ${mgr ? orgFullName(mgr) : 'Sin asignar'}`,
+  ].filter(Boolean).join('\n')
+}
+function orgCopySummary(employeeId) { copyToClipboard(orgSummaryText(employeeId), 'Resumen organizacional copiado') }
+function orgCopyManager(employeeId) {
+  const rel = orgCurrentManagerRelationship(employeeId)
+  const mgr = rel ? orgEmpById(rel.manager_employee_id) : null
+  copyToClipboard(mgr ? orgFullName(mgr) : 'Sin asignar', 'Jefe inmediato copiado')
+}
+function orgCopyPath(employeeId) { copyToClipboard(orgPathText(employeeId), 'Ruta organizacional copiada') }
+
+// Legacy supervisor_name review queue — lightweight list dialog reusing
+// the existing drawer chrome so it reads as part of this workspace, not
+// a bolted-on screen.
+function orgShowLegacyReviewQueue() {
+  document.getElementById('org-review-drawer-backdrop')?.remove()
+  document.getElementById('org-review-drawer')?.remove()
+  const backdrop = document.createElement('div')
+  backdrop.className = 'drawer-backdrop'; backdrop.id = 'org-review-drawer-backdrop'
+  backdrop.onclick = () => { backdrop.remove(); drawer.remove() }
+  document.body.appendChild(backdrop)
+  const drawer = document.createElement('div')
+  drawer.className = 'drawer drawer-right'; drawer.id = 'org-review-drawer'
+  drawer.setAttribute('role', 'dialog'); drawer.setAttribute('aria-modal', 'true'); drawer.setAttribute('aria-label', 'Cola de revisión de supervisores históricos')
+  document.body.appendChild(drawer)
+  renderOrgReviewQueueDrawer()
+  requestAnimationFrame(() => { backdrop.classList.add('open'); drawer.classList.add('open') })
+}
+function renderOrgReviewQueueDrawer() {
+  const drawer = document.getElementById('org-review-drawer')
+  if (!drawer) return
+  const rows = _badge.supervisorReviews.filter(r => ['unmatched', 'ambiguous'].includes(r.match_status))
+  drawer.innerHTML = `<div class="drawer-content">
+    <div class="emp-detail-hdr"><div class="emp-detail-hdr-main"><div class="emp-detail-hdr-name">Cola de revisión — supervisores históricos</div>
+      <div class="emp-detail-hdr-org">${rows.length} pendiente${rows.length !== 1 ? 's' : ''} de resolver</div></div>
+      <button class="icon-btn icon-btn-quiet" onclick="document.getElementById('org-review-drawer-backdrop').remove();document.getElementById('org-review-drawer').remove()" aria-label="Cerrar">${siIcon('x', 16)}</button>
+    </div>
+    <div class="drawer-body">
+      ${rows.length ? rows.map(r => {
+        const emp = orgEmpById(r.employee_id)
+        const candidates = (r.candidate_employee_ids || []).map(orgEmpById).filter(Boolean)
+        return `<div class="data-block" style="margin-bottom:0.9rem">
+          <div class="data-block-title"><span>${esc(emp ? orgFullName(emp) : 'Colaborador')}</span></div>
+          <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.4rem">Valor histórico: "${esc(r.legacy_supervisor_name)}" — ${r.match_status === 'unmatched' ? 'sin coincidencia' : `${candidates.length} coincidencias posibles`}</div>
+          ${candidates.length ? `<div style="display:flex;flex-direction:column;gap:0.35rem;margin-bottom:0.5rem">
+            ${candidates.map(c => `<button type="button" class="btn btn-secondary btn-sm" style="justify-content:flex-start" onclick="orgResolveLegacyReview('${r.id}','${c.id}')">Asignar a ${esc(orgFullName(c))} — ${esc(c.position || 'sin puesto')}</button>`).join('')}
+          </div>` : ''}
+          <div style="display:flex;gap:0.5rem">
+            ${can('write', 'talento_humano') && emp ? `<button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('org-review-drawer-backdrop').remove();document.getElementById('org-review-drawer').remove();orgOpenAssignManager('${emp.id}')">Buscar y asignar manualmente</button>` : ''}
+            <button type="button" class="btn btn-ghost btn-sm" onclick="orgDismissLegacyReview('${r.id}')">Descartar</button>
+          </div>
+        </div>`
+      }).join('') : emptyStateHtml({ title: 'Nada pendiente de revisión', desc: 'Todos los valores históricos de supervisor han sido resueltos o no existen.' })}
+    </div>
+  </div>`
+}
+async function orgResolveLegacyReview(reviewId, managerId) {
+  const review = _badge.supervisorReviews.find(r => r.id === reviewId)
+  if (!review) return
+  if (orgWouldCreateCycle(review.employee_id, managerId)) { toast('Esa asignación crearía un ciclo — no se puede guardar'); return }
+  const { data: relRow, error: relErr } = await sb.from('employee_reporting_relationships').insert({
+    employee_id: review.employee_id, manager_employee_id: managerId, relationship_type: 'immediate_manager',
+    effective_from: hrToday().toISOString().slice(0, 10), is_current: true, site_id: _badge.activeSite,
+    reason: 'Resuelto desde la cola de revisión de supervisores históricos', created_by: me.id,
+  }).select().single()
+  if (relErr) { toast('Error al guardar: ' + relErr.message); return }
+  await sb.from('employee_supervisor_review').update({ match_status: 'resolved', resolved_manager_employee_id: managerId, resolved_relationship_id: relRow.id, resolved_by: me.id, resolved_at: new Date().toISOString() }).eq('id', reviewId)
+  Audit.log('employee', review.employee_id, null, 'manager_assigned', 'Jefe inmediato asignado desde cola de revisión histórica')
+  toast('Jefe inmediato asignado')
+  await loadOrgReportingData()
+  renderOrgReviewQueueDrawer()
+  renderBadgeModule()
+}
+async function orgDismissLegacyReview(reviewId) {
+  if (!confirm('¿Descartar este valor histórico? El colaborador seguirá apareciendo como "sin jefe asignado" hasta que se le asigne uno manualmente.')) return
+  await sb.from('employee_supervisor_review').update({ match_status: 'dismissed' }).eq('id', reviewId)
+  await loadOrgReportingData()
+  renderOrgReviewQueueDrawer()
+  renderBadgeModule()
+}
+
+// ── 5. ORGANIGRAMA — progressive, indented hierarchy tree. Deliberately
+// not a horizontal box-and-line canvas: at ERP employee-count scale a
+// vertical, indented tree with guide lines stays legible, keyboard
+// navigable, responsive (no forced horizontal scroll) and cheap to
+// render progressively (only expanded branches exist in the DOM). ──
+function orgScopeIds() { return orgScopeEmployees().map(e => e.id) }
+function orgIsExpanded(id) { return _badge_ui.org.expanded.includes(id) }
+function orgToggleExpand(id) {
+  const i = _badge_ui.org.expanded.indexOf(id)
+  if (i === -1) _badge_ui.org.expanded.push(id); else _badge_ui.org.expanded.splice(i, 1)
+  persistOrgUi(); renderBadgeModule()
+}
+function orgExpandAll() {
+  const { roots, childrenMap } = orgBuildForest(orgScopeIds())
+  const ids = [], seen = new Set()
+  const walk = (id, depth) => {
+    if (seen.has(id) || depth > 12) return // safe depth limit
+    seen.add(id); ids.push(id)
+    childrenMap.get(id)?.forEach(c => walk(c, depth + 1))
+  }
+  roots.forEach(r => walk(r, 0))
+  if (ids.length > 400) { toast('Demasiados colaboradores para expandir todo a la vez — usa búsqueda o filtros para acotar el alcance'); return }
+  _badge_ui.org.expanded = ids
+  persistOrgUi(); renderBadgeModule()
+}
+function orgCollapseAll() { _badge_ui.org.expanded = []; persistOrgUi(); renderBadgeModule() }
+function orgResetView() { _badge_ui.org.zoom = 1; _badge_ui.org.focusId = null; persistOrgUi(); renderBadgeModule() }
+function orgSetZoom(delta) {
+  _badge_ui.org.zoom = Math.max(0.6, Math.min(1.4, Math.round((_badge_ui.org.zoom + delta) * 10) / 10))
+  persistOrgUi()
+  const canvas = document.getElementById('org-chart-canvas')
+  if (canvas) canvas.style.transform = `scale(${_badge_ui.org.zoom})`
+}
+function orgFitToScreen() {
+  const viewport = document.getElementById('org-chart-viewport'), canvas = document.getElementById('org-chart-canvas')
+  if (!viewport || !canvas) return
+  const scale = Math.min(1, (viewport.clientWidth - 24) / canvas.scrollWidth)
+  _badge_ui.org.zoom = Math.max(0.6, Math.round(scale * 10) / 10)
+  persistOrgUi(); canvas.style.transform = `scale(${_badge_ui.org.zoom})`
+}
+function orgSelectNode(id) { _badge_ui.org.selectedId = id; persistOrgUi(); renderBadgeModule() }
+function orgFocusInChart(employeeId) {
+  const emp = orgEmpById(employeeId)
+  if (!emp) return
+  const inScope = orgScopeIds().includes(employeeId)
+  if (!inScope) {
+    // Outside the current scope/filters — never silently move it; ask.
+    if (!confirm(`${orgFullName(emp)} está fuera del alcance actual (filtros o sede). ¿Limpiar filtros para mostrarlo?`)) return
+    orgClearFilters()
+  }
+  const chain = orgAncestorChain(employeeId, orgScopeIds())
+  chain.forEach(id => { if (!orgIsExpanded(id)) _badge_ui.org.expanded.push(id) })
+  _badge_ui.org.focusId = employeeId
+  _badge_ui.org.selectedId = employeeId
+  _badge_ui.org.view = 'chart'
+  persistOrgUi()
+  renderBadgeModule()
+  requestAnimationFrame(() => {
+    document.getElementById('org-node-' + employeeId)?.scrollIntoView({ block: 'center', inline: 'center', behavior: _prefersReducedMotion() ? 'auto' : 'smooth' })
+  })
+}
+function orgFocusFirstSearchResult() {
+  const q = (_badge_ui.org.search || '').toLowerCase().trim()
+  if (!q) return
+  const hit = orgScopeEmployees().find(e => [e.first_name, e.last_name, e.employee_code, e.position, e.department].filter(Boolean).join(' ').toLowerCase().includes(q))
+  if (hit) orgFocusInChart(hit.id)
+}
+function _prefersReducedMotion() { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches }
+
+function orgNodeCardHtml(id, forest, depth) {
+  const emp = orgEmpById(id)
+  if (!emp) return ''
+  const children = forest.childrenMap.get(id) || []
+  const expanded = orgIsExpanded(id)
+  const issues = orgIssuesFor(id)
+  const hasIssue = issues.length > 0
+  const blocking = issues.some(i => ORG_ISSUE_DEFS[i.type]?.blocks)
+  const isFocused = _badge_ui.org.focusId === id
+  const isSelected = _badge_ui.org.selectedId === id
+  const initials = ((emp.first_name?.[0] || '') + (emp.last_name?.[0] || '')).toUpperCase()
+  const rel = orgCurrentManagerRelationship(id)
+  const crossNote = issues.find(i => i.type === 'cross_site' || i.type === 'cross_company')
+  return `
+  <li role="treeitem" aria-expanded="${children.length ? expanded : undefined}" aria-selected="${isSelected}" aria-label="${escAttr(orgFullName(emp) + (emp.position ? ', ' + emp.position : '') + (hasIssue ? ', requiere atención' : ''))}">
+    <div class="org-node-row">
+      ${children.length ? `<button type="button" class="org-expand-btn" onclick="event.stopPropagation();orgToggleExpand('${id}')" aria-expanded="${expanded}" aria-label="${expanded ? 'Colapsar equipo de' : 'Expandir equipo de'} ${escAttr(orgFullName(emp))}" title="${expanded ? 'Colapsar equipo' : 'Expandir equipo'}">
+        <svg width="12" height="12" viewBox="0 0 20 20" fill="none" style="transform:rotate(${expanded ? '90' : '0'}deg);transition:transform .12s"><path d="M7 5l6 5-6 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>` : `<span class="org-expand-spacer"></span>`}
+      <div class="org-node-card ${isSelected ? 'is-selected' : ''} ${isFocused ? 'is-focused' : ''} ${blocking ? 'has-blocking-issue' : hasIssue ? 'has-issue' : ''}"
+           id="org-node-${id}" tabindex="0" role="button"
+           onclick="orgSelectNode('${id}')" onkeydown="orgNodeKeydown(event,'${id}')"
+           aria-label="${escAttr(orgFullName(emp))}${emp.position ? ', ' + escAttr(emp.position) : ''}${hasIssue ? ', requiere atención' : ''}">
+        <div class="org-node-avatar">${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" />` : `<span>${esc(initials)}</span>`}</div>
+        <div class="org-node-main">
+          <div class="org-node-name" title="${escAttr(orgFullName(emp))}">${esc(orgFullName(emp))}</div>
+          <div class="org-node-meta" title="${escAttr(emp.position || '')}">${esc(emp.position || 'Sin puesto')}</div>
+          <div class="org-node-sub">${esc([emp.department, orgSiteName(emp)].filter(Boolean).join(' · ') || '—')}</div>
+          ${crossNote ? `<div class="org-node-cross">${siIcon('alert-circle', 10)} ${crossNote.type === 'cross_site' ? 'Jefe en otra sede' : 'Jefe en otra empresa'}</div>` : ''}
+        </div>
+        <div class="org-node-side">
+          ${children.length ? `<span class="org-node-reports" title="${children.length} reporte${children.length !== 1 ? 's' : ''} directo${children.length !== 1 ? 's' : ''}">${siIcon('users', 11)} ${children.length}</span>` : ''}
+          ${hasIssue ? `<span class="org-node-warn" title="${escAttr(issues.map(i => ORG_ISSUE_DEFS[i.type]?.label).join('; '))}">${siIcon(blocking ? 'alert-triangle' : 'alert-circle', 13)}</span>` : ''}
+        </div>
+        <button type="button" class="org-node-open" onclick="event.stopPropagation();viewEmployeeDetail('${id}')" title="Abrir perfil de colaborador" aria-label="Abrir perfil de ${escAttr(orgFullName(emp))}">
+          ${siIcon('external-link', 12)}
+        </button>
+      </div>
+    </div>
+    ${children.length && expanded ? `<ul class="org-node-children" role="group">${children.map(c => orgNodeCardHtml(c, forest, depth + 1)).join('')}</ul>` : ''}
+  </li>`
+}
+function orgNodeKeydown(e, id) {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); orgSelectNode(id) }
+  else if (e.key === 'ArrowRight') { if (!orgIsExpanded(id)) { e.preventDefault(); orgToggleExpand(id) } }
+  else if (e.key === 'ArrowLeft') { if (orgIsExpanded(id)) { e.preventDefault(); orgToggleExpand(id) } }
+  else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault()
+    const all = [...document.querySelectorAll('.org-node-card')]
+    const idx = all.indexOf(e.currentTarget)
+    const next = all[idx + (e.key === 'ArrowDown' ? 1 : -1)]
+    next?.focus()
+  }
+}
+function renderOrgChartView() {
+  const scopeIds = orgScopeIds()
+  if (!scopeIds.length) {
+    return emptyStateHtml({
+      title: 'No hay colaboradores en este alcance',
+      desc: 'Ajusta los filtros o la sede activa para ver el organigrama.',
+      actionLabel: orgActiveFilterCount() ? 'Limpiar filtros' : null, actionOnClick: 'orgClearFilters()',
+    })
+  }
+  const forest = orgBuildForest(scopeIds)
+  // First render for this scope: show root(s) and their direct reports
+  // expanded by default (a meaningful top-level structure), not the
+  // whole company.
+  if (!_orgDefaultExpansionDone) {
+    forest.roots.forEach(r => { if (!orgIsExpanded(r)) _badge_ui.org.expanded.push(r) })
+    _orgDefaultExpansionDone = true
+  }
+  return `
+    <div class="org-chart-controls">
+      <div class="org-chart-controls-group">
+        <button class="btn btn-ghost btn-sm" onclick="orgExpandAll()">${siIcon('chevrons-down', 13)} Expandir todo</button>
+        <button class="btn btn-ghost btn-sm" onclick="orgCollapseAll()">${siIcon('chevrons-up', 13)} Colapsar todo</button>
+      </div>
+      <div class="org-chart-controls-group">
+        <button class="icon-btn icon-btn-quiet" onclick="orgSetZoom(-0.1)" title="Reducir zoom" aria-label="Reducir zoom">${siIcon('zoom-out', 15)}</button>
+        <span class="org-zoom-label">${Math.round(_badge_ui.org.zoom * 100)}%</span>
+        <button class="icon-btn icon-btn-quiet" onclick="orgSetZoom(0.1)" title="Aumentar zoom" aria-label="Aumentar zoom">${siIcon('zoom-in', 15)}</button>
+        <button class="icon-btn icon-btn-quiet" onclick="orgFitToScreen()" title="Ajustar a la pantalla" aria-label="Ajustar a la pantalla">${siIcon('maximize', 14)}</button>
+        <button class="icon-btn icon-btn-quiet" onclick="orgResetView()" title="Restablecer vista" aria-label="Restablecer vista">${siIcon('rotate-ccw', 14)}</button>
+      </div>
+    </div>
+    <div class="org-chart-viewport" id="org-chart-viewport">
+      <div class="org-chart-canvas" id="org-chart-canvas" style="transform:scale(${_badge_ui.org.zoom})">
+        <ul class="org-tree" role="tree" aria-label="Organigrama">
+          ${forest.roots.map(r => orgNodeCardHtml(r, forest, 0)).join('')}
+        </ul>
+      </div>
+    </div>
+    ${orgSelectedNodeDetailHtml()}
+  `
+}
+let _orgDefaultExpansionDone = false
+
+// ── 6. ASSIGN / CHANGE IMMEDIATE MANAGER ── A focused drawer, not a
+// generic modal. Never drag-and-drop (spec explicitly rules that out for
+// this first implementation — too easy to cause an accidental structural
+// change). ──
+function orgOpenAssignManager(employeeId) {
+  if (!can('write', 'talento_humano')) return
+  const emp = orgEmpById(employeeId)
+  if (!emp) return
+  const currentRel = orgCurrentManagerRelationship(employeeId)
+  _badge_ui.org.assign = {
+    employeeId, managerQuery: '', managerId: null, managerResults: [],
+    effectiveDate: hrToday().toISOString().slice(0, 10),
+    reason: '', note: '', confirmCross: false, saving: false,
+    currentManagerId: currentRel?.manager_employee_id || null,
+  }
+  document.getElementById('org-assign-drawer-backdrop')?.remove()
+  document.getElementById('org-assign-drawer')?.remove()
+  const backdrop = document.createElement('div')
+  backdrop.className = 'drawer-backdrop'; backdrop.id = 'org-assign-drawer-backdrop'
+  backdrop.onclick = () => orgCloseAssignManager()
+  document.body.appendChild(backdrop)
+  const drawer = document.createElement('div')
+  drawer.className = 'drawer drawer-right org-assign-drawer'; drawer.id = 'org-assign-drawer'
+  drawer.setAttribute('role', 'dialog'); drawer.setAttribute('aria-modal', 'true')
+  drawer.setAttribute('aria-label', 'Cambiar jefe inmediato')
+  document.body.appendChild(drawer)
+  renderOrgAssignDrawer()
+  requestAnimationFrame(() => { backdrop.classList.add('open'); drawer.classList.add('open'); drawer.querySelector('input,button')?.focus() })
+}
+function orgCloseAssignManager() {
+  document.getElementById('org-assign-drawer-backdrop')?.remove()
+  document.getElementById('org-assign-drawer')?.remove()
+  _badge_ui.org.assign = null
+}
+async function orgAssignSearchInput(v) {
+  const a = _badge_ui.org.assign
+  if (!a) return
+  a.managerQuery = v
+  clearTimeout(_orgAssignSearchDebounce)
+  _orgAssignSearchDebounce = setTimeout(async () => {
+    if (v.trim().length < 2) { a.managerResults = []; renderOrgAssignDrawer(); return }
+    // PostgREST's .or() filter string treats ',()' as syntax — strip them
+    // from user input so a search term can never inject extra filters.
+    const safe = v.replace(/[,()]/g, ' ').trim()
+    const { data } = await sb.from('employees')
+      .select('id, first_name, last_name, employee_code, position, department, company, site_id, employee_status')
+      .or(`first_name.ilike.%${safe}%,last_name.ilike.%${safe}%,employee_code.ilike.%${safe}%`)
+      .limit(20)
+    a.managerResults = (data || []).filter(c => c.id !== a.employeeId)
+    a.managerResults.forEach(c => { _badge.orgExtraEmployees[c.id] = _badge.orgExtraEmployees[c.id] || c })
+    renderOrgAssignDrawer()
+  }, 250)
+}
+let _orgAssignSearchDebounce = null
+function orgAssignPickCandidate(id) {
+  const a = _badge_ui.org.assign
+  if (!a) return
+  if (orgWouldCreateCycle(a.employeeId, id)) { toast('No se puede elegir: crearía una relación circular'); return }
+  a.managerId = id
+  a.confirmCross = false
+  renderOrgAssignDrawer()
+}
+function orgAssignSetField(field, value) { if (_badge_ui.org.assign) { _badge_ui.org.assign[field] = value } }
+function renderOrgAssignDrawer() {
+  const drawer = document.getElementById('org-assign-drawer')
+  const a = _badge_ui.org.assign
+  if (!drawer || !a) return
+  const emp = orgEmpById(a.employeeId)
+  const currentMgr = a.currentManagerId ? orgEmpById(a.currentManagerId) : null
+  const candidate = a.managerId ? orgEmpById(a.managerId) : null
+  const descendants = orgDescendantIds(a.employeeId)
+  const isCrossSite = candidate && emp.site_id && candidate.site_id && candidate.site_id !== emp.site_id
+  const isCrossCompany = candidate && emp.company && candidate.company && candidate.company !== emp.company
+  const needsConfirm = isCrossSite || isCrossCompany
+  const canSave = candidate && a.effectiveDate && (!needsConfirm || a.confirmCross)
+  drawer.innerHTML = `<div class="drawer-content">
+    <div class="emp-detail-hdr">
+      <div class="emp-detail-hdr-main">
+        <div class="emp-detail-hdr-name">Cambiar jefe inmediato</div>
+        <div class="emp-detail-hdr-org">${esc(orgFullName(emp))} · ${esc(emp.position || 'Sin puesto')}</div>
+      </div>
+      <button class="icon-btn icon-btn-quiet" onclick="orgCloseAssignManager()" aria-label="Cerrar">${siIcon('x', 16)}</button>
+    </div>
+    <div class="drawer-body">
+      <div class="data-block-title" style="margin-top:0"><span>Jefe actual</span></div>
+      <div style="font-size:0.85rem;margin-bottom:1rem">${currentMgr ? `${esc(orgFullName(currentMgr))} — ${esc(currentMgr.position || '')}` : '<span style="color:var(--text-3)">Sin jefe asignado</span>'}</div>
+
+      <div class="data-block-title"><span>Nuevo jefe inmediato</span></div>
+      <div style="position:relative;margin-bottom:0.5rem">
+        <input type="text" class="org-search-input" style="position:static" placeholder="Buscar colaborador por nombre o código…" value="${escAttr(a.managerQuery)}" oninput="orgAssignSearchInput(this.value)" aria-label="Buscar nuevo jefe inmediato" />
+      </div>
+      ${candidate ? `<div class="org-candidate-picked">
+        <div class="org-node-avatar" style="width:32px;height:32px">${candidate.photo_url ? `<img src="${esc(candidate.photo_url)}" alt=""/>` : `<span>${esc(((candidate.first_name?.[0]||'')+(candidate.last_name?.[0]||'')).toUpperCase())}</span>`}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600">${esc(orgFullName(candidate))}</div>
+          <div style="font-size:0.76rem;color:var(--text-secondary)">${esc(candidate.position || 'Sin puesto')} · ${esc(candidate.department || '—')} · ${esc(orgSiteName(candidate) || '—')}${candidate.company ? ' · ' + esc(candidate.company) : ''}</div>
+          ${candidate.employee_status !== 'active' ? `<div class="org-candidate-flag">${siIcon('alert-triangle',11)} Colaborador inactivo</div>` : ''}
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="orgAssignSetField('managerId',null);renderOrgAssignDrawer()">Cambiar</button>
+      </div>` : `
+        <div class="org-candidate-list">
+          ${a.managerResults.length ? a.managerResults.map(c => `
+            <button type="button" class="org-candidate-row" onclick="orgAssignPickCandidate('${c.id}')">
+              <div>
+                <div style="font-weight:600">${esc(orgFullName(c))} <code style="font-weight:400;color:var(--text-3)">${esc(c.employee_code||'')}</code></div>
+                <div style="font-size:0.75rem;color:var(--text-secondary)">${esc(c.position || 'Sin puesto')} · ${esc(c.department || '—')}</div>
+              </div>
+              <div style="display:flex;gap:4px">
+                ${c.employee_status !== 'active' ? `<span class="org-candidate-flag">Inactivo</span>` : ''}
+                ${c.site_id && c.site_id !== emp.site_id ? `<span class="org-candidate-flag">Otra sede</span>` : ''}
+              </div>
+            </button>`).join('') : a.managerQuery.trim().length >= 2 ? `<div class="ws-pop-hint">Sin resultados.</div>` : `<div class="ws-pop-hint">Escribe al menos 2 caracteres para buscar.</div>`}
+        </div>`}
+
+      <div class="data-fields-2" style="margin-top:1rem">
+        <div class="data-field">
+          <div class="data-field-label">Fecha efectiva</div>
+          <div class="emp-edit-input"><input type="date" value="${escAttr(a.effectiveDate)}" onchange="orgAssignSetField('effectiveDate',this.value)" /></div>
+        </div>
+        <div class="data-field">
+          <div class="data-field-label">Motivo</div>
+          <div class="emp-edit-input"><input type="text" value="${escAttr(a.reason)}" onchange="orgAssignSetField('reason',this.value)" placeholder="Ej. reestructuración de equipo" /></div>
+        </div>
+      </div>
+      <div class="data-field" style="margin-top:0.6rem">
+        <div class="data-field-label">Nota (opcional)</div>
+        <div class="emp-edit-input"><textarea rows="2" onchange="orgAssignSetField('note',this.value)">${esc(a.note)}</textarea></div>
+      </div>
+
+      ${candidate ? `<div class="org-impact-preview">
+        <div class="data-block-title"><span>Vista previa de impacto</span></div>
+        <div class="org-impact-row"><span>Jefe anterior</span><b>${currentMgr ? esc(orgFullName(currentMgr)) : 'Sin asignar'}</b></div>
+        <div class="org-impact-row"><span>Jefe nuevo</span><b>${esc(orgFullName(candidate))}</b></div>
+        <div class="org-impact-row"><span>Fecha efectiva</span><b>${hrFmtDate(a.effectiveDate)}${new Date(a.effectiveDate) > hrToday() ? ' (programado)' : ''}</b></div>
+        <div class="org-impact-row"><span>Su rama se mueve con él</span><b>${descendants.size} reporte${descendants.size !== 1 ? 's' : ''} (directos + indirectos)</b></div>
+        ${needsConfirm ? `<label class="org-confirm-cross"><input type="checkbox" ${a.confirmCross ? 'checked' : ''} onchange="orgAssignSetField('confirmCross',this.checked);renderOrgAssignDrawer()" />
+          Confirmo esta relación entre ${isCrossSite ? 'sedes' : ''}${isCrossSite && isCrossCompany ? ' y ' : ''}${isCrossCompany ? 'empresas' : ''} distintas.</label>` : ''}
+      </div>` : ''}
+
+      <div style="display:flex;gap:0.6rem;margin-top:1.2rem">
+        <button type="button" class="btn btn-primary" ${canSave ? '' : 'disabled'} onclick="orgSaveAssignManager()">${a.saving ? 'Guardando…' : 'Guardar cambio'}</button>
+        <button type="button" class="btn btn-ghost" onclick="orgCloseAssignManager()">Cancelar</button>
+      </div>
+    </div>
+  </div>`
+}
+async function orgSaveAssignManager() {
+  const a = _badge_ui.org.assign
+  if (!a || !a.managerId || a.saving) return
+  if (orgWouldCreateCycle(a.employeeId, a.managerId)) { toast('No se puede guardar: crearía una relación circular'); return }
+  const emp = orgEmpById(a.employeeId)
+  const candidate = orgEmpById(a.managerId)
+  const isFuture = new Date(a.effectiveDate) > hrToday()
+  a.saving = true; renderOrgAssignDrawer()
+  const { error } = await sb.from('employee_reporting_relationships').insert({
+    employee_id: a.employeeId, manager_employee_id: a.managerId, relationship_type: 'immediate_manager',
+    effective_from: a.effectiveDate, is_current: !isFuture, site_id: emp.site_id,
+    reason: a.reason || null, note: a.note || null, created_by: me.id,
+  })
+  if (error) { a.saving = false; toast('Error al guardar: ' + error.message); renderOrgAssignDrawer(); return }
+  await sb.from('employee_movements').insert({
+    employee_id: a.employeeId, site_id: emp.site_id, movement_type: 'supervisor_change', field: 'manager_employee_id',
+    previous_value: a.currentManagerId ? orgFullName(orgEmpById(a.currentManagerId)) : null,
+    new_value: orgFullName(candidate), effective_date: a.effectiveDate, reason: a.reason || null, note: a.note || null,
+    status: isFuture ? 'scheduled' : 'applied', applied_at: isFuture ? null : new Date().toISOString(), created_by: me.id,
+  })
+  Audit.log('employee', a.employeeId, emp, 'manager_changed', `Jefe inmediato ${isFuture ? 'programado' : 'actualizado'}: ${orgFullName(candidate)}`, [
+    { field: 'Jefe inmediato', from: a.currentManagerId ? orgFullName(orgEmpById(a.currentManagerId)) : '—', to: orgFullName(candidate) },
+  ])
+  toast(isFuture ? 'Cambio de jefe inmediato programado' : 'Jefe inmediato actualizado')
+  orgCloseAssignManager()
+  await loadOrgReportingData()
+  renderBadgeModule()
+  const detailEmp = _badge.employees.find(e => e.id === a.employeeId)
+  if (detailEmp && document.getElementById('employee-detail-drawer')) renderEmployeeDetailDrawer(detailEmp)
+}
+
+// ── 7. EMPLOYEE PROFILE INTEGRATION ── "Estructura organizacional"
+// section on the existing Overview tab of the employee detail drawer —
+// no new tab, so the drawer's shape doesn't change, only what's in it. ──
+function orgProfileSectionHtml(emp) {
+  if (_badge.reportingRelationshipsUnavailable) return ''
+  const rel = orgCurrentManagerRelationship(emp.id)
+  const mgr = rel ? orgEmpById(rel.manager_employee_id) : null
+  const reportIds = orgDirectReportIds(emp.id)
+  const reports = reportIds.map(orgEmpById).filter(Boolean)
+  const issues = orgIssuesFor(emp.id)
+  const canWrite = can('write', 'talento_humano')
+  return `<div class="data-block">
+    <div class="data-block-title"><span>Estructura organizacional</span></div>
+    <div class="data-fields-2" style="margin-bottom:0.5rem">
+      <div class="data-field">
+        <div class="data-field-label">${siIcon('users', 12)} Jefe inmediato</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span>${mgr ? esc(orgFullName(mgr)) : '<span style="color:var(--text-3)">Sin asignar</span>'}</span>
+          ${mgr ? `<button type="button" class="emp-detail-hdr-code-copy" onclick="orgCopyManager('${emp.id}')" title="Copiar jefe inmediato">${FIELD_COPY_ICON}</button>` : ''}
+        </div>
+      </div>
+      <div class="data-field">
+        <div class="data-field-label">${siIcon('briefcase', 12)} Puesto del jefe</div>
+        <div>${mgr ? esc(mgr.position || '—') : '—'}</div>
+      </div>
+      <div class="data-field">
+        <div class="data-field-label">${siIcon('users', 12)} Reportes directos</div>
+        <div>${reports.length}</div>
+      </div>
+      <div class="data-field">
+        <div class="data-field-label">${siIcon('calendar', 12)} Vigente desde</div>
+        <div>${rel ? hrFmtDate(rel.effective_from) : '—'}</div>
+      </div>
+    </div>
+    <div class="data-field" style="margin-bottom:0.6rem">
+      <div class="data-field-label">${siIcon('map-pin', 12)} Ruta organizacional</div>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span>${esc(orgPathText(emp.id))}</span>
+        <button type="button" class="emp-detail-hdr-code-copy" onclick="orgCopyPath('${emp.id}')" title="Copiar ruta organizacional">${FIELD_COPY_ICON}</button>
+      </div>
+    </div>
+    ${reports.length ? `<div class="data-field" style="margin-bottom:0.6rem">
+      <div class="data-field-label">Equipo directo</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-top:2px">
+        ${reports.map(r => `<a href="#" style="font-size:0.82rem" onclick="event.preventDefault();viewEmployeeDetail('${r.id}')">${esc(orgFullName(r))} — ${esc(r.position || 'Sin puesto')}</a>`).join('')}
+      </div>
+    </div>` : ''}
+    ${issues.length ? `<div class="data-field" style="margin-bottom:0.6rem">
+      <div class="data-field-label">Advertencias de jerarquía</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:3px">${issues.map(orgIssueChipHtml).join('')}</div>
+    </div>` : ''}
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="closeEmployeeDetail();orgShowFromModule();orgFocusInChart('${emp.id}')">Ver en organigrama</button>
+      ${canWrite ? `<button type="button" class="btn btn-secondary btn-sm" onclick="orgOpenAssignManager('${emp.id}')">Cambiar jefe inmediato</button>` : ''}
+      <button type="button" class="btn btn-ghost btn-sm" onclick="orgShowRelationshipHistory('${emp.id}')">Ver historial de reportes</button>
+    </div>
+  </div>`
+}
+// "View in organizational chart" from anywhere outside the Organización
+// tab (e.g. the employee profile) — lands on the workspace, chart view.
+async function orgShowFromModule() {
+  _badge_ui.view = 'organization'
+  _badge_ui.org.view = 'chart'
+  document.getElementById('tb-section').textContent = 'Colaboradores'
+  renderBadgeModule()
+}
+function orgShowRelationshipHistory(employeeId) {
+  const rows = _badge.reportingRelationships
+    .filter(r => r.employee_id === employeeId && r.relationship_type === 'immediate_manager')
+    .sort((a, b) => new Date(b.effective_from) - new Date(a.effective_from))
+  const emp = orgEmpById(employeeId)
+  const html = rows.length ? rows.map(r => {
+    const mgr = orgEmpById(r.manager_employee_id)
+    return `<div class="timeline-item"><b>${esc(mgr ? orgFullName(mgr) : 'Colaborador no disponible')}</b><br/>
+      <span style="font-size:0.78rem;color:var(--text-secondary)">${hrFmtDate(r.effective_from)} — ${r.effective_to ? hrFmtDate(r.effective_to) : (r.is_current ? 'actual' : '—')}${r.reason ? ' · ' + esc(r.reason) : ''}</span></div>`
+  }).join('<hr style="border:none;border-top:1px solid var(--border);margin:0.6rem 0"/>') : '<p style="color:var(--text-3)">Sin historial de relaciones de jefe inmediato.</p>'
+  alertModal(`Historial de jefe inmediato — ${esc(orgFullName(emp))}`, html)
+}
+// Minimal read-only info dialog — reuses the drawer chrome rather than a
+// bespoke modal component, since this repo has no generic modal primitive
+// beyond alert()/confirm() and the drawer pattern used everywhere else.
+function alertModal(title, bodyHtml) {
+  document.getElementById('org-info-modal-backdrop')?.remove()
+  document.getElementById('org-info-modal')?.remove()
+  const backdrop = document.createElement('div')
+  backdrop.className = 'drawer-backdrop'; backdrop.id = 'org-info-modal-backdrop'
+  backdrop.onclick = () => { backdrop.remove(); modal.remove() }
+  document.body.appendChild(backdrop)
+  const modal = document.createElement('div')
+  modal.className = 'drawer drawer-right'; modal.id = 'org-info-modal'
+  modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true'); modal.setAttribute('aria-label', title)
+  modal.innerHTML = `<div class="drawer-content">
+    <div class="emp-detail-hdr"><div class="emp-detail-hdr-main"><div class="emp-detail-hdr-name">${title}</div></div>
+      <button class="icon-btn icon-btn-quiet" onclick="document.getElementById('org-info-modal-backdrop').remove();document.getElementById('org-info-modal').remove()" aria-label="Cerrar">${siIcon('x', 16)}</button>
+    </div>
+    <div class="drawer-body">${bodyHtml}</div>
+  </div>`
+  document.body.appendChild(modal)
+  requestAnimationFrame(() => { backdrop.classList.add('open'); modal.classList.add('open') })
+}
+
+// ── VALIDATION HARNESS ── There is no formal test framework in this
+// repository (a static single-file app). Hierarchy math is written as
+// pure functions specifically so it can be exercised here, against
+// synthetic data, independent of Supabase/DOM state. Run manually from
+// the console: runOrgValidationHarness(). Never claimed as a CI-run
+// automated suite — it isn't one. ──
+function runOrgValidationHarness() {
+  const results = []
+  const check = (name, cond) => results.push({ name, pass: !!cond })
+  const E = (id, overrides = {}) => ({ id, first_name: 'T', last_name: id, employee_status: 'active', company: 'C1', site_id: 's1', ...overrides })
+  const R = (employee_id, manager_employee_id, overrides = {}) => ({ employee_id, manager_employee_id, relationship_type: 'immediate_manager', is_current: true, effective_from: '2020-01-01', ...overrides })
+
+  // 1. Simple manager / direct reports
+  let rels = [R('b', 'a')]
+  check('direct manager resolves', orgCurrentManagerRelationship('b', rels)?.manager_employee_id === 'a')
+  check('direct reports resolves', orgDirectReportIds('a', rels).includes('b'))
+
+  // 2. Top-level employee without manager
+  check('no manager => null', orgCurrentManagerRelationship('a', rels) === null)
+
+  // 3. Self-report attempt
+  check('self-report detected as cycle', orgWouldCreateCycle('a', 'a', rels))
+
+  // 4. Direct circular relationship — a already reports to b; assigning
+  // b to report to a would close the loop.
+  rels = [R('a', 'b')]
+  check('direct circular relationship detected', orgWouldCreateCycle('b', 'a', rels))
+
+  // 5. Indirect circular relationship (a->b->c, try c reporting into a's branch back to a)
+  rels = [R('b', 'a'), R('c', 'b')] // a -> b -> c chain (a manages b, b manages c)
+  check('indirect cycle detected (c cannot manage a)', orgWouldCreateCycle('a', 'c', rels))
+  check('unrelated non-cycle assignment allowed', orgWouldCreateCycle('c', 'a', rels) === false)
+
+  // 6. Descendants
+  rels = [R('b', 'a'), R('c', 'b'), R('d', 'a')]
+  const desc = orgDescendantIds('a', rels)
+  check('descendants include direct + transitive reports', desc.has('b') && desc.has('c') && desc.has('d'))
+  check('descendants exclude the employee itself', !desc.has('a'))
+
+  // 7. Multiple independent roots
+  const emps = { a: E('a'), b: E('b'), c: E('c'), d: E('d') }
+  const origOrgEmpById = window.orgEmpById
+  window.orgEmpById = id => emps[id] || null
+  rels = [R('b', 'a')] // c and d are independent roots, a has one report
+  const forest = orgBuildForest(['a', 'b', 'c', 'd'], rels)
+  check('multiple roots supported', forest.roots.includes('c') && forest.roots.includes('d') && forest.roots.includes('a') && !forest.roots.includes('b'))
+  window.orgEmpById = origOrgEmpById
+
+  const passed = results.filter(r => r.pass).length
+  console.table(results)
+  console.log(`Organización validation harness: ${passed}/${results.length} passed`)
+  return { passed, total: results.length, results }
+}
+function orgSelectedNodeDetailHtml() {
+  const id = _badge_ui.org.selectedId
+  if (!id) return ''
+  const emp = orgEmpById(id)
+  if (!emp) return ''
+  return `<div class="org-selected-panel">
+    <div><b>${esc(orgFullName(emp))}</b> · ${esc(emp.position || 'Sin puesto')} — ${esc(orgPathText(id))}</div>
+    <div class="org-selected-actions">
+      <button class="btn btn-ghost btn-sm" onclick="viewEmployeeDetail('${id}')">Ver perfil</button>
+      <button class="btn btn-ghost btn-sm" onclick="orgCopySummary('${id}')">Copiar resumen</button>
+      ${can('write', 'talento_humano') ? `<button class="btn btn-ghost btn-sm" onclick="orgOpenAssignManager('${id}')">Cambiar jefe inmediato</button>` : ''}
+      <button class="btn btn-ghost btn-sm" onclick="orgSelectNode(null)">Cerrar</button>
+    </div>
+  </div>`
+}
 
 /* ══════════════════════════════════════════════════════
    SAMPLE CENTER — Complete Module
