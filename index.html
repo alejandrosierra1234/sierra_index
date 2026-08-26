@@ -143,8 +143,8 @@
          See SIERRA_DESIGN_SYSTEM.md. */
       --sidebar-width: 248px;
       --sidebar-width-collapsed: 68px;
-      --page-padding-x: 1.75rem;      /* .content's horizontal inset — the one guide every page aligns to */
-      --page-padding-y: 1.25rem;      /* ERP density: less dead air above the header, same side margins */
+      --page-padding-x: 2rem;         /* .content's horizontal inset — the one guide every page aligns to */
+      --page-padding-y: 1.5rem;       /* ERP density: less dead air above the header, same side margins */
       --page-max-width: 1480px;       /* matches .detail-view-inner, the existing single-record page container */
       --content-gap: var(--sp-6);     /* MainPane ↔ ContextPane grid gap */
       --section-gap: 20px;            /* vertical rhythm between page sections (header→toolbar→content) — ERP density, was --sp-5/24px */
@@ -1395,7 +1395,26 @@
     .content-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.1rem; gap:1rem; flex-wrap:wrap; }
     .content-hdr-l h2 { font-size:2rem; font-weight:700; letter-spacing:-0.035em; line-height:1.1; }
     .content-hdr-l p { font-size:0.8rem; color:var(--text-2); margin-top:0.2rem; }
+    .content-hdr-l p:empty { display:none; }
     .content-hdr-r { display:flex; align-items:center; gap:0.5rem; flex-shrink:0; }
+
+    /* ── Context bar (§ navigation architecture) ── the ONE place back
+       navigation + breadcrumbs live for every screen. Sits above the
+       workspace (#pg), inside #content-hdr-l, above the (optional, now
+       usually redundant) page title — never duplicated inside individual
+       tool screens. Concise by design: subtle separators, no pill
+       backgrounds/borders, only the current (last) crumb reads strong.
+       See setSecCrumbs()/clearSecCrumbs()/crumbHtml(). */
+    .sec-crumb { display:flex; align-items:center; gap:0.3rem; font-size:0.8rem; line-height:1.3; color:var(--text-2); flex-wrap:wrap; margin-bottom:0.15rem; }
+    .sec-crumb-back { display:inline-flex; align-items:center; gap:0.25rem; background:none; border:none; padding:0.1rem 0.15rem; margin:-0.1rem -0.15rem 0 0; color:var(--text-2); font-size:0.8rem; font-weight:500; cursor:pointer; border-radius:6px; }
+    .sec-crumb-back:hover { color:var(--text-primary); background:var(--surface-hover); }
+    .sec-crumb-back svg { width:13px; height:13px; flex-shrink:0; }
+    .sec-crumb-link { background:none; border:none; padding:0; color:var(--text-2); font-size:0.8rem; font-weight:500; cursor:pointer; }
+    .sec-crumb-link:hover { color:var(--text-primary); text-decoration:underline; }
+    .sec-crumb-current { color:var(--text-primary); font-weight:600; }
+    .sec-crumb-sep { color:var(--text-3); }
+    .content-hdr.has-crumb { margin-bottom:0.7rem; }
+    .content-hdr.has-crumb .content-hdr-l h2 { font-size:1.3rem; letter-spacing:-0.02em; }
 
     /* ── SEARCH (content header — hidden, sidebar handles search) ── */
     .search-wrap { display:none; }
@@ -4688,7 +4707,7 @@
        so the chart itself is the protagonist. overflow:auto gives native
        wheel/trackpad/scrollbar panning for free; orgCanvasPointerDown()
        layers click-drag-anywhere panning on top of that. */
-    .orgc-viewport { position:relative; overflow:auto; border:1px solid var(--border); border-radius:var(--panel-radius); background:var(--surface2); height:calc(100vh - 400px); min-height:460px; cursor:grab; }
+    .orgc-viewport { position:relative; overflow:auto; border:1px solid var(--border); border-radius:var(--panel-radius); background:var(--surface2); height:calc(100vh - 370px); min-height:460px; cursor:grab; }
     .orgc-viewport.orgc-panning { cursor:grabbing; user-select:none; }
     /* The sizer carries the *scaled* (zoom-multiplied) pixel dimensions so
        the viewport's native scrollable area actually grows with zoom —
@@ -6040,6 +6059,7 @@
       <div id="view-products" style="display:none">
         <div class="content-hdr">
           <div class="content-hdr-l">
+            <div class="sec-crumb" id="sec-crumb" style="display:none"></div>
             <h2 id="sec-title">All products</h2>
             <p id="sec-sub">Browse technical sheets and request samples</p>
           </div>
@@ -8202,7 +8222,43 @@ function renderProductNotFound() {
   </div>`
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// CONTEXT BAR — one reusable back+breadcrumb+actions primitive, rendered
+// once in the shell (#sec-crumb, above #sec-title/#pg) instead of every
+// screen hand-rolling its own "← Módulos"/back button/title stack. Call
+// setSecCrumbs() from a view's entry function with the hierarchy above it
+// (each item: {label, onclick} — the LAST item is the current page and
+// must omit onclick). leaveView() clears it by default, so a screen that
+// doesn't call setSecCrumbs() simply gets no crumb bar. Back navigation is
+// hierarchy-based (jumps to the second-to-last crumb, or the first if
+// there's only one level), never raw browser history.
+function crumbHtml(items) {
+  const back = items.length > 1 ? items[items.length - 2] : items[0]
+  const backLabel = items.length > 1 ? back.label : (items[0] && items[0].label) || ''
+  return `${back && back.onclick !== undefined ? `<button type="button" class="sec-crumb-back" onclick="${back.onclick}">${siIcon('chevron-left', 13)}${esc(backLabel)}</button>` : ''}
+    ${items.map((it, i) => `${i ? '<span class="sec-crumb-sep">/</span>' : ''}${it.onclick !== undefined
+      ? `<button type="button" class="sec-crumb-link" onclick="${it.onclick}">${esc(it.label)}</button>`
+      : `<span class="sec-crumb-current">${esc(it.label)}</span>`}`).join('')}`
+}
+function setSecCrumbs(items) {
+  const el = document.getElementById('sec-crumb')
+  if (!el) return
+  el.innerHTML = crumbHtml(items)
+  el.style.display = 'flex'
+  const hdr = el.closest('.content-hdr')
+  if (hdr) hdr.classList.add('has-crumb')
+}
+function clearSecCrumbs() {
+  const el = document.getElementById('sec-crumb')
+  if (!el) return
+  el.style.display = 'none'
+  el.innerHTML = ''
+  const hdr = el.closest('.content-hdr')
+  if (hdr) hdr.classList.remove('has-crumb')
+}
+
 function leaveView(keepHash) {
+  clearSecCrumbs()
   if (!keepHash) clearHash()
   closeDrawer()
   if (clockInterval) { clearInterval(clockInterval); clockInterval = null }
@@ -14259,6 +14315,7 @@ function showModuleHub() {
   leaveView()
   document.getElementById('tb-section').textContent = 'Módulos'
   document.getElementById('product-controls').style.display = 'none'
+  clearSecCrumbs()
   document.getElementById('sec-title').textContent = 'Módulos'
   document.getElementById('sec-sub').textContent = 'Selecciona un módulo para entrar'
   const pg = document.getElementById('pg')
@@ -14286,12 +14343,12 @@ function showModuleTools(key) {
   leaveView()
   document.getElementById('tb-section').textContent = m.label
   document.getElementById('product-controls').style.display = 'none'
+  setSecCrumbs([{ label: 'Módulos', onclick: 'showModuleHub()' }, { label: m.label }])
   document.getElementById('sec-title').textContent = m.label
-  document.getElementById('sec-sub').textContent = 'Herramientas de este módulo'
+  document.getElementById('sec-sub').textContent = ''
   const pg = document.getElementById('pg')
   pg.style.display = 'block'
   pg.innerHTML = `
-    <button class="btn btn-secondary btn-sm" style="margin-bottom:1rem" onclick="showModuleHub()">← Módulos</button>
     <div class="pg-grid">${m.tools.map(t => `
     <div class="card-wrap">
       <div class="card" onclick="${t.run}()" style="cursor:pointer;padding:1.25rem">
@@ -14512,9 +14569,12 @@ async function enterBadgeModule(toolId, title) {
   leaveView()
   document.getElementById('tb-section').textContent = title
   // ONE page header (content-hdr) — the site switcher lives in its right
-  // slot, never a second floating title inside the module body.
+  // slot, never a second floating title inside the module body. Back
+  // navigation is hierarchy-based (← Talento Humano), not raw history —
+  // see setSecCrumbs().
+  setSecCrumbs([{ label: 'Talento Humano', onclick: "showModuleTools('talento_humano')" }, { label: title }])
   document.getElementById('sec-title').textContent = title
-  document.getElementById('sec-sub').textContent = 'Talento Humano'
+  document.getElementById('sec-sub').textContent = ''
   const controls = document.getElementById('product-controls')
   controls.style.display = 'flex'
   controls.innerHTML = ''
@@ -14949,7 +15009,7 @@ function empTableHtml(list) {
       <br/><a href="#" onclick="empClearFilters(); return false">Limpiar filtros</a>
     </td></tr>`
   }
-  return `<div class="erp-table-wrap" style="max-height:calc(100vh - 360px)"><table class="erp-table">${thead}<tbody>${body}</tbody></table></div>`
+  return `<div class="erp-table-wrap" style="max-height:calc(100vh - 330px)"><table class="erp-table">${thead}<tbody>${body}</tbody></table></div>`
 }
 
 /* ── Cards (secondary visual view) — same filtered/sorted dataset ── */
@@ -15434,7 +15494,7 @@ function renderMomentosView() {
         <button class="btn btn-ghost btn-sm" onclick="momentsClearFilters()">Limpiar filtros</button>
       </div>
       ${list.length ? `
-      <div class="erp-table-wrap" style="max-height:calc(100vh - 360px)">
+      <div class="erp-table-wrap" style="max-height:calc(100vh - 330px)">
         <table class="erp-table">
           <thead><tr><th>Colaborador</th><th>Tipo</th><th>Fecha</th><th>Días</th><th>Departamento</th><th>Estado</th><th>Acción</th></tr></thead>
           <tbody>${list.map(momentRowHtml).join('')}</tbody>
@@ -18608,6 +18668,7 @@ async function showAccessLogs() {
   leaveView()
   document.getElementById('tb-section').textContent = 'Registro de accesos'
   document.getElementById('product-controls').style.display = 'none'
+  setSecCrumbs([{ label: 'Index', onclick: "showModuleTools('administracion')" }, { label: 'Registro de accesos' }])
   document.getElementById('sec-title').textContent = 'Registro de accesos'
   document.getElementById('sec-sub').textContent = 'Historial de inicios de sesión — visible solo para administradores'
 
@@ -18710,6 +18771,7 @@ async function showUserManagement() {
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
   document.getElementById('tb-section').textContent = tx('team.title')
+  setSecCrumbs([{ label: 'Index', onclick: "showModuleTools('administracion')" }, { label: tx('team.title') }])
   const productControls = document.getElementById('product-controls')
   productControls.style.display = ''
   productControls.innerHTML = ''
@@ -19757,7 +19819,7 @@ function renderOrgDirectoryView() {
     })
   }
   return `
-  <div class="erp-table-wrap" style="max-height:calc(100vh - 460px)">
+  <div class="erp-table-wrap" style="max-height:calc(100vh - 430px)">
     <table class="erp-table">
       <thead><tr>
         <th style="cursor:pointer" onclick="orgDirectorySetSort('name_asc')">Colaborador</th>
