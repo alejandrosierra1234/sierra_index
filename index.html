@@ -1336,6 +1336,13 @@
     /* Drawer backdrop (mobile) */
     .drawer-backdrop { visibility:hidden; pointer-events:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:398; opacity:0; transition:opacity 0.25s, visibility 0.25s; backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); }
     .drawer-backdrop.open { visibility:visible; pointer-events:auto; opacity:1; }
+    /* The export drawer's own content (checkboxes, radios, preview text)
+       needs to stay perfectly crisp — some browsers visibly bleed a
+       backdrop-filter blur into sibling position:fixed layers once a
+       transform is involved (the drawer's open/close slide), which reads
+       as the panel itself being out of focus. Dim only, no blur, here. */
+    #org-export-drawer-backdrop { backdrop-filter:none; -webkit-backdrop-filter:none; }
+    .org-export-drawer.drawer { z-index:401; }
 
     /* Mobile topbar icon buttons (kept for compat) */
     .mob-icon-btn { display:none; width:34px; height:34px; border-radius:8px; background:none; border:none; cursor:pointer; color:var(--text-2); align-items:center; justify-content:center; flex-shrink:0; transition:background 0.12s; }
@@ -20253,7 +20260,7 @@ function orgOpenExportModal() {
   backdrop.onclick = () => orgCloseExportModal()
   document.body.appendChild(backdrop)
   const drawer = document.createElement('div')
-  drawer.className = 'drawer drawer-right'; drawer.id = 'org-export-drawer'
+  drawer.className = 'drawer drawer-right org-export-drawer'; drawer.id = 'org-export-drawer'
   drawer.setAttribute('role', 'dialog'); drawer.setAttribute('aria-modal', 'true'); drawer.setAttribute('aria-label', 'Exportar organigrama')
   document.body.appendChild(drawer)
   renderOrgExportDrawer()
