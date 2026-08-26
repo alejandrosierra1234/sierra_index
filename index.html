@@ -4654,12 +4654,27 @@
     .org-node-card {
       display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border); border-radius:10px;
       padding:0.45rem 0.6rem; min-width:230px; max-width:280px; cursor:pointer; position:relative;
+      transition:outline-color .1s, background-color .1s, transform .1s, opacity .1s;
     }
     .org-node-card:hover { border-color:var(--teal); }
     .org-node-card:focus-visible, .org-node-card.is-selected { outline:none; border-color:var(--teal); box-shadow:0 0 0 2px color-mix(in srgb, var(--teal) 35%, transparent); }
     .org-node-card.is-focused { background:color-mix(in srgb, var(--teal) 8%, var(--surface)); }
     .org-node-card.has-issue { border-color:var(--warning-border); }
     .org-node-card.has-blocking-issue { border-color:var(--danger-border); }
+    /* Drag-to-reassign — grabbing a card and dropping it on another opens
+       the same confirm drawer as the manual flow (orgOpenAssignManager),
+       just pre-filled with the drop target. Dragging never writes to the
+       DB by itself; it's a faster on-ramp into the existing, validated
+       confirm step, so the safety guarantees (cycle checks, cross-site/
+       company confirmation) are identical either way. */
+    .org-node-card[draggable="true"] { cursor:grab; }
+    .org-node-card.org-dragging { opacity:0.35; cursor:grabbing; }
+    .org-node-card.org-drop-valid { outline:2px dashed var(--teal); outline-offset:3px; background:color-mix(in srgb, var(--teal) 10%, var(--surface)); transform:scale(1.02); }
+    .org-node-card.org-drop-invalid { outline:2px dashed var(--danger); outline-offset:3px; cursor:not-allowed; }
+    .org-node-grip { display:flex; align-items:center; justify-content:center; color:var(--text-3); opacity:0; transition:opacity .12s; cursor:grab; margin-right:-2px; touch-action:none; }
+    .org-node-card:hover .org-node-grip, .org-node-card:focus-visible .org-node-grip { opacity:0.55; }
+    .org-node-grip:hover { opacity:1 !important; color:var(--text-secondary); }
+    .org-drag-hint { display:flex; align-items:center; gap:6px; font-size:0.72rem; color:var(--text-3); margin:0 0 0.5rem; }
     .org-node-avatar { width:30px; height:30px; min-width:30px; border-radius:50%; overflow:hidden; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:700; color:var(--text-secondary); }
     .org-node-avatar img { width:100%; height:100%; object-fit:cover; }
     .org-node-main { min-width:0; flex:1; }
@@ -19660,6 +19675,7 @@ function orgNodeCardHtml(id, forest, depth) {
   const initials = ((emp.first_name?.[0] || '') + (emp.last_name?.[0] || '')).toUpperCase()
   const rel = orgCurrentManagerRelationship(id)
   const crossNote = issues.find(i => i.type === 'cross_site' || i.type === 'cross_company')
+  const canDrag = can('write', 'talento_humano')
   return `
   <li role="treeitem" aria-expanded="${children.length ? expanded : undefined}" aria-selected="${isSelected}" aria-label="${escAttr(orgFullName(emp) + (emp.position ? ', ' + emp.position : '') + (hasIssue ? ', requiere atención' : ''))}">
     <div class="org-node-row">
@@ -19668,9 +19684,11 @@ function orgNodeCardHtml(id, forest, depth) {
       </button>` : `<span class="org-expand-spacer"></span>`}
       <div class="org-node-card ${isSelected ? 'is-selected' : ''} ${isFocused ? 'is-focused' : ''} ${blocking ? 'has-blocking-issue' : hasIssue ? 'has-issue' : ''}"
            id="org-node-${id}" tabindex="0" role="button"
+           ${canDrag ? `draggable="true" ondragstart="orgNodeDragStart(event,'${id}')" ondragend="orgNodeDragEnd(event)" ondragover="orgNodeDragOver(event,'${id}')" ondragleave="orgNodeDragLeave(event,'${id}')" ondrop="orgNodeDrop(event,'${id}')"` : ''}
            onclick="orgSelectNode('${id}')" onkeydown="orgNodeKeydown(event,'${id}')"
            aria-label="${escAttr(orgFullName(emp))}${emp.position ? ', ' + escAttr(emp.position) : ''}${hasIssue ? ', requiere atención' : ''}">
-        <div class="org-node-avatar">${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" />` : `<span>${esc(initials)}</span>`}</div>
+        ${canDrag ? `<span class="org-node-grip" title="Arrastra para cambiar de jefe" aria-hidden="true">${siIcon('grip', 13)}</span>` : ''}
+        <div class="org-node-avatar">${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" draggable="false" />` : `<span>${esc(initials)}</span>`}</div>
         <div class="org-node-main">
           <div class="org-node-name" title="${escAttr(orgFullName(emp))}">${esc(orgFullName(emp))}</div>
           <div class="org-node-meta" title="${escAttr(emp.position || '')}">${esc(emp.position || 'Sin puesto')}</div>
@@ -19688,6 +19706,49 @@ function orgNodeCardHtml(id, forest, depth) {
     </div>
     ${children.length && expanded ? `<ul class="org-node-children" role="group">${children.map(c => orgNodeCardHtml(c, forest, depth + 1)).join('')}</ul>` : ''}
   </li>`
+}
+// ── Drag-to-reassign state — a single module-level pointer to the node
+// being dragged. dataTransfer's own payload isn't readable during
+// dragover/dragleave (browsers only expose it on drop, for security), so
+// live valid/invalid feedback while hovering has to come from this instead.
+let _orgDrag = null
+function orgNodeDragStart(e, id) {
+  if (!can('write', 'talento_humano')) { e.preventDefault(); return }
+  if (e.target.closest('.org-expand-btn, .org-node-open')) { e.preventDefault(); return }
+  _orgDrag = id
+  e.dataTransfer.effectAllowed = 'move'
+  try { e.dataTransfer.setData('text/plain', id) } catch {}
+  e.stopPropagation()
+  requestAnimationFrame(() => document.getElementById('org-node-' + id)?.classList.add('org-dragging'))
+}
+function orgNodeDragOver(e, targetId) {
+  if (!_orgDrag) return
+  e.preventDefault()
+  e.stopPropagation()
+  const valid = _orgDrag !== targetId && !orgWouldCreateCycle(_orgDrag, targetId)
+  e.dataTransfer.dropEffect = valid ? 'move' : 'none'
+  const el = document.getElementById('org-node-' + targetId)
+  if (el && _orgDrag !== targetId) { el.classList.toggle('org-drop-valid', valid); el.classList.toggle('org-drop-invalid', !valid) }
+}
+function orgNodeDragLeave(e, targetId) {
+  document.getElementById('org-node-' + targetId)?.classList.remove('org-drop-valid', 'org-drop-invalid')
+}
+function orgNodeDrop(e, targetId) {
+  e.preventDefault()
+  e.stopPropagation()
+  document.getElementById('org-node-' + targetId)?.classList.remove('org-drop-valid', 'org-drop-invalid')
+  const draggedId = _orgDrag
+  _orgDrag = null
+  if (!draggedId) return
+  document.getElementById('org-node-' + draggedId)?.classList.remove('org-dragging')
+  if (draggedId === targetId) return
+  if (orgWouldCreateCycle(draggedId, targetId)) { toast('No se puede soltar aquí: crearía una relación circular'); return }
+  orgOpenAssignManager(draggedId, targetId)
+}
+function orgNodeDragEnd() {
+  if (_orgDrag) document.getElementById('org-node-' + _orgDrag)?.classList.remove('org-dragging')
+  _orgDrag = null
+  document.querySelectorAll('.org-drop-valid, .org-drop-invalid').forEach(el => el.classList.remove('org-drop-valid', 'org-drop-invalid'))
 }
 function orgNodeKeydown(e, id) {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); orgSelectNode(id) }
@@ -19732,6 +19793,7 @@ function renderOrgChartView() {
         <button class="icon-btn icon-btn-quiet" onclick="orgResetView()" title="Restablecer vista" aria-label="Restablecer vista">${siIcon('rotate-ccw', 14)}</button>
       </div>
     </div>
+    ${can('write', 'talento_humano') ? `<div class="org-drag-hint">${siIcon('grip', 12)} Arrastra una tarjeta y suéltala sobre otra para cambiarle el jefe inmediato</div>` : ''}
     <div class="org-chart-viewport" id="org-chart-viewport">
       <div class="org-chart-canvas" id="org-chart-canvas" style="transform:scale(${_badge_ui.org.zoom})">
         <ul class="org-tree" role="tree" aria-label="Organigrama">
@@ -19744,17 +19806,23 @@ function renderOrgChartView() {
 }
 let _orgDefaultExpansionDone = false
 
-// ── 6. ASSIGN / CHANGE IMMEDIATE MANAGER ── A focused drawer, not a
-// generic modal. Never drag-and-drop (spec explicitly rules that out for
-// this first implementation — too easy to cause an accidental structural
-// change). ──
-function orgOpenAssignManager(employeeId) {
+// ── 6. ASSIGN / CHANGE IMMEDIATE MANAGER ── A focused drawer, opened
+// either from a button (manual search) or by dropping a node onto another
+// in the chart (orgNodeDrop → prefillManagerId) — both paths land in the
+// same confirm step below, so dragging never skips the cycle check or the
+// cross-site/company confirmation the manual flow already enforces. ──
+function orgOpenAssignManager(employeeId, prefillManagerId) {
   if (!can('write', 'talento_humano')) return
   const emp = orgEmpById(employeeId)
   if (!emp) return
+  // prefillManagerId comes from dropping a node onto another one in the
+  // chart — orgNodeDrop() already ran the cycle check before calling this,
+  // but the drawer still goes through its normal confirm step (impact
+  // preview, cross-site/company confirmation) rather than saving straight
+  // from the drop, so drag-and-drop never bypasses those safeguards.
   const currentRel = orgCurrentManagerRelationship(employeeId)
   _badge_ui.org.assign = {
-    employeeId, managerQuery: '', managerId: null, managerResults: [],
+    employeeId, managerQuery: '', managerId: prefillManagerId || null, managerResults: [],
     effectiveDate: hrToday().toISOString().slice(0, 10),
     reason: '', note: '', confirmCross: false, saving: false,
     currentManagerId: currentRel?.manager_employee_id || null,
