@@ -4798,6 +4798,10 @@
     .emp-detail-drawer.drawer { width: clamp(520px, 38vw, 680px); max-width: 92vw; z-index: 399; }
     @media (max-width: 900px) { .emp-detail-drawer.drawer { width: 82vw; } }
     @media (max-width: 640px) { .emp-detail-drawer.drawer { width: 100vw; max-width: 100vw; } }
+    /* Opens on top of the employee detail drawer (z-index 399) when
+       triggered from the profile's "Estructura organizacional" section, so
+       it needs to outrank it — otherwise it renders hidden behind it. */
+    .org-assign-drawer.drawer { z-index: 401; }
     /* The drawer is intentionally narrow (520–680px), so the header actions
        (primary CTA + overflow + close) always get their own row rather than
        squeezing the name/org column into a vertical sliver at any width. */
