@@ -117,6 +117,29 @@
       --div-color-light: var(--surface2);
       --div-fiber: var(--sem-purple);   --div-yarn: var(--sem-blue); --div-fabric: var(--sem-green);
       --div-chem: var(--sem-red);       --div-garment: var(--sem-orange);
+
+      /* ── MODULE IDENTITY SYSTEM ──
+         Persistent per-module color identity (module picker, sidebar module
+         icon, home/dashboard module cards) — see SIERRA_DESIGN_SYSTEM.md
+         §"Module Identity". Each module claims one family from the existing
+         secondary/semantic palette above; no new hues are introduced here,
+         only named aliases so MODULES[key].token can reference a stable
+         token instead of every call site re-deriving colors from a raw hex.
+         -primary/-light/-dark are the theme-invariant triad (for anything
+         that reads them directly, e.g. a swatch); -tile-bg/-tile-fg are
+         the theme-AWARE pair actual UI should use for icon tiles — redefined
+         under [data-theme="dark"] below so a module never falls back to
+         painting its raw light tint straight onto a dark surface. */
+      --module-hr-primary: var(--sem-warmyellow);      --module-hr-light: var(--sem-warmyellow-light);      --module-hr-dark: var(--sem-warmyellow-dark);
+      --module-samples-primary: var(--sem-blue);        --module-samples-light: var(--sem-blue-light);        --module-samples-dark: var(--sem-blue-dark);
+      --module-index-primary: var(--sem-purple);        --module-index-light: var(--sem-purple-light);        --module-index-dark: var(--sem-purple-dark);
+      --module-marketing-primary: var(--sem-orange);    --module-marketing-light: var(--sem-orange-light);    --module-marketing-dark: var(--sem-orange-dark);
+      --module-sustainability-primary: var(--sem-green); --module-sustainability-light: var(--sem-green-light); --module-sustainability-dark: var(--sem-green-dark);
+      --module-hr-tile-bg: var(--module-hr-light);                 --module-hr-tile-fg: var(--module-hr-dark);
+      --module-samples-tile-bg: var(--module-samples-light);       --module-samples-tile-fg: var(--module-samples-dark);
+      --module-index-tile-bg: var(--module-index-light);           --module-index-tile-fg: var(--module-index-dark);
+      --module-marketing-tile-bg: var(--module-marketing-light);   --module-marketing-tile-fg: var(--module-marketing-dark);
+      --module-sustainability-tile-bg: var(--module-sustainability-light); --module-sustainability-tile-fg: var(--module-sustainability-dark);
       /* ── APPLICATION SHELL TOKENS ──
          The shell (topbar/sidebar/workspace) is a distinct layer from the
          page content it hosts, so it gets its own tokens rather than
@@ -222,6 +245,23 @@
       --sem-purple-dark-text: #d074f0; --sem-warmyellow-dark-text: #ffc529; --sem-orange-dark-text: #ff9a5c;
       --sem-red-dark-text: #ff6b6b;
       --div-color: var(--text-secondary); --div-color-dark: var(--text-primary); --div-color-light: var(--surface2);
+      /* Module identity tiles in dark mode: the light-mode tint is a pale
+         near-white wash that reads as a washed-out mistake on a dark
+         surface, so tile backgrounds become a SUBDUED tint of the module's
+         hue mixed into --surface2 instead of the raw --sem-*-light value —
+         still clearly "that module's color," just calibrated for a dark
+         ground. Tile foreground reuses the same lightened --sem-*-dark-text
+         already tuned above for AA on dark surfaces. */
+      --module-hr-tile-bg: color-mix(in srgb, var(--module-hr-primary) 22%, var(--surface2));
+      --module-hr-tile-fg: var(--sem-warmyellow-dark-text);
+      --module-samples-tile-bg: color-mix(in srgb, var(--module-samples-primary) 22%, var(--surface2));
+      --module-samples-tile-fg: var(--sem-blue-dark-text);
+      --module-index-tile-bg: color-mix(in srgb, var(--module-index-primary) 22%, var(--surface2));
+      --module-index-tile-fg: var(--sem-purple-dark-text);
+      --module-marketing-tile-bg: color-mix(in srgb, var(--module-marketing-primary) 22%, var(--surface2));
+      --module-marketing-tile-fg: var(--sem-orange-dark-text);
+      --module-sustainability-tile-bg: color-mix(in srgb, var(--module-sustainability-primary) 22%, var(--surface2));
+      --module-sustainability-tile-fg: var(--sem-green-dark-text);
       /* Interaction tokens re-tuned for dark: filled primary stays the
          same accessible dark teal (it already reads fine on dark
          surfaces); selection uses a translucent teal wash instead of the
@@ -1254,6 +1294,19 @@
     .mod-switch-list { display:flex; flex-direction:column; gap:1px; max-height:340px; overflow-y:auto; }
     .mod-switch-hdr { font-size:0.62rem; font-weight:650; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); padding:0.5rem 0.6rem 0.25rem; }
     .mod-switch-row-label { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    /* Selected module (§"Module Identity"): recognizable without relying on
+       bold text alone — a very subtle wash of the module's own tint plus a
+       thin identity-colored indicator on the leading edge, echoing (not
+       copying) the sidebar's teal active-indicator idiom. Kept intentionally
+       faint — this is the one place a module hue is allowed to touch a row
+       background, and only at ~12% strength. */
+    .mod-switch-row { position:relative; }
+    .mod-switch-row.current { background:color-mix(in srgb, var(--row-tint, var(--surface-hover)) 12%, var(--surface)); }
+    .mod-switch-row.current .mod-switch-row-label { color:var(--text); }
+    .mod-switch-row.current::before {
+      content:''; position:absolute; left:0; top:6px; bottom:6px; width:3px;
+      border-radius:0 3px 3px 0; background:var(--row-accent, var(--accent));
+    }
 
     /* ── Account menu ──
        Sidebar identity click opens this instead of jumping straight to the
@@ -13834,12 +13887,14 @@ const MODULES = {
   talento_humano: {
     label: 'Talento Humano',
     domains: ['talento_humano'],
-    color: '#ffc529',
-    // Explicit {light,accent} tile pair, same idea as DIV_ACCENT — the
-    // base color alone is too pale to serve as an icon foreground, and
-    // color-mix()'d from a single hue read as a muddy near-gray wash at
-    // 14-16px. accent is the pre-tuned AA-checked --sem-warmyellow-dark.
-    light: '#fff0af', accent: '#8a6d00',
+    // Module identity (§"Module Identity") — claims the warm-yellow family
+    // from the existing secondary palette (--sem-warmyellow*). `token`
+    // points moduleTileVars() at the theme-aware --module-hr-tile-bg/fg
+    // custom properties instead of a hardcoded hex, so dark mode gets a
+    // subdued tile automatically. color/light/accent stay as the plain
+    // triad for any non-CSS-var consumer (e.g. color-mix() call sites).
+    token: 'hr',
+    color: '#ffc529', light: '#fff0af', accent: '#bb9800',
     icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.2" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 17c0-3.6 2.9-5.4 6.5-5.4s6.5 1.8 6.5 5.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
     // The company-wide staff workspace (employees/org chart/badges/etc.)
     // used to have only two doors in (Colaboradores, Creador de Gafetes),
@@ -13916,12 +13971,13 @@ const MODULES = {
     // Fabric and Garment items headed to the same NT warehouse.
     domains: [...AUTH_DIVISIONS, ...AUTH_WAREHOUSES, 'customer_service'],
     // Was brand teal (#16cdbe) — reserved for interaction, never identity
-    // (§42/§44). Muestras' own divisions already carry purple/blue/green/
-    // red/orange identity via DIV_ACCENT; the module tile itself uses the
-    // unclaimed Yellow/Olive secondary family so it reads as one more
-    // identity color, not "the app's interactive accent painted on a tile."
-    color: '#c4c412',
-    light: '#efefaf', accent: '#5e5b00',
+    // (§42/§44) — then yellow/olive, which read too close to Talento
+    // Humano's own warm-yellow identity once both sat in the same module
+    // picker. Muestras now claims blue (--sem-blue*), the family already
+    // used for its own Yarn division and immediately legible as "the
+    // samples module" at a glance, per the module identity refresh.
+    token: 'samples',
+    color: '#009fff', light: '#c5e9ff', accent: '#004a86',
     icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 10a7 7 0 0114 0v3.5a1.5 1.5 0 01-1.5 1.5H14v-5h3a5 5 0 00-10 0h3v5H4.5A1.5 1.5 0 013 13.5V10z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
     tools: [], // contextual — Muestras jumps straight into showSamplesHome(), see enterModule()
   },
@@ -13935,7 +13991,11 @@ const MODULES = {
     // sessionStorage routes, and DIV/MODULES lookups keyed on it.
     label: 'Index',
     domains: ['platform'],
-    color: '#444444',
+    // Was flat gray (#444444) — the exact "generic gray icon" the module
+    // identity refresh set out to fix; Index now claims purple
+    // (--sem-purple*), unused elsewhere at the module-picker level.
+    token: 'index',
+    color: '#9e00cb', light: '#f6d8ff', accent: '#670084',
     icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 17c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M15 6v4M17 8h-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
     tools: [
       {
@@ -13971,15 +14031,18 @@ const MODULES = {
 const ANY_CAP = ['read', 'write', 'delete', 'publish', 'dispatch', 'manage_status', 'grant', 'admin']
 function moduleAccessible(m) { return m.domains.some(d => ANY_CAP.some(c => can(c, d))) }
 function accessibleModules() { return Object.entries(MODULES).filter(([, m]) => moduleAccessible(m)) }
-// Module identity tile colors — prefer the module's own pre-tuned
-// {light,accent} pair (same idea as DIV_ACCENT: a fixed, checked pair
-// reads clearly in both themes at 14-16px). Falls back to color-mix()
-// against theme surfaces for any module that doesn't define one yet —
-// a raw hue alone is usually too pale/dark to serve as an icon color.
+// Module identity tile colors — prefer the module's centralized CSS token
+// (--module-<token>-tile-bg/fg, see :root/[data-theme="dark"]) so the tile
+// is automatically theme-aware: dark mode swaps in a subdued tint instead
+// of the raw light-mode wash. Falls back to the module's own {light,accent}
+// pair, then to color-mix() against theme surfaces, for any module that
+// hasn't been assigned a token/identity yet — a raw hue alone is usually
+// too pale/dark to serve as an icon color.
 function moduleTileVars(m) {
+  if (m.token) return { bg: `var(--module-${m.token}-tile-bg)`, fg: `var(--module-${m.token}-tile-fg)`, tint: `var(--module-${m.token}-light)`, accent: `var(--module-${m.token}-primary)` }
   const bg = m.light || `color-mix(in srgb, ${m.color} 16%, var(--surface))`
   const fg = m.accent || `color-mix(in srgb, ${m.color} 82%, var(--text-primary))`
-  return { bg, fg }
+  return { bg, fg, tint: bg, accent: m.color }
 }
 
 let activeModule = null
@@ -14267,19 +14330,27 @@ function renderModSwitcherPop() {
   const q = _modSwitchQuery.trim().toLowerCase()
   const all = accessibleModules()
   const filtered = q ? all.filter(([, m]) => m.label.toLowerCase().includes(q)) : all
-  const row = ([key, m]) => `
-    <button class="pop-menu-item mod-switch-row${key === activeModule ? ' current' : ''}" onclick="modSwitchGo('${key}')">
-      <span class="nav-icon-tile" style="--tile-bg:${moduleTileVars(m).bg};--tile-fg:${moduleTileVars(m).fg}">${m.icon}</span>
+  const row = ([key, m]) => {
+    const tv = moduleTileVars(m)
+    const current = key === activeModule
+    return `
+    <button class="pop-menu-item mod-switch-row${current ? ' current' : ''}" style="${current ? `--row-tint:${tv.tint};--row-accent:${tv.accent}` : ''}" onclick="modSwitchGo('${key}')">
+      <span class="nav-icon-tile" style="--tile-bg:${tv.bg};--tile-fg:${tv.fg}">${m.icon}</span>
       <span class="mod-switch-row-label">${esc(m.label)}</span>
     </button>`
+  }
   let body
   if (!q) {
-    const recent = _navRecentModules
-      .map(k => all.find(([kk]) => kk === k))
-      .filter(entry => entry && entry[0] !== activeModule)
-      .slice(0, 3)
+    // "Recientes" only earns its keep once there are enough modules for
+    // recency to matter (§"Module picker simplification") — below that
+    // threshold every module is already visible in the one list, so a
+    // Recientes section would just duplicate rows.
+    const RECENT_MIN_MODULES = 6
+    const recent = all.length >= RECENT_MIN_MODULES
+      ? _navRecentModules.map(k => all.find(([kk]) => kk === k)).filter(entry => entry && entry[0] !== activeModule).slice(0, 3)
+      : []
     body = (recent.length ? `<div class="mod-switch-hdr">Recientes</div>${recent.map(row).join('')}` : '')
-      + `<div class="mod-switch-hdr">Todos los módulos</div>${filtered.length ? filtered.map(row).join('') : '<div class="nav-fav-empty">Sin módulos disponibles</div>'}`
+      + `<div class="mod-switch-hdr">Módulos</div>${filtered.length ? filtered.map(row).join('') : '<div class="nav-fav-empty">Sin módulos disponibles</div>'}`
   } else {
     body = filtered.length ? filtered.map(row).join('') : '<div class="nav-fav-empty">Sin resultados</div>'
   }
