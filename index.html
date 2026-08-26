@@ -8290,15 +8290,27 @@ function renderProductNotFound() {
 // CONTEXT BAR — one reusable back+breadcrumb primitive, rendered once in
 // the application shell (#ctx-shell, a gray band between the global
 // system bar and the white workspace — never inside #content, never
-// duplicated per tool). Call setSecCrumbs() from a view's entry function
-// with the hierarchy above it: each item is {label, onclick}; the LAST
-// item is the current page and must omit onclick. leaveView() clears it
-// by default, so a screen that doesn't call setSecCrumbs() simply gets no
-// bar. The first item doubles as the explicit back destination — its
-// label is fused with the ← arrow into one control (e.g. "← Talento
-// Humano") rather than repeating it as a separate breadcrumb segment, so
-// the trail never says the same label twice. Back navigation always
-// follows this hierarchy, never raw browser history.
+// duplicated per tool). leaveView() calls clearSecCrumbs() by default, so
+// a screen gets no bar unless it explicitly opts in.
+//
+// Navigation architecture (three levels — see SIERRA_DESIGN_SYSTEM.md):
+//   Level 1 — módulo         → the sidebar (module switcher) says this.
+//   Level 2 — sidebar tool    → the sidebar tree's active leaf says this.
+//   Level 3+ — drill-down     → NOT represented anywhere in the sidebar
+//                                (e.g. a specific collaborator/producto/
+//                                solicitud opened from a Level-2 list).
+// setSecCrumbs() exists ONLY for genuine Level 3+ drill-downs — a root
+// módulo screen or a tool directly reachable from the sidebar must NOT
+// call it; the sidebar already communicates Levels 1-2, and repeating
+// that above the workspace ("← Talento Humano / Resumen") both duplicates
+// it and costs the workspace vertical space for nothing. When a
+// drill-down does call it, pass the hierarchy above it as {label,
+// onclick} items — the LAST item is the current page and must omit
+// onclick. The first item doubles as the explicit back destination — its
+// label is fused with the ← arrow into one control (e.g. "← Colaboradores")
+// rather than repeating it as a separate breadcrumb segment, so the trail
+// never says the same label twice. Back navigation always follows this
+// explicit hierarchy, never raw browser history.
 function crumbHtml(items) {
   if (!items.length) return ''
   const [first, ...rest] = items
@@ -14429,7 +14441,10 @@ function showModuleTools(key) {
   leaveView()
   document.getElementById('tb-section').textContent = m.label
   document.getElementById('product-controls').style.display = 'none'
-  setSecCrumbs([{ label: 'Módulos', onclick: 'showModuleHub()' }, { label: m.label }])
+  // No breadcrumb here: this grid IS the module's Level-2 tool list — the
+  // sidebar already shows the same tools as leaves under the now-active
+  // module, so a "← Módulos / Talento Humano" row above it would just
+  // repeat what's one glance to the left (§"Navigation architecture").
   document.getElementById('sec-title').textContent = m.label
   document.getElementById('sec-sub').textContent = ''
   const pg = document.getElementById('pg')
@@ -14655,10 +14670,13 @@ async function enterBadgeModule(toolId, title) {
   leaveView()
   document.getElementById('tb-section').textContent = title
   // ONE page header (content-hdr) — the site switcher lives in its right
-  // slot, never a second floating title inside the module body. Back
-  // navigation is hierarchy-based (← Talento Humano), not raw history —
-  // see setSecCrumbs().
-  setSecCrumbs([{ label: 'Talento Humano', onclick: "showModuleTools('talento_humano')" }, { label: title }])
+  // slot, never a second floating title inside the module body. No
+  // breadcrumb: every one of these tabs (Resumen/Colaboradores/
+  // Organización/Momentos/Cola de gafetes/Historial/Empresas/
+  // Configuración) is a Level-2 sidebar leaf under Talento Humano — the
+  // sidebar's expanded module + selected item already say "where," so a
+  // "← Talento Humano / Resumen" row here would only repeat it and cost
+  // vertical space (§"Navigation architecture", Level 1/2 vs. drill-down).
   document.getElementById('sec-title').textContent = title
   document.getElementById('sec-sub').textContent = ''
   const controls = document.getElementById('product-controls')
@@ -18788,7 +18806,8 @@ async function showAccessLogs() {
   leaveView()
   document.getElementById('tb-section').textContent = 'Registro de accesos'
   document.getElementById('product-controls').style.display = 'none'
-  setSecCrumbs([{ label: 'Index', onclick: "showModuleTools('administracion')" }, { label: 'Registro de accesos' }])
+  // No breadcrumb: Access Logs is a Level-2 sidebar leaf under Index —
+  // already stated by the sidebar's active module + selected item.
   document.getElementById('sec-title').textContent = 'Registro de accesos'
   document.getElementById('sec-sub').textContent = 'Historial de inicios de sesión — visible solo para administradores'
 
@@ -18891,7 +18910,7 @@ async function showUserManagement() {
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
   document.getElementById('tb-section').textContent = tx('team.title')
-  setSecCrumbs([{ label: 'Index', onclick: "showModuleTools('administracion')" }, { label: tx('team.title') }])
+  // No breadcrumb: Equipo y Permisos is a Level-2 sidebar leaf under Index.
   const productControls = document.getElementById('product-controls')
   productControls.style.display = ''
   productControls.innerHTML = ''
