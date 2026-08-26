@@ -13701,25 +13701,65 @@ const MODULES = {
     // 14-16px. accent is the pre-tuned AA-checked --sem-warmyellow-dark.
     light: '#fff0af', accent: '#8a6d00',
     icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.2" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 17c0-3.6 2.9-5.4 6.5-5.4s6.5 1.8 6.5 5.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+    // The company-wide staff workspace (employees/org chart/badges/etc.)
+    // used to have only two doors in (Colaboradores, Creador de Gafetes),
+    // each landing on a fixed view inside one shared tabbed screen — the
+    // other six views were only reachable via a horizontal tab row at the
+    // top of the page. Every one of those views is now its own sidebar
+    // leaf instead (via showBadgeTab()), so the workspace never needs its
+    // own in-page tab bar eating vertical space; `view` matches the
+    // _badge_ui.view value each leaf activates, used below to keep the
+    // sidebar highlight in sync even when something inside the workspace
+    // switches views without going through the sidebar (e.g. an Overview
+    // stat tile deep-linking into Cola de gafetes).
     tools: [
       {
-        // The company-wide staff directory (employees/companies/sites) —
-        // separate from Index → Team (platform login accounts). Same
-        // underlying screen as Gafetes below (one screen, two doors in,
-        // see enterBadgeModule()): this one always lands on the roster,
-        // Gafetes always lands where it always has.
-        id: 'colaboradores',
-        label: 'Colaboradores',
-        desc: 'Directorio de personal por empresa: datos de contacto, puesto, estado y gafete',
-        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 7.5h6M7 10.5h6M7 13.5h3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
-        run: 'showColaboradores',
+        id: 'overview', label: 'Resumen', view: 'overview',
+        desc: 'Métricas y pendientes de Talento Humano de un vistazo',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.4"/></svg>',
+        run: 'showBadgeOverview',
       },
       {
-        id: 'gafetes',
-        label: 'Creador de Gafetes',
+        id: 'employees', label: 'Colaboradores', view: 'employees',
+        desc: 'Directorio de personal por empresa: datos de contacto, puesto, estado y gafete',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M7 7.5h6M7 10.5h6M7 13.5h3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+        run: 'showBadgeEmployees',
+      },
+      {
+        id: 'organization', label: 'Organización', view: 'organization',
+        desc: 'Organigrama y relaciones de jefe inmediato',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="4" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="5" cy="16" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="15" cy="16" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M10 6v4M10 10H5v4M10 10h5v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+        run: 'showBadgeOrganization',
+      },
+      {
+        id: 'moments', label: 'Momentos', view: 'moments',
+        desc: 'Cumpleaños, aniversarios y nuevos ingresos',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M3 8h14M7 2.5v3M13 2.5v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="10" cy="12.5" r="1.3" fill="currentColor"/></svg>',
+        run: 'showBadgeMoments',
+      },
+      {
+        id: 'badge-queue', label: 'Cola de gafetes', view: 'badge-queue',
         desc: 'Diseña, guarda e imprime gafetes de identificación del personal',
         icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="4" y="2.5" width="12" height="15" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="8" r="2.2" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 14.5c0-1.7 1.6-2.7 3.5-2.7s3.5 1 3.5 2.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
-        run: 'showGafetes',
+        run: 'showBadgeQueueTab',
+      },
+      {
+        id: 'history', label: 'Historial', view: 'history',
+        desc: 'Historial de cambios y movimientos del personal',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M10 6v4l3 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        run: 'showBadgeHistory',
+      },
+      {
+        id: 'companies', label: 'Empresas', view: 'companies',
+        desc: 'Empresas y sedes configuradas',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="4" y="3" width="9" height="14" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M7 6.5h.01M10.5 6.5h.01M7 9.5h.01M10.5 9.5h.01M7 12.5h.01M10.5 12.5h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13 8h3v9h-3" stroke="currentColor" stroke-width="1.4"/></svg>',
+        run: 'showBadgeCompanies',
+      },
+      {
+        id: 'settings', label: 'Configuración', view: 'settings',
+        desc: 'Configuración del módulo de Talento Humano',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.3" stroke="currentColor" stroke-width="1.4"/><path d="M10 3v1.6M10 15.4V17M17 10h-1.6M4.6 10H3M14.7 5.3l-1.1 1.1M6.4 13.6l-1.1 1.1M14.7 14.7l-1.1-1.1M6.4 6.4L5.3 5.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+        run: 'showBadgeSettings',
       },
     ],
   },
@@ -13836,7 +13876,7 @@ function syncModule(key) {
    re-render the tree, which reads current state (division, activeModule,
    capabilities) fresh every time.
    ══════════════════════════════════════════════════════════════════════ */
-let _navLeaf = null // 'samples|fiber|catalog', 'talento_humano|_|gafetes', 'dashboard', or null
+let _navLeaf = null // 'samples|fiber|catalog', 'talento_humano|_|badge-queue', 'dashboard', or null
 // Last _navLeaf value the accordion auto-expand (§18) already ran for —
 // so it fires once per actual navigation, not on every re-render.
 let _navLeafExpandedFor = undefined
@@ -13917,7 +13957,7 @@ function navToggleFavorite(ev, key) {
 
 function navLeafHtml(key, id, label, iconSvg, depthClass, fnExpr, extraAttrs) {
   const lbl = NAV_LEAF_TX[id] ? tx(NAV_LEAF_TX[id]) : label
-  const active = _navLeaf === key
+  const active = extraAttrs?.forceActive ?? (_navLeaf === key)
   const favoritable = extraAttrs?.favoritable !== false
   if (favoritable && extraAttrs?.collect !== false) _navAllLeaves.push({ key, id, label: lbl, iconSvg, fnExpr })
   const isFav = favoritable && _navFavorites.has(key)
@@ -14027,7 +14067,13 @@ function renderSidebarTree() {
     const tools = (m.tools || []).filter(t => !t.visible || t.visible())
     if (tools.length) {
       html += `<span class="s-label" style="margin-top:0.35rem">Herramientas</span>`
-      html += tools.map(t => navLeafHtml(key + '|_|' + t.id, t.id, t.label, t.icon, 'lvl2', t.run)).join('')
+      // t.view (only set by talento_humano's per-tab tools) lets the
+      // highlight track _badge_ui.view directly, so it stays correct even
+      // when something inside the workspace switches views without going
+      // through the sidebar (e.g. an Overview stat tile deep-linking into
+      // Cola de gafetes) — a plain _navLeaf compare would go stale there.
+      html += tools.map(t => navLeafHtml(key + '|_|' + t.id, t.id, t.label, t.icon, 'lvl2', t.run,
+        t.view ? { forceActive: activeModule === key && _badge_ui.view === t.view } : undefined)).join('')
     }
   }
   root.innerHTML = html
@@ -14402,14 +14448,26 @@ async function enterBadgeModule(toolId, title) {
   await loadBadgeData()
   renderBadgeModule()
 }
-async function showColaboradores() {
-  _badge_ui.view = 'overview'
-  await enterBadgeModule('colaboradores', 'Colaboradores')
+// One entry point for every sidebar leaf under Talento Humano (see
+// MODULES.talento_humano.tools) — each just picks which of the workspace's
+// views to land on; enterBadgeModule() does the actual page setup.
+async function showBadgeTab(view, title) {
+  _badge_ui.view = view
+  await enterBadgeModule(view, title)
 }
-async function showGafetes() {
-  _badge_ui.view = 'badge-queue'
-  await enterBadgeModule('gafetes', 'Gafetes Administrativos')
-}
+// Plain, named top-level functions — required by both call conventions
+// MODULES.tools.run feeds into: showModuleTools()'s onclick="${t.run}()"
+// (an inline function EXPRESSION there would be a SyntaxError at
+// statement position) and enterModule()'s window[t.run](), which looks
+// the function up by name on window.
+async function showBadgeOverview() { await showBadgeTab('overview', 'Resumen') }
+async function showBadgeEmployees() { await showBadgeTab('employees', 'Colaboradores') }
+async function showBadgeOrganization() { await showBadgeTab('organization', 'Organización') }
+async function showBadgeMoments() { await showBadgeTab('moments', 'Momentos') }
+async function showBadgeQueueTab() { await showBadgeTab('badge-queue', 'Cola de gafetes') }
+async function showBadgeHistory() { await showBadgeTab('history', 'Historial') }
+async function showBadgeCompanies() { await showBadgeTab('companies', 'Empresas') }
+async function showBadgeSettings() { await showBadgeTab('settings', 'Configuración') }
 
 async function loadBadgeData() {
   // Load sites with company info
@@ -14538,9 +14596,11 @@ function orgEmpById(id) {
 
 // ONE PageHeader (the shared #sec-title/#sec-sub content-hdr) carries the
 // module title; the site switcher lives in its right slot (#product-controls)
-// so it reads as part of the header, not a floating control. Below the
-// header: one row of horizontal workspace tabs (Employees / Badge Queue /
-// History / Companies / Settings) — no nested sidebar inside the page.
+// so it reads as part of the header, not a floating control. Navigating
+// between the workspace's views (Resumen/Colaboradores/Organización/…) is
+// a sidebar concern now (MODULES.talento_humano.tools, one leaf per view)
+// — this page body is just whichever view is active, no in-page tab row
+// eating vertical space above it.
 function renderBadgeModule() {
   const pg = document.getElementById('pg')
   const activeSite = _badge.sites.find(s => s.id === _badge.activeSite)
@@ -14549,7 +14609,6 @@ function renderBadgeModule() {
 
   pg.innerHTML = `
     <div class="badge-module-root">
-      ${_badge_ui.view === 'issuance' || _badge_ui.view === 'card-generator' ? '' : renderBadgeTabs()}
       <div class="badge-main-panel">
         ${_badge_ui.view === 'overview' ? renderOverviewView() : ''}
         ${_badge_ui.view === 'employees' ? renderEmployeesView() : ''}
@@ -14564,6 +14623,12 @@ function renderBadgeModule() {
       </div>
     </div>
   `
+  // Keeps the sidebar's active-leaf highlight tracking _badge_ui.view even
+  // when something inside the page changed it directly (an Overview stat
+  // tile, "Ver historial" links, etc.) rather than a sidebar click — those
+  // call renderBadgeModule(), not renderSidebarTree(), so without this the
+  // highlight would freeze on whatever was clicked last in the sidebar.
+  renderSidebarTree()
 }
 
 function renderBadgeHeaderActions() {
@@ -14598,26 +14663,6 @@ function siteSwitcherPopHtml() {
       </button>
     `).join('')}
   `).join('')
-}
-
-function renderBadgeTabs() {
-  const navItems = [
-    { id: 'overview', label: 'Resumen' },
-    { id: 'employees', label: 'Colaboradores' },
-    { id: 'organization', label: 'Organización' },
-    { id: 'moments', label: 'Momentos' },
-    { id: 'badge-queue', label: 'Cola de gafetes' },
-    { id: 'history', label: 'Historial' },
-    { id: 'companies', label: 'Empresas' },
-    { id: 'settings', label: 'Configuración' },
-  ]
-  return `
-    <div class="section-tabs">
-      ${navItems.map(item => `
-        <button class="section-tab ${_badge_ui.view === item.id ? 'active' : ''}" onclick="_badge_ui.view = '${item.id}'; renderBadgeModule()">${item.label}</button>
-      `).join('')}
-    </div>
-  `
 }
 
 /* ══════════════════════════════════════════════════════════════════════
