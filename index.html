@@ -3798,6 +3798,30 @@
       body.printing-guide #guide-print-root { display:block !important; }
     }
     #guide-print-root { display:none; }
+
+    /* ── ORGANIGRAMA PDF EXPORT ── same "hidden root shown only under
+       @media print" pattern as the label/product/guide printers above —
+       a chart built specifically for export (§13), never a screenshot of
+       the live canvas: no sidebar, no filters, no scroll/zoom controls. */
+    @media print {
+      body.printing-org > * { display:none !important; }
+      body.printing-org #org-print-root { display:block !important; }
+    }
+    #org-print-root { display:none; }
+    .orgp-header { font-family:inherit; color:#000; margin-bottom:10mm; }
+    .orgp-title { font-size:1.4rem; font-weight:700; }
+    .orgp-sub { font-size:0.85rem; color:#444; margin-top:2px; }
+    .orgp-card {
+      position:absolute; display:flex; align-items:flex-start; gap:8px; background:#fff; border:1px solid #ccc; border-radius:10px;
+      padding:0.6rem 0.7rem; box-sizing:border-box;
+    }
+    .orgp-avatar { width:48px; height:48px; min-width:48px; border-radius:50%; overflow:hidden; background:#eee; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; color:#555; }
+    .orgp-avatar img { width:100%; height:100%; object-fit:cover; }
+    .orgp-name { font-size:0.9rem; font-weight:700; color:#000; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .orgp-title2 { font-size:0.78rem; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .orgp-meta { font-size:0.72rem; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+    .orgp-reports { font-size:0.64rem; color:#555; margin-top:2px; }
+    .orgp-conn { fill:none; stroke:#999; stroke-width:1.2; }
     .sg-wrap { font-family:inherit; color:#000; max-width:180mm; margin:0 auto; }
     .sg-top { display:flex; align-items:flex-start; justify-content:space-between; border-bottom:2.5px solid #000; padding-bottom:5mm; margin-bottom:5mm; }
     .sg-brand { font-size:15pt; font-weight:800; letter-spacing:-0.02em; }
@@ -3962,6 +3986,7 @@
     .cat-pop-title { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-3); padding:0.3rem 0.5rem 0.4rem; }
     .cat-pop-row { display:flex; align-items:center; gap:0.5rem; width:100%; text-align:left; font-family:inherit; font-size:0.8rem; color:var(--text); background:none; border:none; border-radius:8px; padding:0.4rem 0.5rem; cursor:pointer; }
     .cat-pop-row:hover { background:var(--surface2); }
+    .cat-pop-row.active { font-weight:650; color:var(--teal); }
     .cat-pop-row input[type=checkbox] { accent-color:var(--accent); }
     .cat-pop-row .cat-pop-count { margin-left:auto; color:var(--text-3); font-size:0.72rem; }
     .cat-pop-ftr { display:flex; justify-content:flex-end; padding:0.4rem 0.3rem 0.1rem; border-top:1px solid var(--border); margin-top:0.3rem; }
@@ -4626,6 +4651,13 @@
 
     /* ── Organización workspace ── */
     .filter-count-badge { display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; padding:0 4px; border-radius:8px; background:var(--teal); color:#fff; font-size:0.62rem; font-weight:700; margin-left:4px; }
+    .org-scope-row { display:flex; align-items:center; gap:0.7rem; flex-wrap:wrap; margin-bottom:0.7rem; }
+    .org-scope-row-spacer { flex:1; min-width:8px; }
+    .org-breadcrumb { font-size:0.8rem; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .org-breadcrumb-sep { color:var(--text-3); margin:0 2px; }
+    .org-metrics-grid { max-width:640px; margin-bottom:0.8rem; }
+    .org-quality-banner { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; padding:0.55rem 0.8rem; margin-bottom:0.8rem; border:1px solid var(--warning-border); background:var(--warning-bg); color:var(--warning-text); border-radius:10px; font-size:0.82rem; }
+    .org-quality-banner .btn { margin-left:auto; }
     .org-view-switch { display:flex; gap:0.4rem; margin:0.9rem 0 0.8rem; border-bottom:1px solid var(--border); }
     .org-view-btn { padding:0.5rem 0.2rem; margin-right:1.1rem; background:none; border:none; border-bottom:2px solid transparent; font-size:0.85rem; font-weight:600; color:var(--text-secondary); cursor:pointer; }
     .org-view-btn.active { color:var(--teal); border-bottom-color:var(--teal); }
@@ -4642,53 +4674,79 @@
     .org-chart-controls { display:flex; align-items:center; justify-content:space-between; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.6rem; }
     .org-chart-controls-group { display:flex; align-items:center; gap:0.3rem; }
     .org-zoom-label { font-size:0.72rem; color:var(--text-3); min-width:2.6em; text-align:center; font-variant-numeric:tabular-nums; }
-    .org-chart-viewport { overflow:auto; border:1px solid var(--border); border-radius:var(--panel-radius); background:var(--surface2); min-height:360px; max-height:calc(100vh - 480px); position:relative; }
-    .org-chart-canvas { display:inline-block; min-width:100%; padding:1.2rem 1.4rem 2rem; transform-origin:top left; }
-    .org-tree, .org-node-children { list-style:none; margin:0; padding:0; }
-    .org-node-children { margin-left:26px; padding-left:18px; border-left:1px dashed var(--border); margin-top:2px; }
-    .org-tree > li { margin-bottom:2px; }
-    .org-node-row { display:flex; align-items:flex-start; gap:2px; margin:3px 0; }
-    .org-expand-btn, .org-expand-spacer { width:22px; height:22px; min-width:22px; display:flex; align-items:center; justify-content:center; margin-top:9px; }
-    .org-expand-btn { border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--text-secondary); cursor:pointer; padding:0; }
-    .org-expand-btn:hover { background:var(--surface-hover,var(--surface2)); color:var(--text-primary); }
-    .org-node-card {
-      display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border); border-radius:10px;
-      padding:0.45rem 0.6rem; min-width:230px; max-width:280px; cursor:pointer; position:relative;
-      transition:outline-color .1s, background-color .1s, transform .1s, opacity .1s;
+    .org-drag-hint { display:flex; align-items:center; gap:6px; font-size:0.72rem; color:var(--text-3); }
+
+    /* ── Organigrama canvas ── a real pan/zoom workspace (§2, §21), not a
+       card inside the page: it claims almost all of the available height
+       so the chart itself is the protagonist. overflow:auto gives native
+       wheel/trackpad/scrollbar panning for free; orgCanvasPointerDown()
+       layers click-drag-anywhere panning on top of that. */
+    .orgc-viewport { position:relative; overflow:auto; border:1px solid var(--border); border-radius:var(--panel-radius); background:var(--surface2); height:calc(100vh - 400px); min-height:460px; cursor:grab; }
+    .orgc-viewport.orgc-panning { cursor:grabbing; user-select:none; }
+    /* The sizer carries the *scaled* (zoom-multiplied) pixel dimensions so
+       the viewport's native scrollable area actually grows with zoom —
+       transform:scale() alone never changes a scrolling ancestor's
+       scrollWidth/Height, since transforms are paint-only, not layout. */
+    .orgc-canvas-sizer { position:relative; }
+    .orgc-canvas { position:absolute; top:0; left:0; transform-origin:0 0; }
+    .orgc-connectors { position:absolute; top:0; left:0; overflow:visible; pointer-events:none; }
+    .orgc-conn { fill:none; stroke:var(--border-strong,var(--border)); stroke-width:1.5; }
+    .orgc-floating-controls {
+      position:sticky; bottom:0.8rem; left:100%; transform:translateX(-100%);
+      display:flex; align-items:center; gap:0.25rem; width:fit-content; margin-right:0.8rem;
+      padding:0.3rem 0.4rem; border-radius:999px; border:1px solid var(--border); background:var(--surface); box-shadow:0 2px 10px rgba(0,0,0,0.1);
     }
-    .org-node-card:hover { border-color:var(--teal); }
-    .org-node-card:focus-visible, .org-node-card.is-selected { outline:none; border-color:var(--teal); box-shadow:0 0 0 2px color-mix(in srgb, var(--teal) 35%, transparent); }
-    .org-node-card.is-focused { background:color-mix(in srgb, var(--teal) 8%, var(--surface)); }
-    .org-node-card.has-issue { border-color:var(--warning-border); }
-    .org-node-card.has-blocking-issue { border-color:var(--danger-border); }
-    /* Drag-to-reassign — grabbing a card and dropping it on another opens
-       the same confirm drawer as the manual flow (orgOpenAssignManager),
-       just pre-filled with the drop target. Dragging never writes to the
-       DB by itself; it's a faster on-ramp into the existing, validated
-       confirm step, so the safety guarantees (cycle checks, cross-site/
-       company confirmation) are identical either way. */
-    .org-node-card[draggable="true"] { cursor:grab; }
-    .org-node-card.org-dragging { opacity:0.35; cursor:grabbing; }
-    .org-node-card.org-drop-valid { outline:2px dashed var(--teal); outline-offset:3px; background:color-mix(in srgb, var(--teal) 10%, var(--surface)); transform:scale(1.02); }
-    .org-node-card.org-drop-invalid { outline:2px dashed var(--danger); outline-offset:3px; cursor:not-allowed; }
-    .org-node-grip { display:flex; align-items:center; justify-content:center; color:var(--text-3); opacity:0; transition:opacity .12s; cursor:grab; margin-right:-2px; touch-action:none; }
-    .org-node-card:hover .org-node-grip, .org-node-card:focus-visible .org-node-grip { opacity:0.55; }
-    .org-node-grip:hover { opacity:1 !important; color:var(--text-secondary); }
-    .org-drag-hint { display:flex; align-items:center; gap:6px; font-size:0.72rem; color:var(--text-3); margin:0 0 0.5rem; }
-    .org-node-avatar { width:30px; height:30px; min-width:30px; border-radius:50%; overflow:hidden; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:700; color:var(--text-secondary); }
-    .org-node-avatar img { width:100%; height:100%; object-fit:cover; }
-    .org-node-main { min-width:0; flex:1; }
-    .org-node-name { font-size:0.82rem; font-weight:650; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .org-node-meta { font-size:0.72rem; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .org-node-sub { font-size:0.66rem; color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .org-node-cross { font-size:0.62rem; color:var(--warning-text); display:flex; align-items:center; gap:3px; margin-top:1px; }
-    .org-node-side { display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
-    .org-node-reports { font-size:0.66rem; color:var(--text-secondary); display:flex; align-items:center; gap:2px; white-space:nowrap; }
-    .org-node-warn { color:var(--warning-text); display:flex; }
-    .org-node-card.has-blocking-issue .org-node-warn { color:var(--danger); }
-    .org-node-open { position:absolute; top:2px; right:2px; width:20px; height:20px; border:none; background:none; color:var(--text-3); cursor:pointer; display:flex; align-items:center; justify-content:center; border-radius:5px; opacity:0; }
-    .org-node-card:hover .org-node-open, .org-node-card:focus-visible .org-node-open { opacity:1; }
-    .org-node-open:hover { background:var(--surface2); color:var(--text-primary); }
+    .orgc-controls-sep { width:1px; height:18px; background:var(--border); margin:0 2px; }
+
+    .orgc-card {
+      position:absolute; display:flex; align-items:flex-start; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:12px;
+      padding:0.7rem 0.8rem; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.04);
+      transition:outline-color .1s, background-color .1s, transform .1s, opacity .1s, box-shadow .1s;
+    }
+    .orgc-card:hover { border-color:var(--teal); box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+    .orgc-card:focus-visible, .orgc-card.is-selected { outline:none; border-color:var(--teal); box-shadow:0 0 0 2px color-mix(in srgb, var(--teal) 35%, transparent); }
+    .orgc-card.is-focused { background:color-mix(in srgb, var(--teal) 8%, var(--surface)); }
+    .orgc-card.has-issue { border-color:var(--warning-border); }
+    .orgc-card.has-blocking-issue { border-color:var(--danger-border); }
+    /* A manager's card gets the barest signal (a slightly heavier left
+       edge) — hierarchy is read from layout + connectors, never a loud
+       colored border on every card (§5, §27). */
+    .orgc-card.is-manager { border-left:3px solid var(--teal); }
+    .orgc-card.is-muted { opacity:0.55; border-style:dashed; cursor:default; }
+    .orgc-card.is-muted:hover { border-color:var(--border); box-shadow:none; }
+    @keyframes orgcHighlightPulse { 0%,100% { box-shadow:0 0 0 2px color-mix(in srgb, var(--teal) 45%, transparent); } 50% { box-shadow:0 0 0 5px color-mix(in srgb, var(--teal) 25%, transparent); } }
+    .orgc-card.orgc-highlight { animation:orgcHighlightPulse 0.9s ease-in-out 2; }
+    /* Drag-to-reassign (Editar estructura only) — grabbing a card and
+       dropping it on another opens the same confirm drawer as the manual
+       flow (orgOpenAssignManager), just pre-filled with the drop target.
+       Dragging never writes to the DB by itself; it's a faster on-ramp
+       into the existing, validated confirm step (cycle checks, cross-
+       site/company confirmation) — identical safety either way. */
+    .orgc-card[draggable="true"] { cursor:grab; }
+    .orgc-card.org-dragging { opacity:0.35; cursor:grabbing; }
+    .orgc-card.org-drop-valid { outline:2px dashed var(--teal); outline-offset:3px; background:color-mix(in srgb, var(--teal) 10%, var(--surface)); transform:scale(1.03); z-index:2; }
+    .orgc-card.org-drop-invalid { outline:2px dashed var(--danger); outline-offset:3px; cursor:not-allowed; }
+    .orgc-grip { position:absolute; top:6px; left:6px; display:flex; align-items:center; justify-content:center; color:var(--text-3); opacity:0; transition:opacity .12s; cursor:grab; touch-action:none; }
+    .orgc-card:hover .orgc-grip, .orgc-card:focus-visible .orgc-grip { opacity:0.55; }
+    .orgc-grip:hover { opacity:1 !important; color:var(--text-secondary); }
+    .orgc-avatar { width:58px; height:58px; min-width:58px; border-radius:50%; overflow:hidden; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; color:var(--text-secondary); }
+    .orgc-avatar img { width:100%; height:100%; object-fit:cover; }
+    .orgc-main { min-width:0; flex:1; padding-top:1px; }
+    .orgc-name { font-size:0.95rem; line-height:1.25; font-weight:650; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .orgc-title { font-size:0.82rem; line-height:1.3; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+    .orgc-meta { font-size:0.75rem; color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:3px; }
+    .orgc-warn { position:absolute; top:8px; right:8px; color:var(--warning-text); display:flex; }
+    .orgc-card.has-blocking-issue .orgc-warn { color:var(--danger); }
+    .orgc-open { position:absolute; top:6px; right:6px; width:22px; height:22px; border:none; background:none; color:var(--text-3); cursor:pointer; display:flex; align-items:center; justify-content:center; border-radius:5px; opacity:0; }
+    .orgc-card.has-issue .orgc-open, .orgc-card.has-blocking-issue .orgc-open { right:26px; }
+    .orgc-card:hover .orgc-open, .orgc-card:focus-visible .orgc-open { opacity:1; }
+    .orgc-open:hover { background:var(--surface2); color:var(--text-primary); }
+    .orgc-reports {
+      position:absolute; left:50%; bottom:-11px; transform:translateX(-50%); display:flex; align-items:center; gap:3px;
+      font-size:0.68rem; font-weight:600; color:var(--text-secondary); background:var(--surface); border:1px solid var(--border); border-radius:999px;
+      padding:0.15rem 0.55rem; cursor:pointer; white-space:nowrap; z-index:1;
+    }
+    .orgc-reports:hover { border-color:var(--teal); color:var(--text-primary); }
     .org-selected-panel { display:flex; align-items:center; justify-content:space-between; gap:0.8rem; flex-wrap:wrap; margin-top:0.8rem; padding:0.6rem 0.8rem; border:1px solid var(--border); border-radius:10px; background:var(--surface2); font-size:0.82rem; }
     .org-selected-actions { display:flex; gap:0.4rem; flex-wrap:wrap; }
 
@@ -4718,12 +4776,15 @@
     .drawer-footer { flex-shrink:0; display:flex; gap:0.6rem; padding:0.85rem 1.2rem; border-top:1px solid var(--border); background:var(--surface); }
 
     @media (max-width: 780px) {
-      .org-chart-viewport { max-height:calc(100vh - 380px); }
-      .org-node-card { min-width:0; max-width:none; }
+      /* Desktop is the primary use case (§22) — cards keep their full
+         size and the chart stays navigable by pan/zoom/scroll rather
+         than shrinking until it's unreadable. */
+      .orgc-viewport { height:calc(100vh - 320px); min-height:360px; }
       .org-chart-controls-group .btn span { display:none; }
+      .org-scope-row { gap:0.4rem; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .org-chart-canvas, .org-expand-btn svg { transition:none !important; }
+      .orgc-card, .orgc-card.orgc-highlight { transition:none !important; animation:none !important; }
     }
 
     .emp-photo-cell { display: flex; align-items: center; gap: 6px; }
@@ -6508,6 +6569,7 @@
 <!-- PRINT ROOT (hidden, injected before print) -->
 <div id="print-root"></div>
 <div id="guide-print-root"></div>
+<div id="org-print-root"></div>
 
 <!-- TOAST -->
 <!-- ══ PROFILE MODAL ══ -->
@@ -14261,7 +14323,12 @@ let _badge = {
   countries: [],              // list of countries
   reportingRelationships: [],  // current + historical employee_reporting_relationships touching the active-site roster
   supervisorReviews: [],       // employee_supervisor_review rows (legacy supervisor_name migration queue)
-  orgExtraEmployees: {}        // employee id -> lightweight employee record, for managers/reports outside the active site
+  orgExtraEmployees: {},       // employee id -> lightweight employee record, for managers/reports outside the active site
+  // Cross-site cache for the Organigrama's "Toda SIERRA"/company/department/
+  // manager scopes — everything else in this module stays scoped to the
+  // active site by design (see loadBadgeData); this is loaded lazily, once,
+  // only when the chart's scope selector actually needs to see beyond it.
+  orgAll: { loaded: false, loading: false, employees: [], relationships: [] },
 }
 
 // Employee master-data table — column definitions (Section 8/9 of the ERP
@@ -14381,6 +14448,8 @@ let _badge_ui = {
       focusId: null,            // employee id centered/highlighted in the chart
       selectedId: null,         // employee id selected in directory/chart
       zoom: 1,
+      scope: { type: 'site', value: null }, // 'site' (current active site) | 'all' | 'company' | 'department' | 'manager'
+      editMode: false,          // gates drag-to-reassign in the chart (view mode is read-only/clean)
       assign: null,             // { employeeId, managerQuery, managerId, effectiveDate, reason, note, confirmCross } — active manager-assignment drawer
       sort: 'name_asc',
     }
@@ -14398,6 +14467,8 @@ let _badge_ui = {
           },
           expanded: Array.isArray(stored.expanded) ? stored.expanded : [],
           assign: null,
+          editMode: false, // never resume in edit mode across a reload/navigation
+          scope: stored.scope && typeof stored.scope === 'object' && stored.scope.type ? stored.scope : dflt.scope,
         }
       }
     } catch {}
@@ -14588,11 +14659,46 @@ async function loadOrgReportingData() {
   }
 }
 
-// Any employee touched by the org graph — active-site roster first,
-// falling back to the lightweight cross-site/company records.
-function orgEmpById(id) {
-  return _badge.employees.find(e => e.id === id) || _badge.orgExtraEmployees[id] || null
+// Lazily loads every site's employees + reporting relationships, once,
+// for the Organigrama's cross-site scopes ("Toda SIERRA", Empresa,
+// Departamento, Jefe → subárbol). Everything else in this module (the
+// Colaboradores table, badges, movements…) stays scoped to the active
+// site by design — this cache exists only for the chart's scope selector,
+// and is never written to.
+async function orgLoadAllSitesData(force) {
+  if (_badge.orgAll.loading) return
+  if (_badge.orgAll.loaded && !force) return
+  _badge.orgAll.loading = true
+  try {
+    const { data: emps, error: empErr } = await sb.from('employees').select('*').order('last_name, first_name')
+    if (empErr) { toast('No se pudo cargar la organización completa: ' + empErr.message); return }
+    _badge.orgAll.employees = emps || []
+    const allIds = _badge.orgAll.employees.map(e => e.id)
+    if (!allIds.length) { _badge.orgAll.relationships = []; _badge.orgAll.loaded = true; return }
+    const { data: rels, error: relErr } = await sb.from('employee_reporting_relationships')
+      .select('id, employee_id, manager_employee_id, relationship_type, effective_from, effective_to, is_current, site_id, reason, note, created_by, created_at, updated_by, updated_at')
+    if (relErr) { toast('No se pudieron cargar las relaciones de jefe inmediato: ' + relErr.message); return }
+    _badge.orgAll.relationships = rels || []
+    _badge.orgAll.loaded = true
+  } finally {
+    _badge.orgAll.loading = false
+  }
 }
+// Whichever pool (active-site-only vs. every site) the current scope
+// needs — every hierarchy function below reads through these two instead
+// of the raw _badge.* arrays, so the whole chart (layout, search, issues,
+// cycle checks…) is consistent regardless of which scope is selected.
+function orgActiveEmployeePool() {
+  const t = _badge_ui.org.scope?.type
+  return (t === 'all' || t === 'company' || t === 'department' || t === 'manager') && _badge.orgAll.loaded
+    ? _badge.orgAll.employees : _badge.employees
+}
+function orgActiveRels() {
+  const t = _badge_ui.org.scope?.type
+  return (t === 'all' || t === 'company' || t === 'department' || t === 'manager') && _badge.orgAll.loaded
+    ? _badge.orgAll.relationships : _badge.reportingRelationships
+}
+
 
 // ONE PageHeader (the shared #sec-title/#sec-sub content-hdr) carries the
 // module title; the site switcher lives in its right slot (#product-controls)
@@ -19172,21 +19278,26 @@ document.addEventListener('keydown', e => {
    ══════════════════════════════════════════════════════════════════════ */
 
 // ── 1. HIERARCHY CORE ──────────────────────────────────────────────────
-function orgCurrentManagerRelationship(employeeId, rels = _badge.reportingRelationships) {
+// Every function below defaults its `rels` param to orgActiveRels() —
+// the active-site relationships, or the all-sites cache once the chart's
+// scope selector has left "Sede actual" — so a caller never has to know
+// which pool is live. Pass an explicit array (as the validation harness
+// does with synthetic data) to bypass this entirely.
+function orgCurrentManagerRelationship(employeeId, rels = orgActiveRels()) {
   const list = rels.filter(r => r.employee_id === employeeId && r.relationship_type === 'immediate_manager' && r.is_current)
   return list[0] || null
 }
-function orgDirectReportIds(managerId, rels = _badge.reportingRelationships) {
+function orgDirectReportIds(managerId, rels = orgActiveRels()) {
   return rels.filter(r => r.manager_employee_id === managerId && r.relationship_type === 'immediate_manager' && r.is_current).map(r => r.employee_id)
 }
-function orgDirectReportCount(managerId, rels = _badge.reportingRelationships) { return orgDirectReportIds(managerId, rels).length }
+function orgDirectReportCount(managerId, rels = orgActiveRels()) { return orgDirectReportIds(managerId, rels).length }
 
 // Would `managerId` become an ancestor of `employeeId`'s own descendants
 // (a cycle), or is it the employee itself (self-report)? Pure — the
 // relationship list is passed explicitly so it is unit-testable without
 // touching global state. Mirrors the DB trigger in update26.sql; the UI
 // check runs first for instant feedback, the DB check is the real gate.
-function orgWouldCreateCycle(employeeId, managerId, rels = _badge.reportingRelationships) {
+function orgWouldCreateCycle(employeeId, managerId, rels = orgActiveRels()) {
   if (!employeeId || !managerId) return false
   if (employeeId === managerId) return true
   const visited = new Set()
@@ -19204,7 +19315,7 @@ function orgWouldCreateCycle(employeeId, managerId, rels = _badge.reportingRelat
 // All transitive reports of an employee — used for the "how many reports
 // move with this change" impact preview and to exclude cycle-causing
 // candidates from the manager picker.
-function orgDescendantIds(employeeId, rels = _badge.reportingRelationships) {
+function orgDescendantIds(employeeId, rels = orgActiveRels()) {
   const out = new Set(), queue = [employeeId]
   while (queue.length) {
     const id = queue.shift()
@@ -19212,7 +19323,15 @@ function orgDescendantIds(employeeId, rels = _badge.reportingRelationships) {
   }
   return out
 }
-function orgEmpById(id) { return _badge.employees.find(e => e.id === id) || _badge.orgExtraEmployees[id] || null }
+// _badge.orgAll.employees, once loaded, is always a superset of the
+// active-site roster — checked first regardless of the current scope so
+// a lookup never depends on which scope happens to be selected right now
+// (e.g. the export modal's own "Toda SIERRA" choice, independent of the
+// main chart's scope).
+function orgEmpById(id) {
+  if (_badge.orgAll.loaded) { const hit = _badge.orgAll.employees.find(e => e.id === id); if (hit) return hit }
+  return _badge.employees.find(e => e.id === id) || _badge.orgExtraEmployees[id] || null
+}
 function orgFullName(emp) { return emp ? `${emp.first_name} ${emp.last_name}`.trim() : '' }
 function orgSiteName(emp) { return emp ? (_badge.sites.find(s => s.id === emp.site_id)?.name || null) : null }
 // Real organizational levels only — company → site → department →
@@ -19228,7 +19347,7 @@ function orgPathText(employeeId) { return ['SIERRA', ...orgPathOf(employeeId)].j
 // current manager, or whose manager falls outside the scope (multiple
 // roots are expected and displayed as separate top-level branches — no
 // fake umbrella manager is ever invented).
-function orgBuildForest(scopeIds, rels = _badge.reportingRelationships) {
+function orgBuildForest(scopeIds, rels = orgActiveRels()) {
   const scopeSet = new Set(scopeIds)
   const childrenMap = new Map()
   scopeIds.forEach(id => childrenMap.set(id, []))
@@ -19244,7 +19363,7 @@ function orgBuildForest(scopeIds, rels = _badge.reportingRelationships) {
 }
 // Path of ids from a scope root down to `employeeId`, for "expand from
 // root and center" on search — empty if the employee isn't in scope.
-function orgAncestorChain(employeeId, scopeIds, rels = _badge.reportingRelationships) {
+function orgAncestorChain(employeeId, scopeIds, rels = orgActiveRels()) {
   const scopeSet = new Set(scopeIds)
   if (!scopeSet.has(employeeId)) return []
   const chain = [employeeId]
@@ -19296,7 +19415,7 @@ function orgIssuesFor(employeeId) {
   const emp = orgEmpById(employeeId)
   if (!emp) return []
   const issues = []
-  const relsForEmp = _badge.reportingRelationships.filter(r => r.employee_id === employeeId && r.relationship_type === 'immediate_manager')
+  const relsForEmp = orgActiveRels().filter(r => r.employee_id === employeeId && r.relationship_type === 'immediate_manager')
   const current = relsForEmp.filter(r => r.is_current)
   if (current.length > 1) issues.push({ type: 'multiple_current_managers', employeeId })
   const rel = current[0]
@@ -19347,11 +19466,21 @@ function orgFilterValueLabel(key, val) {
   return val
 }
 function orgScopeEmployees() {
-  // Active-site roster, filtered by the Organización facet filters. The
-  // default (employee_status = active) hides inactive people from the
-  // current chart per spec, while historical/full data stays reachable
-  // through the Directorio (status filter can be cleared there).
-  return _badge.employees.filter(e => {
+  // orgActiveEmployeePool() is the active-site roster, or every site once
+  // the scope selector has left "Sede actual" (see orgActiveEmployeePool).
+  // scope.type/value picks the root of the visualized subtree (§8);
+  // _badge_ui.org.filters (below) narrows within that without changing
+  // which branch of the org is being looked at (§9). Default filters
+  // (employee_status = active) hide inactive people from the current
+  // chart per spec, while historical/full data stays reachable through
+  // the Directorio (status filter can be cleared there).
+  const scope = _badge_ui.org.scope
+  let managerScopeIds = null
+  if (scope.type === 'manager' && scope.value) managerScopeIds = new Set([scope.value, ...orgDescendantIds(scope.value)])
+  return orgActiveEmployeePool().filter(e => {
+    if (scope.type === 'company' && scope.value && e.company !== scope.value) return false
+    if (scope.type === 'department' && scope.value && e.department !== scope.value) return false
+    if (managerScopeIds && !managerScopeIds.has(e.id)) return false
     const f = _badge_ui.org.filters
     if (f.company.size && !f.company.has(e.company)) return false
     if (f.country.size && !f.country.has(e.country)) return false
@@ -19370,12 +19499,85 @@ function orgScopeEmployees() {
   })
 }
 function orgFilterOptions(key) {
-  if (key === 'company') return [...new Set(_badge.employees.map(e => e.company).filter(Boolean))].sort()
-  if (key === 'country') return [...new Set(_badge.employees.map(e => e.country).filter(Boolean))].sort()
-  if (key === 'department') return [...new Set(_badge.employees.map(e => e.department).filter(Boolean))].sort()
+  const pool = orgActiveEmployeePool()
+  if (key === 'company') return [...new Set(pool.map(e => e.company).filter(Boolean))].sort()
+  if (key === 'country') return [...new Set(pool.map(e => e.country).filter(Boolean))].sort()
+  if (key === 'department') return [...new Set(pool.map(e => e.department).filter(Boolean))].sort()
   if (key === 'employee_status') return ['active', 'inactive', 'terminated', 'on_leave', 'transferred']
   if (key === 'issue') return Object.keys(ORG_ISSUE_DEFS)
   return []
+}
+// ── Scope selector (§8) — "Toda SIERRA" / Empresa / Departamento / Jefe.
+// Company/department/manager scopes need every site's data (a company or
+// a department can span sites the active-site roster never sees), so
+// picking any of them lazily loads orgAll once; picking "Sede actual"
+// goes back to the already-loaded, per-site pool with no extra fetch.
+async function orgSetScope(type, value) {
+  if (type !== 'site') await orgLoadAllSitesData()
+  _badge_ui.org.scope = { type, value: value ?? null }
+  _badge_ui.org.expanded = []
+  _badge_ui.org.focusId = null
+  _badge_ui.org.selectedId = null
+  _orgDefaultExpansionDone = false
+  wsClosePopovers()
+  persistOrgUi()
+  renderBadgeModule()
+}
+function orgScopeLabel() {
+  const s = _badge_ui.org.scope
+  if (s.type === 'all') return 'Toda SIERRA'
+  if (s.type === 'company') return s.value || 'Empresa'
+  if (s.type === 'department') return s.value || 'Departamento'
+  if (s.type === 'manager') { const m = orgEmpById(s.value); return m ? orgFullName(m) : 'Jefe' }
+  const site = _badge.sites.find(x => x.id === _badge.activeSite)
+  return site?.name || 'Sede actual'
+}
+// "SIERRA → Northern Spinning → Ingeniería" (§11) — reads the scope, not
+// a random employee's own path, so it names what's being *viewed*.
+function orgScopeBreadcrumbHtml() {
+  const s = _badge_ui.org.scope
+  const parts = ['SIERRA']
+  if (s.type === 'all') { /* nothing to add — the whole org is the scope */ }
+  else if (s.type === 'company') parts.push(s.value || 'Empresa')
+  else if (s.type === 'department') parts.push(s.value || 'Departamento')
+  else if (s.type === 'manager') { const m = orgEmpById(s.value); parts.push(m ? orgFullName(m) : 'Jefe', 'Equipo') }
+  else parts.push(orgScopeLabel())
+  return `<div class="org-breadcrumb">${parts.map(esc).join(' <span class="org-breadcrumb-sep">→</span> ')}</div>`
+}
+function orgScopePopHtml() {
+  const s = _badge_ui.org.scope
+  const companies = [...new Set(orgActiveEmployeePool().map(e => e.company).filter(Boolean))].sort()
+  const site = _badge.sites.find(x => x.id === _badge.activeSite)
+  const departments = [...new Set(orgActiveEmployeePool().map(e => e.department).filter(Boolean))].sort()
+  return `
+    <div class="cat-pop-title">Alcance</div>
+    <button type="button" class="cat-pop-row ${s.type === 'site' ? 'active' : ''}" onclick="orgSetScope('site')">${site ? esc(site.name) : 'Sede actual'}</button>
+    <button type="button" class="cat-pop-row ${s.type === 'all' ? 'active' : ''}" onclick="orgSetScope('all')">${_badge.orgAll.loading ? 'Cargando toda SIERRA…' : 'Toda SIERRA'}</button>
+    <div class="cat-pop-title">Empresa</div>
+    ${companies.length ? companies.map(c => `<button type="button" class="cat-pop-row ${s.type === 'company' && s.value === c ? 'active' : ''}" onclick="orgSetScope('company', '${jsStr(c)}')">${esc(c)}</button>`).join('') : `<div class="ws-pop-hint">Sin empresas registradas.</div>`}
+    <div class="cat-pop-title">Departamento</div>
+    ${departments.length ? departments.map(d => `<button type="button" class="cat-pop-row ${s.type === 'department' && s.value === d ? 'active' : ''}" onclick="orgSetScope('department', '${jsStr(d)}')">${esc(d)}</button>`).join('') : `<div class="ws-pop-hint">Sin departamentos registrados.</div>`}
+    <div class="cat-pop-title">Jefe</div>
+    <div style="padding:0 0.6rem 0.4rem">
+      <input type="text" class="org-search-input" style="padding-left:0.7rem" placeholder="Buscar colaborador…" oninput="orgScopeManagerSearch(this.value)" />
+      <div id="org-scope-manager-results"></div>
+    </div>
+  `
+}
+let _orgScopeManagerDebounce = null
+function orgScopeManagerSearch(v) {
+  clearTimeout(_orgScopeManagerDebounce)
+  _orgScopeManagerDebounce = setTimeout(async () => {
+    const box = document.getElementById('org-scope-manager-results')
+    if (!box) return
+    const q = v.trim().toLowerCase()
+    if (q.length < 2) { box.innerHTML = '' ; return }
+    await orgLoadAllSitesData()
+    const hits = _badge.orgAll.employees.filter(e => orgDirectReportCount(e.id, _badge.orgAll.relationships) > 0 &&
+      [e.first_name, e.last_name, e.employee_code].filter(Boolean).join(' ').toLowerCase().includes(q)).slice(0, 15)
+    box.innerHTML = hits.length ? hits.map(m => `<button type="button" class="cat-pop-row" onclick="orgSetScope('manager','${m.id}')">${esc(orgFullName(m))} — ${esc(m.position || 'Sin puesto')}</button>`).join('')
+      : `<div class="ws-pop-hint">Sin coincidencias con reportes directos.</div>`
+  }, 220)
 }
 let _orgLastFilterValues = {}
 function orgFilterPopHtml() {
@@ -19408,16 +19610,21 @@ function orgFilterChipsHtml() {
 
 function orgMetrics() {
   const scope = orgScopeEmployees()
+  const scopeIds = new Set(scope.map(e => e.id))
   const active = scope.filter(e => e.employee_status === 'active')
   const withManager = active.filter(e => orgCurrentManagerRelationship(e.id))
   const withoutManager = active.filter(e => !orgCurrentManagerRelationship(e.id))
-  const managerIds = new Set(_badge.reportingRelationships.filter(r => r.relationship_type === 'immediate_manager' && r.is_current).map(r => r.manager_employee_id))
+  // Managers *of someone in scope* who are themselves in scope — keeps
+  // "Jefes"/"Reportes directos promedio" honest to the selected scope
+  // (§16) instead of counting a shared-services manager from outside it.
+  const managerIds = new Set(orgActiveRels().filter(r => r.relationship_type === 'immediate_manager' && r.is_current && scopeIds.has(r.employee_id)).map(r => r.manager_employee_id))
   const inactiveManagersWithReports = [...managerIds].map(orgEmpById).filter(m => m && m.employee_status !== 'active' && orgDirectReportCount(m.id) > 0)
   const crossSite = active.filter(e => orgIssuesFor(e.id).some(i => i.type === 'cross_site'))
   const unresolvedLegacy = _badge.supervisorReviews.filter(r => ['unmatched', 'ambiguous'].includes(r.match_status))
-  const totalManagers = [...managerIds].filter(id => active.some(e => e.id === id) || orgEmpById(id)).length
+  const totalManagers = [...managerIds].filter(id => scopeIds.has(id)).length
   const avgReports = totalManagers ? (withManager.length / totalManagers) : 0
-  return { scope, active, withManager, withoutManager, inactiveManagersWithReports, crossSite, unresolvedLegacy, totalManagers, avgReports }
+  const departmentsCount = new Set(active.map(e => e.department).filter(Boolean)).size
+  return { scope, active, withManager, withoutManager, inactiveManagersWithReports, crossSite, unresolvedLegacy, totalManagers, avgReports, departmentsCount }
 }
 function orgMetricTileHtml(value, label, onClick, tone) { return ovTileHtml({ value, label, onClick, tone }) }
 function orgGoToDirectoryFiltered(fn) {
@@ -19427,21 +19634,48 @@ function orgGoToDirectoryFiltered(fn) {
   persistOrgUi(); renderBadgeModule()
 }
 
+// One centralized data-quality line (§26) instead of a warning icon on
+// every card — a single sentence naming the biggest problem plus a
+// direct action into the filtered Directorio, only shown when something
+// actually needs attention.
+function orgDataQualityBannerHtml(m) {
+  const items = [
+    m.withoutManager.length && { n: m.withoutManager.length, label: `sin jefe inmediato asignado`, onClick: `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('no_manager'))` },
+    m.inactiveManagersWithReports.length && { n: m.inactiveManagersWithReports.length, label: `con jefe inactivo`, onClick: `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('inactive_manager'))` },
+    m.crossSite.length && { n: m.crossSite.length, label: `con jefe en otra sede`, onClick: `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('cross_site'))` },
+    m.unresolvedLegacy.length && { n: m.unresolvedLegacy.length, label: `con supervisor histórico sin resolver`, onClick: `orgShowLegacyReviewQueue()` },
+  ].filter(Boolean)
+  if (!items.length) return ''
+  return `<div class="org-quality-banner">
+    ${siIcon('alert-circle', 14)}
+    <span>${items.map(i => `<b>${i.n}</b> colaborador${i.n !== 1 ? 'es' : ''} ${esc(i.label)}`).join(' · ')}.</span>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="${items[0].onClick}">Revisar estructura</button>
+  </div>`
+}
 function renderOrganizationView() {
   if (_badge.reportingRelationshipsUnavailable) return orgMigrationNotAppliedHtml()
   const m = orgMetrics()
+  const canWrite = can('write', 'talento_humano')
   return `
     <div class="org-workspace">
-      <div class="ov-grid">
-        ${orgMetricTileHtml(m.active.length, 'Colaboradores activos en alcance', `orgGoToDirectoryFiltered(()=>{})`)}
-        ${orgMetricTileHtml(m.withManager.length, 'Con jefe asignado', `orgGoToDirectoryFiltered(()=>{})`)}
-        ${orgMetricTileHtml(m.withoutManager.length, 'Sin jefe asignado', `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('no_manager'))`, m.withoutManager.length ? 'warning' : null)}
-        ${orgMetricTileHtml(m.inactiveManagersWithReports.length, 'Jefes inactivos con reportes activos', `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('inactive_manager'))`, m.inactiveManagersWithReports.length ? 'warning' : null)}
-        ${orgMetricTileHtml(m.crossSite.length, 'Relaciones entre sedes por revisar', `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('cross_site'))`, m.crossSite.length ? 'warning' : null)}
-        ${orgMetricTileHtml(m.unresolvedLegacy.length, 'Supervisores históricos sin resolver', `orgShowLegacyReviewQueue()`, m.unresolvedLegacy.length ? 'warning' : null)}
-        ${orgMetricTileHtml(m.totalManagers, 'Jefes en el alcance actual', `orgGoToDirectoryFiltered(()=>{})`)}
+      <div class="org-scope-row">
+        <div style="position:relative">
+          <button class="btn btn-secondary btn-sm" onclick="catTogglePop(event,'org-scope-pop')">${siIcon('globe', 13)} Organización: <b>${esc(orgScopeLabel())}</b> ${siIcon('chevron-down', 12)}</button>
+          <div class="ws-pop cat-pop" id="org-scope-pop" style="left:0;right:auto;min-width:260px">${orgScopePopHtml()}</div>
+        </div>
+        ${orgScopeBreadcrumbHtml()}
+        <div class="org-scope-row-spacer"></div>
+        ${canWrite ? `<button class="btn ${_badge_ui.org.editMode ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="orgToggleEditMode()">${siIcon('pencil', 13)} ${_badge_ui.org.editMode ? 'Editando estructura' : 'Editar estructura'}</button>` : ''}
+        ${canWrite && _badge_ui.org.editMode ? `<button class="btn btn-ghost btn-sm" onclick="orgShowLegacyReviewQueue()">Cambios pendientes${m.unresolvedLegacy.length ? ` (${m.unresolvedLegacy.length})` : ''}</button>` : ''}
+        <button class="btn btn-primary btn-sm" onclick="orgOpenExportModal()">${siIcon('download', 13)} Exportar organigrama</button>
+      </div>
+      <div class="ov-grid org-metrics-grid">
+        ${orgMetricTileHtml(m.active.length, 'Colaboradores', `orgGoToDirectoryFiltered(()=>{})`)}
+        ${orgMetricTileHtml(m.totalManagers, 'Managers', `orgGoToDirectoryFiltered(()=>{})`)}
+        ${orgMetricTileHtml(m.departmentsCount, 'Departamentos', `orgGoToDirectoryFiltered(()=>{})`)}
         ${orgMetricTileHtml(m.avgReports.toFixed(1), 'Reportes directos, promedio', `orgGoToDirectoryFiltered(()=>{})`)}
       </div>
+      ${orgDataQualityBannerHtml(m)}
       <div class="org-view-switch" role="tablist" aria-label="Vista de Organización">
         <button class="org-view-btn ${_badge_ui.org.view === 'chart' ? 'active' : ''}" role="tab" aria-selected="${_badge_ui.org.view === 'chart'}" onclick="orgSetView('chart')">Organigrama</button>
         <button class="org-view-btn ${_badge_ui.org.view === 'directory' ? 'active' : ''}" role="tab" aria-selected="${_badge_ui.org.view === 'directory'}" onclick="orgSetView('directory')">Directorio organizacional</button>
@@ -19455,13 +19689,16 @@ function renderOrganizationView() {
           <button class="btn btn-secondary btn-sm" onclick="catTogglePop(event,'org-filter-pop')">${siIcon('filter', 13)} Filtros ${orgActiveFilterCount() ? `<span class="filter-count-badge">${orgActiveFilterCount()}</span>` : ''}</button>
           <div class="ws-pop cat-pop" id="org-filter-pop" style="right:0;left:auto;min-width:260px">${orgFilterPopHtml()}</div>
         </div>
-        ${can('write', 'talento_humano') ? `<button class="btn btn-ghost btn-sm" onclick="orgShowLegacyReviewQueue()">Cola de revisión${m.unresolvedLegacy.length ? ` (${m.unresolvedLegacy.length})` : ''}</button>` : ''}
       </div>
       ${orgFilterChipsHtml()}
       <div class="org-result-count">${m.scope.length} colaborador${m.scope.length !== 1 ? 'es' : ''} en el alcance actual${orgActiveFilterCount() ? ' · filtros activos' : ''}</div>
       ${_badge_ui.org.view === 'chart' ? renderOrgChartView() : renderOrgDirectoryView()}
     </div>
   `
+}
+function orgToggleEditMode() {
+  _badge_ui.org.editMode = !_badge_ui.org.editMode
+  persistOrgUi(); renderBadgeModule()
 }
 function orgOnSearchInput(v) {
   _badge_ui.org.search = v
@@ -19654,11 +19891,11 @@ async function orgDismissLegacyReview(reviewId) {
   renderBadgeModule()
 }
 
-// ── 5. ORGANIGRAMA — progressive, indented hierarchy tree. Deliberately
-// not a horizontal box-and-line canvas: at ERP employee-count scale a
-// vertical, indented tree with guide lines stays legible, keyboard
-// navigable, responsive (no forced horizontal scroll) and cheap to
-// render progressively (only expanded branches exist in the DOM). ──
+// ── 5. ORGANIGRAMA — a real top-down organizational chart canvas: cards
+// positioned by a computed tree layout, connected by SVG elbow lines,
+// panned/zoomed like Figma/Miro rather than a scrolled indented list.
+// Branch collapsing is what keeps this cheap: only expanded subtrees are
+// laid out and rendered at all (§23 performance). ──
 function orgScopeIds() { return orgScopeEmployees().map(e => e.id) }
 function orgIsExpanded(id) { return _badge_ui.org.expanded.includes(id) }
 function orgToggleExpand(id) {
@@ -19680,29 +19917,48 @@ function orgExpandAll() {
   persistOrgUi(); renderBadgeModule()
 }
 function orgCollapseAll() { _badge_ui.org.expanded = []; persistOrgUi(); renderBadgeModule() }
-function orgResetView() { _badge_ui.org.zoom = 1; _badge_ui.org.focusId = null; persistOrgUi(); renderBadgeModule() }
-function orgSetZoom(delta) {
-  _badge_ui.org.zoom = Math.max(0.6, Math.min(1.4, Math.round((_badge_ui.org.zoom + delta) * 10) / 10))
-  persistOrgUi()
-  const canvas = document.getElementById('org-chart-canvas')
-  if (canvas) canvas.style.transform = `scale(${_badge_ui.org.zoom})`
+function orgResetView() {
+  _badge_ui.org.zoom = 1
+  _badge_ui.org.focusId = null
+  persistOrgUi(); renderBadgeModule()
+  requestAnimationFrame(() => document.getElementById('orgc-viewport')?.scrollTo({ left: 0, top: 0 }))
 }
+function orgSetZoom(delta) {
+  _badge_ui.org.zoom = Math.max(0.15, Math.min(2.5, Math.round((_badge_ui.org.zoom + delta) * 100) / 100))
+  persistOrgUi(); renderBadgeModule()
+}
+// Fit the whole current layout inside the viewport at 100% max — never
+// zoom past 140% just because a tiny branch would otherwise look small;
+// readability over forcing everything to fill the screen (§7, §29).
 function orgFitToScreen() {
-  const viewport = document.getElementById('org-chart-viewport'), canvas = document.getElementById('org-chart-canvas')
-  if (!viewport || !canvas) return
-  const scale = Math.min(1, (viewport.clientWidth - 24) / canvas.scrollWidth)
-  _badge_ui.org.zoom = Math.max(0.6, Math.round(scale * 10) / 10)
-  persistOrgUi(); canvas.style.transform = `scale(${_badge_ui.org.zoom})`
+  const viewport = document.getElementById('orgc-viewport')
+  if (!viewport || !_orgLastChartLayout || !_orgLastChartLayout.width || !_orgLastChartLayout.height) return
+  const scale = Math.min((viewport.clientWidth - 32) / _orgLastChartLayout.width, (viewport.clientHeight - 32) / _orgLastChartLayout.height, 1.4)
+  _badge_ui.org.zoom = Math.max(0.1, Math.round(scale * 100) / 100)
+  persistOrgUi(); renderBadgeModule()
+  requestAnimationFrame(() => viewport.scrollTo({ left: 0, top: 0 }))
 }
 function orgSelectNode(id) { _badge_ui.org.selectedId = id; persistOrgUi(); renderBadgeModule() }
-function orgFocusInChart(employeeId) {
-  const emp = orgEmpById(employeeId)
+async function orgFocusInChart(employeeId) {
+  let emp = orgEmpById(employeeId)
   if (!emp) return
-  const inScope = orgScopeIds().includes(employeeId)
+  let inScope = orgScopeIds().includes(employeeId)
   if (!inScope) {
-    // Outside the current scope/filters — never silently move it; ask.
-    if (!confirm(`${orgFullName(emp)} está fuera del alcance actual (filtros o sede). ¿Limpiar filtros para mostrarlo?`)) return
-    orgClearFilters()
+    // Outside the current scope — never silently move it; ask, and offer
+    // the right fix depending on why: a facet filter narrowed them out,
+    // or they simply live outside the active site (needs "Toda SIERRA").
+    const inSitePool = _badge.employees.some(e => e.id === employeeId)
+    if (!inSitePool && _badge_ui.org.scope.type === 'site') {
+      if (!confirm(`${orgFullName(emp)} no está en la sede actual. ¿Cambiar el alcance a "Toda SIERRA" para mostrarlo?`)) return
+      await orgSetScope('all')
+      inScope = orgScopeIds().includes(employeeId)
+    }
+    if (!inScope) {
+      if (!confirm(`${orgFullName(emp)} está fuera del alcance actual (filtros). ¿Limpiar filtros para mostrarlo?`)) return
+      orgClearFilters()
+      inScope = orgScopeIds().includes(employeeId)
+    }
+    if (!inScope) return
   }
   const chain = orgAncestorChain(employeeId, orgScopeIds())
   chain.forEach(id => { if (!orgIsExpanded(id)) _badge_ui.org.expanded.push(id) })
@@ -19711,9 +19967,7 @@ function orgFocusInChart(employeeId) {
   _badge_ui.org.view = 'chart'
   persistOrgUi()
   renderBadgeModule()
-  requestAnimationFrame(() => {
-    document.getElementById('org-node-' + employeeId)?.scrollIntoView({ block: 'center', inline: 'center', behavior: _prefersReducedMotion() ? 'auto' : 'smooth' })
-  })
+  requestAnimationFrame(() => orgCenterOnNode(employeeId))
 }
 function orgFocusFirstSearchResult() {
   const q = (_badge_ui.org.search || '').toLowerCase().trim()
@@ -19723,7 +19977,123 @@ function orgFocusFirstSearchResult() {
 }
 function _prefersReducedMotion() { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches }
 
-function orgNodeCardHtml(id, forest, depth) {
+// ── Layout engine ── a plain "sum of subtree widths" tidy-tree: every
+// collapsed node counts as a single card-width leaf regardless of any
+// real children it has (so collapsing is what bounds the layout cost),
+// every root gets its own side-by-side column when there's more than
+// one (no fake umbrella manager is ever invented to unify them). Pure
+// function of (forest, expanded-state) — no DOM reads, so it's cheap to
+// recompute on every render and easy to reuse for PNG/PDF export.
+const ORGC_CARD_W = 264, ORGC_CARD_H = 116, ORGC_GAP_X = 36, ORGC_GAP_Y = 92, ORGC_ROOT_GAP = 72
+function orgComputeChartLayout(forest, opts = {}) {
+  const forceExpandAll = !!opts.forceExpandAll // export always renders the complete hierarchy (§13), ignoring the interactive view's collapsed branches
+  const widthCache = new Map()
+  const childrenOf = id => ((forceExpandAll || orgIsExpanded(id)) ? (forest.childrenMap.get(id) || []) : [])
+  function subtreeWidth(id) {
+    if (widthCache.has(id)) return widthCache.get(id)
+    const children = childrenOf(id)
+    const w = !children.length ? ORGC_CARD_W
+      : Math.max(ORGC_CARD_W, children.reduce((sum, c) => sum + subtreeWidth(c), 0) + ORGC_GAP_X * (children.length - 1))
+    widthCache.set(id, w)
+    return w
+  }
+  const positions = new Map()
+  function place(id, left, depth) {
+    const children = childrenOf(id)
+    const w = subtreeWidth(id)
+    positions.set(id, {
+      x: left + w / 2 - ORGC_CARD_W / 2, y: depth * (ORGC_CARD_H + ORGC_GAP_Y),
+      w: ORGC_CARD_W, h: ORGC_CARD_H, expanded: forceExpandAll || orgIsExpanded(id),
+      childrenCount: (forest.childrenMap.get(id) || []).length,
+    })
+    let cursor = left
+    children.forEach(c => { place(c, cursor, depth + 1); cursor += subtreeWidth(c) + ORGC_GAP_X })
+  }
+  let cursor = 0
+  forest.roots.forEach(r => { place(r, cursor, 0); cursor += subtreeWidth(r) + ORGC_ROOT_GAP })
+  const width = Math.max(0, cursor - ORGC_ROOT_GAP)
+  let maxY = 0
+  positions.forEach(p => { maxY = Math.max(maxY, p.y) })
+  return { positions, width, height: width ? maxY + ORGC_CARD_H : 0 }
+}
+// SVG elbow connectors — vertical drop from the parent, a horizontal bus
+// at the midpoint between levels, vertical rises into each child — the
+// classic org-chart look (§1), not the dashed-indent guide lines this
+// view used to have.
+function orgConnectorsSvg(layout, forest) {
+  let out = ''
+  layout.positions.forEach((pos, id) => {
+    if (!pos.expanded) return
+    const children = (forest.childrenMap.get(id) || []).map(c => layout.positions.get(c)).filter(Boolean)
+    if (!children.length) return
+    const parentCX = pos.x + pos.w / 2, parentBottom = pos.y + pos.h
+    const elbowY = parentBottom + ORGC_GAP_Y / 2
+    const childXs = children.map(p => p.x + p.w / 2)
+    out += `<path class="orgc-conn" d="M${parentCX} ${parentBottom} V${elbowY}"/>`
+    out += `<path class="orgc-conn" d="M${Math.min(parentCX, ...childXs)} ${elbowY} H${Math.max(parentCX, ...childXs)}"/>`
+    children.forEach(p => { out += `<path class="orgc-conn" d="M${p.x + p.w / 2} ${elbowY} V${p.y}"/>` })
+  })
+  return out
+}
+// The chart's own display forest sometimes needs one node the current
+// scope/filters exclude: a direct manager filtered out but still needed
+// to connect a visible employee to something (§9, §25 "manager outside
+// selected company"). Pulled in one hop only, rendered muted/read-only —
+// never a whole invisible ancestor chain.
+function orgChartDisplayForest() {
+  const baseIds = orgScopeIds()
+  const baseSet = new Set(baseIds)
+  const contextual = new Set()
+  baseIds.forEach(id => {
+    const rel = orgCurrentManagerRelationship(id)
+    if (rel?.manager_employee_id && !baseSet.has(rel.manager_employee_id) && orgEmpById(rel.manager_employee_id)) contextual.add(rel.manager_employee_id)
+  })
+  const forest = orgBuildForest([...baseSet, ...contextual])
+  return { forest, contextual }
+}
+let _orgLastChartLayout = null, _orgLastChartForest = null
+function orgCenterOnNode(id) {
+  const viewport = document.getElementById('orgc-viewport')
+  const pos = _orgLastChartLayout?.positions.get(id)
+  if (!viewport || !pos) return
+  const zoom = _badge_ui.org.zoom
+  const left = (pos.x + pos.w / 2) * zoom - viewport.clientWidth / 2
+  const top = (pos.y + pos.h / 2) * zoom - viewport.clientHeight / 2
+  viewport.scrollTo({ left: Math.max(0, left), top: Math.max(0, top), behavior: _prefersReducedMotion() ? 'auto' : 'smooth' })
+  const card = document.getElementById('org-node-' + id)
+  if (card) { card.classList.add('orgc-highlight'); setTimeout(() => card.classList.remove('orgc-highlight'), 1800) }
+}
+function orgCenterChart() {
+  const target = _badge_ui.org.selectedId || _badge_ui.org.focusId
+  if (target && _orgLastChartLayout?.positions.has(target)) { orgCenterOnNode(target); return }
+  const viewport = document.getElementById('orgc-viewport')
+  if (!viewport || !_orgLastChartLayout) return
+  const zoom = _badge_ui.org.zoom
+  viewport.scrollTo({ left: Math.max(0, (_orgLastChartLayout.width / 2) * zoom - viewport.clientWidth / 2), top: 0, behavior: _prefersReducedMotion() ? 'auto' : 'smooth' })
+}
+// Click-drag-to-pan on empty canvas (native overflow:auto already gives
+// wheel/trackpad/scrollbar panning for free — this adds Figma-style
+// grab-anywhere on top of it). Global listeners are harmless no-ops
+// while no drag is in progress.
+let _orgPanState = null
+function orgCanvasPointerDown(e) {
+  if (e.button !== 0 || e.target.closest('.orgc-card')) return
+  _orgPanState = { startX: e.clientX, startY: e.clientY, startLeft: e.currentTarget.scrollLeft, startTop: e.currentTarget.scrollTop, viewport: e.currentTarget }
+  e.currentTarget.classList.add('orgc-panning')
+}
+document.addEventListener('mousemove', e => {
+  if (!_orgPanState) return
+  _orgPanState.viewport.scrollLeft = _orgPanState.startLeft - (e.clientX - _orgPanState.startX)
+  _orgPanState.viewport.scrollTop = _orgPanState.startTop - (e.clientY - _orgPanState.startY)
+})
+document.addEventListener('mouseup', () => { if (_orgPanState) { _orgPanState.viewport.classList.remove('orgc-panning'); _orgPanState = null } })
+function orgCanvasWheel(e) {
+  if (!(e.ctrlKey || e.metaKey)) return // plain wheel/trackpad: native scroll pans
+  e.preventDefault()
+  orgSetZoom(e.deltaY > 0 ? -0.1 : 0.1)
+}
+
+function orgChartCardHtml(id, forest, pos, contextual) {
   const emp = orgEmpById(id)
   if (!emp) return ''
   const children = forest.childrenMap.get(id) || []
@@ -19733,49 +20103,36 @@ function orgNodeCardHtml(id, forest, depth) {
   const blocking = issues.some(i => ORG_ISSUE_DEFS[i.type]?.blocks)
   const isFocused = _badge_ui.org.focusId === id
   const isSelected = _badge_ui.org.selectedId === id
+  const isMuted = contextual?.has(id)
   const initials = ((emp.first_name?.[0] || '') + (emp.last_name?.[0] || '')).toUpperCase()
-  const rel = orgCurrentManagerRelationship(id)
-  const crossNote = issues.find(i => i.type === 'cross_site' || i.type === 'cross_company')
-  const canDrag = can('write', 'talento_humano')
+  const canDrag = !isMuted && can('write', 'talento_humano') && _badge_ui.org.editMode
   return `
-  <li role="treeitem" aria-expanded="${children.length ? expanded : undefined}" aria-selected="${isSelected}" aria-label="${escAttr(orgFullName(emp) + (emp.position ? ', ' + emp.position : '') + (hasIssue ? ', requiere atención' : ''))}">
-    <div class="org-node-row">
-      ${children.length ? `<button type="button" class="org-expand-btn" onclick="event.stopPropagation();orgToggleExpand('${id}')" aria-expanded="${expanded}" aria-label="${expanded ? 'Colapsar equipo de' : 'Expandir equipo de'} ${escAttr(orgFullName(emp))}" title="${expanded ? 'Colapsar equipo' : 'Expandir equipo'}">
-        <svg width="12" height="12" viewBox="0 0 20 20" fill="none" style="transform:rotate(${expanded ? '90' : '0'}deg);transition:transform .12s"><path d="M7 5l6 5-6 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>` : `<span class="org-expand-spacer"></span>`}
-      <div class="org-node-card ${isSelected ? 'is-selected' : ''} ${isFocused ? 'is-focused' : ''} ${blocking ? 'has-blocking-issue' : hasIssue ? 'has-issue' : ''}"
-           id="org-node-${id}" tabindex="0" role="button"
-           ${canDrag ? `draggable="true" ondragstart="orgNodeDragStart(event,'${id}')" ondragend="orgNodeDragEnd(event)" ondragover="orgNodeDragOver(event,'${id}')" ondragleave="orgNodeDragLeave(event,'${id}')" ondrop="orgNodeDrop(event,'${id}')"` : ''}
-           onclick="orgSelectNode('${id}')" onkeydown="orgNodeKeydown(event,'${id}')"
-           aria-label="${escAttr(orgFullName(emp))}${emp.position ? ', ' + escAttr(emp.position) : ''}${hasIssue ? ', requiere atención' : ''}">
-        ${canDrag ? `<span class="org-node-grip" title="Arrastra para cambiar de jefe" aria-hidden="true">${siIcon('grip', 13)}</span>` : ''}
-        <div class="org-node-avatar">${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" draggable="false" />` : `<span>${esc(initials)}</span>`}</div>
-        <div class="org-node-main">
-          <div class="org-node-name" title="${escAttr(orgFullName(emp))}">${esc(orgFullName(emp))}</div>
-          <div class="org-node-meta" title="${escAttr(emp.position || '')}">${esc(emp.position || 'Sin puesto')}</div>
-          <div class="org-node-sub">${esc([emp.department, orgSiteName(emp)].filter(Boolean).join(' · ') || '—')}</div>
-          ${crossNote ? `<div class="org-node-cross">${siIcon('alert-circle', 10)} ${crossNote.type === 'cross_site' ? 'Jefe en otra sede' : 'Jefe en otra empresa'}</div>` : ''}
-        </div>
-        <div class="org-node-side">
-          ${children.length ? `<span class="org-node-reports" title="${children.length} reporte${children.length !== 1 ? 's' : ''} directo${children.length !== 1 ? 's' : ''}">${siIcon('users', 11)} ${children.length}</span>` : ''}
-          ${hasIssue ? `<span class="org-node-warn" title="${escAttr(issues.map(i => ORG_ISSUE_DEFS[i.type]?.label).join('; '))}">${siIcon(blocking ? 'alert-triangle' : 'alert-circle', 13)}</span>` : ''}
-        </div>
-        <button type="button" class="org-node-open" onclick="event.stopPropagation();viewEmployeeDetail('${id}')" title="Abrir perfil de colaborador" aria-label="Abrir perfil de ${escAttr(orgFullName(emp))}">
-          ${siIcon('external-link', 12)}
-        </button>
-      </div>
+  <div class="orgc-card ${isSelected ? 'is-selected' : ''} ${isFocused ? 'is-focused' : ''} ${blocking ? 'has-blocking-issue' : hasIssue ? 'has-issue' : ''} ${children.length ? 'is-manager' : ''} ${isMuted ? 'is-muted' : ''}"
+       id="org-node-${id}" style="left:${pos.x}px;top:${pos.y}px;width:${pos.w}px;height:${pos.h}px" tabindex="0" role="treeitem"
+       ${canDrag ? `draggable="true" ondragstart="orgNodeDragStart(event,'${id}')" ondragend="orgNodeDragEnd(event)" ondragover="orgNodeDragOver(event,'${id}')" ondragleave="orgNodeDragLeave(event,'${id}')" ondrop="orgNodeDrop(event,'${id}')"` : ''}
+       onclick="orgSelectNode('${id}')" onkeydown="orgNodeKeydown(event,'${id}')"
+       aria-label="${escAttr(orgFullName(emp))}${emp.position ? ', ' + escAttr(emp.position) : ''}${isMuted ? ', fuera del alcance actual' : ''}${hasIssue ? ', requiere atención' : ''}">
+    ${canDrag ? `<span class="orgc-grip" title="Arrastra para cambiar de jefe" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.3"/><circle cx="10" cy="4" r="1.3"/><circle cx="6" cy="8" r="1.3"/><circle cx="10" cy="8" r="1.3"/><circle cx="6" cy="12" r="1.3"/><circle cx="10" cy="12" r="1.3"/></svg></span>` : ''}
+    <div class="orgc-avatar">${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" draggable="false"/>` : `<span>${esc(initials)}</span>`}</div>
+    <div class="orgc-main">
+      <div class="orgc-name" title="${escAttr(orgFullName(emp))}">${esc(orgFullName(emp))}</div>
+      <div class="orgc-title" title="${escAttr(emp.position || '')}">${esc(emp.position || 'Sin puesto')}</div>
+      <div class="orgc-meta" title="${escAttr([emp.department, emp.company].filter(Boolean).join(' · '))}">${esc([emp.department, emp.company].filter(Boolean).join(' · ') || '—')}</div>
     </div>
-    ${children.length && expanded ? `<ul class="org-node-children" role="group">${children.map(c => orgNodeCardHtml(c, forest, depth + 1)).join('')}</ul>` : ''}
-  </li>`
+    ${hasIssue ? `<span class="orgc-warn" title="${escAttr(issues.map(i => ORG_ISSUE_DEFS[i.type]?.label).join('; '))}">${siIcon(blocking ? 'alert-triangle' : 'alert-circle', 12)}</span>` : ''}
+    <button type="button" class="orgc-open" onclick="event.stopPropagation();viewEmployeeDetail('${id}')" title="Abrir perfil de colaborador" aria-label="Abrir perfil de ${escAttr(orgFullName(emp))}">${siIcon('external-link', 11)}</button>
+    ${children.length ? `<button type="button" class="orgc-reports" onclick="event.stopPropagation();orgToggleExpand('${id}')" aria-expanded="${expanded}" title="${expanded ? 'Colapsar equipo' : 'Expandir equipo'} — ${children.length} reporte${children.length !== 1 ? 's' : ''} directo${children.length !== 1 ? 's' : ''}">${siIcon('users', 11)} ${children.length} ${siIcon(expanded ? 'chevron-up' : 'chevron-down', 10)}</button>` : ''}
+  </div>`
 }
-// ── Drag-to-reassign state — a single module-level pointer to the node
-// being dragged. dataTransfer's own payload isn't readable during
-// dragover/dragleave (browsers only expose it on drop, for security), so
-// live valid/invalid feedback while hovering has to come from this instead.
+// ── Drag-to-reassign state (only reachable in Editar estructura mode —
+// see the editMode check baked into canDrag above). dataTransfer's own
+// payload isn't readable during dragover/dragleave (browsers only expose
+// it on drop, for security), so live valid/invalid feedback while
+// hovering has to come from this module-level pointer instead.
 let _orgDrag = null
 function orgNodeDragStart(e, id) {
-  if (!can('write', 'talento_humano')) { e.preventDefault(); return }
-  if (e.target.closest('.org-expand-btn, .org-node-open')) { e.preventDefault(); return }
+  if (!can('write', 'talento_humano') || !_badge_ui.org.editMode) { e.preventDefault(); return }
+  if (e.target.closest('.orgc-reports, .orgc-open')) { e.preventDefault(); return }
   _orgDrag = id
   e.dataTransfer.effectAllowed = 'move'
   try { e.dataTransfer.setData('text/plain', id) } catch {}
@@ -19817,7 +20174,7 @@ function orgNodeKeydown(e, id) {
   else if (e.key === 'ArrowLeft') { if (orgIsExpanded(id)) { e.preventDefault(); orgToggleExpand(id) } }
   else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault()
-    const all = [...document.querySelectorAll('.org-node-card')]
+    const all = [...document.querySelectorAll('.orgc-card')]
     const idx = all.indexOf(e.currentTarget)
     const next = all[idx + (e.key === 'ArrowDown' ? 1 : -1)]
     next?.focus()
@@ -19828,11 +20185,11 @@ function renderOrgChartView() {
   if (!scopeIds.length) {
     return emptyStateHtml({
       title: 'No hay colaboradores en este alcance',
-      desc: 'Ajusta los filtros o la sede activa para ver el organigrama.',
+      desc: 'Ajusta los filtros, el alcance o la sede activa para ver el organigrama.',
       actionLabel: orgActiveFilterCount() ? 'Limpiar filtros' : null, actionOnClick: 'orgClearFilters()',
     })
   }
-  const forest = orgBuildForest(scopeIds)
+  const { forest, contextual } = orgChartDisplayForest()
   // First render for this scope: show root(s) and their direct reports
   // expanded by default (a meaningful top-level structure), not the
   // whole company.
@@ -19840,32 +20197,326 @@ function renderOrgChartView() {
     forest.roots.forEach(r => { if (!orgIsExpanded(r)) _badge_ui.org.expanded.push(r) })
     _orgDefaultExpansionDone = true
   }
+  const layout = orgComputeChartLayout(forest)
+  _orgLastChartLayout = layout
+  _orgLastChartForest = forest
+  const zoom = _badge_ui.org.zoom
+  const sizerW = Math.max(1, Math.round(layout.width * zoom)), sizerH = Math.max(1, Math.round(layout.height * zoom))
+  const allIds = [...layout.positions.keys()]
   return `
     <div class="org-chart-controls">
       <div class="org-chart-controls-group">
         <button class="btn btn-ghost btn-sm" onclick="orgExpandAll()">${siIcon('chevrons-down', 13)} Expandir todo</button>
         <button class="btn btn-ghost btn-sm" onclick="orgCollapseAll()">${siIcon('chevrons-up', 13)} Colapsar todo</button>
       </div>
-      <div class="org-chart-controls-group">
-        <button class="icon-btn icon-btn-quiet" onclick="orgSetZoom(-0.1)" title="Reducir zoom" aria-label="Reducir zoom">${siIcon('zoom-out', 15)}</button>
-        <span class="org-zoom-label">${Math.round(_badge_ui.org.zoom * 100)}%</span>
-        <button class="icon-btn icon-btn-quiet" onclick="orgSetZoom(0.1)" title="Aumentar zoom" aria-label="Aumentar zoom">${siIcon('zoom-in', 15)}</button>
-        <button class="icon-btn icon-btn-quiet" onclick="orgFitToScreen()" title="Ajustar a la pantalla" aria-label="Ajustar a la pantalla">${siIcon('maximize', 14)}</button>
-        <button class="icon-btn icon-btn-quiet" onclick="orgResetView()" title="Restablecer vista" aria-label="Restablecer vista">${siIcon('rotate-ccw', 14)}</button>
-      </div>
+      ${_badge_ui.org.editMode ? `<div class="org-drag-hint">${siIcon('info', 12)} Arrastra una tarjeta y suéltala sobre otra para cambiarle el jefe inmediato</div>` : ''}
     </div>
-    ${can('write', 'talento_humano') ? `<div class="org-drag-hint">${siIcon('grip', 12)} Arrastra una tarjeta y suéltala sobre otra para cambiarle el jefe inmediato</div>` : ''}
-    <div class="org-chart-viewport" id="org-chart-viewport">
-      <div class="org-chart-canvas" id="org-chart-canvas" style="transform:scale(${_badge_ui.org.zoom})">
-        <ul class="org-tree" role="tree" aria-label="Organigrama">
-          ${forest.roots.map(r => orgNodeCardHtml(r, forest, 0)).join('')}
-        </ul>
+    <div class="orgc-viewport" id="orgc-viewport" onmousedown="orgCanvasPointerDown(event)" onwheel="orgCanvasWheel(event)">
+      <div class="orgc-canvas-sizer" style="width:${sizerW}px;height:${sizerH}px">
+        <div class="orgc-canvas" id="orgc-canvas" style="width:${layout.width}px;height:${layout.height}px;transform:scale(${zoom})">
+          <svg class="orgc-connectors" width="${layout.width}" height="${layout.height}" aria-hidden="true">${orgConnectorsSvg(layout, forest)}</svg>
+          ${allIds.map(id => orgChartCardHtml(id, forest, layout.positions.get(id), contextual)).join('')}
+        </div>
+      </div>
+      <div class="orgc-floating-controls">
+        <button class="icon-btn icon-btn-quiet" onclick="orgSetZoom(-0.1)" title="Reducir zoom" aria-label="Reducir zoom">${siIcon('zoom-out', 15)}</button>
+        <span class="org-zoom-label">${Math.round(zoom * 100)}%</span>
+        <button class="icon-btn icon-btn-quiet" onclick="orgSetZoom(0.1)" title="Aumentar zoom" aria-label="Aumentar zoom">${siIcon('zoom-in', 15)}</button>
+        <span class="orgc-controls-sep"></span>
+        <button class="icon-btn icon-btn-quiet" onclick="orgFitToScreen()" title="Ajustar a la pantalla" aria-label="Ajustar a la pantalla">${siIcon('maximize', 14)}</button>
+        <button class="icon-btn icon-btn-quiet" onclick="orgCenterChart()" title="Centrar" aria-label="Centrar">${siIcon('map-pin', 14)}</button>
+        <button class="icon-btn icon-btn-quiet" onclick="orgResetView()" title="Restablecer vista" aria-label="Restablecer vista">${siIcon('rotate-ccw', 14)}</button>
       </div>
     </div>
     ${orgSelectedNodeDetailHtml()}
   `
 }
 let _orgDefaultExpansionDone = false
+
+// ── EXPORT (§12-14) ── a drawer (same pattern as orgOpenAssignManager)
+// configuring scope/content/format, then either window.print() against a
+// dedicated #org-print-root (never a screenshot of the live canvas — no
+// sidebar, filters, scrollbars or buttons ever reach the page) or a PNG
+// rasterized directly from the same layout data onto an offscreen
+// <canvas> (no DOM screenshot library needed for either path). ──
+let _orgExport = null
+function orgOpenExportModal() {
+  _orgExport = {
+    scope: 'current', // 'current' (mirrors the scope/filters already shown above) | 'all'
+    fields: { photo: true, name: true, title: true, department: true, company: true, facility: false, reports: true },
+    format: 'pdf',
+  }
+  document.getElementById('org-export-drawer-backdrop')?.remove()
+  document.getElementById('org-export-drawer')?.remove()
+  const backdrop = document.createElement('div')
+  backdrop.className = 'drawer-backdrop'; backdrop.id = 'org-export-drawer-backdrop'
+  backdrop.onclick = () => orgCloseExportModal()
+  document.body.appendChild(backdrop)
+  const drawer = document.createElement('div')
+  drawer.className = 'drawer drawer-right'; drawer.id = 'org-export-drawer'
+  drawer.setAttribute('role', 'dialog'); drawer.setAttribute('aria-modal', 'true'); drawer.setAttribute('aria-label', 'Exportar organigrama')
+  document.body.appendChild(drawer)
+  renderOrgExportDrawer()
+  requestAnimationFrame(() => { backdrop.classList.add('open'); drawer.classList.add('open') })
+}
+function orgCloseExportModal() {
+  document.getElementById('org-export-drawer-backdrop')?.remove()
+  document.getElementById('org-export-drawer')?.remove()
+  _orgExport = null
+}
+async function orgExportSetScope(v) {
+  if (!_orgExport) return
+  _orgExport.scope = v
+  if (v === 'all') await orgLoadAllSitesData()
+  renderOrgExportDrawer()
+}
+function orgExportToggleField(key, checked) { if (_orgExport) { _orgExport.fields[key] = checked; renderOrgExportDrawer() } }
+function orgExportSetFormat(v) { if (_orgExport) { _orgExport.format = v; renderOrgExportDrawer() } }
+function orgExportPool() { return _orgExport?.scope === 'all' ? _badge.orgAll.employees : orgActiveEmployeePool() }
+function orgExportRelsPool() { return _orgExport?.scope === 'all' ? _badge.orgAll.relationships : orgActiveRels() }
+function orgExportIds() {
+  if (!_orgExport) return []
+  return _orgExport.scope === 'all' ? orgExportPool().map(e => e.id) : orgScopeEmployees().map(e => e.id)
+}
+function orgExportBuild() {
+  const ids = orgExportIds()
+  const forest = orgBuildForest(ids, orgExportRelsPool())
+  const layout = orgComputeChartLayout(forest, { forceExpandAll: true })
+  return { ids, forest, layout }
+}
+function orgExportScopeLabel() { return _orgExport?.scope === 'all' ? 'Toda SIERRA' : orgScopeLabel() }
+// A4/A3/A2/A1 landscape, 15mm margins, 96 CSS px/inch. For anything
+// bigger than A1 the chart is scaled down to fit one page (§13's "fit to
+// one page" option) rather than attempting true multi-page splitting.
+const ORGP_PAGE_SIZES = [{ name: 'A4', wmm: 297, hmm: 210 }, { name: 'A3', wmm: 420, hmm: 297 }, { name: 'A2', wmm: 594, hmm: 420 }, { name: 'A1', wmm: 841, hmm: 594 }]
+function orgExportPageEstimate(layout) {
+  const MM_PER_PX = 25.4 / 96, marginMm = 15
+  for (const p of ORGP_PAGE_SIZES) {
+    if (layout.width * MM_PER_PX <= p.wmm - marginMm * 2 && layout.height * MM_PER_PX <= p.hmm - marginMm * 2) return { ...p, scale: 1 }
+  }
+  const largest = ORGP_PAGE_SIZES[ORGP_PAGE_SIZES.length - 1]
+  const scale = Math.min((largest.wmm - marginMm * 2) / (layout.width * MM_PER_PX), (largest.hmm - marginMm * 2) / (layout.height * MM_PER_PX))
+  return { ...largest, scale }
+}
+function renderOrgExportDrawer() {
+  const drawer = document.getElementById('org-export-drawer')
+  if (!drawer || !_orgExport) return
+  const { ids, layout } = orgExportBuild()
+  const page = ids.length ? orgExportPageEstimate(layout) : null
+  const fieldRow = (k, l) => `<label class="cat-pop-row" style="cursor:pointer;padding-left:0"><input type="checkbox" ${_orgExport.fields[k] ? 'checked' : ''} onchange="orgExportToggleField('${k}',this.checked)"/> ${l}</label>`
+  drawer.innerHTML = `<div class="drawer-content">
+    <div class="emp-detail-hdr">
+      <div class="emp-detail-hdr-main">
+        <div class="emp-detail-hdr-name">Exportar organigrama</div>
+        <div class="emp-detail-hdr-org">Genera un organigrama limpio, listo para presentar o imprimir</div>
+      </div>
+      <button class="icon-btn icon-btn-quiet" onclick="orgCloseExportModal()" aria-label="Cerrar">${siIcon('x', 16)}</button>
+    </div>
+    <div class="drawer-body">
+      <div class="data-block-title" style="margin-top:0"><span>Alcance</span></div>
+      <label class="cat-pop-row" style="cursor:pointer;padding-left:0"><input type="radio" name="orgexp-scope" ${_orgExport.scope === 'current' ? 'checked' : ''} onchange="orgExportSetScope('current')"/> Vista actual — el alcance y los filtros de arriba (${esc(orgScopeLabel())})</label>
+      <label class="cat-pop-row" style="cursor:pointer;padding-left:0"><input type="radio" name="orgexp-scope" ${_orgExport.scope === 'all' ? 'checked' : ''} onchange="orgExportSetScope('all')"/> ${_badge.orgAll.loading ? 'Cargando toda SIERRA…' : 'Toda SIERRA — organización completa, sin filtros'}</label>
+
+      <div class="data-block-title"><span>Incluir</span></div>
+      <div class="data-fields-2">
+        ${fieldRow('photo', 'Fotografía')}${fieldRow('name', 'Nombre')}${fieldRow('title', 'Puesto')}${fieldRow('department', 'Departamento')}${fieldRow('company', 'Empresa')}${fieldRow('facility', 'Sede')}${fieldRow('reports', 'Reportes directos')}
+      </div>
+
+      <div class="data-block-title"><span>Formato</span></div>
+      <label class="cat-pop-row" style="cursor:pointer;padding-left:0"><input type="radio" name="orgexp-format" ${_orgExport.format === 'pdf' ? 'checked' : ''} onchange="orgExportSetFormat('pdf')"/> PDF</label>
+      <label class="cat-pop-row" style="cursor:pointer;padding-left:0"><input type="radio" name="orgexp-format" ${_orgExport.format === 'png' ? 'checked' : ''} onchange="orgExportSetFormat('png')"/> PNG</label>
+
+      <div class="org-impact-preview">
+        <div class="data-block-title" style="margin-top:0"><span>Vista previa</span></div>
+        <div class="org-impact-row"><span>Alcance</span><b>${esc(orgExportScopeLabel())}</b></div>
+        <div class="org-impact-row"><span>Colaboradores</span><b>${ids.length}</b></div>
+        ${page ? `<div class="org-impact-row"><span>Tamaño de página</span><b>${page.name} · Horizontal${page.scale < 0.999 ? ` (ajustado a ${Math.round(page.scale * 100)}%)` : ''}</b></div>` : `<div class="org-impact-row"><span>Tamaño de página</span><b>—</b></div>`}
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <button type="button" class="btn btn-primary" ${ids.length ? '' : 'disabled'} onclick="orgRunExport()">${siIcon('download', 14)} Exportar ${_orgExport.format.toUpperCase()}</button>
+      <button type="button" class="btn btn-ghost" onclick="orgCloseExportModal()">Cancelar</button>
+    </div>
+  </div>`
+}
+async function orgRunExport() {
+  if (!_orgExport) return
+  const { forest, layout } = orgExportBuild()
+  if (!layout.width || !layout.height) { toast('No hay colaboradores para exportar en este alcance'); return }
+  if (_orgExport.format === 'pdf') orgExportPdf(forest, layout)
+  else await orgExportPng(forest, layout)
+}
+function orgExportFilenameBase() { return `organigrama-${(orgExportScopeLabel() || 'sierra').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}` }
+function orgExportCardHtml(id, forest, pos) {
+  const emp = orgEmpById(id)
+  if (!emp) return ''
+  const f = _orgExport.fields
+  const initials = ((emp.first_name?.[0] || '') + (emp.last_name?.[0] || '')).toUpperCase()
+  const children = forest.childrenMap.get(id) || []
+  const meta = [f.department && emp.department, f.company && emp.company, f.facility && orgSiteName(emp)].filter(Boolean).join(' · ')
+  return `<div class="orgp-card" style="left:${pos.x}px;top:${pos.y}px;width:${pos.w}px;height:${pos.h}px">
+    ${f.photo ? `<div class="orgp-avatar">${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt=""/>` : `<span>${esc(initials)}</span>`}</div>` : ''}
+    <div style="min-width:0;flex:1">
+      ${f.name ? `<div class="orgp-name">${esc(orgFullName(emp))}</div>` : ''}
+      ${f.title ? `<div class="orgp-title2">${esc(emp.position || 'Sin puesto')}</div>` : ''}
+      ${meta ? `<div class="orgp-meta">${esc(meta)}</div>` : ''}
+      ${f.reports && children.length ? `<div class="orgp-reports">${children.length} reporte${children.length !== 1 ? 's' : ''} directo${children.length !== 1 ? 's' : ''}</div>` : ''}
+    </div>
+  </div>`
+}
+function orgExportConnectorsSvg(layout, forest, cls) {
+  let out = ''
+  layout.positions.forEach((pos, id) => {
+    if (!pos.expanded) return
+    const children = (forest.childrenMap.get(id) || []).map(c => layout.positions.get(c)).filter(Boolean)
+    if (!children.length) return
+    const parentCX = pos.x + pos.w / 2, parentBottom = pos.y + pos.h
+    const elbowY = parentBottom + ORGC_GAP_Y / 2
+    const childXs = children.map(p => p.x + p.w / 2)
+    out += `<path class="${cls}" d="M${parentCX} ${parentBottom} V${elbowY}"/>`
+    out += `<path class="${cls}" d="M${Math.min(parentCX, ...childXs)} ${elbowY} H${Math.max(parentCX, ...childXs)}"/>`
+    children.forEach(p => { out += `<path class="${cls}" d="M${p.x + p.w / 2} ${elbowY} V${p.y}"/>` })
+  })
+  return out
+}
+function orgExportPdf(forest, layout) {
+  const root = document.getElementById('org-print-root')
+  const ids = [...layout.positions.keys()]
+  root.innerHTML = `
+    <div class="orgp-header">
+      <div class="orgp-title">Organigrama — ${esc(orgExportScopeLabel())}</div>
+      <div class="orgp-sub">${ids.length} colaborador${ids.length !== 1 ? 'es' : ''} · ${hrFmtDate(hrToday().toISOString().slice(0, 10))}</div>
+    </div>
+    <div style="position:relative;width:${layout.width}px;height:${layout.height}px">
+      <svg width="${layout.width}" height="${layout.height}" style="position:absolute;top:0;left:0;overflow:visible" aria-hidden="true">${orgExportConnectorsSvg(layout, forest, 'orgp-conn')}</svg>
+      ${ids.map(id => orgExportCardHtml(id, forest, layout.positions.get(id))).join('')}
+    </div>
+  `
+  const page = orgExportPageEstimate(layout)
+  const pageStyle = document.createElement('style')
+  pageStyle.id = 'org-page-style'
+  pageStyle.textContent = `@media print { @page { size:${page.name} landscape; margin:12mm } #org-print-root > div:last-child { transform:scale(${page.scale}); transform-origin:top left; } }`
+  document.head.appendChild(pageStyle)
+  document.body.classList.add('printing-org')
+  const cleanup = () => {
+    document.body.classList.remove('printing-org')
+    document.getElementById('org-page-style')?.remove()
+    window.removeEventListener('afterprint', cleanup)
+  }
+  window.addEventListener('afterprint', cleanup)
+  orgCloseExportModal()
+  window.print()
+}
+function orgCanvasRoundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y, x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x, y + h, r)
+  ctx.arcTo(x, y + h, x, y, r)
+  ctx.arcTo(x, y, x + w, y, r)
+  ctx.closePath()
+}
+function orgDownloadDataUrl(dataUrl, filename) {
+  const a = document.createElement('a')
+  a.href = dataUrl; a.download = filename
+  document.body.appendChild(a); a.click(); a.remove()
+}
+// Drawn straight from the layout data onto an offscreen <canvas> — no
+// DOM-to-image library, and no dependency on the interactive chart's own
+// DOM (which may be showing a different, collapsed view right now).
+// Photos are pre-loaded with crossOrigin='anonymous' so a permissive
+// (e.g. public Supabase Storage) host doesn't taint the canvas; a host
+// that doesn't allow it fails per-image (falls back to initials) — and
+// if toDataURL still throws, one retry re-renders with photos off
+// entirely rather than failing the whole export.
+async function orgExportPng(forest, layout, _retryNoPhoto) {
+  const MAX_DIM = 6000
+  const scale = Math.min(1, MAX_DIM / Math.max(layout.width, layout.height, 1))
+  const pad = 60, headerH = 70
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(layout.width * scale) + pad * 2
+  canvas.height = Math.round(layout.height * scale) + pad * 2 + headerH
+  const ctx = canvas.getContext('2d')
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.textBaseline = 'top'
+  const ids = [...layout.positions.keys()]
+  ctx.fillStyle = '#000'; ctx.font = '700 22px sans-serif'
+  ctx.fillText(`Organigrama — ${orgExportScopeLabel()}`, pad, 16)
+  ctx.fillStyle = '#555'; ctx.font = '400 13px sans-serif'
+  ctx.fillText(`${ids.length} colaborador${ids.length !== 1 ? 'es' : ''} · ${hrFmtDate(hrToday().toISOString().slice(0, 10))}`, pad, 42)
+  ctx.strokeStyle = '#999'; ctx.lineWidth = 1.2
+  layout.positions.forEach((pos, id) => {
+    if (!pos.expanded) return
+    const children = (forest.childrenMap.get(id) || []).map(c => layout.positions.get(c)).filter(Boolean)
+    if (!children.length) return
+    const parentCX = pad + (pos.x + pos.w / 2) * scale, parentBottom = pad + headerH + (pos.y + pos.h) * scale
+    const elbowY = pad + headerH + (pos.y + pos.h + ORGC_GAP_Y / 2) * scale
+    const childXs = children.map(p => pad + (p.x + p.w / 2) * scale)
+    ctx.beginPath(); ctx.moveTo(parentCX, parentBottom); ctx.lineTo(parentCX, elbowY); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(Math.min(parentCX, ...childXs), elbowY); ctx.lineTo(Math.max(parentCX, ...childXs), elbowY); ctx.stroke()
+    children.forEach(p => { const cx = pad + (p.x + p.w / 2) * scale, cy = pad + headerH + p.y * scale; ctx.beginPath(); ctx.moveTo(cx, elbowY); ctx.lineTo(cx, cy); ctx.stroke() })
+  })
+  const f = _orgExport.fields
+  const photoCache = new Map()
+  if (f.photo && !_retryNoPhoto) {
+    await Promise.all(ids.map(async id => {
+      const emp = orgEmpById(id)
+      if (!emp?.photo_url) return
+      try {
+        const img = await new Promise((resolve, reject) => {
+          const im = new Image()
+          im.crossOrigin = 'anonymous'
+          im.onload = () => resolve(im); im.onerror = reject
+          im.src = emp.photo_url
+        })
+        photoCache.set(id, img)
+      } catch {}
+    }))
+  }
+  ids.forEach(id => {
+    const emp = orgEmpById(id)
+    if (!emp) return
+    const pos = layout.positions.get(id)
+    const x = pad + pos.x * scale, y = pad + headerH + pos.y * scale, w = pos.w * scale, h = pos.h * scale
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1
+    orgCanvasRoundRect(ctx, x, y, w, h, 10 * scale); ctx.fill(); ctx.stroke()
+    let textX = x + 12 * scale
+    if (f.photo) {
+      const r = 24 * scale, cx = x + 12 * scale + r, cy = y + 12 * scale + r
+      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.closePath(); ctx.clip()
+      const img = !_retryNoPhoto && photoCache.get(id)
+      if (img) ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2)
+      else {
+        ctx.fillStyle = '#eee'; ctx.fillRect(cx - r, cy - r, r * 2, r * 2)
+        ctx.fillStyle = '#555'; ctx.font = `700 ${13 * scale}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+        ctx.fillText(((emp.first_name?.[0] || '') + (emp.last_name?.[0] || '')).toUpperCase(), cx, cy)
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top'
+      }
+      ctx.restore()
+      textX = x + (12 + 48 + 10) * scale
+    }
+    let ty = y + 10 * scale
+    const maxTextW = w - (textX - x) - 8 * scale
+    if (f.name) { ctx.fillStyle = '#000'; ctx.font = `700 ${14 * scale}px sans-serif`; ctx.fillText(orgFullName(emp), textX, ty, maxTextW); ty += 18 * scale }
+    if (f.title) { ctx.fillStyle = '#333'; ctx.font = `400 ${12 * scale}px sans-serif`; ctx.fillText(emp.position || 'Sin puesto', textX, ty, maxTextW); ty += 16 * scale }
+    const metaParts = [f.department && emp.department, f.company && emp.company, f.facility && orgSiteName(emp)].filter(Boolean)
+    if (metaParts.length) { ctx.fillStyle = '#777'; ctx.font = `400 ${11 * scale}px sans-serif`; ctx.fillText(metaParts.join(' · '), textX, ty, maxTextW); ty += 15 * scale }
+    const children = forest.childrenMap.get(id) || []
+    if (f.reports && children.length) { ctx.fillStyle = '#555'; ctx.font = `600 ${10 * scale}px sans-serif`; ctx.fillText(`${children.length} reporte${children.length !== 1 ? 's' : ''} directo${children.length !== 1 ? 's' : ''}`, textX, ty, maxTextW) }
+  })
+  let dataUrl
+  try {
+    dataUrl = canvas.toDataURL('image/png')
+  } catch (err) {
+    if (_retryNoPhoto) { toast('No se pudo generar el PNG: ' + (err?.message || 'error desconocido')); orgCloseExportModal(); return }
+    toast('No se pudieron incluir algunas fotografías (restricción del navegador) — exportando sin fotos')
+    await orgExportPng(forest, layout, true)
+    return
+  }
+  orgDownloadDataUrl(dataUrl, orgExportFilenameBase() + '.png')
+  orgCloseExportModal()
+  toast('Organigrama exportado como PNG')
+}
 
 // ── 6. ASSIGN / CHANGE IMMEDIATE MANAGER ── A focused view, opened either
 // from a button (manual search) or by dropping a node onto another in the
@@ -19977,7 +20628,7 @@ function renderOrgAssignDrawer() {
     <div class="drawer-body">
       <div class="data-block-title" style="margin-top:0"><span>Jefe actual</span></div>
       ${currentMgr ? `<div class="org-current-mgr-row">
-        <div class="org-node-avatar" style="width:30px;height:30px">${currentMgr.photo_url ? `<img src="${esc(currentMgr.photo_url)}" alt=""/>` : `<span>${esc(mgrInitials(currentMgr))}</span>`}</div>
+        <div class="orgc-avatar" style="width:30px;height:30px;min-width:30px;font-size:0.68rem">${currentMgr.photo_url ? `<img src="${esc(currentMgr.photo_url)}" alt=""/>` : `<span>${esc(mgrInitials(currentMgr))}</span>`}</div>
         <div style="flex:1;min-width:0">
           <div style="font-weight:600;font-size:0.85rem">${esc(orgFullName(currentMgr))}</div>
           <div style="font-size:0.74rem;color:var(--text-secondary)">${esc(currentMgr.position || 'Sin puesto')}</div>
@@ -19986,7 +20637,7 @@ function renderOrgAssignDrawer() {
 
       <div class="data-block-title"><span>Nuevo jefe inmediato</span></div>
       ${candidate ? `<div class="org-candidate-picked">
-        <div class="org-node-avatar" style="width:32px;height:32px">${candidate.photo_url ? `<img src="${esc(candidate.photo_url)}" alt=""/>` : `<span>${esc(mgrInitials(candidate))}</span>`}</div>
+        <div class="orgc-avatar" style="width:32px;height:32px;min-width:32px;font-size:0.7rem">${candidate.photo_url ? `<img src="${esc(candidate.photo_url)}" alt=""/>` : `<span>${esc(mgrInitials(candidate))}</span>`}</div>
         <div style="flex:1;min-width:0">
           <div style="font-weight:600">${esc(orgFullName(candidate))}</div>
           <div style="font-size:0.76rem;color:var(--text-secondary)">${esc(candidate.position || 'Sin puesto')} · ${esc(candidate.department || '—')} · ${esc(orgSiteName(candidate) || '—')}${candidate.company ? ' · ' + esc(candidate.company) : ''}</div>
