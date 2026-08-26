@@ -4715,7 +4715,7 @@
        a big blank gap — the empty space collects above this footer, where
        a divider makes it read as intentional breathing room, not as a
        broken layout. */
-    .org-assign-drawer .drawer-footer { flex-shrink:0; display:flex; gap:0.6rem; padding:0.85rem 1.2rem; border-top:1px solid var(--border); background:var(--surface); }
+    .drawer-footer { flex-shrink:0; display:flex; gap:0.6rem; padding:0.85rem 1.2rem; border-top:1px solid var(--border); background:var(--surface); }
 
     @media (max-width: 780px) {
       .org-chart-viewport { max-height:calc(100vh - 380px); }
@@ -19821,11 +19821,17 @@ function renderOrgChartView() {
 }
 let _orgDefaultExpansionDone = false
 
-// ── 6. ASSIGN / CHANGE IMMEDIATE MANAGER ── A focused drawer, opened
-// either from a button (manual search) or by dropping a node onto another
-// in the chart (orgNodeDrop → prefillManagerId) — both paths land in the
-// same confirm step below, so dragging never skips the cycle check or the
-// cross-site/company confirmation the manual flow already enforces. ──
+// ── 6. ASSIGN / CHANGE IMMEDIATE MANAGER ── A focused view, opened either
+// from a button (manual search) or by dropping a node onto another in the
+// chart (orgNodeDrop → prefillManagerId) — both paths land in the same
+// confirm step below, so dragging never skips the cycle check or the
+// cross-site/company confirmation the manual flow already enforces.
+// When the employee detail drawer is already open (the common case — the
+// button lives inside its "Estructura organizacional" section), this
+// swaps that same drawer's content instead of stacking a second panel
+// next to it: two right-side drawers open at once read as an overlap
+// bug, not a step in one flow. Standalone (opened from the chart, where
+// no detail drawer exists yet) it still gets its own drawer+backdrop. ──
 function orgOpenAssignManager(employeeId, prefillManagerId) {
   if (!can('write', 'talento_humano')) return
   const emp = orgEmpById(employeeId)
@@ -19836,12 +19842,15 @@ function orgOpenAssignManager(employeeId, prefillManagerId) {
   // preview, cross-site/company confirmation) rather than saving straight
   // from the drop, so drag-and-drop never bypasses those safeguards.
   const currentRel = orgCurrentManagerRelationship(employeeId)
+  const embedded = !!document.getElementById('employee-detail-drawer')
   _badge_ui.org.assign = {
     employeeId, managerQuery: '', managerId: prefillManagerId || null, managerResults: [],
     effectiveDate: hrToday().toISOString().slice(0, 10),
     reason: '', note: '', confirmCross: false, saving: false,
     currentManagerId: currentRel?.manager_employee_id || null,
+    embedded,
   }
+  if (embedded) { renderOrgAssignDrawer(); return }
   document.getElementById('org-assign-drawer-backdrop')?.remove()
   document.getElementById('org-assign-drawer')?.remove()
   const backdrop = document.createElement('div')
@@ -19857,9 +19866,15 @@ function orgOpenAssignManager(employeeId, prefillManagerId) {
   requestAnimationFrame(() => { backdrop.classList.add('open'); drawer.classList.add('open'); drawer.querySelector('input,button')?.focus() })
 }
 function orgCloseAssignManager() {
+  const a = _badge_ui.org.assign
+  _badge_ui.org.assign = null
+  if (a?.embedded) {
+    const emp = orgEmpById(a.employeeId)
+    if (emp && document.getElementById('employee-detail-drawer')) renderEmployeeDetailDrawer(emp)
+    return
+  }
   document.getElementById('org-assign-drawer-backdrop')?.remove()
   document.getElementById('org-assign-drawer')?.remove()
-  _badge_ui.org.assign = null
 }
 async function orgAssignSearchInput(v) {
   const a = _badge_ui.org.assign
@@ -19891,9 +19906,10 @@ function orgAssignPickCandidate(id) {
 }
 function orgAssignSetField(field, value) { if (_badge_ui.org.assign) { _badge_ui.org.assign[field] = value } }
 function renderOrgAssignDrawer() {
-  const drawer = document.getElementById('org-assign-drawer')
   const a = _badge_ui.org.assign
-  if (!drawer || !a) return
+  if (!a) return
+  const drawer = document.getElementById(a.embedded ? 'employee-detail-drawer' : 'org-assign-drawer')
+  if (!drawer) return
   const emp = orgEmpById(a.employeeId)
   const currentMgr = a.currentManagerId ? orgEmpById(a.currentManagerId) : null
   const candidate = a.managerId ? orgEmpById(a.managerId) : null
@@ -19905,11 +19921,12 @@ function renderOrgAssignDrawer() {
   const mgrInitials = m => ((m.first_name?.[0] || '') + (m.last_name?.[0] || '')).toUpperCase()
   drawer.innerHTML = `<div class="drawer-content">
     <div class="emp-detail-hdr">
+      ${a.embedded ? `<button class="icon-btn icon-btn-quiet" onclick="orgCloseAssignManager()" aria-label="Volver al perfil" title="Volver al perfil">${siIcon('chevron-left', 18)}</button>` : ''}
       <div class="emp-detail-hdr-main">
         <div class="emp-detail-hdr-name">Cambiar jefe inmediato</div>
         <div class="emp-detail-hdr-org">${esc(orgFullName(emp))} · ${esc(emp.position || 'Sin puesto')}</div>
       </div>
-      <button class="icon-btn icon-btn-quiet" onclick="orgCloseAssignManager()" aria-label="Cerrar">${siIcon('x', 16)}</button>
+      ${a.embedded ? '' : `<button class="icon-btn icon-btn-quiet" onclick="orgCloseAssignManager()" aria-label="Cerrar">${siIcon('x', 16)}</button>`}
     </div>
     <div class="drawer-body">
       <div class="data-block-title" style="margin-top:0"><span>Jefe actual</span></div>
