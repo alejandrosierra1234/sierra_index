@@ -1383,10 +1383,34 @@
     .mob-topbar-search svg { width:20px; height:20px; }
 
     /* ── CONTENT ── */
+    /* ── Main panel ── sidebar's sibling: a column of [context shell]
+       + [white workspace], both spanning the same width so the shell
+       region reads as a real horizontal band above the workspace, not an
+       overlay on top of it (§ navigation architecture, "shell tells me
+       WHERE, workspace tells me WHAT"). */
+    .main-panel { display:flex; flex-direction:column; flex:1; min-width:0; overflow:hidden; }
+
+    /* ── Context shell ── the ONE place back navigation + breadcrumbs
+       live, for every screen. Lives in the gray application shell,
+       between the global system bar and the white workspace — physically
+       outside #content, never duplicated inside a tool. Deliberately
+       plain: no card, no border, no pill background — it sits directly on
+       the shell's own gray plane. See setSecCrumbs()/clearSecCrumbs()/
+       crumbHtml(). */
+    .ctx-shell { flex-shrink:0; padding:0.6rem var(--page-padding-x) 0.1rem; }
+    .sec-crumb { display:flex; align-items:center; gap:0.3rem; font-size:0.85rem; line-height:1.3; flex-wrap:wrap; }
+    .sec-crumb-back { display:inline-flex; align-items:center; gap:0.3rem; background:none; border:none; padding:0.15rem 0.3rem; margin:-0.15rem -0.3rem; color:var(--text-2); font-size:0.85rem; font-weight:500; cursor:pointer; border-radius:6px; }
+    .sec-crumb-back:hover { color:var(--text-primary); background:var(--surface-hover); }
+    .sec-crumb-back svg { width:14px; height:14px; flex-shrink:0; }
+    .sec-crumb-link { background:none; border:none; padding:0.1rem 0.15rem; margin:-0.1rem -0.15rem; color:var(--text-2); font-size:0.85rem; font-weight:500; cursor:pointer; border-radius:6px; }
+    .sec-crumb-link:hover { color:var(--text-primary); background:var(--surface-hover); }
+    .sec-crumb-current { color:var(--text-primary); font-weight:600; padding:0.1rem 0.15rem; }
+    .sec-crumb-sep { color:var(--text-3); }
+
     .content {
       flex:1; overflow-y:auto; padding:var(--page-padding-y) var(--page-padding-x);
       background:var(--workspace-bg);
-      /* Architectural corner where the workspace meets the sidebar/topbar
+      /* Architectural corner where the workspace meets the sidebar/shell
          junction (§13) — subtle and structural, not a card. Only the
          top-left corner: workspace still reads as one continuous plane
          against the sidebar on its right/bottom edges. */
@@ -1397,24 +1421,6 @@
     .content-hdr-l p { font-size:0.8rem; color:var(--text-2); margin-top:0.2rem; }
     .content-hdr-l p:empty { display:none; }
     .content-hdr-r { display:flex; align-items:center; gap:0.5rem; flex-shrink:0; }
-
-    /* ── Context bar (§ navigation architecture) ── the ONE place back
-       navigation + breadcrumbs live for every screen. Sits above the
-       workspace (#pg), inside #content-hdr-l, above the (optional, now
-       usually redundant) page title — never duplicated inside individual
-       tool screens. Concise by design: subtle separators, no pill
-       backgrounds/borders, only the current (last) crumb reads strong.
-       See setSecCrumbs()/clearSecCrumbs()/crumbHtml(). */
-    .sec-crumb { display:flex; align-items:center; gap:0.3rem; font-size:0.8rem; line-height:1.3; color:var(--text-2); flex-wrap:wrap; margin-bottom:0.15rem; }
-    .sec-crumb-back { display:inline-flex; align-items:center; gap:0.25rem; background:none; border:none; padding:0.1rem 0.15rem; margin:-0.1rem -0.15rem 0 0; color:var(--text-2); font-size:0.8rem; font-weight:500; cursor:pointer; border-radius:6px; }
-    .sec-crumb-back:hover { color:var(--text-primary); background:var(--surface-hover); }
-    .sec-crumb-back svg { width:13px; height:13px; flex-shrink:0; }
-    .sec-crumb-link { background:none; border:none; padding:0; color:var(--text-2); font-size:0.8rem; font-weight:500; cursor:pointer; }
-    .sec-crumb-link:hover { color:var(--text-primary); text-decoration:underline; }
-    .sec-crumb-current { color:var(--text-primary); font-weight:600; }
-    .sec-crumb-sep { color:var(--text-3); }
-    .content-hdr.has-crumb { margin-bottom:0.7rem; }
-    .content-hdr.has-crumb .content-hdr-l h2 { font-size:1.3rem; letter-spacing:-0.02em; }
 
     /* ── SEARCH (content header — hidden, sidebar handles search) ── */
     .search-wrap { display:none; }
@@ -4677,13 +4683,11 @@
 
     /* ── Organización workspace ── */
     .filter-count-badge { display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; padding:0 4px; border-radius:8px; background:var(--teal); color:#fff; font-size:0.62rem; font-weight:700; margin-left:4px; }
-    .org-scope-row { display:flex; align-items:center; gap:0.7rem; flex-wrap:wrap; margin-bottom:0.7rem; }
-    .org-scope-row-spacer { flex:1; min-width:8px; }
-    .org-breadcrumb { font-size:0.8rem; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .org-breadcrumb-sep { color:var(--text-3); margin:0 2px; }
-    .org-metrics-grid { max-width:640px; margin-bottom:0.8rem; }
-    .org-quality-banner { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; padding:0.55rem 0.8rem; margin-bottom:0.8rem; border:1px solid var(--warning-border); background:var(--warning-bg); color:var(--warning-text); border-radius:10px; font-size:0.82rem; }
-    .org-quality-banner .btn { margin-left:auto; }
+    /* Compact data-quality indicator (§9 navigation architecture) — lives
+       in the header actions next to "Editar estructura", not as a
+       full-width banner inside the workspace. */
+    .org-quality-chip { display:inline-flex; align-items:center; gap:0.3rem; padding:0.3rem 0.6rem; border-radius:7px; border:1px solid var(--warning-border); background:var(--warning-bg); color:var(--warning-text); font-size:0.78rem; font-weight:600; cursor:pointer; white-space:nowrap; }
+    .org-quality-chip:hover { filter:brightness(0.97); }
     .org-view-switch { display:flex; gap:0.4rem; margin:0.9rem 0 0.8rem; border-bottom:1px solid var(--border); }
     .org-view-btn { padding:0.5rem 0.2rem; margin-right:1.1rem; background:none; border:none; border-bottom:2px solid transparent; font-size:0.85rem; font-weight:600; color:var(--text-secondary); cursor:pointer; }
     .org-view-btn.active { color:var(--teal); border-bottom-color:var(--teal); }
@@ -4692,7 +4696,6 @@
     .org-search-wrap { position:relative; flex:1; min-width:220px; max-width:420px; }
     .org-search-input { width:100%; padding:0.5rem 0.7rem 0.5rem 2rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:0.85rem; min-height:38px; }
     .org-search-input:focus-visible { outline:2px solid var(--teal); outline-offset:1px; }
-    .org-result-count { font-size:0.76rem; color:var(--text-3); margin-bottom:0.6rem; }
     .org-issue-chip { display:inline-flex; align-items:center; gap:4px; font-size:0.66rem; font-weight:600; padding:0.15rem 0.4rem; border-radius:8px; white-space:nowrap; margin:1px 3px 1px 0; border:1px solid transparent; }
     .org-issue-review { background:var(--warning-bg); color:var(--warning-text); border-color:var(--warning-border); }
     .org-issue-blocking { background:var(--danger-bg); color:var(--danger); border-color:var(--danger-border); }
@@ -4707,7 +4710,7 @@
        so the chart itself is the protagonist. overflow:auto gives native
        wheel/trackpad/scrollbar panning for free; orgCanvasPointerDown()
        layers click-drag-anywhere panning on top of that. */
-    .orgc-viewport { position:relative; overflow:auto; border:1px solid var(--border); border-radius:var(--panel-radius); background:var(--surface2); height:calc(100vh - 370px); min-height:460px; cursor:grab; }
+    .orgc-viewport { position:relative; overflow:auto; border:1px solid var(--border); border-radius:var(--panel-radius); background:var(--surface2); height:calc(100vh - 220px); min-height:460px; cursor:grab; }
     .orgc-viewport.orgc-panning { cursor:grabbing; user-select:none; }
     /* The sizer carries the *scaled* (zoom-multiplied) pixel dimensions so
        the viewport's native scrollable area actually grows with zoom —
@@ -4807,7 +4810,6 @@
          than shrinking until it's unreadable. */
       .orgc-viewport { height:calc(100vh - 320px); min-height:360px; }
       .org-chart-controls-group .btn span { display:none; }
-      .org-scope-row { gap:0.4rem; }
     }
     @media (prefers-reduced-motion: reduce) {
       .orgc-card, .orgc-card.orgc-highlight { transition:none !important; animation:none !important; }
@@ -6055,29 +6057,38 @@
       </div>
     </div>
 
-    <div class="content" id="content">
-      <div id="view-products" style="display:none">
-        <div class="content-hdr">
-          <div class="content-hdr-l">
-            <div class="sec-crumb" id="sec-crumb" style="display:none"></div>
-            <h2 id="sec-title">All products</h2>
-            <p id="sec-sub">Browse technical sheets and request samples</p>
-          </div>
-          <div class="content-hdr-r" id="product-controls"></div>
-        </div>
-        <div class="view-tabs" id="cat-view-tabs">
-          <button class="view-tab" data-view="table" onclick="setCatalogView('table')">Table</button>
-          <button class="view-tab" data-view="cards" onclick="setCatalogView('cards')">Cards</button>
-        </div>
-        <div id="fab-filter-bar" style="display:none"></div>
-        <div id="cat-toolbar" class="page-toolbar"></div>
-        <div class="pg" id="pg"></div>
+    <div class="main-panel">
+      <!-- ── Context shell ── the ONE place back navigation + breadcrumbs
+           live, for every screen. Sits in the gray application shell,
+           between the global system bar and the white workspace — never
+           inside #content, never duplicated per tool. See
+           setSecCrumbs()/clearSecCrumbs()/crumbHtml(). -->
+      <div class="ctx-shell" id="ctx-shell" style="display:none">
+        <div class="sec-crumb" id="sec-crumb"></div>
       </div>
-      <div id="view-dashboard"></div>
-      <div id="view-styleguide"></div>
-      <div id="view-detail" style="display:none"></div>
-      <div id="view-samples" style="display:none"></div>
-      <div id="view-sample-detail" style="display:none"></div>
+      <div class="content" id="content">
+        <div id="view-products" style="display:none">
+          <div class="content-hdr">
+            <div class="content-hdr-l">
+              <h2 id="sec-title">All products</h2>
+              <p id="sec-sub">Browse technical sheets and request samples</p>
+            </div>
+            <div class="content-hdr-r" id="product-controls"></div>
+          </div>
+          <div class="view-tabs" id="cat-view-tabs">
+            <button class="view-tab" data-view="table" onclick="setCatalogView('table')">Table</button>
+            <button class="view-tab" data-view="cards" onclick="setCatalogView('cards')">Cards</button>
+          </div>
+          <div id="fab-filter-bar" style="display:none"></div>
+          <div id="cat-toolbar" class="page-toolbar"></div>
+          <div class="pg" id="pg"></div>
+        </div>
+        <div id="view-dashboard"></div>
+        <div id="view-styleguide"></div>
+        <div id="view-detail" style="display:none"></div>
+        <div id="view-samples" style="display:none"></div>
+        <div id="view-sample-detail" style="display:none"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -8223,38 +8234,42 @@ function renderProductNotFound() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// CONTEXT BAR — one reusable back+breadcrumb+actions primitive, rendered
-// once in the shell (#sec-crumb, above #sec-title/#pg) instead of every
-// screen hand-rolling its own "← Módulos"/back button/title stack. Call
-// setSecCrumbs() from a view's entry function with the hierarchy above it
-// (each item: {label, onclick} — the LAST item is the current page and
-// must omit onclick). leaveView() clears it by default, so a screen that
-// doesn't call setSecCrumbs() simply gets no crumb bar. Back navigation is
-// hierarchy-based (jumps to the second-to-last crumb, or the first if
-// there's only one level), never raw browser history.
+// CONTEXT BAR — one reusable back+breadcrumb primitive, rendered once in
+// the application shell (#ctx-shell, a gray band between the global
+// system bar and the white workspace — never inside #content, never
+// duplicated per tool). Call setSecCrumbs() from a view's entry function
+// with the hierarchy above it: each item is {label, onclick}; the LAST
+// item is the current page and must omit onclick. leaveView() clears it
+// by default, so a screen that doesn't call setSecCrumbs() simply gets no
+// bar. The first item doubles as the explicit back destination — its
+// label is fused with the ← arrow into one control (e.g. "← Talento
+// Humano") rather than repeating it as a separate breadcrumb segment, so
+// the trail never says the same label twice. Back navigation always
+// follows this hierarchy, never raw browser history.
 function crumbHtml(items) {
-  const back = items.length > 1 ? items[items.length - 2] : items[0]
-  const backLabel = items.length > 1 ? back.label : (items[0] && items[0].label) || ''
-  return `${back && back.onclick !== undefined ? `<button type="button" class="sec-crumb-back" onclick="${back.onclick}">${siIcon('chevron-left', 13)}${esc(backLabel)}</button>` : ''}
-    ${items.map((it, i) => `${i ? '<span class="sec-crumb-sep">/</span>' : ''}${it.onclick !== undefined
-      ? `<button type="button" class="sec-crumb-link" onclick="${it.onclick}">${esc(it.label)}</button>`
-      : `<span class="sec-crumb-current">${esc(it.label)}</span>`}`).join('')}`
+  if (!items.length) return ''
+  const [first, ...rest] = items
+  const firstHtml = first.onclick !== undefined
+    ? `<button type="button" class="sec-crumb-back" onclick="${first.onclick}">${siIcon('arrow-left', 14)}${esc(first.label)}</button>`
+    : `<span class="sec-crumb-current">${esc(first.label)}</span>`
+  const restHtml = rest.map(it => `<span class="sec-crumb-sep">/</span>${it.onclick !== undefined
+    ? `<button type="button" class="sec-crumb-link" onclick="${it.onclick}">${esc(it.label)}</button>`
+    : `<span class="sec-crumb-current">${esc(it.label)}</span>`}`).join('')
+  return firstHtml + restHtml
 }
 function setSecCrumbs(items) {
+  const shell = document.getElementById('ctx-shell')
   const el = document.getElementById('sec-crumb')
-  if (!el) return
+  if (!shell || !el) return
   el.innerHTML = crumbHtml(items)
-  el.style.display = 'flex'
-  const hdr = el.closest('.content-hdr')
-  if (hdr) hdr.classList.add('has-crumb')
+  shell.style.display = 'block'
 }
 function clearSecCrumbs() {
+  const shell = document.getElementById('ctx-shell')
   const el = document.getElementById('sec-crumb')
-  if (!el) return
-  el.style.display = 'none'
+  if (!shell || !el) return
+  shell.style.display = 'none'
   el.innerHTML = ''
-  const hdr = el.closest('.content-hdr')
-  if (hdr) hdr.classList.remove('has-crumb')
 }
 
 function leaveView(keepHash) {
@@ -14777,7 +14792,13 @@ function orgActiveRels() {
 function renderBadgeModule() {
   const pg = document.getElementById('pg')
   const activeSite = _badge.sites.find(s => s.id === _badge.activeSite)
-  document.getElementById('sec-sub').textContent = activeSite ? `${activeSite.name} · Talento Humano` : 'Talento Humano'
+  // "Talento Humano" already names this module in the shell's context bar
+  // (§13 — shell says WHERE, workspace says WHAT) — repeating it here
+  // would be the exact duplication that bar exists to remove. Organización
+  // has its own in-workspace scope selector, so the site name would just
+  // be a second, competing "where" for that view; every other view still
+  // benefits from knowing which site's data it's showing.
+  document.getElementById('sec-sub').textContent = (activeSite && _badge_ui.view !== 'organization') ? activeSite.name : ''
   renderBadgeHeaderActions()
 
   pg.innerHTML = `
@@ -14807,6 +14828,24 @@ function renderBadgeModule() {
 function renderBadgeHeaderActions() {
   const el = document.getElementById('product-controls')
   if (!el) return
+  // Organización carries its own scope selector (site/company/department/
+  // manager — a superset of "which site"), so the module-wide site
+  // switcher would just be a second, redundant scope control on this one
+  // screen (§7 navigation architecture). Its header actions are instead
+  // the workspace's own primary actions (edit structure, export) plus a
+  // compact data-quality indicator — never a duplicated KPI/banner.
+  if (_badge_ui.view === 'organization') {
+    if (_badge.reportingRelationshipsUnavailable) { el.innerHTML = ''; return }
+    const m = orgMetrics()
+    const canWrite = can('write', 'talento_humano')
+    el.innerHTML = `
+      ${orgDataQualityChipHtml(m)}
+      ${canWrite ? `<button class="btn ${_badge_ui.org.editMode ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="orgToggleEditMode()">${siIcon('pencil', 13)} ${_badge_ui.org.editMode ? 'Editando estructura' : 'Editar estructura'}</button>` : ''}
+      ${canWrite && _badge_ui.org.editMode ? `<button class="btn btn-ghost btn-sm" onclick="orgShowLegacyReviewQueue()">Cambios pendientes${m.unresolvedLegacy.length ? ` (${m.unresolvedLegacy.length})` : ''}</button>` : ''}
+      <button class="btn btn-primary btn-sm" onclick="orgOpenExportModal()">${siIcon('download', 13)} Exportar organigrama</button>
+    `
+    return
+  }
   const activeSite = _badge.sites.find(s => s.id === _badge.activeSite)
   el.innerHTML = `
     <div style="position:relative">
@@ -19601,18 +19640,6 @@ function orgScopeLabel() {
   const site = _badge.sites.find(x => x.id === _badge.activeSite)
   return site?.name || 'Sede actual'
 }
-// "SIERRA → Northern Spinning → Ingeniería" (§11) — reads the scope, not
-// a random employee's own path, so it names what's being *viewed*.
-function orgScopeBreadcrumbHtml() {
-  const s = _badge_ui.org.scope
-  const parts = ['SIERRA']
-  if (s.type === 'all') { /* nothing to add — the whole org is the scope */ }
-  else if (s.type === 'company') parts.push(s.value || 'Empresa')
-  else if (s.type === 'department') parts.push(s.value || 'Departamento')
-  else if (s.type === 'manager') { const m = orgEmpById(s.value); parts.push(m ? orgFullName(m) : 'Jefe', 'Equipo') }
-  else parts.push(orgScopeLabel())
-  return `<div class="org-breadcrumb">${parts.map(esc).join(' <span class="org-breadcrumb-sep">→</span> ')}</div>`
-}
 function orgScopePopHtml() {
   const s = _badge_ui.org.scope
   const companies = [...new Set(orgActiveEmployeePool().map(e => e.company).filter(Boolean))].sort()
@@ -19695,7 +19722,6 @@ function orgMetrics() {
   const departmentsCount = new Set(active.map(e => e.department).filter(Boolean)).size
   return { scope, active, withManager, withoutManager, inactiveManagersWithReports, crossSite, unresolvedLegacy, totalManagers, avgReports, departmentsCount }
 }
-function orgMetricTileHtml(value, label, onClick, tone) { return ovTileHtml({ value, label, onClick, tone }) }
 function orgGoToDirectoryFiltered(fn) {
   orgClearFilters()
   fn()
@@ -19703,53 +19729,38 @@ function orgGoToDirectoryFiltered(fn) {
   persistOrgUi(); renderBadgeModule()
 }
 
-// One centralized data-quality line (§26) instead of a warning icon on
-// every card — a single sentence naming the biggest problem plus a
-// direct action into the filtered Directorio, only shown when something
-// actually needs attention.
-function orgDataQualityBannerHtml(m) {
+// One compact data-quality chip (§9 navigation architecture) instead of a
+// full-width banner permanently eating a row — lives in the header
+// actions next to "Editar estructura", not in the workspace body. Names
+// the biggest problem; click jumps into the filtered Directorio. Only
+// rendered when something actually needs attention.
+function orgDataQualityChipHtml(m) {
   const items = [
-    m.withoutManager.length && { n: m.withoutManager.length, label: `sin jefe inmediato asignado`, onClick: `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('no_manager'))` },
-    m.inactiveManagersWithReports.length && { n: m.inactiveManagersWithReports.length, label: `con jefe inactivo`, onClick: `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('inactive_manager'))` },
-    m.crossSite.length && { n: m.crossSite.length, label: `con jefe en otra sede`, onClick: `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('cross_site'))` },
-    m.unresolvedLegacy.length && { n: m.unresolvedLegacy.length, label: `con supervisor histórico sin resolver`, onClick: `orgShowLegacyReviewQueue()` },
+    m.withoutManager.length && { n: m.withoutManager.length, label: `sin asignar`, title: `${m.withoutManager.length} sin jefe inmediato asignado`, onClick: `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('no_manager'))` },
+    m.inactiveManagersWithReports.length && { n: m.inactiveManagersWithReports.length, label: `con jefe inactivo`, title: `${m.inactiveManagersWithReports.length} con jefe inactivo`, onClick: `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('inactive_manager'))` },
+    m.crossSite.length && { n: m.crossSite.length, label: `en otra sede`, title: `${m.crossSite.length} con jefe en otra sede`, onClick: `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('cross_site'))` },
+    m.unresolvedLegacy.length && { n: m.unresolvedLegacy.length, label: `históricos sin resolver`, title: `${m.unresolvedLegacy.length} con supervisor histórico sin resolver`, onClick: `orgShowLegacyReviewQueue()` },
   ].filter(Boolean)
   if (!items.length) return ''
-  return `<div class="org-quality-banner">
-    ${siIcon('alert-circle', 14)}
-    <span>${items.map(i => `<b>${i.n}</b> colaborador${i.n !== 1 ? 'es' : ''} ${esc(i.label)}`).join(' · ')}.</span>
-    <button type="button" class="btn btn-ghost btn-sm" onclick="${items[0].onClick}">Revisar estructura</button>
-  </div>`
+  const first = items[0]
+  return `<button type="button" class="org-quality-chip" onclick="${first.onClick}" title="${escAttr(items.map(i => i.title).join(' · '))}">${siIcon('alert-circle', 13)}<b>${first.n}</b> ${esc(first.label)}${items.length > 1 ? ` +${items.length - 1}` : ''}</button>`
 }
 function renderOrganizationView() {
   if (_badge.reportingRelationshipsUnavailable) return orgMigrationNotAppliedHtml()
-  const m = orgMetrics()
-  const canWrite = can('write', 'talento_humano')
+  // No KPI row, no data-quality banner, no scope breadcrumb, no back/
+  // breadcrumb of its own — the shell's context bar already says "Talento
+  // Humano / Organización", the header actions already carry Editar
+  // estructura/Exportar (+ the quality chip), and Organización is a
+  // visualization/management tool, not a second Resumen dashboard (§8).
+  // ONE scope selector lives here (site/company/department/manager); the
+  // module's site switcher is hidden for this view (renderBadgeHeaderActions).
   return `
     <div class="org-workspace">
-      <div class="org-scope-row">
+      <div class="org-toolbar">
         <div style="position:relative">
-          <button class="btn btn-secondary btn-sm" onclick="catTogglePop(event,'org-scope-pop')">${siIcon('globe', 13)} Organización: <b>${esc(orgScopeLabel())}</b> ${siIcon('chevron-down', 12)}</button>
+          <button class="btn btn-secondary btn-sm" onclick="catTogglePop(event,'org-scope-pop')">${siIcon('globe', 13)} <b>${esc(orgScopeLabel())}</b> ${siIcon('chevron-down', 12)}</button>
           <div class="ws-pop cat-pop" id="org-scope-pop" style="left:0;right:auto;min-width:260px">${orgScopePopHtml()}</div>
         </div>
-        ${orgScopeBreadcrumbHtml()}
-        <div class="org-scope-row-spacer"></div>
-        ${canWrite ? `<button class="btn ${_badge_ui.org.editMode ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="orgToggleEditMode()">${siIcon('pencil', 13)} ${_badge_ui.org.editMode ? 'Editando estructura' : 'Editar estructura'}</button>` : ''}
-        ${canWrite && _badge_ui.org.editMode ? `<button class="btn btn-ghost btn-sm" onclick="orgShowLegacyReviewQueue()">Cambios pendientes${m.unresolvedLegacy.length ? ` (${m.unresolvedLegacy.length})` : ''}</button>` : ''}
-        <button class="btn btn-primary btn-sm" onclick="orgOpenExportModal()">${siIcon('download', 13)} Exportar organigrama</button>
-      </div>
-      <div class="ov-grid org-metrics-grid">
-        ${orgMetricTileHtml(m.active.length, 'Colaboradores', `orgGoToDirectoryFiltered(()=>{})`)}
-        ${orgMetricTileHtml(m.totalManagers, 'Managers', `orgGoToDirectoryFiltered(()=>{})`)}
-        ${orgMetricTileHtml(m.departmentsCount, 'Departamentos', `orgGoToDirectoryFiltered(()=>{})`)}
-        ${orgMetricTileHtml(m.avgReports.toFixed(1), 'Reportes directos, promedio', `orgGoToDirectoryFiltered(()=>{})`)}
-      </div>
-      ${orgDataQualityBannerHtml(m)}
-      <div class="org-view-switch" role="tablist" aria-label="Vista de Organización">
-        <button class="org-view-btn ${_badge_ui.org.view === 'chart' ? 'active' : ''}" role="tab" aria-selected="${_badge_ui.org.view === 'chart'}" onclick="orgSetView('chart')">Organigrama</button>
-        <button class="org-view-btn ${_badge_ui.org.view === 'directory' ? 'active' : ''}" role="tab" aria-selected="${_badge_ui.org.view === 'directory'}" onclick="orgSetView('directory')">Directorio organizacional</button>
-      </div>
-      <div class="org-toolbar">
         <div class="org-search-wrap">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3)"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M17 17l-3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
           <input type="text" class="org-search-input" placeholder="Buscar por nombre, código, puesto o departamento…" value="${escAttr(_badge_ui.org.search)}" oninput="orgOnSearchInput(this.value)" aria-label="Buscar colaborador" />
@@ -19760,7 +19771,10 @@ function renderOrganizationView() {
         </div>
       </div>
       ${orgFilterChipsHtml()}
-      <div class="org-result-count">${m.scope.length} colaborador${m.scope.length !== 1 ? 'es' : ''} en el alcance actual${orgActiveFilterCount() ? ' · filtros activos' : ''}</div>
+      <div class="org-view-switch" role="tablist" aria-label="Vista de Organización">
+        <button class="org-view-btn ${_badge_ui.org.view === 'chart' ? 'active' : ''}" role="tab" aria-selected="${_badge_ui.org.view === 'chart'}" onclick="orgSetView('chart')">Organigrama</button>
+        <button class="org-view-btn ${_badge_ui.org.view === 'directory' ? 'active' : ''}" role="tab" aria-selected="${_badge_ui.org.view === 'directory'}" onclick="orgSetView('directory')">Directorio organizacional</button>
+      </div>
       ${_badge_ui.org.view === 'chart' ? renderOrgChartView() : renderOrgDirectoryView()}
     </div>
   `
@@ -19819,7 +19833,7 @@ function renderOrgDirectoryView() {
     })
   }
   return `
-  <div class="erp-table-wrap" style="max-height:calc(100vh - 430px)">
+  <div class="erp-table-wrap" style="max-height:calc(100vh - 270px)">
     <table class="erp-table">
       <thead><tr>
         <th style="cursor:pointer" onclick="orgDirectorySetSort('name_asc')">Colaborador</th>
