@@ -1268,6 +1268,49 @@ their own `--accent` in `:root` — as of this pass all six are fixed to
 still say "SIERRA Fiber" and show purple identity swatches, but its
 buttons/links/CTAs are teal like the rest of INDEX.
 
+## 46b. Module identity system
+
+Top-level módulos (Talento Humano / Muestras / Index / …) each claim one
+family from the same secondary palette used for divisions (§44/§46) — a
+persistent, recognizable color a user learns to associate with the module
+without reading its name:
+
+| Módulo         | Family     | `token` |
+|-----------------|------------|---------|
+| Talento Humano  | Warm yellow| `hr` |
+| Muestras        | Blue       | `samples` |
+| Index           | Purple     | `index` |
+| *(reserved)*    | Orange     | `marketing` |
+| *(reserved)*    | Green      | `sustainability` |
+
+Each `MODULES[key]` entry sets a `token`; `moduleTileVars(m)` resolves it
+to `var(--module-<token>-tile-bg)`/`-tile-fg` — the theme-aware CSS custom
+properties defined in `:root`/`[data-theme="dark"]` (aliased from the
+`--sem-*` families, never a new hex). Dark mode does **not** reuse the
+light-mode tint unchanged: `--module-<token>-tile-bg` is redefined under
+`[data-theme="dark"]` as a `color-mix()` of the module's primary hue into
+`--surface2` (a subdued tinted surface), and `-tile-fg` reuses the same
+lightened `--sem-*-dark-text` already tuned for AA on dark backgrounds.
+`--module-<token>-primary/-light/-dark` stay as the theme-invariant triad
+for anything that isn't a tile (e.g. a swatch).
+
+Like division identity, this is confined to the IconTile (module switcher
+trigger, switcher popover rows, sidebar module icon, Módulos hub/section
+cards) — never spilled onto buttons, forms, tables or full-section
+backgrounds. The module switcher's currently-selected row gets one
+additional, deliberately subtle treatment: a ~12% wash of the module's own
+tint plus a 3px identity-colored edge indicator (`.mod-switch-row.current`)
+— the one place besides the tile itself where a module hue is allowed to
+touch a background, and only at that low a strength. Everything else about
+"selected" (hover, focus, generic sidebar `.nav-item.active`) stays on the
+fixed brand-teal indicator per §42 — module color identifies *which*
+módulo, it does not replace the app's one interaction color.
+
+The module picker's "Recientes" section is gated on module count
+(`RECENT_MIN_MODULES = 6` in `renderModSwitcherPop()`): below that, every
+módulo already fits in one list, so a Recientes section would only
+duplicate rows. Re-check this threshold if the módulo count grows.
+
 ## 47. Avatars
 
 `AVATAR_PALETTE` in `index.html` is 21 hex values — the seven secondary
