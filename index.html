@@ -142,7 +142,7 @@
          screens reference these — never hardcode 1.75rem, 340px, etc.
          See SIERRA_DESIGN_SYSTEM.md. */
       --sidebar-width: 248px;
-      --sidebar-width-collapsed: 68px;
+      --sidebar-width-collapsed: 76px;
       --page-padding-x: 2rem;         /* .content's horizontal inset — the one guide every page aligns to */
       --page-padding-y: 1.5rem;       /* ERP density: less dead air above the header, same side margins */
       --page-max-width: 1480px;       /* matches .detail-view-inner, the existing single-record page container */
@@ -4854,8 +4854,8 @@
     }
 
     .emp-avatar {
-      width: 36px;
-      height: 36px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       object-fit: cover;
       flex-shrink: 0;
@@ -14794,11 +14794,19 @@ function renderBadgeModule() {
   const activeSite = _badge.sites.find(s => s.id === _badge.activeSite)
   // "Talento Humano" already names this module in the shell's context bar
   // (§13 — shell says WHERE, workspace says WHAT) — repeating it here
-  // would be the exact duplication that bar exists to remove. Organización
-  // has its own in-workspace scope selector, so the site name would just
-  // be a second, competing "where" for that view; every other view still
-  // benefits from knowing which site's data it's showing.
-  document.getElementById('sec-sub').textContent = (activeSite && _badge_ui.view !== 'organization') ? activeSite.name : ''
+  // would be the exact duplication that bar exists to remove. One line of
+  // real metadata per view, never stacked with a second line saying the
+  // same thing (§10/§22 — the site name must appear once, not in
+  // sec-sub AND a workspace banner AND the site switcher). Colaboradores
+  // states count+site itself (replacing its old separate freshness row);
+  // Resumen/Organización already show that context inside the workspace
+  // body, so sec-sub stays empty there; everything else falls back to
+  // just the site name.
+  const empCount = _badge.employees.length
+  let sub = ''
+  if (_badge_ui.view === 'employees') sub = activeSite ? `${empCount} colaborador${empCount !== 1 ? 'es' : ''} · ${activeSite.name}` : ''
+  else if (_badge_ui.view !== 'organization' && _badge_ui.view !== 'overview') sub = activeSite ? activeSite.name : ''
+  document.getElementById('sec-sub').textContent = sub
   renderBadgeHeaderActions()
 
   pg.innerHTML = `
@@ -15581,7 +15589,7 @@ function renderEmployeesToolbar() {
       </div>` : ''}
       ${_badge_ui.employeeView === 'table' ? `
       <div style="position:relative">
-        <button class="btn btn-secondary btn-sm cat-tb-btn" onclick="catTogglePop(event,'emp-pop-cols')">Columnas</button>
+        <button class="btn btn-ghost btn-sm cat-tb-btn" onclick="catTogglePop(event,'emp-pop-cols')">Columnas</button>
         <div class="ws-pop cat-pop" id="emp-pop-cols">
           <div class="cat-pop-title">Columnas visibles</div>
           ${EMPLOYEE_COLUMNS.filter(c => !c.alwaysOn && (!c.sensitive || canWrite)).map(c => `
@@ -15602,9 +15610,11 @@ function renderEmployeesToolbar() {
 
 function renderEmployeesView() {
   const list = empFilteredList()
+  // No freshness row here — sec-sub already carries "N colaboradores ·
+  // Site" for this view (renderBadgeModule), so repeating it in the
+  // workspace body would be the exact duplication §10 calls out.
   return `
     <div class="badge-employees-view">
-      ${empFreshnessHtml()}
       ${renderEmployeesToolbar()}
       ${empFilterChipsHtml()}
       ${empSelectBarHtml()}
