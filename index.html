@@ -4750,6 +4750,78 @@
       gap: var(--panel-gap);
     }
 
+    /* ── Colaboradores master-detail (§1) ── compact list (center) +
+       persistent full profile (right); a click selects, nothing opens.
+       Height is a calc(100vh - chrome) like the other independently-
+       scrolling workspaces in this app (org chart, erp-table-wrap) — the
+       list and detail panes scroll on their own, .content itself does not. */
+    .emp-md-layout {
+      display: flex; align-items: stretch;
+      height: calc(100vh - 190px); min-height: 420px;
+      border: 1px solid var(--border); border-radius: var(--panel-radius, 10px);
+      overflow: hidden; background: var(--surface);
+    }
+    .emp-md-list {
+      width: 340px; min-width: 340px; flex-shrink: 0;
+      display: flex; flex-direction: column; min-height: 0;
+      border-right: 1px solid var(--border); background: var(--surface);
+      transition: width 0.18s var(--ease-out), min-width 0.18s var(--ease-out), opacity 0.12s;
+    }
+    .emp-md-layout.list-collapsed .emp-md-list { width: 0; min-width: 0; opacity: 0; pointer-events: none; overflow: hidden; border-right: none; }
+    .emp-md-toolbar { display: flex; align-items: center; gap: 4px; padding: 0.6rem 0.6rem 0.4rem; flex-shrink: 0; }
+    .emp-md-search { flex: 1; min-width: 0; }
+    .emp-md-list-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 0.3rem 0.5rem; }
+    .emp-md-row {
+      display: flex; align-items: center; gap: 10px; padding: 0.5rem 0.55rem; border-radius: 8px; cursor: pointer;
+      outline-offset: -2px;
+    }
+    .emp-md-row:hover { background: var(--surface-hover); }
+    .emp-md-row.active { background: color-mix(in srgb, var(--accent) 12%, var(--surface2)); }
+    .emp-md-row:focus-visible { outline: 2px solid var(--accent); }
+    .emp-md-row-avatar, .emp-md-row-avatar img { width: 32px; height: 32px; border-radius: 9px; object-fit: cover; flex-shrink: 0; }
+    .emp-md-row-avatar { display: flex; align-items: center; justify-content: center; background: var(--surface2); font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); }
+    .emp-md-row-main { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+    .emp-md-row-name { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .emp-md-row-sub { font-size: 0.74rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .emp-md-group-hdr { display: flex; align-items: center; gap: 6px; width: 100%; padding: 0.4rem 0.55rem; background: none; border: none; cursor: pointer; font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); }
+    .emp-md-collapse-btn {
+      flex-shrink: 0; width: 16px; align-self: stretch; display: flex; align-items: center; justify-content: center;
+      background: var(--surface2); border: none; border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+      color: var(--text-3); cursor: pointer; padding: 0;
+    }
+    .emp-md-collapse-btn:hover { color: var(--text-primary); background: var(--surface-hover); }
+    /* overflow:visible (not hidden) — this pane doesn't need corner
+       clipping (that's .emp-md-layout's job), and hidden here would clip
+       the hero's "Más acciones" popover before empFixPopoverBounds()
+       gets a chance to reposition it. .emp-profile-body still scrolls
+       its own content via its own overflow-y:auto. */
+    .emp-md-detail { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: visible; background: var(--surface); }
+    .emp-md-empty { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    /* Record Detail's own 1080/860/767 collapse steps (§ SIERRA_DESIGN_
+       SYSTEM.md) are the template mirrored here: tablet narrows the list,
+       mobile switches to list-OR-detail (never a squeezed 3-up). */
+    @media (max-width: 1080px) { .emp-md-list { width: 280px; min-width: 280px; } }
+    @media (max-width: 860px) {
+      .emp-md-layout { height: calc(100vh - 170px); flex-direction: row; position: relative; }
+      .emp-md-list { width: 240px; min-width: 240px; }
+      .emp-md-collapse-btn { display: none; }
+    }
+    @media (max-width: 767px) {
+      /* List → profile, full screen, with a clear way back — never a
+         squeezed sliver of both at once (§ "no comprimir hasta volverlas
+         inutilizables"). Toggling .emp-md-layout.mobile-detail just swaps
+         which pane is visible; neither pane is destroyed, so the list's
+         scroll position and filters survive returning to it (§5). */
+      .emp-md-layout { height: calc(100vh - 150px); border: none; border-radius: 0; }
+      .emp-md-list { width: 100%; min-width: 0; border-right: none; }
+      .emp-md-collapse-btn { display: none; }
+      .emp-md-detail { display: none; }
+      .emp-md-back-btn { display: flex !important; }
+      .emp-md-layout.mobile-detail .emp-md-list { display: none; }
+      .emp-md-layout.mobile-detail .emp-md-detail { display: flex; }
+    }
+    .emp-md-back-btn { display: none; align-items: center; gap: 6px; margin: 0.6rem 0.6rem 0; }
+
     /* Overview — dense metric tiles (never oversized dashboard cards) +
        a ranked attention list. Teal is reserved for the count itself on
        hover/focus, not a fill; tone modifiers use warning/danger only
@@ -5272,8 +5344,25 @@
       background: var(--company-tint, var(--surface2)); border: 1px solid var(--company-tint-border, var(--border));
     }
 
-    .emp-profile-tabs { padding: 0 1.85rem; flex-shrink: 0; border-top: 1px solid var(--border); }
+    /* The hero was designed as one row for the old wide (min(90vw,1400px))
+       modal — now embedded in the master-detail's narrower right column,
+       and full-width on mobile, that single row runs out of space for
+       name+actions side by side and the name text wraps character-by-
+       character (a flex item forced narrower than its content can
+       break). Stack vertically once the pane is this narrow: photo,
+       then name/meta, then actions — full width each. */
+    @media (max-width: 640px) {
+      .emp-profile-hero { padding: 1.2rem 1.1rem 1rem; }
+      .emp-profile-hero-row { flex-direction: column; gap: 0.9rem; }
+      .emp-profile-main { padding-right: 0; width: 100%; }
+      .emp-profile-actions { margin-top: 0; width: 100%; }
+      .emp-profile-name { font-size: 1.3rem; }
+      .emp-profile-close { top: 0.7rem; right: 0.7rem; }
+    }
+    .emp-profile-tabs { padding: 0 1.85rem; flex-shrink: 0; border-top: 1px solid var(--border); overflow-x: auto; }
+    @media (max-width: 640px) { .emp-profile-tabs { padding: 0 1.1rem; } }
     .emp-profile-body { flex: 1; overflow-y: auto; padding: 1.4rem 1.85rem 2.2rem; }
+    @media (max-width: 640px) { .emp-profile-body { padding: 1.1rem 1.1rem 1.6rem; } }
     /* Non-overview tabs (Empleo/Tiempo/Personal/Gafete/Actividad) stay a
        single reading column even inside the wide modal — capped so field
        grids don't stretch into unreadably wide rows (§11). */
@@ -8495,6 +8584,15 @@ function setHash(h) {
   _expectedHash = h
   location.hash = h
 }
+// Same URL update as setHash, but via history.replaceState — does not
+// push a new Back-stack entry and does not fire 'hashchange' (so no
+// _expectedHash bookkeeping is needed). Used for in-place selection
+// changes that shouldn't each become their own Back step — see
+// selectEmployee()'s comment for the push-vs-replace decision.
+function replaceHash(h) {
+  if (_routeApplying || location.hash === h) return
+  history.replaceState(null, '', location.pathname + location.search + h)
+}
 function clearHash() {
   if (_routeApplying || !location.hash) return
   history.replaceState(null, '', location.pathname + location.search)
@@ -8509,7 +8607,8 @@ async function applyRoute(h) {
   const mProd = (h || '').match(/^#\/product\/([\w-]+)/)
   const mDiv = (h || '').match(/^#\/division\/([a-z]+)/)
   const mCol = (h || '').match(/^#\/collection\/([\w-]+)/)
-  if (!mProd && !mDiv && !mCol) return false
+  const mEmp = (h || '').match(/^#\/employee\/([\w-]+)(?:\/([a-z]+))?/)
+  if (!mProd && !mDiv && !mCol && !mEmp) return false
   _routeApplying = true
   try {
     if (mDiv) {
@@ -8522,8 +8621,48 @@ async function applyRoute(h) {
       await showCollectionRecord(mCol[1], 'showCollectionsHub')
       return true
     }
+    if (mEmp) return await openEmployeeRoute(mEmp[1], mEmp[2])
     return await openProductRoute(mProd[1])
   } finally { _routeApplying = false }
+}
+// #/employee/{id}(/{tab})? — reconstructs full context: activates
+// Talento Humano, opens Colaboradores, waits for the (RLS-authorized,
+// active-site-scoped) employee load, then selects. Reuses the exact
+// same module-entry path a sidebar click takes (showBadgeEmployees →
+// enterBadgeModule → loadBadgeData → renderBadgeModule) so a deep link
+// lands in identical state to a normal click — no separate, divergent
+// "route" code path to keep in sync. enterBadgeModule() calls
+// clearHash() unconditionally on entry, but clearHash() itself checks
+// _routeApplying (already true here, set by applyRoute's caller) and
+// no-ops — so the very hash that triggered this route survives module
+// load without a race, and setHash() below is a normal (no-op-if-
+// unchanged) confirmation rather than a fragile "restore" step.
+async function openEmployeeRoute(empId, tab) {
+  // No client-side capability gate exists for entering Talento Humano
+  // itself today (confirmed: no can('read','talento_humano') check
+  // anywhere in the module) — RLS on `employees` is what actually
+  // authorizes, so this route defers to it the same way the sidebar
+  // entry point does, rather than inventing a check that doesn't exist
+  // elsewhere in the app.
+  await showBadgeEmployees()
+  const emp = _badge.employees.find(e => e.id === empId)
+  const pane = document.getElementById('employee-detail-drawer')
+  if (!emp) {
+    // RLS silently filters unauthorized/nonexistent rows alike — the
+    // client genuinely cannot tell "no existe" from "sin acceso" apart,
+    // so say both honestly instead of guessing (§2 "Colaborador no
+    // encontrado").
+    if (pane) pane.innerHTML = empDetailEmptyStateHtml({
+      title: 'Colaborador no encontrado',
+      desc: 'No existe en la sede activa o no tienes acceso a su información.',
+    })
+    return true
+  }
+  empApplySelection(empId, tab)
+  setHash(`#/employee/${empId}`)
+  renderEmployeeDetailDrawer(emp)
+  document.querySelector(`.emp-md-row[data-emp-id="${CSS.escape(empId)}"]`)?.classList.add('active')
+  return true
 }
 
 async function openProductRoute(id) {
@@ -14915,7 +15054,8 @@ function empGroupedList(list) {
 
 let _badge_ui = {
   view: 'overview',           // 'overview', 'employees', 'organization', 'moments', 'badge-queue', 'history', 'companies', 'settings'
-  employeeView: 'table',      // 'table' | 'cards'
+  employeeView: 'table',      // 'table' | 'cards' — legacy, unused by the master-detail list (kept for empTableHtml/empCardsHtml, not currently reachable)
+  empListCollapsed: false,    // master-detail list column collapsed to widen the profile (§ desktop)
   employeeSearch: '',
   filters: {                  // multi-select facet filters, each a Set of values
     department: new Set(), position: new Set(), employee_status: new Set(),
@@ -15285,6 +15425,14 @@ function renderBadgeModule() {
   // highlight would freeze on whatever was clicked last in the sidebar.
   renderSidebarTree()
   if (_badge_ui.view === 'vacations') loadVacQueueBody()
+  // renderEmployeesView() leaves #employee-detail-drawer empty when there's
+  // a selection (to avoid building the hero/tabs/body markup twice — once
+  // here, once in renderEmployeeDetailDrawer) — fill it in now that the
+  // container actually exists in the DOM.
+  if (_badge_ui.view === 'employees' && _badge_ui.selectedEmployeeId) {
+    const sel = _badge.employees.find(e => e.id === _badge_ui.selectedEmployeeId)
+    if (sel) renderEmployeeDetailDrawer(sel)
+  }
 }
 
 function renderBadgeHeaderActions() {
@@ -16058,17 +16206,149 @@ function renderEmployeesToolbar() {
   `
 }
 
+/* ── Master-detail shell (§1) ── compact searchable list (center) + full
+   profile permanently visible (right); a click selects, nothing opens.
+   Built first as a shell (list/detail/routing/responsive) before the tab
+   content underneath was touched — see the file history for that split. */
+function empMdRowHtml(emp) {
+  const selected = _badge_ui.selectedEmployeeId === emp.id
+  const initials = ((emp.first_name?.[0] || '') + (emp.last_name?.[0] || '')).toUpperCase()
+  return `<div class="emp-md-row ${selected ? 'active' : ''}" data-emp-id="${emp.id}" role="option" aria-selected="${selected}" tabindex="0"
+       onclick="selectEmployee('${emp.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectEmployee('${emp.id}')}">
+    <span class="emp-md-row-avatar">${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" />` : `<span>${esc(initials)}</span>`}</span>
+    <span class="emp-md-row-main">
+      <span class="emp-md-row-name">${esc(emp.first_name)} ${esc(emp.last_name)}</span>
+      <span class="emp-md-row-sub">${esc(emp.position || 'Sin puesto')}</span>
+    </span>
+    <span class="emp-status-dot" style="background:${EMP_STATUS_DOT_VAR[emp.employee_status] || 'var(--text-3)'}" title="${escAttr(EMP_STATUS_LABELS[emp.employee_status] || '')}" aria-hidden="true"></span>
+  </div>`
+}
+function empMdListHtml(list) {
+  if (!list.length) {
+    return emptyStateHtml({
+      title: _badge.employees.length ? 'No encontramos colaboradores con estos criterios' : 'No hay colaboradores cargados para esta sede',
+      desc: _badge.employees.length ? 'Ajusta la búsqueda o los filtros.' : 'Importa la base de colaboradores para comenzar.',
+      actionLabel: _badge.employees.length ? 'Limpiar filtros' : (can('write', 'talento_humano') ? 'Importar base' : null),
+      actionOnClick: _badge.employees.length ? 'empClearFilters()' : 'showImportWorkflow()',
+    })
+  }
+  const groups = empGroupedList(list)
+  if (groups) {
+    return groups.map(g => {
+      const collapsed = _badge_ui.collapsedGroups.has(g.key)
+      return `<div class="emp-md-group">
+        <button type="button" class="emp-md-group-hdr" onclick="empToggleGroupCollapsed('${jsStr(g.key)}')" aria-expanded="${!collapsed}">
+          <span class="emp-group-caret ${collapsed ? 'collapsed' : ''}"><svg width="9" height="9" viewBox="0 0 20 20" fill="none"><path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span>${esc(g.label)}</span><span class="emp-group-count">${g.items.length}</span>
+        </button>
+        ${collapsed ? '' : g.items.map(empMdRowHtml).join('')}
+      </div>`
+    }).join('')
+  }
+  return list.map(empMdRowHtml).join('')
+}
+// Compact toolbar for the narrow list column — search + filter + sort +
+// group (the same underlying state/logic as the old full toolbar); table/
+// cards view-mode and column customization are dropped since the list is
+// always this compact row format now.
+function empMdListToolbarHtml() {
+  const filterCount = empActiveFilterCount()
+  const sortLabel = EMP_SORTS[_badge_ui.sort]?.label || 'Ordenar'
+  const groupLabel = EMP_GROUPS[_badge_ui.groupBy]?.label || 'Ninguno'
+  const hasEmployees = _badge.employees.length > 0
+  return `
+    <div class="emp-md-toolbar">
+      <div class="cat-toolbar-search emp-md-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+        <input type="text" placeholder="Buscar…" value="${escAttr(_badge_ui.employeeSearch)}" oninput="filterEmployees(this.value)" aria-label="Buscar colaboradores" />
+      </div>
+      <div style="position:relative">
+        <button class="icon-btn icon-btn-quiet ${filterCount ? 'has-value' : ''}" onclick="catTogglePop(event,'emp-pop-filter')" title="Filtrar" aria-label="Filtrar">${siIcon('filter', 15)}${filterCount ? `<span class="cat-tb-btn-dot"></span>` : ''}</button>
+        <div class="ws-pop cat-pop" id="emp-pop-filter">${empFilterPopHtml()}</div>
+      </div>
+      <div style="position:relative">
+        <button class="icon-btn icon-btn-quiet" onclick="catTogglePop(event,'emp-pop-sort')" title="Ordenar: ${escAttr(sortLabel)}" aria-label="Ordenar">${siIcon('sort', 15)}</button>
+        <div class="ws-pop cat-pop" id="emp-pop-sort">
+          <div class="cat-pop-title">Ordenar por</div>
+          ${Object.entries(EMP_SORTS).map(([k, s]) => `<button type="button" class="cat-pop-row" onclick="empSetSort('${k}')">${_badge_ui.sort === k ? '✓ ' : ''}${esc(s.label)}</button>`).join('')}
+          <div class="cat-pop-title">Agrupar por</div>
+          ${Object.entries(EMP_GROUPS).map(([k, g]) => `<button type="button" class="cat-pop-row" onclick="empSetGroupBy('${k}')">${_badge_ui.groupBy === k ? '✓ ' : ''}${esc(g.label)}</button>`).join('')}
+        </div>
+      </div>
+      ${can('write', 'talento_humano') ? `<button class="icon-btn icon-btn-quiet" onclick="showImportWorkflow()" title="${hasEmployees ? 'Actualizar base' : 'Importar colaboradores'}" aria-label="Importar colaboradores">${siIcon('upload', 15)}</button>` : ''}
+    </div>
+  `
+}
+function toggleEmpListCollapsed() {
+  _badge_ui.empListCollapsed = !_badge_ui.empListCollapsed
+  renderBadgeModule()
+}
+// Boundary-safe popovers (§6) — .ws-pop/.card-more-menu are plain
+// position:absolute with no viewport awareness anywhere in this app;
+// that's a latent risk everywhere, but only becomes a REAL clip inside a
+// genuinely scrolling ancestor (overflow:auto), which .emp-md-list-scroll
+// and .emp-profile-body now are — z-index cannot fix that, only escaping
+// the clipping box can. Deliberately scoped to just these two new
+// containers via a delegated listener, rather than changing
+// catTogglePop()/toggleCardMore() themselves (used in ~100 other places
+// across the app that already work and weren't part of this change).
+// Flips above the trigger when there's no room below, and clamps
+// horizontally to the viewport. Registered on the CAPTURE phase (the
+// trailing `true`) — catTogglePop()/toggleCardMore() both call
+// e.stopPropagation(), which would otherwise stop this listener from
+// ever seeing the click if it were a normal bubble-phase listener; a
+// capture-phase ancestor listener runs before the target (and its
+// stopPropagation) regardless.
+document.addEventListener('click', e => {
+  const scope = e.target.closest('.emp-md-list, .emp-md-detail')
+  if (!scope) return
+  const trigger = e.target.closest('[onclick*="catTogglePop"], .card-more-btn')
+  if (!trigger) return
+  requestAnimationFrame(() => {
+    // .ws-pop toggles .open on itself; .card-more-btn toggles .open on
+    // itself too, with .card-more-menu as its plain (always-present)
+    // child shown via a CSS descendant selector — not the same pattern.
+    const pop = scope.querySelector('.ws-pop.open') || scope.querySelector('.card-more-btn.open .card-more-menu')
+    if (!pop) return
+    const tr = trigger.getBoundingClientRect()
+    const pr = pop.getBoundingClientRect()
+    const vw = window.innerWidth, vh = window.innerHeight
+    let top = tr.bottom + 4
+    if (top + pr.height > vh - 8) top = Math.max(8, tr.top - pr.height - 4)
+    let left = tr.right - pr.width
+    if (left < 8) left = tr.left
+    if (left + pr.width > vw - 8) left = Math.max(8, vw - pr.width - 8)
+    Object.assign(pop.style, { position: 'fixed', top: top + 'px', left: left + 'px', right: 'auto', bottom: 'auto', margin: '0', maxHeight: (vh - 16) + 'px', overflowY: 'auto' })
+  })
+}, true)
+// A useful, compact empty state (§5) — never auto-selects the first
+// person in the list, since that can mislead ("why is this person's
+// data showing, I didn't click them").
+function empDetailEmptyStateHtml(opts) {
+  return `<div class="emp-md-empty">
+    ${emptyStateHtml(opts || {
+      title: 'Selecciona un colaborador',
+      desc: 'Elige a alguien de la lista para ver su perfil completo.',
+    })}
+  </div>`
+}
 function renderEmployeesView() {
   const list = empFilteredList()
+  const sel = _badge_ui.selectedEmployeeId ? _badge.employees.find(e => e.id === _badge_ui.selectedEmployeeId) : null
   // No freshness row here — sec-sub already carries "N colaboradores ·
   // Site" for this view (renderBadgeModule), so repeating it in the
   // workspace body would be the exact duplication §10 calls out.
   return `
-    <div class="badge-employees-view">
-      ${renderEmployeesToolbar()}
-      ${empFilterChipsHtml()}
-      ${empSelectBarHtml()}
-      ${_badge_ui.employeeView === 'table' ? empTableHtml(list) : empCardsHtml(list)}
+    <div class="emp-md-layout ${_badge_ui.empListCollapsed ? 'list-collapsed' : ''}" id="emp-md-layout">
+      <div class="emp-md-list" id="emp-md-list">
+        ${empMdListToolbarHtml()}
+        ${empFilterChipsHtml()}
+        ${empSelectBarHtml()}
+        <div class="emp-md-list-scroll" id="emp-md-list-scroll" role="listbox" aria-label="Colaboradores">${empMdListHtml(list)}</div>
+      </div>
+      <button type="button" class="emp-md-collapse-btn" onclick="toggleEmpListCollapsed()" title="${_badge_ui.empListCollapsed ? 'Mostrar lista' : 'Ocultar lista'}" aria-label="${_badge_ui.empListCollapsed ? 'Mostrar lista de colaboradores' : 'Ocultar lista de colaboradores'}">${siIcon(_badge_ui.empListCollapsed ? 'chevron-right' : 'chevron-left', 13)}</button>
+      <div class="emp-md-detail" id="employee-detail-drawer">${sel ? '' : empDetailEmptyStateHtml()}</div>
+      <div id="emp-md-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     </div>
   `
 }
@@ -16644,9 +16924,9 @@ async function vacDecide(requestId, status) {
   _badge.vacationLoaded = false
   await vacLoadData()
   if (document.getElementById('vac-queue-body')) loadVacQueueBody()
-  if (document.getElementById('emp-tab-time') && _badge_ui.detailTab === 'time') {
+  if (document.getElementById('emp-vac-summary') && _badge_ui.detailTab === 'employment') {
     const cur = _badge.employees.find(e => e.id === _badge_ui.selectedEmployeeId)
-    if (cur) loadEmpTimeTab(cur)
+    if (cur) loadEmpVacationsSummary(cur)
   }
 }
 
@@ -16913,40 +17193,42 @@ async function vacGenerateBoleta(requestId) {
 
 /* ── Tiempo tab (§10/§11 profile redesign) — balance, upcoming approved
    vacation, and a compact request history, on the employee profile. ── */
-function renderEmpTimeTab(emp) {
-  return `<div id="emp-time-body"><div class="pd-loading">Cargando…</div></div>`
+// Vacaciones summary, folded into Empleo (§4 — deliberately NOT the old
+// full Tiempo tab: no request-history table, no second full screen of
+// vacation data). Empleo keeps its own job-assignment purpose; this is
+// just "how much time off does this person have and is anything
+// pending", with one link out to the real Vacaciones module for
+// everything else — reusing vacLoadData/vacBalanceFor/vacCurrentYear
+// rather than re-deriving balance math here.
+function empVacationsSummaryHtml(emp) {
+  return `<div id="emp-vac-summary"><div class="pd-loading">Cargando…</div></div>`
 }
-async function loadEmpTimeTab(emp) {
+async function loadEmpVacationsSummary(emp) {
+  const token = _empSelectionToken
   if (!_badge.vacationLoaded) await vacLoadData()
-  const el = document.getElementById('emp-time-body')
+  if (token !== _empSelectionToken) return // a different employee was selected while this was loading
+  const el = document.getElementById('emp-vac-summary')
   if (!el) return
   const canWrite = can('write', 'talento_humano')
   const year = vacCurrentYear()
   const bal = vacBalanceFor(emp.id, year)
-  const balanceBlock = bal
-    ? dataFieldsHtml([
-        { label: 'Disponibles', value: `${bal.available} días` },
-        { label: 'Otorgados', value: `${bal.entitled} días` },
-        { label: 'Usados', value: `${bal.used} días` },
-        { label: 'Pendientes de aprobación', value: `${bal.pending} días` },
-      ], { cols: 2 })
-    : emptyStateHtml({ title: 'Sin saldo configurado', desc: `Este colaborador no tiene un saldo de vacaciones para ${year}.`, actionLabel: canWrite ? 'Configurar saldo' : null, actionOnClick: canWrite ? `vacOpenBalanceModal('${emp.id}')` : null })
   const requests = _badge.vacationRequests.filter(r => r.employee_id === emp.id)
   const upcoming = requests.find(r => r.status === 'approved' && parseDateOnly(r.start_date) >= hrToday())
-  const historyBlock = requests.length ? `<table class="erp-table"><thead><tr><th>Fechas</th><th>Días</th><th>Estado</th><th></th></tr></thead><tbody>
-      ${requests.slice(0, 8).map(r => `<tr>
-        <td class="emp-td-trunc">${hrFmtDate(r.start_date)} – ${hrFmtDate(r.end_date)}</td>
-        <td class="emp-td-trunc">${r.requested_days}</td>
-        <td class="emp-td-trunc">${vacStatusBadgeHtml(r.status)}</td>
-        <td onclick="event.stopPropagation()">${r.status === 'approved' ? `<button class="btn btn-sm btn-ghost" onclick="vacGenerateBoleta('${r.id}')">Ver boleta</button>` : ''}</td>
-      </tr>`).join('')}
-    </tbody></table>` : emptyStateHtml({ title: 'Sin solicitudes registradas' })
+  const pendingCount = requests.filter(r => r.status === 'pending').length
+  const balanceLine = bal
+    ? dataFieldsHtml([
+        { label: 'Disponibles', value: `${bal.available} días` },
+        { label: 'Usados ' + year, value: `${bal.used} días` },
+      ], { cols: 2 })
+    : emptyStateHtml({ title: 'Sin saldo configurado', desc: `Sin saldo de vacaciones para ${year}.`, actionLabel: canWrite ? 'Configurar' : null, actionOnClick: canWrite ? `vacOpenBalanceModal('${emp.id}')` : null })
   el.innerHTML = `
-    ${dataBlockHtml('Saldo ' + year, balanceBlock, { aside: (bal && canWrite) ? `<button type="button" class="btn btn-ghost btn-sm" onclick="vacOpenBalanceModal('${emp.id}')" style="padding:2px 6px">Editar</button>` : null })}
-    ${upcoming ? dataBlockHtml('Próxima vacación aprobada', dataFieldsHtml([{ label: 'Fechas', value: `${hrFmtDate(upcoming.start_date)} – ${hrFmtDate(upcoming.end_date)}` }, { label: 'Días', value: String(upcoming.requested_days) }], { cols: 2 })) : ''}
-    <div style="margin:0.6rem 0"><button type="button" class="btn btn-secondary btn-sm" onclick="vacOpenRequestModal('${emp.id}')">+ Nueva solicitud</button></div>
-    <div class="data-block-title"><span>Historial de solicitudes</span></div>
-    ${historyBlock}
+    ${balanceLine}
+    ${upcoming ? `<div style="font-size:0.82rem;margin-top:0.6rem"><b>Próxima vacación:</b> ${hrFmtDate(upcoming.start_date)} – ${hrFmtDate(upcoming.end_date)}</div>` : ''}
+    ${pendingCount ? `<div style="font-size:0.82rem;color:var(--warning-text);margin-top:0.3rem">${pendingCount} solicitud${pendingCount !== 1 ? 'es' : ''} pendiente${pendingCount !== 1 ? 's' : ''} de aprobación</div>` : ''}
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.7rem;align-items:center">
+      ${canWrite ? `<button type="button" class="btn btn-ghost btn-sm" style="padding:2px 6px" onclick="vacOpenRequestModal('${emp.id}')">+ Nueva solicitud</button>` : ''}
+      <a href="#" style="font-size:0.82rem" onclick="event.preventDefault();closeEmployeeDetail();showBadgeVacations()">Ver en Vacaciones →</a>
+    </div>
   `
 }
 
@@ -17369,126 +17651,102 @@ function filterEmployees(query) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   EMPLOYEE PROFILE — two distinct levels (§1). viewEmployeeQuickView()
-   below is a lightweight right-side drawer for quick inspection from the
-   employee table/cards, holding only identity essentials + "Ver perfil".
-   viewEmployeeDetail() opens the Full Employee Profile — a large centered
-   workspace modal (§1), not a drawer — with the complete record across
-   Resumen/Empleo/Tiempo/Personal/Gafete/Actividad tabs. ══════════════ */
+   EMPLOYEE PROFILE — master-detail (§1): a compact, searchable list in
+   the center column (renderEmployeesView → empMdListHtml) and the full
+   profile permanently visible in the right column (kept the original
+   #employee-detail-drawer id for this container — many cross-module
+   references, like orgOpenAssignManager's "embedded" swap, already look
+   it up by that id, so reusing it avoids touching them at all).
+   Clicking a row calls selectEmployee() — no drawer, no modal, no
+   intermediate panel. viewEmployeeDetail(empId, tab) is the universal
+   entry point every OTHER module (org chart, vacaciones, gafetes, altas/
+   bajas, generador de tarjetas — ~20 call sites) already calls to "open
+   this person's profile"; it now navigates to Colaboradores and selects
+   the employee instead of opening a modal, so none of those call sites
+   needed to change. ══════════════════════════════════════════════════ */
 
-// Quick View (§1) — photo, name, position, company, department, code,
-// status, email/phone, direct manager, and one clear "Ver perfil" action.
-// Deliberately does NOT attempt the full record: that's what the large
-// profile modal is for. Reuses the narrow .drawer/.drawer-right pattern
-// (distinct ids from the full-profile modal so both could coexist safely,
-// though in practice opening one closes the other).
-function viewEmployeeQuickView(empId) {
-  document.getElementById('employee-quickview-drawer-backdrop')?.remove()
-  document.getElementById('employee-quickview-drawer')?.remove()
-  closeEmployeeDetail()
-  const emp = _badge.employees.find(e => e.id === empId)
-  if (!emp) return
-  const backdrop = document.createElement('div')
-  backdrop.className = 'drawer-backdrop'
-  backdrop.id = 'employee-quickview-drawer-backdrop'
-  backdrop.onclick = () => closeEmployeeQuickView()
-  document.body.appendChild(backdrop)
-  const drawer = document.createElement('div')
-  drawer.className = 'drawer drawer-right emp-quickview-drawer'
-  drawer.id = 'employee-quickview-drawer'
-  drawer.setAttribute('role', 'dialog')
-  drawer.setAttribute('aria-modal', 'true')
-  drawer.setAttribute('aria-label', 'Vista rápida de colaborador')
-  document.body.appendChild(drawer)
-  const rel = (!_badge.reportingRelationshipsUnavailable && typeof orgCurrentManagerRelationship === 'function') ? orgCurrentManagerRelationship(empId) : null
-  const mgr = rel ? orgEmpById(rel.manager_employee_id) : null
-  drawer.innerHTML = `<div class="drawer-content">
-    <div class="emp-qv-hdr" style="${companyColorStyleVars(emp.company)}">
-      <button class="icon-btn icon-btn-quiet" style="position:absolute;top:0.9rem;right:0.9rem" onclick="closeEmployeeQuickView()" title="Cerrar" aria-label="Cerrar vista rápida">${siIcon('x', 16)}</button>
-      <div class="emp-qv-photo">${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" />` : `<div class="emp-profile-avatar-init" aria-hidden="true">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</div>`}</div>
-      <div class="emp-qv-name">${esc(orgFullName ? orgFullName(emp) : emp.first_name + ' ' + emp.last_name)}</div>
-      ${emp.position ? `<div class="emp-qv-position">${esc(emp.position)}</div>` : ''}
-      <div class="emp-qv-org">${[emp.company, emp.department].filter(Boolean).map(esc).join(' · ') || ''}</div>
-      <div style="margin-top:0.6rem"><span class="emp-status-dot" style="background:${EMP_STATUS_DOT_VAR[emp.employee_status] || 'var(--text-3)'}"></span>${esc(EMP_STATUS_LABELS[emp.employee_status] || emp.employee_status)}${emp.employee_code ? ` <span aria-hidden="true">·</span> <code>${esc(emp.employee_code)}</code>` : ''}</div>
-    </div>
-    <div class="drawer-body">
-      ${dataFieldsHtml([
-        { label: 'Correo', value: emp.email, icon: 'mail', copy: true },
-        { label: 'Teléfono', value: emp.phone, icon: 'phone', copy: true },
-      ], { cols: 2 })}
-      ${mgr ? dataFieldsHtml([{ label: 'Jefe inmediato', html: `<a href="#" onclick="event.preventDefault();viewEmployeeQuickView('${mgr.id}')">${esc(orgFullName(mgr))}</a>` }]) : ''}
-    </div>
-    <div class="drawer-footer">
-      <button type="button" class="btn btn-primary" onclick="viewEmployeeDetail('${emp.id}')">Ver perfil completo</button>
-      <button type="button" class="btn btn-ghost" onclick="closeEmployeeQuickView()">Cerrar</button>
-    </div>
-  </div>`
-  requestAnimationFrame(() => { backdrop.classList.add('open'); drawer.classList.add('open'); drawer.querySelector('.icon-btn-quiet')?.focus() })
-}
-function closeEmployeeQuickView() {
-  const drawer = document.getElementById('employee-quickview-drawer')
-  const backdrop = document.getElementById('employee-quickview-drawer-backdrop')
-  if (drawer) { drawer.classList.remove('open'); setTimeout(() => drawer.remove(), 300) }
-  if (backdrop) { backdrop.classList.remove('open'); setTimeout(() => backdrop.remove(), 300) }
-}
+// Universal entry point (§ "desde cualquier módulo") — navigates to
+// Colaboradores and selects empId. Used when arriving from OUTSIDE the
+// Colaboradores screen (or when the screen isn't mounted yet), so a full
+// renderBadgeModule() is appropriate here. Row clicks inside the already-
+// open list use selectEmployee() directly instead (see below) so
+// switching between employees never rebuilds the whole screen.
+// Bumped on every selection change; each async tab loader (activity,
+// employment history, vacation summary) captures it before its query and
+// checks it again before writing to the DOM — an out-of-order response
+// from a previous selection is silently dropped instead of overwriting
+// the profile currently on screen (§9 "protección contra respuestas
+// fuera de orden").
+let _empSelectionToken = 0
 
+// Universal entry point (§ "desde cualquier módulo") — navigates to
+// Colaboradores and selects empId. Used when arriving from OUTSIDE the
+// Colaboradores screen (org chart, vacaciones, gafetes, altas/bajas,
+// generador de tarjetas — ~20 call sites), so a full renderBadgeModule()
+// is appropriate/expected here — none of those callers `await` this
+// function or depend on a return value, backdrop, focus trap or scroll
+// state (audited: every call site is a bare `onclick="viewEmployeeDetail(...)"`
+// or fire-and-forget statement). Pushes a new hash entry — Back should
+// return to whatever module/screen the user came from (§3).
 function viewEmployeeDetail(empId, tab) {
-  closeEmployeeQuickView()
-  document.getElementById('employee-detail-drawer-backdrop')?.remove()
-  document.getElementById('employee-detail-drawer')?.remove()
   const emp = _badge.employees.find(e => e.id === empId)
   if (!emp) return
-  _badge_ui.selectedEmployeeId = empId
-  _badge_ui.detailTab = (tab && tab !== 'personal') || (tab === 'personal' && can('write', 'talento_humano')) ? tab : 'overview'
-  _badge_ui.editingEmployee = false
-  // Remember what to return keyboard focus to once the drawer closes.
-  _badge_ui.detailReturnFocusEl = document.activeElement && document.activeElement !== document.body ? document.activeElement : null
-  // The Full Employee Profile is a large centered workspace modal (§1),
-  // not a drawer — element ids stay the same as the old drawer so every
-  // re-render call site elsewhere in the app (edit, photo upload, tab
-  // loaders, etc.) keeps working unchanged; only the chrome/classes
-  // change. .drawer-backdrop still gives the fade open/close mechanic;
-  // .emp-profile-overlay adds the centering.
-  const backdrop = document.createElement('div')
-  backdrop.className = 'drawer-backdrop emp-profile-overlay'
-  backdrop.id = 'employee-detail-drawer-backdrop'
-  backdrop.onclick = e => { if (e.target === backdrop) closeEmployeeDetail() }
-  document.body.appendChild(backdrop)
-  const drawer = document.createElement('div')
-  drawer.className = 'emp-profile-modal'
-  drawer.id = 'employee-detail-drawer'
-  drawer.setAttribute('role', 'dialog')
-  drawer.setAttribute('aria-modal', 'true')
-  drawer.setAttribute('aria-label', 'Perfil de colaborador')
-  drawer.addEventListener('keydown', empDetailTrapFocus)
-  // Must nest INSIDE the backdrop, not sit beside it — .emp-profile-modal
-  // has no positioning of its own (position:relative); it's centered by
-  // being a flex child of .emp-profile-overlay (the backdrop). Appending
-  // it to document.body instead left it in normal document flow (full
-  // width, wherever it fell in the DOM) — the actual bug behind "no
-  // funciona" screenshots showing it pinned to the bottom, edge-to-edge.
-  backdrop.appendChild(drawer)
-  renderEmployeeDetailDrawer(emp)
-  requestAnimationFrame(() => {
-    backdrop.classList.add('open')
-    drawer.classList.add('open')
-    drawer.querySelector('.icon-btn-quiet')?.focus()
-  })
+  _badge_ui.view = 'employees'
+  empApplySelection(empId, tab)
+  setHash(`#/employee/${empId}`)
+  renderBadgeModule()
 }
-
-// Keyboard focus stays inside the open drawer (Tab/Shift+Tab wrap at the
-// edges) — required so screen-reader and keyboard-only users can't tab
-// out into the employee list hidden behind the overlay.
-function empDetailTrapFocus(e) {
-  if (e.key !== 'Tab') return
-  const drawer = document.getElementById('employee-detail-drawer')
-  if (!drawer) return
-  const focusable = [...drawer.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
-    .filter(el => !el.disabled && el.offsetParent !== null)
-  if (!focusable.length) return
-  const first = focusable[0], last = focusable[focusable.length - 1]
-  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
-  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+// Shared selection-state logic between viewEmployeeDetail (cross-module,
+// full re-render) and selectEmployee (in-list, partial re-render).
+function empApplySelection(empId, tab) {
+  _badge_ui.selectedEmployeeId = empId
+  const t = tab === 'time' ? 'employment' : tab // Tiempo folded into Empleo (§ "Elimina Tiempo")
+  _badge_ui.detailTab = (t && t !== 'personal') || (t === 'personal' && can('write', 'talento_humano')) ? t : 'overview'
+  _badge_ui.editingEmployee = false
+  _empSelectionToken++
+}
+// In-list selection (§ "un clic... debe actualizar inmediatamente el
+// perfil"): updates only #employee-detail-drawer and the active-row
+// highlight — the list column keeps its scroll position and search
+// focus, and nothing is torn down/recreated (§ "no debe recrear... toda
+// la pantalla"). Uses history.replaceState (via replaceHash), not push:
+// clicking through many people in the list must not fill Back with one
+// entry per person — only the *first* deep-linked/cross-module entry
+// into a profile is a Back-worthy navigation (§3, decision documented
+// here since it's the one non-obvious call).
+function selectEmployee(empId, tab) {
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp) return
+  if (_badge_ui.editingEmployee && !confirm('Tienes cambios sin guardar. ¿Cambiar de colaborador sin guardar?')) return
+  empApplySelection(empId, tab)
+  replaceHash(`#/employee/${empId}`)
+  renderEmployeeDetailDrawer(emp)
+  document.querySelectorAll('.emp-md-row.active').forEach(el => el.classList.remove('active'))
+  const row = document.querySelector(`.emp-md-row[data-emp-id="${CSS.escape(empId)}"]`)
+  row?.classList.add('active')
+  row?.setAttribute('aria-selected', 'true')
+}
+// "Cerrar" now means deselect (return to the useful empty state) rather
+// than destroy a modal — there is no overlay to tear down anymore. Kept
+// under this name because ~10 call sites elsewhere use it as "leave the
+// open profile" before navigating to another screen (badge issuance,
+// history, user management, Escape key).
+function closeEmployeeDetail() {
+  if (_badge_ui.editingEmployee && !confirm('Tienes cambios sin guardar. ¿Cerrar sin guardar?')) return
+  _badge_ui.selectedEmployeeId = null
+  _badge_ui.editingEmployee = false
+  _empSelectionToken++
+  clearHash()
+  const pane = document.getElementById('employee-detail-drawer')
+  if (pane) pane.innerHTML = empDetailEmptyStateHtml()
+  document.querySelectorAll('.emp-md-row.active').forEach(el => el.classList.remove('active'))
+  document.getElementById('emp-md-layout')?.classList.remove('mobile-detail') // mobile: back to the list pane
+}
+// Mobile-only "← Volver" (§ tablet/mobile): swaps which pane is visible
+// via a CSS class toggle — the list is never destroyed, so its scroll
+// position and active filters are exactly as the user left them (§5).
+function empMobileBackToList() {
+  document.getElementById('emp-md-layout')?.classList.remove('mobile-detail')
 }
 
 // Overall profile completeness — distinct from badge-issuance readiness
@@ -17551,7 +17809,6 @@ function empProfileHeroHtml(emp, canWrite) {
     <div class="emp-profile-hero" style="${companyColorStyleVars(emp.company)}">
       <div class="emp-profile-hero-accent"></div>
       <div class="emp-profile-hero-tint"></div>
-      <button class="icon-btn icon-btn-quiet emp-profile-close" onclick="closeEmployeeDetail()" title="Cerrar" aria-label="Cerrar perfil de colaborador"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
       <div class="emp-profile-hero-row">
         <label class="emp-profile-photo-wrap" title="${canWrite ? 'Cambiar fotografía' : ''}">
           ${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" />` : `<div class="emp-profile-avatar-init" aria-hidden="true">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</div>`}
@@ -17598,13 +17855,14 @@ function renderEmployeeDetailDrawer(emp) {
   if (!drawer) return
   const canWrite = can('write', 'talento_humano')
   const canSeePersonal = can('write', 'talento_humano') // Personal tab holds identity/emergency/medical data
+  document.getElementById('emp-md-layout')?.classList.add('mobile-detail') // no-op above the mobile breakpoint
   drawer.innerHTML = `
+    <button type="button" class="emp-md-back-btn btn btn-ghost btn-sm" onclick="empMobileBackToList()">${siIcon('chevron-left', 14)} Volver a la lista</button>
     ${empProfileHeroHtml(emp, canWrite)}
     <div class="emp-profile-tabs">
       <div class="record-tabs" role="tablist" aria-label="Secciones del colaborador">
         <button class="record-tab ${_badge_ui.detailTab === 'overview' ? 'active' : ''}" role="tab" id="emp-tab-overview" aria-selected="${_badge_ui.detailTab === 'overview'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'overview' ? '0' : '-1'}" onclick="switchEmpDetailTab('overview')" onkeydown="empTabKeydown(event,'overview')">Resumen</button>
         <button class="record-tab ${_badge_ui.detailTab === 'employment' ? 'active' : ''}" role="tab" id="emp-tab-employment" aria-selected="${_badge_ui.detailTab === 'employment'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'employment' ? '0' : '-1'}" onclick="switchEmpDetailTab('employment')" onkeydown="empTabKeydown(event,'employment')">Empleo</button>
-        <button class="record-tab ${_badge_ui.detailTab === 'time' ? 'active' : ''}" role="tab" id="emp-tab-time" aria-selected="${_badge_ui.detailTab === 'time'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'time' ? '0' : '-1'}" onclick="switchEmpDetailTab('time')" onkeydown="empTabKeydown(event,'time')">Tiempo</button>
         ${canSeePersonal ? `<button class="record-tab ${_badge_ui.detailTab === 'personal' ? 'active' : ''}" role="tab" id="emp-tab-personal" aria-selected="${_badge_ui.detailTab === 'personal'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'personal' ? '0' : '-1'}" onclick="switchEmpDetailTab('personal')" onkeydown="empTabKeydown(event,'personal')">Personal</button>` : ''}
         <button class="record-tab ${_badge_ui.detailTab === 'badge' ? 'active' : ''}" role="tab" id="emp-tab-badge" aria-selected="${_badge_ui.detailTab === 'badge'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'badge' ? '0' : '-1'}" onclick="switchEmpDetailTab('badge')" onkeydown="empTabKeydown(event,'badge')">Gafete</button>
         <button class="record-tab ${_badge_ui.detailTab === 'activity' ? 'active' : ''}" role="tab" id="emp-tab-activity" aria-selected="${_badge_ui.detailTab === 'activity'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'activity' ? '0' : '-1'}" onclick="switchEmpDetailTab('activity')" onkeydown="empTabKeydown(event,'activity')">Actividad</button>
@@ -17613,20 +17871,24 @@ function renderEmployeeDetailDrawer(emp) {
     <div class="emp-profile-body" role="tabpanel" id="emp-tab-panel" aria-labelledby="emp-tab-${_badge_ui.detailTab}">
       ${_badge_ui.detailTab === 'overview' ? renderEmpOverviewTab(emp) : ''}
       ${_badge_ui.detailTab === 'employment' ? renderEmpEmploymentTab(emp) : ''}
-      ${_badge_ui.detailTab === 'time' ? renderEmpTimeTab(emp) : ''}
       ${_badge_ui.detailTab === 'personal' && canSeePersonal ? renderEmpPersonalTab(emp) : ''}
       ${_badge_ui.detailTab === 'badge' ? renderEmpBadgeTab(emp) : ''}
       ${_badge_ui.detailTab === 'activity' ? renderEmpActivityTab(emp) : ''}
     </div>
   `
   if (_badge_ui.detailTab === 'activity') loadEmpActivity(emp.id)
-  if (_badge_ui.detailTab === 'employment') loadEmpEmploymentHistory(emp.id)
-  if (_badge_ui.detailTab === 'time') loadEmpTimeTab(emp)
+  if (_badge_ui.detailTab === 'employment') { loadEmpEmploymentHistory(emp.id); loadEmpVacationsSummary(emp) }
+  // Screen-reader announcement (§9) — the profile pane has no focus of
+  // its own to move to (it would steal focus from the list on every
+  // click, which is worse than not moving it), so a live region says
+  // what just loaded instead.
+  const announcer = document.getElementById('emp-md-announcer')
+  if (announcer) announcer.textContent = `Perfil de ${orgFullName ? orgFullName(emp) : emp.first_name + ' ' + emp.last_name} cargado`
 }
 
 // Arrow-key navigation across tabs per WAI-ARIA tablist pattern.
 function empTabKeydown(e, current) {
-  const order = ['overview', 'employment', 'time', 'personal', 'badge', 'activity'].filter(k => document.getElementById('emp-tab-' + k))
+  const order = ['overview', 'employment', 'personal', 'badge', 'activity'].filter(k => document.getElementById('emp-tab-' + k))
   const idx = order.indexOf(current)
   let next = null
   if (e.key === 'ArrowRight') next = order[(idx + 1) % order.length]
@@ -17645,19 +17907,6 @@ function switchEmpDetailTab(tab) {
   _badge_ui.editingEmployee = false
   const emp = _badge.employees.find(e => e.id === _badge_ui.selectedEmployeeId)
   if (emp) renderEmployeeDetailDrawer(emp)
-}
-
-function closeEmployeeDetail() {
-  if (_badge_ui.editingEmployee && !confirm('Tienes cambios sin guardar. ¿Cerrar sin guardar?')) return
-  const drawer = document.getElementById('employee-detail-drawer')
-  const backdrop = document.getElementById('employee-detail-drawer-backdrop')
-  if (drawer) { drawer.classList.remove('open'); setTimeout(() => drawer.remove(), 300) }
-  if (backdrop) { backdrop.classList.remove('open'); setTimeout(() => backdrop.remove(), 300) }
-  _badge_ui.selectedEmployeeId = null
-  _badge_ui.editingEmployee = false
-  // Return keyboard focus to whatever opened the drawer (the employee row).
-  if (_badge_ui.detailReturnFocusEl && document.contains(_badge_ui.detailReturnFocusEl)) _badge_ui.detailReturnFocusEl.focus()
-  _badge_ui.detailReturnFocusEl = null
 }
 
 // Plain-text, copy-safe employee summary — no medical data, identification
@@ -17884,6 +18133,7 @@ function renderEmpEmploymentTab(emp) {
     <div class="data-column">
       ${dataBlockHtml('Asignación actual', current, { aside: canEditEmpField() ? '<button type="button" class="btn btn-ghost btn-sm" onclick="empStartEdit()" style="padding:2px 6px">Editar</button>' : null })}
       ${orgProfileSectionHtml(emp)}
+      ${dataBlockHtml('Vacaciones', empVacationsSummaryHtml(emp))}
       <div>
         <div class="data-block-title"><span>Historial de empleo</span></div>
         <div id="emp-employment-history"><div class="pd-loading">Cargando…</div></div>
@@ -17902,7 +18152,8 @@ const MOVEMENT_FIELD_LABELS = {
   company: 'Empresa', site_id: 'Sede', employee_status: 'Estado',
 }
 async function loadEmpEmploymentHistory(empId) {
-  const el = document.getElementById('emp-employment-history')
+  const token = _empSelectionToken
+  let el = document.getElementById('emp-employment-history')
   if (!el) return
   let rows = []
   try {
@@ -17914,9 +18165,14 @@ async function loadEmpEmploymentHistory(empId) {
     if (error) throw error
     rows = data || []
   } catch (_) {
-    el.innerHTML = emptyStateHtml({ title: 'No se pudo cargar el historial', desc: 'Intenta de nuevo más tarde.' })
+    if (token !== _empSelectionToken) return // stale — a different employee is now selected
+    el = document.getElementById('emp-employment-history')
+    if (el) el.innerHTML = emptyStateHtml({ title: 'No se pudo cargar el historial', desc: 'Intenta de nuevo más tarde.' })
     return
   }
+  if (token !== _empSelectionToken) return // stale — a different employee is now selected
+  el = document.getElementById('emp-employment-history')
+  if (!el) return
   if (!rows.length) {
     el.innerHTML = emptyStateHtml({ title: 'Sin historial registrado', desc: 'Este colaborador todavía no tiene movimientos organizacionales registrados.' })
     return
@@ -17962,10 +18218,15 @@ function renderEmpPersonalTab(emp) {
     { label: 'Tipo de sangre', value: emp.blood_type, icon: 'droplet', always: true },
     { label: 'Condiciones de salud', value: emp.health_conditions, icon: 'activity', span: 2, multiline: true, always: true },
   ], { cols: 2 })
+  // Empty sections stay visible as a compact "No registrado" state (§8)
+  // instead of silently vanishing — an unambiguous read-mode signal that
+  // this is a real, empty section of the record, not a rendering gap.
+  const identityBody = identity || emptyStateHtml({ title: 'Identidad no registrada', desc: 'Nombre preferido, fecha de nacimiento, documento.', actionLabel: canEditEmpField() ? 'Agregar' : null, actionOnClick: 'empStartEdit()' })
+  const emergencyBody = emergency || emptyStateHtml({ title: 'Sin contacto de emergencia registrado', actionLabel: canEditEmpField() ? 'Agregar' : null, actionOnClick: 'empStartEdit()' })
   return `
     <div class="data-column">
-      ${dataBlockHtml('Identidad', identity, { aside: '<button type="button" class="btn btn-ghost btn-sm" onclick="empStartEdit()" style="padding:2px 6px">Editar</button>' })}
-      ${dataBlockHtml('Contacto de emergencia', emergency)}
+      ${dataBlockHtml('Identidad', identityBody, { aside: identity && canEditEmpField() ? '<button type="button" class="btn btn-ghost btn-sm" onclick="empStartEdit()" style="padding:2px 6px">Editar</button>' : null })}
+      ${dataBlockHtml('Contacto de emergencia', emergencyBody)}
       <div>
         <div class="data-block-title"><span>Información restringida</span></div>
         <div class="data-block-restricted">
@@ -18112,6 +18373,7 @@ function renderEmpActivityTab(emp) {
   return `<div id="emp-activity-list"><div class="pd-loading">Cargando…</div></div>`
 }
 async function loadEmpActivity(empId) {
+  const token = _empSelectionToken
   let events = []
   try {
     const { data } = await sb.from('activity_events')
@@ -18126,10 +18388,14 @@ async function loadEmpActivity(empId) {
     created_at: b.printed_at || b.created_at, actor: b.printed_by,
   }))
   const all = [...events, ...badgeEvents].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-  const el = document.getElementById('emp-activity-list')
+  if (token !== _empSelectionToken) return // stale — a different employee is now selected
+  let el = document.getElementById('emp-activity-list')
   if (!el) return
   if (!all.length) { el.innerHTML = emptyStateHtml({ title: 'Sin actividad', desc: 'Los cambios en este registro aparecerán aquí.' }); return }
   await resolveNames(all.map(e => e.actor))
+  if (token !== _empSelectionToken) return // stale — resolveNames() also awaited
+  el = document.getElementById('emp-activity-list')
+  if (!el) return
   el.innerHTML = all.map(e => `
     <div style="padding:0.6rem 0;border-bottom:1px solid var(--border)">
       <div style="font-size:0.85rem;color:var(--text-primary)">${esc(e.summary || e.event_type)}</div>
@@ -21069,8 +21335,10 @@ document.querySelectorAll('.overlay').forEach(el => { el.addEventListener('click
 /* Escape closes the label drawer (and any open overlay) */
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return
-  const empDrawer = document.getElementById('employee-detail-drawer')
-  if (empDrawer && empDrawer.classList.contains('open')) { closeEmployeeDetail(); return }
+  // The profile pane is now permanently mounted on Colaboradores (not a
+  // toggleable overlay) — Escape means "deselect", and only when a
+  // profile is actually showing and no popover above it wants Escape first.
+  if (_badge_ui.view === 'employees' && _badge_ui.selectedEmployeeId && !document.querySelector('.ws-pop.open, .drawer.open')) { closeEmployeeDetail(); return }
   const drawer = document.getElementById('m-label')
   if (drawer && drawer.classList.contains('open')) { closeLabel(); return }
   const ycDrawer = document.getElementById('m-yarn')
