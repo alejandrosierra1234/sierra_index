@@ -14002,6 +14002,18 @@ const MODULES = {
         run: 'showBadgeEmployees',
       },
       {
+        id: 'hires', label: 'Altas', view: 'hires',
+        desc: 'Alta guiada de nuevos colaboradores y recontrataciones',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 17c0-3.3 2.5-5 5.5-5s5.5 1.7 5.5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M15.5 6.5v5M13 9h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+        run: 'showBadgeHires',
+      },
+      {
+        id: 'terminations', label: 'Bajas', view: 'terminations',
+        desc: 'Bajas formales, categorías y motivos',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 17c0-3.3 2.5-5 5.5-5s5.5 1.7 5.5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M13 7.5h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+        run: 'showBadgeTerminations',
+      },
+      {
         id: 'organization', label: 'Organización', view: 'organization',
         desc: 'Organigrama y relaciones de jefe inmediato',
         icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="4" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="5" cy="16" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="15" cy="16" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M10 6v4M10 10H5v4M10 10h5v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
@@ -14774,6 +14786,8 @@ async function showBadgeTab(view, title) {
 // the function up by name on window.
 async function showBadgeOverview() { await showBadgeTab('overview', 'Resumen') }
 async function showBadgeEmployees() { await showBadgeTab('employees', 'Colaboradores') }
+async function showBadgeHires() { await showBadgeTab('hires', 'Altas') }
+async function showBadgeTerminations() { await showBadgeTab('terminations', 'Bajas') }
 async function showBadgeOrganization() { await showBadgeTab('organization', 'Organización') }
 async function showBadgeMoments() { await showBadgeTab('moments', 'Momentos') }
 async function showBadgeQueueTab() { await showBadgeTab('badge-queue', 'Cola de gafetes') }
@@ -14985,6 +14999,8 @@ function renderBadgeModule() {
       <div class="badge-main-panel">
         ${_badge_ui.view === 'overview' ? renderOverviewView() : ''}
         ${_badge_ui.view === 'employees' ? renderEmployeesView() : ''}
+        ${_badge_ui.view === 'hires' ? renderHiresView() : ''}
+        ${_badge_ui.view === 'terminations' ? renderTerminationsView() : ''}
         ${_badge_ui.view === 'organization' ? renderOrganizationView() : ''}
         ${_badge_ui.view === 'moments' ? renderMomentosView() : ''}
         ${_badge_ui.view === 'badge-queue' ? renderBadgeQueueView() : ''}
@@ -15795,6 +15811,411 @@ function renderEmployeesView() {
   `
 }
 
+/* ── ALTAS (§14): a guided hire/rehire flow, never a bare "create row"
+   form — Persona → Empleo → Operación → Revisión. Backed by the
+   hire_employee()/rehire_employee() RPCs (update31.sql), which write
+   the employee (or reuse an existing terminated identity), its opening
+   employment_periods row, and the new_hire/rehire movement in one
+   transaction, all under the same RLS the caller already has. ── */
+function renderHiresView() {
+  const canWrite = can('write', 'talento_humano')
+  const recent = (_badge.movements || []).filter(m => m.movement_type === 'new_hire' || m.movement_type === 'rehire')
+  return `
+    <div class="badge-employees-view">
+      <div class="page-toolbar">
+        ${canWrite ? `<button class="btn btn-primary btn-sm" onclick="hireOpenWizard()">+ Nueva alta</button>` : ''}
+      </div>
+      <div class="data-block-title" style="margin-top:0.4rem"><span>Altas recientes</span></div>
+      ${recent.length ? `<table class="erp-table">
+        <thead><tr><th>Colaborador</th><th>Tipo</th><th>Fecha efectiva</th><th>Motivo</th></tr></thead>
+        <tbody>
+          ${recent.map(m => {
+            const emp = _badge.employees.find(e => e.id === m.employee_id)
+            return `<tr class="${emp ? 'is-clickable' : ''}" ${emp ? `onclick="viewEmployeeDetail('${emp.id}')"` : ''}>
+              <td class="emp-td-trunc">${emp ? esc(emp.first_name + ' ' + emp.last_name) : '—'}</td>
+              <td class="emp-td-trunc">${m.movement_type === 'rehire' ? 'Recontratación' : 'Alta'}</td>
+              <td class="emp-td-trunc">${hrFmtDate(m.effective_date)}</td>
+              <td class="emp-td-trunc">${esc(m.reason || '—')}</td>
+            </tr>`
+          }).join('')}
+        </tbody>
+      </table>` : emptyStateHtml({ title: 'Sin altas recientes', desc: 'Las altas y recontrataciones registradas aparecerán aquí.' })}
+    </div>
+  `
+}
+
+let _hire = null
+function hireDefaultState() {
+  return {
+    step: 'persona', mode: 'new', saving: false,
+    rehireSearch: '', rehireCandidates: [],
+    first_name: '', last_name: '', preferred_name: '', birth_date: '',
+    identification_type: '', identification_number: '', phone: '', email: '',
+    employee_code: '', department_id: '', position_id: '', manager_employee_id: '',
+    hire_date: new Date().toISOString().slice(0, 10), employee_category: '',
+    createIndexAccess: false, queueBadge: false,
+    rehireEmployee: null,
+  }
+}
+async function hireOpenWizard() {
+  if (!_badge.activeSite) { toast('Selecciona una sede activa primero'); return }
+  _hire = hireDefaultState()
+  await hireLoadOrgLookups()
+  document.getElementById('org-info-modal-backdrop')?.remove()
+  document.getElementById('org-info-modal')?.remove()
+  const backdrop = document.createElement('div')
+  backdrop.className = 'drawer-backdrop'; backdrop.id = 'hire-wizard-backdrop'
+  document.body.appendChild(backdrop)
+  const modal = document.createElement('div')
+  modal.className = 'drawer drawer-right'; modal.id = 'hire-wizard'
+  modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true'); modal.setAttribute('aria-label', 'Nueva alta')
+  document.body.appendChild(modal)
+  requestAnimationFrame(() => { backdrop.classList.add('open'); modal.classList.add('open') })
+  hireRender()
+}
+function hireClose() {
+  if (_hire?.saving) return
+  document.getElementById('hire-wizard-backdrop')?.classList.remove('open')
+  document.getElementById('hire-wizard')?.classList.remove('open')
+  setTimeout(() => { document.getElementById('hire-wizard-backdrop')?.remove(); document.getElementById('hire-wizard')?.remove() }, 300)
+  _hire = null
+}
+async function hireLoadOrgLookups() {
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const companyId = site?.company_id
+  const [{ data: depts }, { data: poss }] = await Promise.all([
+    sb.from('departments').select('id,name,company_id').or(`company_id.eq.${companyId},company_id.is.null`).eq('is_active', true).order('name'),
+    sb.from('positions').select('id,title,company_id,department_id').or(`company_id.eq.${companyId},company_id.is.null`).eq('status', 'active').order('title'),
+  ])
+  _hire.departments = depts || []
+  _hire.positions = poss || []
+}
+const HIRE_STEPS = [{ id: 'persona', label: 'Persona' }, { id: 'empleo', label: 'Empleo' }, { id: 'operacion', label: 'Operación' }, { id: 'revision', label: 'Revisión' }]
+function hireStepIndicatorHtml() {
+  return `<div style="display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap">
+    ${HIRE_STEPS.map((s, i) => `<span style="font-size:0.72rem;padding:2px 9px;border-radius:999px;background:${s.id === _hire.step ? 'var(--interactive-selected-bg,var(--surface2))' : 'var(--surface2)'};color:${s.id === _hire.step ? 'var(--text-primary)' : 'var(--text-3)'};font-weight:${s.id === _hire.step ? '600' : '400'}">${i + 1}. ${esc(s.label)}</span>`).join('')}
+  </div>`
+}
+function hireField(id, label, opts = {}) {
+  const val = _hire[id] || ''
+  const input = opts.select
+    ? `<select id="hire-${id}" onchange="hireSet('${id}', this.value)">${opts.select.map(o => `<option value="${escAttr(o.value)}" ${val === o.value ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select>`
+    : opts.textarea
+    ? `<textarea id="hire-${id}" rows="2" oninput="hireSet('${id}', this.value)">${esc(val)}</textarea>`
+    : `<input type="${opts.type || 'text'}" id="hire-${id}" value="${escAttr(val)}" oninput="hireSet('${id}', this.value)" ${opts.required ? 'required' : ''} />`
+  return `<div class="data-field"><div class="data-field-label">${esc(label)}${opts.required ? ' *' : ''}</div><div class="emp-edit-input">${input}</div></div>`
+}
+function hireSet(id, value) { _hire[id] = value }
+function hireSearchRehire(q) {
+  _hire.rehireSearch = q
+  const query = q.trim().toLowerCase()
+  _hire.rehireCandidates = !query ? [] : _badge.employees
+    .filter(e => e.employee_status === 'terminated')
+    .filter(e => `${e.first_name} ${e.last_name} ${e.employee_code || ''}`.toLowerCase().includes(query))
+    .slice(0, 8)
+  hireRender()
+}
+function hirePickRehire(empId) {
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp) return
+  _hire.mode = 'rehire'
+  _hire.rehireEmployee = emp
+  _hire.rehireSearch = ''; _hire.rehireCandidates = []
+  hireRender()
+}
+function hireClearRehire() { _hire.mode = 'new'; _hire.rehireEmployee = null; hireRender() }
+function hireNext() {
+  if (_hire.step === 'persona') {
+    if (_hire.mode === 'new' && (!_hire.first_name.trim() || !_hire.last_name.trim())) { toast('Nombre y apellido son obligatorios'); return }
+    _hire.step = 'empleo'
+  } else if (_hire.step === 'empleo') {
+    if (_hire.mode === 'new' && !_hire.employee_code.trim()) { toast('El código de colaborador es obligatorio'); return }
+    if (!_hire.hire_date) { toast('La fecha de ingreso es obligatoria'); return }
+    _hire.step = 'operacion'
+  } else if (_hire.step === 'operacion') {
+    _hire.step = 'revision'
+  }
+  hireRender()
+}
+function hireBack() {
+  const order = HIRE_STEPS.map(s => s.id)
+  const idx = order.indexOf(_hire.step)
+  if (idx > 0) _hire.step = order[idx - 1]
+  hireRender()
+}
+function hireDeptOptions() { return [{ value: '', label: 'Sin asignar' }, ...(_hire.departments || []).map(d => ({ value: d.id, label: d.name }))] }
+function hirePosOptions() {
+  const list = (_hire.positions || []).filter(p => !_hire.department_id || !p.department_id || p.department_id === _hire.department_id)
+  return [{ value: '', label: 'Sin asignar' }, ...list.map(p => ({ value: p.id, label: p.title }))]
+}
+function hireManagerOptions() {
+  return [{ value: '', label: 'Sin asignar' }, ..._badge.employees.filter(e => e.employee_status === 'active').map(e => ({ value: e.id, label: `${e.first_name} ${e.last_name}` }))]
+}
+function hireRender() {
+  const modal = document.getElementById('hire-wizard')
+  if (!modal || !_hire) return
+  const isRehire = _hire.mode === 'rehire'
+  let body = ''
+  if (_hire.step === 'persona') {
+    body = isRehire ? `
+      <div class="data-block-title"><span>Recontratación</span></div>
+      <div class="data-field" style="margin-bottom:0.8rem">
+        <div style="display:flex;align-items:center;gap:10px;background:var(--surface2);border-radius:10px;padding:0.6rem 0.8rem">
+          ${_hire.rehireEmployee.photo_url ? `<img src="${esc(_hire.rehireEmployee.photo_url)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover" />` : `<span style="width:32px;height:32px;border-radius:50%;background:var(--surface)" ></span>`}
+          <div style="flex:1"><b>${esc(_hire.rehireEmployee.first_name)} ${esc(_hire.rehireEmployee.last_name)}</b><br/><span style="font-size:0.78rem;color:var(--text-3)"><code>${esc(_hire.rehireEmployee.employee_code || '')}</code></span></div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="hireClearRehire()">Cambiar</button>
+        </div>
+      </div>
+    ` : `
+      <div class="data-block-title"><span>Persona</span></div>
+      <div class="data-fields-2">
+        ${hireField('first_name', 'Nombre', { required: true })}
+        ${hireField('last_name', 'Apellido', { required: true })}
+        ${hireField('preferred_name', 'Nombre preferido')}
+        ${hireField('birth_date', 'Fecha de nacimiento', { type: 'date' })}
+        ${hireField('identification_type', 'Tipo de documento')}
+        ${hireField('identification_number', 'Documento')}
+        ${hireField('phone', 'Teléfono')}
+        ${hireField('email', 'Correo')}
+      </div>
+      <div class="data-block-title" style="margin-top:1rem"><span>¿Es una recontratación?</span></div>
+      <input type="search" placeholder="Buscar colaborador dado de baja por nombre o código…" value="${escAttr(_hire.rehireSearch)}" oninput="hireSearchRehire(this.value)" style="width:100%" />
+      ${_hire.rehireCandidates.length ? `<div style="margin-top:0.4rem;display:flex;flex-direction:column;gap:4px">
+        ${_hire.rehireCandidates.map(e => `<button type="button" class="btn btn-ghost btn-sm" style="justify-content:flex-start" onclick="hirePickRehire('${e.id}')">${esc(e.first_name)} ${esc(e.last_name)} — <code>${esc(e.employee_code || '')}</code></button>`).join('')}
+      </div>` : ''}
+    `
+  } else if (_hire.step === 'empleo') {
+    const site = _badge.sites.find(s => s.id === _badge.activeSite)
+    body = `
+      <div class="data-block-title"><span>Empleo</span></div>
+      <div class="data-fields-2">
+        <div class="data-field"><div class="data-field-label">Sede</div><div>${esc(site?.name || '—')}</div></div>
+        ${!isRehire ? hireField('employee_code', 'Código de colaborador', { required: true }) : ''}
+        ${hireField('hire_date', 'Fecha de ingreso', { type: 'date', required: true })}
+        ${hireField('department_id', 'Departamento', { select: hireDeptOptions() })}
+        ${hireField('position_id', 'Puesto', { select: hirePosOptions() })}
+        ${hireField('manager_employee_id', 'Jefe inmediato', { select: hireManagerOptions() })}
+        ${!isRehire ? hireField('employee_category', 'Categoría') : ''}
+      </div>
+    `
+  } else if (_hire.step === 'operacion') {
+    const canGrantAccess = can('admin', 'platform')
+    body = `
+      <div class="data-block-title"><span>Operación</span></div>
+      <label style="display:flex;align-items:center;gap:8px;margin:0.5rem 0;${canGrantAccess ? '' : 'opacity:0.5'}">
+        <input type="checkbox" ${_hire.createIndexAccess ? 'checked' : ''} ${canGrantAccess ? '' : 'disabled'} onchange="hireSet('createIndexAccess', this.checked)" />
+        Crear acceso a SIERRA Index al confirmar
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;margin:0.5rem 0">
+        <input type="checkbox" ${_hire.queueBadge ? 'checked' : ''} onchange="hireSet('queueBadge', this.checked)" />
+        Poner en cola para gafete
+      </label>
+      <div style="font-size:0.78rem;color:var(--text-3)">Ambas acciones son opcionales y se pueden completar después desde el perfil del colaborador.</div>
+    `
+  } else if (_hire.step === 'revision') {
+    const site = _badge.sites.find(s => s.id === _badge.activeSite)
+    const dept = _hire.departments?.find(d => d.id === _hire.department_id)
+    const pos = _hire.positions?.find(p => p.id === _hire.position_id)
+    const mgr = _badge.employees.find(e => e.id === _hire.manager_employee_id)
+    const name = isRehire ? `${_hire.rehireEmployee.first_name} ${_hire.rehireEmployee.last_name}` : `${_hire.first_name} ${_hire.last_name}`
+    body = `
+      <div class="data-block-title"><span>Revisión</span></div>
+      ${dataFieldsHtml([
+        { label: 'Tipo', value: isRehire ? 'Recontratación' : 'Alta nueva' },
+        { label: 'Nombre', value: name },
+        { label: 'Código', value: isRehire ? _hire.rehireEmployee.employee_code : _hire.employee_code },
+        { label: 'Sede', value: site?.name },
+        { label: 'Departamento', value: dept?.name || 'Sin asignar' },
+        { label: 'Puesto', value: pos?.title || 'Sin asignar' },
+        { label: 'Jefe inmediato', value: mgr ? `${mgr.first_name} ${mgr.last_name}` : 'Sin asignar' },
+        { label: 'Fecha de ingreso', value: _hire.hire_date, dateEs: true },
+        { label: 'Acceso a Index', value: _hire.createIndexAccess ? 'Se creará' : 'No' },
+        { label: 'Gafete', value: _hire.queueBadge ? 'En cola' : 'No' },
+      ], { cols: 2 })}
+    `
+  }
+  modal.innerHTML = `<div class="drawer-content">
+    <div class="emp-detail-hdr"><div class="emp-detail-hdr-main"><div class="emp-detail-hdr-name">${isRehire ? 'Recontratación' : 'Nueva alta'}</div></div>
+      <button class="icon-btn icon-btn-quiet" onclick="hireClose()" aria-label="Cerrar">${siIcon('x', 16)}</button>
+    </div>
+    <div class="drawer-body">
+      ${hireStepIndicatorHtml()}
+      ${body}
+    </div>
+    <div class="emp-detail-edit-footer">
+      ${_hire.step !== 'persona' ? `<button class="btn btn-secondary btn-sm" onclick="hireBack()" ${_hire.saving ? 'disabled' : ''}>Atrás</button>` : `<button class="btn btn-secondary btn-sm" onclick="hireClose()">Cancelar</button>`}
+      ${_hire.step !== 'revision' ? `<button class="btn btn-primary btn-sm" onclick="hireNext()">Siguiente</button>` : `<button class="btn btn-primary btn-sm" onclick="hireSubmit()" ${_hire.saving ? 'disabled' : ''}>${_hire.saving ? 'Guardando…' : 'Confirmar alta'}</button>`}
+    </div>
+  </div>`
+}
+async function hireSubmit() {
+  _hire.saving = true; hireRender()
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  try {
+    let empId
+    if (_hire.mode === 'rehire') {
+      const { data, error } = await sb.rpc('rehire_employee', {
+        p_employee_id: _hire.rehireEmployee.id, p_site_id: site.id, p_hire_date: _hire.hire_date,
+        p_department_id: _hire.department_id || null, p_position_id: _hire.position_id || null,
+        p_manager_employee_id: _hire.manager_employee_id || null,
+      })
+      if (error) throw error
+      empId = data
+    } else {
+      const { data, error } = await sb.rpc('hire_employee', {
+        p_site_id: site.id, p_employee_code: _hire.employee_code.trim(), p_first_name: _hire.first_name.trim(), p_last_name: _hire.last_name.trim(),
+        p_preferred_name: _hire.preferred_name || null, p_birth_date: _hire.birth_date || null,
+        p_identification_type: _hire.identification_type || null, p_identification_number: _hire.identification_number || null,
+        p_phone: _hire.phone || null, p_email: _hire.email || null,
+        p_department_id: _hire.department_id || null, p_position_id: _hire.position_id || null,
+        p_manager_employee_id: _hire.manager_employee_id || null, p_hire_date: _hire.hire_date, p_employee_category: _hire.employee_category || null,
+      })
+      if (error) throw error
+      empId = data
+    }
+    if (_hire.queueBadge) {
+      await sb.from('badge_issuances').insert({ employee_id: empId, status: 'draft' })
+    }
+    toast(_hire.mode === 'rehire' ? 'Recontratación registrada' : 'Alta registrada')
+    const wantsAccess = _hire.createIndexAccess
+    hireClose()
+    await loadBadgeData()
+    renderBadgeModule()
+    if (wantsAccess) await startCreateAccessForEmployee(empId)
+    else viewEmployeeDetail(empId)
+  } catch (err) {
+    _hire.saving = false
+    toast('Error al registrar: ' + (err.message || err))
+    hireRender()
+  }
+}
+
+/* ── BAJAS (§15): a formal termination workflow, never a bare
+   employee_status flip. Backed by the terminate_employee() RPC
+   (update31.sql) — closes the current employment period with a real
+   category/reason, logs a departure movement, closes reporting-
+   relationship rows, and optionally cancels the badge / disables
+   Index access. Never deletes the employee. ── */
+const TERMINATION_CATEGORY_LABELS = { resignation: 'Renuncia', termination: 'Despido', end_of_contract: 'Fin de contrato', retirement: 'Jubilación', other: 'Otro' }
+function renderTerminationsView() {
+  const canWrite = can('write', 'talento_humano')
+  const terminated = _badge.employees.filter(e => e.employee_status === 'terminated')
+  return `
+    <div class="badge-employees-view">
+      <div class="page-toolbar">
+        ${canWrite ? `<button class="btn btn-secondary btn-sm" onclick="termOpenPicker()">+ Dar de baja</button>` : ''}
+      </div>
+      <div class="data-block-title" style="margin-top:0.4rem"><span>Colaboradores dados de baja</span> · ${terminated.length}</div>
+      ${terminated.length ? `<table class="erp-table">
+        <thead><tr><th>Colaborador</th><th>Código</th><th>Departamento</th><th>Puesto</th></tr></thead>
+        <tbody>
+          ${terminated.map(e => `<tr class="is-clickable" onclick="viewEmployeeDetail('${e.id}')">
+            <td class="emp-td-trunc">${esc(e.first_name)} ${esc(e.last_name)}</td>
+            <td class="emp-td-trunc"><code>${esc(e.employee_code || '')}</code></td>
+            <td class="emp-td-trunc">${esc(e.department || '—')}</td>
+            <td class="emp-td-trunc">${esc(e.position || '—')}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>` : emptyStateHtml({ title: 'Sin bajas registradas', desc: 'Los colaboradores dados de baja aparecerán aquí, con su categoría y motivo.' })}
+    </div>
+  `
+}
+function termOpenPicker() {
+  const active = _badge.employees.filter(e => e.employee_status === 'active')
+  const body = `
+    <input type="search" id="term-picker-search" placeholder="Buscar por nombre o código…" oninput="termFilterPicker(this.value)" style="width:100%;margin-bottom:0.6rem" />
+    <div id="term-picker-list" style="display:flex;flex-direction:column;gap:2px">
+      ${active.map(e => `<button type="button" class="btn btn-ghost btn-sm term-picker-row" data-search="${escAttr((e.first_name + ' ' + e.last_name + ' ' + (e.employee_code || '')).toLowerCase())}" style="justify-content:flex-start" onclick="document.getElementById('org-info-modal-backdrop')?.remove();document.getElementById('org-info-modal')?.remove();empOpenTerminationModal('${e.id}')">${esc(e.first_name)} ${esc(e.last_name)} — <code>${esc(e.employee_code || '')}</code></button>`).join('')}
+    </div>
+  `
+  alertModal('Dar de baja a…', body)
+  setTimeout(() => document.getElementById('term-picker-search')?.focus(), 50)
+}
+function termFilterPicker(q) {
+  const query = q.trim().toLowerCase()
+  document.querySelectorAll('.term-picker-row').forEach(r => { r.style.display = !query || r.dataset.search.includes(query) ? '' : 'none' })
+}
+let _term = null
+function empOpenTerminationModal(empId) {
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp) return
+  _term = { employeeId: empId, effective_date: new Date().toISOString().slice(0, 10), category: '', reason: '', notes: '', disableIndexAccess: false, invalidateBadge: false, saving: false }
+  document.getElementById('org-info-modal-backdrop')?.remove()
+  document.getElementById('org-info-modal')?.remove()
+  const backdrop = document.createElement('div')
+  backdrop.className = 'drawer-backdrop'; backdrop.id = 'term-modal-backdrop'
+  document.body.appendChild(backdrop)
+  const modal = document.createElement('div')
+  modal.className = 'drawer drawer-right'; modal.id = 'term-modal'
+  modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true'); modal.setAttribute('aria-label', 'Dar de baja')
+  document.body.appendChild(modal)
+  requestAnimationFrame(() => { backdrop.classList.add('open'); modal.classList.add('open') })
+  termRender(emp)
+}
+function termClose() {
+  if (_term?.saving) return
+  document.getElementById('term-modal-backdrop')?.classList.remove('open')
+  document.getElementById('term-modal')?.classList.remove('open')
+  setTimeout(() => { document.getElementById('term-modal-backdrop')?.remove(); document.getElementById('term-modal')?.remove() }, 300)
+  _term = null
+}
+function termSet(field, value) { _term[field] = value }
+function termRender(emp) {
+  const modal = document.getElementById('term-modal')
+  if (!modal) return
+  const acct = _badge.accountsByEmployeeId?.[emp.id]
+  const badge = empLatestBadge(emp)
+  const canManageIndex = can('admin', 'platform') && acct && acct.account_status !== 'disabled'
+  const hasCancellableBadge = badge && !['cancelled', 'expired'].includes(badge.status)
+  modal.innerHTML = `<div class="drawer-content">
+    <div class="emp-detail-hdr"><div class="emp-detail-hdr-main"><div class="emp-detail-hdr-name">Dar de baja</div><div class="emp-detail-hdr-org">${esc(emp.first_name)} ${esc(emp.last_name)} · <code>${esc(emp.employee_code || '')}</code></div></div>
+      <button class="icon-btn icon-btn-quiet" onclick="termClose()" aria-label="Cerrar">${siIcon('x', 16)}</button>
+    </div>
+    <div class="drawer-body">
+      <div class="data-fields-2">
+        <div class="data-field"><div class="data-field-label">Fecha efectiva *</div><div class="emp-edit-input"><input type="date" value="${escAttr(_term.effective_date)}" oninput="termSet('effective_date', this.value)" /></div></div>
+        <div class="data-field"><div class="data-field-label">Categoría *</div><div class="emp-edit-input"><select onchange="termSet('category', this.value)">
+          <option value="">Selecciona…</option>
+          ${Object.entries(TERMINATION_CATEGORY_LABELS).map(([v, l]) => `<option value="${v}" ${_term.category === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}
+        </select></div></div>
+      </div>
+      <div class="data-field" style="margin-top:0.6rem"><div class="data-field-label">Motivo</div><div class="emp-edit-input"><textarea rows="2" oninput="termSet('reason', this.value)">${esc(_term.reason)}</textarea></div></div>
+      <div class="data-field" style="margin-top:0.6rem"><div class="data-field-label">Notas internas</div><div class="emp-edit-input"><textarea rows="2" oninput="termSet('notes', this.value)">${esc(_term.notes)}</textarea></div></div>
+      <div class="data-block-title" style="margin-top:1rem"><span>Al confirmar</span></div>
+      <label style="display:flex;align-items:center;gap:8px;margin:0.5rem 0;${canManageIndex ? '' : 'opacity:0.5'}">
+        <input type="checkbox" ${_term.disableIndexAccess ? 'checked' : ''} ${canManageIndex ? '' : 'disabled'} onchange="termSet('disableIndexAccess', this.checked)" />
+        Deshabilitar acceso a SIERRA Index${!acct ? ' (sin cuenta)' : ''}
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;margin:0.5rem 0;${hasCancellableBadge ? '' : 'opacity:0.5'}">
+        <input type="checkbox" ${_term.invalidateBadge ? 'checked' : ''} ${hasCancellableBadge ? '' : 'disabled'} onchange="termSet('invalidateBadge', this.checked)" />
+        Invalidar gafete${!hasCancellableBadge ? ' (sin gafete activo)' : ''}
+      </label>
+    </div>
+    <div class="emp-detail-edit-footer">
+      <button class="btn btn-secondary btn-sm" onclick="termClose()" ${_term.saving ? 'disabled' : ''}>Cancelar</button>
+      <button class="btn btn-danger btn-sm" onclick="termSubmit()" ${_term.saving ? 'disabled' : ''}>${_term.saving ? 'Guardando…' : 'Confirmar baja'}</button>
+    </div>
+  </div>`
+}
+async function termSubmit() {
+  if (!_term.effective_date || !_term.category) { toast('Fecha efectiva y categoría son obligatorias'); return }
+  _term.saving = true
+  const emp = _badge.employees.find(e => e.id === _term.employeeId)
+  termRender(emp)
+  const { error } = await sb.rpc('terminate_employee', {
+    p_employee_id: _term.employeeId, p_effective_date: _term.effective_date, p_termination_category: _term.category,
+    p_termination_reason: _term.reason || null, p_notes: _term.notes || null,
+    p_disable_index_access: _term.disableIndexAccess, p_invalidate_badge: _term.invalidateBadge,
+  })
+  if (error) { _term.saving = false; toast('Error al dar de baja: ' + error.message); termRender(emp); return }
+  toast('Baja registrada')
+  const empId = _term.employeeId
+  termClose()
+  await loadBadgeData()
+  renderBadgeModule()
+  viewEmployeeDetail(empId)
+}
+
 function renderBadgeQueueView() {
   const queueBadges = _badge.badges.filter(b => ['draft', 'ready_to_print', 'printed'].includes(b.status))
   return `
@@ -16351,6 +16772,8 @@ function renderEmployeeDetailDrawer(emp) {
             ${emp.employee_code ? `<span class="emp-detail-hdr-code"><code>${esc(emp.employee_code)}</code><button type="button" class="emp-detail-hdr-code-copy" onclick="event.stopPropagation();copyFieldValue(this,'${jsStr(emp.employee_code)}','Código de colaborador')" title="Copiar código" aria-label="Copiar código de colaborador">${FIELD_COPY_ICON}</button></span>` : ''}
             ${emp.employee_code ? '<span aria-hidden="true">·</span>' : ''}
             ${empStatusBadgeHtml(emp.employee_status)}
+            ${empHeaderTenureText(emp) ? `<span aria-hidden="true">·</span><span>${esc(empHeaderTenureText(emp))}</span>` : ''}
+            ${orgDirectReportIds(emp.id).length ? `<span aria-hidden="true">·</span><span>${orgDirectReportIds(emp.id).length} reporte${orgDirectReportIds(emp.id).length !== 1 ? 's' : ''} directo${orgDirectReportIds(emp.id).length !== 1 ? 's' : ''}</span>` : ''}
           </div>
           ${orgMeta ? `<div class="emp-detail-hdr-org">${esc(orgMeta)}</div>` : ''}
           ${emp.position ? `<div class="emp-detail-hdr-position">${esc(emp.position)}</div>` : ''}
@@ -16359,6 +16782,8 @@ function renderEmployeeDetailDrawer(emp) {
           ${empDetailPrimaryActionHtml(emp)}
           ${overflowMenuHtml([
             ...(canWrite ? [{ label: 'Editar colaborador', onClick: `empStartEdit()` }] : []),
+            ...(canWrite && emp.employee_status !== 'terminated' ? [{ label: 'Dar de baja', onClick: `empOpenTerminationModal('${emp.id}')` }] : []),
+            ...(canWrite && emp.employee_status === 'terminated' ? [{ label: 'Recontratar', onClick: `closeEmployeeDetail(); hireOpenWizard().then(() => hirePickRehire('${emp.id}'))` }] : []),
             { label: 'Copiar resumen del colaborador', onClick: `copyEmployeeSummary('${emp.id}')` },
             { label: 'Copiar información organizacional', onClick: `copyEmployeeOrgInfo('${emp.id}')` },
             { label: 'Ver historial', onClick: `closeEmployeeDetail(); _badge_ui.view='history'; renderBadgeModule()` },
@@ -16370,6 +16795,7 @@ function renderEmployeeDetailDrawer(emp) {
       <div class="emp-detail-tabs">
         <div class="record-tabs" role="tablist" aria-label="Secciones del colaborador">
           <button class="record-tab ${_badge_ui.detailTab === 'overview' ? 'active' : ''}" role="tab" id="emp-tab-overview" aria-selected="${_badge_ui.detailTab === 'overview'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'overview' ? '0' : '-1'}" onclick="switchEmpDetailTab('overview')" onkeydown="empTabKeydown(event,'overview')">Resumen</button>
+          <button class="record-tab ${_badge_ui.detailTab === 'employment' ? 'active' : ''}" role="tab" id="emp-tab-employment" aria-selected="${_badge_ui.detailTab === 'employment'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'employment' ? '0' : '-1'}" onclick="switchEmpDetailTab('employment')" onkeydown="empTabKeydown(event,'employment')">Empleo</button>
           ${canSeePersonal ? `<button class="record-tab ${_badge_ui.detailTab === 'personal' ? 'active' : ''}" role="tab" id="emp-tab-personal" aria-selected="${_badge_ui.detailTab === 'personal'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'personal' ? '0' : '-1'}" onclick="switchEmpDetailTab('personal')" onkeydown="empTabKeydown(event,'personal')">Personal</button>` : ''}
           <button class="record-tab ${_badge_ui.detailTab === 'badge' ? 'active' : ''}" role="tab" id="emp-tab-badge" aria-selected="${_badge_ui.detailTab === 'badge'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'badge' ? '0' : '-1'}" onclick="switchEmpDetailTab('badge')" onkeydown="empTabKeydown(event,'badge')">Gafete</button>
           <button class="record-tab ${_badge_ui.detailTab === 'activity' ? 'active' : ''}" role="tab" id="emp-tab-activity" aria-selected="${_badge_ui.detailTab === 'activity'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'activity' ? '0' : '-1'}" onclick="switchEmpDetailTab('activity')" onkeydown="empTabKeydown(event,'activity')">Actividad</button>
@@ -16377,6 +16803,7 @@ function renderEmployeeDetailDrawer(emp) {
       </div>
       <div class="drawer-body emp-detail-body" role="tabpanel" id="emp-tab-panel" aria-labelledby="emp-tab-${_badge_ui.detailTab}">
         ${_badge_ui.detailTab === 'overview' ? renderEmpOverviewTab(emp) : ''}
+        ${_badge_ui.detailTab === 'employment' ? renderEmpEmploymentTab(emp) : ''}
         ${_badge_ui.detailTab === 'personal' && canSeePersonal ? renderEmpPersonalTab(emp) : ''}
         ${_badge_ui.detailTab === 'badge' ? renderEmpBadgeTab(emp) : ''}
         ${_badge_ui.detailTab === 'activity' ? renderEmpActivityTab(emp) : ''}
@@ -16384,11 +16811,12 @@ function renderEmployeeDetailDrawer(emp) {
     </div>
   `
   if (_badge_ui.detailTab === 'activity') loadEmpActivity(emp.id)
+  if (_badge_ui.detailTab === 'employment') loadEmpEmploymentHistory(emp.id)
 }
 
 // Arrow-key navigation across tabs per WAI-ARIA tablist pattern.
 function empTabKeydown(e, current) {
-  const order = ['overview', 'personal', 'badge', 'activity'].filter(k => document.getElementById('emp-tab-' + k))
+  const order = ['overview', 'employment', 'personal', 'badge', 'activity'].filter(k => document.getElementById('emp-tab-' + k))
   const idx = order.indexOf(current)
   let next = null
   if (e.key === 'ArrowRight') next = order[(idx + 1) % order.length]
@@ -16512,7 +16940,8 @@ function renderEmpOverviewTab(emp) {
   return `
     <div class="data-column">
       ${dataBlockHtml('Organización', org, { aside: canEditEmpField() ? '<button type="button" class="btn btn-ghost btn-sm" onclick="empStartEdit()" style="padding:2px 6px">Editar</button>' : null })}
-      ${orgProfileSectionHtml(emp)}
+      ${empEstructuraCompactHtml(emp)}
+      ${empTrayectoriaCompactHtml(emp)}
       ${empIndexAccessSectionHtml(emp)}
       ${contact ? dataBlockHtml('Contacto', contact) : dataBlockHtml('Contacto', emptyStateHtml({ title: 'Sin información de contacto', desc: 'Agrega un correo o teléfono para este colaborador.', actionLabel: canEditEmpField() ? 'Completar' : null, actionOnClick: 'empStartEdit()' }))}
       ${moments ? dataBlockHtml('Próximo momento', moments) : ''}
@@ -16547,6 +16976,86 @@ function empBadgeSummaryHtml(emp) {
     { label: 'Última emisión', value: b.printed_at, icon: 'calendar', dateEs: true },
     { label: 'Entrega', value: b.delivered_at ? `Entregado · ${hrFmtDate(b.delivered_at)}` : 'Pendiente de entrega', icon: 'check-circle' },
   ], { cols: 2 }) + (canEditEmpField() ? `<div style="margin-top:0.6rem"><button class="btn btn-secondary btn-sm" onclick="startBadgeIssuance('${emp.id}')">${b.status === 'printed' || b.status === 'delivered' ? 'Reimprimir' : 'Continuar emisión'}</button></div>` : '')
+}
+
+/* ── Empleo tab (§12): the full current-assignment detail, the complete
+   organizational structure (manager, direct reports, hierarchy, org
+   chart navigation — orgProfileSectionHtml, moved here from Resumen so
+   it isn't duplicated at two levels of detail), and the chronological
+   employment-movement history. Never fabricates history from the
+   employee's current state — an employee with no recorded movements
+   truthfully shows "Sin historial registrado", not an invented single
+   entry backdated to hire_date. ── */
+function renderEmpEmploymentTab(emp) {
+  if (_badge_ui.editingEmployee) return renderEmpOverviewEditForm(emp)
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const seniority = empSeniority(emp)
+  const current = dataFieldsHtml([
+    { label: 'Estado', html: empStatusBadgeHtml(emp.employee_status) },
+    { label: 'Empresa', value: emp.company, icon: 'building', copy: true },
+    { label: 'País', value: emp.country, icon: 'globe' },
+    { label: 'Sede', value: site?.name, icon: 'map-pin', copy: true },
+    { label: 'Departamento', value: emp.department, icon: 'building', copy: true },
+    { label: 'Puesto', value: emp.position, icon: 'briefcase', copy: true },
+    { label: 'Fecha de ingreso', value: emp.hire_date, icon: 'calendar', dateEs: true },
+    { label: 'Antigüedad', value: seniority ? `${seniority.years} año${seniority.years !== 1 ? 's' : ''}, ${seniority.months} mes${seniority.months !== 1 ? 'es' : ''}` : null, icon: 'clock' },
+  ], { cols: 2 })
+  return `
+    <div class="data-column">
+      ${dataBlockHtml('Asignación actual', current, { aside: canEditEmpField() ? '<button type="button" class="btn btn-ghost btn-sm" onclick="empStartEdit()" style="padding:2px 6px">Editar</button>' : null })}
+      ${orgProfileSectionHtml(emp)}
+      <div>
+        <div class="data-block-title"><span>Historial de empleo</span></div>
+        <div id="emp-employment-history"><div class="pd-loading">Cargando…</div></div>
+      </div>
+    </div>
+  `
+}
+const MOVEMENT_TYPE_LABELS = {
+  new_hire: 'Contratación', position_change: 'Cambio de puesto', department_change: 'Cambio de departamento',
+  supervisor_change: 'Cambio de jefe inmediato', company_transfer: 'Transferencia de empresa',
+  site_transfer: 'Transferencia de sede', status_change: 'Cambio de estado',
+  scheduled_departure: 'Baja programada', departure: 'Baja', rehire: 'Recontratación',
+}
+const MOVEMENT_FIELD_LABELS = {
+  position: 'Puesto', department: 'Departamento', manager_employee_id: 'Jefe inmediato',
+  company: 'Empresa', site_id: 'Sede', employee_status: 'Estado',
+}
+async function loadEmpEmploymentHistory(empId) {
+  const el = document.getElementById('emp-employment-history')
+  if (!el) return
+  let rows = []
+  try {
+    const { data, error } = await sb.from('employee_movements')
+      .select('id, movement_type, field, previous_value, new_value, effective_date, reason, note, status')
+      .eq('employee_id', empId)
+      .order('effective_date', { ascending: false })
+      .limit(50)
+    if (error) throw error
+    rows = data || []
+  } catch (_) {
+    el.innerHTML = emptyStateHtml({ title: 'No se pudo cargar el historial', desc: 'Intenta de nuevo más tarde.' })
+    return
+  }
+  if (!rows.length) {
+    el.innerHTML = emptyStateHtml({ title: 'Sin historial registrado', desc: 'Este colaborador todavía no tiene movimientos organizacionales registrados.' })
+    return
+  }
+  el.innerHTML = rows.map(m => {
+    const label = MOVEMENT_TYPE_LABELS[m.movement_type] || m.movement_type
+    const fieldLabel = MOVEMENT_FIELD_LABELS[m.field] || m.field
+    const change = (m.previous_value || m.new_value)
+      ? `${fieldLabel ? esc(fieldLabel) + ': ' : ''}${m.previous_value ? esc(m.previous_value) + ' → ' : ''}${esc(m.new_value || '')}`
+      : ''
+    return `<div style="padding:0.55rem 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span style="font-weight:600;font-size:0.85rem">${esc(label)}</span>
+        ${m.status === 'scheduled' ? `<span class="badge" style="margin-left:6px">Programado</span>` : ''}
+      </div>
+      ${change ? `<div style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px">${change}</div>` : ''}
+      <div style="font-size:0.76rem;color:var(--text-3);margin-top:2px">${hrFmtDate(m.effective_date)}${m.reason ? ' · ' + esc(m.reason) : ''}</div>
+    </div>`
+  }).join('')
 }
 
 /* ── Personal tab: identity, emergency contact, and restricted (medical)
@@ -16606,7 +17115,14 @@ function empEditFieldHtml(label, key, emp, opts = {}) {
 }
 function renderEmpOverviewEditForm(emp) {
   const canWrite = can('write', 'talento_humano')
-  const statusOptions = Object.entries(EMP_STATUS_LABELS).map(([value, label]) => ({ value, label }))
+  // 'terminated' is never a selectable option here (§15) — a termination
+  // is a formal workflow (empOpenTerminationModal, from the overflow
+  // menu's "Dar de baja"), not a status flip. Kept visible only when the
+  // record is already terminated, so this select never silently
+  // reactivates someone outside the rehire flow either.
+  const statusOptions = Object.entries(EMP_STATUS_LABELS)
+    .filter(([value]) => value !== 'terminated' || emp.employee_status === 'terminated')
+    .map(([value, label]) => ({ value, label }))
   const identity = `<div class="data-fields-2">
     ${empEditFieldHtml('Nombre', 'first_name', emp, { icon: 'user' })}
     ${empEditFieldHtml('Apellido', 'last_name', emp, { icon: 'user' })}
@@ -17179,6 +17695,16 @@ function empAge(emp) {
   let age = today.getUTCFullYear() - b.getUTCFullYear()
   if (today.getUTCMonth() < b.getUTCMonth() || (today.getUTCMonth() === b.getUTCMonth() && today.getUTCDate() < b.getUTCDate())) age--
   return age
+}
+// Compact tenure string for the header ("3 años" / "8 meses") — the full
+// "X años, Y meses" breakdown stays on the Resumen/Empleo Trayectoria
+// blocks; the header only needs enough to answer "how long have they
+// been here" at a glance.
+function empHeaderTenureText(emp) {
+  const s = empSeniority(emp)
+  if (!s) return null
+  if (s.years > 0) return `${s.years} año${s.years !== 1 ? 's' : ''}`
+  return `${s.months} mes${s.months !== 1 ? 'es' : ''}`
 }
 function empSeniority(emp) {
   const hire = parseDateOnly(emp.hire_date)
@@ -21365,9 +21891,100 @@ async function suspendIndexAccount(profileId) {
   if (emp) renderEmployeeDetailDrawer(emp)
 }
 
+// Indented hierarchy visualization (SIERRA → company → site →
+// department → position), replacing the flat "A → B → C" breadcrumb
+// with visually distinguished levels, per the Talento Humano profile
+// redesign. Purely presentational — orgPathText() still produces the
+// plain-text version used for copy-to-clipboard.
+function orgPathTreeHtml(employeeId) {
+  const levels = ['SIERRA', ...orgPathOf(employeeId)]
+  return `<div style="font-size:0.82rem;line-height:1.65;font-family:var(--font-mono,monospace)">
+    ${levels.map((lvl, i) => `<div style="padding-left:${i * 14}px;color:${i === levels.length - 1 ? 'var(--text-primary)' : 'var(--text-secondary)'};font-weight:${i === levels.length - 1 ? '600' : '400'}">${i > 0 ? '<span aria-hidden="true" style="color:var(--text-3)">└ </span>' : ''}${esc(lvl)}</div>`).join('')}
+  </div>`
+}
+
+// Compact "Estructura" for Resumen (§11): the indented hierarchy plus a
+// bounded preview of the direct team — never a permanent list of every
+// report, which breaks down for managers with 20-50+ people. The full
+// team is one click away (searchable modal); the full organizational
+// structure (manager, hierarchy, org-chart nav) lives on the Empleo tab.
+const EMP_TEAM_PREVIEW_LIMIT = 5
+function empEstructuraCompactHtml(emp) {
+  if (_badge.reportingRelationshipsUnavailable) return ''
+  const reportIds = orgDirectReportIds(emp.id)
+  const reports = reportIds.map(orgEmpById).filter(Boolean)
+  const preview = reports.slice(0, EMP_TEAM_PREVIEW_LIMIT)
+  const overflow = reports.length - preview.length
+  const teamHtml = reports.length ? `
+    <div class="data-field" style="margin-top:0.6rem">
+      <div class="data-field-label">${siIcon('users', 12)} Equipo directo · ${reports.length}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">
+        ${preview.map(r => `<span title="${escAttr(orgFullName(r))} — ${escAttr(r.position || 'Sin puesto')}" style="display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border-radius:999px;padding:2px 9px 2px 2px;font-size:0.76rem">
+          ${r.photo_url ? `<img src="${esc(r.photo_url)}" alt="" style="width:18px;height:18px;border-radius:50%;object-fit:cover" />` : `<span style="width:18px;height:18px;border-radius:50%;background:var(--surface-hover,var(--border));display:inline-flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700">${esc((r.first_name[0] || '') + (r.last_name[0] || ''))}</span>`}
+          ${esc(orgFullName(r))}
+        </span>`).join('')}
+        ${overflow > 0 ? `<span style="font-size:0.76rem;color:var(--text-3)">+${overflow}</span>` : ''}
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" style="padding:2px 6px;margin-top:4px" onclick="orgOpenTeamView('${emp.id}')">Ver equipo</button>
+    </div>` : ''
+  return dataBlockHtml('Estructura', `
+    ${orgPathTreeHtml(emp.id)}
+    ${teamHtml}
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.7rem">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="closeEmployeeDetail();orgShowFromModule();orgFocusInChart('${emp.id}')">Ver en organigrama</button>
+    </div>
+  `)
+}
+
+// Trayectoria (§11): hire date + calculated tenure only on Resumen — the
+// full role-by-role history lives on Empleo, one click away. Never shows
+// a count of historical roles here without having actually loaded them,
+// so it can't imply data that "Ver historial" then contradicts.
+function empTrayectoriaCompactHtml(emp) {
+  const seniority = empSeniority(emp)
+  const fields = dataFieldsHtml([
+    { label: 'Fecha de ingreso', value: emp.hire_date, icon: 'calendar', dateEs: true },
+    { label: 'Antigüedad', value: seniority ? `${seniority.years} año${seniority.years !== 1 ? 's' : ''}, ${seniority.months} mes${seniority.months !== 1 ? 'es' : ''}` : null, icon: 'clock' },
+  ], { cols: 2 })
+  if (!fields) return ''
+  return dataBlockHtml('Trayectoria', fields + `<button type="button" class="btn btn-ghost btn-sm" style="padding:2px 6px;margin-top:0.4rem" onclick="switchEmpDetailTab('employment')">Ver historial</button>`)
+}
+
+// Searchable, scalable team roster — the "Ver equipo" destination for
+// managers with too many direct reports to ever list as permanent links
+// (§11). Client-side filter only; the underlying list already comes
+// from the org data already loaded for the active scope.
+function orgOpenTeamView(managerId) {
+  const mgr = orgEmpById(managerId)
+  const reports = orgDirectReportIds(managerId).map(orgEmpById).filter(Boolean)
+    .sort((a, b) => orgFullName(a).localeCompare(orgFullName(b)))
+  const rowHtml = r => `<div class="org-team-row" data-search="${escAttr((orgFullName(r) + ' ' + (r.position || '') + ' ' + (r.department || '')).toLowerCase())}" style="display:flex;align-items:center;gap:10px;padding:0.5rem 0;border-bottom:1px solid var(--border)">
+    ${r.photo_url ? `<img src="${esc(r.photo_url)}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" />` : `<span style="width:32px;height:32px;border-radius:50%;background:var(--surface2);display:inline-flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0">${esc((r.first_name[0] || '') + (r.last_name[0] || ''))}</span>`}
+    <div style="min-width:0;flex:1">
+      <div style="font-size:0.86rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(orgFullName(r))}</div>
+      <div style="font-size:0.76rem;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.position || 'Sin puesto')}${r.department ? ' · ' + esc(r.department) : ''}</div>
+    </div>
+    <a href="#" class="btn btn-ghost btn-sm" style="flex-shrink:0" onclick="event.preventDefault();document.getElementById('org-info-modal-backdrop')?.remove();document.getElementById('org-info-modal')?.remove();viewEmployeeDetail('${r.id}')">Ver perfil</a>
+  </div>`
+  const body = `
+    <input type="search" id="org-team-search" placeholder="Buscar por nombre, puesto o departamento…" oninput="orgFilterTeamView(this.value)" style="width:100%;margin-bottom:0.7rem" />
+    <div id="org-team-list">${reports.length ? reports.map(rowHtml).join('') : emptyStateHtml({ title: 'Sin reportes directos' })}</div>
+  `
+  alertModal(`Equipo directo de ${esc(orgFullName(mgr))} · ${reports.length}`, body)
+  setTimeout(() => document.getElementById('org-team-search')?.focus(), 50)
+}
+function orgFilterTeamView(q) {
+  const query = q.trim().toLowerCase()
+  document.querySelectorAll('#org-team-list .org-team-row').forEach(row => {
+    row.style.display = !query || row.dataset.search.includes(query) ? '' : 'none'
+  })
+}
+
 // ── 7. EMPLOYEE PROFILE INTEGRATION ── "Estructura organizacional"
-// section on the existing Overview tab of the employee detail drawer —
-// no new tab, so the drawer's shape doesn't change, only what's in it. ──
+// section — the full version (manager, hierarchy, direct-report links,
+// org-chart navigation) lives on the Empleo tab; Resumen only shows the
+// compact empEstructuraCompactHtml() above, so the two never duplicate
+// the same information at the same level of detail. ──
 function orgProfileSectionHtml(emp) {
   if (_badge.reportingRelationshipsUnavailable) return ''
   const rel = orgCurrentManagerRelationship(emp.id)
@@ -21401,15 +22018,16 @@ function orgProfileSectionHtml(emp) {
     </div>
     <div class="data-field" style="margin-bottom:0.6rem">
       <div class="data-field-label">${siIcon('map-pin', 12)} Ruta organizacional</div>
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <span>${esc(orgPathText(emp.id))}</span>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:0.4rem">
         <button type="button" class="emp-detail-hdr-code-copy" onclick="orgCopyPath('${emp.id}')" title="Copiar ruta organizacional">${FIELD_COPY_ICON}</button>
       </div>
+      ${orgPathTreeHtml(emp.id)}
     </div>
     ${reports.length ? `<div class="data-field" style="margin-bottom:0.6rem">
-      <div class="data-field-label">Equipo directo</div>
+      <div class="data-field-label">Equipo directo · ${reports.length}${reports.length > EMP_TEAM_PREVIEW_LIMIT ? ` (mostrando ${EMP_TEAM_PREVIEW_LIMIT})` : ''}</div>
       <div style="display:flex;flex-direction:column;gap:4px;margin-top:2px">
-        ${reports.map(r => `<a href="#" style="font-size:0.82rem" onclick="event.preventDefault();viewEmployeeDetail('${r.id}')">${esc(orgFullName(r))} — ${esc(r.position || 'Sin puesto')}</a>`).join('')}
+        ${reports.slice(0, EMP_TEAM_PREVIEW_LIMIT).map(r => `<a href="#" style="font-size:0.82rem" onclick="event.preventDefault();viewEmployeeDetail('${r.id}')">${esc(orgFullName(r))} — ${esc(r.position || 'Sin puesto')}</a>`).join('')}
+        ${reports.length > EMP_TEAM_PREVIEW_LIMIT ? `<button type="button" class="btn btn-ghost btn-sm" style="padding:2px 6px;align-self:flex-start" onclick="orgOpenTeamView('${emp.id}')">Ver equipo completo</button>` : ''}
       </div>
     </div>` : ''}
     ${issues.length ? `<div class="data-field" style="margin-bottom:0.6rem">
