@@ -5215,6 +5215,96 @@
       outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light);
     }
     .emp-edit-input textarea { resize: vertical; min-height: 2.4em; }
+
+    /* ── Employee Full Profile (§1) — a large centered workspace modal,
+       not a drawer. Backdrop reuses .drawer-backdrop's fade mechanic;
+       .emp-profile-overlay adds centering on top of it. */
+    .emp-profile-overlay.drawer-backdrop { display: flex; align-items: center; justify-content: center; padding: 28px; }
+    .emp-profile-modal {
+      position: relative; width: min(90vw, 1400px); max-width: 96vw; max-height: 90vh;
+      background: var(--surface); border-radius: 16px; box-shadow: 0 24px 64px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.08);
+      display: flex; flex-direction: column; overflow: hidden;
+      opacity: 0; transform: translateY(14px) scale(0.98);
+      transition: opacity 0.22s var(--ease-out), transform 0.22s var(--ease-out);
+    }
+    .emp-profile-modal.open { opacity: 1; transform: translateY(0) scale(1); }
+    @media (max-width: 900px) { .emp-profile-modal { width: 94vw; max-height: 94vh; border-radius: 12px; } }
+    @media (max-width: 640px) {
+      .emp-profile-overlay.drawer-backdrop { padding: 0; }
+      .emp-profile-modal { width: 100vw; height: 100vh; max-height: 100vh; border-radius: 0; }
+    }
+
+    /* Hero — the employee's identity card (§2/§4), structurally distinct
+       from the scrolling content below: fixed at the top, never scrolls. */
+    .emp-profile-hero { position: relative; flex-shrink: 0; padding: 1.6rem 1.85rem 1.15rem; overflow: hidden; }
+    .emp-profile-hero-accent { position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--company-color, var(--border-strong, var(--border))); }
+    .emp-profile-hero-tint { position: absolute; inset: 0; background: var(--company-tint, transparent); pointer-events: none; }
+    .emp-profile-hero-row { position: relative; display: flex; align-items: flex-start; gap: 1.3rem; }
+    .emp-profile-photo-wrap { position: relative; flex-shrink: 0; cursor: pointer; display: block; }
+    .emp-profile-photo-wrap img, .emp-profile-photo-wrap .emp-profile-avatar-init {
+      width: 120px; height: 120px; border-radius: 20px; object-fit: cover; display: block;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 6px 18px rgba(0,0,0,0.1);
+    }
+    .emp-profile-photo-wrap .emp-profile-avatar-init {
+      display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 700;
+      color: var(--company-color, var(--text-secondary)); background: var(--company-tint-strong, var(--surface2));
+    }
+    .emp-profile-photo-cam {
+      position: absolute; bottom: -5px; right: -5px; width: 28px; height: 28px; border-radius: 50%;
+      background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary); box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .emp-profile-photo-wrap:hover .emp-profile-photo-cam, .emp-profile-photo-wrap:focus-within .emp-profile-photo-cam { color: var(--accent); border-color: var(--accent); }
+    .emp-profile-main { flex: 1; min-width: 0; padding-top: 2px; padding-right: 2.4rem; }
+    .emp-profile-name { font-size: 1.65rem; font-weight: 750; letter-spacing: -0.015em; color: var(--text-primary); line-height: 1.2; overflow-wrap: break-word; margin: 0 0 3px; }
+    .emp-profile-position { font-size: 1.05rem; font-weight: 500; color: var(--text-secondary); line-height: 1.3; margin: 0 0 6px; }
+    .emp-profile-org-line { font-size: 0.88rem; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .emp-profile-meta-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 0.65rem; font-size: 0.78rem; color: var(--text-3); }
+    .emp-profile-actions { display: flex; align-items: flex-start; gap: 6px; flex-shrink: 0; margin-top: 1.5rem; }
+    .emp-profile-close { position: absolute; top: 1.1rem; right: 1.1rem; z-index: 1; }
+    .emp-status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+    /* Company badge — a compact identity chip, not a full-bleed tint
+       (§3): thin tinted background, colored text/border, never used for
+       generic interaction (that stays SIERRA teal). */
+    .emp-company-badge {
+      display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em;
+      padding: 0.2rem 0.55rem; border-radius: 7px; color: var(--company-color, var(--text-secondary));
+      background: var(--company-tint, var(--surface2)); border: 1px solid var(--company-tint-border, var(--border));
+    }
+
+    .emp-profile-tabs { padding: 0 1.85rem; flex-shrink: 0; border-top: 1px solid var(--border); }
+    .emp-profile-body { flex: 1; overflow-y: auto; padding: 1.4rem 1.85rem 2.2rem; }
+    /* Non-overview tabs (Empleo/Tiempo/Personal/Gafete/Actividad) stay a
+       single reading column even inside the wide modal — capped so field
+       grids don't stretch into unreadably wide rows (§11). */
+    .emp-profile-body > .data-column { max-width: 900px; }
+
+    /* Overview card grid (§7/§9/§11) — meaningful conceptual groups,
+       generous padding, content-driven height, no forced symmetry. */
+    .emp-overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    .emp-overview-grid .data-block-surface { padding: 26px 26px; }
+    @media (max-width: 760px) { .emp-overview-grid { grid-template-columns: 1fr; } }
+    .emp-hierarchy-person { display: flex; align-items: center; gap: 10px; cursor: pointer; border-radius: 8px; padding: 3px; margin: -3px; }
+    .emp-hierarchy-person:hover { background: var(--surface-hover); }
+    .emp-hierarchy-person img, .emp-hierarchy-person .emp-mini-init { width: 36px; height: 36px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+    .emp-hierarchy-person .emp-mini-init { display: flex; align-items: center; justify-content: center; background: var(--surface2); font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); }
+    .emp-hierarchy-person-name { font-size: 0.86rem; font-weight: 600; color: var(--text-primary); }
+    .emp-hierarchy-person-role { font-size: 0.76rem; color: var(--text-secondary); }
+    .emp-context-item { display: flex; align-items: center; gap: 8px; padding: 0.5rem 0; border-top: 1px solid var(--border); font-size: 0.82rem; }
+    .emp-context-item:first-child { border-top: none; padding-top: 0; }
+
+    /* ── Employee Quick View (§1) — the lightweight drawer kept for fast
+       inspection from the employee table/cards. Distinct ids/classes from
+       the full profile modal above, intentionally narrower. */
+    .emp-quickview-drawer.drawer { width: 380px; z-index: 399; }
+    .emp-qv-hdr { position: relative; padding: 1.4rem 1.3rem 1.1rem; text-align: center; border-bottom: 1px solid var(--border); }
+    .emp-qv-photo { margin: 0 auto 0.7rem; width: 72px; height: 72px; }
+    .emp-qv-photo img, .emp-qv-photo .emp-profile-avatar-init { width: 72px; height: 72px; border-radius: 14px; object-fit: cover; display: block; }
+    .emp-qv-photo .emp-profile-avatar-init { display: flex; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: 700; color: var(--company-color, var(--text-secondary)); background: var(--company-tint-strong, var(--surface2)); }
+    .emp-qv-name { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); }
+    .emp-qv-position { font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; }
+    .emp-qv-org { font-size: 0.78rem; color: var(--text-3); margin-top: 2px; }
+
     .drawer {
       position: fixed;
       top: 0;
@@ -14744,6 +14834,54 @@ function empStatusBadgeHtml(status) {
 }
 const BADGE_STATUS_LABELS = { no_badge: 'Sin gafete', draft: 'Borrador', ready_to_print: 'Listo para imprimir', printed: 'Emitido', delivered: 'Entregado', cancelled: 'Cancelado', reprinted: 'Reimpreso' }
 const READINESS_LABELS = { ready: 'Completo', missing: 'Faltan datos', blocked: 'Bloqueado' }
+// A small colored dot next to the status text (never color alone —
+// §14 accessibility) reusing the same success/warning/danger tokens as
+// empStatusBadgeHtml, so hero and badge always agree on what each status means.
+const EMP_STATUS_DOT_VAR = { active: 'var(--success)', inactive: 'var(--text-3)', terminated: 'var(--danger)', on_leave: 'var(--warning-text)', transferred: 'var(--text-3)' }
+
+// ── Company identity color system (§3) ── the `companies` table (see
+// renderCompaniesView) has no color column, and employees.company is a
+// free-text field, not a foreign key to it — so rather than a schema
+// change, each company name deterministically hashes to one color from
+// a fixed palette. The same name always resolves to the same color
+// everywhere (profile hero, badges, future cards/org-chart), and the
+// palette deliberately avoids SIERRA teal (reserved for UI/interaction)
+// and green/yellow/red (reserved for status) — company color means
+// organizational identity only.
+const COMPANY_COLOR_PALETTE = ['#6366f1', '#0ea5e9', '#8b5cf6', '#ec4899', '#a855f7', '#64748b', '#2563eb', '#0891b2', '#7c3aed', '#db2777']
+function companyColorHex(companyName) {
+  if (!companyName) return null
+  let hash = 0
+  for (let i = 0; i < companyName.length; i++) hash = (hash * 31 + companyName.charCodeAt(i)) >>> 0
+  return COMPANY_COLOR_PALETTE[hash % COMPANY_COLOR_PALETTE.length]
+}
+function companyRecordByName(companyName) {
+  if (!companyName || !_badge.companies) return null
+  for (const list of Object.values(_badge.companies)) {
+    const hit = list.find(c => c.name === companyName)
+    if (hit) return hit
+  }
+  return null
+}
+// Prefers the real `code` from the Companies configuration when this
+// free-text company name matches a configured record; otherwise derives
+// short initials so every company still gets a compact badge.
+function companyShortCode(companyName) {
+  const rec = companyRecordByName(companyName)
+  if (rec?.code) return rec.code
+  if (!companyName) return ''
+  return companyName.split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 4).toUpperCase()
+}
+// CSS custom properties consumed by .emp-profile-hero-accent/-tint and
+// .emp-company-badge — color-mix against var(--surface)/var(--text-primary)
+// keeps the tint anchored to the current theme's own lightness, so the
+// same hex reads correctly (and stays legible/AA-ish) in both light and
+// dark mode without a separate dark-mode color table.
+function companyColorStyleVars(companyName) {
+  const hex = companyColorHex(companyName)
+  if (!hex) return ''
+  return `--company-color:${hex};--company-tint:color-mix(in srgb, ${hex} 12%, var(--surface));--company-tint-strong:color-mix(in srgb, ${hex} 20%, var(--surface));--company-tint-border:color-mix(in srgb, ${hex} 38%, transparent);`
+}
 
 // Table grouping — Monday-style collapsible groups so large employee
 // datasets stay scannable. keyFn/labelFn read from the same filtered
@@ -14800,7 +14938,6 @@ let _badge_ui = {
   selectedEmployeeId: null,
   detailTab: 'overview',      // 'overview' | 'personal' | 'badge' | 'activity'
   editingEmployee: false,
-  completenessOpen: false,    // profile completeness detail expanded in the drawer header
   detailReturnFocusEl: null,  // element to return keyboard focus to when the detail drawer closes
   issuanceInProgress: null,   // badge issuance being created
   moments: {                   // Momentos workspace filters
@@ -15329,7 +15466,7 @@ function empRowActionsHtml(emp) {
 }
 function empRowHtml(emp, cols) {
   const selected = _badge_ui.selected.has(emp.id)
-  return `<tr class="is-clickable ${selected ? 'emp-row-selected' : ''}" data-emp-id="${emp.id}" onclick="viewEmployeeDetail('${emp.id}')">
+  return `<tr class="is-clickable ${selected ? 'emp-row-selected' : ''}" data-emp-id="${emp.id}" onclick="viewEmployeeQuickView('${emp.id}')">
     <td class="cat-td-select" onclick="event.stopPropagation()"><input type="checkbox" ${selected ? 'checked' : ''} onchange="toggleEmpSelect('${emp.id}')" /></td>
     ${cols.map(c => empColCellHtml(emp, c.key)).join('')}
     ${empRowActionsHtml(emp)}
@@ -15377,7 +15514,7 @@ function empCardHtml(emp) {
   const st = badgeReadinessState(emp)
   const b = empLatestBadge(emp)
   const canWrite = can('write', 'talento_humano')
-  return `<div class="card person-card" onclick="viewEmployeeDetail('${emp.id}')">
+  return `<div class="card person-card" onclick="viewEmployeeQuickView('${emp.id}')">
     ${emp.photo_url ? `<div class="card-img"><img src="${esc(emp.photo_url)}" alt="${esc(emp.first_name)}" loading="lazy" /></div>` : `<div class="card-img-placeholder"><span style="font-size:1.3rem;font-weight:700;color:var(--text-secondary)">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</span></div>`}
     <div class="card-body">
       <div class="card-meta">
@@ -17232,13 +17369,71 @@ function filterEmployees(query) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   EMPLOYEE DETAIL DRAWER — wide (680px) record panel, never a tiny modal.
-   Header carries photo/identity/status + the primary Create/View Badge
-   action; record-tabs (Overview / Badge / Activity) organize the rest,
-   built from the shared dataBlockHtml/dataFieldsHtml record primitives so
-   it reads exactly like the rest of the app's record screens. ══════════ */
+   EMPLOYEE PROFILE — two distinct levels (§1). viewEmployeeQuickView()
+   below is a lightweight right-side drawer for quick inspection from the
+   employee table/cards, holding only identity essentials + "Ver perfil".
+   viewEmployeeDetail() opens the Full Employee Profile — a large centered
+   workspace modal (§1), not a drawer — with the complete record across
+   Resumen/Empleo/Tiempo/Personal/Gafete/Actividad tabs. ══════════════ */
+
+// Quick View (§1) — photo, name, position, company, department, code,
+// status, email/phone, direct manager, and one clear "Ver perfil" action.
+// Deliberately does NOT attempt the full record: that's what the large
+// profile modal is for. Reuses the narrow .drawer/.drawer-right pattern
+// (distinct ids from the full-profile modal so both could coexist safely,
+// though in practice opening one closes the other).
+function viewEmployeeQuickView(empId) {
+  document.getElementById('employee-quickview-drawer-backdrop')?.remove()
+  document.getElementById('employee-quickview-drawer')?.remove()
+  closeEmployeeDetail()
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp) return
+  const backdrop = document.createElement('div')
+  backdrop.className = 'drawer-backdrop'
+  backdrop.id = 'employee-quickview-drawer-backdrop'
+  backdrop.onclick = () => closeEmployeeQuickView()
+  document.body.appendChild(backdrop)
+  const drawer = document.createElement('div')
+  drawer.className = 'drawer drawer-right emp-quickview-drawer'
+  drawer.id = 'employee-quickview-drawer'
+  drawer.setAttribute('role', 'dialog')
+  drawer.setAttribute('aria-modal', 'true')
+  drawer.setAttribute('aria-label', 'Vista rápida de colaborador')
+  document.body.appendChild(drawer)
+  const rel = (!_badge.reportingRelationshipsUnavailable && typeof orgCurrentManagerRelationship === 'function') ? orgCurrentManagerRelationship(empId) : null
+  const mgr = rel ? orgEmpById(rel.manager_employee_id) : null
+  drawer.innerHTML = `<div class="drawer-content">
+    <div class="emp-qv-hdr" style="${companyColorStyleVars(emp.company)}">
+      <button class="icon-btn icon-btn-quiet" style="position:absolute;top:0.9rem;right:0.9rem" onclick="closeEmployeeQuickView()" title="Cerrar" aria-label="Cerrar vista rápida">${siIcon('x', 16)}</button>
+      <div class="emp-qv-photo">${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" />` : `<div class="emp-profile-avatar-init" aria-hidden="true">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</div>`}</div>
+      <div class="emp-qv-name">${esc(orgFullName ? orgFullName(emp) : emp.first_name + ' ' + emp.last_name)}</div>
+      ${emp.position ? `<div class="emp-qv-position">${esc(emp.position)}</div>` : ''}
+      <div class="emp-qv-org">${[emp.company, emp.department].filter(Boolean).map(esc).join(' · ') || ''}</div>
+      <div style="margin-top:0.6rem"><span class="emp-status-dot" style="background:${EMP_STATUS_DOT_VAR[emp.employee_status] || 'var(--text-3)'}"></span>${esc(EMP_STATUS_LABELS[emp.employee_status] || emp.employee_status)}${emp.employee_code ? ` <span aria-hidden="true">·</span> <code>${esc(emp.employee_code)}</code>` : ''}</div>
+    </div>
+    <div class="drawer-body">
+      ${dataFieldsHtml([
+        { label: 'Correo', value: emp.email, icon: 'mail', copy: true },
+        { label: 'Teléfono', value: emp.phone, icon: 'phone', copy: true },
+      ], { cols: 2 })}
+      ${mgr ? dataFieldsHtml([{ label: 'Jefe inmediato', html: `<a href="#" onclick="event.preventDefault();viewEmployeeQuickView('${mgr.id}')">${esc(orgFullName(mgr))}</a>` }]) : ''}
+    </div>
+    <div class="drawer-footer">
+      <button type="button" class="btn btn-primary" onclick="viewEmployeeDetail('${emp.id}')">Ver perfil completo</button>
+      <button type="button" class="btn btn-ghost" onclick="closeEmployeeQuickView()">Cerrar</button>
+    </div>
+  </div>`
+  requestAnimationFrame(() => { backdrop.classList.add('open'); drawer.classList.add('open'); drawer.querySelector('.icon-btn-quiet')?.focus() })
+}
+function closeEmployeeQuickView() {
+  const drawer = document.getElementById('employee-quickview-drawer')
+  const backdrop = document.getElementById('employee-quickview-drawer-backdrop')
+  if (drawer) { drawer.classList.remove('open'); setTimeout(() => drawer.remove(), 300) }
+  if (backdrop) { backdrop.classList.remove('open'); setTimeout(() => backdrop.remove(), 300) }
+}
 
 function viewEmployeeDetail(empId, tab) {
+  closeEmployeeQuickView()
   document.getElementById('employee-detail-drawer-backdrop')?.remove()
   document.getElementById('employee-detail-drawer')?.remove()
   const emp = _badge.employees.find(e => e.id === empId)
@@ -17248,17 +17443,23 @@ function viewEmployeeDetail(empId, tab) {
   _badge_ui.editingEmployee = false
   // Remember what to return keyboard focus to once the drawer closes.
   _badge_ui.detailReturnFocusEl = document.activeElement && document.activeElement !== document.body ? document.activeElement : null
+  // The Full Employee Profile is a large centered workspace modal (§1),
+  // not a drawer — element ids stay the same as the old drawer so every
+  // re-render call site elsewhere in the app (edit, photo upload, tab
+  // loaders, etc.) keeps working unchanged; only the chrome/classes
+  // change. .drawer-backdrop still gives the fade open/close mechanic;
+  // .emp-profile-overlay adds the centering.
   const backdrop = document.createElement('div')
-  backdrop.className = 'drawer-backdrop'
+  backdrop.className = 'drawer-backdrop emp-profile-overlay'
   backdrop.id = 'employee-detail-drawer-backdrop'
-  backdrop.onclick = () => closeEmployeeDetail()
+  backdrop.onclick = e => { if (e.target === backdrop) closeEmployeeDetail() }
   document.body.appendChild(backdrop)
   const drawer = document.createElement('div')
-  drawer.className = 'drawer drawer-right emp-detail-drawer'
+  drawer.className = 'emp-profile-modal'
   drawer.id = 'employee-detail-drawer'
   drawer.setAttribute('role', 'dialog')
   drawer.setAttribute('aria-modal', 'true')
-  drawer.setAttribute('aria-label', 'Detalle de colaborador')
+  drawer.setAttribute('aria-label', 'Perfil de colaborador')
   drawer.addEventListener('keydown', empDetailTrapFocus)
   document.body.appendChild(drawer)
   renderEmployeeDetailDrawer(emp)
@@ -17306,107 +17507,110 @@ function empCompleteness(emp) {
   const pct = Math.round(((total - missing.length) / total) * 100)
   return { pct, missing, state: pct === 100 ? 'ready' : 'warning' }
 }
+// Compact contextual control (§8) — reuses the same .completeness-control
+// ring+popover vocabulary as pdCompleteness()/completenessChipHtml()
+// elsewhere in the app, rather than a permanent full-width strip. A
+// fully-complete profile shows nothing at all: prominence is earned only
+// when something is genuinely missing.
 function empCompletenessHtml(emp) {
   const c = empCompleteness(emp)
-  const popId = 'emp-completeness-detail'
-  return `<div class="emp-completeness state-${c.state}">
-    <button type="button" class="emp-completeness-toggle" onclick="toggleEmpCompleteness()" aria-expanded="${_badge_ui.completenessOpen ? 'true' : 'false'}" aria-controls="${popId}">
-      <span class="emp-completeness-icon">${siIcon(c.state === 'ready' ? 'check-circle' : 'alert-triangle', 14)}</span>
-      <span class="emp-completeness-bar"><span class="emp-completeness-bar-fill" style="width:${c.pct}%"></span></span>
-      <span class="emp-completeness-label">Perfil ${c.pct}% completo</span>
-      <span class="emp-completeness-icon">${siIcon(_badge_ui.completenessOpen ? 'chevron-up' : 'chevron-down', 14)}</span>
+  if (c.state === 'ready') return ''
+  const popId = 'emp-completeness-pop'
+  const r = 6.4, circ = 2 * Math.PI * r, offset = circ * (1 - c.pct / 100)
+  return `<div style="position:relative;display:inline-block">
+    <button type="button" class="completeness-control" onclick="catTogglePop(event,'${popId}')" title="Perfil incompleto — clic para ver qué falta" aria-haspopup="true">
+      <svg class="completeness-ring" viewBox="0 0 16 16" aria-hidden="true"><circle class="track" cx="8" cy="8" r="${r}"/><circle class="fill" cx="8" cy="8" r="${r}" stroke-dasharray="${circ}" stroke-dashoffset="${offset}"/></svg>
+      Perfil incompleto · <b>${c.pct}%</b>
     </button>
-    ${_badge_ui.completenessOpen ? `<div class="emp-completeness-detail" id="${popId}">
-      ${c.missing.length ? c.missing.map(m => `
-        <div class="emp-completeness-row">
-          <span class="emp-completeness-icon">${siIcon('alert-triangle', 13)}</span>
-          <div class="emp-completeness-row-main">
-            <div class="emp-completeness-row-field">${esc(m.label)}</div>
-            <div class="emp-completeness-row-why">${esc(m.why)}</div>
-          </div>
-        </div>
-      `).join('') + (can('write', 'talento_humano') ? `<button type="button" class="btn btn-secondary btn-sm" style="margin-top:0.5rem" onclick="empStartEdit()">Completar información</button>` : '')
-        : `<div class="emp-completeness-row"><div class="emp-completeness-row-main">Toda la información recomendada está completa.</div></div>`}
-    </div>` : ''}
+    <div class="ws-pop completeness-pop" id="${popId}">
+      <div class="completeness-pop-hd">Falta completar:</div>
+      ${c.missing.map(m => `<div class="completeness-missing-row" title="${escAttr(m.why)}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4" /><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0" /><path d="M12 16h.01" /></svg>${esc(m.label)}</div>`).join('')}
+      ${can('write', 'talento_humano') ? `<button type="button" class="btn btn-primary btn-sm completeness-pop-action" onclick="empStartEdit()">Completar información</button>` : ''}
+    </div>
   </div>`
 }
-function toggleEmpCompleteness() {
-  _badge_ui.completenessOpen = !_badge_ui.completenessOpen
-  const emp = _badge.employees.find(e => e.id === _badge_ui.selectedEmployeeId)
-  if (emp) renderEmployeeDetailDrawer(emp)
-}
 
-// Header primary action depends on employee/badge state — never a blind
-// "Crear gafete" when the record isn't eligible or already has one.
-function empDetailPrimaryActionHtml(emp) {
-  if (!can('write', 'talento_humano')) return ''
+// The profile hero (§2/§4) — "who is this person, what do they do,
+// where do they work, where do they sit" answered in one glance, with
+// the photo/name/position carrying real visual weight instead of
+// competing on equal footing with a dozen smaller fields. A thin
+// company-color accent + very light tint mark organizational identity
+// (never a full-bleed tint — §3); status/actions read as this person's
+// own identity card, not a form header.
+function empProfileHeroHtml(emp, canWrite) {
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const reportCount = orgDirectReportIds(emp.id).length
   const b = empLatestBadge(emp)
-  if (!emp.photo_url) return `<button class="btn btn-primary btn-sm" onclick="empStartEdit()">Agregar fotografía</button>`
-  if (!b) return `<button class="btn btn-primary btn-sm" onclick="startBadgeIssuance('${emp.id}')">+ Crear gafete</button>`
-  if (b.status === 'printed' || b.status === 'delivered') return `<button class="btn btn-secondary btn-sm" onclick="startBadgeIssuance('${emp.id}')">Reimprimir</button>`
-  return `<button class="btn btn-secondary btn-sm" onclick="startBadgeIssuance('${emp.id}')">Ver gafete</button>`
+  return `
+    <div class="emp-profile-hero" style="${companyColorStyleVars(emp.company)}">
+      <div class="emp-profile-hero-accent"></div>
+      <div class="emp-profile-hero-tint"></div>
+      <button class="icon-btn icon-btn-quiet emp-profile-close" onclick="closeEmployeeDetail()" title="Cerrar" aria-label="Cerrar perfil de colaborador"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+      <div class="emp-profile-hero-row">
+        <label class="emp-profile-photo-wrap" title="${canWrite ? 'Cambiar fotografía' : ''}">
+          ${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" />` : `<div class="emp-profile-avatar-init" aria-hidden="true">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</div>`}
+          ${canWrite ? `<span class="emp-profile-photo-cam" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M4 7h2l1.5-2h5L14 7h2a1 1 0 011 1v7a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><circle cx="10" cy="11.5" r="2.3" stroke="currentColor" stroke-width="1.3"/></svg></span>
+          <span class="sr-only">Cambiar fotografía de ${esc(emp.first_name)} ${esc(emp.last_name)}</span>
+          <input type="file" accept="image/*" style="display:none" onchange="uploadEmployeeDetailPhoto('${emp.id}', this)" />` : ''}
+        </label>
+        <div class="emp-profile-main">
+          <div class="emp-profile-name">${esc(emp.first_name)} ${esc(emp.last_name)}${esc(emp.preferred_name ? ` "${emp.preferred_name}"` : '')}</div>
+          ${emp.position ? `<div class="emp-profile-position">${esc(emp.position)}</div>` : ''}
+          <div class="emp-profile-org-line">
+            ${emp.company ? `<span class="emp-company-badge">${siIcon('building', 11)}${esc(companyShortCode(emp.company))} · ${esc(emp.company)}</span>` : `<span class="emp-company-badge" style="color:var(--warning-text);background:var(--warning-bg);border-color:var(--warning-border)">${siIcon('alert-triangle', 11)}Empresa sin asignar</span>`}
+            ${emp.department ? `<span>${esc(emp.department)}</span>` : ''}
+          </div>
+          <div class="emp-profile-meta-line">
+            ${emp.employee_code ? `<span class="emp-detail-hdr-code"><code>${esc(emp.employee_code)}</code><button type="button" class="emp-detail-hdr-code-copy" onclick="event.stopPropagation();copyFieldValue(this,'${jsStr(emp.employee_code)}','Código de colaborador')" title="Copiar código" aria-label="Copiar código de colaborador">${FIELD_COPY_ICON}</button></span>` : ''}
+            <span><span class="emp-status-dot" style="background:${EMP_STATUS_DOT_VAR[emp.employee_status] || 'var(--text-3)'}" aria-hidden="true"></span>${esc(EMP_STATUS_LABELS[emp.employee_status] || emp.employee_status)}</span>
+            ${empHeaderTenureText(emp) ? `<span aria-hidden="true">·</span><span>${esc(empHeaderTenureText(emp))}</span>` : ''}
+            ${reportCount ? `<span aria-hidden="true">·</span><span>${reportCount} reporte${reportCount !== 1 ? 's' : ''} directo${reportCount !== 1 ? 's' : ''}</span>` : ''}
+          </div>
+        </div>
+        <div class="emp-profile-actions">
+          ${canWrite ? `<button class="btn btn-primary btn-sm" onclick="empStartEdit()">Editar perfil</button>` : ''}
+          ${overflowMenuHtml([
+            ...(canWrite ? [
+              { label: (!b ? '+ Crear gafete' : (b.status === 'printed' || b.status === 'delivered') ? 'Reimprimir gafete' : 'Ver gafete'), onClick: `startBadgeIssuance('${emp.id}')` },
+              { label: 'Descargar ficha', onClick: `copyEmployeeSummary('${emp.id}')` },
+              { label: 'Cambiar fotografía', onClick: `document.querySelector('#employee-detail-drawer .emp-profile-photo-wrap input[type=file]')?.click()` },
+              ...(emp.photo_url ? [{ label: 'Quitar fotografía', onClick: `removeEmployeePhoto('${emp.id}')` }] : []),
+            ] : []),
+            { label: 'Copiar información organizacional', onClick: `copyEmployeeOrgInfo('${emp.id}')` },
+            { label: 'Ver historial', onClick: `closeEmployeeDetail(); _badge_ui.view='history'; renderBadgeModule()` },
+            ...(canWrite && emp.employee_status !== 'terminated' ? [{ label: 'Dar de baja', danger: true, onClick: `closeEmployeeDetail(); empOpenTerminationModal('${emp.id}')` }] : []),
+            ...(canWrite && emp.employee_status === 'terminated' ? [{ label: 'Recontratar', onClick: `closeEmployeeDetail(); hireOpenWizard().then(() => hirePickRehire('${emp.id}'))` }] : []),
+          ], { btnClass: 'menu-below', title: 'Más acciones' })}
+        </div>
+      </div>
+      ${empCompletenessHtml(emp) ? `<div style="margin-top:0.85rem;position:relative">${empCompletenessHtml(emp)}</div>` : ''}
+    </div>
+  `
 }
-
 function renderEmployeeDetailDrawer(emp) {
   const drawer = document.getElementById('employee-detail-drawer')
   if (!drawer) return
   const canWrite = can('write', 'talento_humano')
   const canSeePersonal = can('write', 'talento_humano') // Personal tab holds identity/emergency/medical data
-  const site = _badge.sites.find(s => s.id === _badge.activeSite)
-  const orgMeta = [emp.company, site?.name, emp.department].filter(Boolean).join(' · ')
   drawer.innerHTML = `
-    <div class="drawer-content">
-      <div class="emp-detail-hdr">
-        <label class="emp-detail-hdr-photo" title="${canWrite ? 'Cambiar fotografía' : ''}">
-          ${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" />` : `<div class="emp-avatar-init" aria-hidden="true">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</div>`}
-          ${canWrite ? `<span class="emp-detail-hdr-photo-cam" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M4 7h2l1.5-2h5L14 7h2a1 1 0 011 1v7a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><circle cx="10" cy="11.5" r="2.3" stroke="currentColor" stroke-width="1.3"/></svg></span>
-          <span class="sr-only">Cambiar fotografía de ${esc(emp.first_name)} ${esc(emp.last_name)}</span>
-          <input type="file" accept="image/*" style="display:none" onchange="uploadEmployeeDetailPhoto('${emp.id}', this)" />` : ''}
-        </label>
-        <div class="emp-detail-hdr-main">
-          <div class="emp-detail-hdr-name">${esc(emp.first_name)} ${esc(emp.last_name)}${esc(emp.preferred_name ? ` "${emp.preferred_name}"` : '')}</div>
-          <div class="emp-detail-hdr-meta">
-            ${emp.employee_code ? `<span class="emp-detail-hdr-code"><code>${esc(emp.employee_code)}</code><button type="button" class="emp-detail-hdr-code-copy" onclick="event.stopPropagation();copyFieldValue(this,'${jsStr(emp.employee_code)}','Código de colaborador')" title="Copiar código" aria-label="Copiar código de colaborador">${FIELD_COPY_ICON}</button></span>` : ''}
-            ${emp.employee_code ? '<span aria-hidden="true">·</span>' : ''}
-            ${empStatusBadgeHtml(emp.employee_status)}
-            ${empHeaderTenureText(emp) ? `<span aria-hidden="true">·</span><span>${esc(empHeaderTenureText(emp))}</span>` : ''}
-            ${orgDirectReportIds(emp.id).length ? `<span aria-hidden="true">·</span><span>${orgDirectReportIds(emp.id).length} reporte${orgDirectReportIds(emp.id).length !== 1 ? 's' : ''} directo${orgDirectReportIds(emp.id).length !== 1 ? 's' : ''}</span>` : ''}
-          </div>
-          ${orgMeta ? `<div class="emp-detail-hdr-org">${esc(orgMeta)}</div>` : ''}
-          ${emp.position ? `<div class="emp-detail-hdr-position">${esc(emp.position)}</div>` : ''}
-        </div>
-        <div class="emp-detail-hdr-actions">
-          ${empDetailPrimaryActionHtml(emp)}
-          ${overflowMenuHtml([
-            ...(canWrite ? [{ label: 'Editar colaborador', onClick: `empStartEdit()` }] : []),
-            ...(canWrite && emp.employee_status !== 'terminated' ? [{ label: 'Dar de baja', onClick: `closeEmployeeDetail(); empOpenTerminationModal('${emp.id}')` }] : []),
-            ...(canWrite && emp.employee_status === 'terminated' ? [{ label: 'Recontratar', onClick: `closeEmployeeDetail(); hireOpenWizard().then(() => hirePickRehire('${emp.id}'))` }] : []),
-            { label: 'Copiar resumen del colaborador', onClick: `copyEmployeeSummary('${emp.id}')` },
-            { label: 'Copiar información organizacional', onClick: `copyEmployeeOrgInfo('${emp.id}')` },
-            { label: 'Ver historial', onClick: `closeEmployeeDetail(); _badge_ui.view='history'; renderBadgeModule()` },
-          ], { btnClass: 'menu-below', title: 'Más acciones' })}
-          <button class="icon-btn icon-btn-quiet" onclick="closeEmployeeDetail()" title="Cerrar" aria-label="Cerrar detalle de colaborador"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5l-10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
-        </div>
+    ${empProfileHeroHtml(emp, canWrite)}
+    <div class="emp-profile-tabs">
+      <div class="record-tabs" role="tablist" aria-label="Secciones del colaborador">
+        <button class="record-tab ${_badge_ui.detailTab === 'overview' ? 'active' : ''}" role="tab" id="emp-tab-overview" aria-selected="${_badge_ui.detailTab === 'overview'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'overview' ? '0' : '-1'}" onclick="switchEmpDetailTab('overview')" onkeydown="empTabKeydown(event,'overview')">Resumen</button>
+        <button class="record-tab ${_badge_ui.detailTab === 'employment' ? 'active' : ''}" role="tab" id="emp-tab-employment" aria-selected="${_badge_ui.detailTab === 'employment'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'employment' ? '0' : '-1'}" onclick="switchEmpDetailTab('employment')" onkeydown="empTabKeydown(event,'employment')">Empleo</button>
+        <button class="record-tab ${_badge_ui.detailTab === 'time' ? 'active' : ''}" role="tab" id="emp-tab-time" aria-selected="${_badge_ui.detailTab === 'time'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'time' ? '0' : '-1'}" onclick="switchEmpDetailTab('time')" onkeydown="empTabKeydown(event,'time')">Tiempo</button>
+        ${canSeePersonal ? `<button class="record-tab ${_badge_ui.detailTab === 'personal' ? 'active' : ''}" role="tab" id="emp-tab-personal" aria-selected="${_badge_ui.detailTab === 'personal'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'personal' ? '0' : '-1'}" onclick="switchEmpDetailTab('personal')" onkeydown="empTabKeydown(event,'personal')">Personal</button>` : ''}
+        <button class="record-tab ${_badge_ui.detailTab === 'badge' ? 'active' : ''}" role="tab" id="emp-tab-badge" aria-selected="${_badge_ui.detailTab === 'badge'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'badge' ? '0' : '-1'}" onclick="switchEmpDetailTab('badge')" onkeydown="empTabKeydown(event,'badge')">Gafete</button>
+        <button class="record-tab ${_badge_ui.detailTab === 'activity' ? 'active' : ''}" role="tab" id="emp-tab-activity" aria-selected="${_badge_ui.detailTab === 'activity'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'activity' ? '0' : '-1'}" onclick="switchEmpDetailTab('activity')" onkeydown="empTabKeydown(event,'activity')">Actividad</button>
       </div>
-      ${empCompletenessHtml(emp)}
-      <div class="emp-detail-tabs">
-        <div class="record-tabs" role="tablist" aria-label="Secciones del colaborador">
-          <button class="record-tab ${_badge_ui.detailTab === 'overview' ? 'active' : ''}" role="tab" id="emp-tab-overview" aria-selected="${_badge_ui.detailTab === 'overview'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'overview' ? '0' : '-1'}" onclick="switchEmpDetailTab('overview')" onkeydown="empTabKeydown(event,'overview')">Resumen</button>
-          <button class="record-tab ${_badge_ui.detailTab === 'employment' ? 'active' : ''}" role="tab" id="emp-tab-employment" aria-selected="${_badge_ui.detailTab === 'employment'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'employment' ? '0' : '-1'}" onclick="switchEmpDetailTab('employment')" onkeydown="empTabKeydown(event,'employment')">Empleo</button>
-          <button class="record-tab ${_badge_ui.detailTab === 'time' ? 'active' : ''}" role="tab" id="emp-tab-time" aria-selected="${_badge_ui.detailTab === 'time'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'time' ? '0' : '-1'}" onclick="switchEmpDetailTab('time')" onkeydown="empTabKeydown(event,'time')">Tiempo</button>
-          ${canSeePersonal ? `<button class="record-tab ${_badge_ui.detailTab === 'personal' ? 'active' : ''}" role="tab" id="emp-tab-personal" aria-selected="${_badge_ui.detailTab === 'personal'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'personal' ? '0' : '-1'}" onclick="switchEmpDetailTab('personal')" onkeydown="empTabKeydown(event,'personal')">Personal</button>` : ''}
-          <button class="record-tab ${_badge_ui.detailTab === 'badge' ? 'active' : ''}" role="tab" id="emp-tab-badge" aria-selected="${_badge_ui.detailTab === 'badge'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'badge' ? '0' : '-1'}" onclick="switchEmpDetailTab('badge')" onkeydown="empTabKeydown(event,'badge')">Gafete</button>
-          <button class="record-tab ${_badge_ui.detailTab === 'activity' ? 'active' : ''}" role="tab" id="emp-tab-activity" aria-selected="${_badge_ui.detailTab === 'activity'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'activity' ? '0' : '-1'}" onclick="switchEmpDetailTab('activity')" onkeydown="empTabKeydown(event,'activity')">Actividad</button>
-        </div>
-      </div>
-      <div class="drawer-body emp-detail-body" role="tabpanel" id="emp-tab-panel" aria-labelledby="emp-tab-${_badge_ui.detailTab}">
-        ${_badge_ui.detailTab === 'overview' ? renderEmpOverviewTab(emp) : ''}
-        ${_badge_ui.detailTab === 'employment' ? renderEmpEmploymentTab(emp) : ''}
-        ${_badge_ui.detailTab === 'time' ? renderEmpTimeTab(emp) : ''}
-        ${_badge_ui.detailTab === 'personal' && canSeePersonal ? renderEmpPersonalTab(emp) : ''}
-        ${_badge_ui.detailTab === 'badge' ? renderEmpBadgeTab(emp) : ''}
-        ${_badge_ui.detailTab === 'activity' ? renderEmpActivityTab(emp) : ''}
-      </div>
+    </div>
+    <div class="emp-profile-body" role="tabpanel" id="emp-tab-panel" aria-labelledby="emp-tab-${_badge_ui.detailTab}">
+      ${_badge_ui.detailTab === 'overview' ? renderEmpOverviewTab(emp) : ''}
+      ${_badge_ui.detailTab === 'employment' ? renderEmpEmploymentTab(emp) : ''}
+      ${_badge_ui.detailTab === 'time' ? renderEmpTimeTab(emp) : ''}
+      ${_badge_ui.detailTab === 'personal' && canSeePersonal ? renderEmpPersonalTab(emp) : ''}
+      ${_badge_ui.detailTab === 'badge' ? renderEmpBadgeTab(emp) : ''}
+      ${_badge_ui.detailTab === 'activity' ? renderEmpActivityTab(emp) : ''}
     </div>
   `
   if (_badge_ui.detailTab === 'activity') loadEmpActivity(emp.id)
@@ -17507,47 +17711,46 @@ async function uploadEmployeeDetailPhoto(empId, inputEl) {
   if (emp) renderEmployeeDetailDrawer(emp)
   renderBadgeModule()
 }
+// "Remove photo" (§5 secondary overflow action) — keeps the original
+// file in storage (nothing is deleted from the bucket), it just detaches
+// it from the record so the profile falls back to initials.
+async function removeEmployeePhoto(empId) {
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp || !emp.photo_url) return
+  if (!confirm(`¿Quitar la fotografía de ${orgFullName(emp)}?`)) return
+  const { error } = await sb.from('employees').update({ photo_url: null }).eq('id', empId)
+  if (error) { toast('Error al quitar la fotografía: ' + error.message); return }
+  emp.photo_url = null
+  Audit.log('employee', empId, emp, 'photo_removed', 'Fotografía eliminada')
+  toast('Fotografía eliminada')
+  renderEmployeeDetailDrawer(emp)
+  renderBadgeModule()
+}
 
 /* ── Overview tab: the everyday-use summary — organization, contact,
    next relevant moment, badge summary, and system metadata pushed into a
    secondary collapsible block. Identity, emergency contact and medical
    information live on the Personal tab instead, so nothing sensitive is
    ever the first thing an unrelated viewer sees when the drawer opens. ── */
+// ── Resumen (§7) — an executive overview: four meaningful conceptual
+// groups in a responsive card grid, never a field dump. Anything already
+// stated in the hero (company, department, position, status) is never
+// repeated here (§17 redundancy rule) — this tab only adds what the
+// hero can't: organizational hierarchy, trajectory, contact, and
+// anything genuinely needing attention. No card is manufactured just to
+// fill the grid — every function below can return '' when it has
+// nothing real to say.
 function renderEmpOverviewTab(emp) {
   if (_badge_ui.editingEmployee) return renderEmpOverviewEditForm(emp)
-  const site = _badge.sites.find(s => s.id === _badge.activeSite)
-  const seniority = empSeniority(emp)
-  const org = dataFieldsHtml([
-    { label: 'Empresa', value: emp.company, icon: 'building', copy: true },
-    { label: 'Sede', value: site?.name, icon: 'map-pin', copy: true },
-    { label: 'Departamento', value: emp.department, icon: 'building', copy: true },
-    { label: 'Puesto', value: emp.position, icon: 'briefcase', copy: true },
-    { label: 'Supervisor inmediato', value: emp.supervisor_name, icon: 'users', copy: true },
-    { label: 'Fecha de ingreso', value: emp.hire_date, icon: 'calendar', dateEs: true, copy: emp.hire_date ? hrFmtDate(emp.hire_date) : false },
-    { label: 'Antigüedad', value: seniority ? `${seniority.years} año${seniority.years !== 1 ? 's' : ''}, ${seniority.months} mes${seniority.months !== 1 ? 'es' : ''}` : null, icon: 'clock' },
-    { label: 'Categoría', value: emp.employee_category, icon: 'briefcase' },
-  ], { cols: 2 })
-  const contact = dataFieldsHtml([
-    { label: 'Correo', value: emp.email, icon: 'mail', copy: true },
-    { label: 'Teléfono', value: emp.phone, icon: 'phone', copy: true },
-  ], { cols: 2 })
-  const nextBday = empNextBirthday(emp)
-  const nextAnniv = empNextAnniversary(emp)
-  const moments = dataFieldsHtml([
-    { label: 'Próximo cumpleaños', value: nextBday ? `${hrFmtDate(nextBday.date)} · ${nextBday.daysUntil === 0 ? 'hoy' : `en ${nextBday.daysUntil} día${nextBday.daysUntil !== 1 ? 's' : ''}`}` : null, icon: 'star' },
-    { label: 'Próximo aniversario', value: nextAnniv ? `${hrFmtDate(nextAnniv.date)} · ${nextAnniv.years} año${nextAnniv.years !== 1 ? 's' : ''}${nextAnniv.milestone ? ' 🎉' : ''}` : null, icon: 'crown' },
-  ], { cols: 2 })
   return `
-    <div class="data-column">
-      ${dataBlockHtml('Organización', org, { aside: canEditEmpField() ? '<button type="button" class="btn btn-ghost btn-sm" onclick="empStartEdit()" style="padding:2px 6px">Editar</button>' : null })}
-      ${empEstructuraCompactHtml(emp)}
-      ${empTrayectoriaCompactHtml(emp)}
-      ${empIndexAccessSectionHtml(emp)}
-      ${contact ? dataBlockHtml('Contacto', contact) : dataBlockHtml('Contacto', emptyStateHtml({ title: 'Sin información de contacto', desc: 'Agrega un correo o teléfono para este colaborador.', actionLabel: canEditEmpField() ? 'Completar' : null, actionOnClick: 'empStartEdit()' }))}
-      ${moments ? dataBlockHtml('Próximo momento', moments) : ''}
-      ${dataBlockHtml('Gafete', empBadgeSummaryHtml(emp))}
+    <div class="emp-overview-grid">
+      ${empHierarchyCardHtml(emp)}
+      ${empTrayectoriaCardHtml(emp)}
+      ${empContactCardHtml(emp)}
+      ${empImportantContextCardHtml(emp)}
     </div>
-    <details class="emp-system-details" style="margin-top:0.9rem">
+    ${empIndexAccessSectionHtml(emp)}
+    <details class="emp-system-details" style="margin-top:1.1rem">
       <summary style="cursor:pointer;font-size:0.72rem;font-weight:600;color:var(--text-3);letter-spacing:0.02em;padding:0.3rem 0">Información del sistema</summary>
       <div style="margin-top:0.5rem">
         ${dataFieldsHtml([
@@ -17560,22 +17763,93 @@ function renderEmpOverviewTab(emp) {
 }
 function canEditEmpField() { return can('write', 'talento_humano') }
 
-// Compact badge summary for Overview — status, last issue/delivery, one
-// contextual action. The full lifecycle detail still lives on the
-// dedicated Gafete tab; this is the "at a glance" version.
-function empBadgeSummaryHtml(emp) {
-  const b = empLatestBadge(emp)
-  if (!b) {
-    return emptyStateHtml({
-      title: 'Sin gafete', desc: 'Este colaborador todavía no tiene un gafete emitido.',
-      actionLabel: canEditEmpField() ? '+ Crear gafete' : null, actionOnClick: `startBadgeIssuance('${emp.id}')`,
-    })
+// One of the most useful cards (§7): manager + a bounded team preview,
+// each person clickable straight into their own profile — never the old
+// flat textual "SIERRA → company → dept → position" tree, which is
+// already better represented by company/department/position in the hero
+// plus this card's own manager/team relationships and the org chart.
+function empHierarchyCardHtml(emp) {
+  if (_badge.reportingRelationshipsUnavailable) return ''
+  const rel = orgCurrentManagerRelationship(emp.id)
+  const mgr = rel ? orgEmpById(rel.manager_employee_id) : null
+  const reportIds = orgDirectReportIds(emp.id)
+  const reports = reportIds.map(orgEmpById).filter(Boolean)
+  const preview = reports.slice(0, EMP_TEAM_PREVIEW_LIMIT)
+  const overflow = reports.length - preview.length
+  const personRow = p => `<div class="emp-hierarchy-person" role="button" tabindex="0" onclick="viewEmployeeDetail('${p.id}')" onkeydown="if(event.key==='Enter')viewEmployeeDetail('${p.id}')">
+    ${p.photo_url ? `<img src="${esc(p.photo_url)}" alt="" />` : `<span class="emp-mini-init">${esc((p.first_name[0] || '') + (p.last_name[0] || ''))}</span>`}
+    <div style="min-width:0">
+      <div class="emp-hierarchy-person-name">${esc(orgFullName(p))}</div>
+      <div class="emp-hierarchy-person-role">${esc(p.position || 'Sin puesto')}</div>
+    </div>
+  </div>`
+  const body = `
+    <div class="data-field-label">${siIcon('users', 12)} Reporta a</div>
+    <div style="margin:6px 0 1rem">${mgr ? personRow(mgr) : `<span style="font-size:0.82rem;color:var(--text-3)">Sin jefe inmediato asignado${canEditEmpField() ? ` · <a href="#" onclick="event.preventDefault();orgOpenAssignManager('${emp.id}')">Asignar</a>` : ''}</span>`}</div>
+    <div class="data-field-label">${siIcon('users', 12)} Equipo directo · ${reports.length}</div>
+    ${reports.length
+      ? `<div style="display:flex;flex-direction:column;gap:8px;margin:6px 0 4px">${preview.map(personRow).join('')}</div>${overflow > 0 ? `<div style="font-size:0.78rem;color:var(--text-3)">+${overflow} más</div>` : ''}`
+      : `<div style="font-size:0.82rem;color:var(--text-3);margin-top:6px">Sin reportes directos</div>`}
+    <div style="display:flex;gap:1.1rem;flex-wrap:wrap;margin-top:1rem">
+      ${reports.length ? `<a href="#" style="font-size:0.82rem" onclick="event.preventDefault();orgOpenTeamView('${emp.id}')">Ver equipo →</a>` : ''}
+      <a href="#" style="font-size:0.82rem" onclick="event.preventDefault();closeEmployeeDetail();orgShowFromModule();orgFocusInChart('${emp.id}')">Ver en organigrama →</a>
+    </div>
+  `
+  return dataBlockHtml('Jerarquía organizacional', body, { surface: true })
+}
+
+// Temporal context the hero doesn't carry — hire date, calculated
+// tenure, and the next birthday/anniversary if either is coming up. The
+// full role-by-role history stays one click away on Empleo (§7).
+function empTrayectoriaCardHtml(emp) {
+  const seniority = empSeniority(emp)
+  const nextBday = empNextBirthday(emp)
+  const nextAnniv = empNextAnniversary(emp)
+  const fields = dataFieldsHtml([
+    { label: 'Fecha de ingreso', value: emp.hire_date, icon: 'calendar', dateEs: true },
+    { label: 'Antigüedad', value: seniority ? `${seniority.years} año${seniority.years !== 1 ? 's' : ''}, ${seniority.months} mes${seniority.months !== 1 ? 'es' : ''}` : null, icon: 'clock' },
+    { label: 'Próximo cumpleaños', value: nextBday ? `${hrFmtDate(nextBday.date)} · ${nextBday.daysUntil === 0 ? 'hoy' : `en ${nextBday.daysUntil} día${nextBday.daysUntil !== 1 ? 's' : ''}`}` : null, icon: 'star' },
+    { label: 'Próximo aniversario', value: nextAnniv ? `${hrFmtDate(nextAnniv.date)} · ${nextAnniv.years} año${nextAnniv.years !== 1 ? 's' : ''}${nextAnniv.milestone ? ' 🎉' : ''}` : null, icon: 'crown' },
+  ], { cols: 2 })
+  if (!fields) {
+    return dataBlockHtml('Trayectoria', emptyStateHtml({ title: 'Sin fecha de ingreso registrada', desc: 'Agrega la fecha de ingreso para calcular antigüedad.', actionLabel: canEditEmpField() ? 'Completar' : null, actionOnClick: 'empStartEdit()' }), { surface: true })
   }
-  return dataFieldsHtml([
-    { label: 'Estado', html: getBadgeStatus(emp).badge },
-    { label: 'Última emisión', value: b.printed_at, icon: 'calendar', dateEs: true },
-    { label: 'Entrega', value: b.delivered_at ? `Entregado · ${hrFmtDate(b.delivered_at)}` : 'Pendiente de entrega', icon: 'check-circle' },
-  ], { cols: 2 }) + (canEditEmpField() ? `<div style="margin-top:0.6rem"><button class="btn btn-secondary btn-sm" onclick="startBadgeIssuance('${emp.id}')">${b.status === 'printed' || b.status === 'delivered' ? 'Reimprimir' : 'Continuar emisión'}</button></div>` : '')
+  return dataBlockHtml('Trayectoria', fields + `<div style="margin-top:0.9rem"><a href="#" style="font-size:0.82rem" onclick="event.preventDefault();switchEmpDetailTab('employment')">Ver historial →</a></div>`, { surface: true })
+}
+
+// Only what's actually useful at a glance (§7) — no identification
+// numbers, medical data or emergency contact here; that stays on the
+// gated Personal tab. Graceful, actionable empty states instead of bare
+// dashes (§12).
+function empContactCardHtml(emp) {
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const emptyField = (label, icon) => `<div class="data-field data-field-empty"><div class="data-field-label">${siIcon(icon, 12)}${esc(label)}</div><div class="data-field-value"><span class="data-field-value-text" style="color:var(--text-muted)">${esc(label)} no registrado</span>${canEditEmpField() ? ` <a href="#" style="font-size:0.78rem" onclick="event.preventDefault();empStartEdit()">Agregar</a>` : ''}</div></div>`
+  const rows = [
+    emp.email ? dataFieldHtml({ label: 'Correo', value: emp.email, icon: 'mail', copy: true }) : emptyField('Correo', 'mail'),
+    emp.phone ? dataFieldHtml({ label: 'Teléfono', value: emp.phone, icon: 'phone', copy: true }) : emptyField('Teléfono', 'phone'),
+    site?.name ? dataFieldHtml({ label: 'Sede', value: site.name, icon: 'map-pin' }) : '',
+  ].filter(Boolean)
+  return dataBlockHtml('Contacto', `<div class="data-fields-2">${rows.join('')}</div>`, { surface: true })
+}
+
+// Surfaces real, actionable gaps only — missing company, hierarchy data-
+// quality issues, an unfinished badge — never an empty KPI card manufactured
+// to fill the grid (§7): returns '' outright when there's nothing to flag.
+function empImportantContextCardHtml(emp) {
+  const items = []
+  if (!emp.company) items.push({ icon: 'alert-triangle', text: 'Empresa sin asignar', action: canEditEmpField() ? { label: 'Asignar', onClick: 'empStartEdit()' } : null })
+  const issues = (!_badge.reportingRelationshipsUnavailable && typeof orgIssuesFor === 'function') ? orgIssuesFor(emp.id) : []
+  issues.forEach(i => items.push({ icon: 'alert-triangle', text: ORG_ISSUE_DEFS[i.type]?.label || i.type }))
+  const b = empLatestBadge(emp)
+  if (!b) items.push({ icon: 'credit-card', text: 'Sin gafete emitido', action: canEditEmpField() ? { label: '+ Crear gafete', onClick: `startBadgeIssuance('${emp.id}')` } : null })
+  else if (b.status !== 'printed' && b.status !== 'delivered' && b.status !== 'cancelled') items.push({ icon: 'clock', text: 'Emisión de gafete pendiente de completar', action: canEditEmpField() ? { label: 'Continuar', onClick: `startBadgeIssuance('${emp.id}')` } : null })
+  if (!items.length) return ''
+  const body = items.map(it => `<div class="emp-context-item">
+    <span style="color:var(--warning-text);flex-shrink:0;display:flex">${siIcon(it.icon, 14)}</span>
+    <div style="flex:1;min-width:0">${esc(it.text)}</div>
+    ${it.action ? `<button type="button" class="btn btn-ghost btn-sm" style="padding:2px 6px;flex-shrink:0" onclick="${escAttr(it.action.onClick)}">${esc(it.action.label)}</button>` : ''}
+  </div>`).join('')
+  return dataBlockHtml('Contexto importante', body, { surface: true })
 }
 
 /* ── Empleo tab (§12): the full current-assignment detail, the complete
@@ -22877,6 +23151,11 @@ async function orgSaveAssignManager() {
 function empIndexAccessSectionHtml(emp) {
   const acct = _badge.accountsByEmployeeId?.[emp.id]
   const canManage = can('admin', 'platform')
+  // Never a permanent card for people who can neither see nor act on
+  // this (§7 — no manufactured empty cards): platform admins always see
+  // it (to create/manage access); everyone else only sees it when the
+  // employee actually has an account worth showing.
+  if (!acct && !canManage) return ''
   if (!acct) {
     return dataBlockHtml('Acceso a SIERRA Index', emptyStateHtml({
       title: 'Sin cuenta de Index',
@@ -22931,52 +23210,12 @@ function orgPathTreeHtml(employeeId) {
   </div>`
 }
 
-// Compact "Estructura" for Resumen (§11): the indented hierarchy plus a
-// bounded preview of the direct team — never a permanent list of every
-// report, which breaks down for managers with 20-50+ people. The full
-// team is one click away (searchable modal); the full organizational
-// structure (manager, hierarchy, org-chart nav) lives on the Empleo tab.
+// Bounded preview size for a manager's direct-team preview — never a
+// permanent list of every report, which breaks down for managers with
+// 20-50+ people (used by empHierarchyCardHtml on Resumen and
+// orgProfileSectionHtml's fuller version on Empleo). The full team is
+// one click away via the searchable orgOpenTeamView() modal.
 const EMP_TEAM_PREVIEW_LIMIT = 5
-function empEstructuraCompactHtml(emp) {
-  if (_badge.reportingRelationshipsUnavailable) return ''
-  const reportIds = orgDirectReportIds(emp.id)
-  const reports = reportIds.map(orgEmpById).filter(Boolean)
-  const preview = reports.slice(0, EMP_TEAM_PREVIEW_LIMIT)
-  const overflow = reports.length - preview.length
-  const teamHtml = reports.length ? `
-    <div class="data-field" style="margin-top:0.6rem">
-      <div class="data-field-label">${siIcon('users', 12)} Equipo directo · ${reports.length}</div>
-      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">
-        ${preview.map(r => `<span title="${escAttr(orgFullName(r))} — ${escAttr(r.position || 'Sin puesto')}" style="display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border-radius:999px;padding:2px 9px 2px 2px;font-size:0.76rem">
-          ${r.photo_url ? `<img src="${esc(r.photo_url)}" alt="" style="width:18px;height:18px;border-radius:50%;object-fit:cover" />` : `<span style="width:18px;height:18px;border-radius:50%;background:var(--surface-hover,var(--border));display:inline-flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700">${esc((r.first_name[0] || '') + (r.last_name[0] || ''))}</span>`}
-          ${esc(orgFullName(r))}
-        </span>`).join('')}
-        ${overflow > 0 ? `<span style="font-size:0.76rem;color:var(--text-3)">+${overflow}</span>` : ''}
-      </div>
-      <button type="button" class="btn btn-ghost btn-sm" style="padding:2px 6px;margin-top:4px" onclick="orgOpenTeamView('${emp.id}')">Ver equipo</button>
-    </div>` : ''
-  return dataBlockHtml('Estructura', `
-    ${orgPathTreeHtml(emp.id)}
-    ${teamHtml}
-    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.7rem">
-      <button type="button" class="btn btn-secondary btn-sm" onclick="closeEmployeeDetail();orgShowFromModule();orgFocusInChart('${emp.id}')">Ver en organigrama</button>
-    </div>
-  `)
-}
-
-// Trayectoria (§11): hire date + calculated tenure only on Resumen — the
-// full role-by-role history lives on Empleo, one click away. Never shows
-// a count of historical roles here without having actually loaded them,
-// so it can't imply data that "Ver historial" then contradicts.
-function empTrayectoriaCompactHtml(emp) {
-  const seniority = empSeniority(emp)
-  const fields = dataFieldsHtml([
-    { label: 'Fecha de ingreso', value: emp.hire_date, icon: 'calendar', dateEs: true },
-    { label: 'Antigüedad', value: seniority ? `${seniority.years} año${seniority.years !== 1 ? 's' : ''}, ${seniority.months} mes${seniority.months !== 1 ? 'es' : ''}` : null, icon: 'clock' },
-  ], { cols: 2 })
-  if (!fields) return ''
-  return dataBlockHtml('Trayectoria', fields + `<button type="button" class="btn btn-ghost btn-sm" style="padding:2px 6px;margin-top:0.4rem" onclick="switchEmpDetailTab('employment')">Ver historial</button>`)
-}
 
 // Searchable, scalable team roster — the "Ver equipo" destination for
 // managers with too many direct reports to ever list as permanent links
@@ -23011,8 +23250,8 @@ function orgFilterTeamView(q) {
 // ── 7. EMPLOYEE PROFILE INTEGRATION ── "Estructura organizacional"
 // section — the full version (manager, hierarchy, direct-report links,
 // org-chart navigation) lives on the Empleo tab; Resumen only shows the
-// compact empEstructuraCompactHtml() above, so the two never duplicate
-// the same information at the same level of detail. ──
+// compact empHierarchyCardHtml() card, so the two never duplicate the
+// same information at the same level of detail. ──
 function orgProfileSectionHtml(emp) {
   if (_badge.reportingRelationshipsUnavailable) return ''
   const rel = orgCurrentManagerRelationship(emp.id)
