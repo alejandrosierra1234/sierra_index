@@ -303,6 +303,12 @@
       -webkit-font-smoothing: antialiased;
       transition: background 0.25s, color 0.25s;
     }
+    /* Base monospace face for every bare <code> element — record IDs,
+       employee/product codes, inline technical terms. Several call sites
+       already set this explicitly on their own wrapper class (.rec-id-code
+       etc.); this is the fallback for anywhere that doesn't, so a plain
+       <code> never silently renders in the browser's generic monospace. */
+    code { font-family: 'Replica Mono', 'Courier New', monospace; }
 
     /* ── AUTH ── */
     #auth-screen {
