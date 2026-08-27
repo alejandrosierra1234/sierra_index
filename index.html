@@ -6587,9 +6587,9 @@
     <div class="modal-body" id="ws-invite-modal-body"></div>
   </div>
 </div>
-<!-- ══ MODAL: CREATE TEAM ACCOUNT ══ -->
+<!-- ══ MODAL: CREATE INDEX ACCESS (collaborator-first, spec §10-§13) ══ -->
 <div class="overlay" id="m-create-user">
-  <div class="modal" style="width:420px">
+  <div class="modal" style="width:440px">
     <div class="modal-hdr">
       <div>
         <div class="modal-eyebrow" style="color:var(--text-3)" id="cu-eyebrow"></div>
@@ -6598,10 +6598,7 @@
       <button class="btn-icon" onclick="closeModal('m-create-user')">✕</button>
     </div>
     <div class="modal-body" id="cu-modal-body"></div>
-    <div class="modal-ftr">
-      <button class="btn btn-secondary btn-sm" onclick="closeModal('m-create-user')" id="cu-cancel-btn"></button>
-      <button class="btn btn-primary btn-sm" id="cu-submit-btn" onclick="submitCreateUser()"></button>
-    </div>
+    <div class="modal-ftr"></div>
   </div>
 </div>
 <!-- ══ SAMPLE CART ══ -->
@@ -6894,11 +6891,12 @@ const I18N = {
     'toast.profileSaved':'Profile saved', 'toast.passwordUpdated':'Password updated',
     'lifecycle.draft':'Draft', 'lifecycle.development':'Under Development', 'lifecycle.available':'Available',
     'lifecycle.reserved':'Reserved', 'lifecycle.discontinued':'Discontinued', 'lifecycle.archived':'Archived',
-    'team.title':'Team', 'team.subtitle':'Manage domain access for every account',
-    'team.createAccount':'Create account', 'team.noGrants':'No access granted',
+    'team.title':'Team', 'team.subtitle':'Manage who can access Index and what they can do',
+    'team.createAccount':'Create access', 'team.noGrants':'No access granted',
     'team.addAccess':'Add access', 'team.needsMigration':'Run the capability migration to manage access',
-    'team.legacyNote':'Domain access is the source of truth going forward. The legacy role keeps older behavior working during the transition and will be removed once every account has explicit access.',
-    'team.you':'you', 'team.role':'Role', 'team.revoke':'Revoke',
+    'team.you':'you', 'team.role':'Account level', 'team.revoke':'Revoke',
+    'team.systemAdmin':'System administrator', 'team.adminAccount':'Administrative account',
+    'team.accountStatus.pending':'Pending', 'team.accountStatus.active':'Active', 'team.accountStatus.suspended':'Suspended', 'team.accountStatus.disabled':'Disabled', 'team.accountStatus.none':'No account',
     'team.level.viewer':'Viewer', 'team.level.editor':'Editor', 'team.level.owner':'Data Owner', 'team.level.admin':'Admin',
     'team.role.admin':'Admin', 'team.role.editor':'Editor', 'team.role.dispatcher':'Dispatcher', 'team.role.user':'User',
     'team.domain.fiber':'Fiber', 'team.domain.yarn':'Yarn', 'team.domain.fabric':'Fabric', 'team.domain.chemicals':'Chemicals',
@@ -6908,13 +6906,25 @@ const I18N = {
     'team.domain.warehouse_fabric':'Warehouse · Fabric', 'team.domain.warehouse_chemicals':'Warehouse · Chemicals',
     'team.domain.warehouse_garment':'Warehouse · Apparel',
     'team.toast.granted':'Granted {domain} {level}', 'team.toast.revoked':'Revoked {domain} access',
-    'team.toast.revokeFailed':'Could not revoke access: {msg}', 'team.toast.roleFailed':'Could not update role: {msg}',
-    'team.modal.eyebrow':'Team', 'team.modal.title':'Create account', 'team.modal.fullName':'Full name',
-    'team.modal.fullNamePh':'e.g. Margarita López', 'team.modal.email':'Email', 'team.modal.emailPh':'name@sierratextiles.com',
-    'team.modal.initialRole':'Initial role', 'team.modal.note':'They get an email invite to set their own password. Domain access is assigned afterward, from this same screen.',
+    'team.toast.revokeFailed':'Could not revoke access: {msg}', 'team.toast.roleFailed':'Could not update account level: {msg}',
+    'team.modal.eyebrow':'Team', 'team.modal.title':'Create Index access', 'team.modal.fullName':'Full name',
+    'team.modal.fullNamePh':'e.g. Margarita López', 'team.modal.email':'Login email', 'team.modal.emailPh':'name@sierratextiles.com',
+    'team.modal.initialRole':'Account level', 'team.modal.note':'They get an email invite to set their own password. Module and division access is assigned afterward, from this same screen.',
     'team.modal.cancel':'Cancel', 'team.modal.submit':'Send invite', 'team.modal.sending':'Sending…',
     'team.toast.required':'Name and email are required', 'team.toast.createFailed':'Could not create account: {msg}',
     'team.toast.invited':'Invite sent to {email}',
+    'team.modal.step1Title':'Select collaborator', 'team.modal.step1Search':'Search by name, employee code, email, company or department…',
+    'team.modal.step1External':'Create an external account instead (no collaborator record)',
+    'team.modal.step1Empty':'No eligible collaborators found', 'team.modal.step1EmptyDesc':'Collaborators who already have an account, or who are inactive, are hidden by default.',
+    'team.modal.step1ShowInactive':'Include inactive collaborators', 'team.modal.select':'Select',
+    'team.modal.back':'Back', 'team.modal.continue':'Continue',
+    'team.modal.step2Title':'Create access', 'team.modal.step2ExternalTitle':'Create external access',
+    'team.modal.step2Note':'Name, company, site, country, department and photo come from Colaboradores — no need to re-enter them here.',
+    'team.modal.externalName':'Full name',
+    'team.review.title':'Accounts pending review', 'team.review.desc':'These legacy accounts could not be linked automatically. Confirm a match, search another collaborator, or dismiss.',
+    'team.review.probable':'Suggested match', 'team.review.none':'No match found',
+    'team.review.link':'Link', 'team.review.searchOther':'Search another collaborator', 'team.review.dismiss':'Dismiss',
+    'team.review.linked':'Account linked', 'team.review.dismissed':'Dismissed',
     'yc.eyebrow':'Yarn Inventory', 'yc.createTitle':'Create Yarn', 'yc.editTitle':'Edit Yarn',
     'yc.draft':'Draft', 'yc.saved':'Saved', 'yc.saving':'Saving yarn…',
     'yc.save':'Save', 'yc.saveAndPrint':'Save & Print',
@@ -6974,11 +6984,12 @@ const I18N = {
     'toast.profileSaved':'Perfil guardado', 'toast.passwordUpdated':'Contraseña actualizada',
     'lifecycle.draft':'Borrador', 'lifecycle.development':'En desarrollo', 'lifecycle.available':'Disponible',
     'lifecycle.reserved':'Reservado', 'lifecycle.discontinued':'Descontinuado', 'lifecycle.archived':'Archivado',
-    'team.title':'Equipo', 'team.subtitle':'Gestiona el acceso por división de cada cuenta',
-    'team.createAccount':'Crear cuenta', 'team.noGrants':'Sin acceso otorgado',
+    'team.title':'Equipo', 'team.subtitle':'Gestiona quién tiene acceso a Index y qué puede hacer',
+    'team.createAccount':'Crear acceso', 'team.noGrants':'Sin acceso otorgado',
     'team.addAccess':'Agregar acceso', 'team.needsMigration':'Corre la migración de permisos para gestionar accesos',
-    'team.legacyNote':'El acceso por división es la fuente de verdad a partir de ahora. El rol antiguo mantiene el comportamiento previo funcionando durante la transición, y se eliminará una vez que cada cuenta tenga acceso explícito.',
-    'team.you':'tú', 'team.role':'Rol', 'team.revoke':'Revocar',
+    'team.you':'tú', 'team.role':'Nivel de cuenta', 'team.revoke':'Revocar',
+    'team.systemAdmin':'Administrador del sistema', 'team.adminAccount':'Cuenta administrativa',
+    'team.accountStatus.pending':'Pendiente', 'team.accountStatus.active':'Activa', 'team.accountStatus.suspended':'Suspendida', 'team.accountStatus.disabled':'Deshabilitada', 'team.accountStatus.none':'Sin cuenta',
     'team.level.viewer':'Solo lectura', 'team.level.editor':'Editor', 'team.level.owner':'Propietario', 'team.level.admin':'Admin',
     'team.role.admin':'Admin', 'team.role.editor':'Editor', 'team.role.dispatcher':'Despachador', 'team.role.user':'Usuario',
     'team.domain.fiber':'Fibra', 'team.domain.yarn':'Hilo', 'team.domain.fabric':'Tela', 'team.domain.chemicals':'Químicos',
@@ -6988,13 +6999,25 @@ const I18N = {
     'team.domain.warehouse_fabric':'Almacén de Muestras · Tela', 'team.domain.warehouse_chemicals':'Almacén de Muestras · Químicos',
     'team.domain.warehouse_garment':'Almacén de Muestras · Confección',
     'team.toast.granted':'Acceso otorgado: {domain} · {level}', 'team.toast.revoked':'Acceso revocado: {domain}',
-    'team.toast.revokeFailed':'No se pudo revocar el acceso: {msg}', 'team.toast.roleFailed':'No se pudo actualizar el rol: {msg}',
-    'team.modal.eyebrow':'Equipo', 'team.modal.title':'Crear cuenta', 'team.modal.fullName':'Nombre completo',
-    'team.modal.fullNamePh':'Ej. Margarita López', 'team.modal.email':'Correo', 'team.modal.emailPh':'nombre@sierratextiles.com',
-    'team.modal.initialRole':'Rol inicial', 'team.modal.note':'Se le envía un correo de invitación para que defina su propia contraseña. El acceso por división se asigna después, desde esta misma pantalla.',
+    'team.toast.revokeFailed':'No se pudo revocar el acceso: {msg}', 'team.toast.roleFailed':'No se pudo actualizar el nivel de cuenta: {msg}',
+    'team.modal.eyebrow':'Equipo', 'team.modal.title':'Crear acceso a Index', 'team.modal.fullName':'Nombre completo',
+    'team.modal.fullNamePh':'Ej. Margarita López', 'team.modal.email':'Correo de acceso', 'team.modal.emailPh':'nombre@sierratextiles.com',
+    'team.modal.initialRole':'Nivel de cuenta', 'team.modal.note':'Se le envía un correo de invitación para que defina su propia contraseña. El acceso por módulo y división se asigna después, desde esta misma pantalla.',
     'team.modal.cancel':'Cancelar', 'team.modal.submit':'Enviar invitación', 'team.modal.sending':'Enviando…',
     'team.toast.required':'Nombre y correo son obligatorios', 'team.toast.createFailed':'No se pudo crear la cuenta: {msg}',
     'team.toast.invited':'Invitación enviada a {email}',
+    'team.modal.step1Title':'Seleccionar colaborador', 'team.modal.step1Search':'Buscar por nombre, código de colaborador, correo, empresa o departamento…',
+    'team.modal.step1External':'Crear una cuenta externa en su lugar (sin registro de colaborador)',
+    'team.modal.step1Empty':'No se encontraron colaboradores elegibles', 'team.modal.step1EmptyDesc':'Los colaboradores que ya tienen cuenta, o que están inactivos, se ocultan por defecto.',
+    'team.modal.step1ShowInactive':'Incluir colaboradores inactivos', 'team.modal.select':'Seleccionar',
+    'team.modal.back':'Atrás', 'team.modal.continue':'Continuar',
+    'team.modal.step2Title':'Crear acceso', 'team.modal.step2ExternalTitle':'Crear acceso externo',
+    'team.modal.step2Note':'Nombre, empresa, sede, país, departamento y foto vienen de Colaboradores — no es necesario volver a ingresarlos aquí.',
+    'team.modal.externalName':'Nombre completo',
+    'team.review.title':'Cuentas pendientes de revisión', 'team.review.desc':'Estas cuentas heredadas no pudieron vincularse automáticamente. Confirma una coincidencia, busca otro colaborador o descarta.',
+    'team.review.probable':'Coincidencia sugerida', 'team.review.none':'Sin coincidencia',
+    'team.review.link':'Vincular', 'team.review.searchOther':'Buscar otro colaborador', 'team.review.dismiss':'Descartar',
+    'team.review.linked':'Cuenta vinculada', 'team.review.dismissed':'Descartada',
     'yc.eyebrow':'Almacén de Hilo', 'yc.createTitle':'Crear hilo', 'yc.editTitle':'Editar hilo',
     'yc.draft':'Borrador', 'yc.saved':'Guardado', 'yc.saving':'Guardando hilo…',
     'yc.save':'Guardar', 'yc.saveAndPrint':'Guardar e imprimir',
@@ -14521,6 +14544,7 @@ const EMPLOYEE_COLUMNS = [
   { key: 'photo',                       label: 'Foto' },
   { key: 'last_badge',                  label: 'Último gafete' },
   { key: 'updated_at',                  label: 'Actualizado' },
+  { key: 'account_status',              label: 'Cuenta' },
 ]
 const EMPLOYEE_DEFAULT_COLS = EMPLOYEE_COLUMNS.filter(c => c.alwaysOn || c.default).map(c => c.key)
 
@@ -14743,6 +14767,18 @@ async function loadBadgeData() {
       .eq('site_id', _badge.activeSite)
       .order('last_name, first_name')
     _badge.employees = emps || []
+  }
+
+  // Index account, per collaborator (spec §16/§17) — one lightweight
+  // query, keyed by employee_id so the "Cuenta" column and the profile's
+  // "Acceso a SIERRA Index" section never duplicate HR fields, they just
+  // look up account_type/account_status/role by employee_id.
+  {
+    const { data: accts } = await sb.from('profiles')
+      .select('id,full_name,email,role,account_type,account_status,employee_id')
+      .not('employee_id', 'is', null)
+    _badge.accountsByEmployeeId = {}
+    ;(accts || []).forEach(a => { _badge.accountsByEmployeeId[a.employee_id] = a })
   }
 
   // Load badge issuances for active site employees
@@ -15087,6 +15123,7 @@ function empColCellHtml(emp, key) {
     case 'badge_status': return `<td>${getBadgeStatus(emp).badge}</td>`
     case 'last_badge': { const b = empLatestBadge(emp); return `<td style="white-space:nowrap;color:var(--text-3)">${b ? new Date(b.created_at).toLocaleDateString() : '—'}</td>` }
     case 'updated_at': return `<td style="white-space:nowrap;color:var(--text-3)">${emp.updated_at ? new Date(emp.updated_at).toLocaleDateString() : '—'}</td>`
+    case 'account_status': { const acct = _badge.accountsByEmployeeId?.[emp.id]; return `<td>${acct ? accountStatusChip(acct.account_status) : `<span style="color:var(--text-3)">${tx('team.accountStatus.none') || 'Sin cuenta'}</span>`}</td>` }
     default: return '<td></td>'
   }
 }
@@ -16309,6 +16346,7 @@ function renderEmpOverviewTab(emp) {
     <div class="data-column">
       ${dataBlockHtml('Organización', org, { aside: canEditEmpField() ? '<button type="button" class="btn btn-ghost btn-sm" onclick="empStartEdit()" style="padding:2px 6px">Editar</button>' : null })}
       ${orgProfileSectionHtml(emp)}
+      ${empIndexAccessSectionHtml(emp)}
       ${contact ? dataBlockHtml('Contacto', contact) : dataBlockHtml('Contacto', emptyStateHtml({ title: 'Sin información de contacto', desc: 'Agrega un correo o teléfono para este colaborador.', actionLabel: canEditEmpField() ? 'Completar' : null, actionOnClick: 'empStartEdit()' }))}
       ${moments ? dataBlockHtml('Próximo momento', moments) : ''}
       ${dataBlockHtml('Gafete', empBadgeSummaryHtml(emp))}
@@ -18904,6 +18942,44 @@ async function showAccessLogs() {
 function domainLabel(d) { return tx('team.domain.' + d) }
 function roleLabel(r) { return tx('team.role.' + (r || 'user')) }
 
+// Identity to show for one Index account (spec §14/§15): a linked
+// employee's collaborator identity is primary; a system_admin gets the
+// explicit administrative presentation instead of fabricated HR fields;
+// an unclassified legacy account (account_type null, pending migration
+// review) falls back to whatever the old account record has.
+function teamAccountIdentity(u) {
+  const emp = u.employees
+  if (u.account_type === 'system_admin') {
+    return {
+      name: u.full_name || (u.email || '?').split('@')[0],
+      sub: tx('team.systemAdmin'),
+      tag: tx('team.adminAccount'),
+      photo: null, initials: (u.full_name || '?')[0].toUpperCase(),
+      loginEmail: u.email,
+    }
+  }
+  if (u.account_type === 'employee' && emp) {
+    const name = `${emp.first_name} ${emp.last_name}`.trim()
+    return {
+      name,
+      sub: [emp.position, [emp.company, emp.country].filter(Boolean).join(' · ')].filter(Boolean).join(' — '),
+      tag: null,
+      photo: emp.photo_url || null, initials: ((emp.first_name || '?')[0] + (emp.last_name || '')[0]).toUpperCase(),
+      loginEmail: u.email, corporateEmail: emp.email,
+    }
+  }
+  const name = u.full_name || (u.email || '?').split('@')[0]
+  return {
+    name, sub: u.account_type === 'external' ? 'Cuenta externa' : null, tag: null,
+    photo: null, initials: name[0].toUpperCase(), loginEmail: u.email,
+  }
+}
+function accountStatusChip(status) {
+  const s = status || 'active'
+  const modifier = s === 'active' ? 'badge-active' : s === 'pending' ? 'badge-pending' : 'badge-inactive'
+  return statusBadgeHtml(s === 'active' ? 'check-circle' : s === 'pending' ? 'clock' : 'pause-circle', tx('team.accountStatus.' + s) || s, modifier)
+}
+
 async function showUserManagement() {
   _navLeaf = 'administracion|_|team'
   syncModule('administracion')
@@ -18921,15 +18997,25 @@ async function showUserManagement() {
   pg.style.display = 'block'
   pg.innerHTML = '<div class="empty"><p>Cargando…</p></div>'
 
-  const [profRes, grantRes] = await Promise.all([
-    sb.from('profiles').select('id,full_name,email,role,created_at').order('created_at', { ascending: true }),
+  const canManagePlatform = can('admin', 'platform')
+
+  const [profRes, grantRes, reviewRes] = await Promise.all([
+    sb.from('profiles')
+      .select('id,full_name,email,role,account_type,account_status,employee_id,created_at,employees(id,first_name,last_name,position,department,company,country,email,photo_url,employee_status)')
+      .order('created_at', { ascending: true }),
     sb.from('capability_grants').select('id,user_id,domain,capability,resource_id,expires_at'),
+    canManagePlatform
+      ? sb.from('account_migration_review')
+          .select('id,profile_id,suggested_employee_id,match_confidence,status,profiles!account_migration_review_profile_id_fkey(id,full_name,email),employees(id,first_name,last_name,position,company,country)')
+          .eq('status', 'pending')
+      : Promise.resolve({ data: [], error: null }),
   ])
   if (profRes.error) { pg.innerHTML = emptyStateHtml({ title: 'No se pudo cargar', desc: profRes.error.message }); return }
   const data = profRes.data
   if (!data.length) { pg.innerHTML = emptyStateHtml({ title: 'Sin usuarios todavía' }); return }
   // grants table may not be migrated yet — render legacy-only view in that case
   _teamGrants = grantRes.error ? null : (grantRes.data || []).filter(g => !g.resource_id)
+  _teamReview = reviewRes.error ? [] : (reviewRes.data || [])
 
   const domainOpts = AUTH_DOMAINS.map(d => ({ value: d, label: domainLabel(d) }))
   const levelOpts = [
@@ -18941,7 +19027,6 @@ async function showUserManagement() {
   // "Viewer" on platform is genuinely read-only (bundleCaps gives it only
   // 'read', not 'admin') — anyone below full admin gets a look-but-not-touch
   // Team: no create/grant/revoke/role controls, just the roster and chips.
-  const canManagePlatform = can('admin', 'platform')
 
   // Primary/creation action lives in the PageHeader's action slot (§9),
   // not hand-rolled inside the list body.
@@ -18951,20 +19036,22 @@ async function showUserManagement() {
   </button>` : ''
 
   pg.innerHTML = `
+  ${canManagePlatform && _teamReview.length ? renderMigrationReviewHtml() : ''}
   <div class="team-list">
     ${data.map(u => {
-      const name = u.full_name || (u.email||'?').split('@')[0]
-      const initials = name[0].toUpperCase()
+      const id = teamAccountIdentity(u)
       const isSelf = u.id === me?.id
       return `<div class="team-row">
         <div class="team-row-id">
-          <div class="team-avatar" style="${avatarStyle(u.id)}">${esc(initials)}</div>
+          ${id.photo ? `<img src="${esc(id.photo)}" class="team-avatar" style="object-fit:cover" />` : `<div class="team-avatar" style="${avatarStyle(u.id)}">${esc(id.initials)}</div>`}
           <div class="team-row-who">
-            <div class="team-row-name">${esc(name)}${isSelf ? ` <span class="team-row-you">(${tx('team.you')})</span>` : ''}</div>
-            <div class="team-row-email">${esc(u.email||'—')}</div>
+            <div class="team-row-name">${esc(id.name)}${isSelf ? ` <span class="team-row-you">(${tx('team.you')})</span>` : ''}${id.tag ? ` <span class="team-chip" style="cursor:default">${esc(id.tag)}</span>` : ''}</div>
+            ${id.sub ? `<div class="team-row-email">${esc(id.sub)}</div>` : ''}
+            <div class="team-row-email">${esc(id.loginEmail || '—')}${id.corporateEmail && id.corporateEmail !== id.loginEmail ? ` · ${esc(id.corporateEmail)}` : ''}</div>
           </div>
         </div>
         <div class="team-row-access">
+          <div style="margin-bottom:0.35rem">${accountStatusChip(u.account_status)}</div>
           ${_teamGrants === null
             ? `<span class="team-migration-note">${tx('team.needsMigration')}</span>`
             : `<div class="team-chips" id="grants-${u.id}">${renderGrantChips(u.id, canManagePlatform)}</div>
@@ -18975,14 +19062,72 @@ async function showUserManagement() {
                </div>` : ''}`}
         </div>
         <div class="team-row-role">
-          ${isSelf || !canManagePlatform
+          ${u.account_type === 'system_admin' || isSelf || !canManagePlatform
             ? `<div class="team-row-role-static">${esc(roleLabel(u.role))}</div><div class="team-row-role-note">${tx('team.role')}</div>`
             : pdSelect(`role-${u.id}`, roleOpts, u.role || 'user', '', 'teamRoleChanged')}
         </div>
       </div>`
     }).join('')}
-  </div>
-  <p class="team-migration-note" style="margin-top:0.85rem;max-width:60ch">${tx('team.legacyNote')}</p>`
+  </div>`
+}
+
+/* ── Migration review queue (spec §8/§9): legacy accounts that could not
+   be linked to a collaborator automatically. Never auto-linked — an
+   administrator confirms each one. Not meant to be a permanent everyday
+   workflow: once every account is classified, this block simply stops
+   rendering (0 pending rows). ── */
+let _teamReview = []
+function renderMigrationReviewHtml() {
+  return `<div class="data-block data-block-surface" style="margin-bottom:1rem">
+    <div class="data-block-title"><span>${tx('team.review.title')}</span></div>
+    <p style="font-size:0.78rem;color:var(--text-3);margin:0 0 0.6rem">${tx('team.review.desc')}</p>
+    <div class="team-list">
+      ${_teamReview.map(r => {
+        const acct = r.profiles
+        const emp = r.employees
+        return `<div class="team-row">
+          <div class="team-row-id">
+            <div class="team-avatar" style="${avatarStyle(r.profile_id)}">${esc((acct?.full_name || acct?.email || '?')[0].toUpperCase())}</div>
+            <div class="team-row-who">
+              <div class="team-row-name">${esc(acct?.full_name || acct?.email || '—')}</div>
+              <div class="team-row-email">${esc(acct?.email || '—')}</div>
+            </div>
+          </div>
+          <div class="team-row-access">
+            ${r.match_confidence === 'probable' && emp
+              ? `<div class="team-migration-note">${tx('team.review.probable')}: <b>${esc(emp.first_name)} ${esc(emp.last_name)}</b> · ${esc([emp.position, emp.company, emp.country].filter(Boolean).join(' · '))}</div>`
+              : `<div class="team-migration-note">${tx('team.review.none')}</div>`}
+          </div>
+          <div class="team-row-role" style="display:flex;gap:0.4rem;flex-wrap:wrap">
+            ${r.match_confidence === 'probable' && emp ? `<button class="btn btn-primary btn-sm" onclick="reviewLinkAccount('${r.id}','${r.profile_id}','${emp.id}')">${tx('team.review.link')}</button>` : ''}
+            <button class="btn btn-secondary btn-sm" onclick="reviewSearchOther('${r.id}','${r.profile_id}')">${tx('team.review.searchOther')}</button>
+            <button class="btn btn-ghost btn-sm" onclick="reviewDismiss('${r.id}')">${tx('team.review.dismiss')}</button>
+          </div>
+        </div>`
+      }).join('')}
+    </div>
+  </div>`
+}
+async function linkProfileToEmployee(profileId, employeeId) {
+  const { error } = await sb.from('profiles').update({ employee_id: employeeId, account_type: 'employee' }).eq('id', profileId)
+  if (error) { toast('No se pudo vincular: ' + error.message); return false }
+  Audit.log('user', profileId, null, 'account_linked', `Account linked to collaborator ${employeeId}`, [{ field: 'employee_id', from: '', to: employeeId }])
+  return true
+}
+async function reviewLinkAccount(reviewId, profileId, employeeId) {
+  const ok = await linkProfileToEmployee(profileId, employeeId)
+  if (!ok) return
+  await sb.from('account_migration_review').update({ status: 'linked', resolved_by: me.id, resolved_at: new Date().toISOString() }).eq('id', reviewId)
+  toast(tx('team.review.linked'))
+  showUserManagement()
+}
+async function reviewDismiss(reviewId) {
+  await sb.from('account_migration_review').update({ status: 'dismissed', resolved_by: me.id, resolved_at: new Date().toISOString() }).eq('id', reviewId)
+  toast(tx('team.review.dismissed'))
+  showUserManagement()
+}
+function reviewSearchOther(reviewId, profileId) {
+  openCreateUserModal({ mode: 'link', profileId, reviewId })
 }
 
 /* Grants management (Team screen). Levels expand to capability bundles —
@@ -19044,29 +19189,124 @@ async function revokeDomainGrants(uid, domain) {
   showUserManagement()
 }
 
-function openCreateUserModal() {
+/* ── "Crear acceso a Index" — collaborator-first account creation ──
+   (spec §10-§13). Step 1 always starts from Colaboradores: search and
+   select who the account is for (or, explicitly, create an external
+   account with no collaborator record). Step 2 asks only for what
+   belongs to the account/access layer — HR fields are shown read-only,
+   pulled live from the selected collaborator, never re-entered. */
+let _cu = null
+function cuDefaultState(opts = {}) {
+  return { step: 'select', mode: opts.mode || 'invite', profileId: opts.profileId || null, reviewId: opts.reviewId || null,
+    employee: null, external: false, search: '', showInactive: false, employees: [], linkedIds: new Set(), loading: false }
+}
+async function openCreateUserModal(opts = {}) {
+  _cu = cuDefaultState(opts)
+  const { data } = await sb.from('profiles').select('employee_id').not('employee_id', 'is', null)
+  _cu.linkedIds = new Set((data || []).map(p => p.employee_id))
+  document.getElementById('m-create-user').classList.add('open')
+  await cuLoadEmployees()
+  cuRender()
+}
+async function cuLoadEmployees() {
+  _cu.loading = true
+  let q = sb.from('employees').select('id,first_name,last_name,employee_code,position,department,company,country,email,photo_url,employee_status').order('last_name').limit(30)
+  if (_cu.search.trim()) {
+    const s = _cu.search.trim()
+    q = q.or(`first_name.ilike.%${s}%,last_name.ilike.%${s}%,employee_code.ilike.%${s}%,email.ilike.%${s}%,company.ilike.%${s}%,department.ilike.%${s}%`)
+  }
+  const { data, error } = await q
+  _cu.employees = (error ? [] : data || []).filter(e => _cu.showInactive || e.employee_status === 'active').filter(e => !_cu.linkedIds.has(e.id))
+  _cu.loading = false
+}
+function cuSetSearch(v) { _cu.search = v; cuLoadEmployees().then(cuRender) }
+function cuToggleInactive(checked) { _cu.showInactive = checked; cuLoadEmployees().then(cuRender) }
+function cuUseExternal() { _cu.external = true; _cu.step = 'details'; cuRender() }
+function cuSelectEmployee(id) {
+  _cu.employee = _cu.employees.find(e => e.id === id) || null
+  if (!_cu.employee) return
+  if (_cu.mode === 'link') { cuSubmitLink(); return }
+  _cu.step = 'details'
+  cuRender()
+}
+function cuBack() { _cu.step = 'select'; _cu.external = false; cuRender() }
+
+function cuRender() {
   document.getElementById('cu-eyebrow').textContent = tx('team.modal.eyebrow')
-  document.getElementById('cu-title').textContent = tx('team.modal.title')
-  document.getElementById('cu-cancel-btn').textContent = tx('team.modal.cancel')
-  document.getElementById('cu-submit-btn').textContent = tx('team.modal.submit')
+  const footer = document.querySelector('#m-create-user .modal-ftr')
+  document.getElementById('cu-title').textContent = _cu.step === 'select' ? tx('team.modal.step1Title')
+    : (_cu.external ? tx('team.modal.step2ExternalTitle') : tx('team.modal.step2Title'))
+
+  if (_cu.step === 'select') {
+    footer.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="closeModal('m-create-user')">${tx('team.modal.cancel')}</button>`
+    const list = _cu.employees
+    document.getElementById('cu-modal-body').innerHTML = `
+      <div class="fg"><input type="text" placeholder="${escAttr(tx('team.modal.step1Search'))}" value="${escAttr(_cu.search)}" oninput="cuSetSearch(this.value)" autofocus /></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text-3);margin:0.3rem 0 0.6rem">
+        <input type="checkbox" ${_cu.showInactive ? 'checked' : ''} onchange="cuToggleInactive(this.checked)" /> ${tx('team.modal.step1ShowInactive')}
+      </label>
+      <div style="max-height:280px;overflow:auto;display:flex;flex-direction:column;gap:4px">
+        ${_cu.loading ? '<p style="color:var(--text-3);font-size:0.8rem">Cargando…</p>' : list.length ? list.map(e => `
+          <button type="button" class="team-row" style="width:100%;text-align:left;cursor:pointer;border:none;background:none;padding:0.5rem" onclick="cuSelectEmployee('${e.id}')">
+            <div class="team-row-id">
+              ${e.photo_url ? `<img src="${esc(e.photo_url)}" class="team-avatar" style="object-fit:cover" />` : `<div class="team-avatar" style="${avatarStyle(e.id)}">${esc(((e.first_name||'?')[0]+(e.last_name||'')[0]).toUpperCase())}</div>`}
+              <div class="team-row-who">
+                <div class="team-row-name">${esc(e.first_name)} ${esc(e.last_name)}</div>
+                <div class="team-row-email">${esc([e.position, e.company, e.country].filter(Boolean).join(' · '))}</div>
+              </div>
+            </div>
+          </button>`).join('') : `<div class="empty-compact"><div class="empty-compact-title">${tx('team.modal.step1Empty')}</div><div class="empty-compact-desc">${tx('team.modal.step1EmptyDesc')}</div></div>`}
+      </div>
+      ${_cu.mode === 'invite' ? `<button type="button" class="btn btn-ghost btn-sm" style="margin-top:0.6rem" onclick="cuUseExternal()">${tx('team.modal.step1External')}</button>` : ''}
+    `
+    return
+  }
+
+  // step === 'details'
+  footer.innerHTML = `
+    <button class="btn btn-secondary btn-sm" onclick="cuBack()">${tx('team.modal.back')}</button>
+    <button class="btn btn-primary btn-sm" id="cu-submit-btn" onclick="submitCreateUser()">${tx('team.modal.submit')}</button>`
   const roleOpts = ['user', 'dispatcher', 'editor', 'admin'].map(r => ({ value: r, label: roleLabel(r) }))
+  const emp = _cu.employee
+  const preview = emp ? `<div class="team-row" style="padding:0.5rem 0">
+      <div class="team-row-id">
+        ${emp.photo_url ? `<img src="${esc(emp.photo_url)}" class="team-avatar" style="object-fit:cover" />` : `<div class="team-avatar" style="${avatarStyle(emp.id)}">${esc(((emp.first_name||'?')[0]+(emp.last_name||'')[0]).toUpperCase())}</div>`}
+        <div class="team-row-who">
+          <div class="team-row-name">${esc(emp.first_name)} ${esc(emp.last_name)}</div>
+          <div class="team-row-email">${esc([emp.position, emp.company, emp.country].filter(Boolean).join(' · '))}</div>
+          ${emp.employee_code ? `<div class="team-row-email"><code>${esc(emp.employee_code)}</code></div>` : ''}
+        </div>
+      </div>
+    </div>` : ''
   document.getElementById('cu-modal-body').innerHTML = `
-    <div class="fg"><label>${tx('team.modal.fullName')}</label><input type="text" id="cu-name" placeholder="${escAttr(tx('team.modal.fullNamePh'))}" /></div>
-    <div class="fg"><label>${tx('team.modal.email')}</label><input type="email" id="cu-email" placeholder="${escAttr(tx('team.modal.emailPh'))}" /></div>
+    ${preview}
+    <p style="font-size:0.7rem;color:var(--text-3);margin:0 0 0.6rem">${tx('team.modal.step2Note')}</p>
+    ${_cu.external ? `<div class="fg"><label>${tx('team.modal.externalName')}</label><input type="text" id="cu-name" placeholder="${escAttr(tx('team.modal.fullNamePh'))}" /></div>` : ''}
+    <div class="fg"><label>${tx('team.modal.email')}</label><input type="email" id="cu-email" value="${escAttr(emp?.email || '')}" placeholder="${escAttr(tx('team.modal.emailPh'))}" /></div>
     <div class="fg"><label>${tx('team.modal.initialRole')}</label>${pdSelect('cu-role', roleOpts, 'user')}</div>
     <p style="font-size:0.7rem;color:var(--text-3);margin:0">${tx('team.modal.note')}</p>`
-  document.getElementById('m-create-user').classList.add('open')
+}
+async function cuSubmitLink() {
+  const ok = await linkProfileToEmployee(_cu.profileId, _cu.employee.id)
+  if (!ok) return
+  if (_cu.reviewId) await sb.from('account_migration_review').update({ status: 'linked', resolved_by: me.id, resolved_at: new Date().toISOString() }).eq('id', _cu.reviewId)
+  toast(tx('team.review.linked'))
+  closeModal('m-create-user')
+  showUserManagement()
 }
 async function submitCreateUser() {
-  const full_name = document.getElementById('cu-name').value.trim()
   const email = document.getElementById('cu-email').value.trim()
   const role = document.getElementById('cu-role').value
-  if (!full_name || !email) { toast(tx('team.toast.required')); return }
+  const full_name = _cu.external ? document.getElementById('cu-name').value.trim() : null
+  if (!email || (_cu.external && !full_name)) { toast(tx('team.toast.required')); return }
 
   const btn = document.getElementById('cu-submit-btn')
   btn.disabled = true
   btn.textContent = tx('team.modal.sending')
-  const { data, error } = await sb.functions.invoke('create-user', { body: { email, full_name, role } })
+  const body = _cu.external
+    ? { email, full_name, role, account_type: 'external' }
+    : { email, role, account_type: 'employee', employee_id: _cu.employee.id }
+  const { data, error } = await sb.functions.invoke('create-index-account', { body })
   btn.disabled = false
   btn.textContent = tx('team.modal.submit')
 
@@ -19074,7 +19314,7 @@ async function submitCreateUser() {
     toast(tx('team.toast.createFailed', { msg: data?.error || error.message }))
     return
   }
-  Audit.log('user', data.user.id, null, 'account_created', `Account created for ${email}`,
+  Audit.log('user', data.user.id, null, 'account_created', `Index access created for ${email}`,
     [{ field: 'email', from: '', to: email }])
   toast(tx('team.toast.invited', { email }))
   closeModal('m-create-user')
@@ -20906,6 +21146,56 @@ async function orgSaveAssignManager() {
   renderBadgeModule()
   const detailEmp = _badge.employees.find(e => e.id === a.employeeId)
   if (detailEmp && document.getElementById('employee-detail-drawer')) renderEmployeeDetailDrawer(detailEmp)
+}
+
+// ── ACCOUNT ↔ COLLABORATOR INTEGRATION (spec §17) — "Acceso a SIERRA
+// Index" on the collaborator profile. Reads from the same
+// _badge.accountsByEmployeeId map the "Cuenta" column uses (loaded once
+// in loadBadgeData); never stores or duplicates account fields on the
+// employee record itself. ──
+function empIndexAccessSectionHtml(emp) {
+  const acct = _badge.accountsByEmployeeId?.[emp.id]
+  const canManage = can('admin', 'platform')
+  if (!acct) {
+    return dataBlockHtml('Acceso a SIERRA Index', emptyStateHtml({
+      title: 'Sin cuenta de Index',
+      actionLabel: canManage ? 'Crear acceso' : null,
+      actionOnClick: canManage ? `startCreateAccessForEmployee('${emp.id}')` : null,
+    }))
+  }
+  const warn = (emp.employee_status !== 'active' && acct.account_status === 'active')
+    ? `<div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border);border-radius:8px;padding:0.5rem 0.7rem;margin-bottom:0.6rem;font-size:0.8rem">
+        <span>Colaborador inactivo con acceso activo</span>
+        ${canManage ? `<button class="btn btn-sm btn-secondary" onclick="suspendIndexAccount('${acct.id}')">Suspender cuenta</button>` : ''}
+      </div>`
+    : ''
+  const fields = dataFieldsHtml([
+    { label: 'Login', value: acct.email, icon: 'mail', copy: true },
+    { label: 'Rol en Index', value: roleLabel(acct.role), icon: 'user' },
+    { label: 'Estado de la cuenta', html: accountStatusChip(acct.account_status) },
+  ], { cols: 2 })
+  return warn + dataBlockHtml('Acceso a SIERRA Index', fields, {
+    aside: canManage ? `<button type="button" class="btn btn-ghost btn-sm" onclick="closeEmployeeDetail();showUserManagement()" style="padding:2px 6px">Administrar acceso</button>` : null,
+  })
+}
+async function startCreateAccessForEmployee(empId) {
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp) return
+  await openCreateUserModal({ mode: 'invite' })
+  _cu.employee = emp
+  _cu.step = 'details'
+  cuRender()
+}
+// Visible, reversible — never an automatic suspension (spec §19/§20):
+// this only fires from an admin clicking the warning banner's button.
+async function suspendIndexAccount(profileId) {
+  const { error } = await sb.from('profiles').update({ account_status: 'suspended' }).eq('id', profileId)
+  if (error) { toast('No se pudo suspender la cuenta: ' + error.message); return }
+  Audit.log('user', profileId, null, 'account_suspended', 'Account suspended', [{ field: 'account_status', from: 'active', to: 'suspended' }])
+  toast('Cuenta suspendida')
+  const emp = _badge.employees.find(e => _badge.accountsByEmployeeId?.[e.id]?.id === profileId)
+  if (_badge.accountsByEmployeeId?.[emp?.id]) _badge.accountsByEmployeeId[emp.id].account_status = 'suspended'
+  if (emp) renderEmployeeDetailDrawer(emp)
 }
 
 // ── 7. EMPLOYEE PROFILE INTEGRATION ── "Estructura organizacional"
