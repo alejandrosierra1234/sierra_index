@@ -5060,7 +5060,8 @@
        bug. 401 matches .org-assign-drawer so these also stack correctly
        above an already-open employee detail drawer (399) when opened
        from its overflow menu. */
-    #hire-wizard.drawer, #term-modal.drawer, #org-info-modal.drawer { z-index: 401; }
+    #hire-wizard.drawer, #term-modal.drawer, #org-info-modal.drawer,
+    #vac-request-modal.drawer, #vac-balance-modal.drawer { z-index: 401; }
     /* Opens on top of the employee detail drawer (z-index 399) when
        triggered from the profile's "Estructura organizacional" section, so
        it needs to outrank it — otherwise it renders hidden behind it. */
@@ -14069,6 +14070,12 @@ const MODULES = {
         run: 'showBadgeTerminations',
       },
       {
+        id: 'vacations', label: 'Vacaciones', view: 'vacations',
+        desc: 'Saldos, solicitudes y boletas de vacaciones',
+        icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M3 8h14M7 2.5v3M13 2.5v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M7 12l2 2 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        run: 'showBadgeVacations',
+      },
+      {
         id: 'organization', label: 'Organización', view: 'organization',
         desc: 'Organigrama y relaciones de jefe inmediato',
         icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="4" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="5" cy="16" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="15" cy="16" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M10 6v4M10 10H5v4M10 10h5v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
@@ -14624,6 +14631,10 @@ let _badge = {
   countries: [],              // list of countries
   reportingRelationships: [],  // current + historical employee_reporting_relationships touching the active-site roster
   supervisorReviews: [],       // employee_supervisor_review rows (legacy supervisor_name migration queue)
+  vacationPolicies: [],        // vacation_policies visible to this user (read is open to any authenticated user)
+  vacationBalances: [],        // vacation_balances for the active-site roster
+  vacationRequests: [],        // vacation_requests for the active-site roster
+  vacationLoaded: false,       // lazy-loaded on first visit to Vacaciones or a profile's Tiempo tab
   orgExtraEmployees: {},       // employee id -> lightweight employee record, for managers/reports outside the active site
   // Cross-site cache for the Organigrama's "Toda SIERRA"/company/department/
   // manager scopes — everything else in this module stays scoped to the
@@ -14717,6 +14728,7 @@ let _badge_ui = {
     badge_status: new Set(), readiness: new Set(),
   },
   sort: 'name_asc',
+  vacFilter: 'pending',       // Vacaciones queue tab: 'pending' | 'approved' | 'other' | 'all'
   groupBy: 'none',            // 'none' | 'department' | 'readiness' | 'badge_status' | 'employee_status'
   collapsedGroups: new Set(), // group keys currently collapsed
   visibleCols: (() => {
@@ -14847,6 +14859,7 @@ async function showBadgeOverview() { await showBadgeTab('overview', 'Resumen') }
 async function showBadgeEmployees() { await showBadgeTab('employees', 'Colaboradores') }
 async function showBadgeHires() { await showBadgeTab('hires', 'Altas') }
 async function showBadgeTerminations() { await showBadgeTab('terminations', 'Bajas') }
+async function showBadgeVacations() { await showBadgeTab('vacations', 'Vacaciones') }
 async function showBadgeOrganization() { await showBadgeTab('organization', 'Organización') }
 async function showBadgeMoments() { await showBadgeTab('moments', 'Momentos') }
 async function showBadgeQueueTab() { await showBadgeTab('badge-queue', 'Cola de gafetes') }
@@ -15060,6 +15073,7 @@ function renderBadgeModule() {
         ${_badge_ui.view === 'employees' ? renderEmployeesView() : ''}
         ${_badge_ui.view === 'hires' ? renderHiresView() : ''}
         ${_badge_ui.view === 'terminations' ? renderTerminationsView() : ''}
+        ${_badge_ui.view === 'vacations' ? renderVacationsView() : ''}
         ${_badge_ui.view === 'organization' ? renderOrganizationView() : ''}
         ${_badge_ui.view === 'moments' ? renderMomentosView() : ''}
         ${_badge_ui.view === 'badge-queue' ? renderBadgeQueueView() : ''}
@@ -15077,6 +15091,7 @@ function renderBadgeModule() {
   // call renderBadgeModule(), not renderSidebarTree(), so without this the
   // highlight would freeze on whatever was clicked last in the sidebar.
   renderSidebarTree()
+  if (_badge_ui.view === 'vacations') loadVacQueueBody()
 }
 
 function renderBadgeHeaderActions() {
@@ -16152,6 +16167,7 @@ async function hireSubmit() {
     }
     toast(_hire.mode === 'rehire' ? 'Recontratación registrada' : 'Alta registrada')
     const wantsAccess = _hire.createIndexAccess
+    _hire.saving = false // hireClose() refuses to close while saving is true
     hireClose()
     await loadBadgeData()
     renderBadgeModule()
@@ -16284,11 +16300,461 @@ async function termSubmit() {
   })
   if (error) { _term.saving = false; toast('Error al dar de baja: ' + error.message); termRender(emp); return }
   toast('Baja registrada')
+  _term.saving = false // termClose() refuses to close while saving is true
   const empId = _term.employeeId
   termClose()
   await loadBadgeData()
   renderBadgeModule()
   viewEmployeeDetail(empId)
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   VACACIONES (§21/§22/§23) — an administrative time-off tracker, never
+   payroll: no pay-out amounts anywhere in this section. Policies define
+   entitlement (vacation_policies), balances track it per employee per
+   year (vacation_balances, its used_days kept in sync with approved
+   requests by the trg_sync_vacation_balance DB trigger — update32.sql),
+   requests carry the approval workflow (vacation_requests, its decision
+   trail auto-logged into vacation_request_decisions), and an approved
+   request can generate a printable boleta (vacation_documents). ══════ */
+const VAC_STATUS_LABELS = { pending: 'Pendiente', approved: 'Aprobada', rejected: 'Rechazada', cancelled: 'Cancelada' }
+function vacStatusBadgeHtml(status) {
+  const cls = status === 'approved' ? 'badge-active' : status === 'pending' ? 'badge-pending' : status === 'rejected' ? 'badge-terminated' : 'badge-inactive'
+  return `<span class="badge ${cls}">${esc(VAC_STATUS_LABELS[status] || status)}</span>`
+}
+// Simple weekday count (Mon–Fri), inclusive of both ends. This is
+// intentionally NOT a holiday-aware calculation — no public holiday
+// calendar is modeled anywhere in this app yet — so it is always labeled
+// "días hábiles" in the UI rather than implying legal-entitlement math.
+function vacBusinessDays(startStr, endStr) {
+  const start = parseDateOnly(startStr), end = parseDateOnly(endStr)
+  if (!start || !end || end < start) return 0
+  let days = 0
+  const cur = new Date(start.getTime())
+  while (cur <= end) {
+    const dow = cur.getUTCDay()
+    if (dow !== 0 && dow !== 6) days++
+    cur.setUTCDate(cur.getUTCDate() + 1)
+  }
+  return days
+}
+function vacCurrentYear() { return hrToday().getUTCFullYear() }
+async function vacLoadData() {
+  const empIds = _badge.employees.map(e => e.id)
+  if (!empIds.length) { _badge.vacationRequests = []; _badge.vacationBalances = []; _badge.vacationPolicies = []; _badge.vacationLoaded = true; return }
+  const [{ data: reqs }, { data: bals }, { data: pols }] = await Promise.all([
+    sb.from('vacation_requests').select('id,employee_id,start_date,end_date,requested_days,comment,status,decided_by,decided_at,decision_note,created_at').in('employee_id', empIds).order('start_date', { ascending: false }),
+    sb.from('vacation_balances').select('id,employee_id,policy_id,period_year,entitled_days,used_days,adjustment_days,adjustment_note').in('employee_id', empIds),
+    sb.from('vacation_policies').select('id,country_id,company_id,name,annual_days,is_active').eq('is_active', true),
+  ])
+  _badge.vacationRequests = reqs || []
+  _badge.vacationBalances = bals || []
+  _badge.vacationPolicies = pols || []
+  _badge.vacationLoaded = true
+}
+// Available = entitled + manual adjustment − used (kept in sync with
+// approved requests by the DB trigger) − pending (computed here, since
+// a still-pending request hasn't touched used_days yet). Returns null
+// when no balance row exists for that employee/year — the UI must show
+// "Sin saldo configurado", never a fabricated zero.
+function vacBalanceFor(employeeId, year) {
+  const bal = _badge.vacationBalances.find(b => b.employee_id === employeeId && b.period_year === year)
+  if (!bal) return null
+  const pending = _badge.vacationRequests
+    .filter(r => r.employee_id === employeeId && r.status === 'pending' && parseDateOnly(r.start_date)?.getUTCFullYear() === year)
+    .reduce((sum, r) => sum + Number(r.requested_days), 0)
+  const entitled = Number(bal.entitled_days), used = Number(bal.used_days), adjustment = Number(bal.adjustment_days)
+  return { ...bal, entitled, used, adjustment, pending, available: entitled + adjustment - used - pending }
+}
+// Company-specific policy wins over a country-wide default (§21) — but
+// employees.country is free text, not a country_id FK, so a country-wide
+// policy can only be offered as a fallback list, not matched precisely.
+function vacPoliciesForEmployee(emp) {
+  const companyMatch = _badge.vacationPolicies.filter(p => p.company_id === emp.company_id)
+  return companyMatch.length ? companyMatch : _badge.vacationPolicies.filter(p => !p.company_id)
+}
+
+function vacFilteredRequests() {
+  const f = _badge_ui.vacFilter
+  return _badge.vacationRequests.filter(r =>
+    f === 'pending' ? r.status === 'pending' :
+    f === 'approved' ? r.status === 'approved' :
+    f === 'other' ? (r.status === 'rejected' || r.status === 'cancelled') : true
+  )
+}
+function renderVacationsView() {
+  const canWrite = can('write', 'talento_humano')
+  return `
+    <div class="badge-employees-view">
+      <div class="page-toolbar">
+        ${canWrite ? `<button class="btn btn-primary btn-sm" onclick="vacOpenRequestPicker()">+ Nueva solicitud</button>` : ''}
+      </div>
+      <div class="pd-tabs pd-tabs-inline" style="max-width:460px;margin:0.6rem 0 0">
+        ${[['pending', 'Pendientes'], ['approved', 'Aprobadas'], ['other', 'Rechazadas/Canceladas'], ['all', 'Todas']].map(([k, l]) =>
+          `<button class="pd-tab ${_badge_ui.vacFilter === k ? 'active' : ''}" onclick="vacSetFilter('${k}')">${esc(l)}</button>`).join('')}
+      </div>
+      <div id="vac-queue-body" style="margin-top:0.7rem"><div class="pd-loading">Cargando…</div></div>
+    </div>
+  `
+}
+function vacSetFilter(f) { _badge_ui.vacFilter = f; renderBadgeModule() }
+async function loadVacQueueBody() {
+  if (!_badge.vacationLoaded) await vacLoadData()
+  const el = document.getElementById('vac-queue-body')
+  if (!el) return
+  const canWrite = can('write', 'talento_humano')
+  const list = vacFilteredRequests()
+  if (!list.length) { el.innerHTML = emptyStateHtml({ title: 'Sin solicitudes', desc: 'Las solicitudes de vacaciones en este filtro aparecerán aquí.' }); return }
+  el.innerHTML = `<table class="erp-table">
+    <thead><tr><th>Colaborador</th><th>Fechas</th><th>Días hábiles</th><th>Estado</th><th>Solicitado</th><th>Acciones</th></tr></thead>
+    <tbody>
+      ${list.map(r => {
+        const emp = _badge.employees.find(e => e.id === r.employee_id)
+        const canDecide = canWrite || (emp && isEmployeeManagedByMe(emp.id))
+        return `<tr class="${emp ? 'is-clickable' : ''}" ${emp ? `onclick="viewEmployeeDetail('${emp.id}')"` : ''}>
+          <td class="emp-td-trunc">${emp ? esc(emp.first_name + ' ' + emp.last_name) : '—'}</td>
+          <td class="emp-td-trunc">${hrFmtDate(r.start_date)} – ${hrFmtDate(r.end_date)}</td>
+          <td class="emp-td-trunc">${r.requested_days}</td>
+          <td class="emp-td-trunc">${vacStatusBadgeHtml(r.status)}</td>
+          <td class="emp-td-trunc" style="color:var(--text-3)">${hrFmtDate(r.created_at)}</td>
+          <td onclick="event.stopPropagation()">
+            ${r.status === 'pending' && canDecide ? `<button class="btn btn-sm btn-secondary" onclick="vacDecide('${r.id}','approved')">Aprobar</button>
+              <button class="btn btn-sm btn-ghost" onclick="vacDecide('${r.id}','rejected')">Rechazar</button>` : ''}
+            ${r.status === 'approved' ? `<button class="btn btn-sm btn-ghost" onclick="vacGenerateBoleta('${r.id}')">Ver boleta</button>` : ''}
+          </td>
+        </tr>`
+      }).join('')}
+    </tbody>
+  </table>`
+}
+// Best-effort "is this viewer this employee's manager" check for showing
+// Aprobar/Rechazar — the RLS UPDATE policy (is_manager_of OR
+// can_manage_employee OR self-cancel-while-pending) is the real gate;
+// this only decides whether to render the button at all, so a manager
+// without talento_humano write access still sees their team's queue.
+function isEmployeeManagedByMe(employeeId) {
+  if (_badge.reportingRelationshipsUnavailable) return false
+  const myEmployeeId = _badge.accountsByEmployeeId ? Object.keys(_badge.accountsByEmployeeId).find(id => _badge.accountsByEmployeeId[id]?.id === me?.id) : null
+  if (!myEmployeeId) return false
+  return orgDirectReportIds(myEmployeeId).includes(employeeId)
+}
+async function vacDecide(requestId, status) {
+  let decision_note = null
+  if (status === 'rejected') {
+    const raw = prompt('Motivo del rechazo (opcional):')
+    if (raw === null) return // user clicked Cancel — an empty-but-confirmed reason is not the same thing
+    decision_note = raw.trim() || null
+  }
+  const { error } = await sb.from('vacation_requests').update({ status, decided_by: me.id, decided_at: new Date().toISOString(), decision_note }).eq('id', requestId)
+  if (error) { toast('Error al actualizar la solicitud: ' + error.message); return }
+  toast(status === 'approved' ? 'Solicitud aprobada' : 'Solicitud rechazada')
+  _badge.vacationLoaded = false
+  await vacLoadData()
+  if (document.getElementById('vac-queue-body')) loadVacQueueBody()
+  if (document.getElementById('emp-tab-time') && _badge_ui.detailTab === 'time') {
+    const cur = _badge.employees.find(e => e.id === _badge_ui.selectedEmployeeId)
+    if (cur) loadEmpTimeTab(cur)
+  }
+}
+
+/* ── Request picker (central queue's "+ Nueva solicitud") — same
+   searchable-list pattern as termOpenPicker, scoped to active employees. ── */
+function vacOpenRequestPicker() {
+  const active = _badge.employees.filter(e => e.employee_status === 'active')
+  const body = `
+    <input type="search" id="vac-picker-search" placeholder="Buscar por nombre o código…" oninput="vacFilterPicker(this.value)" style="width:100%;margin-bottom:0.6rem" />
+    <div id="vac-picker-list" style="display:flex;flex-direction:column;gap:2px">
+      ${active.map(e => `<button type="button" class="btn btn-ghost btn-sm vac-picker-row" data-search="${escAttr((e.first_name + ' ' + e.last_name + ' ' + (e.employee_code || '')).toLowerCase())}" style="justify-content:flex-start" onclick="document.getElementById('org-info-modal-backdrop')?.remove();document.getElementById('org-info-modal')?.remove();vacOpenRequestModal('${e.id}')">${esc(e.first_name)} ${esc(e.last_name)} — <code>${esc(e.employee_code || '')}</code></button>`).join('')}
+    </div>
+  `
+  alertModal('Nueva solicitud de vacaciones para…', body)
+  setTimeout(() => document.getElementById('vac-picker-search')?.focus(), 50)
+}
+function vacFilterPicker(q) {
+  const query = q.trim().toLowerCase()
+  document.querySelectorAll('.vac-picker-row').forEach(r => { r.style.display = !query || r.dataset.search.includes(query) ? '' : 'none' })
+}
+
+/* ── Request modal ── */
+let _vacReq = null
+async function vacOpenRequestModal(employeeId) {
+  if (!_badge.vacationLoaded) await vacLoadData()
+  _vacReq = { employeeId, start_date: '', end_date: '', comment: '', saving: false }
+  document.getElementById('org-info-modal-backdrop')?.remove()
+  document.getElementById('org-info-modal')?.remove()
+  const backdrop = document.createElement('div')
+  backdrop.className = 'drawer-backdrop'; backdrop.id = 'vac-request-modal-backdrop'
+  backdrop.onclick = () => vacCloseRequestModal()
+  document.body.appendChild(backdrop)
+  const modal = document.createElement('div')
+  modal.className = 'drawer drawer-right'; modal.id = 'vac-request-modal'
+  modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true'); modal.setAttribute('aria-label', 'Nueva solicitud de vacaciones')
+  document.body.appendChild(modal)
+  requestAnimationFrame(() => { backdrop.classList.add('open'); modal.classList.add('open') })
+  vacRenderRequestModal()
+}
+function vacCloseRequestModal() {
+  if (_vacReq?.saving) return
+  document.getElementById('vac-request-modal-backdrop')?.classList.remove('open')
+  document.getElementById('vac-request-modal')?.classList.remove('open')
+  setTimeout(() => { document.getElementById('vac-request-modal-backdrop')?.remove(); document.getElementById('vac-request-modal')?.remove() }, 300)
+  _vacReq = null
+}
+function vacReqSetDate(field, value) { _vacReq[field] = value; vacRenderRequestModal() }
+function vacRenderRequestModal() {
+  const modal = document.getElementById('vac-request-modal')
+  if (!modal || !_vacReq) return
+  const emp = _badge.employees.find(e => e.id === _vacReq.employeeId)
+  const year = _vacReq.start_date ? parseDateOnly(_vacReq.start_date)?.getUTCFullYear() : vacCurrentYear()
+  const bal = vacBalanceFor(_vacReq.employeeId, year || vacCurrentYear())
+  const days = vacBusinessDays(_vacReq.start_date, _vacReq.end_date)
+  const projected = bal ? bal.available - days : null
+  modal.innerHTML = `<div class="drawer-content">
+    <div class="emp-detail-hdr"><div class="emp-detail-hdr-main"><div class="emp-detail-hdr-name">Nueva solicitud de vacaciones</div><div class="emp-detail-hdr-org">${esc(emp?.first_name || '')} ${esc(emp?.last_name || '')}</div></div>
+      <button class="icon-btn icon-btn-quiet" onclick="vacCloseRequestModal()" aria-label="Cerrar">${siIcon('x', 16)}</button>
+    </div>
+    <div class="drawer-body">
+      ${bal ? dataFieldsHtml([
+        { label: 'Saldo disponible', value: `${bal.available} días` },
+        { label: 'Otorgados', value: `${bal.entitled} días` },
+      ], { cols: 2 }) : emptyStateHtml({ title: 'Sin saldo configurado', desc: `Este colaborador no tiene un saldo de vacaciones configurado para ${year || vacCurrentYear()}.` })}
+      <div class="data-fields-2" style="margin-top:0.8rem">
+        <div class="data-field"><div class="data-field-label">Fecha de inicio *</div><div class="emp-edit-input"><input type="date" value="${escAttr(_vacReq.start_date)}" oninput="vacReqSetDate('start_date', this.value)" /></div></div>
+        <div class="data-field"><div class="data-field-label">Fecha de fin *</div><div class="emp-edit-input"><input type="date" value="${escAttr(_vacReq.end_date)}" oninput="vacReqSetDate('end_date', this.value)" /></div></div>
+      </div>
+      ${_vacReq.start_date && _vacReq.end_date ? dataFieldsHtml([
+        { label: 'Días hábiles solicitados', value: String(days) },
+        { label: 'Saldo proyectado', value: projected !== null ? `${projected} días${projected < 0 ? ' ⚠' : ''}` : '—' },
+      ], { cols: 2 }) : ''}
+      <div class="data-field" style="margin-top:0.6rem"><div class="data-field-label">Comentario</div><div class="emp-edit-input"><textarea rows="2" oninput="_vacReq.comment = this.value">${esc(_vacReq.comment)}</textarea></div></div>
+    </div>
+    <div class="emp-detail-edit-footer">
+      <button class="btn btn-secondary btn-sm" onclick="vacCloseRequestModal()" ${_vacReq.saving ? 'disabled' : ''}>Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="vacRequestSubmit()" ${_vacReq.saving ? 'disabled' : ''}>${_vacReq.saving ? 'Guardando…' : 'Enviar solicitud'}</button>
+    </div>
+  </div>`
+}
+async function vacRequestSubmit() {
+  if (!_vacReq.start_date || !_vacReq.end_date) { toast('Selecciona fecha de inicio y fin'); return }
+  const days = vacBusinessDays(_vacReq.start_date, _vacReq.end_date)
+  if (days <= 0) { toast('El rango de fechas no incluye días hábiles'); return }
+  _vacReq.saving = true; vacRenderRequestModal()
+  const { error } = await sb.from('vacation_requests').insert({
+    employee_id: _vacReq.employeeId, start_date: _vacReq.start_date, end_date: _vacReq.end_date,
+    requested_days: days, comment: _vacReq.comment || null, status: 'pending', created_by: me.id,
+  })
+  if (error) { _vacReq.saving = false; toast('Error al enviar la solicitud: ' + error.message); vacRenderRequestModal(); return }
+  toast('Solicitud enviada')
+  const employeeId = _vacReq.employeeId
+  _vacReq.saving = false // vacCloseRequestModal() refuses to close while saving is true
+  vacCloseRequestModal()
+  _badge.vacationLoaded = false
+  await vacLoadData()
+  if (document.getElementById('vac-queue-body')) loadVacQueueBody()
+  if (_badge_ui.selectedEmployeeId === employeeId) { const emp = _badge.employees.find(e => e.id === employeeId); if (emp) renderEmployeeDetailDrawer(emp) }
+}
+
+/* ── Balance setup (HR only) — a balance requires a real policy (not-null
+   FK), so this never fabricates entitlement; if no policy applies to the
+   employee's company yet, this offers to create the first one inline
+   rather than blocking with a dead end. ── */
+let _vacBal = null
+function vacOpenBalanceModal(employeeId) {
+  const emp = _badge.employees.find(e => e.id === employeeId)
+  if (!emp) return
+  const policies = vacPoliciesForEmployee(emp)
+  const year = vacCurrentYear()
+  const existing = _badge.vacationBalances.find(b => b.employee_id === employeeId && b.period_year === year)
+  _vacBal = {
+    employeeId, year,
+    policy_id: existing?.policy_id || policies[0]?.id || '',
+    entitled_days: existing ? String(existing.entitled_days) : (policies[0]?.annual_days != null ? String(policies[0].annual_days) : ''),
+    adjustment_days: existing ? String(existing.adjustment_days) : '0',
+    adjustment_note: existing?.adjustment_note || '',
+    newPolicyName: '', newPolicyDays: '',
+    saving: false,
+  }
+  document.getElementById('org-info-modal-backdrop')?.remove()
+  document.getElementById('org-info-modal')?.remove()
+  const backdrop = document.createElement('div')
+  backdrop.className = 'drawer-backdrop'; backdrop.id = 'vac-balance-modal-backdrop'
+  backdrop.onclick = () => vacCloseBalanceModal()
+  document.body.appendChild(backdrop)
+  const modal = document.createElement('div')
+  modal.className = 'drawer drawer-right'; modal.id = 'vac-balance-modal'
+  modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true'); modal.setAttribute('aria-label', 'Configurar saldo de vacaciones')
+  document.body.appendChild(modal)
+  requestAnimationFrame(() => { backdrop.classList.add('open'); modal.classList.add('open') })
+  vacRenderBalanceModal(emp, policies)
+}
+function vacCloseBalanceModal() {
+  if (_vacBal?.saving) return
+  document.getElementById('vac-balance-modal-backdrop')?.classList.remove('open')
+  document.getElementById('vac-balance-modal')?.classList.remove('open')
+  setTimeout(() => { document.getElementById('vac-balance-modal-backdrop')?.remove(); document.getElementById('vac-balance-modal')?.remove() }, 300)
+  _vacBal = null
+}
+function vacBalSet(field, value) { _vacBal[field] = value }
+function vacRenderBalanceModal(emp, policies) {
+  const modal = document.getElementById('vac-balance-modal')
+  if (!modal || !_vacBal) return
+  modal.innerHTML = `<div class="drawer-content">
+    <div class="emp-detail-hdr"><div class="emp-detail-hdr-main"><div class="emp-detail-hdr-name">Configurar saldo · ${_vacBal.year}</div><div class="emp-detail-hdr-org">${esc(emp.first_name)} ${esc(emp.last_name)}</div></div>
+      <button class="icon-btn icon-btn-quiet" onclick="vacCloseBalanceModal()" aria-label="Cerrar">${siIcon('x', 16)}</button>
+    </div>
+    <div class="drawer-body">
+      ${policies.length ? `
+        <div class="data-field"><div class="data-field-label">Política aplicable</div><div class="emp-edit-input"><select onchange="vacBalSet('policy_id', this.value)">
+          ${policies.map(p => `<option value="${p.id}" ${_vacBal.policy_id === p.id ? 'selected' : ''}>${esc(p.name)} (${p.annual_days} días/año)</option>`).join('')}
+        </select></div></div>
+      ` : `
+        <div class="data-block-title"><span>Sin política configurada</span></div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.6rem">No hay una política de vacaciones para la empresa de este colaborador todavía. Crea una para poder asignar un saldo.</div>
+        <div class="data-fields-2">
+          <div class="data-field"><div class="data-field-label">Nombre de la política</div><div class="emp-edit-input"><input type="text" value="${escAttr(_vacBal.newPolicyName)}" oninput="vacBalSet('newPolicyName', this.value)" placeholder="p. ej. Política estándar" /></div></div>
+          <div class="data-field"><div class="data-field-label">Días anuales</div><div class="emp-edit-input"><input type="number" min="0" step="0.5" value="${escAttr(_vacBal.newPolicyDays)}" oninput="vacBalSet('newPolicyDays', this.value)" /></div></div>
+        </div>
+      `}
+      <div class="data-fields-2" style="margin-top:0.8rem">
+        <div class="data-field"><div class="data-field-label">Días otorgados</div><div class="emp-edit-input"><input type="number" min="0" step="0.5" value="${escAttr(_vacBal.entitled_days)}" oninput="vacBalSet('entitled_days', this.value)" /></div></div>
+        <div class="data-field"><div class="data-field-label">Ajuste manual</div><div class="emp-edit-input"><input type="number" step="0.5" value="${escAttr(_vacBal.adjustment_days)}" oninput="vacBalSet('adjustment_days', this.value)" /></div></div>
+      </div>
+      <div class="data-field" style="margin-top:0.6rem"><div class="data-field-label">Motivo del ajuste</div><div class="emp-edit-input"><input type="text" value="${escAttr(_vacBal.adjustment_note)}" oninput="vacBalSet('adjustment_note', this.value)" /></div></div>
+    </div>
+    <div class="emp-detail-edit-footer">
+      <button class="btn btn-secondary btn-sm" onclick="vacCloseBalanceModal()" ${_vacBal.saving ? 'disabled' : ''}>Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="vacBalanceSubmit()" ${_vacBal.saving ? 'disabled' : ''}>${_vacBal.saving ? 'Guardando…' : 'Guardar saldo'}</button>
+    </div>
+  </div>`
+}
+async function vacBalanceSubmit() {
+  const emp = _badge.employees.find(e => e.id === _vacBal.employeeId)
+  let policyId = _vacBal.policy_id
+  _vacBal.saving = true; vacRenderBalanceModal(emp, vacPoliciesForEmployee(emp))
+  if (!policyId) {
+    if (!_vacBal.newPolicyName.trim() || !_vacBal.newPolicyDays) { _vacBal.saving = false; toast('Completa el nombre y los días de la política'); vacRenderBalanceModal(emp, vacPoliciesForEmployee(emp)); return }
+    const { data, error } = await sb.from('vacation_policies').insert({
+      company_id: emp.company_id, name: _vacBal.newPolicyName.trim(), annual_days: Number(_vacBal.newPolicyDays), created_by: me.id,
+    }).select('id').single()
+    if (error) { _vacBal.saving = false; toast('Error al crear la política: ' + error.message); vacRenderBalanceModal(emp, vacPoliciesForEmployee(emp)); return }
+    policyId = data.id
+    _badge.vacationPolicies.push({ id: policyId, company_id: emp.company_id, name: _vacBal.newPolicyName.trim(), annual_days: Number(_vacBal.newPolicyDays), is_active: true })
+  }
+  if (!_vacBal.entitled_days) { _vacBal.saving = false; toast('Indica los días otorgados'); vacRenderBalanceModal(emp, vacPoliciesForEmployee(emp)); return }
+  const { error } = await sb.from('vacation_balances').upsert({
+    employee_id: _vacBal.employeeId, policy_id: policyId, period_year: _vacBal.year,
+    entitled_days: Number(_vacBal.entitled_days), adjustment_days: Number(_vacBal.adjustment_days || 0),
+    adjustment_note: _vacBal.adjustment_note || null, updated_by: me.id,
+  }, { onConflict: 'employee_id,period_year' })
+  if (error) { _vacBal.saving = false; toast('Error al guardar el saldo: ' + error.message); vacRenderBalanceModal(emp, vacPoliciesForEmployee(emp)); return }
+  toast('Saldo guardado')
+  _vacBal.saving = false // vacCloseBalanceModal() refuses to close while saving is true
+  vacCloseBalanceModal()
+  _badge.vacationLoaded = false
+  await vacLoadData()
+  if (_badge_ui.selectedEmployeeId === emp.id) renderEmployeeDetailDrawer(emp)
+  if (document.getElementById('vac-queue-body')) loadVacQueueBody()
+}
+
+/* ── Boleta de vacaciones (§23) — a clean printable record for an
+   approved request. Snapshots balance before/after into
+   vacation_documents so the printed slip never drifts from what was
+   true at generation time, even if the balance is corrected later. ── */
+async function vacGenerateBoleta(requestId) {
+  const req = _badge.vacationRequests.find(r => r.id === requestId)
+  if (!req) return
+  const emp = _badge.employees.find(e => e.id === req.employee_id)
+  if (!emp) return
+  const year = parseDateOnly(req.start_date)?.getUTCFullYear() || vacCurrentYear()
+  const bal = vacBalanceFor(req.employee_id, year)
+  // The trigger already folded this approved request's days into
+  // used_days, so "before" is simply "after" plus what this request took.
+  const balanceAfter = bal ? bal.available + bal.pending : null
+  const balanceBefore = balanceAfter !== null ? balanceAfter + Number(req.requested_days) : null
+  const { error } = await sb.from('vacation_documents').insert({
+    request_id: requestId, balance_before: balanceBefore, balance_after: balanceAfter, generated_by: me.id,
+  })
+  if (error) { toast('Error al generar la boleta: ' + error.message); return }
+  const site = _badge.sites.find(s => s.id === emp.site_id)
+  const mgrRel = orgCurrentManagerRelationship(emp.id)
+  const mgr = mgrRel ? orgEmpById(mgrRel.manager_employee_id) : null
+  const root = document.createElement('div')
+  root.id = 'vac-print-root'
+  root.innerHTML = `
+    <div style="max-width:640px;margin:0 auto;padding:2rem;font-family:Arial,sans-serif;color:#111">
+      <h2 style="margin:0 0 0.2rem">Boleta de vacaciones</h2>
+      <div style="color:#555;font-size:0.85rem;margin-bottom:1.2rem">Generada ${hrFmtDate(new Date().toISOString())}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+        ${[
+          ['Colaborador', `${emp.first_name} ${emp.last_name}`],
+          ['Código', emp.employee_code || '—'],
+          ['Empresa', emp.company || '—'],
+          ['Sede', site?.name || '—'],
+          ['Departamento', emp.department || '—'],
+          ['Puesto', emp.position || '—'],
+          ['Jefe inmediato', mgr ? orgFullName(mgr) : '—'],
+          ['Fechas', `${hrFmtDate(req.start_date)} – ${hrFmtDate(req.end_date)}`],
+          ['Días hábiles', String(req.requested_days)],
+          ['Saldo antes', balanceBefore !== null ? `${balanceBefore} días` : '—'],
+          ['Saldo después', balanceAfter !== null ? `${balanceAfter} días` : '—'],
+          ['Aprobado por', req.decided_at ? hrFmtDate(req.decided_at) : '—'],
+        ].map(([k, v]) => `<tr><td style="padding:0.35rem 0;color:#555;width:40%">${esc(k)}</td><td style="padding:0.35rem 0;font-weight:600">${esc(v)}</td></tr>`).join('')}
+      </table>
+    </div>
+  `
+  document.body.appendChild(root)
+  const pageStyle = document.createElement('style')
+  pageStyle.id = 'vac-page-style'
+  pageStyle.textContent = 'body.printing-vac-slip > *:not(#vac-print-root) { display:none !important; } body.printing-vac-slip #vac-print-root { display:block !important; }'
+  document.head.appendChild(pageStyle)
+  document.body.classList.add('printing-vac-slip')
+  const cleanup = () => {
+    document.body.classList.remove('printing-vac-slip')
+    document.getElementById('vac-page-style')?.remove()
+    document.getElementById('vac-print-root')?.remove()
+    window.removeEventListener('afterprint', cleanup)
+  }
+  window.addEventListener('afterprint', cleanup)
+  window.print()
+}
+
+/* ── Tiempo tab (§10/§11 profile redesign) — balance, upcoming approved
+   vacation, and a compact request history, on the employee profile. ── */
+function renderEmpTimeTab(emp) {
+  return `<div id="emp-time-body"><div class="pd-loading">Cargando…</div></div>`
+}
+async function loadEmpTimeTab(emp) {
+  if (!_badge.vacationLoaded) await vacLoadData()
+  const el = document.getElementById('emp-time-body')
+  if (!el) return
+  const canWrite = can('write', 'talento_humano')
+  const year = vacCurrentYear()
+  const bal = vacBalanceFor(emp.id, year)
+  const balanceBlock = bal
+    ? dataFieldsHtml([
+        { label: 'Disponibles', value: `${bal.available} días` },
+        { label: 'Otorgados', value: `${bal.entitled} días` },
+        { label: 'Usados', value: `${bal.used} días` },
+        { label: 'Pendientes de aprobación', value: `${bal.pending} días` },
+      ], { cols: 2 })
+    : emptyStateHtml({ title: 'Sin saldo configurado', desc: `Este colaborador no tiene un saldo de vacaciones para ${year}.`, actionLabel: canWrite ? 'Configurar saldo' : null, actionOnClick: canWrite ? `vacOpenBalanceModal('${emp.id}')` : null })
+  const requests = _badge.vacationRequests.filter(r => r.employee_id === emp.id)
+  const upcoming = requests.find(r => r.status === 'approved' && parseDateOnly(r.start_date) >= hrToday())
+  const historyBlock = requests.length ? `<table class="erp-table"><thead><tr><th>Fechas</th><th>Días</th><th>Estado</th><th></th></tr></thead><tbody>
+      ${requests.slice(0, 8).map(r => `<tr>
+        <td class="emp-td-trunc">${hrFmtDate(r.start_date)} – ${hrFmtDate(r.end_date)}</td>
+        <td class="emp-td-trunc">${r.requested_days}</td>
+        <td class="emp-td-trunc">${vacStatusBadgeHtml(r.status)}</td>
+        <td onclick="event.stopPropagation()">${r.status === 'approved' ? `<button class="btn btn-sm btn-ghost" onclick="vacGenerateBoleta('${r.id}')">Ver boleta</button>` : ''}</td>
+      </tr>`).join('')}
+    </tbody></table>` : emptyStateHtml({ title: 'Sin solicitudes registradas' })
+  el.innerHTML = `
+    ${dataBlockHtml('Saldo ' + year, balanceBlock, { aside: (bal && canWrite) ? `<button type="button" class="btn btn-ghost btn-sm" onclick="vacOpenBalanceModal('${emp.id}')" style="padding:2px 6px">Editar</button>` : null })}
+    ${upcoming ? dataBlockHtml('Próxima vacación aprobada', dataFieldsHtml([{ label: 'Fechas', value: `${hrFmtDate(upcoming.start_date)} – ${hrFmtDate(upcoming.end_date)}` }, { label: 'Días', value: String(upcoming.requested_days) }], { cols: 2 })) : ''}
+    <div style="margin:0.6rem 0"><button type="button" class="btn btn-secondary btn-sm" onclick="vacOpenRequestModal('${emp.id}')">+ Nueva solicitud</button></div>
+    <div class="data-block-title"><span>Historial de solicitudes</span></div>
+    ${historyBlock}
+  `
 }
 
 function renderBadgeQueueView() {
@@ -16871,6 +17337,7 @@ function renderEmployeeDetailDrawer(emp) {
         <div class="record-tabs" role="tablist" aria-label="Secciones del colaborador">
           <button class="record-tab ${_badge_ui.detailTab === 'overview' ? 'active' : ''}" role="tab" id="emp-tab-overview" aria-selected="${_badge_ui.detailTab === 'overview'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'overview' ? '0' : '-1'}" onclick="switchEmpDetailTab('overview')" onkeydown="empTabKeydown(event,'overview')">Resumen</button>
           <button class="record-tab ${_badge_ui.detailTab === 'employment' ? 'active' : ''}" role="tab" id="emp-tab-employment" aria-selected="${_badge_ui.detailTab === 'employment'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'employment' ? '0' : '-1'}" onclick="switchEmpDetailTab('employment')" onkeydown="empTabKeydown(event,'employment')">Empleo</button>
+          <button class="record-tab ${_badge_ui.detailTab === 'time' ? 'active' : ''}" role="tab" id="emp-tab-time" aria-selected="${_badge_ui.detailTab === 'time'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'time' ? '0' : '-1'}" onclick="switchEmpDetailTab('time')" onkeydown="empTabKeydown(event,'time')">Tiempo</button>
           ${canSeePersonal ? `<button class="record-tab ${_badge_ui.detailTab === 'personal' ? 'active' : ''}" role="tab" id="emp-tab-personal" aria-selected="${_badge_ui.detailTab === 'personal'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'personal' ? '0' : '-1'}" onclick="switchEmpDetailTab('personal')" onkeydown="empTabKeydown(event,'personal')">Personal</button>` : ''}
           <button class="record-tab ${_badge_ui.detailTab === 'badge' ? 'active' : ''}" role="tab" id="emp-tab-badge" aria-selected="${_badge_ui.detailTab === 'badge'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'badge' ? '0' : '-1'}" onclick="switchEmpDetailTab('badge')" onkeydown="empTabKeydown(event,'badge')">Gafete</button>
           <button class="record-tab ${_badge_ui.detailTab === 'activity' ? 'active' : ''}" role="tab" id="emp-tab-activity" aria-selected="${_badge_ui.detailTab === 'activity'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'activity' ? '0' : '-1'}" onclick="switchEmpDetailTab('activity')" onkeydown="empTabKeydown(event,'activity')">Actividad</button>
@@ -16879,6 +17346,7 @@ function renderEmployeeDetailDrawer(emp) {
       <div class="drawer-body emp-detail-body" role="tabpanel" id="emp-tab-panel" aria-labelledby="emp-tab-${_badge_ui.detailTab}">
         ${_badge_ui.detailTab === 'overview' ? renderEmpOverviewTab(emp) : ''}
         ${_badge_ui.detailTab === 'employment' ? renderEmpEmploymentTab(emp) : ''}
+        ${_badge_ui.detailTab === 'time' ? renderEmpTimeTab(emp) : ''}
         ${_badge_ui.detailTab === 'personal' && canSeePersonal ? renderEmpPersonalTab(emp) : ''}
         ${_badge_ui.detailTab === 'badge' ? renderEmpBadgeTab(emp) : ''}
         ${_badge_ui.detailTab === 'activity' ? renderEmpActivityTab(emp) : ''}
@@ -16887,11 +17355,12 @@ function renderEmployeeDetailDrawer(emp) {
   `
   if (_badge_ui.detailTab === 'activity') loadEmpActivity(emp.id)
   if (_badge_ui.detailTab === 'employment') loadEmpEmploymentHistory(emp.id)
+  if (_badge_ui.detailTab === 'time') loadEmpTimeTab(emp)
 }
 
 // Arrow-key navigation across tabs per WAI-ARIA tablist pattern.
 function empTabKeydown(e, current) {
-  const order = ['overview', 'employment', 'personal', 'badge', 'activity'].filter(k => document.getElementById('emp-tab-' + k))
+  const order = ['overview', 'employment', 'time', 'personal', 'badge', 'activity'].filter(k => document.getElementById('emp-tab-' + k))
   const idx = order.indexOf(current)
   let next = null
   if (e.key === 'ArrowRight') next = order[(idx + 1) % order.length]
