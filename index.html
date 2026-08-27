@@ -1705,6 +1705,27 @@
       background:linear-gradient(180deg, var(--surface2), var(--bg-alt)); overflow:hidden;
     }
     .card-img-placeholder svg { width:24px; height:24px; opacity:0.6; }
+
+    /* PersonCard (employee directory) — every card shares one fixed
+       anatomy so photo availability, name length or missing fields never
+       change card height (§ people-directory grid). Media is a true 1:1
+       square (portrait, not a landscape crop) at every breakpoint; the
+       no-photo placeholder occupies the identical square so the grid
+       never collapses around missing photos. */
+    .pg-grid.people-grid { grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); align-items:stretch; }
+    .person-card { display:flex; flex-direction:column; height:100%; }
+    .person-card .card-img,
+    .person-card .card-img-placeholder {
+      aspect-ratio:1 / 1; height:auto; flex-shrink:0;
+    }
+    .person-card .card-img img { object-position:center 22%; }
+    .person-card .card-body { display:flex; flex-direction:column; flex:1 1 auto; }
+    .person-card .card-name {
+      white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+      overflow:hidden; text-overflow:ellipsis; min-height:2.6em;
+    }
+    .person-card .card-desc { margin-bottom:0.9rem; }
+    .person-card .card-actions { margin-top:auto; }
     .card-body { padding:0.95rem 1rem 1rem; }
     /* ProductCard anatomy (§11): name first (primary identity), then
        record metadata + lifecycle, then technical data, then actions —
@@ -4646,6 +4667,8 @@
       padding: 0 12px;
       border: 1px solid var(--border-strong);
       background: var(--surface);
+      color: var(--text-primary);
+      font-family: inherit;
       border-radius: var(--control-radius);
       font-weight: 500;
       font-size: 0.85rem;
@@ -4653,10 +4676,26 @@
       transition: all var(--dur-fast) var(--ease-out);
     }
 
+    .site-switch-btn svg { color: var(--text-secondary); flex-shrink: 0; }
+
     .site-switch-btn:hover {
       background: var(--surface-hover);
       border-color: var(--text-muted);
+      color: var(--text-primary);
     }
+
+    .site-switch-btn:active {
+      background: var(--surface-hover);
+      border-color: var(--text-muted);
+    }
+
+    .site-switch-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      color: var(--text-disabled);
+    }
+
+    .site-switch-btn:disabled svg { color: var(--text-disabled); }
 
     .badge-main-panel {
       flex: 1;
@@ -5275,6 +5314,7 @@
       margin-bottom: 4px;
       border: none;
       background: transparent;
+      color: var(--text-primary);
       border-radius: var(--r-sm);
       font-size: 0.9rem;
       cursor: pointer;
@@ -5284,12 +5324,18 @@
 
     .site-switcher-item:hover {
       background: var(--surface-hover);
+      color: var(--text-primary);
     }
 
     .site-switcher-item.active {
-      background: var(--brand-teal-light);
+      background: var(--interactive-selected-bg);
       font-weight: 600;
-      color: var(--brand-teal-dark);
+      color: var(--interactive-selected-text, var(--text-primary));
+    }
+
+    .site-switcher-item:disabled {
+      color: var(--text-disabled);
+      cursor: not-allowed;
     }
 
     .import-upload-zone {
@@ -14741,7 +14787,7 @@ async function loadBadgeData() {
   _badge.sites = sites || []
 
   // Load companies
-  const { data: companies } = await sb.from('companies').select('id, country_id, name, legal_name').order('name')
+  const { data: companies } = await sb.from('companies').select('id, country_id, name, legal_name, code').order('name')
   _badge.companies = {}
   companies?.forEach(c => {
     if (!_badge.companies[c.country_id]) _badge.companies[c.country_id] = []
@@ -15190,7 +15236,7 @@ function empCardHtml(emp) {
   const st = badgeReadinessState(emp)
   const b = empLatestBadge(emp)
   const canWrite = can('write', 'talento_humano')
-  return `<div class="card" onclick="viewEmployeeDetail('${emp.id}')">
+  return `<div class="card person-card" onclick="viewEmployeeDetail('${emp.id}')">
     ${emp.photo_url ? `<div class="card-img"><img src="${esc(emp.photo_url)}" alt="${esc(emp.first_name)}" loading="lazy" /></div>` : `<div class="card-img-placeholder"><span style="font-size:1.3rem;font-weight:700;color:var(--text-secondary)">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</span></div>`}
     <div class="card-body">
       <div class="card-meta">
@@ -15214,7 +15260,7 @@ function empCardsHtml(list) {
       actionOnClick: _badge.employees.length ? 'empClearFilters()' : 'showImportWorkflow()',
     })
   }
-  return `<div class="pg-grid">${list.map(empCardHtml).join('')}</div>`
+  return `<div class="pg-grid people-grid">${list.map(empCardHtml).join('')}</div>`
 }
 function setEmployeeView(v) { _badge_ui.employeeView = v; renderBadgeModule() }
 
@@ -15925,7 +15971,12 @@ function renderSettingsView() {
 }
 
 function renderCompaniesView() {
-  const canWrite = can('write', 'talento_humano')
+  // Organizational naming (empresa/sede display names) is master data
+  // read everywhere in Index (cards, badges, filters, exports) — gated
+  // on platform-admin, not the broader talento_humano write capability,
+  // and mirrored by admin-only RLS on companies/sites (update28.sql) so
+  // the restriction holds even if this screen's check is bypassed.
+  const canWrite = can('admin', 'platform')
   const rows = _badge.countries.flatMap(country =>
     (_badge.companies[country.id] || []).map(c => ({ ...c, countryName: country.name }))
   )
@@ -15937,23 +15988,28 @@ function renderCompaniesView() {
       <div class="badge-table-wrap">
         <table class="erp-table">
           <thead>
-            <tr><th>Nombre</th><th>Razón social</th><th>País</th><th>Acciones</th></tr>
+            <tr><th>Nombre</th><th>Código</th><th>Razón social</th><th>País</th><th>Sedes</th><th>Acciones</th></tr>
           </thead>
           <tbody>
-            ${rows.length ? rows.map(c => `
+            ${rows.length ? rows.map(c => {
+              const sites = _badge.sites.filter(s => s.company_id === c.id)
+              return `
               <tr>
                 <td class="emp-td-trunc">${esc(c.name)}</td>
+                <td class="emp-td-trunc">${esc(c.code || '—')}</td>
                 <td class="emp-td-trunc" title="${escAttr(c.legal_name || '')}">${esc(c.legal_name || '—')}</td>
                 <td class="emp-td-trunc">${esc(c.countryName)}</td>
-                <td style="text-align:right;padding-right:1rem">
+                <td class="emp-td-trunc" title="${escAttr(sites.map(s => s.name).join(', '))}">${sites.length ? esc(sites.map(s => s.name).join(', ')) : '—'}</td>
+                <td style="text-align:right;padding-right:1rem;white-space:nowrap">
+                  <button class="btn btn-sm btn-ghost" onclick="openCompanySitesManager('${c.id}')">Sedes</button>
                   ${canWrite ? `
                     <button class="btn btn-sm btn-ghost" onclick="openCompanyEditor('${c.id}')">Editar</button>
                     <button class="btn btn-sm btn-ghost" onclick="deleteCompany('${c.id}')">Eliminar</button>
                   ` : ''}
                 </td>
               </tr>
-            `).join('') : `
-              <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-3)">Aún no hay empresas.</td></tr>
+            `}).join('') : `
+              <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-3)">Aún no hay empresas.</td></tr>
             `}
           </tbody>
         </table>
@@ -15977,6 +16033,10 @@ function openCompanyEditor(id) {
         <div class="import-map-row">
           <label>Nombre *</label>
           <input type="text" id="company-name" value="${esc(company?.name || '')}" />
+        </div>
+        <div class="import-map-row">
+          <label>Código</label>
+          <input type="text" id="company-code" value="${esc(company?.code || '')}" placeholder="p. ej. NT" style="text-transform:uppercase" />
         </div>
         <div class="import-map-row">
           <label>Razón social</label>
@@ -16006,10 +16066,16 @@ function closeCompanyEditor() {
 
 async function saveCompany(id) {
   const name = document.getElementById('company-name').value.trim()
+  const code = document.getElementById('company-code').value.trim().toUpperCase()
   const legal_name = document.getElementById('company-legal-name').value.trim()
   const country_id = document.getElementById('company-country').value
   if (!name || !country_id) { toast('Nombre y país son obligatorios'); return }
-  const payload = { name, legal_name: legal_name || null, country_id }
+  // Renaming an existing company only ever touches `name`/`legal_name` —
+  // `id` (and `code`, once set) stay stable, so every screen reading this
+  // company by id/code (Colaboradores, badges, Organización, filters,
+  // exports) picks up the new display name automatically without a
+  // separate migration per screen.
+  const payload = { name, code: code || null, legal_name: legal_name || null, country_id }
   const { error } = id
     ? await sb.from('companies').update(payload).eq('id', id)
     : await sb.from('companies').insert(payload)
@@ -16027,6 +16093,107 @@ async function deleteCompany(id) {
   await loadBadgeData()
   renderBadgeModule()
   toast('Empresa eliminada')
+}
+
+/* ── Sedes (sites) manager — nested under a company. Sites already have
+   a stable internal_code independent of `name`, so renaming a site here
+   never touches employees/badges/RLS relationships (all keyed on id). ── */
+function openCompanySitesManager(companyId) {
+  const company = Object.values(_badge.companies).flat().find(c => c.id === companyId)
+  if (!company) return
+  const canWrite = can('admin', 'platform')
+  const sites = _badge.sites.filter(s => s.company_id === companyId)
+  const modal = document.createElement('div')
+  modal.className = 'modal-overlay'
+  modal.id = 'company-sites-modal'
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:520px">
+      <div class="modal-header">
+        <h2>Sedes — ${esc(company.name)}</h2>
+        <button class="icon-btn icon-btn-quiet" onclick="closeCompanySitesManager()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg></button>
+      </div>
+      <div class="modal-body">
+        ${sites.length ? `<table class="erp-table"><thead><tr><th>Nombre</th><th>Código</th><th></th></tr></thead><tbody>
+          ${sites.map(s => `<tr>
+            <td class="emp-td-trunc">${esc(s.name)}</td>
+            <td class="emp-td-trunc">${esc(s.internal_code)}</td>
+            <td style="text-align:right;white-space:nowrap">
+              ${canWrite ? `
+                <button class="btn btn-sm btn-ghost" onclick="openSiteEditor('${companyId}','${s.id}')">Editar</button>
+                <button class="btn btn-sm btn-ghost" onclick="deleteSite('${s.id}')">Eliminar</button>
+              ` : ''}
+            </td>
+          </tr>`).join('')}
+        </tbody></table>` : `<p style="color:var(--text-3);font-size:0.85rem">Esta empresa aún no tiene sedes.</p>`}
+      </div>
+      <div class="modal-footer">
+        ${canWrite ? `<button class="btn btn-secondary" onclick="openSiteEditor('${companyId}')">+ Nueva sede</button>` : ''}
+        <button class="btn btn-primary" onclick="closeCompanySitesManager()">Cerrar</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
+  modal.onclick = (e) => e.target === modal && closeCompanySitesManager()
+}
+function closeCompanySitesManager() { document.getElementById('company-sites-modal')?.remove() }
+
+function openSiteEditor(companyId, siteId) {
+  const site = siteId ? _badge.sites.find(s => s.id === siteId) : null
+  const modal = document.createElement('div')
+  modal.className = 'modal-overlay'
+  modal.id = 'site-editor-modal'
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width:420px">
+      <div class="modal-header">
+        <h2>${site ? 'Editar sede' : 'Nueva sede'}</h2>
+        <button class="icon-btn icon-btn-quiet" onclick="closeSiteEditor()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="import-map-row">
+          <label>Nombre *</label>
+          <input type="text" id="site-name" value="${esc(site?.name || '')}" />
+        </div>
+        <div class="import-map-row">
+          <label>Código interno *</label>
+          <input type="text" id="site-code" value="${esc(site?.internal_code || '')}" placeholder="p. ej. NT" style="text-transform:uppercase" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeSiteEditor()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveSite('${companyId}','${site?.id || ''}')">Guardar</button>
+      </div>
+    </div>
+  `
+  document.body.appendChild(modal)
+  modal.onclick = (e) => e.target === modal && closeSiteEditor()
+}
+function closeSiteEditor() { document.getElementById('site-editor-modal')?.remove() }
+
+async function saveSite(companyId, id) {
+  const name = document.getElementById('site-name').value.trim()
+  const internal_code = document.getElementById('site-code').value.trim().toUpperCase()
+  if (!name || !internal_code) { toast('Nombre y código son obligatorios'); return }
+  const payload = { name, internal_code, company_id: companyId }
+  const { error } = id
+    ? await sb.from('sites').update(payload).eq('id', id)
+    : await sb.from('sites').insert(payload)
+  if (error) { toast('Error: ' + error.message); return }
+  closeSiteEditor()
+  await loadBadgeData()
+  openCompanySitesManager(companyId)
+  renderBadgeModule()
+  toast(id ? 'Sede actualizada' : 'Sede creada')
+}
+
+async function deleteSite(id) {
+  if (!confirm('¿Eliminar esta sede? Los colaboradores vinculados se verán afectados.')) return
+  const site = _badge.sites.find(s => s.id === id)
+  const { error } = await sb.from('sites').delete().eq('id', id)
+  if (error) { toast('Error: ' + error.message); return }
+  await loadBadgeData()
+  if (site) openCompanySitesManager(site.company_id)
+  renderBadgeModule()
+  toast('Sede eliminada')
 }
 
 async function setSiteContext(siteId) {
