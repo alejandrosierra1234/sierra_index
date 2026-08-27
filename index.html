@@ -17461,7 +17461,13 @@ function viewEmployeeDetail(empId, tab) {
   drawer.setAttribute('aria-modal', 'true')
   drawer.setAttribute('aria-label', 'Perfil de colaborador')
   drawer.addEventListener('keydown', empDetailTrapFocus)
-  document.body.appendChild(drawer)
+  // Must nest INSIDE the backdrop, not sit beside it — .emp-profile-modal
+  // has no positioning of its own (position:relative); it's centered by
+  // being a flex child of .emp-profile-overlay (the backdrop). Appending
+  // it to document.body instead left it in normal document flow (full
+  // width, wherever it fell in the DOM) — the actual bug behind "no
+  // funciona" screenshots showing it pinned to the bottom, edge-to-edge.
+  backdrop.appendChild(drawer)
   renderEmployeeDetailDrawer(emp)
   requestAnimationFrame(() => {
     backdrop.classList.add('open')
