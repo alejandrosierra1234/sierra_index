@@ -3920,21 +3920,34 @@
       body.printing-org #org-print-root { display:block !important; }
     }
     #org-print-root { display:none; }
-    .orgp-header { font-family:inherit; color:#000; margin-bottom:10mm; }
-    .orgp-title { font-size:1.4rem; font-weight:700; }
-    .orgp-sub { font-size:0.85rem; color:#444; margin-top:2px; }
+    /* Corporate export composition (§19-21) — a real document header/
+       footer, generous whitespace around a centered hierarchy, never a
+       screenshot of the interactive canvas. */
+    .orgp-page { display:flex; flex-direction:column; align-items:center; }
+    .orgp-header { font-family:inherit; color:#000; margin-bottom:9mm; width:100%; display:flex; align-items:flex-start; justify-content:space-between; gap:6mm; border-bottom:1.5px solid #111; padding-bottom:4mm; }
+    .orgp-header-brand { font-size:0.72rem; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:#000; }
+    .orgp-title { font-size:1.3rem; font-weight:700; margin-top:2mm; }
+    .orgp-sub { font-size:0.82rem; color:#333; margin-top:2px; font-weight:600; }
+    .orgp-meta-line { font-size:0.7rem; color:#666; margin-top:3mm; }
+    .orgp-meta-line b { color:#333; }
+    .orgp-footer { width:100%; margin-top:8mm; padding-top:3mm; border-top:1px solid #ccc; display:flex; justify-content:space-between; font-size:0.64rem; color:#888; }
+    .orgp-chart-wrap { position:relative; }
     .orgp-card {
-      position:absolute; display:flex; align-items:flex-start; gap:8px; background:#fff; border:1px solid #ccc; border-radius:10px;
-      padding:0.6rem 0.7rem; box-sizing:border-box;
+      position:absolute; display:flex; flex-direction:column; background:#fff; border:1px solid #ccc; border-radius:12px;
+      box-sizing:border-box; overflow:hidden;
     }
-    .orgp-avatar { width:48px; height:48px; min-width:48px; border-radius:50%; overflow:hidden; background:#eee; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; color:#555; }
+    .orgp-card-top { display:flex; align-items:flex-start; gap:8px; padding:0.6rem 0.7rem; flex:1; }
+    /* Rounded-square portrait to visually match the interactive card
+       (§6/§18) — object-fit:cover crops instead of stretching, so a
+       non-square source photo is never distorted in export either. */
+    .orgp-avatar { width:44px; height:44px; min-width:44px; border-radius:10px; overflow:hidden; background:#eee; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; color:#555; }
     .orgp-avatar img { width:100%; height:100%; object-fit:cover; }
     /* Exported cards never truncate names/positions either (§2) — they
        reuse the same dynamically-sized layout as the live canvas. */
-    .orgp-name { font-size:0.9rem; font-weight:700; color:#000; white-space:normal; overflow-wrap:break-word; }
-    .orgp-title2 { font-size:0.78rem; color:#333; white-space:normal; overflow-wrap:break-word; }
-    .orgp-meta { font-size:0.72rem; color:#666; white-space:normal; overflow-wrap:break-word; margin-top:2px; }
-    .orgp-reports { font-size:0.64rem; color:#555; margin-top:2px; }
+    .orgp-name { font-size:0.88rem; font-weight:700; color:#000; white-space:normal; overflow-wrap:break-word; }
+    .orgp-title2 { font-size:0.76rem; color:#333; white-space:normal; overflow-wrap:break-word; margin-top:1px; }
+    .orgp-meta { font-size:0.68rem; color:#666; white-space:normal; overflow-wrap:break-word; margin-top:3px; }
+    .orgp-reports { font-size:0.66rem; font-weight:600; color:#555; width:100%; border-top:1px solid #ddd; background:#f7f7f7; padding:0.28rem 0.5rem; text-align:center; }
     .orgp-conn { fill:none; stroke:#999; stroke-width:1.2; }
     .sg-wrap { font-family:inherit; color:#000; max-width:180mm; margin:0 auto; }
     .sg-top { display:flex; align-items:flex-start; justify-content:space-between; border-bottom:2.5px solid #000; padding-bottom:5mm; margin-bottom:5mm; }
@@ -4806,29 +4819,42 @@
        full-width banner inside the workspace. */
     .org-quality-chip { display:inline-flex; align-items:center; gap:0.3rem; padding:0.3rem 0.6rem; border-radius:7px; border:1px solid var(--warning-border); background:var(--warning-bg); color:var(--warning-text); font-size:0.78rem; font-weight:600; cursor:pointer; white-space:nowrap; }
     .org-quality-chip:hover { filter:brightness(0.97); }
-    .org-view-switch { display:flex; gap:0.4rem; margin:0.9rem 0 0.8rem; border-bottom:1px solid var(--border); }
-    .org-view-btn { padding:0.5rem 0.2rem; margin-right:1.1rem; background:none; border:none; border-bottom:2px solid transparent; font-size:0.85rem; font-weight:600; color:var(--text-secondary); cursor:pointer; }
+    .org-view-switch { display:flex; gap:0.4rem; margin:0.5rem 0 0.5rem; border-bottom:1px solid var(--border); }
+    .org-view-btn { padding:0.35rem 0.2rem; margin-right:1.1rem; background:none; border:none; border-bottom:2px solid transparent; font-size:0.82rem; font-weight:600; color:var(--text-secondary); cursor:pointer; }
     .org-view-btn.active { color:var(--teal); border-bottom-color:var(--teal); }
     .org-view-btn:hover { color:var(--text-primary); }
-    .org-toolbar { display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.6rem; }
-    .org-search-wrap { position:relative; flex:1; min-width:220px; max-width:420px; }
-    .org-search-input { width:100%; padding:0.5rem 0.7rem 0.5rem 2rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:0.85rem; min-height:38px; }
+    .org-toolbar { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.4rem; }
+    .org-search-wrap { position:relative; flex:1; min-width:200px; max-width:380px; }
+    .org-search-input { width:100%; padding:0.4rem 0.7rem 0.4rem 2rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:0.82rem; min-height:32px; }
     .org-search-input:focus-visible { outline:2px solid var(--teal); outline-offset:1px; }
     .org-issue-chip { display:inline-flex; align-items:center; gap:4px; font-size:0.66rem; font-weight:600; padding:0.15rem 0.4rem; border-radius:8px; white-space:nowrap; margin:1px 3px 1px 0; border:1px solid transparent; }
     .org-issue-review { background:var(--warning-bg); color:var(--warning-text); border-color:var(--warning-border); }
     .org-issue-blocking { background:var(--danger-bg); color:var(--danger); border-color:var(--danger-border); }
 
-    .org-chart-controls { display:flex; align-items:center; justify-content:space-between; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.6rem; }
+    .org-chart-controls { display:flex; align-items:center; justify-content:space-between; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.4rem; }
     .org-chart-controls-group { display:flex; align-items:center; gap:0.3rem; }
     .org-zoom-label { font-size:0.72rem; color:var(--text-3); min-width:2.6em; text-align:center; font-variant-numeric:tabular-nums; }
     .org-drag-hint { display:flex; align-items:center; gap:6px; font-size:0.72rem; color:var(--text-3); }
 
-    /* ── Organigrama canvas ── a real pan/zoom workspace (§2, §21), not a
-       card inside the page: it claims almost all of the available height
-       so the chart itself is the protagonist. overflow:auto gives native
+    /* ── Organigrama canvas ── a real whiteboard/infinite-canvas workspace
+       (§1-§3), not a card inside the page: workspace height is derived
+       from the viewport minus the (now compact) chrome above it, so the
+       chart is the visual protagonist. overflow:auto gives native
        wheel/trackpad/scrollbar panning for free; orgCanvasPointerDown()
-       layers click-drag-anywhere panning on top of that. */
-    .orgc-viewport { position:relative; overflow:auto; border:1px solid var(--border); border-radius:var(--panel-radius); background:var(--surface2); height:calc(100vh - 220px); min-height:460px; cursor:grab; }
+       layers click-drag-anywhere panning on top of that. display:grid +
+       place-items:center is the standard trick for keeping an overflow:
+       auto child centered when it's smaller than the container while
+       still allowing free scroll once it's bigger — combined with the
+       generous fixed padding baked into orgComputeChartLayout(), the
+       hierarchy can never end up stuck against an edge. */
+    .orgc-viewport {
+      position:relative; overflow:auto; display:grid; place-items:safe center;
+      border:1px solid var(--border); border-radius:var(--panel-radius);
+      background-color:var(--surface2);
+      background-image:radial-gradient(circle, var(--orgc-dot, color-mix(in srgb, var(--text-3) 30%, transparent)) 1px, transparent 1px);
+      background-size:24px 24px;
+      height:calc(100vh - var(--org-chrome-h, 178px)); min-height:420px; cursor:grab;
+    }
     .orgc-viewport.orgc-panning { cursor:grabbing; user-select:none; }
     /* The sizer carries the *scaled* (zoom-multiplied) pixel dimensions so
        the viewport's native scrollable area actually grows with zoom —
@@ -4838,34 +4864,48 @@
     .orgc-canvas { position:absolute; top:0; left:0; transform-origin:0 0; }
     .orgc-connectors { position:absolute; top:0; left:0; overflow:visible; pointer-events:none; }
     .orgc-conn { fill:none; stroke:var(--border-strong,var(--border)); stroke-width:1.5; }
+    /* Floating controls are truly attached to the viewport, not the
+       transformed/scrolled canvas content (§4) — position:sticky inside
+       the scroll container pins them to a viewport corner regardless of
+       zoom, pan position or hierarchy size, without needing JS to track
+       scroll offsets. Kept deliberately small/light, not an oversized
+       pill (§4). */
     .orgc-floating-controls {
-      position:sticky; bottom:0.8rem; left:100%; transform:translateX(-100%);
-      display:flex; align-items:center; gap:0.25rem; width:fit-content; margin-right:0.8rem;
-      padding:0.3rem 0.4rem; border-radius:999px; border:1px solid var(--border); background:var(--surface); box-shadow:0 2px 10px rgba(0,0,0,0.1);
+      position:sticky; bottom:0.6rem; left:100%; transform:translateX(-100%);
+      display:flex; align-items:center; gap:0.15rem; width:fit-content; margin-right:0.6rem;
+      padding:0.2rem 0.3rem; border-radius:999px; border:1px solid var(--border); background:color-mix(in srgb, var(--surface) 92%, transparent);
+      backdrop-filter:blur(6px); box-shadow:0 2px 10px rgba(0,0,0,0.1); z-index:3;
     }
-    .orgc-controls-sep { width:1px; height:18px; background:var(--border); margin:0 2px; }
+    .orgc-floating-controls .icon-btn { width:26px; height:26px; }
+    .orgc-controls-sep { width:1px; height:15px; background:var(--border); margin:0 1px; }
 
     .orgc-card {
-      position:absolute; display:flex; align-items:flex-start; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:12px;
-      padding:0.7rem 0.8rem; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.04);
-      transition:outline-color .1s, background-color .1s, transform .1s, opacity .1s, box-shadow .1s;
+      position:absolute; display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--border); border-radius:14px;
+      cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.04); overflow:hidden;
+      transition:border-color .12s, background-color .12s, transform .12s, opacity .12s, box-shadow .12s;
     }
-    .orgc-card:hover { border-color:var(--teal); box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+    .orgc-card-top { display:flex; align-items:flex-start; gap:10px; padding:0.75rem 0.8rem; flex:1; position:relative; }
+    .orgc-card:hover { border-color:var(--teal); box-shadow:0 6px 16px rgba(0,0,0,0.1); transform:translateY(-1px); }
     .orgc-card:focus-visible, .orgc-card.is-selected { outline:none; border-color:var(--teal); box-shadow:0 0 0 2px color-mix(in srgb, var(--teal) 35%, transparent); }
     .orgc-card.is-focused { background:color-mix(in srgb, var(--teal) 8%, var(--surface)); }
     .orgc-card.has-issue { border-color:var(--warning-border); }
     .orgc-card.has-blocking-issue { border-color:var(--danger-border); }
     /* A manager's card gets the barest signal (a slightly heavier left
        edge) — hierarchy is read from layout + connectors, never a loud
-       colored border on every card (§5, §27). */
+       colored border on every card (§7, §27). The root/head-of-branch
+       card gets very slightly more visual weight (elevation + a hair
+       thicker border) so the top of the chart reads at a glance without
+       any color. */
     .orgc-card.is-manager { border-left:3px solid var(--teal); }
+    .orgc-card.is-root { box-shadow:0 3px 10px rgba(0,0,0,0.08); border-color:var(--border-strong,var(--border)); }
+    .orgc-card.is-root .orgc-name { font-size:1.02rem; }
     .orgc-card.is-muted { opacity:0.55; border-style:dashed; cursor:default; }
-    .orgc-card.is-muted:hover { border-color:var(--border); box-shadow:none; }
-    /* "Ver cadena de mando" (§6) — a thin teal ring on the branch that
-       matters, not a filled block; everything else recedes (§13). */
+    .orgc-card.is-muted:hover { border-color:var(--border); box-shadow:none; transform:none; }
+    /* "Ver cadena de mando" (§14) — a thin teal ring on the branch that
+       matters, not a filled block; everything else recedes. */
     .orgc-card.orgc-chain-dim { opacity:0.25; }
     .orgc-card.orgc-chain-member { box-shadow:0 0 0 1.5px var(--teal); }
-    @keyframes orgcHighlightPulse { 0%,100% { box-shadow:0 0 0 2px color-mix(in srgb, var(--teal) 45%, transparent); } 50% { box-shadow:0 0 0 5px color-mix(in srgb, var(--teal) 25%, transparent); } }
+    @keyframes orgcHighlightPulse { 0%,100% { box-shadow:0 0 0 2px color-mix(in srgb, var(--teal) 45%, transparent); } 50% { box-shadow:0 0 0 6px color-mix(in srgb, var(--teal) 22%, transparent); } }
     .orgc-card.orgc-highlight { animation:orgcHighlightPulse 0.9s ease-in-out 2; }
     /* Drag-to-reassign (Gestionar estructura only) — grabbing a card and
        dropping it on another opens the same confirm drawer as the manual
@@ -4877,35 +4917,50 @@
     .orgc-card.org-dragging { opacity:0.35; cursor:grabbing; }
     .orgc-card.org-drop-valid { outline:2px dashed var(--teal); outline-offset:3px; background:color-mix(in srgb, var(--teal) 10%, var(--surface)); transform:scale(1.03); z-index:2; }
     .orgc-card.org-drop-invalid { outline:2px dashed var(--danger); outline-offset:3px; cursor:not-allowed; }
-    .orgc-grip { position:absolute; top:6px; left:6px; display:flex; align-items:center; justify-content:center; color:var(--text-3); opacity:0; transition:opacity .12s; cursor:grab; touch-action:none; }
+    .orgc-grip { position:absolute; top:6px; left:6px; display:flex; align-items:center; justify-content:center; color:var(--text-3); opacity:0; transition:opacity .12s; cursor:grab; touch-action:none; z-index:2; }
     .orgc-card:hover .orgc-grip, .orgc-card:focus-visible .orgc-grip { opacity:0.55; }
     .orgc-grip:hover { opacity:1 !important; color:var(--text-secondary); }
-    .orgc-avatar { width:58px; height:58px; min-width:58px; border-radius:50%; overflow:hidden; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; color:var(--text-secondary); }
+    /* Rounded-square (not circular) 1:1 portrait — SIERRA rarely uses
+       circular imagery (§6). object-fit:cover crops instead of stretching
+       so a non-square source photo is never distorted. */
+    .orgc-avatar { width:56px; height:56px; min-width:56px; border-radius:12px; overflow:hidden; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:1.05rem; font-weight:700; color:var(--text-secondary); }
     .orgc-avatar img { width:100%; height:100%; object-fit:cover; }
     .orgc-main { min-width:0; flex:1; padding-top:1px; }
-    /* Names and positions must NEVER truncate with an ellipsis (§2,
+    /* Names and positions must NEVER truncate with an ellipsis (§2/§15,
        critical acceptance criteria) — cards wrap instead, and the layout
        engine (orgCardHeightFor) grows each card's height to match. */
-    .orgc-name { font-size:0.95rem; line-height:1.25; font-weight:650; color:var(--text-primary); white-space:normal; overflow-wrap:break-word; }
-    .orgc-title { font-size:0.82rem; line-height:1.3; color:var(--text-secondary); white-space:normal; overflow-wrap:break-word; margin-top:1px; }
-    /* Company is mandatory on every node (§2) — its own line, bolder than
+    .orgc-name { font-size:0.95rem; line-height:1.25; font-weight:700; color:var(--text-primary); white-space:normal; overflow-wrap:break-word; }
+    .orgc-title { font-size:0.82rem; line-height:1.3; color:var(--text-secondary); white-space:normal; overflow-wrap:break-word; margin-top:2px; }
+    /* Company is mandatory on every node (§23) — its own line, bolder than
        department, and never replaced by a cross-company assignment: it
        always reflects the employee's one official employing company. */
-    .orgc-company { font-size:0.75rem; line-height:1.3; color:var(--text-secondary); font-weight:600; white-space:normal; overflow-wrap:break-word; margin-top:4px; display:flex; align-items:flex-start; gap:4px; }
+    .orgc-company { font-size:0.73rem; line-height:1.3; color:var(--text-secondary); font-weight:600; white-space:normal; overflow-wrap:break-word; margin-top:5px; display:flex; align-items:flex-start; gap:4px; }
     .orgc-company svg { flex-shrink:0; margin-top:2px; opacity:0.7; }
-    .orgc-dept { font-size:0.75rem; line-height:1.3; color:var(--text-3); white-space:normal; overflow-wrap:break-word; margin-top:2px; }
-    .orgc-warn { position:absolute; top:8px; right:8px; color:var(--warning-text); display:flex; }
+    .orgc-company.is-missing { color:var(--warning-text); font-style:italic; }
+    .orgc-dept { font-size:0.72rem; line-height:1.3; color:var(--text-3); white-space:normal; overflow-wrap:break-word; margin-top:2px; }
+    .orgc-warn { position:absolute; top:8px; right:8px; color:var(--warning-text); display:flex; z-index:2; }
     .orgc-card.has-blocking-issue .orgc-warn { color:var(--danger); }
-    .orgc-open { position:absolute; top:6px; right:6px; width:22px; height:22px; border:none; background:none; color:var(--text-3); cursor:pointer; display:flex; align-items:center; justify-content:center; border-radius:5px; opacity:0; }
-    .orgc-card.has-issue .orgc-open, .orgc-card.has-blocking-issue .orgc-open { right:26px; }
-    .orgc-card:hover .orgc-open, .orgc-card:focus-visible .orgc-open { opacity:1; }
-    .orgc-open:hover { background:var(--surface2); color:var(--text-primary); }
-    .orgc-reports {
-      position:absolute; left:50%; bottom:-11px; transform:translateX(-50%); display:flex; align-items:center; gap:3px;
-      font-size:0.68rem; font-weight:600; color:var(--text-secondary); background:var(--surface); border:1px solid var(--border); border-radius:999px;
-      padding:0.15rem 0.55rem; cursor:pointer; white-space:nowrap; z-index:1;
+    /* The whole card already opens the profile on click (§8) — this is a
+       secondary, more explicit affordance that fades in on hover so
+       nobody has to hunt for a tiny icon. It sits over the card top so it
+       never fights the in-flow "N reportes directos" control below. */
+    .orgc-open-hint {
+      position:absolute; inset:0; display:flex; align-items:flex-end; justify-content:flex-end; padding:0.4rem 0.6rem;
+      background:linear-gradient(180deg, transparent 55%, color-mix(in srgb, var(--surface) 92%, transparent) 100%);
+      border:none; cursor:pointer; opacity:0; transition:opacity .12s; pointer-events:none; border-radius:14px 14px 0 0;
     }
-    .orgc-reports:hover { border-color:var(--teal); color:var(--text-primary); }
+    .orgc-card:hover .orgc-open-hint, .orgc-card:focus-visible .orgc-open-hint { opacity:1; pointer-events:auto; }
+    .orgc-open-hint span { display:inline-flex; align-items:center; gap:3px; font-size:0.72rem; font-weight:700; color:var(--teal); }
+    /* Direct-report control (§9) — an intentional, readable, in-flow row
+       integrated into the card (not a tiny floating icon), with a large
+       click target and no overlap with the connector lines below it: the
+       layout engine (orgNodeExtraH) reserves real card height for this
+       row, so the elbow connector always starts beneath it. */
+    .orgc-reports-row {
+      display:flex; align-items:center; justify-content:center; gap:5px; width:100%; border:none; border-top:1px solid var(--border);
+      background:var(--surface2); color:var(--text-secondary); font-size:0.74rem; font-weight:600; cursor:pointer; padding:0.4rem 0.5rem; min-height:32px;
+    }
+    .orgc-reports-row:hover { background:color-mix(in srgb, var(--teal) 10%, var(--surface2)); color:var(--text-primary); }
     .org-selected-panel { display:flex; align-items:center; justify-content:space-between; gap:0.8rem; flex-wrap:wrap; margin-top:0.8rem; padding:0.6rem 0.8rem; border:1px solid var(--border); border-radius:10px; background:var(--surface2); font-size:0.82rem; }
     .org-selected-actions { display:flex; gap:0.4rem; flex-wrap:wrap; }
 
@@ -4938,9 +4993,10 @@
       /* Desktop is the primary use case (§22) — cards keep their full
          size and the chart stays navigable by pan/zoom/scroll rather
          than shrinking until it's unreadable. */
-      .orgc-viewport { height:calc(100vh - 320px); min-height:360px; }
+      .orgc-viewport { height:calc(100vh - 280px); min-height:360px; }
       .org-chart-controls-group .btn span { display:none; }
     }
+    [data-theme="dark"] .orgc-viewport { --orgc-dot: color-mix(in srgb, var(--text-3) 40%, transparent); }
     @media (prefers-reduced-motion: reduce) {
       .orgc-card, .orgc-card.orgc-highlight { transition:none !important; animation:none !important; }
     }
@@ -21722,26 +21778,61 @@ function orgExpandAll() {
   persistOrgUi(); renderBadgeModule()
 }
 function orgCollapseAll() { _badge_ui.org.expanded = []; persistOrgUi(); renderBadgeModule() }
+// Centers the whole current layout in the viewport — used after reset,
+// fit-to-screen, scope change and initial load (§1/§12). ORGC_PAD is
+// already baked into every position by orgComputeChartLayout, so this
+// only needs to center the (already generously padded) bounding box.
+function orgCenterViewport(behavior) {
+  const viewport = document.getElementById('orgc-viewport')
+  if (!viewport || !_orgLastChartLayout || !_orgLastChartLayout.width) return
+  const zoom = _badge_ui.org.zoom
+  const w = _orgLastChartLayout.width * zoom, h = _orgLastChartLayout.height * zoom
+  const left = Math.max(0, (w - viewport.clientWidth) / 2)
+  const top = Math.max(0, (h - viewport.clientHeight) / 2)
+  viewport.scrollTo({ left, top, behavior: behavior && !_prefersReducedMotion() ? behavior : 'auto' })
+}
 function orgResetView() {
   _badge_ui.org.zoom = 1
   _badge_ui.org.focusId = null
   persistOrgUi(); renderBadgeModule()
-  requestAnimationFrame(() => document.getElementById('orgc-viewport')?.scrollTo({ left: 0, top: 0 }))
+  requestAnimationFrame(() => orgCenterViewport())
 }
-function orgSetZoom(delta) {
-  _badge_ui.org.zoom = Math.max(0.15, Math.min(2.5, Math.round((_badge_ui.org.zoom + delta) * 100) / 100))
+function orgSetZoom(delta, pointer) {
+  const viewport = document.getElementById('orgc-viewport')
+  const prevZoom = _badge_ui.org.zoom
+  const nextZoom = Math.max(0.15, Math.min(2.5, Math.round((prevZoom + delta) * 100) / 100))
+  // Zoom centered around the pointer when practical (§ canvas behavior):
+  // keep whatever content sits under the cursor in the same viewport
+  // position instead of always zooming toward the top-left corner.
+  let anchor = null
+  if (viewport && pointer) {
+    const rect = viewport.getBoundingClientRect()
+    anchor = { x: viewport.scrollLeft + (pointer.clientX - rect.left), y: viewport.scrollTop + (pointer.clientY - rect.top) }
+  }
+  _badge_ui.org.zoom = nextZoom
   persistOrgUi(); renderBadgeModule()
+  if (anchor && viewport && prevZoom) {
+    const ratio = nextZoom / prevZoom
+    requestAnimationFrame(() => {
+      const el = document.getElementById('orgc-viewport')
+      if (!el) return
+      el.scrollLeft = anchor.x * ratio - (pointer.clientX - el.getBoundingClientRect().left)
+      el.scrollTop = anchor.y * ratio - (pointer.clientY - el.getBoundingClientRect().top)
+    })
+  }
 }
 // Fit the whole current layout inside the viewport at 100% max — never
 // zoom past 140% just because a tiny branch would otherwise look small;
-// readability over forcing everything to fill the screen (§7, §29).
+// readability over forcing everything to fill the screen. Generous
+// margins (not flush against viewport edges) are part of the fit itself.
 function orgFitToScreen() {
   const viewport = document.getElementById('orgc-viewport')
   if (!viewport || !_orgLastChartLayout || !_orgLastChartLayout.width || !_orgLastChartLayout.height) return
-  const scale = Math.min((viewport.clientWidth - 32) / _orgLastChartLayout.width, (viewport.clientHeight - 32) / _orgLastChartLayout.height, 1.4)
+  const margin = 48
+  const scale = Math.min((viewport.clientWidth - margin * 2) / _orgLastChartLayout.width, (viewport.clientHeight - margin * 2) / _orgLastChartLayout.height, 1.4)
   _badge_ui.org.zoom = Math.max(0.1, Math.round(scale * 100) / 100)
   persistOrgUi(); renderBadgeModule()
-  requestAnimationFrame(() => viewport.scrollTo({ left: 0, top: 0 }))
+  requestAnimationFrame(() => orgCenterViewport())
 }
 function orgSelectNode(id) { _badge_ui.org.selectedId = id; persistOrgUi(); renderBadgeModule() }
 // "Ver cadena de mando" (§6) — isolate/emphasize an employee's managers
@@ -21828,6 +21919,17 @@ function _prefersReducedMotion() { return window.matchMedia && window.matchMedia
 // function of (forest, expanded-state) — no DOM reads, so it's cheap to
 // recompute on every render and easy to reuse for PNG/PDF export.
 const ORGC_CARD_W = 300, ORGC_CARD_MIN_H = 108, ORGC_GAP_X = 36, ORGC_GAP_Y = 96, ORGC_ROOT_GAP = 72
+// Minimum canvas padding on every side (§12, critical acceptance
+// criteria) — baked directly into the layout's own coordinate system
+// (rather than left to CSS/scroll position) so the hierarchy can never
+// end up flush against a canvas edge after load, search, scope change,
+// expand, collapse or fit-to-viewport: every one of those just
+// recomputes this same pure function.
+const ORGC_PAD = 96
+// Height reserved for the in-flow "N reportes directos" row (§9/§11) —
+// added on top of the text-driven card height so the connector's elbow
+// always starts below the control instead of overlapping it.
+const ORGC_REPORTS_ROW_H = 33
 
 // ── Card height measurement — names/positions must NEVER truncate (§2,
 // critical acceptance criteria), so cards grow vertically to fit their
@@ -21871,6 +21973,10 @@ function orgCardHeightFor(emp) {
   _orgCardHeightCache.set(key, h)
   return h
 }
+function orgNodeCardH(id, forest) {
+  const hasChildren = (forest.childrenMap.get(id) || []).length > 0
+  return orgCardHeightFor(orgEmpById(id)) + (hasChildren ? ORGC_REPORTS_ROW_H : 0)
+}
 function orgComputeChartLayout(forest, opts = {}) {
   const forceExpandAll = !!opts.forceExpandAll // export always renders the complete hierarchy (§13), ignoring the interactive view's collapsed branches
   const widthCache = new Map()
@@ -21894,7 +22000,7 @@ function orgComputeChartLayout(forest, opts = {}) {
   }
   forest.roots.forEach(r => markDepths(r, 0))
   const rowHeights = []
-  depthOf.forEach((depth, id) => { rowHeights[depth] = Math.max(rowHeights[depth] || 0, orgCardHeightFor(orgEmpById(id))) })
+  depthOf.forEach((depth, id) => { rowHeights[depth] = Math.max(rowHeights[depth] || 0, orgNodeCardH(id, forest)) })
   const rowY = [0]
   for (let d = 1; d < rowHeights.length; d++) rowY[d] = rowY[d - 1] + rowHeights[d - 1] + ORGC_GAP_Y
   const positions = new Map()
@@ -21903,7 +22009,7 @@ function orgComputeChartLayout(forest, opts = {}) {
     const w = subtreeWidth(id)
     positions.set(id, {
       x: left + w / 2 - ORGC_CARD_W / 2, y: rowY[depth] || 0,
-      w: ORGC_CARD_W, h: orgCardHeightFor(orgEmpById(id)), expanded: forceExpandAll || orgIsExpanded(id),
+      w: ORGC_CARD_W, h: orgNodeCardH(id, forest), expanded: forceExpandAll || orgIsExpanded(id),
       childrenCount: (forest.childrenMap.get(id) || []).length,
     })
     let cursor = left
@@ -21911,10 +22017,17 @@ function orgComputeChartLayout(forest, opts = {}) {
   }
   let cursor = 0
   forest.roots.forEach(r => { place(r, cursor, 0); cursor += subtreeWidth(r) + ORGC_ROOT_GAP })
-  const width = Math.max(0, cursor - ORGC_ROOT_GAP)
+  const rawWidth = Math.max(0, cursor - ORGC_ROOT_GAP)
   let maxBottom = 0
   positions.forEach(p => { maxBottom = Math.max(maxBottom, p.y + p.h) })
-  return { positions, width, height: width ? maxBottom : 0 }
+  const rawHeight = rawWidth ? maxBottom : 0
+  // Bake generous minimum padding into the coordinate system itself
+  // (§12) — every consumer (connectors, cards, fit/center, export) reads
+  // from `positions`, so this guarantees the hierarchy is never flush
+  // against a canvas edge, on every path that can (re)compute a layout.
+  if (!rawWidth) return { positions, width: 0, height: 0 }
+  positions.forEach(p => { p.x += ORGC_PAD; p.y += ORGC_PAD })
+  return { positions, width: rawWidth + ORGC_PAD * 2, height: rawHeight + ORGC_PAD * 2 }
 }
 // SVG elbow connectors — vertical drop from the parent, a horizontal bus
 // at the midpoint between levels, vertical rises into each child — the
@@ -21966,10 +22079,7 @@ function orgCenterOnNode(id) {
 function orgCenterChart() {
   const target = _badge_ui.org.selectedId || _badge_ui.org.focusId
   if (target && _orgLastChartLayout?.positions.has(target)) { orgCenterOnNode(target); return }
-  const viewport = document.getElementById('orgc-viewport')
-  if (!viewport || !_orgLastChartLayout) return
-  const zoom = _badge_ui.org.zoom
-  viewport.scrollTo({ left: Math.max(0, (_orgLastChartLayout.width / 2) * zoom - viewport.clientWidth / 2), top: 0, behavior: _prefersReducedMotion() ? 'auto' : 'smooth' })
+  orgCenterViewport('smooth')
 }
 // Click-drag-to-pan on empty canvas (native overflow:auto already gives
 // wheel/trackpad/scrollbar panning for free — this adds Figma-style
@@ -21990,7 +22100,7 @@ document.addEventListener('mouseup', () => { if (_orgPanState) { _orgPanState.vi
 function orgCanvasWheel(e) {
   if (!(e.ctrlKey || e.metaKey)) return // plain wheel/trackpad: native scroll pans
   e.preventDefault()
-  orgSetZoom(e.deltaY > 0 ? -0.1 : 0.1)
+  orgSetZoom(e.deltaY > 0 ? -0.1 : 0.1, { clientX: e.clientX, clientY: e.clientY })
 }
 
 function orgChartCardHtml(id, forest, pos, contextual, chainSet) {
@@ -22011,23 +22121,31 @@ function orgChartCardHtml(id, forest, pos, contextual, chainSet) {
   const isChainDim = chainSet ? !isChainMember : false
   const initials = ((emp.first_name?.[0] || '') + (emp.last_name?.[0] || '')).toUpperCase()
   const canDrag = !isMuted && can('write', 'talento_humano') && _badge_ui.org.editMode
+  const isRoot = forest.roots.includes(id)
+  const companyMissing = !emp.company
+  // The whole card selects the node and surfaces "Ver perfil" among its
+  // quick actions (§14 focused-employee mode); a full-width hover
+  // affordance (.orgc-open-hint) makes "this opens a profile" obvious at
+  // a glance without needing to land a click on a tiny icon (§8).
   return `
-  <div class="orgc-card ${isSelected ? 'is-selected' : ''} ${isFocused ? 'is-focused' : ''} ${blocking ? 'has-blocking-issue' : hasIssue ? 'has-issue' : ''} ${children.length ? 'is-manager' : ''} ${isMuted ? 'is-muted' : ''} ${isChainMember ? 'orgc-chain-member' : ''} ${isChainDim ? 'orgc-chain-dim' : ''}"
+  <div class="orgc-card ${isSelected ? 'is-selected' : ''} ${isFocused ? 'is-focused' : ''} ${blocking ? 'has-blocking-issue' : hasIssue ? 'has-issue' : ''} ${children.length ? 'is-manager' : ''} ${isRoot ? 'is-root' : ''} ${isMuted ? 'is-muted' : ''} ${isChainMember ? 'orgc-chain-member' : ''} ${isChainDim ? 'orgc-chain-dim' : ''}"
        id="org-node-${id}" style="left:${pos.x}px;top:${pos.y}px;width:${pos.w}px;height:${pos.h}px" tabindex="0" role="treeitem"
        ${canDrag ? `draggable="true" ondragstart="orgNodeDragStart(event,'${id}')" ondragend="orgNodeDragEnd(event)" ondragover="orgNodeDragOver(event,'${id}')" ondragleave="orgNodeDragLeave(event,'${id}')" ondrop="orgNodeDrop(event,'${id}')"` : ''}
-       onclick="orgSelectNode('${id}')" onkeydown="orgNodeKeydown(event,'${id}')"
-       aria-label="${escAttr(orgFullName(emp))}${emp.position ? ', ' + escAttr(emp.position) : ''}${isMuted ? ', fuera del alcance actual' : ''}${hasIssue ? ', requiere atención' : ''}">
-    ${canDrag ? `<span class="orgc-grip" title="Arrastra para cambiar de jefe" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.3"/><circle cx="10" cy="4" r="1.3"/><circle cx="6" cy="8" r="1.3"/><circle cx="10" cy="8" r="1.3"/><circle cx="6" cy="12" r="1.3"/><circle cx="10" cy="12" r="1.3"/></svg></span>` : ''}
-    <div class="orgc-avatar">${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" draggable="false"/>` : `<span>${esc(initials)}</span>`}</div>
-    <div class="orgc-main">
-      <div class="orgc-name">${esc(orgFullName(emp))}</div>
-      <div class="orgc-title">${esc(emp.position || 'Sin puesto')}</div>
-      <div class="orgc-company">${siIcon('building', 10)}<span>${esc(emp.company || 'Empresa sin asignar')}</span></div>
-      ${emp.department ? `<div class="orgc-dept">${esc(emp.department)}</div>` : ''}
+       onclick="orgSelectNode('${id}')" ondblclick="viewEmployeeDetail('${id}')" onkeydown="orgNodeKeydown(event,'${id}')"
+       aria-label="${escAttr(orgFullName(emp))}${emp.position ? ', ' + escAttr(emp.position) : ''}${isMuted ? ', fuera del alcance actual' : ''}${hasIssue ? ', requiere atención' : ''}. Abrir perfil.">
+    <div class="orgc-card-top">
+      ${canDrag ? `<span class="orgc-grip" title="Arrastra para cambiar de jefe" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.3"/><circle cx="10" cy="4" r="1.3"/><circle cx="6" cy="8" r="1.3"/><circle cx="10" cy="8" r="1.3"/><circle cx="6" cy="12" r="1.3"/><circle cx="10" cy="12" r="1.3"/></svg></span>` : ''}
+      <div class="orgc-avatar">${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" draggable="false"/>` : `<span>${esc(initials)}</span>`}</div>
+      <div class="orgc-main">
+        <div class="orgc-name">${esc(orgFullName(emp))}</div>
+        <div class="orgc-title">${esc(emp.position || 'Sin puesto')}</div>
+        <div class="orgc-company ${companyMissing ? 'is-missing' : ''}">${siIcon('building', 10)}<span>${companyMissing ? 'Empresa sin asignar' : esc(emp.company)}</span></div>
+        ${emp.department ? `<div class="orgc-dept">${esc(emp.department)}</div>` : ''}
+      </div>
+      ${hasIssue ? `<span class="orgc-warn" title="${escAttr(issues.map(i => ORG_ISSUE_DEFS[i.type]?.label).join('; '))}">${siIcon(blocking ? 'alert-triangle' : 'alert-circle', 12)}</span>` : ''}
+      <button type="button" class="orgc-open-hint" onclick="event.stopPropagation();viewEmployeeDetail('${id}')" title="Abrir perfil de colaborador" aria-hidden="true" tabindex="-1"><span>Ver perfil ${siIcon('arrow-right', 11)}</span></button>
     </div>
-    ${hasIssue ? `<span class="orgc-warn" title="${escAttr(issues.map(i => ORG_ISSUE_DEFS[i.type]?.label).join('; '))}">${siIcon(blocking ? 'alert-triangle' : 'alert-circle', 12)}</span>` : ''}
-    <button type="button" class="orgc-open" onclick="event.stopPropagation();viewEmployeeDetail('${id}')" title="Abrir perfil de colaborador" aria-label="Abrir perfil de ${escAttr(orgFullName(emp))}">${siIcon('external-link', 11)}</button>
-    ${children.length ? `<button type="button" class="orgc-reports" onclick="event.stopPropagation();orgToggleExpand('${id}')" aria-expanded="${expanded}" title="${expanded ? 'Colapsar equipo' : 'Expandir equipo'} — ${children.length} reporte${children.length !== 1 ? 's' : ''} directo${children.length !== 1 ? 's' : ''}">${siIcon('users', 11)} ${children.length} ${siIcon(expanded ? 'chevron-up' : 'chevron-down', 10)}</button>` : ''}
+    ${children.length ? `<button type="button" class="orgc-reports-row" onclick="event.stopPropagation();orgToggleExpand('${id}')" aria-expanded="${expanded}" title="${expanded ? 'Colapsar equipo' : 'Expandir equipo'}">${siIcon('users', 12)} <span>${children.length} reporte${children.length !== 1 ? 's' : ''} directo${children.length !== 1 ? 's' : ''}</span> ${siIcon(expanded ? 'chevron-up' : 'chevron-down', 12)}</button>` : ''}
   </div>`
 }
 // ── Drag-to-reassign state (only reachable in Gestionar estructura mode —
@@ -22038,7 +22156,7 @@ function orgChartCardHtml(id, forest, pos, contextual, chainSet) {
 let _orgDrag = null
 function orgNodeDragStart(e, id) {
   if (!can('write', 'talento_humano') || !_badge_ui.org.editMode) { e.preventDefault(); return }
-  if (e.target.closest('.orgc-reports, .orgc-open')) { e.preventDefault(); return }
+  if (e.target.closest('.orgc-reports-row, .orgc-open-hint')) { e.preventDefault(); return }
   _orgDrag = id
   e.dataTransfer.effectAllowed = 'move'
   try { e.dataTransfer.setData('text/plain', id) } catch {}
@@ -22100,13 +22218,19 @@ function renderOrgChartView() {
   // First render for this scope: show root(s) and their direct reports
   // expanded by default (a meaningful top-level structure), not the
   // whole company.
+  let needsInitialCenter = false
   if (!_orgDefaultExpansionDone) {
     forest.roots.forEach(r => { if (!orgIsExpanded(r)) _badge_ui.org.expanded.push(r) })
     _orgDefaultExpansionDone = true
+    needsInitialCenter = true
   }
   const layout = orgComputeChartLayout(forest)
   _orgLastChartLayout = layout
   _orgLastChartForest = forest
+  // Auto-center horizontally and vertically with generous padding on
+  // first load of a scope (§1/§12) — never left to whatever scroll
+  // position the browser happened to land on.
+  if (needsInitialCenter) requestAnimationFrame(() => orgCenterViewport())
   const zoom = _badge_ui.org.zoom
   const sizerW = Math.max(1, Math.round(layout.width * zoom)), sizerH = Math.max(1, Math.round(layout.height * zoom))
   const allIds = [...layout.positions.keys()]
@@ -22129,13 +22253,13 @@ function renderOrgChartView() {
         </div>
       </div>
       <div class="orgc-floating-controls">
-        <button class="icon-btn icon-btn-quiet" onclick="orgSetZoom(-0.1)" title="Reducir zoom" aria-label="Reducir zoom">${siIcon('zoom-out', 15)}</button>
+        <button class="icon-btn icon-btn-quiet" onclick="orgSetZoom(-0.1)" title="Reducir zoom" aria-label="Reducir zoom">${siIcon('zoom-out', 13)}</button>
         <span class="org-zoom-label">${Math.round(zoom * 100)}%</span>
-        <button class="icon-btn icon-btn-quiet" onclick="orgSetZoom(0.1)" title="Aumentar zoom" aria-label="Aumentar zoom">${siIcon('zoom-in', 15)}</button>
+        <button class="icon-btn icon-btn-quiet" onclick="orgSetZoom(0.1)" title="Aumentar zoom" aria-label="Aumentar zoom">${siIcon('zoom-in', 13)}</button>
         <span class="orgc-controls-sep"></span>
-        <button class="icon-btn icon-btn-quiet" onclick="orgFitToScreen()" title="Ajustar a la pantalla" aria-label="Ajustar a la pantalla">${siIcon('maximize', 14)}</button>
-        <button class="icon-btn icon-btn-quiet" onclick="orgCenterChart()" title="Centrar" aria-label="Centrar">${siIcon('map-pin', 14)}</button>
-        <button class="icon-btn icon-btn-quiet" onclick="orgResetView()" title="Restablecer vista" aria-label="Restablecer vista">${siIcon('rotate-ccw', 14)}</button>
+        <button class="icon-btn icon-btn-quiet" onclick="orgFitToScreen()" title="Ajustar hierarquía a la pantalla" aria-label="Ajustar a la pantalla">${siIcon('maximize', 13)}</button>
+        <button class="icon-btn icon-btn-quiet" onclick="orgCenterChart()" title="Centrar en el colaborador seleccionado (o en toda la jerarquía)" aria-label="Centrar">${siIcon('map-pin', 13)}</button>
+        <button class="icon-btn icon-btn-quiet" onclick="orgResetView()" title="Restablecer vista (zoom 100%, sin selección)" aria-label="Restablecer vista">${siIcon('rotate-ccw', 13)}</button>
       </div>
     </div>
     ${orgSelectedNodeDetailHtml()}
@@ -22155,6 +22279,7 @@ function orgOpenExportModal() {
     scope: 'current', // 'current' (mirrors the scope/filters already shown above) | 'all'
     fields: { photo: true, name: true, title: true, department: true, company: true, facility: false, reports: true },
     format: 'pdf',
+    orientation: 'auto', // 'auto' | 'landscape' | 'portrait' — auto picks by the hierarchy's own aspect ratio (§21)
   }
   document.getElementById('org-export-drawer-backdrop')?.remove()
   document.getElementById('org-export-drawer')?.remove()
@@ -22182,6 +22307,7 @@ async function orgExportSetScope(v) {
 }
 function orgExportToggleField(key, checked) { if (_orgExport) { _orgExport.fields[key] = checked; renderOrgExportDrawer() } }
 function orgExportSetFormat(v) { if (_orgExport) { _orgExport.format = v; renderOrgExportDrawer() } }
+function orgExportSetOrientation(v) { if (_orgExport) { _orgExport.orientation = v; renderOrgExportDrawer() } }
 function orgExportPool() { return _orgExport?.scope === 'all' ? _badge.orgAll.employees : orgActiveEmployeePool() }
 function orgExportRelsPool() { return _orgExport?.scope === 'all' ? _badge.orgAll.relationships : orgActiveRels() }
 function orgExportIds() {
@@ -22195,23 +22321,65 @@ function orgExportBuild() {
   return { ids, forest, layout }
 }
 function orgExportScopeLabel() { return _orgExport?.scope === 'all' ? 'Toda SIERRA' : orgScopeLabel() }
-// A4/A3/A2/A1 landscape, 15mm margins, 96 CSS px/inch. For anything
-// bigger than A1 the chart is scaled down to fit one page (§13's "fit to
-// one page" option) rather than attempting true multi-page splitting.
+// Corporate header composition (§19) — title/subtitle depend on the
+// actual scope being exported (company/department/manager subtree/whole
+// org), never just the name of whichever employee happens to be
+// selected. Representative company/country come from the exported
+// pool's own employee data, never inferred from the scope itself (§23).
+function orgExportRepresentativeMeta(ids) {
+  const first = ids.map(orgEmpById).find(Boolean)
+  return first ? [first.company, first.country].filter(Boolean).join(' · ') : ''
+}
+function orgExportTitleInfo(ids) {
+  const s = _orgExport?.scope === 'all' ? { type: 'all' } : _badge_ui.org.scope
+  const meta = orgExportRepresentativeMeta(ids)
+  if (s.type === 'manager') {
+    const m = orgEmpById(s.value)
+    return { title: `Estructura organizacional — ${m ? orgFullName(m) : 'Colaborador'}`, subtitle: [m?.position, m?.company].filter(Boolean).join(' · ') }
+  }
+  if (s.type === 'department') return { title: `Organigrama — ${s.value || 'Departamento'}`, subtitle: meta }
+  if (s.type === 'company') return { title: `Organigrama — ${s.value || 'Empresa'}`, subtitle: meta }
+  if (s.type === 'all') return { title: 'Organigrama — Toda SIERRA', subtitle: '' }
+  const site = _badge.sites.find(x => x.id === _badge.activeSite)
+  return { title: `Organigrama — ${site?.name || 'Organización'}`, subtitle: meta }
+}
+function orgExportLevelCount(forest) {
+  let levels = 0
+  const walk = (id, depth) => {
+    levels = Math.max(levels, depth + 1)
+    ;(forest.childrenMap.get(id) || []).forEach(c => walk(c, depth + 1))
+  }
+  forest.roots.forEach(r => walk(r, 0))
+  return Math.max(1, levels)
+}
+// A4/A3/A2/A1, 15mm margins, 96 CSS px/inch. Orientation follows the
+// hierarchy's own aspect ratio unless the user pins it (§21): wide,
+// shallow structures print landscape; tall, narrow ones print portrait.
+// For anything bigger than A1 the chart is scaled down to fit one page
+// (§21's "fit to one page" option) rather than attempting true
+// multi-page splitting.
 const ORGP_PAGE_SIZES = [{ name: 'A4', wmm: 297, hmm: 210 }, { name: 'A3', wmm: 420, hmm: 297 }, { name: 'A2', wmm: 594, hmm: 420 }, { name: 'A1', wmm: 841, hmm: 594 }]
+function orgExportOrientation(layout) {
+  const pref = _orgExport?.orientation || 'auto'
+  if (pref === 'landscape' || pref === 'portrait') return pref
+  return layout.width >= layout.height ? 'landscape' : 'portrait'
+}
 function orgExportPageEstimate(layout) {
   const MM_PER_PX = 25.4 / 96, marginMm = 15
+  const orientation = orgExportOrientation(layout)
   for (const p of ORGP_PAGE_SIZES) {
-    if (layout.width * MM_PER_PX <= p.wmm - marginMm * 2 && layout.height * MM_PER_PX <= p.hmm - marginMm * 2) return { ...p, scale: 1 }
+    const wmm = orientation === 'landscape' ? p.wmm : p.hmm, hmm = orientation === 'landscape' ? p.hmm : p.wmm
+    if (layout.width * MM_PER_PX <= wmm - marginMm * 2 && layout.height * MM_PER_PX <= hmm - marginMm * 2) return { ...p, orientation, scale: 1 }
   }
   const largest = ORGP_PAGE_SIZES[ORGP_PAGE_SIZES.length - 1]
-  const scale = Math.min((largest.wmm - marginMm * 2) / (layout.width * MM_PER_PX), (largest.hmm - marginMm * 2) / (layout.height * MM_PER_PX))
-  return { ...largest, scale }
+  const wmm = orientation === 'landscape' ? largest.wmm : largest.hmm, hmm = orientation === 'landscape' ? largest.hmm : largest.wmm
+  const scale = Math.min((wmm - marginMm * 2) / (layout.width * MM_PER_PX), (hmm - marginMm * 2) / (layout.height * MM_PER_PX))
+  return { ...largest, orientation, scale }
 }
 function renderOrgExportDrawer() {
   const drawer = document.getElementById('org-export-drawer')
   if (!drawer || !_orgExport) return
-  const { ids, layout } = orgExportBuild()
+  const { ids, layout, forest } = orgExportBuild()
   const page = ids.length ? orgExportPageEstimate(layout) : null
   const fieldRow = (k, l) => `<label class="cat-pop-row" style="cursor:pointer;padding-left:0"><input type="checkbox" ${_orgExport.fields[k] ? 'checked' : ''} onchange="orgExportToggleField('${k}',this.checked)"/> ${l}</label>`
   drawer.innerHTML = `<div class="drawer-content">
@@ -22234,13 +22402,21 @@ function renderOrgExportDrawer() {
 
       <div class="data-block-title"><span>Formato</span></div>
       <label class="cat-pop-row" style="cursor:pointer;padding-left:0"><input type="radio" name="orgexp-format" ${_orgExport.format === 'pdf' ? 'checked' : ''} onchange="orgExportSetFormat('pdf')"/> PDF</label>
-      <label class="cat-pop-row" style="cursor:pointer;padding-left:0"><input type="radio" name="orgexp-format" ${_orgExport.format === 'png' ? 'checked' : ''} onchange="orgExportSetFormat('png')"/> PNG</label>
+      <label class="cat-pop-row" style="cursor:pointer;padding-left:0"><input type="radio" name="orgexp-format" ${_orgExport.format === 'png' ? 'checked' : ''} onchange="orgExportSetFormat('png')"/> PNG — alta resolución</label>
+
+      ${_orgExport.format === 'pdf' ? `<div class="data-block-title"><span>Orientación</span></div>
+      <div class="data-fields-2">
+        <label class="cat-pop-row" style="cursor:pointer;padding-left:0"><input type="radio" name="orgexp-orient" ${_orgExport.orientation === 'auto' ? 'checked' : ''} onchange="orgExportSetOrientation('auto')"/> Automática</label>
+        <label class="cat-pop-row" style="cursor:pointer;padding-left:0"><input type="radio" name="orgexp-orient" ${_orgExport.orientation === 'landscape' ? 'checked' : ''} onchange="orgExportSetOrientation('landscape')"/> Horizontal</label>
+        <label class="cat-pop-row" style="cursor:pointer;padding-left:0"><input type="radio" name="orgexp-orient" ${_orgExport.orientation === 'portrait' ? 'checked' : ''} onchange="orgExportSetOrientation('portrait')"/> Vertical</label>
+      </div>` : ''}
 
       <div class="org-impact-preview">
         <div class="data-block-title" style="margin-top:0"><span>Vista previa</span></div>
         <div class="org-impact-row"><span>Alcance</span><b>${esc(orgExportScopeLabel())}</b></div>
         <div class="org-impact-row"><span>Colaboradores</span><b>${ids.length}</b></div>
-        ${page ? `<div class="org-impact-row"><span>Tamaño de página</span><b>${page.name} · Horizontal${page.scale < 0.999 ? ` (ajustado a ${Math.round(page.scale * 100)}%)` : ''}</b></div>` : `<div class="org-impact-row"><span>Tamaño de página</span><b>—</b></div>`}
+        ${ids.length ? `<div class="org-impact-row"><span>Niveles organizacionales</span><b>${orgExportLevelCount(forest)}</b></div>` : ''}
+        ${_orgExport.format === 'pdf' ? (page ? `<div class="org-impact-row"><span>Tamaño de página</span><b>${page.name} · ${page.orientation === 'landscape' ? 'Horizontal' : 'Vertical'}${page.scale < 0.999 ? ` (ajustado a ${Math.round(page.scale * 100)}%)` : ''}</b></div>` : `<div class="org-impact-row"><span>Tamaño de página</span><b>—</b></div>`) : `<div class="org-impact-row"><span>Resolución</span><b>Alta densidad (2–3×)</b></div>`}
       </div>
     </div>
     <div class="drawer-footer">
@@ -22263,15 +22439,17 @@ function orgExportCardHtml(id, forest, pos) {
   const f = _orgExport.fields
   const initials = ((emp.first_name?.[0] || '') + (emp.last_name?.[0] || '')).toUpperCase()
   const children = forest.childrenMap.get(id) || []
-  const meta = [f.department && emp.department, f.company && emp.company, f.facility && orgSiteName(emp)].filter(Boolean).join(' · ')
+  const meta = [f.department && emp.department, f.company && (emp.company || 'Empresa sin asignar'), f.facility && orgSiteName(emp)].filter(Boolean).join(' · ')
   return `<div class="orgp-card" style="left:${pos.x}px;top:${pos.y}px;width:${pos.w}px;height:${pos.h}px">
-    ${f.photo ? `<div class="orgp-avatar">${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt=""/>` : `<span>${esc(initials)}</span>`}</div>` : ''}
-    <div style="min-width:0;flex:1">
-      ${f.name ? `<div class="orgp-name">${esc(orgFullName(emp))}</div>` : ''}
-      ${f.title ? `<div class="orgp-title2">${esc(emp.position || 'Sin puesto')}</div>` : ''}
-      ${meta ? `<div class="orgp-meta">${esc(meta)}</div>` : ''}
-      ${f.reports && children.length ? `<div class="orgp-reports">${children.length} reporte${children.length !== 1 ? 's' : ''} directo${children.length !== 1 ? 's' : ''}</div>` : ''}
+    <div class="orgp-card-top">
+      ${f.photo ? `<div class="orgp-avatar">${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt=""/>` : `<span>${esc(initials)}</span>`}</div>` : ''}
+      <div style="min-width:0;flex:1">
+        ${f.name ? `<div class="orgp-name">${esc(orgFullName(emp))}</div>` : ''}
+        ${f.title ? `<div class="orgp-title2">${esc(emp.position || 'Sin puesto')}</div>` : ''}
+        ${meta ? `<div class="orgp-meta">${esc(meta)}</div>` : ''}
+      </div>
     </div>
+    ${f.reports && children.length ? `<div class="orgp-reports">${children.length} reporte${children.length !== 1 ? 's' : ''} directo${children.length !== 1 ? 's' : ''}</div>` : ''}
   </div>`
 }
 function orgExportConnectorsSvg(layout, forest, cls) {
@@ -22292,20 +22470,32 @@ function orgExportConnectorsSvg(layout, forest, cls) {
 function orgExportPdf(forest, layout) {
   const root = document.getElementById('org-print-root')
   const ids = [...layout.positions.keys()]
+  const { title, subtitle } = orgExportTitleInfo(ids)
+  const levels = orgExportLevelCount(forest)
   root.innerHTML = `
-    <div class="orgp-header">
-      <div class="orgp-title">Organigrama — ${esc(orgExportScopeLabel())}</div>
-      <div class="orgp-sub">${ids.length} colaborador${ids.length !== 1 ? 'es' : ''} · ${hrFmtDate(hrToday().toISOString().slice(0, 10))}</div>
-    </div>
-    <div style="position:relative;width:${layout.width}px;height:${layout.height}px">
-      <svg width="${layout.width}" height="${layout.height}" style="position:absolute;top:0;left:0;overflow:visible" aria-hidden="true">${orgExportConnectorsSvg(layout, forest, 'orgp-conn')}</svg>
-      ${ids.map(id => orgExportCardHtml(id, forest, layout.positions.get(id))).join('')}
+    <div class="orgp-page">
+      <div class="orgp-header">
+        <div>
+          <div class="orgp-header-brand">SIERRA</div>
+          <div class="orgp-title">${esc(title)}</div>
+          ${subtitle ? `<div class="orgp-sub">${esc(subtitle)}</div>` : ''}
+        </div>
+        <div class="orgp-meta-line" style="text-align:right">
+          <div>Actualizado: <b>${esc(hrFmtDate(hrToday().toISOString().slice(0, 10)))}</b></div>
+          <div style="margin-top:2px">${ids.length} colaborador${ids.length !== 1 ? 'es' : ''} · ${levels} nivel${levels !== 1 ? 'es' : ''} organizacional${levels !== 1 ? 'es' : ''}</div>
+        </div>
+      </div>
+      <div class="orgp-chart-wrap" style="width:${layout.width}px;height:${layout.height}px">
+        <svg width="${layout.width}" height="${layout.height}" style="position:absolute;top:0;left:0;overflow:visible" aria-hidden="true">${orgExportConnectorsSvg(layout, forest, 'orgp-conn')}</svg>
+        ${ids.map(id => orgExportCardHtml(id, forest, layout.positions.get(id))).join('')}
+      </div>
+      <div class="orgp-footer"><span>SIERRA · Talento Humano</span><span>Generado desde SIERRA Index</span></div>
     </div>
   `
   const page = orgExportPageEstimate(layout)
   const pageStyle = document.createElement('style')
   pageStyle.id = 'org-page-style'
-  pageStyle.textContent = `@media print { @page { size:${page.name} landscape; margin:12mm } #org-print-root > div:last-child { transform:scale(${page.scale}); transform-origin:top left; } }`
+  pageStyle.textContent = `@media print { @page { size:${page.name} ${page.orientation}; margin:14mm } #org-print-root .orgp-chart-wrap { transform:scale(${page.scale}); transform-origin:top center; } }`
   document.head.appendChild(pageStyle)
   document.body.classList.add('printing-org')
   const cleanup = () => {
@@ -22339,21 +22529,44 @@ function orgDownloadDataUrl(dataUrl, filename) {
 // that doesn't allow it fails per-image (falls back to initials) — and
 // if toDataURL still throws, one retry re-renders with photos off
 // entirely rather than failing the whole export.
+// object-fit:cover equivalent for canvas — crops the source to the
+// target's aspect ratio before drawing instead of stretching width/height
+// independently, so a non-square source photo is never distorted (§18).
+function orgDrawCoverImage(ctx, img, dx, dy, dw, dh) {
+  const ir = img.width / img.height, dr = dw / dh
+  let sx, sy, sw, sh
+  if (ir > dr) { sh = img.height; sw = sh * dr; sy = 0; sx = (img.width - sw) / 2 }
+  else { sw = img.width; sh = sw / dr; sx = 0; sy = (img.height - sh) / 2 }
+  ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)
+}
+// Rasterized directly from layout data at 2–3× logical resolution (§17)
+// — never an upscale of a low-res DOM screenshot — onto an offscreen
+// <canvas>, with a corporate header/footer matching the PDF path (§19,
+// §20) so both formats read as the same document.
 async function orgExportPng(forest, layout, _retryNoPhoto) {
-  const MAX_DIM = 6000
-  const scale = Math.min(1, MAX_DIM / Math.max(layout.width, layout.height, 1))
-  const pad = 60, headerH = 70
+  const MAX_DIM = 8000, HQ = 2.5
+  const scale = Math.min(HQ, MAX_DIM / Math.max(layout.width, layout.height, 1))
+  const pad = 70, headerH = 110, footerH = 40
+  const ids = [...layout.positions.keys()]
+  const { title, subtitle } = orgExportTitleInfo(ids)
+  const levels = orgExportLevelCount(forest)
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(layout.width * scale) + pad * 2
-  canvas.height = Math.round(layout.height * scale) + pad * 2 + headerH
+  canvas.height = Math.round(layout.height * scale) + pad * 2 + headerH + footerH
   const ctx = canvas.getContext('2d')
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height)
   ctx.textBaseline = 'top'
-  const ids = [...layout.positions.keys()]
-  ctx.fillStyle = '#000'; ctx.font = '700 22px sans-serif'
-  ctx.fillText(`Organigrama — ${orgExportScopeLabel()}`, pad, 16)
-  ctx.fillStyle = '#555'; ctx.font = '400 13px sans-serif'
-  ctx.fillText(`${ids.length} colaborador${ids.length !== 1 ? 'es' : ''} · ${hrFmtDate(hrToday().toISOString().slice(0, 10))}`, pad, 42)
+  ctx.fillStyle = '#000'; ctx.font = `800 ${12 * scale}px sans-serif`
+  ctx.fillText('SIERRA', pad, pad * 0.35)
+  ctx.fillStyle = '#000'; ctx.font = `700 ${22 * scale}px sans-serif`
+  ctx.fillText(title, pad, pad * 0.35 + 20 * scale)
+  if (subtitle) { ctx.fillStyle = '#444'; ctx.font = `600 ${13 * scale}px sans-serif`; ctx.fillText(subtitle, pad, pad * 0.35 + 46 * scale) }
+  ctx.fillStyle = '#555'; ctx.font = `400 ${12 * scale}px sans-serif`; ctx.textAlign = 'right'
+  ctx.fillText(`Actualizado: ${hrFmtDate(hrToday().toISOString().slice(0, 10))}`, canvas.width - pad, pad * 0.35)
+  ctx.fillText(`${ids.length} colaborador${ids.length !== 1 ? 'es' : ''} · ${levels} nivel${levels !== 1 ? 'es' : ''} organizacional${levels !== 1 ? 'es' : ''}`, canvas.width - pad, pad * 0.35 + 18 * scale)
+  ctx.textAlign = 'left'
+  ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5
+  ctx.beginPath(); ctx.moveTo(pad, headerH - 14); ctx.lineTo(canvas.width - pad, headerH - 14); ctx.stroke()
   ctx.strokeStyle = '#999'; ctx.lineWidth = 1.2
   layout.positions.forEach((pos, id) => {
     if (!pos.expanded) return
@@ -22387,33 +22600,49 @@ async function orgExportPng(forest, layout, _retryNoPhoto) {
     const emp = orgEmpById(id)
     if (!emp) return
     const pos = layout.positions.get(id)
+    const children = forest.childrenMap.get(id) || []
+    const reportsRowH = (f.reports && children.length) ? ORGC_REPORTS_ROW_H * scale : 0
     const x = pad + pos.x * scale, y = pad + headerH + pos.y * scale, w = pos.w * scale, h = pos.h * scale
     ctx.fillStyle = '#fff'; ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1
-    orgCanvasRoundRect(ctx, x, y, w, h, 10 * scale); ctx.fill(); ctx.stroke()
+    orgCanvasRoundRect(ctx, x, y, w, h, 12 * scale); ctx.fill(); ctx.stroke()
     let textX = x + 12 * scale
     if (f.photo) {
-      const r = 24 * scale, cx = x + 12 * scale + r, cy = y + 12 * scale + r
-      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.closePath(); ctx.clip()
+      // Rounded-square (not circular) portrait, matching the interactive
+      // card and cropped with object-fit:cover semantics (§6/§18).
+      const size = 44 * scale, ax = x + 12 * scale, ay = y + 12 * scale
+      ctx.save(); orgCanvasRoundRect(ctx, ax, ay, size, size, 9 * scale); ctx.clip()
       const img = !_retryNoPhoto && photoCache.get(id)
-      if (img) ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2)
+      if (img) orgDrawCoverImage(ctx, img, ax, ay, size, size)
       else {
-        ctx.fillStyle = '#eee'; ctx.fillRect(cx - r, cy - r, r * 2, r * 2)
+        ctx.fillStyle = '#eee'; ctx.fillRect(ax, ay, size, size)
         ctx.fillStyle = '#555'; ctx.font = `700 ${13 * scale}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-        ctx.fillText(((emp.first_name?.[0] || '') + (emp.last_name?.[0] || '')).toUpperCase(), cx, cy)
+        ctx.fillText(((emp.first_name?.[0] || '') + (emp.last_name?.[0] || '')).toUpperCase(), ax + size / 2, ay + size / 2)
         ctx.textAlign = 'left'; ctx.textBaseline = 'top'
       }
       ctx.restore()
-      textX = x + (12 + 48 + 10) * scale
+      textX = x + (12 + 44 + 10) * scale
     }
     let ty = y + 10 * scale
     const maxTextW = w - (textX - x) - 8 * scale
     if (f.name) { ctx.fillStyle = '#000'; ctx.font = `700 ${14 * scale}px sans-serif`; ctx.fillText(orgFullName(emp), textX, ty, maxTextW); ty += 18 * scale }
     if (f.title) { ctx.fillStyle = '#333'; ctx.font = `400 ${12 * scale}px sans-serif`; ctx.fillText(emp.position || 'Sin puesto', textX, ty, maxTextW); ty += 16 * scale }
-    const metaParts = [f.department && emp.department, f.company && emp.company, f.facility && orgSiteName(emp)].filter(Boolean)
-    if (metaParts.length) { ctx.fillStyle = '#777'; ctx.font = `400 ${11 * scale}px sans-serif`; ctx.fillText(metaParts.join(' · '), textX, ty, maxTextW); ty += 15 * scale }
-    const children = forest.childrenMap.get(id) || []
-    if (f.reports && children.length) { ctx.fillStyle = '#555'; ctx.font = `600 ${10 * scale}px sans-serif`; ctx.fillText(`${children.length} reporte${children.length !== 1 ? 's' : ''} directo${children.length !== 1 ? 's' : ''}`, textX, ty, maxTextW) }
+    const metaParts = [f.department && emp.department, f.company && (emp.company || 'Empresa sin asignar'), f.facility && orgSiteName(emp)].filter(Boolean)
+    if (metaParts.length) { ctx.fillStyle = '#777'; ctx.font = `400 ${11 * scale}px sans-serif`; ctx.fillText(metaParts.join(' · '), textX, ty, maxTextW) }
+    if (reportsRowH) {
+      const ry = y + h - reportsRowH
+      ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, ry); ctx.lineTo(x + w, ry); ctx.stroke()
+      ctx.fillStyle = '#f7f7f7'; ctx.fillRect(x + 1, ry + 0.5, w - 2, reportsRowH - 1)
+      ctx.fillStyle = '#555'; ctx.font = `600 ${11 * scale}px sans-serif`; ctx.textAlign = 'center'
+      ctx.fillText(`${children.length} reporte${children.length !== 1 ? 's' : ''} directo${children.length !== 1 ? 's' : ''}`, x + w / 2, ry + reportsRowH / 2 - 6 * scale)
+      ctx.textAlign = 'left'
+    }
   })
+  ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1
+  const footerY = canvas.height - footerH + 12
+  ctx.beginPath(); ctx.moveTo(pad, footerY); ctx.lineTo(canvas.width - pad, footerY); ctx.stroke()
+  ctx.fillStyle = '#888'; ctx.font = `400 ${10 * scale}px sans-serif`
+  ctx.fillText('SIERRA · Talento Humano', pad, footerY + 8)
+  ctx.textAlign = 'right'; ctx.fillText('Generado desde SIERRA Index', canvas.width - pad, footerY + 8); ctx.textAlign = 'left'
   let dataUrl
   try {
     dataUrl = canvas.toDataURL('image/png')
