@@ -15855,23 +15855,30 @@ function hireDefaultState() {
     hire_date: new Date().toISOString().slice(0, 10), employee_category: '',
     createIndexAccess: false, queueBadge: false,
     rehireEmployee: null,
+    departments: [], positions: [],
   }
 }
 async function hireOpenWizard() {
   if (!_badge.activeSite) { toast('Selecciona una sede activa primero'); return }
   _hire = hireDefaultState()
-  await hireLoadOrgLookups()
   document.getElementById('org-info-modal-backdrop')?.remove()
   document.getElementById('org-info-modal')?.remove()
   const backdrop = document.createElement('div')
   backdrop.className = 'drawer-backdrop'; backdrop.id = 'hire-wizard-backdrop'
+  backdrop.onclick = () => hireClose()
   document.body.appendChild(backdrop)
   const modal = document.createElement('div')
   modal.className = 'drawer drawer-right'; modal.id = 'hire-wizard'
   modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true'); modal.setAttribute('aria-label', 'Nueva alta')
   document.body.appendChild(modal)
   requestAnimationFrame(() => { backdrop.classList.add('open'); modal.classList.add('open') })
+  // Render the shell (with a working close button) BEFORE the async
+  // lookup below, not after — otherwise a slow/failed department or
+  // position query leaves the backdrop up with nothing on top of it and
+  // no way to dismiss it except a hard refresh. The lookup then fills in
+  // department/position options with a second render once it resolves.
   hireRender()
+  await hireLoadOrgLookups()
 }
 function hireClose() {
   if (_hire?.saving) return
@@ -15881,14 +15888,24 @@ function hireClose() {
   _hire = null
 }
 async function hireLoadOrgLookups() {
-  const site = _badge.sites.find(s => s.id === _badge.activeSite)
-  const companyId = site?.company_id
-  const [{ data: depts }, { data: poss }] = await Promise.all([
-    sb.from('departments').select('id,name,company_id').or(`company_id.eq.${companyId},company_id.is.null`).eq('is_active', true).order('name'),
-    sb.from('positions').select('id,title,company_id,department_id').or(`company_id.eq.${companyId},company_id.is.null`).eq('status', 'active').order('title'),
-  ])
-  _hire.departments = depts || []
-  _hire.positions = poss || []
+  try {
+    const site = _badge.sites.find(s => s.id === _badge.activeSite)
+    const companyId = site?.company_id
+    const deptFilter = companyId ? `company_id.eq.${companyId},company_id.is.null` : 'company_id.is.null'
+    const [{ data: depts, error: deptErr }, { data: poss, error: posErr }] = await Promise.all([
+      sb.from('departments').select('id,name,company_id').or(deptFilter).eq('is_active', true).order('name'),
+      sb.from('positions').select('id,title,company_id,department_id').or(deptFilter).eq('status', 'active').order('title'),
+    ])
+    if (deptErr) throw deptErr
+    if (posErr) throw posErr
+    _hire.departments = depts || []
+    _hire.positions = poss || []
+  } catch (err) {
+    _hire.departments = []
+    _hire.positions = []
+    toast('No se pudieron cargar departamentos/puestos: ' + (err.message || err))
+  }
+  hireRender()
 }
 const HIRE_STEPS = [{ id: 'persona', label: 'Persona' }, { id: 'empleo', label: 'Empleo' }, { id: 'operacion', label: 'Operación' }, { id: 'revision', label: 'Revisión' }]
 function hireStepIndicatorHtml() {
@@ -16144,6 +16161,7 @@ function empOpenTerminationModal(empId) {
   document.getElementById('org-info-modal')?.remove()
   const backdrop = document.createElement('div')
   backdrop.className = 'drawer-backdrop'; backdrop.id = 'term-modal-backdrop'
+  backdrop.onclick = () => termClose()
   document.body.appendChild(backdrop)
   const modal = document.createElement('div')
   modal.className = 'drawer drawer-right'; modal.id = 'term-modal'
