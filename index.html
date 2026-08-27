@@ -16351,6 +16351,8 @@ function renderEmployeeDetailDrawer(emp) {
             ${emp.employee_code ? `<span class="emp-detail-hdr-code"><code>${esc(emp.employee_code)}</code><button type="button" class="emp-detail-hdr-code-copy" onclick="event.stopPropagation();copyFieldValue(this,'${jsStr(emp.employee_code)}','Código de colaborador')" title="Copiar código" aria-label="Copiar código de colaborador">${FIELD_COPY_ICON}</button></span>` : ''}
             ${emp.employee_code ? '<span aria-hidden="true">·</span>' : ''}
             ${empStatusBadgeHtml(emp.employee_status)}
+            ${empHeaderTenureText(emp) ? `<span aria-hidden="true">·</span><span>${esc(empHeaderTenureText(emp))}</span>` : ''}
+            ${orgDirectReportIds(emp.id).length ? `<span aria-hidden="true">·</span><span>${orgDirectReportIds(emp.id).length} reporte${orgDirectReportIds(emp.id).length !== 1 ? 's' : ''} directo${orgDirectReportIds(emp.id).length !== 1 ? 's' : ''}</span>` : ''}
           </div>
           ${orgMeta ? `<div class="emp-detail-hdr-org">${esc(orgMeta)}</div>` : ''}
           ${emp.position ? `<div class="emp-detail-hdr-position">${esc(emp.position)}</div>` : ''}
@@ -16370,6 +16372,7 @@ function renderEmployeeDetailDrawer(emp) {
       <div class="emp-detail-tabs">
         <div class="record-tabs" role="tablist" aria-label="Secciones del colaborador">
           <button class="record-tab ${_badge_ui.detailTab === 'overview' ? 'active' : ''}" role="tab" id="emp-tab-overview" aria-selected="${_badge_ui.detailTab === 'overview'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'overview' ? '0' : '-1'}" onclick="switchEmpDetailTab('overview')" onkeydown="empTabKeydown(event,'overview')">Resumen</button>
+          <button class="record-tab ${_badge_ui.detailTab === 'employment' ? 'active' : ''}" role="tab" id="emp-tab-employment" aria-selected="${_badge_ui.detailTab === 'employment'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'employment' ? '0' : '-1'}" onclick="switchEmpDetailTab('employment')" onkeydown="empTabKeydown(event,'employment')">Empleo</button>
           ${canSeePersonal ? `<button class="record-tab ${_badge_ui.detailTab === 'personal' ? 'active' : ''}" role="tab" id="emp-tab-personal" aria-selected="${_badge_ui.detailTab === 'personal'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'personal' ? '0' : '-1'}" onclick="switchEmpDetailTab('personal')" onkeydown="empTabKeydown(event,'personal')">Personal</button>` : ''}
           <button class="record-tab ${_badge_ui.detailTab === 'badge' ? 'active' : ''}" role="tab" id="emp-tab-badge" aria-selected="${_badge_ui.detailTab === 'badge'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'badge' ? '0' : '-1'}" onclick="switchEmpDetailTab('badge')" onkeydown="empTabKeydown(event,'badge')">Gafete</button>
           <button class="record-tab ${_badge_ui.detailTab === 'activity' ? 'active' : ''}" role="tab" id="emp-tab-activity" aria-selected="${_badge_ui.detailTab === 'activity'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'activity' ? '0' : '-1'}" onclick="switchEmpDetailTab('activity')" onkeydown="empTabKeydown(event,'activity')">Actividad</button>
@@ -16377,6 +16380,7 @@ function renderEmployeeDetailDrawer(emp) {
       </div>
       <div class="drawer-body emp-detail-body" role="tabpanel" id="emp-tab-panel" aria-labelledby="emp-tab-${_badge_ui.detailTab}">
         ${_badge_ui.detailTab === 'overview' ? renderEmpOverviewTab(emp) : ''}
+        ${_badge_ui.detailTab === 'employment' ? renderEmpEmploymentTab(emp) : ''}
         ${_badge_ui.detailTab === 'personal' && canSeePersonal ? renderEmpPersonalTab(emp) : ''}
         ${_badge_ui.detailTab === 'badge' ? renderEmpBadgeTab(emp) : ''}
         ${_badge_ui.detailTab === 'activity' ? renderEmpActivityTab(emp) : ''}
@@ -16384,11 +16388,12 @@ function renderEmployeeDetailDrawer(emp) {
     </div>
   `
   if (_badge_ui.detailTab === 'activity') loadEmpActivity(emp.id)
+  if (_badge_ui.detailTab === 'employment') loadEmpEmploymentHistory(emp.id)
 }
 
 // Arrow-key navigation across tabs per WAI-ARIA tablist pattern.
 function empTabKeydown(e, current) {
-  const order = ['overview', 'personal', 'badge', 'activity'].filter(k => document.getElementById('emp-tab-' + k))
+  const order = ['overview', 'employment', 'personal', 'badge', 'activity'].filter(k => document.getElementById('emp-tab-' + k))
   const idx = order.indexOf(current)
   let next = null
   if (e.key === 'ArrowRight') next = order[(idx + 1) % order.length]
@@ -16512,7 +16517,8 @@ function renderEmpOverviewTab(emp) {
   return `
     <div class="data-column">
       ${dataBlockHtml('Organización', org, { aside: canEditEmpField() ? '<button type="button" class="btn btn-ghost btn-sm" onclick="empStartEdit()" style="padding:2px 6px">Editar</button>' : null })}
-      ${orgProfileSectionHtml(emp)}
+      ${empEstructuraCompactHtml(emp)}
+      ${empTrayectoriaCompactHtml(emp)}
       ${empIndexAccessSectionHtml(emp)}
       ${contact ? dataBlockHtml('Contacto', contact) : dataBlockHtml('Contacto', emptyStateHtml({ title: 'Sin información de contacto', desc: 'Agrega un correo o teléfono para este colaborador.', actionLabel: canEditEmpField() ? 'Completar' : null, actionOnClick: 'empStartEdit()' }))}
       ${moments ? dataBlockHtml('Próximo momento', moments) : ''}
@@ -16547,6 +16553,86 @@ function empBadgeSummaryHtml(emp) {
     { label: 'Última emisión', value: b.printed_at, icon: 'calendar', dateEs: true },
     { label: 'Entrega', value: b.delivered_at ? `Entregado · ${hrFmtDate(b.delivered_at)}` : 'Pendiente de entrega', icon: 'check-circle' },
   ], { cols: 2 }) + (canEditEmpField() ? `<div style="margin-top:0.6rem"><button class="btn btn-secondary btn-sm" onclick="startBadgeIssuance('${emp.id}')">${b.status === 'printed' || b.status === 'delivered' ? 'Reimprimir' : 'Continuar emisión'}</button></div>` : '')
+}
+
+/* ── Empleo tab (§12): the full current-assignment detail, the complete
+   organizational structure (manager, direct reports, hierarchy, org
+   chart navigation — orgProfileSectionHtml, moved here from Resumen so
+   it isn't duplicated at two levels of detail), and the chronological
+   employment-movement history. Never fabricates history from the
+   employee's current state — an employee with no recorded movements
+   truthfully shows "Sin historial registrado", not an invented single
+   entry backdated to hire_date. ── */
+function renderEmpEmploymentTab(emp) {
+  if (_badge_ui.editingEmployee) return renderEmpOverviewEditForm(emp)
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const seniority = empSeniority(emp)
+  const current = dataFieldsHtml([
+    { label: 'Estado', html: empStatusBadgeHtml(emp.employee_status) },
+    { label: 'Empresa', value: emp.company, icon: 'building', copy: true },
+    { label: 'País', value: emp.country, icon: 'globe' },
+    { label: 'Sede', value: site?.name, icon: 'map-pin', copy: true },
+    { label: 'Departamento', value: emp.department, icon: 'building', copy: true },
+    { label: 'Puesto', value: emp.position, icon: 'briefcase', copy: true },
+    { label: 'Fecha de ingreso', value: emp.hire_date, icon: 'calendar', dateEs: true },
+    { label: 'Antigüedad', value: seniority ? `${seniority.years} año${seniority.years !== 1 ? 's' : ''}, ${seniority.months} mes${seniority.months !== 1 ? 'es' : ''}` : null, icon: 'clock' },
+  ], { cols: 2 })
+  return `
+    <div class="data-column">
+      ${dataBlockHtml('Asignación actual', current, { aside: canEditEmpField() ? '<button type="button" class="btn btn-ghost btn-sm" onclick="empStartEdit()" style="padding:2px 6px">Editar</button>' : null })}
+      ${orgProfileSectionHtml(emp)}
+      <div>
+        <div class="data-block-title"><span>Historial de empleo</span></div>
+        <div id="emp-employment-history"><div class="pd-loading">Cargando…</div></div>
+      </div>
+    </div>
+  `
+}
+const MOVEMENT_TYPE_LABELS = {
+  new_hire: 'Contratación', position_change: 'Cambio de puesto', department_change: 'Cambio de departamento',
+  supervisor_change: 'Cambio de jefe inmediato', company_transfer: 'Transferencia de empresa',
+  site_transfer: 'Transferencia de sede', status_change: 'Cambio de estado',
+  scheduled_departure: 'Baja programada', departure: 'Baja', rehire: 'Recontratación',
+}
+const MOVEMENT_FIELD_LABELS = {
+  position: 'Puesto', department: 'Departamento', manager_employee_id: 'Jefe inmediato',
+  company: 'Empresa', site_id: 'Sede', employee_status: 'Estado',
+}
+async function loadEmpEmploymentHistory(empId) {
+  const el = document.getElementById('emp-employment-history')
+  if (!el) return
+  let rows = []
+  try {
+    const { data, error } = await sb.from('employee_movements')
+      .select('id, movement_type, field, previous_value, new_value, effective_date, reason, note, status')
+      .eq('employee_id', empId)
+      .order('effective_date', { ascending: false })
+      .limit(50)
+    if (error) throw error
+    rows = data || []
+  } catch (_) {
+    el.innerHTML = emptyStateHtml({ title: 'No se pudo cargar el historial', desc: 'Intenta de nuevo más tarde.' })
+    return
+  }
+  if (!rows.length) {
+    el.innerHTML = emptyStateHtml({ title: 'Sin historial registrado', desc: 'Este colaborador todavía no tiene movimientos organizacionales registrados.' })
+    return
+  }
+  el.innerHTML = rows.map(m => {
+    const label = MOVEMENT_TYPE_LABELS[m.movement_type] || m.movement_type
+    const fieldLabel = MOVEMENT_FIELD_LABELS[m.field] || m.field
+    const change = (m.previous_value || m.new_value)
+      ? `${fieldLabel ? esc(fieldLabel) + ': ' : ''}${m.previous_value ? esc(m.previous_value) + ' → ' : ''}${esc(m.new_value || '')}`
+      : ''
+    return `<div style="padding:0.55rem 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span style="font-weight:600;font-size:0.85rem">${esc(label)}</span>
+        ${m.status === 'scheduled' ? `<span class="badge" style="margin-left:6px">Programado</span>` : ''}
+      </div>
+      ${change ? `<div style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px">${change}</div>` : ''}
+      <div style="font-size:0.76rem;color:var(--text-3);margin-top:2px">${hrFmtDate(m.effective_date)}${m.reason ? ' · ' + esc(m.reason) : ''}</div>
+    </div>`
+  }).join('')
 }
 
 /* ── Personal tab: identity, emergency contact, and restricted (medical)
@@ -17179,6 +17265,16 @@ function empAge(emp) {
   let age = today.getUTCFullYear() - b.getUTCFullYear()
   if (today.getUTCMonth() < b.getUTCMonth() || (today.getUTCMonth() === b.getUTCMonth() && today.getUTCDate() < b.getUTCDate())) age--
   return age
+}
+// Compact tenure string for the header ("3 años" / "8 meses") — the full
+// "X años, Y meses" breakdown stays on the Resumen/Empleo Trayectoria
+// blocks; the header only needs enough to answer "how long have they
+// been here" at a glance.
+function empHeaderTenureText(emp) {
+  const s = empSeniority(emp)
+  if (!s) return null
+  if (s.years > 0) return `${s.years} año${s.years !== 1 ? 's' : ''}`
+  return `${s.months} mes${s.months !== 1 ? 'es' : ''}`
 }
 function empSeniority(emp) {
   const hire = parseDateOnly(emp.hire_date)
@@ -21365,9 +21461,100 @@ async function suspendIndexAccount(profileId) {
   if (emp) renderEmployeeDetailDrawer(emp)
 }
 
+// Indented hierarchy visualization (SIERRA → company → site →
+// department → position), replacing the flat "A → B → C" breadcrumb
+// with visually distinguished levels, per the Talento Humano profile
+// redesign. Purely presentational — orgPathText() still produces the
+// plain-text version used for copy-to-clipboard.
+function orgPathTreeHtml(employeeId) {
+  const levels = ['SIERRA', ...orgPathOf(employeeId)]
+  return `<div style="font-size:0.82rem;line-height:1.65;font-family:var(--font-mono,monospace)">
+    ${levels.map((lvl, i) => `<div style="padding-left:${i * 14}px;color:${i === levels.length - 1 ? 'var(--text-primary)' : 'var(--text-secondary)'};font-weight:${i === levels.length - 1 ? '600' : '400'}">${i > 0 ? '<span aria-hidden="true" style="color:var(--text-3)">└ </span>' : ''}${esc(lvl)}</div>`).join('')}
+  </div>`
+}
+
+// Compact "Estructura" for Resumen (§11): the indented hierarchy plus a
+// bounded preview of the direct team — never a permanent list of every
+// report, which breaks down for managers with 20-50+ people. The full
+// team is one click away (searchable modal); the full organizational
+// structure (manager, hierarchy, org-chart nav) lives on the Empleo tab.
+const EMP_TEAM_PREVIEW_LIMIT = 5
+function empEstructuraCompactHtml(emp) {
+  if (_badge.reportingRelationshipsUnavailable) return ''
+  const reportIds = orgDirectReportIds(emp.id)
+  const reports = reportIds.map(orgEmpById).filter(Boolean)
+  const preview = reports.slice(0, EMP_TEAM_PREVIEW_LIMIT)
+  const overflow = reports.length - preview.length
+  const teamHtml = reports.length ? `
+    <div class="data-field" style="margin-top:0.6rem">
+      <div class="data-field-label">${siIcon('users', 12)} Equipo directo · ${reports.length}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">
+        ${preview.map(r => `<span title="${escAttr(orgFullName(r))} — ${escAttr(r.position || 'Sin puesto')}" style="display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border-radius:999px;padding:2px 9px 2px 2px;font-size:0.76rem">
+          ${r.photo_url ? `<img src="${esc(r.photo_url)}" alt="" style="width:18px;height:18px;border-radius:50%;object-fit:cover" />` : `<span style="width:18px;height:18px;border-radius:50%;background:var(--surface-hover,var(--border));display:inline-flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700">${esc((r.first_name[0] || '') + (r.last_name[0] || ''))}</span>`}
+          ${esc(orgFullName(r))}
+        </span>`).join('')}
+        ${overflow > 0 ? `<span style="font-size:0.76rem;color:var(--text-3)">+${overflow}</span>` : ''}
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" style="padding:2px 6px;margin-top:4px" onclick="orgOpenTeamView('${emp.id}')">Ver equipo</button>
+    </div>` : ''
+  return dataBlockHtml('Estructura', `
+    ${orgPathTreeHtml(emp.id)}
+    ${teamHtml}
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.7rem">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="closeEmployeeDetail();orgShowFromModule();orgFocusInChart('${emp.id}')">Ver en organigrama</button>
+    </div>
+  `)
+}
+
+// Trayectoria (§11): hire date + calculated tenure only on Resumen — the
+// full role-by-role history lives on Empleo, one click away. Never shows
+// a count of historical roles here without having actually loaded them,
+// so it can't imply data that "Ver historial" then contradicts.
+function empTrayectoriaCompactHtml(emp) {
+  const seniority = empSeniority(emp)
+  const fields = dataFieldsHtml([
+    { label: 'Fecha de ingreso', value: emp.hire_date, icon: 'calendar', dateEs: true },
+    { label: 'Antigüedad', value: seniority ? `${seniority.years} año${seniority.years !== 1 ? 's' : ''}, ${seniority.months} mes${seniority.months !== 1 ? 'es' : ''}` : null, icon: 'clock' },
+  ], { cols: 2 })
+  if (!fields) return ''
+  return dataBlockHtml('Trayectoria', fields + `<button type="button" class="btn btn-ghost btn-sm" style="padding:2px 6px;margin-top:0.4rem" onclick="switchEmpDetailTab('employment')">Ver historial</button>`)
+}
+
+// Searchable, scalable team roster — the "Ver equipo" destination for
+// managers with too many direct reports to ever list as permanent links
+// (§11). Client-side filter only; the underlying list already comes
+// from the org data already loaded for the active scope.
+function orgOpenTeamView(managerId) {
+  const mgr = orgEmpById(managerId)
+  const reports = orgDirectReportIds(managerId).map(orgEmpById).filter(Boolean)
+    .sort((a, b) => orgFullName(a).localeCompare(orgFullName(b)))
+  const rowHtml = r => `<div class="org-team-row" data-search="${escAttr((orgFullName(r) + ' ' + (r.position || '') + ' ' + (r.department || '')).toLowerCase())}" style="display:flex;align-items:center;gap:10px;padding:0.5rem 0;border-bottom:1px solid var(--border)">
+    ${r.photo_url ? `<img src="${esc(r.photo_url)}" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" />` : `<span style="width:32px;height:32px;border-radius:50%;background:var(--surface2);display:inline-flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0">${esc((r.first_name[0] || '') + (r.last_name[0] || ''))}</span>`}
+    <div style="min-width:0;flex:1">
+      <div style="font-size:0.86rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(orgFullName(r))}</div>
+      <div style="font-size:0.76rem;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.position || 'Sin puesto')}${r.department ? ' · ' + esc(r.department) : ''}</div>
+    </div>
+    <a href="#" class="btn btn-ghost btn-sm" style="flex-shrink:0" onclick="event.preventDefault();document.getElementById('org-info-modal-backdrop')?.remove();document.getElementById('org-info-modal')?.remove();viewEmployeeDetail('${r.id}')">Ver perfil</a>
+  </div>`
+  const body = `
+    <input type="search" id="org-team-search" placeholder="Buscar por nombre, puesto o departamento…" oninput="orgFilterTeamView(this.value)" style="width:100%;margin-bottom:0.7rem" />
+    <div id="org-team-list">${reports.length ? reports.map(rowHtml).join('') : emptyStateHtml({ title: 'Sin reportes directos' })}</div>
+  `
+  alertModal(`Equipo directo de ${esc(orgFullName(mgr))} · ${reports.length}`, body)
+  setTimeout(() => document.getElementById('org-team-search')?.focus(), 50)
+}
+function orgFilterTeamView(q) {
+  const query = q.trim().toLowerCase()
+  document.querySelectorAll('#org-team-list .org-team-row').forEach(row => {
+    row.style.display = !query || row.dataset.search.includes(query) ? '' : 'none'
+  })
+}
+
 // ── 7. EMPLOYEE PROFILE INTEGRATION ── "Estructura organizacional"
-// section on the existing Overview tab of the employee detail drawer —
-// no new tab, so the drawer's shape doesn't change, only what's in it. ──
+// section — the full version (manager, hierarchy, direct-report links,
+// org-chart navigation) lives on the Empleo tab; Resumen only shows the
+// compact empEstructuraCompactHtml() above, so the two never duplicate
+// the same information at the same level of detail. ──
 function orgProfileSectionHtml(emp) {
   if (_badge.reportingRelationshipsUnavailable) return ''
   const rel = orgCurrentManagerRelationship(emp.id)
@@ -21401,15 +21588,16 @@ function orgProfileSectionHtml(emp) {
     </div>
     <div class="data-field" style="margin-bottom:0.6rem">
       <div class="data-field-label">${siIcon('map-pin', 12)} Ruta organizacional</div>
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <span>${esc(orgPathText(emp.id))}</span>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:0.4rem">
         <button type="button" class="emp-detail-hdr-code-copy" onclick="orgCopyPath('${emp.id}')" title="Copiar ruta organizacional">${FIELD_COPY_ICON}</button>
       </div>
+      ${orgPathTreeHtml(emp.id)}
     </div>
     ${reports.length ? `<div class="data-field" style="margin-bottom:0.6rem">
-      <div class="data-field-label">Equipo directo</div>
+      <div class="data-field-label">Equipo directo · ${reports.length}${reports.length > EMP_TEAM_PREVIEW_LIMIT ? ` (mostrando ${EMP_TEAM_PREVIEW_LIMIT})` : ''}</div>
       <div style="display:flex;flex-direction:column;gap:4px;margin-top:2px">
-        ${reports.map(r => `<a href="#" style="font-size:0.82rem" onclick="event.preventDefault();viewEmployeeDetail('${r.id}')">${esc(orgFullName(r))} — ${esc(r.position || 'Sin puesto')}</a>`).join('')}
+        ${reports.slice(0, EMP_TEAM_PREVIEW_LIMIT).map(r => `<a href="#" style="font-size:0.82rem" onclick="event.preventDefault();viewEmployeeDetail('${r.id}')">${esc(orgFullName(r))} — ${esc(r.position || 'Sin puesto')}</a>`).join('')}
+        ${reports.length > EMP_TEAM_PREVIEW_LIMIT ? `<button type="button" class="btn btn-ghost btn-sm" style="padding:2px 6px;align-self:flex-start" onclick="orgOpenTeamView('${emp.id}')">Ver equipo completo</button>` : ''}
       </div>
     </div>` : ''}
     ${issues.length ? `<div class="data-field" style="margin-bottom:0.6rem">
