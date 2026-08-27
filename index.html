@@ -5034,6 +5034,19 @@
     .emp-detail-drawer.drawer { width: clamp(520px, 38vw, 680px); max-width: 92vw; z-index: 399; }
     @media (max-width: 900px) { .emp-detail-drawer.drawer { width: 82vw; } }
     @media (max-width: 640px) { .emp-detail-drawer.drawer { width: 100vw; max-width: 100vw; } }
+    /* The base .drawer class (z-index:200, above) renders BELOW
+       .drawer-backdrop (z-index:398) — every dynamically-created drawer
+       that doesn't set its own override (like .emp-detail-drawer/
+       .org-export-drawer/.org-assign-drawer already do above) ends up
+       visible-but-unclickable behind its own backdrop: you can see the
+       form through the blur, but every click lands on the backdrop
+       instead, and closes it. #hire-wizard/#term-modal (Altas/Bajas) and
+       #org-info-modal (the "Ver equipo"/"Dar de baja a…" picker, and the
+       generic alertModal()) are all built this way and hit exactly that
+       bug. 401 matches .org-assign-drawer so these also stack correctly
+       above an already-open employee detail drawer (399) when opened
+       from its overflow menu. */
+    #hire-wizard.drawer, #term-modal.drawer, #org-info-modal.drawer { z-index: 401; }
     /* Opens on top of the employee detail drawer (z-index 399) when
        triggered from the profile's "Estructura organizacional" section, so
        it needs to outrank it — otherwise it renders hidden behind it. */
@@ -16826,7 +16839,7 @@ function renderEmployeeDetailDrawer(emp) {
           ${empDetailPrimaryActionHtml(emp)}
           ${overflowMenuHtml([
             ...(canWrite ? [{ label: 'Editar colaborador', onClick: `empStartEdit()` }] : []),
-            ...(canWrite && emp.employee_status !== 'terminated' ? [{ label: 'Dar de baja', onClick: `empOpenTerminationModal('${emp.id}')` }] : []),
+            ...(canWrite && emp.employee_status !== 'terminated' ? [{ label: 'Dar de baja', onClick: `closeEmployeeDetail(); empOpenTerminationModal('${emp.id}')` }] : []),
             ...(canWrite && emp.employee_status === 'terminated' ? [{ label: 'Recontratar', onClick: `closeEmployeeDetail(); hireOpenWizard().then(() => hirePickRehire('${emp.id}'))` }] : []),
             { label: 'Copiar resumen del colaborador', onClick: `copyEmployeeSummary('${emp.id}')` },
             { label: 'Copiar información organizacional', onClick: `copyEmployeeOrgInfo('${emp.id}')` },
