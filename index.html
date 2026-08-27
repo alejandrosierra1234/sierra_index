@@ -3929,9 +3929,11 @@
     }
     .orgp-avatar { width:48px; height:48px; min-width:48px; border-radius:50%; overflow:hidden; background:#eee; display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; color:#555; }
     .orgp-avatar img { width:100%; height:100%; object-fit:cover; }
-    .orgp-name { font-size:0.9rem; font-weight:700; color:#000; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .orgp-title2 { font-size:0.78rem; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .orgp-meta { font-size:0.72rem; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+    /* Exported cards never truncate names/positions either (§2) — they
+       reuse the same dynamically-sized layout as the live canvas. */
+    .orgp-name { font-size:0.9rem; font-weight:700; color:#000; white-space:normal; overflow-wrap:break-word; }
+    .orgp-title2 { font-size:0.78rem; color:#333; white-space:normal; overflow-wrap:break-word; }
+    .orgp-meta { font-size:0.72rem; color:#666; white-space:normal; overflow-wrap:break-word; margin-top:2px; }
     .orgp-reports { font-size:0.64rem; color:#555; margin-top:2px; }
     .orgp-conn { fill:none; stroke:#999; stroke-width:1.2; }
     .sg-wrap { font-family:inherit; color:#000; max-width:180mm; margin:0 auto; }
@@ -4800,7 +4802,7 @@
     /* ── Organización workspace ── */
     .filter-count-badge { display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; padding:0 4px; border-radius:8px; background:var(--teal); color:#fff; font-size:0.62rem; font-weight:700; margin-left:4px; }
     /* Compact data-quality indicator (§9 navigation architecture) — lives
-       in the header actions next to "Editar estructura", not as a
+       in the header actions next to "Gestionar estructura", not as a
        full-width banner inside the workspace. */
     .org-quality-chip { display:inline-flex; align-items:center; gap:0.3rem; padding:0.3rem 0.6rem; border-radius:7px; border:1px solid var(--warning-border); background:var(--warning-bg); color:var(--warning-text); font-size:0.78rem; font-weight:600; cursor:pointer; white-space:nowrap; }
     .org-quality-chip:hover { filter:brightness(0.97); }
@@ -4859,9 +4861,13 @@
     .orgc-card.is-manager { border-left:3px solid var(--teal); }
     .orgc-card.is-muted { opacity:0.55; border-style:dashed; cursor:default; }
     .orgc-card.is-muted:hover { border-color:var(--border); box-shadow:none; }
+    /* "Ver cadena de mando" (§6) — a thin teal ring on the branch that
+       matters, not a filled block; everything else recedes (§13). */
+    .orgc-card.orgc-chain-dim { opacity:0.25; }
+    .orgc-card.orgc-chain-member { box-shadow:0 0 0 1.5px var(--teal); }
     @keyframes orgcHighlightPulse { 0%,100% { box-shadow:0 0 0 2px color-mix(in srgb, var(--teal) 45%, transparent); } 50% { box-shadow:0 0 0 5px color-mix(in srgb, var(--teal) 25%, transparent); } }
     .orgc-card.orgc-highlight { animation:orgcHighlightPulse 0.9s ease-in-out 2; }
-    /* Drag-to-reassign (Editar estructura only) — grabbing a card and
+    /* Drag-to-reassign (Gestionar estructura only) — grabbing a card and
        dropping it on another opens the same confirm drawer as the manual
        flow (orgOpenAssignManager), just pre-filled with the drop target.
        Dragging never writes to the DB by itself; it's a faster on-ramp
@@ -4877,9 +4883,17 @@
     .orgc-avatar { width:58px; height:58px; min-width:58px; border-radius:50%; overflow:hidden; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:700; color:var(--text-secondary); }
     .orgc-avatar img { width:100%; height:100%; object-fit:cover; }
     .orgc-main { min-width:0; flex:1; padding-top:1px; }
-    .orgc-name { font-size:0.95rem; line-height:1.25; font-weight:650; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .orgc-title { font-size:0.82rem; line-height:1.3; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
-    .orgc-meta { font-size:0.75rem; color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:3px; }
+    /* Names and positions must NEVER truncate with an ellipsis (§2,
+       critical acceptance criteria) — cards wrap instead, and the layout
+       engine (orgCardHeightFor) grows each card's height to match. */
+    .orgc-name { font-size:0.95rem; line-height:1.25; font-weight:650; color:var(--text-primary); white-space:normal; overflow-wrap:break-word; }
+    .orgc-title { font-size:0.82rem; line-height:1.3; color:var(--text-secondary); white-space:normal; overflow-wrap:break-word; margin-top:1px; }
+    /* Company is mandatory on every node (§2) — its own line, bolder than
+       department, and never replaced by a cross-company assignment: it
+       always reflects the employee's one official employing company. */
+    .orgc-company { font-size:0.75rem; line-height:1.3; color:var(--text-secondary); font-weight:600; white-space:normal; overflow-wrap:break-word; margin-top:4px; display:flex; align-items:flex-start; gap:4px; }
+    .orgc-company svg { flex-shrink:0; margin-top:2px; opacity:0.7; }
+    .orgc-dept { font-size:0.75rem; line-height:1.3; color:var(--text-3); white-space:normal; overflow-wrap:break-word; margin-top:2px; }
     .orgc-warn { position:absolute; top:8px; right:8px; color:var(--warning-text); display:flex; }
     .orgc-card.has-blocking-issue .orgc-warn { color:var(--danger); }
     .orgc-open { position:absolute; top:6px; right:6px; width:22px; height:22px; border:none; background:none; color:var(--text-3); cursor:pointer; display:flex; align-items:center; justify-content:center; border-radius:5px; opacity:0; }
@@ -14731,10 +14745,11 @@ let _badge_ui = {
     const dflt = {
       view: 'chart',            // 'chart' | 'directory'
       search: '',
-      filters: { company: new Set(), country: new Set(), department: new Set(), employee_status: new Set(['active']), issue: new Set() },
+      filters: { company: new Set(), country: new Set(), department: new Set(), employee_status: new Set(['active']), issue: new Set(), has_reports: new Set(), level: new Set() },
       expanded: [],             // array (serializable) of expanded employee ids in the chart
       focusId: null,            // employee id centered/highlighted in the chart
       selectedId: null,         // employee id selected in directory/chart
+      chainId: null,            // employee id whose "cadena de mando" (managers above + branch below) is emphasized (§6)
       zoom: 1,
       scope: { type: 'site', value: null }, // 'site' (current active site) | 'all' | 'company' | 'department' | 'manager'
       editMode: false,          // gates drag-to-reassign in the chart (view mode is read-only/clean)
@@ -14752,10 +14767,13 @@ let _badge_ui = {
             department: new Set(stored.filters?.department || []),
             employee_status: new Set(stored.filters?.employee_status || ['active']),
             issue: new Set(stored.filters?.issue || []),
+            has_reports: new Set(stored.filters?.has_reports || []),
+            level: new Set(stored.filters?.level || []),
           },
           expanded: Array.isArray(stored.expanded) ? stored.expanded : [],
           assign: null,
           editMode: false, // never resume in edit mode across a reload/navigation
+          chainId: null,   // never resume "cadena de mando" isolation across a reload/navigation
           scope: stored.scope && typeof stored.scope === 'object' && stored.scope.type ? stored.scope : dflt.scope,
         }
       }
@@ -15076,7 +15094,7 @@ function renderBadgeHeaderActions() {
     const canWrite = can('write', 'talento_humano')
     el.innerHTML = `
       ${orgDataQualityChipHtml(m)}
-      ${canWrite ? `<button class="btn ${_badge_ui.org.editMode ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="orgToggleEditMode()">${siIcon('pencil', 13)} ${_badge_ui.org.editMode ? 'Editando estructura' : 'Editar estructura'}</button>` : ''}
+      ${canWrite ? `<button class="btn ${_badge_ui.org.editMode ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="orgToggleEditMode()" title="Modo administrativo: arrastra tarjetas para reasignar jefes inmediatos">${siIcon('pencil', 13)} ${_badge_ui.org.editMode ? 'Gestionando estructura' : 'Gestionar estructura'}</button>` : ''}
       ${canWrite && _badge_ui.org.editMode ? `<button class="btn btn-ghost btn-sm" onclick="orgShowLegacyReviewQueue()">Cambios pendientes${m.unresolvedLegacy.length ? ` (${m.unresolvedLegacy.length})` : ''}</button>` : ''}
       <button class="btn btn-primary btn-sm" onclick="orgOpenExportModal()">${siIcon('download', 13)} Exportar organigrama</button>
     `
@@ -20575,6 +20593,19 @@ function orgAncestorChain(employeeId, scopeIds, rels = orgActiveRels()) {
   }
   return chain
 }
+// Depth of an employee within the full (unscoped) hierarchy — 1 for a
+// root with no manager, +1 per manager above them — used by the
+// Directorio's "Nivel organizacional" column (§12).
+function orgLevelOf(employeeId, rels = orgActiveRels()) {
+  let level = 1, current = employeeId, hops = 0
+  while (hops++ < 200) {
+    const rel = orgCurrentManagerRelationship(current, rels)
+    if (!rel) break
+    level++
+    current = rel.manager_employee_id
+  }
+  return level
+}
 
 // ── 2. ISSUE DETECTION ── every issue names what's wrong, why it
 // matters, how to resolve it, and whether it blocks publication (a real
@@ -20657,10 +20688,12 @@ function orgClearFilters() {
   persistOrgUi(); renderBadgeModule()
 }
 function orgActiveFilterCount() { return Object.values(_badge_ui.org.filters).reduce((n, s) => n + s.size, 0) }
-const ORG_FILTER_LABELS = { company: 'Empresa', country: 'País', department: 'Departamento', employee_status: 'Estado', issue: 'Problema de jerarquía' }
+const ORG_FILTER_LABELS = { company: 'Empresa', country: 'País', department: 'Departamento', employee_status: 'Estado', issue: 'Problema de jerarquía', has_reports: 'Reportes directos', level: 'Nivel organizacional' }
 function orgFilterValueLabel(key, val) {
   if (key === 'employee_status') return EMP_STATUS_LABELS[val] || val
   if (key === 'issue') return ORG_ISSUE_DEFS[val]?.label || val
+  if (key === 'has_reports') return val === 'yes' ? 'Con reportes directos' : 'Sin reportes directos'
+  if (key === 'level') return `Nivel ${val}`
   return val
 }
 function orgScopeEmployees() {
@@ -20688,6 +20721,11 @@ function orgScopeEmployees() {
       const empIssueTypes = new Set(orgIssuesFor(e.id).map(i => i.type))
       if (![...f.issue].some(t => empIssueTypes.has(t))) return false
     }
+    if (f.has_reports.size) {
+      const bucket = orgDirectReportCount(e.id) > 0 ? 'yes' : 'no'
+      if (!f.has_reports.has(bucket)) return false
+    }
+    if (f.level.size && !f.level.has(orgLevelOf(e.id))) return false
     // Future-hires never appear as active members before their start date.
     if (e.employee_status === 'active') {
       const hire = parseDateOnly(e.hire_date)
@@ -20703,6 +20741,8 @@ function orgFilterOptions(key) {
   if (key === 'department') return [...new Set(pool.map(e => e.department).filter(Boolean))].sort()
   if (key === 'employee_status') return ['active', 'inactive', 'terminated', 'on_leave', 'transferred']
   if (key === 'issue') return Object.keys(ORG_ISSUE_DEFS)
+  if (key === 'has_reports') return ['yes', 'no']
+  if (key === 'level') return [...new Set(pool.map(e => orgLevelOf(e.id)))].sort((a, b) => a - b)
   return []
 }
 // ── Scope selector (§8) — "Toda SIERRA" / Empresa / Departamento / Jefe.
@@ -20716,6 +20756,7 @@ async function orgSetScope(type, value) {
   _badge_ui.org.expanded = []
   _badge_ui.org.focusId = null
   _badge_ui.org.selectedId = null
+  _badge_ui.org.chainId = null
   _orgDefaultExpansionDone = false
   wsClosePopovers()
   persistOrgUi()
@@ -20767,7 +20808,7 @@ function orgScopeManagerSearch(v) {
 }
 let _orgLastFilterValues = {}
 function orgFilterPopHtml() {
-  const groups = ['company', 'country', 'department', 'employee_status', 'issue']
+  const groups = ['company', 'country', 'department', 'employee_status', 'has_reports', 'level', 'issue']
   let html = groups.map(key => {
     const opts = orgFilterOptions(key)
     _orgLastFilterValues[key] = opts
@@ -20819,31 +20860,134 @@ function orgGoToDirectoryFiltered(fn) {
   persistOrgUi(); renderBadgeModule()
 }
 
+// §1 — "sin jefe asignado" is an actionable state, not dozens of loose
+// root nodes on the canvas. This drawer is the searchable review list HR
+// uses to actually assign managers, distinct from (and more focused
+// than) the general Directorio organizacional / structure-issues drawer.
+let _orgUnassignedSearch = ''
+function orgShowUnassignedDrawer() {
+  _orgUnassignedSearch = ''
+  document.getElementById('org-unassigned-drawer-backdrop')?.remove()
+  document.getElementById('org-unassigned-drawer')?.remove()
+  const backdrop = document.createElement('div')
+  backdrop.className = 'drawer-backdrop'; backdrop.id = 'org-unassigned-drawer-backdrop'
+  backdrop.onclick = () => orgCloseUnassignedDrawer()
+  document.body.appendChild(backdrop)
+  const drawer = document.createElement('div')
+  drawer.className = 'drawer drawer-right'; drawer.id = 'org-unassigned-drawer'
+  drawer.setAttribute('role', 'dialog'); drawer.setAttribute('aria-modal', 'true'); drawer.setAttribute('aria-label', 'Colaboradores sin jefe inmediato asignado')
+  document.body.appendChild(drawer)
+  renderOrgUnassignedDrawer()
+  requestAnimationFrame(() => { backdrop.classList.add('open'); drawer.classList.add('open') })
+}
+function orgCloseUnassignedDrawer() {
+  document.getElementById('org-unassigned-drawer-backdrop')?.remove()
+  document.getElementById('org-unassigned-drawer')?.remove()
+}
+function orgUnassignedSearchInput(v) { _orgUnassignedSearch = v; renderOrgUnassignedDrawer() }
+function renderOrgUnassignedDrawer() {
+  const drawer = document.getElementById('org-unassigned-drawer')
+  if (!drawer) return
+  const all = orgMetrics().withoutManager
+  const q = _orgUnassignedSearch.trim().toLowerCase()
+  const rows = (q ? all.filter(e => [e.first_name, e.last_name, e.employee_code, e.position, e.department, e.company].filter(Boolean).join(' ').toLowerCase().includes(q)) : all)
+    .slice().sort((a, b) => orgFullName(a).localeCompare(orgFullName(b)))
+  const canWrite = can('write', 'talento_humano')
+  drawer.innerHTML = `<div class="drawer-content">
+    <div class="emp-detail-hdr"><div class="emp-detail-hdr-main"><div class="emp-detail-hdr-name">Sin jefe inmediato asignado</div>
+      <div class="emp-detail-hdr-org">${all.length} colaborador${all.length !== 1 ? 'es' : ''} activo${all.length !== 1 ? 's' : ''} sin jefe inmediato en el alcance actual</div></div>
+      <button class="icon-btn icon-btn-quiet" onclick="orgCloseUnassignedDrawer()" aria-label="Cerrar">${siIcon('x', 16)}</button>
+    </div>
+    <div class="drawer-body">
+      <div class="org-search-wrap">
+        <span class="org-search-icon">${siIcon('search', 14)}</span>
+        <input type="text" class="org-search-input" style="padding-left:2rem" placeholder="Buscar por nombre, código, puesto, departamento o empresa…" value="${escAttr(_orgUnassignedSearch)}" oninput="orgUnassignedSearchInput(this.value)" />
+      </div>
+      ${rows.length ? rows.map(e => `<div class="data-block" style="margin-bottom:0.7rem;display:flex;align-items:center;justify-content:space-between;gap:0.6rem">
+        <div style="min-width:0">
+          <div style="font-weight:600">${esc(orgFullName(e))}</div>
+          <div style="font-size:0.78rem;color:var(--text-secondary)">${esc(e.position || 'Sin puesto')} · ${esc(e.company || 'Sin empresa')}${e.department ? ' · ' + esc(e.department) : ''}</div>
+        </div>
+        <div style="display:flex;gap:0.4rem;flex-shrink:0">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="viewEmployeeDetail('${e.id}')">Ver perfil</button>
+          ${canWrite ? `<button type="button" class="btn btn-primary btn-sm" onclick="orgOpenAssignManager('${e.id}')">Asignar jefe</button>` : ''}
+        </div>
+      </div>`).join('') : emptyStateHtml({ title: 'Sin coincidencias', desc: 'Ajusta la búsqueda.' })}
+    </div>
+  </div>`
+}
+
 // One compact data-quality chip (§9 navigation architecture) instead of a
 // full-width banner permanently eating a row — lives in the header
-// actions next to "Editar estructura", not in the workspace body. Names
+// actions next to "Gestionar estructura", not in the workspace body. Names
 // the biggest problem; click jumps into the filtered Directorio. Only
 // rendered when something actually needs attention.
-function orgDataQualityChipHtml(m) {
-  const items = [
-    m.withoutManager.length && { n: m.withoutManager.length, label: `sin asignar`, title: `${m.withoutManager.length} sin jefe inmediato asignado`, onClick: `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('no_manager'))` },
-    m.inactiveManagersWithReports.length && { n: m.inactiveManagersWithReports.length, label: `con jefe inactivo`, title: `${m.inactiveManagersWithReports.length} con jefe inactivo`, onClick: `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('inactive_manager'))` },
-    m.crossSite.length && { n: m.crossSite.length, label: `en otra sede`, title: `${m.crossSite.length} con jefe en otra sede`, onClick: `orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('cross_site'))` },
-    m.unresolvedLegacy.length && { n: m.unresolvedLegacy.length, label: `históricos sin resolver`, title: `${m.unresolvedLegacy.length} con supervisor histórico sin resolver`, onClick: `orgShowLegacyReviewQueue()` },
+// §9 — a proper structure-quality tool: one compact "Problemas de
+// estructura · N" indicator that opens a drawer breaking the total down
+// by concrete, actionable issue (never a vague "relationship issue"
+// banner), and never mixes these invalid/unassigned records into the
+// visual hierarchy itself (they're excluded from the chart — see
+// orgOrphanIds/orgChartScopeIds).
+function orgStructureIssueItems(m) {
+  return [
+    m.withoutManager.length && { n: m.withoutManager.length, label: 'sin jefe inmediato', desc: 'Colaboradores activos sin jefe inmediato asignado — no pueden ubicarse en el organigrama.', onClick: `orgCloseStructureIssuesDrawer();orgShowUnassignedDrawer()` },
+    m.inactiveManagersWithReports.length && { n: m.inactiveManagersWithReports.length, label: 'con jefe inactivo', desc: 'El jefe inmediato asignado ya no está activo, pero la relación sigue vigente.', onClick: `orgCloseStructureIssuesDrawer();orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('inactive_manager'))` },
+    m.crossSite.length && { n: m.crossSite.length, label: 'con jefe en otra sede', desc: 'El colaborador y su jefe inmediato pertenecen a sedes distintas.', onClick: `orgCloseStructureIssuesDrawer();orgGoToDirectoryFiltered(()=>_badge_ui.org.filters.issue.add('cross_site'))` },
+    m.unresolvedLegacy.length && { n: m.unresolvedLegacy.length, label: 'supervisores históricos sin resolver', desc: 'Valores históricos de "Supervisor inmediato" pendientes de revisión manual.', onClick: `orgCloseStructureIssuesDrawer();orgShowLegacyReviewQueue()` },
   ].filter(Boolean)
+}
+function orgDataQualityChipHtml(m) {
+  const items = orgStructureIssueItems(m)
   if (!items.length) return ''
-  const first = items[0]
-  return `<button type="button" class="org-quality-chip" onclick="${first.onClick}" title="${escAttr(items.map(i => i.title).join(' · '))}">${siIcon('alert-circle', 13)}<b>${first.n}</b> ${esc(first.label)}${items.length > 1 ? ` +${items.length - 1}` : ''}</button>`
+  const total = items.reduce((s, i) => s + i.n, 0)
+  return `<button type="button" class="org-quality-chip" onclick="orgShowStructureIssuesDrawer()" title="${escAttr(items.map(i => `${i.n} ${i.label}`).join(' · '))}">${siIcon('alert-circle', 13)}Problemas de estructura · <b>${total}</b></button>`
+}
+function orgShowStructureIssuesDrawer() {
+  document.getElementById('org-issues-drawer-backdrop')?.remove()
+  document.getElementById('org-issues-drawer')?.remove()
+  const backdrop = document.createElement('div')
+  backdrop.className = 'drawer-backdrop'; backdrop.id = 'org-issues-drawer-backdrop'
+  backdrop.onclick = () => orgCloseStructureIssuesDrawer()
+  document.body.appendChild(backdrop)
+  const drawer = document.createElement('div')
+  drawer.className = 'drawer drawer-right'; drawer.id = 'org-issues-drawer'
+  drawer.setAttribute('role', 'dialog'); drawer.setAttribute('aria-modal', 'true'); drawer.setAttribute('aria-label', 'Problemas de estructura organizacional')
+  document.body.appendChild(drawer)
+  renderOrgStructureIssuesDrawer()
+  requestAnimationFrame(() => { backdrop.classList.add('open'); drawer.classList.add('open') })
+}
+function orgCloseStructureIssuesDrawer() {
+  document.getElementById('org-issues-drawer-backdrop')?.remove()
+  document.getElementById('org-issues-drawer')?.remove()
+}
+function renderOrgStructureIssuesDrawer() {
+  const drawer = document.getElementById('org-issues-drawer')
+  if (!drawer) return
+  const items = orgStructureIssueItems(orgMetrics())
+  const total = items.reduce((s, i) => s + i.n, 0)
+  drawer.innerHTML = `<div class="drawer-content">
+    <div class="emp-detail-hdr"><div class="emp-detail-hdr-main"><div class="emp-detail-hdr-name">Problemas de estructura</div>
+      <div class="emp-detail-hdr-org">${total} problema${total !== 1 ? 's' : ''} detectado${total !== 1 ? 's' : ''} en el alcance actual</div></div>
+      <button class="icon-btn icon-btn-quiet" onclick="orgCloseStructureIssuesDrawer()" aria-label="Cerrar">${siIcon('x', 16)}</button>
+    </div>
+    <div class="drawer-body">
+      ${items.length ? items.map(i => `<div class="data-block" style="margin-bottom:0.7rem;display:flex;align-items:center;justify-content:space-between;gap:0.6rem">
+        <div style="min-width:0"><div style="font-weight:600;text-transform:capitalize">${esc(i.label)}</div><div style="font-size:0.78rem;color:var(--text-secondary)">${esc(i.desc)}</div></div>
+        <div style="display:flex;align-items:center;gap:0.6rem;flex-shrink:0"><b style="font-size:1.1rem">${i.n}</b><button type="button" class="btn btn-secondary btn-sm" onclick="${i.onClick}">Revisar</button></div>
+      </div>`).join('') : emptyStateHtml({ title: 'Sin problemas detectados', desc: 'La estructura organizacional en este alcance no presenta inconsistencias conocidas.' })}
+    </div>
+  </div>`
 }
 function renderOrganizationView() {
   if (_badge.reportingRelationshipsUnavailable) return orgMigrationNotAppliedHtml()
   // No KPI row, no data-quality banner, no scope breadcrumb, no back/
   // breadcrumb of its own — the shell's context bar already says "Talento
-  // Humano / Organización", the header actions already carry Editar
+  // Humano / Organización", the header actions already carry Gestionar
   // estructura/Exportar (+ the quality chip), and Organización is a
   // visualization/management tool, not a second Resumen dashboard (§8).
   // ONE scope selector lives here (site/company/department/manager); the
   // module's site switcher is hidden for this view (renderBadgeHeaderActions).
+  const orphanCount = orgMetrics().withoutManager.length
   return `
     <div class="org-workspace">
       <div class="org-toolbar">
@@ -20851,6 +20995,7 @@ function renderOrganizationView() {
           <button class="btn btn-secondary btn-sm" onclick="catTogglePop(event,'org-scope-pop')">${siIcon('globe', 13)} <b>${esc(orgScopeLabel())}</b> ${siIcon('chevron-down', 12)}</button>
           <div class="ws-pop cat-pop" id="org-scope-pop" style="left:0;right:auto;min-width:260px">${orgScopePopHtml()}</div>
         </div>
+        ${orphanCount ? `<button type="button" class="org-quality-chip" onclick="orgShowUnassignedDrawer()" title="Colaboradores activos sin jefe inmediato asignado — no aparecen como nodos raíz sueltos en el organigrama; revísalos y asígnales un jefe aquí">${siIcon('user', 13)}<b>${orphanCount}</b> sin jefe asignado</button>` : ''}
         <div class="org-search-wrap">
           <svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3)"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M17 17l-3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
           <input type="text" class="org-search-input" placeholder="Buscar por nombre, código, puesto o departamento…" value="${escAttr(_badge_ui.org.search)}" oninput="orgOnSearchInput(this.value)" aria-label="Buscar colaborador" />
@@ -20932,6 +21077,7 @@ function renderOrgDirectoryView() {
         <th style="cursor:pointer" onclick="orgDirectorySetSort('department')">Departamento</th>
         <th>Puesto</th><th>Jefe inmediato</th>
         <th style="cursor:pointer" onclick="orgDirectorySetSort('reports_desc')">Reportes directos</th>
+        <th title="Cuántos niveles de jefe inmediato hay entre este colaborador y la cabeza de su rama">Nivel organizacional</th>
         <th>Estado relación</th><th>Fecha efectiva</th><th>Problema</th><th>Acciones</th>
       </tr></thead>
       <tbody>
@@ -20952,6 +21098,7 @@ function renderOrgDirectoryView() {
               ${mgr ? `<button type="button" class="emp-detail-hdr-code-copy" onclick="copyFieldValue(this,'${jsStr(orgFullName(mgr))}','Jefe inmediato')" title="Copiar jefe inmediato">${FIELD_COPY_ICON}</button>` : ''}
             </td>
             <td data-num>${reportCount || '—'}</td>
+            <td data-num>${rel || reportCount ? orgLevelOf(e.id) : '—'}</td>
             <td>${orgRelationshipStatusLabel(rel)}</td>
             <td>${rel ? hrFmtDate(rel.effective_from) : '—'}</td>
             <td>${issues.length ? issues.map(orgIssueChipHtml).join('') : `<span style="color:var(--text-3)">—</span>`}</td>
@@ -21070,6 +21217,22 @@ async function orgDismissLegacyReview(reviewId) {
 // Branch collapsing is what keeps this cheap: only expanded subtrees are
 // laid out and rendered at all (§23 performance). ──
 function orgScopeIds() { return orgScopeEmployees().map(e => e.id) }
+// Employees with no current manager AND no direct reports of their own —
+// floating individuals, not legitimate tops of a branch. Rendering these
+// as dozens of independent root nodes is exactly what §1 forbids; they're
+// pulled out of the chart entirely and only reachable through the
+// dedicated "sin jefe asignado" list (orgShowUnassignedDrawer). A
+// no-manager employee who DOES have reports (a real company/division
+// head) stays a legitimate root and is still drawn.
+function orgOrphanIds() {
+  return orgScopeEmployees()
+    .filter(e => e.employee_status === 'active' && !orgCurrentManagerRelationship(e.id) && orgDirectReportCount(e.id) === 0)
+    .map(e => e.id)
+}
+function orgChartScopeIds() {
+  const orphans = new Set(orgOrphanIds())
+  return orgScopeIds().filter(id => !orphans.has(id))
+}
 function orgIsExpanded(id) { return _badge_ui.org.expanded.includes(id) }
 function orgToggleExpand(id) {
   const i = _badge_ui.org.expanded.indexOf(id)
@@ -21077,7 +21240,7 @@ function orgToggleExpand(id) {
   persistOrgUi(); renderBadgeModule()
 }
 function orgExpandAll() {
-  const { roots, childrenMap } = orgBuildForest(orgScopeIds())
+  const { roots, childrenMap } = orgBuildForest(orgChartScopeIds())
   const ids = [], seen = new Set()
   const walk = (id, depth) => {
     if (seen.has(id) || depth > 12) return // safe depth limit
@@ -21112,10 +21275,48 @@ function orgFitToScreen() {
   requestAnimationFrame(() => viewport.scrollTo({ left: 0, top: 0 }))
 }
 function orgSelectNode(id) { _badge_ui.org.selectedId = id; persistOrgUi(); renderBadgeModule() }
+// "Ver cadena de mando" (§6) — isolate/emphasize an employee's managers
+// above them and their whole branch below them, without leaving the
+// canvas. Expands whatever's needed to actually show that chain, then
+// dims every other card via orgChainMemberIds() (read by orgChartCardHtml).
+function orgChainMemberIds() {
+  const id = _badge_ui.org.chainId
+  if (!id) return null
+  const scopeIds = orgChartScopeIds()
+  const ancestors = orgAncestorChain(id, scopeIds) // includes id itself
+  const descendants = [...orgDescendantIds(id)].filter(d => scopeIds.includes(d))
+  return new Set([...ancestors, ...descendants])
+}
+function orgShowChainOfCommand(id) {
+  const emp = orgEmpById(id)
+  if (!emp) return
+  const scopeIds = orgChartScopeIds()
+  if (!scopeIds.includes(id)) { toast(`${orgFullName(emp)} no aparece en el organigrama actual.`); return }
+  const ancestors = orgAncestorChain(id, scopeIds)
+  const descendants = [...orgDescendantIds(id)].filter(d => scopeIds.includes(d))
+  ancestors.forEach(a => { if (!orgIsExpanded(a)) _badge_ui.org.expanded.push(a) })
+  ;[id, ...descendants].slice(0, 400).forEach(d => { if (orgDirectReportCount(d, orgActiveRels()) && !orgIsExpanded(d)) _badge_ui.org.expanded.push(d) })
+  _badge_ui.org.chainId = id
+  _badge_ui.org.selectedId = id
+  _badge_ui.org.view = 'chart'
+  persistOrgUi()
+  renderBadgeModule()
+  requestAnimationFrame(() => orgCenterOnNode(id))
+}
+function orgClearChain() { _badge_ui.org.chainId = null; persistOrgUi(); renderBadgeModule() }
 async function orgFocusInChart(employeeId) {
   let emp = orgEmpById(employeeId)
   if (!emp) return
-  let inScope = orgScopeIds().includes(employeeId)
+  // A floating orphan (no manager, no reports) never appears on the
+  // canvas (§1) — searching for one goes straight to assigning a manager
+  // instead of failing to find a node that was never drawn.
+  if (orgOrphanIds().includes(employeeId)) {
+    toast(`${orgFullName(emp)} no tiene jefe inmediato ni reportes directos, así que no aparece en el organigrama. Asígnale un jefe para ubicarlo.`)
+    if (can('write', 'talento_humano')) { _badge_ui.org.view = 'chart'; orgOpenAssignManager(employeeId) }
+    else viewEmployeeDetail(employeeId)
+    return
+  }
+  let inScope = orgChartScopeIds().includes(employeeId)
   if (!inScope) {
     // Outside the current scope — never silently move it; ask, and offer
     // the right fix depending on why: a facet filter narrowed them out,
@@ -21124,16 +21325,16 @@ async function orgFocusInChart(employeeId) {
     if (!inSitePool && _badge_ui.org.scope.type === 'site') {
       if (!confirm(`${orgFullName(emp)} no está en la sede actual. ¿Cambiar el alcance a "Toda SIERRA" para mostrarlo?`)) return
       await orgSetScope('all')
-      inScope = orgScopeIds().includes(employeeId)
+      inScope = orgChartScopeIds().includes(employeeId)
     }
     if (!inScope) {
       if (!confirm(`${orgFullName(emp)} está fuera del alcance actual (filtros). ¿Limpiar filtros para mostrarlo?`)) return
       orgClearFilters()
-      inScope = orgScopeIds().includes(employeeId)
+      inScope = orgChartScopeIds().includes(employeeId)
     }
     if (!inScope) return
   }
-  const chain = orgAncestorChain(employeeId, orgScopeIds())
+  const chain = orgAncestorChain(employeeId, orgChartScopeIds())
   chain.forEach(id => { if (!orgIsExpanded(id)) _badge_ui.org.expanded.push(id) })
   _badge_ui.org.focusId = employeeId
   _badge_ui.org.selectedId = employeeId
@@ -21157,7 +21358,50 @@ function _prefersReducedMotion() { return window.matchMedia && window.matchMedia
 // one (no fake umbrella manager is ever invented to unify them). Pure
 // function of (forest, expanded-state) — no DOM reads, so it's cheap to
 // recompute on every render and easy to reuse for PNG/PDF export.
-const ORGC_CARD_W = 264, ORGC_CARD_H = 116, ORGC_GAP_X = 36, ORGC_GAP_Y = 92, ORGC_ROOT_GAP = 72
+const ORGC_CARD_W = 300, ORGC_CARD_MIN_H = 108, ORGC_GAP_X = 36, ORGC_GAP_Y = 96, ORGC_ROOT_GAP = 72
+
+// ── Card height measurement — names/positions must NEVER truncate (§2,
+// critical acceptance criteria), so cards grow vertically to fit their
+// content instead of clipping it with an ellipsis. Since the layout is a
+// pure function computed ahead of any DOM render (§ layout engine notes
+// above), height is estimated with an offscreen canvas measureText pass
+// rather than reading real DOM boxes — cheap, and memoized per employee
+// so repeated re-layouts (pan/zoom/expand) don't re-measure text that
+// hasn't changed. ──
+let _orgMeasureCtx = null
+function orgMeasureCtx() {
+  if (!_orgMeasureCtx) _orgMeasureCtx = document.createElement('canvas').getContext('2d')
+  return _orgMeasureCtx
+}
+function orgWrapLineCount(text, font, maxWidth) {
+  const words = (text || '').trim().split(/\s+/).filter(Boolean)
+  if (!words.length) return 1
+  const ctx = orgMeasureCtx()
+  ctx.font = font
+  let lines = 1, cur = words[0]
+  for (let i = 1; i < words.length; i++) {
+    const test = cur + ' ' + words[i]
+    if (ctx.measureText(test).width <= maxWidth) cur = test
+    else { lines++; cur = words[i] }
+  }
+  return lines
+}
+const ORGC_TEXT_W = ORGC_CARD_W - 2 * (0.8 * 16) - 58 - 10 // card padding + avatar + gap
+const _orgCardHeightCache = new Map()
+function orgCardHeightFor(emp) {
+  if (!emp) return ORGC_CARD_MIN_H
+  const key = [emp.id, emp.first_name, emp.last_name, emp.position, emp.company, emp.department].join('|')
+  const cached = _orgCardHeightCache.get(key)
+  if (cached != null) return cached
+  const nameLines = orgWrapLineCount(orgFullName(emp), '650 15.2px Replica, -apple-system, sans-serif', ORGC_TEXT_W)
+  const titleLines = orgWrapLineCount(emp.position || 'Sin puesto', '400 13.1px Replica, -apple-system, sans-serif', ORGC_TEXT_W)
+  const companyLines = orgWrapLineCount(emp.company || 'Empresa sin asignar', '600 12px Replica, -apple-system, sans-serif', ORGC_TEXT_W)
+  const deptLines = emp.department ? orgWrapLineCount(emp.department, '400 12px Replica, -apple-system, sans-serif', ORGC_TEXT_W) : 0
+  const textH = nameLines * 19 + titleLines * 17 + 4 + companyLines * 15.5 + (deptLines ? deptLines * 15.5 + 2 : 0)
+  const h = Math.max(ORGC_CARD_MIN_H, Math.ceil(textH) + 2 * (0.7 * 16) + 4)
+  _orgCardHeightCache.set(key, h)
+  return h
+}
 function orgComputeChartLayout(forest, opts = {}) {
   const forceExpandAll = !!opts.forceExpandAll // export always renders the complete hierarchy (§13), ignoring the interactive view's collapsed branches
   const widthCache = new Map()
@@ -21170,13 +21414,27 @@ function orgComputeChartLayout(forest, opts = {}) {
     widthCache.set(id, w)
     return w
   }
+  // Two passes: first find every visible node's depth so each row's
+  // height can be the tallest card in it (cards at the same depth may
+  // wrap to different heights) — then place() uses those row offsets
+  // instead of a flat depth * fixed-height multiplication.
+  const depthOf = new Map()
+  function markDepths(id, depth) {
+    depthOf.set(id, depth)
+    childrenOf(id).forEach(c => markDepths(c, depth + 1))
+  }
+  forest.roots.forEach(r => markDepths(r, 0))
+  const rowHeights = []
+  depthOf.forEach((depth, id) => { rowHeights[depth] = Math.max(rowHeights[depth] || 0, orgCardHeightFor(orgEmpById(id))) })
+  const rowY = [0]
+  for (let d = 1; d < rowHeights.length; d++) rowY[d] = rowY[d - 1] + rowHeights[d - 1] + ORGC_GAP_Y
   const positions = new Map()
   function place(id, left, depth) {
     const children = childrenOf(id)
     const w = subtreeWidth(id)
     positions.set(id, {
-      x: left + w / 2 - ORGC_CARD_W / 2, y: depth * (ORGC_CARD_H + ORGC_GAP_Y),
-      w: ORGC_CARD_W, h: ORGC_CARD_H, expanded: forceExpandAll || orgIsExpanded(id),
+      x: left + w / 2 - ORGC_CARD_W / 2, y: rowY[depth] || 0,
+      w: ORGC_CARD_W, h: orgCardHeightFor(orgEmpById(id)), expanded: forceExpandAll || orgIsExpanded(id),
       childrenCount: (forest.childrenMap.get(id) || []).length,
     })
     let cursor = left
@@ -21185,9 +21443,9 @@ function orgComputeChartLayout(forest, opts = {}) {
   let cursor = 0
   forest.roots.forEach(r => { place(r, cursor, 0); cursor += subtreeWidth(r) + ORGC_ROOT_GAP })
   const width = Math.max(0, cursor - ORGC_ROOT_GAP)
-  let maxY = 0
-  positions.forEach(p => { maxY = Math.max(maxY, p.y) })
-  return { positions, width, height: width ? maxY + ORGC_CARD_H : 0 }
+  let maxBottom = 0
+  positions.forEach(p => { maxBottom = Math.max(maxBottom, p.y + p.h) })
+  return { positions, width, height: width ? maxBottom : 0 }
 }
 // SVG elbow connectors — vertical drop from the parent, a horizontal bus
 // at the midpoint between levels, vertical rises into each child — the
@@ -21214,7 +21472,7 @@ function orgConnectorsSvg(layout, forest) {
 // selected company"). Pulled in one hop only, rendered muted/read-only —
 // never a whole invisible ancestor chain.
 function orgChartDisplayForest() {
-  const baseIds = orgScopeIds()
+  const baseIds = orgChartScopeIds()
   const baseSet = new Set(baseIds)
   const contextual = new Set()
   baseIds.forEach(id => {
@@ -21266,7 +21524,7 @@ function orgCanvasWheel(e) {
   orgSetZoom(e.deltaY > 0 ? -0.1 : 0.1)
 }
 
-function orgChartCardHtml(id, forest, pos, contextual) {
+function orgChartCardHtml(id, forest, pos, contextual, chainSet) {
   const emp = orgEmpById(id)
   if (!emp) return ''
   const children = forest.childrenMap.get(id) || []
@@ -21277,10 +21535,15 @@ function orgChartCardHtml(id, forest, pos, contextual) {
   const isFocused = _badge_ui.org.focusId === id
   const isSelected = _badge_ui.org.selectedId === id
   const isMuted = contextual?.has(id)
+  // "Ver cadena de mando" (§6): while a chain is active, everything
+  // outside the selected employee's managers-above + branch-below dims,
+  // so the chain reads at a glance without leaving the canvas.
+  const isChainMember = chainSet ? chainSet.has(id) : false
+  const isChainDim = chainSet ? !isChainMember : false
   const initials = ((emp.first_name?.[0] || '') + (emp.last_name?.[0] || '')).toUpperCase()
   const canDrag = !isMuted && can('write', 'talento_humano') && _badge_ui.org.editMode
   return `
-  <div class="orgc-card ${isSelected ? 'is-selected' : ''} ${isFocused ? 'is-focused' : ''} ${blocking ? 'has-blocking-issue' : hasIssue ? 'has-issue' : ''} ${children.length ? 'is-manager' : ''} ${isMuted ? 'is-muted' : ''}"
+  <div class="orgc-card ${isSelected ? 'is-selected' : ''} ${isFocused ? 'is-focused' : ''} ${blocking ? 'has-blocking-issue' : hasIssue ? 'has-issue' : ''} ${children.length ? 'is-manager' : ''} ${isMuted ? 'is-muted' : ''} ${isChainMember ? 'orgc-chain-member' : ''} ${isChainDim ? 'orgc-chain-dim' : ''}"
        id="org-node-${id}" style="left:${pos.x}px;top:${pos.y}px;width:${pos.w}px;height:${pos.h}px" tabindex="0" role="treeitem"
        ${canDrag ? `draggable="true" ondragstart="orgNodeDragStart(event,'${id}')" ondragend="orgNodeDragEnd(event)" ondragover="orgNodeDragOver(event,'${id}')" ondragleave="orgNodeDragLeave(event,'${id}')" ondrop="orgNodeDrop(event,'${id}')"` : ''}
        onclick="orgSelectNode('${id}')" onkeydown="orgNodeKeydown(event,'${id}')"
@@ -21288,16 +21551,17 @@ function orgChartCardHtml(id, forest, pos, contextual) {
     ${canDrag ? `<span class="orgc-grip" title="Arrastra para cambiar de jefe" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="4" r="1.3"/><circle cx="10" cy="4" r="1.3"/><circle cx="6" cy="8" r="1.3"/><circle cx="10" cy="8" r="1.3"/><circle cx="6" cy="12" r="1.3"/><circle cx="10" cy="12" r="1.3"/></svg></span>` : ''}
     <div class="orgc-avatar">${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" draggable="false"/>` : `<span>${esc(initials)}</span>`}</div>
     <div class="orgc-main">
-      <div class="orgc-name" title="${escAttr(orgFullName(emp))}">${esc(orgFullName(emp))}</div>
-      <div class="orgc-title" title="${escAttr(emp.position || '')}">${esc(emp.position || 'Sin puesto')}</div>
-      <div class="orgc-meta" title="${escAttr([emp.department, emp.company].filter(Boolean).join(' · '))}">${esc([emp.department, emp.company].filter(Boolean).join(' · ') || '—')}</div>
+      <div class="orgc-name">${esc(orgFullName(emp))}</div>
+      <div class="orgc-title">${esc(emp.position || 'Sin puesto')}</div>
+      <div class="orgc-company">${siIcon('building', 10)}<span>${esc(emp.company || 'Empresa sin asignar')}</span></div>
+      ${emp.department ? `<div class="orgc-dept">${esc(emp.department)}</div>` : ''}
     </div>
     ${hasIssue ? `<span class="orgc-warn" title="${escAttr(issues.map(i => ORG_ISSUE_DEFS[i.type]?.label).join('; '))}">${siIcon(blocking ? 'alert-triangle' : 'alert-circle', 12)}</span>` : ''}
     <button type="button" class="orgc-open" onclick="event.stopPropagation();viewEmployeeDetail('${id}')" title="Abrir perfil de colaborador" aria-label="Abrir perfil de ${escAttr(orgFullName(emp))}">${siIcon('external-link', 11)}</button>
     ${children.length ? `<button type="button" class="orgc-reports" onclick="event.stopPropagation();orgToggleExpand('${id}')" aria-expanded="${expanded}" title="${expanded ? 'Colapsar equipo' : 'Expandir equipo'} — ${children.length} reporte${children.length !== 1 ? 's' : ''} directo${children.length !== 1 ? 's' : ''}">${siIcon('users', 11)} ${children.length} ${siIcon(expanded ? 'chevron-up' : 'chevron-down', 10)}</button>` : ''}
   </div>`
 }
-// ── Drag-to-reassign state (only reachable in Editar estructura mode —
+// ── Drag-to-reassign state (only reachable in Gestionar estructura mode —
 // see the editMode check baked into canDrag above). dataTransfer's own
 // payload isn't readable during dragover/dragleave (browsers only expose
 // it on drop, for security), so live valid/invalid feedback while
@@ -21354,12 +21618,13 @@ function orgNodeKeydown(e, id) {
   }
 }
 function renderOrgChartView() {
-  const scopeIds = orgScopeIds()
+  const scopeIds = orgChartScopeIds()
   if (!scopeIds.length) {
     return emptyStateHtml({
-      title: 'No hay colaboradores en este alcance',
-      desc: 'Ajusta los filtros, el alcance o la sede activa para ver el organigrama.',
-      actionLabel: orgActiveFilterCount() ? 'Limpiar filtros' : null, actionOnClick: 'orgClearFilters()',
+      title: orgOrphanIds().length ? 'Nadie en este alcance tiene relaciones jerárquicas válidas' : 'No hay colaboradores en este alcance',
+      desc: orgOrphanIds().length ? 'Todos los colaboradores de este alcance están sin jefe inmediato asignado — revísalos desde "sin jefe asignado".' : 'Ajusta los filtros, el alcance o la sede activa para ver el organigrama.',
+      actionLabel: orgOrphanIds().length ? 'Ver sin jefe asignado' : (orgActiveFilterCount() ? 'Limpiar filtros' : null),
+      actionOnClick: orgOrphanIds().length ? 'orgShowUnassignedDrawer()' : 'orgClearFilters()',
     })
   }
   const { forest, contextual } = orgChartDisplayForest()
@@ -21376,19 +21641,22 @@ function renderOrgChartView() {
   const zoom = _badge_ui.org.zoom
   const sizerW = Math.max(1, Math.round(layout.width * zoom)), sizerH = Math.max(1, Math.round(layout.height * zoom))
   const allIds = [...layout.positions.keys()]
+  const chainSet = orgChainMemberIds()
+  const chainEmp = _badge_ui.org.chainId ? orgEmpById(_badge_ui.org.chainId) : null
   return `
     <div class="org-chart-controls">
       <div class="org-chart-controls-group">
         <button class="btn btn-ghost btn-sm" onclick="orgExpandAll()">${siIcon('chevrons-down', 13)} Expandir todo</button>
         <button class="btn btn-ghost btn-sm" onclick="orgCollapseAll()">${siIcon('chevrons-up', 13)} Colapsar todo</button>
       </div>
+      ${chainEmp ? `<div class="org-drag-hint">${siIcon('share', 12)} Viendo la cadena de mando de <b>${esc(orgFullName(chainEmp))}</b> <button type="button" class="btn btn-ghost btn-sm" style="padding:1px 8px" onclick="orgClearChain()">Salir</button></div>` : ''}
       ${_badge_ui.org.editMode ? `<div class="org-drag-hint">${siIcon('info', 12)} Arrastra una tarjeta y suéltala sobre otra para cambiarle el jefe inmediato</div>` : ''}
     </div>
     <div class="orgc-viewport" id="orgc-viewport" onmousedown="orgCanvasPointerDown(event)" onwheel="orgCanvasWheel(event)">
       <div class="orgc-canvas-sizer" style="width:${sizerW}px;height:${sizerH}px">
         <div class="orgc-canvas" id="orgc-canvas" style="width:${layout.width}px;height:${layout.height}px;transform:scale(${zoom})">
           <svg class="orgc-connectors" width="${layout.width}" height="${layout.height}" aria-hidden="true">${orgConnectorsSvg(layout, forest)}</svg>
-          ${allIds.map(id => orgChartCardHtml(id, forest, layout.positions.get(id), contextual)).join('')}
+          ${allIds.map(id => orgChartCardHtml(id, forest, layout.positions.get(id), contextual, chainSet)).join('')}
         </div>
       </div>
       <div class="orgc-floating-controls">
@@ -21896,6 +22164,11 @@ async function orgSaveAssignManager() {
   renderBadgeModule()
   const detailEmp = _badge.employees.find(e => e.id === a.employeeId)
   if (detailEmp && document.getElementById('employee-detail-drawer')) renderEmployeeDetailDrawer(detailEmp)
+  // These two drawers live outside renderBadgeModule()'s DOM tree, so a
+  // save while either is open needs its own refresh to drop the
+  // just-resolved employee from the list instead of showing it stale.
+  if (document.getElementById('org-unassigned-drawer')) renderOrgUnassignedDrawer()
+  if (document.getElementById('org-issues-drawer')) renderOrgStructureIssuesDrawer()
 }
 
 // ── ACCOUNT ↔ COLLABORATOR INTEGRATION (spec §17) — "Acceso a SIERRA
@@ -22199,10 +22472,14 @@ function orgSelectedNodeDetailHtml() {
   if (!id) return ''
   const emp = orgEmpById(id)
   if (!emp) return ''
+  const hasReports = orgDirectReportCount(id) > 0
   return `<div class="org-selected-panel">
     <div><b>${esc(orgFullName(emp))}</b> · ${esc(emp.position || 'Sin puesto')} — ${esc(orgPathText(id))}</div>
     <div class="org-selected-actions">
       <button class="btn btn-ghost btn-sm" onclick="viewEmployeeDetail('${id}')">Ver perfil</button>
+      <button class="btn btn-ghost btn-sm" onclick="orgCenterOnNode('${id}')">Centrar</button>
+      ${hasReports ? `<button class="btn btn-ghost btn-sm" onclick="orgOpenTeamView('${id}')">Ver equipo</button>` : ''}
+      <button class="btn btn-ghost btn-sm" onclick="orgShowChainOfCommand('${id}')">Ver cadena de mando</button>
       <button class="btn btn-ghost btn-sm" onclick="orgCopySummary('${id}')">Copiar resumen</button>
       ${can('write', 'talento_humano') ? `<button class="btn btn-ghost btn-sm" onclick="orgOpenAssignManager('${id}')">Cambiar jefe inmediato</button>` : ''}
       <button class="btn btn-ghost btn-sm" onclick="orgSelectNode(null)">Cerrar</button>
