@@ -19001,7 +19001,7 @@ async function showUserManagement() {
 
   const [profRes, grantRes, reviewRes] = await Promise.all([
     sb.from('profiles')
-      .select('id,full_name,email,role,account_type,account_status,employee_id,created_at,employees(id,first_name,last_name,position,department,company,country,email,photo_url,employee_status)')
+      .select('id,full_name,email,role,account_type,account_status,employee_id,created_at,employees!profiles_employee_id_fkey(id,first_name,last_name,position,department,company,country,email,photo_url,employee_status)')
       .order('created_at', { ascending: true }),
     sb.from('capability_grants').select('id,user_id,domain,capability,resource_id,expires_at'),
     canManagePlatform
