@@ -4125,6 +4125,12 @@
     .cat-group-row .cat-group-chevron { display:inline-block; width:9px; height:9px; margin-right:0.5rem; transition:transform var(--dur-fast) var(--ease-out); }
     .cat-group-row.collapsed .cat-group-chevron { transform:rotate(-90deg); }
     .erp-table tbody tr.cat-row-selected { background:var(--accent-light,var(--surface2)); }
+    /* Talento Humano: Colaboradores selected rows use a neutral gray, not
+       a full teal fill — teal is reserved for the thin left-edge indicator
+       and the (already-teal) checkbox. Distinct from the plain :hover
+       background (--surface2) above so the two states never read the same. */
+    .erp-table tbody tr.emp-row-selected { background:var(--surface-selected,var(--surface2)); box-shadow:inset 3px 0 0 var(--accent); }
+    .erp-table tbody tr.emp-row-selected:hover { background:var(--surface-hover,var(--surface-selected)); }
     .cat-row-code { font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
     .cat-row-name { font-weight:500; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .cat-row-name-sub { font-size:0.68rem; color:var(--text-3); font-weight:400; }
@@ -4703,6 +4709,18 @@
 
     .site-switch-btn:disabled svg { color: var(--text-disabled); }
 
+    /* Restrained focus ring for Talento Humano's toolbar/switcher controls
+       (e.g. "Columnas", the company/site switcher) — a thin, lower-opacity
+       teal rather than the app's default solid 2px ring, so focus reads as
+       a quiet accessibility cue, not a second loud accent surface. Scoped
+       to this module's own controls, not a change to the app-wide default. */
+    .site-switch-btn:focus-visible,
+    .site-switcher-item:focus-visible,
+    .badge-module-root .cat-tb-btn:focus-visible {
+      outline: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+      outline-offset: 1px;
+    }
+
     .badge-main-panel {
       flex: 1;
       min-width: 0;
@@ -4927,7 +4945,8 @@
 
     .emp-select-bar {
       display: none; align-items: center; gap: 10px; padding: 0.5rem 0.75rem;
-      background: var(--accent-light, var(--surface2)); border: 1px solid var(--border); border-radius: var(--r-md); font-size: 0.82rem;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); font-size: 0.82rem;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
     .emp-select-bar.show { display: flex; flex-wrap: wrap; }
     .emp-select-bar b { font-weight: 600; }
@@ -5334,10 +5353,13 @@
     }
 
     .site-switcher-item.active {
-      background: var(--interactive-selected-bg);
+      /* Neutral, not a teal rectangle — the checkmark (site-switcher-check)
+         carries the teal, the bold weight carries the "this one's active". */
+      background: var(--surface-selected, var(--surface2));
       font-weight: 600;
-      color: var(--interactive-selected-text, var(--text-primary));
+      color: var(--text-primary);
     }
+    .site-switcher-check { color: var(--accent); margin-right: 4px; }
 
     .site-switcher-item:disabled {
       color: var(--text-disabled);
@@ -14600,11 +14622,11 @@ const EMPLOYEE_COLUMNS = [
   { key: 'employee_status',             label: 'Estado',             alwaysOn: true },
   { key: 'readiness',                   label: 'Datos completos',    default: true },
   { key: 'badge_status',                label: 'Gafete',             default: true },
-  { key: 'identification_number',       label: 'Documento' },
-  { key: 'emergency_contact_name',      label: 'Contacto de emergencia', sensitive: true },
-  { key: 'emergency_contact_phone',     label: 'Teléfono de emergencia', sensitive: true },
-  { key: 'blood_type',                  label: 'Tipo de sangre',     sensitive: true },
-  { key: 'health_conditions',           label: 'Condiciones de salud', sensitive: true },
+  // Identification number and emergency/medical fields are Personal-tier
+  // data (§4 classification) and are never offered as configurable columns
+  // in the general directory, regardless of talento_humano write access —
+  // they live on the employee's Personal tab, under its own stricter model.
+  // This is not a default-hidden column; it is not offered at all here.
   { key: 'photo',                       label: 'Foto' },
   { key: 'last_badge',                  label: 'Último gafete' },
   { key: 'updated_at',                  label: 'Actualizado' },
@@ -15072,7 +15094,7 @@ function siteSwitcherPopHtml() {
     <div class="cat-pop-title">${esc(country.name)}</div>
     ${_badge.sites.filter(s => _badge.companies[country.id]?.some(c => c.id === s.company_id)).map(site => `
       <button type="button" class="cat-pop-row site-switcher-item ${site.id === _badge.activeSite ? 'active' : ''}" onclick="setSiteContext('${site.id}')">
-        ${site.id === _badge.activeSite ? '✓ ' : ''}${esc(site.name)}
+        ${site.id === _badge.activeSite ? '<span class="site-switcher-check" aria-hidden="true">✓</span>' : ''}${esc(site.name)}
       </button>
     `).join('')}
   `).join('')
@@ -15180,11 +15202,6 @@ function empColCellHtml(emp, key) {
     case 'photo': return `<td onclick="event.stopPropagation()">${empPhotoCellHtml(emp)}</td>`
     case 'department': return `<td class="emp-td-trunc" title="${escAttr(emp.department || '')}">${esc(emp.department || '—')}</td>`
     case 'position': return `<td class="emp-td-trunc" title="${escAttr(emp.position || '')}">${esc(emp.position || '—')}</td>`
-    case 'identification_number': return `<td class="emp-td-trunc">${esc(emp.identification_number || '—')}</td>`
-    case 'emergency_contact_name': return `<td class="emp-td-trunc" title="${escAttr(emp.emergency_contact_name || '')}">${esc(emp.emergency_contact_name || '—')}</td>`
-    case 'emergency_contact_phone': return `<td class="emp-td-trunc">${esc(emp.emergency_contact_phone || '—')}</td>`
-    case 'blood_type': return `<td class="emp-td-trunc">${esc(emp.blood_type || '—')}</td>`
-    case 'health_conditions': return `<td class="emp-td-trunc" title="${escAttr(emp.health_conditions || '')}">${esc(emp.health_conditions || '—')}</td>`
     case 'employee_status': return `<td>${empStatusBadgeHtml(emp.employee_status)}</td>`
     case 'next_moment': { const nm = empNextMoment(emp); return `<td style="white-space:nowrap;color:var(--text-3)">${nm ? `${esc(nm.label)} · ${nm.daysUntil === 0 ? 'hoy' : `en ${nm.daysUntil} día${nm.daysUntil !== 1 ? 's' : ''}`}` : '—'}</td>` }
     case 'readiness': return `<td onclick="event.stopPropagation()">${readinessPillHtml(emp, 'emp-ready-' + emp.id)}</td>`
@@ -15210,7 +15227,7 @@ function empRowActionsHtml(emp) {
 }
 function empRowHtml(emp, cols) {
   const selected = _badge_ui.selected.has(emp.id)
-  return `<tr class="is-clickable ${selected ? 'cat-row-selected' : ''}" data-emp-id="${emp.id}" onclick="viewEmployeeDetail('${emp.id}')">
+  return `<tr class="is-clickable ${selected ? 'emp-row-selected' : ''}" data-emp-id="${emp.id}" onclick="viewEmployeeDetail('${emp.id}')">
     <td class="cat-td-select" onclick="event.stopPropagation()"><input type="checkbox" ${selected ? 'checked' : ''} onchange="toggleEmpSelect('${emp.id}')" /></td>
     ${cols.map(c => empColCellHtml(emp, c.key)).join('')}
     ${empRowActionsHtml(emp)}
@@ -15915,8 +15932,11 @@ async function hireLoadOrgLookups() {
 }
 const HIRE_STEPS = [{ id: 'persona', label: 'Persona' }, { id: 'empleo', label: 'Empleo' }, { id: 'operacion', label: 'Operación' }, { id: 'revision', label: 'Revisión' }]
 function hireStepIndicatorHtml() {
+  // Neutral pill for the active step (not a teal fill) — the accent lives
+  // only in the small step-number dot, a "medium teal" indicator rather
+  // than a colored surface.
   return `<div style="display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap">
-    ${HIRE_STEPS.map((s, i) => `<span style="font-size:0.72rem;padding:2px 9px;border-radius:999px;background:${s.id === _hire.step ? 'var(--interactive-selected-bg,var(--surface2))' : 'var(--surface2)'};color:${s.id === _hire.step ? 'var(--text-primary)' : 'var(--text-3)'};font-weight:${s.id === _hire.step ? '600' : '400'}">${i + 1}. ${esc(s.label)}</span>`).join('')}
+    ${HIRE_STEPS.map((s, i) => `<span style="display:inline-flex;align-items:center;gap:5px;font-size:0.72rem;padding:2px 9px;border-radius:999px;background:${s.id === _hire.step ? 'var(--surface-selected,var(--surface2))' : 'var(--surface2)'};color:${s.id === _hire.step ? 'var(--text-primary)' : 'var(--text-3)'};font-weight:${s.id === _hire.step ? '600' : '400'}"><span style="width:5px;height:5px;border-radius:50%;background:${s.id === _hire.step ? 'var(--accent)' : 'var(--border-strong)'}"></span>${i + 1}. ${esc(s.label)}</span>`).join('')}
   </div>`
 }
 function hireField(id, label, opts = {}) {
