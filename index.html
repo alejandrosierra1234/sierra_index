@@ -21916,7 +21916,7 @@ async function suspendIndexAccount(profileId) {
 // plain-text version used for copy-to-clipboard.
 function orgPathTreeHtml(employeeId) {
   const levels = ['SIERRA', ...orgPathOf(employeeId)]
-  return `<div style="font-size:0.82rem;line-height:1.65;font-family:var(--font-mono,monospace)">
+  return `<div style="font-size:0.82rem;line-height:1.65;font-family:'Replica Mono','Courier New',monospace">
     ${levels.map((lvl, i) => `<div style="padding-left:${i * 14}px;color:${i === levels.length - 1 ? 'var(--text-primary)' : 'var(--text-secondary)'};font-weight:${i === levels.length - 1 ? '600' : '400'}">${i > 0 ? '<span aria-hidden="true" style="color:var(--text-3)">└ </span>' : ''}${esc(lvl)}</div>`).join('')}
   </div>`
 }
