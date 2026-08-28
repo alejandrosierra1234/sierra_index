@@ -4776,7 +4776,11 @@
       outline-offset: -2px;
     }
     .emp-md-row:hover { background: var(--surface-hover); }
-    .emp-md-row.active { background: color-mix(in srgb, var(--accent) 12%, var(--surface2)); }
+    /* Selected-row treatment matches .emp-row-selected/.site-switcher-item.active
+       app-wide (§ SIERRA_DESIGN_SYSTEM.md §42/§54): a neutral selected surface +
+       a thin teal edge indicator, never a teal-tinted fill — interaction color
+       marks "this one", it doesn't wash the row. */
+    .emp-md-row.active { background: var(--surface-selected, var(--surface2)); box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
     .emp-md-row:focus-visible { outline: 2px solid var(--accent); }
     .emp-md-row-avatar, .emp-md-row-avatar img { width: 32px; height: 32px; border-radius: 9px; object-fit: cover; flex-shrink: 0; }
     .emp-md-row-avatar { display: flex; align-items: center; justify-content: center; background: var(--surface2); font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); }
@@ -5317,9 +5321,14 @@
       width: 120px; height: 120px; border-radius: 20px; object-fit: cover; display: block;
       box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 6px 18px rgba(0,0,0,0.1);
     }
+    /* Colored by PERSON (avatarStyle(emp.id), §47 AVATAR_PALETTE) — kept
+       distinct from the hero's company accent/tint on purpose: one color
+       says "who this is", the other says "where they work". Conflating
+       both onto the same swatch would make the avatar read as a company
+       badge instead of a personal identifier. */
     .emp-profile-photo-wrap .emp-profile-avatar-init {
       display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 700;
-      color: var(--company-color, var(--text-secondary)); background: var(--company-tint-strong, var(--surface2));
+      color: var(--text-secondary); background: var(--surface2);
     }
     .emp-profile-photo-cam {
       position: absolute; bottom: -5px; right: -5px; width: 28px; height: 28px; border-radius: 50%;
@@ -14978,21 +14987,30 @@ const READINESS_LABELS = { ready: 'Completo', missing: 'Faltan datos', blocked: 
 // empStatusBadgeHtml, so hero and badge always agree on what each status means.
 const EMP_STATUS_DOT_VAR = { active: 'var(--success)', inactive: 'var(--text-3)', terminated: 'var(--danger)', on_leave: 'var(--warning-text)', transferred: 'var(--text-3)' }
 
-// ── Company identity color system (§3) ── the `companies` table (see
-// renderCompaniesView) has no color column, and employees.company is a
-// free-text field, not a foreign key to it — so rather than a schema
-// change, each company name deterministically hashes to one color from
-// a fixed palette. The same name always resolves to the same color
-// everywhere (profile hero, badges, future cards/org-chart), and the
-// palette deliberately avoids SIERRA teal (reserved for UI/interaction)
-// and green/yellow/red (reserved for status) — company color means
-// organizational identity only.
-const COMPANY_COLOR_PALETTE = ['#6366f1', '#0ea5e9', '#8b5cf6', '#ec4899', '#a855f7', '#64748b', '#2563eb', '#0891b2', '#7c3aed', '#db2777']
-function companyColorHex(companyName) {
+// ── Company identity color system (§3) ── companies are an identifier
+// exactly like a division or a módulo (SIERRA_DESIGN_SYSTEM.md §44/§46):
+// this reuses the SAME seven-family secondary palette (§44's Yellow/
+// Green/Blue/Purple/Warm Yellow/Orange/Red, backed by the --sem-* tokens
+// every other identity chip in the app already reads from) instead of a
+// bespoke hex ramp — an earlier pass here invented ten arbitrary hex
+// values outside the sanctioned palette, exactly the "fourth shade"/
+// parallel-color-system problem §44 and the §48 consistency audit warn
+// against. The `companies` table (see renderCompaniesView) has no color
+// column and employees.company is free text, not an FK, so a company
+// still can't own a *stored* color — but it deterministically hashes to
+// one of the seven sanctioned families, and the same name always
+// resolves to the same family everywhere (profile hero, badges, future
+// cards/org-chart). Teal is never in this set (§42 — reserved for UI
+// interaction) and green/warm-yellow/red here mean "this is Northern
+// Textiles", never "this is a status" — company color and status color
+// happen to share hue families but are never applied to the same
+// element, so the two meanings don't collide in practice.
+const COMPANY_SEM_FAMILIES = ['yellow', 'green', 'blue', 'purple', 'warmyellow', 'orange', 'red']
+function companySemFamily(companyName) {
   if (!companyName) return null
   let hash = 0
   for (let i = 0; i < companyName.length; i++) hash = (hash * 31 + companyName.charCodeAt(i)) >>> 0
-  return COMPANY_COLOR_PALETTE[hash % COMPANY_COLOR_PALETTE.length]
+  return COMPANY_SEM_FAMILIES[hash % COMPANY_SEM_FAMILIES.length]
 }
 function companyRecordByName(companyName) {
   if (!companyName || !_badge.companies) return null
@@ -15012,14 +15030,16 @@ function companyShortCode(companyName) {
   return companyName.split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 4).toUpperCase()
 }
 // CSS custom properties consumed by .emp-profile-hero-accent/-tint and
-// .emp-company-badge — color-mix against var(--surface)/var(--text-primary)
-// keeps the tint anchored to the current theme's own lightness, so the
-// same hex reads correctly (and stays legible/AA-ish) in both light and
-// dark mode without a separate dark-mode color table.
+// .emp-company-badge — reads the family's theme-aware --sem-*-dark-text
+// (already tuned for AA on both light and dark surfaces, same as every
+// other status/identity chip) for the accent/text, and color-mixes the
+// mid-tone --sem-* value against the current surface for the tint, so
+// the same family reads correctly in both themes without a separate
+// dark-mode color table of its own.
 function companyColorStyleVars(companyName) {
-  const hex = companyColorHex(companyName)
-  if (!hex) return ''
-  return `--company-color:${hex};--company-tint:color-mix(in srgb, ${hex} 12%, var(--surface));--company-tint-strong:color-mix(in srgb, ${hex} 20%, var(--surface));--company-tint-border:color-mix(in srgb, ${hex} 38%, transparent);`
+  const fam = companySemFamily(companyName)
+  if (!fam) return ''
+  return `--company-color:var(--sem-${fam}-dark-text);--company-tint:color-mix(in srgb, var(--sem-${fam}) 14%, var(--surface));--company-tint-strong:color-mix(in srgb, var(--sem-${fam}) 22%, var(--surface));--company-tint-border:color-mix(in srgb, var(--sem-${fam}) 40%, transparent);`
 }
 
 // Table grouping — Monday-style collapsible groups so large employee
@@ -16215,7 +16235,7 @@ function empMdRowHtml(emp) {
   const initials = ((emp.first_name?.[0] || '') + (emp.last_name?.[0] || '')).toUpperCase()
   return `<div class="emp-md-row ${selected ? 'active' : ''}" data-emp-id="${emp.id}" role="option" aria-selected="${selected}" tabindex="0"
        onclick="selectEmployee('${emp.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectEmployee('${emp.id}')}">
-    <span class="emp-md-row-avatar">${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" />` : `<span>${esc(initials)}</span>`}</span>
+    <span class="emp-md-row-avatar" ${emp.photo_url ? '' : `style="${escAttr(avatarStyle(emp.id))}"`}>${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" />` : `<span>${esc(initials)}</span>`}</span>
     <span class="emp-md-row-main">
       <span class="emp-md-row-name">${esc(emp.first_name)} ${esc(emp.last_name)}</span>
       <span class="emp-md-row-sub">${esc(emp.position || 'Sin puesto')}</span>
@@ -16263,11 +16283,11 @@ function empMdListToolbarHtml() {
         <input type="text" placeholder="Buscar…" value="${escAttr(_badge_ui.employeeSearch)}" oninput="filterEmployees(this.value)" aria-label="Buscar colaboradores" />
       </div>
       <div style="position:relative">
-        <button class="icon-btn icon-btn-quiet ${filterCount ? 'has-value' : ''}" onclick="catTogglePop(event,'emp-pop-filter')" title="Filtrar" aria-label="Filtrar">${siIcon('filter', 15)}${filterCount ? `<span class="cat-tb-btn-dot"></span>` : ''}</button>
+        <button class="icon-btn icon-btn-quiet ${filterCount ? 'has-value' : ''}" onclick="catTogglePop(event,'emp-pop-filter')" title="Filtrar" aria-label="Filtrar">${siIcon('filter', 16)}${filterCount ? `<span class="cat-tb-btn-dot"></span>` : ''}</button>
         <div class="ws-pop cat-pop" id="emp-pop-filter">${empFilterPopHtml()}</div>
       </div>
       <div style="position:relative">
-        <button class="icon-btn icon-btn-quiet" onclick="catTogglePop(event,'emp-pop-sort')" title="Ordenar: ${escAttr(sortLabel)}" aria-label="Ordenar">${siIcon('sort', 15)}</button>
+        <button class="icon-btn icon-btn-quiet" onclick="catTogglePop(event,'emp-pop-sort')" title="Ordenar: ${escAttr(sortLabel)}" aria-label="Ordenar">${siIcon('sort', 16)}</button>
         <div class="ws-pop cat-pop" id="emp-pop-sort">
           <div class="cat-pop-title">Ordenar por</div>
           ${Object.entries(EMP_SORTS).map(([k, s]) => `<button type="button" class="cat-pop-row" onclick="empSetSort('${k}')">${_badge_ui.sort === k ? '✓ ' : ''}${esc(s.label)}</button>`).join('')}
@@ -16275,7 +16295,7 @@ function empMdListToolbarHtml() {
           ${Object.entries(EMP_GROUPS).map(([k, g]) => `<button type="button" class="cat-pop-row" onclick="empSetGroupBy('${k}')">${_badge_ui.groupBy === k ? '✓ ' : ''}${esc(g.label)}</button>`).join('')}
         </div>
       </div>
-      ${can('write', 'talento_humano') ? `<button class="icon-btn icon-btn-quiet" onclick="showImportWorkflow()" title="${hasEmployees ? 'Actualizar base' : 'Importar colaboradores'}" aria-label="Importar colaboradores">${siIcon('upload', 15)}</button>` : ''}
+      ${can('write', 'talento_humano') ? `<button class="icon-btn icon-btn-quiet" onclick="showImportWorkflow()" title="${hasEmployees ? 'Actualizar base' : 'Importar colaboradores'}" aria-label="Importar colaboradores">${siIcon('upload', 16)}</button>` : ''}
     </div>
   `
 }
@@ -17811,7 +17831,7 @@ function empProfileHeroHtml(emp, canWrite) {
       <div class="emp-profile-hero-tint"></div>
       <div class="emp-profile-hero-row">
         <label class="emp-profile-photo-wrap" title="${canWrite ? 'Cambiar fotografía' : ''}">
-          ${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" />` : `<div class="emp-profile-avatar-init" aria-hidden="true">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</div>`}
+          ${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" />` : `<div class="emp-profile-avatar-init" style="${escAttr(avatarStyle(emp.id))}" aria-hidden="true">${esc((emp.first_name[0] || '') + (emp.last_name[0] || ''))}</div>`}
           ${canWrite ? `<span class="emp-profile-photo-cam" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M4 7h2l1.5-2h5L14 7h2a1 1 0 011 1v7a1 1 0 01-1 1H4a1 1 0 01-1-1V8a1 1 0 011-1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><circle cx="10" cy="11.5" r="2.3" stroke="currentColor" stroke-width="1.3"/></svg></span>
           <span class="sr-only">Cambiar fotografía de ${esc(emp.first_name)} ${esc(emp.last_name)}</span>
           <input type="file" accept="image/*" style="display:none" onchange="uploadEmployeeDetailPhoto('${emp.id}', this)" />` : ''}
