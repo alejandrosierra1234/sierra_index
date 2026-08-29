@@ -173,16 +173,20 @@
       --section-gap: 20px;            /* vertical rhythm between page sections (header→toolbar→content) — ERP density, was --sp-5/24px */
       --panel-gap: 14px;              /* spacing between stacked panels within a section — ERP density, was --sp-4/16px */
       --context-pane-width: 340px;    /* ContextPane fixed width, within the 320–380px range */
-      /* ── CONTROL HEIGHT SYSTEM ──
-         ONE standard height for every interactive control that can sit
-         next to another one: button, dropdown trigger, status control,
-         completeness control, search, select, icon button. 36px. The
-         only sanctioned exception is --control-h-sm, for controls inside
-         an already-compact secondary surface (table row, popover, inline
-         editor) — never mixed with --control-h in the same group. */
-      --control-h: 40px;              /* THE control height */
-      --control-h-sm: 36px;           /* compact secondary contexts only */
-      --control-h-lg: 44px;           /* full-width form submits / modals */
+      /* ── CONTROL HEIGHT SYSTEM (SIERRA_DESIGN_SYSTEM.md §24) ──
+         Three sanctioned tiers, no others. Every control in the same
+         visual group (toolbar, form row, action group, pagination, modal
+         footer) uses the same tier — never mix two heights in one group.
+         --control-h (36px) is the default: button, dropdown trigger,
+         status control, completeness control, search, select, icon
+         button. --control-h-sm (32px) is for controls inside an
+         already-compact secondary surface (table row, popover, inline
+         editor). --control-h-lg (40px) is reserved for a genuinely
+         prominent context (a major create action, a prominent standalone
+         input) — not a default, and not used merely to look important. */
+      --control-h: 36px;              /* Standard operational — THE control height */
+      --control-h-sm: 32px;           /* Compact secondary contexts only */
+      --control-h-lg: 40px;           /* Prominent — selective use only */
       --control-padding-x: 14px;      /* horizontal padding inside a control */
       --control-padding-x-sm: 10px;
       --control-radius: 8px;
@@ -1155,9 +1159,12 @@
     }
     .sidebar-user-info { max-width:120px; opacity:1; transform:translateX(0); transition:opacity 0.18s ease, transform 0.28s cubic-bezier(0.22,1,0.36,1), max-width 0.28s cubic-bezier(0.22,1,0.36,1); }
     .sidebar.collapsed .sidebar-user-info { max-width:0; opacity:0; transform:translateX(-4px); pointer-events:none; }
-    /* Square nav buttons when collapsed — 40px, matching the app-wide
-       control standard so the collapsed rail isn't a smaller, cramped
-       version of the expanded one (§12, §17). */
+    /* Square nav buttons when collapsed — 40px is the canonical collapsed
+       navigation-row geometry (SIERRA_DESIGN_SYSTEM.md §64.7), the same
+       fixed size as the expanded rail's global/division rows, so the
+       collapsed rail isn't a smaller, cramped version of the expanded one
+       (§12, §17). This is the navigation-row system, not the §24
+       operational control tiers — do not tokenize with --control-h. */
     .sidebar.collapsed .nav-item {
       width:40px; height:40px; padding:0;
       justify-content:center; align-items:center;
@@ -1314,7 +1321,7 @@
     .mod-switcher.open .mod-switcher-pop { opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
     .sidebar.collapsed .mod-switcher-pop { left:calc(100% + 10px); right:auto; top:0; width:260px; }
     .mod-switch-search-wrap { padding:2px 4px 6px; }
-    .mod-switch-search-wrap .control-input { width:100%; height:32px; font-size:0.8rem; }
+    .mod-switch-search-wrap .control-input { width:100%; height:var(--control-h-sm); font-size:0.8rem; }
     .mod-switch-list { display:flex; flex-direction:column; gap:1px; max-height:340px; overflow-y:auto; }
     .mod-switch-hdr { font-size:0.62rem; font-weight:650; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-3); padding:0.5rem 0.6rem 0.25rem; }
     .mod-switch-row-label { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1811,10 +1818,10 @@
     .tags:empty { display:none; }
     .tag { font-size:0.64rem; padding:0.16rem 0.45rem; border-radius:7px; background:none; color:var(--text-3); border:1px solid var(--border); }
     /* Card action row (§ SIERRA_DESIGN_SYSTEM.md, Card action row) — the
-       primary action (canonical .btn.btn-primary, 40px) and the overflow
-       trigger (canonical .icon-btn, 40x40) share one interaction-scale
-       baseline. Nothing in this row writes its own button CSS — see
-       "40px = interaction". */
+       primary action (canonical .btn.btn-primary, --control-h) and the
+       overflow trigger (canonical .icon-btn, same height) share one
+       interaction-scale baseline. Nothing in this row writes its own
+       button CSS — both inherit the standard control tier (§24). */
     .card-actions { display:flex; align-items:center; justify-content:space-between; gap:var(--control-gap); }
     .card-actions .btn-primary { flex:1; min-width:0; }
     .card-more-btn { display:inline-flex; align-items:center; justify-content:center; width:var(--control-h-sm); height:var(--control-h-sm); border-radius:var(--control-radius); border:1px solid var(--border-strong); background:var(--surface); color:var(--text-secondary); cursor:pointer; flex-shrink:0; transition:background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out); position:relative; }
@@ -3080,12 +3087,12 @@
       min-height:62px;
     }
     .detail-toolbar .btn-primary {
-      height:40px; padding:0 1.2rem; font-size:0.82rem; font-weight:650;
+      height:var(--control-h); padding:0 1.2rem; font-size:0.82rem; font-weight:650;
       display:inline-flex; align-items:center; gap:0.4rem; white-space:nowrap;
       box-shadow:0 7px 20px rgba(var(--accent-rgb,15,157,144),0.22);
     }
     .detail-toolbar .btn-secondary {
-      height:40px; padding:0 0.9rem; font-size:0.8rem;
+      height:var(--control-h); padding:0 0.9rem; font-size:0.8rem;
       display:inline-flex; align-items:center; gap:0.4rem; white-space:nowrap;
       background:color-mix(in srgb, var(--surface) 82%, transparent);
     }
@@ -8217,8 +8224,8 @@ function onSearch(val) {
 
 /* ── PageHeader primary action ── "+ New product" lives top-right of the
    PageHeader (§9 button placement rule), not in a per-screen toolbar.
-   Full 40px --control-h, same as every other primary action — this is
-   Level 1 (page identity), not a compact secondary surface. */
+   Standard --control-h (36px), same as every other primary action — this
+   is Level 1 (page identity), not a compact secondary surface. */
 function renderCatalogHeaderActions() {
   const el = document.getElementById('product-controls')
   if (!el) return
@@ -8229,8 +8236,8 @@ function renderCatalogHeaderActions() {
    Catalog list screen: Search / Filter / Sort / Group / Columns / •••.
    Built from .page-toolbar + .btn + the shared .ws-pop popover primitive
    (§12b) — no page-specific toolbar shell. Every control is icon+label at
-   the full 40px --control-h (§24) — this is an operational action row,
-   not a compact secondary surface, and labels drop the "Sort:"/"Group
+   the standard --control-h (36px, §24) — this is an operational action
+   row, not a compact secondary surface, and labels drop the "Sort:"/"Group
    by:" prefix the leading icon already communicates (§1/§26). */
 let _catLastFacetValues = {}
 function renderCatalogToolbar() {
@@ -14125,7 +14132,7 @@ function showStyleGuide() {
             <tr><th>Bar</th><th>Position</th><th>Contents</th></tr>
             <tr><td>Command bar</td><td>Floating, bottom center (level 3)</td><td>List search · quick tools · select mode · one primary. Per-division actions.</td></tr>
             <tr><td>Select bar</td><td>Same spot, replaces command bar</td><td>Count + bulk actions on inverted (text-color) pill.</td></tr>
-            <tr><td>Detail toolbar</td><td>Sticky bottom, full width, blur</td><td>Record actions: primary right-most, ghosts grouped, hairline separators. 40px controls, 62px bar.</td></tr>
+            <tr><td>Detail toolbar</td><td>Sticky bottom, full width, blur</td><td>Record actions: primary right-most, ghosts grouped, hairline separators. 36px controls, 62px bar.</td></tr>
           </table></div>
           <div class="sg-usage">
             <div class="sg-use"><b>Use</b>Exactly one bottom bar visible at a time — entering select mode hides the command bar; content reserves 88px bottom clearance so nothing hides behind bars.</div>
@@ -27432,10 +27439,10 @@ function renderInvToolbar() {
 }
 
 const INV_PERIODS = [[7, '7 días'], [30, '30 días'], [90, '90 días'], [365, '12 meses']]
-// TimeRangeSelect (§9/§23) — same 40px icon+label+chevron trigger as every
-// other DataToolbar dropdown, replacing the old bare <select class="grant-sel">
-// (a smaller, unlabeled control that floated with no visible relationship
-// to the KPI row beneath it).
+// TimeRangeSelect (§9/§23) — same --control-h icon+label+chevron trigger as
+// every other DataToolbar dropdown, replacing the old bare <select
+// class="grant-sel"> (a smaller, unlabeled control that floated with no
+// visible relationship to the KPI row beneath it).
 function renderInvPeriodControl() {
   const label = INV_PERIODS.find(([v]) => v === _whInvPeriod)?.[1] || `${_whInvPeriod} días`
   return `<div style="position:relative">
