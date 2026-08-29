@@ -275,8 +275,8 @@ Only after exhausting these does truncation become acceptable, and
 never for the categories below:
 
 - **Never truncate**: employee/person names, product/sample/collection
-  names, status and lifecycle labels (§11/§41), button action labels
-  (§9/§23), navigation labels (§4/§54/§61 — collapse to icon-only
+  names, status and lifecycle labels (§11/§61), button action labels
+  (§9/§23), navigation labels (§4/§54/§64 — collapse to icon-only
   instead, see below), important categories/specifications.
 - **May truncate with an ellipsis + `title` fallback**, as the
   established exception, once the above order is exhausted: genuinely
@@ -291,7 +291,7 @@ never for the categories below:
 - Navigation labels are not metadata and are not casually truncated. If
   the sidebar becomes too narrow for a label, switch intentionally to
   the existing icon-only collapsed state (`.sidebar.collapsed`, §54/
-  §61.9) rather than leaving a half-readable intermediate label.
+  §64.9) rather than leaving a half-readable intermediate label.
 
 A table row, card or field may become slightly taller to keep content
 readable — perfectly identical row height is less important than
@@ -349,16 +349,16 @@ implemented in the Dispatch/order workspace (§19 test case).
 
 ## 11. Status system
 
-Superseded by the full **Status System** in §41 — five distinct
+Superseded by the full **Status System** in §61 — five distinct
 component families (StatusBadge / LifecyclePill / RoleTag /
 ReadinessBadge / CategoryTag), not one generic tiny pill. `.smp-badge`
 + `.smp-<status>` is still the canonical StatusBadge for sample/
 collection workflow status, backed by the `--success`/`--warning`/
 `--danger`/`--info` tokens, and every workflow status still renders
 through `smpBadge(status)` — but it now returns an icon + label at the
-larger §41 anatomy, not a bare colored span. Don't build a bespoke
+larger §61 anatomy, not a bare colored span. Don't build a bespoke
 colored `<span>` for a new status; add it to `SMP_STATUS_LABEL` +
-`SMP_STATUS_ICON` + `.smp-<status>` instead. Read §41 before touching
+`SMP_STATUS_ICON` + `.smp-<status>` instead. Read §61 before touching
 any status/role/readiness/category component.
 
 ## 12. ContextPane content template
@@ -813,7 +813,7 @@ Three typefaces, each with one job — do not substitute one for another:
 `.page-header-title`, `.object-title`, `.content-hdr-l h2` and other
 Level-1 identity headings render in Replica; every control, table and
 form element renders in Aeonik; `.rec-id` and other code-like values
-(§42.2) render in Aeonik Mono. This is a font-family assignment layered
+(§62.2) render in Aeonik Mono. This is a font-family assignment layered
 on top of the size scale below, not a replacement for it.
 
 The single biggest reason the app read as "everything is gray" was
@@ -987,7 +987,7 @@ anti-pattern (§1.1):
 
 | Token | Value | Tier | Applies to |
 |---|---|---|---|
-| `--control-h-sm` | 32px | **Compact semantic** | `.status-badge`/`.smp-badge`, `.lc-pill`, `.role-tag`, `.category-tag`, `.priority-tag` and other semantic components (§41) — a semantic component's height never shrinks because its label is short or the screen is dense |
+| `--control-h-sm` | 32px | **Compact semantic** | `.status-badge`/`.smp-badge`, `.lc-pill`, `.role-tag`, `.category-tag`, `.priority-tag` and other semantic components (§61) — a semantic component's height never shrinks because its label is short or the screen is dense |
 | `--control-h` | 36px | **Standard operational** | The default control height: `.btn`, `.icon-btn`, `.pd-select`, `.pd-status-select`, `.status-static`, `.completeness-control`, `.control-input`, `.comment-form input`, search, filters, selects, dropdown triggers, view controls, `.page-toolbar` controls, pagination controls |
 | `--control-h-lg` | 40px | **Prominent** | Used selectively: an important primary action, a major create action, a prominent standalone input, or a control in a deliberately spacious context. Not used merely to make a button look more important — hierarchy also comes from placement, color, typography and whitespace |
 | `--control-padding-x` | 14px | | horizontal padding inside a control |
@@ -1000,15 +1000,15 @@ mix two heights inside one toolbar or action group. Icons inside
 controls are 16px — not 14, 17, 20 and 22 depending on where they came
 from.
 
-**Supersedes §42.1 and §43.2's "32 = information, 40 = interaction"
+**Supersedes §62.1 and §63.2's "32 = information, 40 = interaction"
 two-tier framing below** — that framing collapsed the standard and
 prominent tiers into one, which is what let a Catalog toolbar button
 and a card's primary action both claim 40px even though a toolbar
-button is a standard control, not a prominent one. §42.1's `--status-h`
+button is a standard control, not a prominent one. §62.1's `--status-h`
 (32px) is an alias of `--control-h-sm` for the compact semantic tier;
 `.btn`/`.icon-btn` default to the 36px standard tier everywhere
-(toolbars, cards, forms) and only step up to 40px where §42.1 and
-§43.2 describe a genuinely prominent context (e.g. a card's one primary
+(toolbars, cards, forms) and only step up to 40px where §62.1 and
+§63.2 describe a genuinely prominent context (e.g. a card's one primary
 action, called out explicitly as such) — not as the default for every
 button that happens to sit in an action row.
 
@@ -1093,7 +1093,7 @@ leading icon or a row in the `•••` menu — never a bare square.
 
 **Official icon system: Flaticon — Super Basic Rounded — Lineal**, as a
 CSS webfont. This is the single canonical icon language for SIERRA —
-see §41.4/§41.10 for the full rule, the current implementation state
+see §61.4/§61.10 for the full rule, the current implementation state
 (the codebase's existing icon set is Tabler, not yet migrated), and the
 migration path. Do not mix icon families (Tabler, Lucide, Font Awesome,
 Material, Phosphor, Remix, emoji, arbitrary SVG libraries) once
@@ -1353,7 +1353,7 @@ it never repaints the surrounding buttons/tabs/nav purple.
 
 Color should never be added merely to make a screen look more colorful,
 and no fixed percentage of neutral color is imposed on the UI (§43,
-§61.10) — color is used deliberately, for a job, and reads as
+§64.10) — color is used deliberately, for a job, and reads as
 meaningful precisely because it isn't everywhere.
 
 ## 42.6 Hover and selection are neutral by default
@@ -1370,13 +1370,14 @@ document and is corrected here, deliberately:
 - **Selection is obvious but calm.** A selected row/item gets a neutral
   selected surface, a visible checkbox where selection is multi-select,
   and — only where selection becomes actionable — the BulkActionBar
-  (§ "Product Card grammar"/employee rows). Selection never fills with
-  a large teal background merely because an item is selected.
+  (§62 "Product Card component grammar"/employee rows). Selection never
+  fills with a large teal background merely because an item is
+  selected.
 - **Navigation selection** stays mostly neutral too: a selected leaf
   gets a subtle neutral background and stronger text, plus one small,
-  restrained contextual indicator (the existing 3px accent bar, §61.8)
+  restrained contextual indicator (the existing 3px accent bar, §64.8)
   — not a filled teal pill, and not a teal-tinted icon on hover (only
-  on the truly active leaf, never on hover — see §54/§61.8).
+  on the truly active leaf, never on hover — see §54/§64.8).
 - **Utility icons remain predominantly neutral** (search, filter, sort,
   group, more, edit, download, upload, close, columns). Module-aware or
   accent color may appear where identity or "you are here" genuinely
@@ -1525,7 +1526,7 @@ instead of `--success`/`--danger`/`--warning`), a nav active state that
 tinted icons with a per-tool secondary color instead of neutral/accent
 (`.nav-item.active .n-icon` — fixed to `var(--accent)` on `.active`
 only; a prior pass over-corrected by also applying it on
-`.nav-item:hover`, which §42.6/§61.8 now correct back to a neutral
+`.nav-item:hover`, which §42.6/§64.8 now correct back to a neutral
 hover — hover reveals interactivity, it does not preview the active
 accent color), an
 `.import-upload-zone:hover`/`.site-switcher-item.active` pair painted
@@ -1591,7 +1592,7 @@ been tried. A column that must genuinely wrap (long-form notes,
 addresses) opts back in with `.td-wrap`. Default nowrap, explicit
 opt-in to either truncate (secondary metadata only) or wrap — never the
 reverse, and never truncation of primary identity or status/lifecycle
-labels (§41.3).
+labels (§61.3).
 
 ## 51. Filter chips and applied-filter pills are neutral, not teal
 
@@ -1626,7 +1627,7 @@ transitions that make the interface feel sluggish rather than alive.
 
 # Sidebar Navigation Tree (§52–§54)
 
-> **DEPRECATED — superseded by §61 "Sidebar Rearchitecture."** §52-56
+> **DEPRECATED — superseded by §64 "Sidebar Rearchitecture."** §52-56
 > describe the single flat `_navExpanded` tree that rendered every
 > accessible module simultaneously. That model is no longer in
 > `index.html`; do not reintroduce `_navExpanded`/`navToggleExpand()`/
@@ -1948,7 +1949,7 @@ work, not silently assumed done.
 
 ---
 
-# Status System (§41)
+# Status System (§61)
 
 This pass replaced the single tiny `.badge`/`.smp-badge` pill that every
 status, lifecycle, role, readiness and category value rendered through.
@@ -1960,7 +1961,7 @@ component anatomy: bigger, icon-supported, less pill-heavy, and split
 into distinct families so different kinds of information stop looking
 identical.
 
-## 41.1 Why one generic badge was wrong
+## 61.1 Why one generic badge was wrong
 
 `Pending`, `Approved`, `Shipped`, `Active` and `Viewer` used to render
 through the same 20–24px, fully-rounded, color-only pill. A workflow
@@ -1969,7 +1970,7 @@ data-completeness warning are different *kinds* of information — they
 must look different so a user can tell which one they're reading
 without parsing the text.
 
-## 41.2 The five component families
+## 61.2 The five component families
 
 | # | Family | Component | Answers | Visual language |
 |---|---|---|---|---|
@@ -1986,7 +1987,7 @@ colored `<span>`. Add a new value to the relevant label/icon map
 (`SMP_STATUS_ICON`, `EMP_STATUS_ICON`, `BADGE_STATUS_ICON`,
 `READINESS_ICON`, `LIFECYCLE`) instead.
 
-## 41.3 Shared anatomy tokens
+## 61.3 Shared anatomy tokens
 
 ```css
 --status-h: 32px;          /* StatusBadge / LifecyclePill / ReadinessBadge / CategoryTag height */
@@ -2012,7 +2013,7 @@ revisión` all render at the same height with whatever width their full
 label needs. A table's status column is sized to the longest expected
 canonical status value, never the other way around.
 
-## 41.4 Icon rules for status components
+## 61.4 Icon rules for status components
 
 - Anatomy is always `[icon] Label` — icon leading, never trailing,
   except ReadinessBadge's chevron (it's an interactive control, so the
@@ -2027,7 +2028,7 @@ canonical status value, never the other way around.
   `stroke="currentColor"`, 24×24 viewBox. Add new icons there, never
   inline a bespoke `<svg>` for a status.
 - **Icon source (current authoritative direction): Flaticon — Super
-  Basic Rounded — Lineal**, loaded as a CSS webfont — see §41.10 for
+  Basic Rounded — Lineal**, loaded as a CSS webfont — see §61.10 for
   the full migration status. This supersedes the Tabler outline set
   this section originally specified.
   - **Historical/as-implemented state, kept for context**: `SI_ICON`
@@ -2035,7 +2036,7 @@ canonical status value, never the other way around.
     license) — paths copied verbatim from `icons/outline/<name>.svg` in
     `@tabler/icons`, chosen at the time for its 2px-stroke, round-cap,
     24×24 language. That codebase state has not yet been migrated to
-    Flaticon; §41.10 tracks the remaining work. Do not add further
+    Flaticon; §61.10 tracks the remaining work. Do not add further
     Tabler icons going forward — new icons are sourced from Flaticon
     Super Basic Rounded Lineal, not `@tabler/icons`.
 
@@ -2070,7 +2071,7 @@ Current icon mapping:
 | | editor/contributor | pencil |
 | | viewer (default) | eye |
 
-## 41.5 Color architecture (unchanged, kept)
+## 61.5 Color architecture (unchanged, kept)
 
 Three-part relationship per status, already correct in this codebase —
 this pass did not touch it:
@@ -2085,13 +2086,13 @@ this pass did not touch it:
   `index.html`) — status components need zero dark-mode-specific CSS of
   their own because they're built entirely from tokens.
 
-## 41.6 Typography
+## 61.6 Typography
 
 13px (`--status-font-size`), weight 600, sentence case ("Approved", not
 "APPROVED"). Uppercase is reserved for field labels/section headings
 (§19/§26) — status/role/readiness text is never uppercased.
 
-## 41.7 RoleTag is not a status
+## 61.7 RoleTag is not a status
 
 Roles (Viewer/Contributor/Technical Editor/Admin/…) never use lifecycle
 semantic colors. `.role-tag` is neutral: `--surface2` background,
@@ -2100,7 +2101,7 @@ profile role indicator (`#prof-role-badge`, via `roleTagHtml()`) and the
 collaborator invite list (`wsInvitePersonRow()` — replaces the old
 `.ws-invite-owner-tag` pill with the shared component).
 
-## 41.8 ReadinessBadge is interactive
+## 61.8 ReadinessBadge is interactive
 
 `readinessPillHtml()` (Badge module) renders `.readiness-badge` as a
 real `<button>` — it opens the missing-fields popover — with a trailing
@@ -2109,7 +2110,7 @@ chevron so it doesn't read as a static label. `Missing 2 fields` /
 `badge-ready-blocked`, sharing color tokens with the other status
 families but the interactive anatomy of §15 StatusSelect.
 
-## 41.9 Migration notes
+## 61.9 Migration notes
 
 - `smpBadge(status)`, `badgeStatusBadgeHtml(status)` (badge/gafete
   lifecycle), `empStatusBadgeHtml(status)` (employee status) and
@@ -2130,12 +2131,12 @@ families but the interactive anatomy of §15 StatusSelect.
   saved-view chips — flagged as future work per §31, not silently
   assumed done, since the fix pattern (swap the CSS class, verify no
   layout regression) is now established here for whoever picks it up
-  next. §42.2 resized `.card-div-pill` onto the shared 32px/7px status
+  next. §62.2 resized `.card-div-pill` onto the shared 32px/7px status
   shell (so it no longer visually drifts from its sibling `.rec-id`
   RecordID pill in the same row) without renaming the class — the
   class-swap-to-`.category-tag` migration itself is still open.
 
-## 41.10 App-wide icon migration, scope and remainder
+## 61.10 App-wide icon migration, scope and remainder
 
 **Target state: Flaticon — Super Basic Rounded — Lineal**, as a CSS
 webfont, is the canonical SIERRA icon system (§28/§30). The migration
@@ -2204,23 +2205,23 @@ are sourced from Flaticon Super Basic Rounded Lineal, loaded as a CSS
 webfont per §28/§30; existing Tabler-sourced entries remain until
 migrated as part of the Tabler→Flaticon effort this section flags.
 
-## 42. Product Card component grammar: RecordID, and the 32/40 rule
+## 62. Product Card component grammar: RecordID, and the 32/40 rule
 
-§41 fixed *color* — five distinct status families instead of one generic
+§61 fixed *color* — five distinct status families instead of one generic
 badge. It didn't touch *size, radius, border weight or type* — a Catalog
 card still mixed a 20px division chip, a barely-rendered lifecycle pill,
 a thin 24px outline button and a 30px, differently-radiused overflow
 button in one row. This pass fixes that: one card row, one shared
 interaction baseline.
 
-### 42.1 The rule: compact semantic vs. standard/prominent interaction
+### 62.1 The rule: compact semantic vs. standard/prominent interaction
 
 **Superseded by §24's three-tier system — read that first.** A card's
 components split into the same tiers as everywhere else in the app:
 
 | Tier | Value | Meaning | Components |
 |---|---|---|---|
-| Compact semantic (`--control-h-sm`) | 32px | Information — read, not clicked | `.status-badge`, `.lc-pill`, `.role-tag` (30px, one notch down — see §41.3), `.category-tag`/`.card-div-pill`, `.rec-id` (RecordID) |
+| Compact semantic (`--control-h-sm`) | 32px | Information — read, not clicked | `.status-badge`, `.lc-pill`, `.role-tag` (30px, one notch down — see §61.3), `.category-tag`/`.card-div-pill`, `.rec-id` (RecordID) |
 | Standard (`--control-h`) | 36px | Default interaction | `.btn`, `.icon-btn`, form inputs/selects, table-row actions (`catRowActionsHtml`: `.btn.btn-primary.btn-sm` + `overflowMenuHtml()`) |
 | Prominent (`--control-h-lg`) | 40px | A deliberately prominent action | The Catalog card's one primary action (`Request sample`) and its paired `•••` overflow — called out explicitly as the card's single prominent action group, not the default for every button (§24) |
 
@@ -2235,7 +2236,7 @@ actions are a different, standard-tier group at 36px, deliberately
 smaller than the card's prominent action a few pixels away in the same
 screen's Cards view.
 
-### 42.2 RecordID — a dedicated component, not a repurposed chip
+### 62.2 RecordID — a dedicated component, not a repurposed chip
 
 `YRN-000045` used to render through `.card-div-pill` — the same class
 used for the "all products" view's *division* chip — so a record code
@@ -2265,7 +2266,7 @@ was resized to the same 32px/7px shell (still its own identity-tinted
 background per division) so the two pills in a card's meta row read as
 one system even when they're not literally the same component.
 
-### 42.3 Card action row — one interaction baseline
+### 62.3 Card action row — one interaction baseline
 
 `Request sample` was `.cat-req-btn`: a bespoke, ~24px, 7px-radius,
 outline-only button — visually *weaker* than the 32px status pill above
@@ -2295,7 +2296,7 @@ a 36px `.btn-sm` already sat next to the old 30px overflow trigger).
 `.card-actions`/`.cat-row-actions` gap now reads `--control-gap` instead
 of a hand-picked `0.5rem`/`0.3rem`.
 
-### 42.4 Lifecycle pill — the "outlined" look was a CSS bug, not a style
+### 62.4 Lifecycle pill — the "outlined" look was a CSS bug, not a style
 
 `Available` visibly read as a thin, unfilled outline. Root cause:
 `LIFECYCLE.available.color` is `'var(--success)'` (a custom-property
@@ -2318,14 +2319,14 @@ color:      color-mix(in srgb, var(--success) 80%, var(--text-primary))
 ```
 
 This is a global fix (`lcPillFor()` is the only renderer for `.lc-pill`,
-per §41.9's migration-notes pattern) — every lifecycle pill everywhere
+per §61.9's migration-notes pattern) — every lifecycle pill everywhere
 in the app now renders a real soft fill instead of the broken outline,
 not just the ones on Catalog cards. Cards render lifecycle at the full
 32px `--status-h` (`lcPill(p)`); the ERP table's `availability` column
 keeps the compact `lcPill(p, true)` (30px `--role-h`) as the sanctioned
-compact-surface exception from §42.1.
+compact-surface exception from §62.1.
 
-### 42.5 Scope and what's deliberately not touched
+### 62.5 Scope and what's deliberately not touched
 
 Covered by construction (all five divisions — Fiber/Yarn/Fabric/
 Chemicals/Apparel — share `catCardHtml()`, and Collections' sample cards
@@ -2334,7 +2335,7 @@ renderer, so "only the data changes" per division/screen holds without
 per-screen edits, matching §16/§18's ownership rule.
 
 Not in scope for this pass, flagged rather than silently assumed done
-(same pattern as §41.9/§41.10's "not yet migrated" notes):
+(same pattern as §61.9/§61.10's "not yet migrated" notes):
 
 - **ERP table row density** (the main Catalog/Sample Center table view)
   was left at its existing compact rhythm — only its two action controls
@@ -2351,12 +2352,12 @@ Not in scope for this pass, flagged rather than silently assumed done
   alongside the existing one would itself be a consistency regression.
 - **Employee/Talento Humano cards** and other non-Catalog card surfaces
   weren't audited beyond confirming `.card-more-btn`'s base-rule fix
-  (§42.3) also benefits their row actions — no dedicated employee card
+  (§62.3) also benefits their row actions — no dedicated employee card
   grid exists yet to migrate.
 
-## 43. Catalog page architecture: PageHeader levels, CategoryTabs, ProductCard hierarchy
+## 63. Catalog page architecture: PageHeader levels, CategoryTabs, ProductCard hierarchy
 
-§42 fixed one card's *component grammar* (RecordID/Lifecycle/buttons all
+§62 fixed one card's *component grammar* (RecordID/Lifecycle/buttons all
 sharing one height/radius/border scale). This pass fixes the page *around*
 the card: the header had five or six controls all rendering as similar-
 weight buttons, the view switcher and the category filters were literally
@@ -2364,7 +2365,7 @@ the same CSS class wearing different text, and the card itself put the
 product **code** ahead of the product **name** — backwards for a catalog
 whose job is product comprehension, not code lookup.
 
-### 43.1 PageHeader: three levels, each visually quieter than the last
+### 63.1 PageHeader: three levels, each visually quieter than the last
 
 Every Catalog-style screen (`#view-products`, reused by every division)
 already had the right *skeleton* — `.content-hdr` → view switch → saved-
@@ -2398,7 +2399,7 @@ what it was actually built for (Collection workspace Board/Cards/Table/
 Stats, a small *fixed* tab set in a bounded box) — only Catalog's two
 call sites moved off it.
 
-### 43.2 Toolbar: icon + label, one interaction height
+### 63.2 Toolbar: icon + label, one interaction height
 
 `renderCatalogToolbar()` (Filter/Sort/Group/Columns/•••) moved from
 `.btn-secondary.btn-sm` (32px, `--control-h-sm`, text-only — "Sort: Name
@@ -2416,7 +2417,7 @@ neighboring buttons (§24). The overflow trigger is the canonical
 `.icon-btn` at the standard tier (36×36), not the old bespoke
 `.ws-icon-btn`.
 
-### 43.3 ProductCard: name first, code and status are metadata
+### 63.3 ProductCard: name first, code and status are metadata
 
 The card's `.card-meta` row (RecordID + LifecyclePill) used to render
 *above* the product name — so `S-237` was the first, boldest thing on the
@@ -2425,22 +2426,22 @@ card and `Bubble Jersey` came second. Reversed:
 ```
 [ media — 152px photo / 96px empty state ]
 Bubble Jersey                              ← .card-name, 16.8px/650, 1 line
-[🔲 S-237]              [● Available]      ← .card-meta: RecordID + LifecyclePill, unchanged from §42
+[🔲 S-237]              [● Available]      ← .card-meta: RecordID + LifecyclePill, unchanged from §62
 68% Modal
-29% Polyester                              ← .card-comp — see §43.4
+29% Polyester                              ← .card-comp — see §63.4
 3% Spx
 358 GSM · Jersey                           ← .card-tech
-[📦 Request sample]              [•••]     ← .card-actions, unchanged from §42
+[📦 Request sample]              [•••]     ← .card-actions, unchanged from §62
 ```
 
 `.card-name` is now single-line (`white-space:nowrap` + ellipsis) at
 1.05rem/650 — the strongest text in the card body — with a `.wrap-2`
 escape hatch (`catCardHtml()` applies it past ~26 characters) for names
 that genuinely need a second line rather than silently truncating a name
-mid-word. RecordID/LifecyclePill keep every anatomy rule from §42 —
+mid-word. RecordID/LifecyclePill keep every anatomy rule from §62 —
 this pass only moved *where* that row sits, not what it looks like.
 
-### 43.4 Composition is read, not truncated
+### 63.4 Composition is read, not truncated
 
 `catCompositionHtml()`/`catCompositionParts()` (next to `catCode()` in
 `index.html`) replace the old `.card-desc` 2-line clamp, which silently
@@ -2458,7 +2459,7 @@ than on a fixed delimiter:
 its own muted line underneath — previously bolted onto the same string
 as composition with no visual separation.
 
-### 43.5 Grid density: comprehension over card count
+### 63.5 Grid density: comprehension over card count
 
 `.pg-grid`'s floor moved from `minmax(240px,1fr)` to `minmax(280px,1fr)`,
 and the separate `.cat-cards-dense` variant (`minmax(200px,1fr)`, 84px
@@ -2472,7 +2473,7 @@ on a large desktop, ~3 on a laptop, and the `max-width:767px` tablet
 breakpoint (floor lowered to 220px there) still yields ~2-3 depending on
 viewport, down to the existing 400px breakpoint's forced single column.
 
-### 43.6 Card selection: the table's checkbox, not a bespoke circle
+### 63.6 Card selection: the table's checkbox, not a bespoke circle
 
 `.card-check` was a decorative circular `<div>` toggled by textContent
 (`✓`/``). It's now a real `<input type="checkbox">` — the exact same
@@ -2481,7 +2482,7 @@ table — positioned over the media region's top-left corner instead of a
 floating circle top-right (§20). `toggleProductSelect()` now sets
 `.checked` on it directly instead of `.textContent`.
 
-### 43.7 Media region: don't let an empty state dominate
+### 63.7 Media region: don't let an empty state dominate
 
 `.card-img` (real photo) stays tall — 152px, since a real photo is worth
 the space. `.card-img-placeholder` (no image) dropped from a forced-equal
@@ -2489,7 +2490,7 @@ the space. `.card-img-placeholder` (no image) dropped from a forced-equal
 vs 22px/0.55) — legible without the gray box reading as more important
 than the product name directly beneath it (§16).
 
-### 43.8 Scope and what's deliberately not touched
+### 63.8 Scope and what's deliberately not touched
 
 This pass changed the **shared** `catCardHtml()`/`wsCardsViewHtml()`
 renderers, `.pg-grid`, `.view-tabs`/`.cat-tabs`, and `renderCatalogToolbar()`
@@ -2518,16 +2519,16 @@ done:
 - **Favorites empty state** already matches the request ("Sin favoritos
   aún" / "No favorites yet") — no change needed.
 - **ERP Table view** (`catTableHtml()`) row density is unchanged, same
-  rationale as §42.5 — only its Search/Filter/Sort/Group/Columns toolbar
+  rationale as §62.5 — only its Search/Filter/Sort/Group/Columns toolbar
   (shared with Cards) picked up the 40px sizing.
 
 ---
 
-# Sidebar Rearchitecture: Module Switcher + Active-Module Tree (§61)
+# Sidebar Rearchitecture: Module Switcher + Active-Module Tree (§64)
 
-## 61. Deliberate reversal of the §52/§43.8 "no dropdown switcher" decision
+## 64. Deliberate reversal of the §52/§63.8 "no dropdown switcher" decision
 
-§43.8 (above) documents an earlier, deliberate rejection of a Monday-style
+§63.8 (above) documents an earlier, deliberate rejection of a Monday-style
 dropdown module switcher in favor of the persistent always-visible tree
 built in §52-56. That rejection is **superseded here**, on purpose, not by
 accident: this pass was commissioned specifically to revisit it as an
@@ -2543,7 +2544,7 @@ per division. §52-56 are kept below for history but are **deprecated**:
 Do not resurrect them; everything below is the current, load-bearing
 behavior of `renderSidebarTree()`.
 
-## 61.1 Four zones
+## 64.1 Four zones
 
 ```
 GLOBAL              Dashboard
@@ -2563,7 +2564,7 @@ with the active module's own navigation depth (§30 future-scalability —
 adding a 20th module adds one row to the switcher's list, zero rows to
 the permanent sidebar).
 
-## 61.2 Module Switcher (`.mod-switcher`)
+## 64.2 Module Switcher (`.mod-switcher`)
 
 `renderModSwitcherTrigger(key)` renders `[IconTile] {module.label} ▾` as
 a `.nav-item` (so it inherits row height, hover, tooltip and the
@@ -2589,16 +2590,16 @@ existing `enterModule(key)` — no new routing path. The outside-click
 listener next to `renderAcctMenu()`'s in `index.html` also closes
 `#mod-switcher`.
 
-## 61.3 Active-module tree: divisions (accordion) then tools
+## 64.3 Active-module tree: divisions (accordion) then tools
 
 `renderSidebarTree()` resolves `navDisplayModuleKey()` — `activeModule` if
-set, else `_navLastModule` (persisted, §61.6), else the user's first
+set, else `_navLastModule` (persisted, §64.6), else the user's first
 accessible module — and renders **only** that module:
 
 - **Muestras** — `authorizedDivisions()` render as `.nav-tree-div` rows
   via `navDivisionRowHtml(d, expanded, isCurrent)`, under a "Divisiones"
   `.s-label`. Exactly one division is expanded at a time
-  (`_navExpandedDivision.samples`, §61.4) — expanding SIERRA Yarn
+  (`_navExpandedDivision.samples`, §64.4) — expanding SIERRA Yarn
   collapses SIERRA Fabric automatically; there is no multi-expand state
   to track. Below the divisions, `samplesSharedTools()` (Solicitudes/
   Colecciones/Insights) render once under a "Herramientas" `.s-label` —
@@ -2617,7 +2618,7 @@ module would generalize that branch into a `moduleDivisions(key)` lookup
 rather than duplicating the render loop) — never by hand-writing a new
 block of sidebar markup.
 
-## 61.4 Accordion + auto-expand-on-navigate (one mechanism, not two)
+## 64.4 Accordion + auto-expand-on-navigate (one mechanism, not two)
 
 `_navExpandedDivision` is a plain object keyed by module id
 (`{samples: 'fabric'}`), persisted to
@@ -2639,7 +2640,7 @@ per module" (§17 of the request). Two ways it changes:
    division without navigating away from the current screen works
    correctly because of this guard; don't remove it.
 
-## 61.5 Division row anatomy + IconTile (one identity signal)
+## 64.5 Division row anatomy + IconTile (one identity signal)
 
 ```
 [chevron]  [IconTile]  SIERRA Fabric
@@ -2664,7 +2665,7 @@ their existing neutral outline icons. Division identity belongs to the
 division row's IconTile only; a child icon communicates *function*
 (catalog/dispatch/inventory), not *whose* division it's in.
 
-## 61.6 Persistence
+## 64.6 Persistence
 
 | State | Key | Scope |
 |---|---|---|
@@ -2680,7 +2681,7 @@ only an explicit module switch or division toggle changes the persisted
 state, matching "don't reset navigation state every time the user changes
 route" (§17 of the request).
 
-## 61.7 Indentation, row height, typography (fixed scale, not ad hoc)
+## 64.7 Indentation, row height, typography (fixed scale, not ad hoc)
 
 ```
 Level 0   Dashboard, Module Switcher trigger      padding-left: 0.55rem (base .nav-item)
@@ -2700,7 +2701,7 @@ anything but a group label, and never so frequent they eat vertical
 rhythm (Favoritos / Divisiones / Herramientas — three per full render,
 at most).
 
-## 61.8 Active state: left indicator, not a bordered box
+## 64.8 Active state: left indicator, not a bordered box
 
 `.nav-item.active` replaced its old `border-color:var(--border)` bordered
 rectangle with `background:var(--surface2)` + a 3px `var(--accent)` bar
@@ -2712,10 +2713,10 @@ hover preview of it. This is the one combination in use — never
 background + border + colored text + colored icon simultaneously.
 Division/module rows are never `.active` — only a leaf can be "here"
 (unchanged from §54);
-`.nav-current-div` is a separate, purely structural marker (§61.9) that
+`.nav-current-div` is a separate, purely structural marker (§64.9) that
 carries no visual treatment of its own in the expanded sidebar.
 
-## 61.9 Collapsed sidebar
+## 64.9 Collapsed sidebar
 
 `.sidebar.collapsed` shows, top to bottom: Dashboard icon, the Module
 Switcher trigger as a 40×40 IconTile square (still opens the same
@@ -2732,7 +2733,7 @@ chevrons collapsed (`.sidebar.collapsed .nav-tree-chevron{display:none}`,
 unchanged from §54). Every row keeps its `data-tip` tooltip
 (theme-native pill, unchanged mechanism).
 
-## 61.10 Navigation color budget
+## 64.10 Navigation color budget
 
 Color in the sidebar is deliberate, not proportional to a target ratio
 (§42/§43 — no fixed neutral percentage is imposed on the UI). The only
@@ -2747,7 +2748,7 @@ for structurally, not just as a one-off polish pass — a new division
 added to `DIV_ACCENT` automatically stays inside this discipline
 because color only ever enters through `--tile-bg`/`--tile-fg`.
 
-## 61.11 Density pass (post-launch refinement)
+## 64.11 Density pass (post-launch refinement)
 
 A follow-up pass tightened the tree further once it was live, without
 touching the architecture above:
@@ -2755,7 +2756,7 @@ touching the architecture above:
 - **IconTile** shrank 28×28/16px-icon → **24×24/14px-icon**
   (`.nav-icon-tile`) — still a real tile (background + icon), just less
   visually heavy at rest, per feedback that "IconTiles are useful but
-  should remain secondary." §61.5/§61.10's rules (identity color lives
+  should remain secondary." §64.5/§64.10's rules (identity color lives
   only in the tile, never text/border) are otherwise unchanged.
 - **Section labels** (`.s-label` — Favoritos/Divisiones/Herramientas)
   dropped from `0.55rem/0.3rem` top/bottom padding to `0.4rem/0.2rem`,
@@ -2769,10 +2770,10 @@ touching the architecture above:
   gap — confirmed by measuring `getBoundingClientRect()` deltas between
   rows in a headless run before changing anything, so this pass tightens
   the things that actually had slack (tile size, label padding) instead
-  of shrinking the **protected** 40px row height (§10/§61.7 — still
+  of shrinking the **protected** 40px row height (§10/§64.7 — still
   40px for every division/global row, unchanged).
 
-## 61.12 Orphaned-void pass
+## 64.12 Orphaned-void pass
 
 A visual audit (headless render across module states — a 1-tool module
 like Talento Humano, a fully populated one like Muestras, collapsed rail,
@@ -2841,9 +2842,9 @@ silent, not loud.
 
 ---
 
-# Inventory Workspace Recomposition (§62)
+# Inventory Workspace Recomposition (§65)
 
-## 62. Problem: assembled components, not one workflow
+## 65. Problem: assembled components, not one workflow
 
 The Warehouse Inventory screen (`showWarehouseInventory()`, Almacén →
 Inventario) read as unrelated pieces stacked on a page — a movement form
@@ -2856,7 +2857,7 @@ screen — plus a large gap before a `.ins-cols` breakdown section that
 duplicated what a real, interactive table should show. Root-caused and
 rebuilt as one continuous workspace, not a per-widget patch.
 
-## 62.1 A real, pre-existing bug this pass also fixed: Catalog chrome bleeding onto every other screen
+## 65.1 A real, pre-existing bug this pass also fixed: Catalog chrome bleeding onto every other screen
 
 Before touching Inventory's own markup, `renderInventoryOverview()`'s
 screenshots showed **two** "Table / Cards" rows stacked on top of each
@@ -2883,7 +2884,7 @@ the shared root, not with a per-screen override:
 Every non-Catalog screen benefits from this fix, not just Inventory;
 Inventory is simply the screen that made it visible enough to diagnose.
 
-## 62.2 Page composition — five zones, one flow
+## 65.2 Page composition — five zones, one flow
 
 ```
 PageHeader          Inventario · {División} / Existencias, rotación y movimientos…
@@ -2899,7 +2900,7 @@ the movement bar anymore, no floating right-aligned orphan controls) —
 directly answers the request's §27 ("align major content zones to the
 same grid") and §21 ("data table must follow the KPIs, no dead zone").
 
-## 62.3 New scoped components (§33 of the request)
+## 65.3 New scoped components (§33 of the request)
 
 All new markup/state is prefixed `.inv-`/`_invTbl`/`INV_TBL_*`,
 deliberately **not** reusing Catalog's `#cat-toolbar`/`catalogGroupBy`/
@@ -2924,7 +2925,7 @@ inventory's own state.
 every time `showWarehouseInventory()` runs, same convention as Catalog's
 own per-screen toolbar state.
 
-## 62.4 Language
+## 65.4 Language
 
 The screen is Spanish end to end now (§5 of the request) — KPI titles
 ("Inventario bajo", "Agotado", "Rotación de inventario", "Solicitado sin
@@ -2942,7 +2943,7 @@ label and the group popover's own row) — fixed to "No grouping" in place
 (Catalog stays English per its own established convention; only the
 ambiguous bare word changed).
 
-## 62.5 Removed: the `.ins-cols` breakdown section
+## 65.5 Removed: the `.ins-cols` breakdown section
 
 The old screen's `.ins-cols` block ("Inventory by location", "Inventory
 by division", "Inventory by format", "Fast moving", "Slow moving") is
@@ -2958,7 +2959,7 @@ which this screen's own KPI row already points at via "Rotación de
 inventario." Not removed from Insights itself, only from this one
 screen's composition.
 
-## 62.6 What was intentionally left alone
+## 65.6 What was intentionally left alone
 
 - **Responsive toolbar overflow** (§32 — Sort/Group/Columns collapsing
   into a "More" button on narrow desktop widths) is not implemented.
