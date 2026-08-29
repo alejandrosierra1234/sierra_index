@@ -1498,10 +1498,17 @@ backgrounds. The module switcher's currently-selected row gets one
 additional, deliberately subtle treatment: a ~12% wash of the module's own
 tint plus a 3px identity-colored edge indicator (`.mod-switch-row.current`)
 — the one place besides the tile itself where a module hue is allowed to
-touch a background, and only at that low a strength. Everything else about
-"selected" (hover, focus, generic sidebar `.nav-item.active`) stays on the
-fixed brand-teal indicator per §42 — module color identifies *which*
-módulo, it does not replace the app's one interaction color.
+touch a background, and only at that low a strength.
+
+**Current rule**: module color never substitutes for the app's brand
+accent, and it does not license teal (or any color) on hover. The
+`.mod-switch-row.current` treatment above is the one sanctioned "you are
+here" indicator for the module switcher's active row — it does not
+extend to hover or focus on that same row, which stay neutral per
+§42.6. The generic sidebar `.nav-item.active` leaf indicator is a
+separate, single accent-teal signal (§54/§64.8) reserved for the truly
+active leaf, never for hover — module color identifies *which* módulo;
+it is not, and does not replace, a second "interaction color."
 
 The module picker's "Recientes" section is gated on module count
 (`RECENT_MIN_MODULES = 6` in `renderModSwitcherPop()`): below that, every
@@ -1511,13 +1518,24 @@ duplicate rows. Re-check this threshold if the módulo count grows.
 ## 47. Avatars
 
 `AVATAR_PALETTE` in `index.html` is 21 hex values — the seven secondary
-families × three levels, brand teal deliberately excluded (teal is
-reserved for interaction, never identity). `avatarColor(seed)` hashes a
+families × three levels, brand teal deliberately excluded. **Current
+rule**: teal is the app's one brand accent (the primary action and a
+small set of "you are here" indicators, §42/§42.6) — it is not an
+identity color, so it never enters an identity palette (avatars,
+divisions, modules, categories). This is independent of teal's
+exclusion from generic hover/selection (§42.6, itself a separate rule):
+avatars are excluded from the *identity* palette specifically because
+teal already has a reserved job elsewhere, not because "teal = every
+interaction state." `avatarColor(seed)` hashes a
 user's persistent id to a deterministic palette index — same person,
 same color, every render, every session. `avatarTextColor()` flips
 black/white text for contrast per swatch.
 
 ## 48. Consistency audit (this pass)
+
+**Historical note**: this section is an audit log of fixes already
+applied, not a source of current rules — read §42/§42.6/§44/§45 for the
+current color rules themselves.
 
 Replaced with tokens: the four parallel hardcoded status-color systems
 that had drifted apart (`.badge-*`, `.smp-*`, HR `.badge-active` family,
@@ -1836,6 +1854,14 @@ extracted for these pages, pull `--up`/`--down` from the same registry
 
 ## 60. Fresh module-by-module audit (§39) — findings and fixes
 
+**Historical note**: this section is an audit log of fixes already
+applied (including quoted shorthand for rules as they were understood
+at the time, e.g. "teal is reserved for interaction, never identity" —
+superseded by the fuller framing in §42/§42.6: teal is the app's one
+brand accent, not an identity color, and is independently neutral for
+generic hover/selection). It documents implementation history, not
+current design guidance.
+
 Ran a systematic pass over every top-level screen (`show*()`/list-screen
 entry point) not already covered by §17's audit history, checking each
 against header/toolbar/tabs/table/radius/color/spacing/empty-state/
@@ -1990,8 +2016,8 @@ colored `<span>`. Add a new value to the relevant label/icon map
 ## 61.3 Shared anatomy tokens
 
 ```css
---status-h: 32px;          /* StatusBadge / LifecyclePill / ReadinessBadge / CategoryTag height */
---role-h: 30px;             /* RoleTag height — one notch down, it's metadata not a workflow state */
+--status-h: 32px;          /* StatusBadge / LifecyclePill / ReadinessBadge / CategoryTag height — the canonical compact-semantic tier, §24 */
+--role-h: 30px;             /* RoleTag height — see migration-debt note below */
 --status-radius: 7px;       /* restrained rounded rectangle — NOT --r-pill */
 --status-font-size: 0.8125rem; /* 13px, medium/semibold — not tiny uppercase */
 --status-icon-size: 14px;   /* icon inside every status-family component */
@@ -2004,14 +2030,24 @@ benefit from a pill shape (chips, counters) — status/role/readiness
 components use the restrained 7px radius so they read as compact ERP
 labels, not bubbles.
 
+**Migration debt**: `--role-h` (30px) sits outside the canonical
+32/36/40px tier system (§24) — it predates that consolidation and was
+never reconciled onto the compact-semantic tier (`--control-h-sm`,
+32px). This is implementation debt, not a sanctioned fourth tier; do
+not treat 30px as an available size elsewhere, and do not invent a new
+tier to justify it. When RoleTag is next touched, reconcile it onto
+`--control-h-sm` (32px) rather than perpetuating the one-off value.
+
 **StatusBadge, LifecyclePill, RoleTag, PriorityTag/CategoryTag never
 truncate their label and always share the fixed height of their
-family** (§7b/§1.1) — `--status-h` (32px) for StatusBadge/LifecyclePill/
-CategoryTag/PriorityTag, `--role-h` (30px) for RoleTag. Width is
-content-driven: `Aprobada`, `En desarrollo`, `Bloqueada` and `En
-revisión` all render at the same height with whatever width their full
-label needs. A table's status column is sized to the longest expected
-canonical status value, never the other way around.
+family** (§7b/§1.1) — `--status-h` (32px, the canonical compact-semantic
+tier) for StatusBadge/LifecyclePill/CategoryTag/PriorityTag, and
+RoleTag's own `--role-h` (30px, migration debt per above) until
+reconciled. Width is content-driven: `Aprobada`, `En desarrollo`,
+`Bloqueada` and `En revisión` all render at the same height with
+whatever width their full label needs. A table's status column is sized
+to the longest expected canonical status value, never the other way
+around.
 
 ## 61.4 Icon rules for status components
 
@@ -2221,7 +2257,7 @@ components split into the same tiers as everywhere else in the app:
 
 | Tier | Value | Meaning | Components |
 |---|---|---|---|
-| Compact semantic (`--control-h-sm`) | 32px | Information — read, not clicked | `.status-badge`, `.lc-pill`, `.role-tag` (30px, one notch down — see §61.3), `.category-tag`/`.card-div-pill`, `.rec-id` (RecordID) |
+| Compact semantic (`--control-h-sm`) | 32px | Information — read, not clicked | `.status-badge`, `.lc-pill`, `.category-tag`/`.card-div-pill`, `.rec-id` (RecordID). `.role-tag` belongs here too but currently renders at 30px — migration debt, not a second tier, see §61.3 |
 | Standard (`--control-h`) | 36px | Default interaction | `.btn`, `.icon-btn`, form inputs/selects, table-row actions (`catRowActionsHtml`: `.btn.btn-primary.btn-sm` + `overflowMenuHtml()`) |
 | Prominent (`--control-h-lg`) | 40px | A deliberately prominent action | The Catalog card's one primary action (`Request sample`) and its paired `•••` overflow — called out explicitly as the card's single prominent action group, not the default for every button (§24) |
 
@@ -2323,8 +2359,9 @@ per §61.9's migration-notes pattern) — every lifecycle pill everywhere
 in the app now renders a real soft fill instead of the broken outline,
 not just the ones on Catalog cards. Cards render lifecycle at the full
 32px `--status-h` (`lcPill(p)`); the ERP table's `availability` column
-keeps the compact `lcPill(p, true)` (30px `--role-h`) as the sanctioned
-compact-surface exception from §62.1.
+keeps the compact `lcPill(p, true)` (30px `--role-h`) as the same
+migration-debt value flagged in §61.3, not a deliberately designed
+compact-surface tier.
 
 ### 62.5 Scope and what's deliberately not touched
 
@@ -2434,12 +2471,21 @@ Bubble Jersey                              ← .card-name, 16.8px/650, 1 line
 [📦 Request sample]              [•••]     ← .card-actions, unchanged from §62
 ```
 
-`.card-name` is now single-line (`white-space:nowrap` + ellipsis) at
+`.card-name` is single-line (`white-space:nowrap` + ellipsis) at
 1.05rem/650 — the strongest text in the card body — with a `.wrap-2`
-escape hatch (`catCardHtml()` applies it past ~26 characters) for names
-that genuinely need a second line rather than silently truncating a name
-mid-word. RecordID/LifecyclePill keep every anatomy rule from §62 —
-this pass only moved *where* that row sits, not what it looks like.
+escape hatch (`catCardHtml()` applies it past ~26 characters) that lets
+longer names wrap to a second line instead of truncating mid-word.
+RecordID/LifecyclePill keep every anatomy rule from §62 — this pass
+only moved *where* that row sits, not what it looks like.
+
+**Migration debt**: names at or under the ~26-character threshold still
+truncate with an ellipsis by default, which conflicts with the current
+rule that product/sample/collection names are never truncated (§7b).
+This predates §7b and has not been reconciled. Do not treat this as
+sanctioned current behavior — when `.card-name` is next touched, lower
+or remove the character threshold so `.wrap-2` (or additional card
+height) engages for any name that doesn't fit, rather than silently
+truncating a short-to-medium name.
 
 ### 63.4 Composition is read, not truncated
 
