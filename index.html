@@ -14,7 +14,33 @@
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1/dist/jsQR.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js" defer></script>
   <style>
-    /* ── FONTS ── */
+    /* ── FONTS ──
+       Per SIERRA_DESIGN_SYSTEM.md §19: Aeonik is the interface typeface
+       (the app-wide default), Replica is identity/display only (used
+       sparingly), Aeonik Mono is for technical identifiers. All font
+       files are already committed to the repo root; this block is the
+       first place any of them are wired up via @font-face. */
+    @font-face { font-family:"Aeonik"; src:url("Aeonik-Thin.ttf") format("truetype"); font-weight:200; font-style:normal; font-display:swap; }
+    @font-face { font-family:"Aeonik"; src:url("Aeonik-ThinItalic.ttf") format("truetype"); font-weight:200; font-style:italic; font-display:swap; }
+    @font-face { font-family:"Aeonik"; src:url("Aeonik-Air.ttf") format("truetype"); font-weight:100; font-style:normal; font-display:swap; }
+    @font-face { font-family:"Aeonik"; src:url("Aeonik-AirItalic.ttf") format("truetype"); font-weight:100; font-style:italic; font-display:swap; }
+    @font-face { font-family:"Aeonik"; src:url("Aeonik-Light.ttf") format("truetype"); font-weight:300; font-style:normal; font-display:swap; }
+    @font-face { font-family:"Aeonik"; src:url("Aeonik-LightItalic.ttf") format("truetype"); font-weight:300; font-style:italic; font-display:swap; }
+    @font-face { font-family:"Aeonik"; src:url("Aeonik-Regular.ttf") format("truetype"); font-weight:400; font-style:normal; font-display:swap; }
+    @font-face { font-family:"Aeonik"; src:url("Aeonik-RegularItalic.ttf") format("truetype"); font-weight:400; font-style:italic; font-display:swap; }
+    @font-face { font-family:"Aeonik"; src:url("Aeonik-Medium.ttf") format("truetype"); font-weight:500; font-style:normal; font-display:swap; }
+    @font-face { font-family:"Aeonik"; src:url("Aeonik-MediumItalic.ttf") format("truetype"); font-weight:500; font-style:italic; font-display:swap; }
+    @font-face { font-family:"Aeonik"; src:url("Aeonik-Bold.ttf") format("truetype"); font-weight:700; font-style:normal; font-display:swap; }
+    @font-face { font-family:"Aeonik"; src:url("Aeonik-BoldItalic.ttf") format("truetype"); font-weight:700; font-style:italic; font-display:swap; }
+    @font-face { font-family:"Aeonik"; src:url("Aeonik-Black.ttf") format("truetype"); font-weight:900; font-style:normal; font-display:swap; }
+    @font-face { font-family:"Aeonik"; src:url("Aeonik-BlackItalic.ttf") format("truetype"); font-weight:900; font-style:italic; font-display:swap; }
+    @font-face { font-family:"Aeonik Mono"; src:url("AeonikMono-Thin.otf") format("opentype"); font-weight:200; font-display:swap; }
+    @font-face { font-family:"Aeonik Mono"; src:url("AeonikMono-Air.otf") format("opentype"); font-weight:100; font-display:swap; }
+    @font-face { font-family:"Aeonik Mono"; src:url("AeonikMono-Light.otf") format("opentype"); font-weight:300; font-display:swap; }
+    @font-face { font-family:"Aeonik Mono"; src:url("AeonikMono-Regular.otf") format("opentype"); font-weight:400; font-display:swap; }
+    @font-face { font-family:"Aeonik Mono"; src:url("AeonikMono-Medium.otf") format("opentype"); font-weight:500; font-display:swap; }
+    @font-face { font-family:"Aeonik Mono"; src:url("AeonikMono-Bold.otf") format("opentype"); font-weight:700; font-display:swap; }
+    @font-face { font-family:"Aeonik Mono"; src:url("AeonikMono-Black.otf") format("opentype"); font-weight:900; font-display:swap; }
     @font-face { font-family:"Replica"; src:url("Replica Light.otf") format("opentype"); font-weight:300; font-display:swap; }
     @font-face { font-family:"Replica"; src:url("Replica Regular.otf") format("opentype"); font-weight:400; font-display:swap; }
     @font-face { font-family:"Replica"; src:url("Replica Bold.otf") format("opentype"); font-weight:700; font-display:swap; }
@@ -301,7 +327,11 @@
     }
 
     body {
-      font-family: "Replica", -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+      /* Aeonik is the interface typeface (SIERRA_DESIGN_SYSTEM.md §19) —
+         every control, table and form element inherits this by default.
+         Replica is reserved for identity/display headings and is
+         explicitly re-declared on those selectors only. */
+      font-family: "Aeonik", -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
       background: var(--bg); color: var(--text);
       height: 100vh; overflow: hidden;
       -webkit-font-smoothing: antialiased;
@@ -312,7 +342,7 @@
        already set this explicitly on their own wrapper class (.rec-id-code
        etc.); this is the fallback for anywhere that doesn't, so a plain
        <code> never silently renders in the browser's generic monospace. */
-    code { font-family: 'Replica Mono', 'Courier New', monospace; }
+    code { font-family: 'Aeonik Mono', 'Courier New', monospace; }
 
     /* Base link styling — no global `a{}` rule existed before; raw <a> tags
        fell back to browser-default blue. Most call sites already set their
@@ -946,7 +976,7 @@
     /* ── RecordID ── the canonical "YRN-000045" component (§ SIERRA_DESIGN
        _SYSTEM.md, RecordID). Metadata, not a control: same 32px info-scale
        height and 7px radius as every other status-family component, but its
-       own identity tint (blue, --info family) and Replica Mono type so a
+       own identity tint (blue, --info family) and Aeonik Mono type so a
        record code never gets mistaken for a division/category tag or,
        worse, a button. No hover/shadow unless explicitly marked clickable
        (.rec-id.is-click) — a plain RecordID is inert. */
@@ -959,7 +989,7 @@
     .rec-id-icon { width:14px; height:14px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; }
     .rec-id-icon svg { width:14px; height:14px; display:block; }
     .rec-id-code {
-      font-family:'Replica Mono','Courier New',monospace; font-size:var(--status-font-size);
+      font-family:'Aeonik Mono','Courier New',monospace; font-size:var(--status-font-size);
       font-variant-numeric:tabular-nums; overflow:hidden; text-overflow:ellipsis;
     }
     .rec-id.is-click { cursor:pointer; transition:background var(--dur-fast) var(--ease-out); }
@@ -1501,7 +1531,7 @@
       border-top-left-radius:var(--shell-radius);
     }
     .content-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.1rem; gap:1rem; flex-wrap:wrap; }
-    .content-hdr-l h2 { font-size:2rem; font-weight:700; letter-spacing:-0.035em; line-height:1.1; }
+    .content-hdr-l h2 { font-family:"Replica", -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif; font-size:2rem; font-weight:700; letter-spacing:-0.035em; line-height:1.1; }
     .content-hdr-l p { font-size:0.8rem; color:var(--text-2); margin-top:0.2rem; }
     .content-hdr-l p:empty { display:none; }
     .content-hdr-r { display:flex; align-items:center; gap:0.5rem; flex-shrink:0; }
@@ -2070,6 +2100,7 @@
       margin-bottom:2rem;
     }
     .dash-greeting {
+      font-family:"Replica", -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
       font-size:1.42rem; font-weight:700; letter-spacing:0;
       color:var(--text); line-height:1.2; margin-bottom:0.25rem;
     }
@@ -2634,6 +2665,7 @@
     }
     .object-identity { min-width:0; flex:1 1 340px; }
     .object-title {
+      font-family:"Replica", -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
       font-size:var(--title-size); font-weight:750; letter-spacing:-0.025em; line-height:1.15;
       color:var(--text-primary); margin:0 0 6px; overflow-wrap:anywhere;
       display:flex; align-items:center; flex-wrap:wrap; gap:10px;
@@ -3651,7 +3683,7 @@
     .yc-char-count { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; text-align: right; }
     .yc-char-count.is-warn { color: var(--warning-text); }
     .yc-record-number {
-      font-family: 'Replica Mono', 'Courier New', monospace;
+      font-family: 'Aeonik Mono', 'Courier New', monospace;
       font-size: 14px; font-weight: 700; color: var(--text-primary);
       background: var(--surface2); border: 1px solid var(--border);
       border-radius: var(--r-md); padding: 8px 12px; letter-spacing: 0.04em;
@@ -4281,7 +4313,7 @@
     /* ── PageHeader ── title/eyebrow + status + actions in one composition.
        .page-header is canonical; .srd-id-block kept as an alias. */
     .page-header, .srd-id-block { display:flex; align-items:center; gap:1.1rem; margin-bottom:var(--section-gap); padding-bottom:var(--section-gap); border-bottom:1px solid var(--border); }
-    .page-header-title, .srd-id-text { font-size:1.6rem; font-weight:700; letter-spacing:-0.02em; color:var(--text); line-height:1; }
+    .page-header-title, .srd-id-text { font-family:"Replica", -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif; font-size:1.6rem; font-weight:700; letter-spacing:-0.02em; color:var(--text); line-height:1; }
     .page-header-meta, .srd-id-sub { font-size:0.7rem; color:var(--text-3); margin-top:0.25rem; text-transform:uppercase; letter-spacing:0.08em; font-weight:600; }
     /* Section label — 13px/uppercase, the one heading style below page-title level */
     .page-section-label, .srd-section-label { font-size:0.62rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-3); margin-top:var(--section-gap); margin-bottom:var(--panel-gap); }
@@ -8375,7 +8407,7 @@ function catTogglePop(e, id) {
 
 /* ── RecordID ── the one canonical way to render a record identifier
    ("YRN-000045"). Metadata, not a button: uses .rec-id (§ SIERRA_DESIGN_
-   SYSTEM.md, RecordID) — Replica Mono code on an --info identity tint, 32px
+   SYSTEM.md, RecordID) — Aeonik Mono code on an --info identity tint, 32px
    info-scale height, no hover/shadow unless explicitly clickable. Every
    product/sample card and drawer that shows a code renders it through this
    instead of hand-building a span. */
@@ -23509,7 +23541,7 @@ async function suspendIndexAccount(profileId) {
 // plain-text version used for copy-to-clipboard.
 function orgPathTreeHtml(employeeId) {
   const levels = ['SIERRA', ...orgPathOf(employeeId)]
-  return `<div style="font-size:0.82rem;line-height:1.65;font-family:'Replica Mono','Courier New',monospace">
+  return `<div style="font-size:0.82rem;line-height:1.65;font-family:'Aeonik Mono','Courier New',monospace">
     ${levels.map((lvl, i) => `<div style="padding-left:${i * 14}px;color:${i === levels.length - 1 ? 'var(--text-primary)' : 'var(--text-secondary)'};font-weight:${i === levels.length - 1 ? '600' : '400'}">${i > 0 ? '<span aria-hidden="true" style="color:var(--text-3)">└ </span>' : ''}${esc(lvl)}</div>`).join('')}
   </div>`
 }
