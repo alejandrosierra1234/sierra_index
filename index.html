@@ -513,14 +513,15 @@
     .u-avatar:hover { opacity:0.85; }
 
     /* ══════════════════════════════════════════════════════════════
-       GLOBAL SYSTEM BAR — persistent dark platform-level surface.
-       SIERRA Index + global/user utilities, never module-tinted (that
-       belongs to the sidebar/workspace layer). Desktop only — mobile
-       keeps the existing .mob-topbar (hamburger + logo + search), which
-       already covers the same job at a screen size this bar isn't
-       designed for (no room for a 5-icon cluster at 375px). Always dark
-       regardless of the light/dark content theme: it's app chrome, not
-       themed surface, so none of its colors reference theme tokens.
+       GLOBAL SYSTEM BAR — persistent platform-level surface, one
+       continuous panel with the sidebar (--shell-topbar always equals
+       --sidebar-bg, see :root above) rather than an independently
+       themed rectangle. SIERRA Index + global/user utilities, never
+       module-tinted (that belongs to the sidebar/workspace layer).
+       Desktop only — mobile keeps the existing .mob-topbar (hamburger +
+       logo + search), which already covers the same job at a screen
+       size this bar isn't designed for (no room for a 5-icon cluster at
+       375px).
        ══════════════════════════════════════════════════════════════ */
     .system-bar {
       display: none; /* shown at >=768px, see media query below */
@@ -538,9 +539,28 @@
     }
     @media (min-width: 768px) { .system-bar { display: flex; } }
 
-    .sb-left { display:flex; align-items:center; min-width:0; }
+    .sb-left { display:flex; align-items:center; min-width:0; gap:20px; flex:1; }
     .sb-logo-full { height:20px; width:auto; flex-shrink:0; display:flex; }
     .sb-logo-full svg { height:100%; width:auto; display:block; }
+
+    /* Search-as-control (§24) rather than a bare icon square — same shape
+       language as .control-input everywhere else (control-radius,
+       border-strong, --icon-size-control), just wearing a "Buscar…" label
+       and the existing ⌘K hint already used on the sidebar's own search
+       row (§64.1 Global zone). Capped width so it reads as a field, not a
+       full-bleed bar. */
+    .sb-search-pill {
+      display:flex; align-items:center; gap:8px;
+      height:var(--control-h); width:100%; max-width:300px;
+      padding:0 var(--control-padding-x-sm) 0 var(--control-padding-x);
+      background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--control-radius);
+      color:var(--text-3); cursor:pointer; font-family:inherit; font-size:var(--control-font-size);
+      transition:background var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast);
+    }
+    .sb-search-pill:hover { background:var(--surface-hover); color:var(--text-primary); border-color:var(--border-strong); }
+    .sb-search-pill:focus-visible { outline:2px solid var(--brand-teal); outline-offset:2px; }
+    .sb-search-pill-icon { width:var(--icon-size-control); height:var(--icon-size-control); flex-shrink:0; }
+    .sb-search-pill-label { flex:1; min-width:0; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
     .sb-right { display:flex; align-items:center; gap:2px; flex-shrink:0; }
 
@@ -1162,8 +1182,14 @@
       transition:opacity 0.14s ease, transform 0.18s cubic-bezier(0.22,1,0.36,1), background 0.12s, color 0.12s, border-color 0.12s;
     }
     .sidebar:hover .sidebar-edge-toggle,
-    .sidebar-edge-toggle:hover { opacity:1; transform:scale(1); }
+    .sidebar-edge-toggle:hover,
+    .sidebar-edge-toggle:focus-visible { opacity:1; transform:scale(1); }
     .sidebar-edge-toggle:hover { background:var(--surface2); color:var(--text); border-color:var(--border-strong); }
+    /* Keyboard focus must stay visible even though this control fades to
+       opacity:0 at rest (only the hover reveal above shows it to a mouse
+       user) — without this, tabbing to the control leaves its outline
+       rendered at opacity:0, i.e. invisible (WCAG 2.4.7). */
+    .sidebar-edge-toggle:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
     .sidebar-edge-toggle svg { width:16px; height:16px; display:block; }
     .sidebar-edge-toggle .edge-expand { display:none; }
     .sidebar.collapsed .sidebar-edge-toggle .edge-collapse { display:none; }
@@ -1173,7 +1199,19 @@
     .sidebar-collapse-btn { display:none; }
 
     /* Nav labels — fade and contract when collapsed */
-    .nav-label { white-space:nowrap; overflow:hidden; max-width:130px; opacity:1; transform:translateX(0); transition:opacity 0.18s ease, transform 0.28s cubic-bezier(0.22,1,0.36,1), max-width 0.28s cubic-bezier(0.22,1,0.36,1); }
+    /* SIERRA_DESIGN_SYSTEM.md §7b: navigation labels are on the "never
+       truncate" list — ellipsis/clipping is explicitly disallowed here,
+       and the sanctioned overflow strategy is the existing icon-only
+       collapsed state (§64.9), not a half-readable label. A long or
+       localized label that doesn't fit on one line therefore wraps
+       instead of clipping; min-width:0 lets it actually shrink inside
+       the flex row instead of overflowing, and the row's own min-height
+       (not a fixed height) absorbs the extra line per §7b's closing
+       principle ("row may become slightly taller... less important than
+       readable content"). max-width stays as a large, generous ceiling
+       purely so the collapse-mode transition below still has a numeric
+       value to animate from. */
+    .nav-label { white-space:normal; overflow-wrap:break-word; overflow:hidden; min-width:0; max-width:500px; opacity:1; transform:translateX(0); transition:opacity 0.18s ease, transform 0.28s cubic-bezier(0.22,1,0.36,1), max-width 0.28s cubic-bezier(0.22,1,0.36,1); }
     .sidebar.collapsed .nav-label { max-width:0; opacity:0; transform:translateX(-4px); pointer-events:none; }
     .sidebar.collapsed #sidebar-search-btn .nav-label:last-child { margin-left:0 !important; padding-left:0 !important; padding-right:0 !important; border-width:0 !important; }
     .s-label {
@@ -1337,8 +1375,27 @@
        family as the account menu below. The active module's tree is the
        only one ever rendered in #nav-tree — every other module lives
        here, never as a permanent sidebar block (§4/§30). */
-    .mod-switcher { position:relative; }
-    .mod-switcher-trigger { justify-content:flex-start; }
+    /* Elevated "current module" card — the switcher trigger is the one
+       persistent per-visit orientation cue ("which módulo am I in"),
+       distinct from the repeated rows in the tree below it, so it gets a
+       real card surface (existing --surface/--border/--shadow tokens)
+       instead of inheriting the plain transparent .nav-item look. Row
+       height/typography stay exactly the protected §64.7 values — only
+       the container surface changes, and the divider below it gives the
+       Module-switcher zone (§64.1) a clear boundary from the active-
+       module tree that follows. */
+    .mod-switcher { position:relative; padding:0.55rem 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+    /* .nav-item.mod-switcher-trigger (not just .mod-switcher-trigger): the
+       base .nav-item rule is declared later in the sheet and, at equal
+       single-class specificity, its background:none/border:1px solid
+       transparent would otherwise win by source order and silently erase
+       this card treatment. */
+    .nav-item.mod-switcher-trigger {
+      justify-content:flex-start;
+      background:var(--surface); border-color:var(--border); box-shadow:var(--shadow);
+    }
+    .nav-item.mod-switcher-trigger:hover { background:var(--surface2); border-color:var(--border-strong); box-shadow:var(--shadow); }
+    .mod-switcher.open .nav-item.mod-switcher-trigger { border-color:var(--border-strong); }
     .mod-switcher-chevron { display:inline-flex; flex-shrink:0; margin-left:auto; color:var(--text-3); }
     .sidebar.collapsed .mod-switcher-chevron { display:none; }
     .mod-switcher-pop {
@@ -1417,6 +1474,13 @@
     }
     .n-icon { width:18px; height:18px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
     .n-icon svg { width:18px; height:18px; }
+    /* Small trailing indicator on rows that leave the app (Website) rather
+       than route within it — muted, right-aligned, hidden when the sidebar
+       is collapsed (its own icon square already stands alone at that
+       point, same treatment as .nav-label). */
+    .nav-ext-icon { width:13px; height:13px; margin-left:auto; color:var(--text-3); }
+    .nav-ext-icon svg { width:13px; height:13px; }
+    .sidebar.collapsed .nav-ext-icon { display:none; }
     /* IconTile (§6/§7/§23) — the one place a division/module identity
        color is allowed to appear. Text, chevrons and borders stay neutral;
        color is concentrated inside this tile only. */
@@ -6361,7 +6425,14 @@
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1715 353.13"><defs><style>.cls-1{fill:#16cdbe}.cls-2{fill:var(--text)}</style></defs><path class="cls-2" d="M570.98,144.81c-47.7-6.81-61.33-13.63-61.33-34.07,0-13.63,10.22-23.85,40.88-23.85,37.48,0,47.7,10.22,47.7,30.66l3.41,3.41h40.88l3.41-3.41c0-40.88-27.26-71.55-91.99-71.55s-91.99,30.66-91.99,64.73c0,47.7,37.48,64.73,85.17,71.55,47.7,6.81,61.33,13.63,61.33,37.48,0,20.44-17.03,30.66-47.7,30.66-40.88,0-54.51-13.63-54.51-37.48l-3.41-3.41h-40.88l-3.41,3.41c0,44.29,30.66,78.36,98.8,78.36,71.55,0,98.8-34.07,98.8-71.55,0-47.7-37.48-68.14-85.17-74.95Z"/><polygon class="cls-2" points="700.44 49.41 697.03 52.82 697.03 284.49 700.44 287.9 741.32 287.9 744.73 284.49 744.73 52.82 741.32 49.41 700.44 49.41"/><polygon class="cls-2" points="802.64 49.41 799.23 52.82 799.23 284.49 802.64 287.9 962.76 287.9 966.17 284.49 966.17 250.42 962.76 247.02 850.33 247.02 846.93 243.61 846.93 189.1 850.33 185.69 955.95 185.69 959.36 182.29 959.36 148.22 955.95 144.81 850.33 144.81 846.93 141.4 846.93 93.7 850.33 90.3 962.76 90.3 966.17 86.89 966.17 52.82 962.76 49.41 802.64 49.41"/><path class="cls-2" d="M1211.46,120.96c0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41,68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14ZM1129.7,151.62h-64.73l-3.41-3.41v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66Z"/><path class="cls-2" d="M1344.33,195.91l68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14,0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41ZM1300.04,148.22v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66h-64.73l-3.41-3.41Z"/><path class="cls-2" d="M1678.2,284.49v-34.07l-78.36-197.6-3.41-3.41h-44.29l-3.41,3.41-78.36,197.6v34.07l3.41,3.41h30.66l3.41-3.41,17.04-44.29,6.81-3.41h85.17l6.81,3.41,17.03,44.29,3.41,3.41h30.66l3.41-3.41ZM1603.25,195.91h-57.92l-3.41-3.41,30.66-81.77h3.41l30.66,81.77-3.41,3.41Z"/><path class="cls-1" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>
   </div>
   <button class="mob-topbar-search mob-cart-btn" id="mob-cart-btn" onclick="openCollectionsNav()" aria-label="Collections" style="display:none">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6" /><path d="M9 17v1a3 3 0 0 0 6 0v-1" /></svg>
+    <!-- Same glyph as NAV_ICON_COLLECTIONS (the desktop sidebar's own
+         "Colecciones" leaf icon, § NAV_ICON_COLLECTIONS) — was previously
+         the notifications bell shape, ambiguous with the real bell in the
+         desktop topbar/sidebar. This mobile button has no notifications
+         equivalent of its own to collide with, so reusing the app's
+         existing Collections icon here is both semantically correct and
+         visually distinct from any bell. -->
+    <svg viewBox="0 0 20 20" fill="none"><path d="M3 4h2l1.6 9.5a1 1 0 0 0 1 .8h7.3a1 1 0 0 0 1-.75L17.5 8H5.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="17" r="1.1" fill="currentColor"/><circle cx="14.5" cy="17" r="1.1" fill="currentColor"/></svg>
     <span class="mob-cart-badge" id="mob-cart-badge">0</span>
   </button>
   <button class="mob-topbar-search" onclick="openSpotlight()" aria-label="Search">
@@ -6383,11 +6454,19 @@
            always dark regardless of the light/dark content theme. -->
       <span class="sb-logo sb-logo-full"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1715 353.13"><defs><style>.cls-2{fill:var(--text)}</style></defs><path class="cls-2" d="M570.98,144.81c-47.7-6.81-61.33-13.63-61.33-34.07,0-13.63,10.22-23.85,40.88-23.85,37.48,0,47.7,10.22,47.7,30.66l3.41,3.41h40.88l3.41-3.41c0-40.88-27.26-71.55-91.99-71.55s-91.99,30.66-91.99,64.73c0,47.7,37.48,64.73,85.17,71.55,47.7,6.81,61.33,13.63,61.33,37.48,0,20.44-17.03,30.66-47.7,30.66-40.88,0-54.51-13.63-54.51-37.48l-3.41-3.41h-40.88l-3.41,3.41c0,44.29,30.66,78.36,98.8,78.36,71.55,0,98.8-34.07,98.8-71.55,0-47.7-37.48-68.14-85.17-74.95Z"/><polygon class="cls-2" points="700.44 49.41 697.03 52.82 697.03 284.49 700.44 287.9 741.32 287.9 744.73 284.49 744.73 52.82 741.32 49.41 700.44 49.41"/><polygon class="cls-2" points="802.64 49.41 799.23 52.82 799.23 284.49 802.64 287.9 962.76 287.9 966.17 284.49 966.17 250.42 962.76 247.02 850.33 247.02 846.93 243.61 846.93 189.1 850.33 185.69 955.95 185.69 959.36 182.29 959.36 148.22 955.95 144.81 850.33 144.81 846.93 141.4 846.93 93.7 850.33 90.3 962.76 90.3 966.17 86.89 966.17 52.82 962.76 49.41 802.64 49.41"/><path class="cls-2" d="M1211.46,120.96c0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41,68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14ZM1129.7,151.62h-64.73l-3.41-3.41v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66Z"/><path class="cls-2" d="M1344.33,195.91l68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14,0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41ZM1300.04,148.22v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66h-64.73l-3.41-3.41Z"/><path class="cls-2" d="M1678.2,284.49v-34.07l-78.36-197.6-3.41-3.41h-44.29l-3.41,3.41-78.36,197.6v34.07l3.41,3.41h30.66l3.41-3.41,17.04-44.29,6.81-3.41h85.17l6.81,3.41,17.03,44.29,3.41,3.41h30.66l3.41-3.41ZM1603.25,195.91h-57.92l-3.41-3.41,30.66-81.77h3.41l30.66,81.77-3.41,3.41Z"/><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>
       </span>
+      <!-- Global search now lives here, filling what used to be dead space
+           between the wordmark and the utility cluster, as a real
+           §24 control (--control-h/--control-radius/--icon-size-control)
+           rather than a bare icon square — the same visual language as
+           every other search/input surface in the app. Same trigger
+           (openSpotlight()), same id, same reach as before. -->
+      <button class="sb-search-pill" id="tb-search-btn" data-tip="Search" onclick="openSpotlight()" aria-label="Search the workspace">
+        <svg class="sb-search-pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+        <span class="sb-search-pill-label">Buscar…</span>
+        <kbd class="dst-kbd">⌘K</kbd>
+      </button>
     </div>
     <div class="sb-right">
-      <button class="sb-icon-btn" id="tb-search-btn" data-tip="Search" onclick="openSpotlight()" aria-label="Search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
-      </button>
       <button class="sb-icon-btn" id="tb-notif-btn" data-tip="Notifications" onclick="toggleNotifications()" aria-label="Notifications">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6" /><path d="M9 17v1a3 3 0 0 0 6 0v-1" /></svg>
         <span class="notif-badge" id="tb-notif-badge"></span>
@@ -6430,7 +6509,7 @@
       <button class="nav-item" data-tip="Search" onclick="openSpotlight()" id="sidebar-search-btn">
         <span class="n-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg></span>
         <span class="nav-label" style="color:var(--text-3);font-weight:400">Search…</span>
-        <span class="nav-label" style="margin-left:auto;font-size:0.62rem;color:var(--text-3);border:1px solid var(--border);border-radius:4px;padding:0.1rem 0.35rem;line-height:1.4">⌘K</span>
+        <kbd class="nav-label dst-kbd" style="margin-left:auto">⌘K</kbd>
       </button>
 
       <button class="nav-item" id="nav-dash" data-tip="Dashboard" style="--item-color:#16cdbe" onclick="navGo('dashboard', showDashboard)"><span class="n-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l-2 0l9 -9l9 9l-2 0" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" /><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" /></svg></span><span class="nav-label">Dashboard</span></button>
@@ -6457,9 +6536,13 @@
       <div id="nav-tree"></div>
       <div class="sidebar-spacer"></div>
       <div class="sidebar-bottom">
-        <button class="nav-item" data-tip="Visit the public website" onclick="location.href='home.html'" aria-label="Visit website">
+        <button class="nav-item" data-tip="Visit the public website — leaves the app" onclick="location.href='home.html'" aria-label="Visit the public website (leaves the app)">
           <span class="n-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" /><path d="M5.75 15a8.015 8.015 0 1 0 9.25 -13" /><path d="M11 17v4" /><path d="M7 21h8" /></svg></span>
           <span class="nav-label">Website</span>
+          <!-- Distinguishes this row as a full navigation away from the app
+               (a separate site, not a SPA route) — the same external-link
+               glyph already registered as ICONS['external-link']. -->
+          <span class="n-icon nav-ext-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" /><path d="M11 13l9 -9" /><path d="M15 4h5v5" /></svg></span>
         </button>
         <button class="nav-item notif-btn" id="notif-btn" data-tip="Notifications" onclick="toggleNotifications()" aria-label="Notifications">
           <span class="n-icon" style="position:relative">
@@ -7155,6 +7238,16 @@ const SB_URL = 'https://vhyddogeemohtqijohry.supabase.co'
 const SB_KEY = 'sb_publishable_9g8UJRbV3NxOlmQgPxjDqg_Xw6hFB0f'
 const sb = supabase.createClient(SB_URL, SB_KEY)
 
+// Used by the Spotlight ⌘K/Ctrl K shortcut (below) and to render a
+// platform-appropriate hint next to the search controls
+// (applySpotlightKbdHint()). Declared this early so it's available to
+// the sidebar-toggle boot code that runs immediately below.
+const IS_MAC = /Mac|iPod|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '')
+function applySpotlightKbdHint() {
+  const label = IS_MAC ? '⌘K' : 'Ctrl K'
+  document.querySelectorAll('#sidebar-search-btn kbd, #tb-search-btn kbd').forEach(el => { el.textContent = label })
+}
+
 /* Division/module identity color — small identifiers only (dots, chips,
    icons, thin borders), one fixed hex per division from the secondary
    semantic palette. Single source of truth for DIV_ACCENT below — never
@@ -7759,6 +7852,7 @@ if (initSidebar === 'collapsed') {
   if (sb) sb.classList.add('collapsed')
 }
 updateSidebarToggleState()
+applySpotlightKbdHint()
 
 function updateSidebarToggleState() {
   const sb = document.getElementById('sidebar')
@@ -8836,17 +8930,30 @@ function leaveView(keepHash) {
   if (catToolbar) { catToolbar.style.display = 'none'; catToolbar.innerHTML = '' }
 }
 
+// Remembers whichever control opened the drawer (the mobile hamburger
+// trigger) so closing it returns focus there instead of dropping focus to
+// <body> — the drawer is the mobile equivalent of the sidebar and gets the
+// same dismissal/focus expectations as every other overlay in the app
+// (spotlight, scan overlay, label drawer — all Escape-dismissible).
+let _drawerTriggerEl = null
 function openDrawer() {
+  _drawerTriggerEl = document.activeElement
   document.getElementById('sidebar').classList.add('drawer-open')
   document.getElementById('drawer-backdrop').classList.add('open')
   document.body.style.overflow = 'hidden'
+  document.querySelector('.sidebar-close-btn')?.focus()
 }
 
 function closeDrawer() {
   document.getElementById('sidebar').classList.remove('drawer-open')
   document.getElementById('drawer-backdrop').classList.remove('open')
   document.body.style.overflow = ''
+  _drawerTriggerEl?.focus()
+  _drawerTriggerEl = null
 }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('sidebar')?.classList.contains('drawer-open')) closeDrawer()
+})
 
 function mobileSearch() { openSpotlight() }
 function focusSearch() { openSpotlight() }
@@ -14919,6 +15026,13 @@ function showModuleTools(key) {
   const m = MODULES[key]
   if (!m || !moduleAccessible(m)) { showModuleHub(); return }
   _navLeaf = null
+  // A stale _badge_ui.view (left over from the last Talento Humano tool the
+  // user actually opened) otherwise keeps forcing that tool's sidebar row
+  // .active via navLeafHtml()'s forceActive check below, even though this
+  // hub grid — not that tool's screen — is what's on screen. Only one
+  // "you are here" signal is allowed at a time (SIERRA_DESIGN_SYSTEM.md
+  // §64.8); landing on the hub means no leaf is current.
+  _badge_ui.view = null
   syncModule(key)
   sessionStorage.setItem('sierra_route', 'module:' + key)
   clearHash()
@@ -21463,7 +21577,13 @@ const SPOT_DIVS = [
   { key:'garment',   label:'SIERRA Apparel' },
 ].map(d => ({ ...d, color: DIV_ACCENT[d.key].accent }))
 
+// Remembers whichever control opened Spotlight so closing it (Escape,
+// backdrop click, the esc button) restores focus there instead of
+// dropping it to <body> — same reasoning as the mobile drawer's focus
+// handling above.
+let _spotlightTriggerEl = null
 async function openSpotlight() {
+  _spotlightTriggerEl = document.activeElement
   spotlightDiv = null
   const el = document.getElementById('spotlight')
   el.classList.add('open')
@@ -21481,6 +21601,8 @@ async function openSpotlight() {
 function closeSpotlight() {
   document.getElementById('spotlight').classList.remove('open')
   spotlightDiv = null
+  _spotlightTriggerEl?.focus()
+  _spotlightTriggerEl = null
 }
 
 function saveRecentSearch(q) {
@@ -21602,7 +21724,19 @@ function removeRecentSearch(q) {
 }
 
 document.addEventListener('keydown', e => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openSpotlight(); return }
+  // Platform-correct modifier only — Command+K on macOS, Control+K
+  // elsewhere. The previous (e.metaKey || e.ctrlKey) check matched EITHER
+  // modifier on every platform, so a Mac user's physical Ctrl+K — macOS's
+  // native Cocoa/Emacs "delete to end of line" text-editing binding — was
+  // being hijacked by this handler inside every input/textarea in the
+  // app. Also skip entirely while focus is in an editable field, as a
+  // second guard against overriding text editing generally.
+  if (e.key.toLowerCase() === 'k' && !e.altKey && (IS_MAC ? (e.metaKey && !e.ctrlKey) : (e.ctrlKey && !e.metaKey))) {
+    const t = e.target
+    const editable = t?.tagName === 'INPUT' || t?.tagName === 'TEXTAREA' || t?.tagName === 'SELECT' || t?.isContentEditable
+    if (!editable) { e.preventDefault(); openSpotlight() }
+    return
+  }
   if (e.key === 'Escape' && document.getElementById('spotlight').classList.contains('open')) {
     closeSpotlight()
   }
