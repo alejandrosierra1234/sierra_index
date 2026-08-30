@@ -527,8 +527,10 @@
       display: none; /* shown at >=768px, see media query below */
       height: 58px; flex-shrink: 0;
       background: var(--shell-topbar);
-      align-items: center; justify-content: space-between;
-      padding: 0 1.1rem 0 1rem;
+      align-items: center;
+      /* Zones now own their own padding (see .sb-brand/.sb-right) so each
+         can be sized independently — the bar itself no longer applies a
+         single uniform inset. */
       /* Must outrank every sticky/elevated element that can scroll under it
          (.object-header is the tallest at z-index:60) so its own popovers
          (search/notifications/appearance/account) are never hidden behind
@@ -539,30 +541,50 @@
     }
     @media (min-width: 768px) { .system-bar { display: flex; } }
 
-    .sb-left { display:flex; align-items:center; min-width:0; gap:20px; flex:1; }
+    /* Three intentional zones, not two: Brand (fixed to the sidebar's own
+       width, so it reads as "the sidebar's header" rather than shared
+       chrome) — Search (belongs to the main content column that starts
+       where the sidebar ends) — Utility (unchanged, far right). The
+       search trigger used to start inside the brand cluster and spill
+       into content-width territory; giving Search its own zone, starting
+       exactly at the sidebar/content boundary, ends that. */
+    .sb-brand { flex:0 0 var(--sidebar-width); display:flex; align-items:center; padding-left:1rem; min-width:0; }
     .sb-logo-full { height:20px; width:auto; flex-shrink:0; display:flex; }
     .sb-logo-full svg { height:100%; width:auto; display:block; }
 
-    /* Search-as-control (§24) rather than a bare icon square — same shape
-       language as .control-input everywhere else (control-radius,
-       border-strong, --icon-size-control), just wearing a "Buscar…" label
-       and the existing ⌘K hint already used on the sidebar's own search
-       row (§64.1 Global zone). Capped width so it reads as a field, not a
-       full-bleed bar. */
+    .sb-search-zone { flex:1; display:flex; align-items:center; justify-content:center; min-width:0; padding:0 12px; }
+
+    /* Compact Spotlight trigger (§24 --control-h-sm, the 32px compact
+       tier) — deliberately discreet: no fill at rest (transparent, like
+       its .sb-icon-btn siblings), a plain neutral border for definition,
+       --surface-hover on interaction (same token the utility icons use,
+       so the whole cluster reads as one interaction language). Teal is
+       reserved for the focus ring only (§42.6's canonical exception).
+       200-240px target width, but width:100% inside .sb-search-zone lets
+       it compress at narrower zone widths rather than force overflow. */
     .sb-search-pill {
       display:flex; align-items:center; gap:8px;
-      height:var(--control-h); width:100%; max-width:300px;
-      padding:0 var(--control-padding-x-sm) 0 var(--control-padding-x);
-      background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--control-radius);
-      color:var(--text-3); cursor:pointer; font-family:inherit; font-size:var(--control-font-size);
+      height:var(--control-h-sm); width:100%; max-width:220px; min-width:0;
+      padding:0 10px;
+      background:none; border:1px solid var(--border); border-radius:var(--control-radius);
+      color:var(--text-3); cursor:pointer; font-family:inherit; font-size:0.8rem;
       transition:background var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast);
     }
-    .sb-search-pill:hover { background:var(--surface-hover); color:var(--text-primary); border-color:var(--border-strong); }
+    .sb-search-pill:hover { background:var(--surface-hover); border-color:var(--border-strong); color:var(--text-primary); }
+    .sb-search-pill:active { background:var(--surface-hover); }
     .sb-search-pill:focus-visible { outline:2px solid var(--brand-teal); outline-offset:2px; }
     .sb-search-pill-icon { width:var(--icon-size-control); height:var(--icon-size-control); flex-shrink:0; }
     .sb-search-pill-label { flex:1; min-width:0; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    /* Shortcut hint reads as secondary to the label — lower emphasis, not
+       a second competing piece of primary text. */
+    .sb-search-pill-kbd { opacity:0.7; flex-shrink:0; }
+    /* Progressive reduction before the bar ever has to choose between
+       overlapping zones: the shortcut hint is the first thing to go as
+       the search zone narrows, well before 768px (where the whole bar
+       hands off to .mob-topbar instead). */
+    @media (max-width: 900px) { .sb-search-pill-kbd { display:none; } }
 
-    .sb-right { display:flex; align-items:center; gap:2px; flex-shrink:0; }
+    .sb-right { flex:0 0 auto; display:flex; align-items:center; gap:2px; padding-right:1.1rem; }
 
     .sb-icon-btn {
       position:relative; width:40px; height:40px; flex-shrink:0;
@@ -6447,23 +6469,26 @@
   <!-- Global System Bar — persistent dark platform-level surface. Desktop
        only (see .system-bar CSS); mobile keeps .mob-topbar above. -->
   <div class="system-bar" id="system-bar">
-    <div class="sb-left">
+    <div class="sb-brand">
       <!-- The official SIERRA wordmark — one brand mark, once, in the shell.
            No "INDEX" beside it: the user is already inside Index (§2). Text
            fill is hardcoded white (not var(--text)) since this bar is
-           always dark regardless of the light/dark content theme. -->
+           always dark regardless of the light/dark content theme. This
+           zone is fixed to --sidebar-width so it reads as "the sidebar's
+           header," never shared with the search zone that follows. -->
       <span class="sb-logo sb-logo-full"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1715 353.13"><defs><style>.cls-2{fill:var(--text)}</style></defs><path class="cls-2" d="M570.98,144.81c-47.7-6.81-61.33-13.63-61.33-34.07,0-13.63,10.22-23.85,40.88-23.85,37.48,0,47.7,10.22,47.7,30.66l3.41,3.41h40.88l3.41-3.41c0-40.88-27.26-71.55-91.99-71.55s-91.99,30.66-91.99,64.73c0,47.7,37.48,64.73,85.17,71.55,47.7,6.81,61.33,13.63,61.33,37.48,0,20.44-17.03,30.66-47.7,30.66-40.88,0-54.51-13.63-54.51-37.48l-3.41-3.41h-40.88l-3.41,3.41c0,44.29,30.66,78.36,98.8,78.36,71.55,0,98.8-34.07,98.8-71.55,0-47.7-37.48-68.14-85.17-74.95Z"/><polygon class="cls-2" points="700.44 49.41 697.03 52.82 697.03 284.49 700.44 287.9 741.32 287.9 744.73 284.49 744.73 52.82 741.32 49.41 700.44 49.41"/><polygon class="cls-2" points="802.64 49.41 799.23 52.82 799.23 284.49 802.64 287.9 962.76 287.9 966.17 284.49 966.17 250.42 962.76 247.02 850.33 247.02 846.93 243.61 846.93 189.1 850.33 185.69 955.95 185.69 959.36 182.29 959.36 148.22 955.95 144.81 850.33 144.81 846.93 141.4 846.93 93.7 850.33 90.3 962.76 90.3 966.17 86.89 966.17 52.82 962.76 49.41 802.64 49.41"/><path class="cls-2" d="M1211.46,120.96c0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41,68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14ZM1129.7,151.62h-64.73l-3.41-3.41v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66Z"/><path class="cls-2" d="M1344.33,195.91l68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14,0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41ZM1300.04,148.22v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66h-64.73l-3.41-3.41Z"/><path class="cls-2" d="M1678.2,284.49v-34.07l-78.36-197.6-3.41-3.41h-44.29l-3.41,3.41-78.36,197.6v34.07l3.41,3.41h30.66l3.41-3.41,17.04-44.29,6.81-3.41h85.17l6.81,3.41,17.03,44.29,3.41,3.41h30.66l3.41-3.41ZM1603.25,195.91h-57.92l-3.41-3.41,30.66-81.77h3.41l30.66,81.77-3.41,3.41Z"/><path fill="#16cdbe" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>
       </span>
-      <!-- Global search now lives here, filling what used to be dead space
-           between the wordmark and the utility cluster, as a real
-           §24 control (--control-h/--control-radius/--icon-size-control)
-           rather than a bare icon square — the same visual language as
-           every other search/input surface in the app. Same trigger
-           (openSpotlight()), same id, same reach as before. -->
+    </div>
+    <div class="sb-search-zone">
+      <!-- Compact Spotlight trigger — belongs to the main-content column
+           (this zone starts exactly where the sidebar ends), not the
+           brand cluster. §24 compact tier (--control-h-sm, 32px), 220px
+           cap, no fill at rest — a discreet trigger, not a text input.
+           Same callback (openSpotlight()), same id, same reach as before. -->
       <button class="sb-search-pill" id="tb-search-btn" data-tip="Search" onclick="openSpotlight()" aria-label="Search the workspace">
         <svg class="sb-search-pill-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
         <span class="sb-search-pill-label">Buscar…</span>
-        <kbd class="dst-kbd">⌘K</kbd>
+        <kbd class="dst-kbd sb-search-pill-kbd">⌘K</kbd>
       </button>
     </div>
     <div class="sb-right">
