@@ -5887,28 +5887,95 @@
       align-items: center;
       justify-content: space-between;
       gap: 1rem;
+      flex-wrap: wrap;
       padding-bottom: 1rem;
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
-      margin-bottom: var(--section-gap);
+      margin-bottom: 0.75rem;
     }
 
+    .issuance-header-id { min-width: 0; }
+
     .issuance-title {
-      font-size: 1.25rem;
+      font-size: 1.1rem;
       font-weight: 600;
     }
 
     .issuance-subtitle {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
       font-size: 0.82rem;
       color: var(--text-secondary);
-      margin-top: 0.2rem;
+      margin-top: 0.3rem;
     }
+    .issuance-emp-name { font-weight: 600; color: var(--text-primary); }
+    .issuance-emp-code { font-size: 0.78rem; color: var(--text-secondary); }
 
     .issuance-header-actions {
       display: flex;
+      align-items: center;
       gap: 0.5rem;
       flex-shrink: 0;
     }
+    /* Print, when blocked, must read as subordinate rather than a bright
+       primary button pretending to be clickable — the disabled state on
+       .btn-primary already dims it via [disabled] styling elsewhere in
+       the sheet, so no extra override is needed here beyond making sure
+       it never gets a hover/active affordance while disabled (native
+       [disabled] already suppresses those). */
+    #badge-print-btn[disabled] { cursor: not-allowed; }
+
+    /* Readiness summary banner — lives directly under the header, above
+       the two-column content, so it's visible without scrolling and
+       stays adjacent to the Print action instead of being buried at the
+       bottom of a long left column. */
+    .issuance-readiness-banner {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border-radius: var(--r-md);
+      margin-bottom: var(--section-gap);
+      font-size: 0.85rem;
+    }
+    .issuance-readiness-banner.is-ok {
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      background: color-mix(in srgb, var(--success) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
+      color: var(--success);
+      font-weight: 600;
+    }
+    .issuance-readiness-banner.is-missing {
+      background: color-mix(in srgb, var(--warning-text, #92620a) 8%, transparent);
+      border: 1px solid color-mix(in srgb, var(--warning-text, #92620a) 25%, transparent);
+    }
+    .issuance-readiness-banner.is-blocked {
+      background: color-mix(in srgb, var(--danger) 8%, transparent);
+      border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
+    }
+    .irb-summary { display: flex; align-items: flex-start; gap: 8px; font-weight: 600; }
+    .issuance-readiness-banner.is-missing .irb-summary { color: var(--warning-text, #92620a); }
+    .issuance-readiness-banner.is-blocked .irb-summary { color: var(--danger); }
+    .irb-icon { flex-shrink: 0; margin-top: 1px; }
+    .irb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+    .irb-item { display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 0.8rem; color: var(--text-secondary); }
+    .irb-item-icon { flex-shrink: 0; display: flex; }
+    .irb-item.is-error .irb-item-icon { color: var(--danger); }
+    .irb-item.is-warning .irb-item-icon { color: var(--warning-text, #92620a); }
+    .irb-item-msg { flex: 1; }
+    .irb-item-fix {
+      flex-shrink: 0; background: none; border: none; color: var(--accent-dark, var(--accent));
+      font-size: 0.78rem; font-weight: 600; cursor: pointer; min-height: 40px; padding: 0 4px;
+      display: inline-flex; align-items: center;
+    }
+    .irb-item-fix:hover { text-decoration: underline; }
+
+    .bds-source { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-3); font-size: 0.9em; }
+    .bds-note { font-size: 0.72rem; color: var(--text-3); margin-top: 0.5rem; line-height: 1.4; }
 
     .issuance-content {
       display: grid;
@@ -5975,20 +6042,66 @@
       word-break: break-word;
     }
 
-    .badge-readiness-checklist {
-      padding: var(--panel-padding);
-      background: rgba(255, 197, 41, 0.05);
-      border-radius: var(--r-md);
-      border: 1px solid rgba(255, 197, 41, 0.2);
-    }
-
-    .badge-readiness-checklist h4 {
-      margin: 0 0 1rem 0;
-      font-size: 0.8rem;
+    /* Audit cleanup (section 6): .badge-readiness-checklist,
+       .badge-readiness-row and .badge-readiness-summary-ok — all dead.
+       renderReadinessChecklist() (the function that rendered
+       .badge-readiness-checklist) was removed by the redesign, and the
+       replacement readiness UI (renderBadgeReadinessBanner) uses
+       .issuance-readiness-banner/.irb-* instead of .badge-readiness-row/
+       .badge-readiness-summary-ok — confirmed by grep, no markup anywhere
+       in the file emits any of these three class names. */
+    .badge-profile-link {
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--accent-dark, var(--accent));
+      font-size: 0.78rem;
       font-weight: 600;
-      text-transform: uppercase;
-      color: var(--text-primary);
+      cursor: pointer;
+      margin-top: 6px;
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
+    .badge-profile-link:hover { text-decoration: underline; }
+    .badge-photo-frame {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 0.75rem;
+    }
+    .badge-photo-frame img {
+      width: 120px; height: 120px; border-radius: 8px; object-fit: cover; display: block;
+    }
+    .badge-photo-empty {
+      width: 120px; height: 120px; background: var(--surface); border-radius: 8px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; margin: 0 auto;
+      color: var(--text-3); border: 1px dashed var(--border-strong); font-size: 0.72rem; text-align: center;
+    }
+    /* A 404/broken photo_url is a distinct state from "no photo set" — the
+       <img>'s onerror handler leaves it in the DOM (removed via `this.remove()`
+       elsewhere) and this sibling becomes visible via the .is-broken class,
+       so the operator sees "couldn't load" rather than a silently blank box
+       or (worse) a browser broken-image icon. */
+    .badge-photo-broken {
+      display: none; width: 120px; height: 120px; background: var(--surface); border-radius: 8px;
+      flex-direction: column; align-items: center; justify-content: center; gap: 6px; margin: 0 auto;
+      color: var(--danger); border: 1px dashed var(--danger); font-size: 0.72rem; text-align: center;
+    }
+    .badge-photo-frame.is-broken .badge-photo-broken { display: flex; }
+    .badge-photo-actions {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      font-size: 0.78rem;
+    }
+    .badge-photo-actions label, .badge-photo-actions button {
+      background: none; border: none; color: var(--accent-dark, var(--accent));
+      font-weight: 600; cursor: pointer; padding: 4px 2px; min-height: 40px; display: inline-flex; align-items: center;
+    }
+    .badge-photo-actions button.danger { color: var(--danger); }
+    .badge-photo-hint { text-align: center; font-size: 0.72rem; color: var(--text-3); margin-top: 4px; }
 
     /* Birthday Card Generator — three columns (controls / preview /
        info), matching the brief's layout. Reuses .badge-issuance-workspace/
@@ -6019,12 +6132,25 @@
       display: flex;
       flex-direction: column;
       gap: var(--panel-gap);
+      min-width: 0;
+    }
+    /* The preview column stays in view while the (longer) preparation
+       panel on the left scrolls, on desktop widths where the two-column
+       grid is active — matches .issuance-content's own breakpoint. */
+    @media (min-width: 981px) {
+      .issuance-preview-panel {
+        position: sticky;
+        top: 0.5rem;
+        align-self: start;
+        max-height: calc(100vh - 1rem);
+      }
     }
 
     .badge-preview-container {
       flex: 1;
       display: flex;
       flex-direction: column;
+      min-height: 0;
       background: var(--surface2);
       border-radius: var(--r-md);
       border: 1px solid var(--border);
@@ -6065,6 +6191,7 @@
 
     .badge-preview-area {
       flex: 1;
+      min-height: 0;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -6079,6 +6206,7 @@
 
     .badge-preview-controls {
       display: flex;
+      align-items: center;
       gap: 8px;
       justify-content: center;
       padding: 12px;
@@ -6086,6 +6214,41 @@
       background: var(--surface);
       flex-shrink: 0;
     }
+    .badge-zoom-readout {
+      min-width: 3.4em;
+      text-align: center;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+    .badge-zoom-fit-btn { font-size: 0.72rem; padding: 0 10px; }
+
+    /* Physical-scale/orientation caption — tells the operator exactly what
+       physical object this preview represents (§ preview must reveal real
+       scale). Sits below the card, excluded from print via .no-print. */
+    .badge-scale-caption {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--text-3);
+      padding: 6px 12px 0;
+      flex-shrink: 0;
+    }
+
+    /* Front/back shown side by side once the preview CONTAINER (not the
+       viewport) is wide enough to fit both cards without shrinking either
+       below legibility. `.is-comparing` is toggled by
+       initBadgePreviewWorkspace()'s ResizeObserver, which measures the
+       actual #badge-preview-area box — a wide window with a narrow
+       preview column (e.g. a very wide data panel) correctly stays in
+       single-side + tab mode, and a narrow window with a wide preview
+       column correctly compares, which the previous @media(min-width)
+       rule could not do either way. */
+    .badge-preview-container.is-comparing .badge-preview-tabs { display: none; }
+    .badge-preview-container.is-comparing .badge-preview-area { flex-direction: row; gap: 20px; }
+    .badge-preview-container.is-comparing .badge-card-slot { display: flex !important; }
+    .badge-card-slot { display: none; }
+    .badge-card-slot.is-active { display: flex; }
 
     /* Badge Front and Back */
     .badge-front,
@@ -6099,10 +6262,24 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       display: flex;
       flex-direction: column;
-      padding: 3mm;
+      padding: 2.5mm;
       font-family: 'Replica', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
       position: relative;
       overflow: hidden;
+      flex-shrink: 0;
+      transition: transform var(--dur-fast, 120ms) var(--ease-out, ease);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .badge-front, .badge-back { transition: none; }
+    }
+    /* Long names/departments are truncated visibly (ellipsis), never cropped
+       silently by the card's overflow:hidden — the full value stays visible
+       in the data panel and in the title attribute above. */
+    .badge-first-name, .badge-last-name, .badge-department {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
     }
 
     .badge-front-header,
@@ -6112,7 +6289,7 @@
     }
 
     .badge-sierra-logo {
-      width: 22mm;
+      width: 16mm;
       height: auto;
       color: #007d73;
       font-weight: 700;
@@ -6120,17 +6297,27 @@
 
     .badge-company-color,
     .badge-back-company-color {
-      height: 3mm;
-      margin: 2mm -3mm 2mm -3mm;
+      height: 1.8mm;
+      margin: 1mm -2.5mm;
       flex-shrink: 0;
     }
 
+    /* Bug fix: at the original 22mm logo / 3mm colour-bar margins / 28mm
+       photo / 11pt name sizing, the front card's own content (before any
+       long-name edge case) already summed to well over 53.98mm of
+       available height, so the bottom of the name/department/code block
+       was always cropped by `overflow:hidden` — confirmed with the
+       "complete" and "long_name" fixtures alike in the harness screenshots
+       (both showed the department/code lines missing, not just the long
+       one). This is a correctness fix to the card's own arithmetic, not a
+       redesign of its content or hierarchy — same elements, same order,
+       same relative proportions, sized to actually fit the physical card. */
     .badge-front-photo {
-      width: 28mm;
-      height: 28mm;
+      width: 20mm;
+      height: 20mm;
       border-radius: 2mm;
       overflow: hidden;
-      margin: 2mm auto;
+      margin: 1mm auto;
       flex-shrink: 0;
       background: #eee;
       display: flex;
@@ -6158,37 +6345,38 @@
     }
 
     .badge-employee-name {
-      margin-bottom: 2mm;
+      margin-bottom: 0.8mm;
     }
 
     .badge-first-name,
     .badge-last-name {
       font-family: 'Replica', sans-serif;
       font-weight: 700;
-      font-size: 11pt;
-      line-height: 1;
+      font-size: 9.5pt;
+      line-height: 1.1;
       letter-spacing: 0.02em;
     }
 
     .badge-first-name {
-      margin-bottom: 1mm;
+      margin-bottom: 0.5mm;
     }
 
     .badge-department {
       font-family: 'Replica', sans-serif;
       font-weight: 400;
-      font-size: 8pt;
+      font-size: 6.5pt;
       color: #444;
       letter-spacing: 0.05em;
     }
 
     .badge-front-code {
-      font-size: 7pt;
+      font-size: 6pt;
       text-align: center;
-      margin-top: 2mm;
+      margin-top: 1mm;
       font-family: 'Replica Mono', 'Courier New', monospace;
       letter-spacing: 0.5px;
       color: #666;
+      flex-shrink: 0;
     }
 
     .badge-code-label {
@@ -15616,6 +15804,40 @@ function renderBadgeModule() {
     const sel = _badge.employees.find(e => e.id === _badge_ui.selectedEmployeeId)
     if (sel) renderEmployeeDetailDrawer(sel)
   }
+  // The on-screen back-side preview has its own empty barcode container
+  // (#badge-back-barcode-svg) that nothing previously filled — only the
+  // print window generated a real barcode, so flipping to "Reverso" in
+  // the workspace showed a blank gap. Render it here, every time the
+  // issuance view (re)paints, so preview and print stay visually
+  // consistent and an invalid/empty code is caught before print time.
+  if (_badge_ui.view === 'issuance') { renderBadgeBackBarcodePreview(); initBadgePreviewWorkspace() }
+}
+function renderBadgeBackBarcodePreview() {
+  const issuance = _badge_ui.issuanceInProgress
+  const emp = issuance && _badge.employees.find(e => e.id === issuance.employee_id)
+  const holder = document.getElementById('badge-back-barcode-svg')
+  if (!holder) return
+  holder.innerHTML = ''
+  if (!emp || !emp.employee_code) {
+    holder.innerHTML = '<div style="font-size:0.65rem;color:#b3261e">Sin código — no se puede generar el código de barras</div>'
+    return
+  }
+  // Distinguish the two real failure modes rather than lumping them into
+  // one "invalid" message: the encoder library failing to load (still true
+  // in this sandbox — cdnjs is unreachable) is not the same problem as a
+  // value that JsBarcode itself rejects, and telling operators which one
+  // they're looking at changes what they should do about it.
+  if (typeof JsBarcode === 'undefined') {
+    holder.innerHTML = '<div style="font-size:0.65rem;color:#b3261e">Código de barras no disponible (librería no cargada)</div>'
+    return
+  }
+  try {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    holder.appendChild(svg)
+    JsBarcode(svg, emp.employee_code, { format: 'CODE128', width: 1.3, height: 28, margin: 0, fontSize: 8 })
+  } catch (e) {
+    holder.innerHTML = '<div style="font-size:0.65rem;color:#b3261e">Código de barras inválido para "' + esc(emp.employee_code) + '"</div>'
+  }
 }
 
 function renderBadgeHeaderActions() {
@@ -18943,23 +19165,40 @@ function closeImportModal() {
 }
 
 function startBadgeIssuance(empId) {
+  // Defense in depth: every UI entry point that calls startBadgeIssuance()
+  // is already gated on can('write','talento_humano') (the badge back
+  // carries blood type, emergency contact and health conditions — PII),
+  // but the function itself had no gate and can in principle be invoked
+  // directly. printBadge() carries the matching check.
+  if (!can('write', 'talento_humano')) {
+    toast('No tienes permiso para emitir gafetes')
+    return
+  }
   closeEmployeeDetail()
   const emp = _badge.employees.find(e => e.id === empId)
   if (!emp) return
 
-  // Check badge readiness
-  const readiness = checkBadgeReadiness(emp)
-  if (!readiness.ready) {
-    showBadgeReadinessWarning(emp, readiness)
-    return
-  }
+  // Readiness (missing photo/blood type/employee_code/name) is NOT an
+  // entry gate — it is exactly what the in-workspace readiness banner
+  // (renderBadgeReadinessBanner) exists to surface and help resolve.
+  // Only access (permission, above) and load (record not found, above)
+  // may prevent entry; a readiness problem must be seen and fixed
+  // inside the workspace, not hidden behind a blocking modal before the
+  // user ever gets there. Print itself still refuses to fire while
+  // readiness has errors — see printBadge()'s own checkBadgeReadiness()
+  // gate, which is unaffected by this.
 
   // Navigate to the dedicated badge workspace (a page, not a modal) —
   // the global app shell (sidebar, topbar, site switcher) stays visible.
+  // zoomMode 'fit' is the default — initBadgePreviewWorkspace() computes
+  // the actual fit scale against the real preview container on first
+  // paint, so `zoom`/`fitZoom` start unset rather than guessing 1 (100%).
   _badge_ui.issuanceInProgress = {
     employee_id: empId,
     status: 'draft',
-    preview_side: 'front'
+    preview_side: 'front',
+    zoomMode: 'fit',
+    printing: false,
   }
   _badge_ui.view = 'issuance'
   renderBadgeModule()
@@ -19680,31 +19919,6 @@ function renderCardGeneratorView() {
   `
 }
 
-function showBadgeReadinessWarning(emp, readiness) {
-  const modal = document.createElement('div')
-  modal.className = 'modal-overlay'
-  modal.innerHTML = `
-    <div class="modal-content" style="max-width:500px">
-      <div class="modal-header">
-        <h2>Gafete no disponible</h2>
-        <button class="icon-btn icon-btn-quiet" onclick="this.closest('.modal-overlay').remove()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg></button>
-      </div>
-      <div class="modal-body">
-        <p>A este colaborador le falta información obligatoria para emitir el gafete:</p>
-        <ul style="margin:1rem 0;padding-left:1.5rem">
-          ${readiness.errors.map(i => `<li style="margin-bottom:0.5rem"><strong>${i.field}:</strong> ${i.message}</li>`).join('')}
-        </ul>
-        <p><button class="btn btn-link" onclick="this.closest('.modal-overlay').remove(); viewEmployeeDetail('${emp.id}')">Editar datos del colaborador</button></p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cerrar</button>
-      </div>
-    </div>
-  `
-  document.body.appendChild(modal)
-  modal.onclick = (e) => e.target === modal && modal.remove()
-}
-
 /* ── Badge workspace — a dedicated in-app page (never a modal). The
    global shell (sidebar, topbar, site switcher) stays visible; only the
    section tabs are hidden while this view is active, replaced by the
@@ -19715,7 +19929,29 @@ function renderBadgeIssuanceView() {
   const emp = issuance && _badge.employees.find(e => e.id === issuance.employee_id)
   if (!emp) { _badge_ui.view = 'employees'; return renderEmployeesView() }
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
-  const subtitleParts = [emp.employee_code, site?.name, emp.department].filter(Boolean)
+  const latest = empLatestBadge(emp)
+  const r = checkBadgeReadiness(emp)
+  const st = badgeReadinessState(emp)
+  const disabled = !r.ready || !!issuance.printing
+  // Title reflects the real state of this employee's badge lifecycle
+  // rather than always saying "Crear" — an employee who already has a
+  // printed badge is being reprinted, not created for the first time.
+  // Audit fix (section 4): this must mirror the same statuses printBadge()
+  // itself treats as "an open draft to continue" / "already printed" —
+  // matching the printed||delivered convention already used everywhere
+  // else in this file (empCardHtml, the profile overflow menu, the Gafete
+  // tab) — not invent its own narrower definition. Previously any status
+  // other than exactly 'printed' (including 'cancelled' and 'expired',
+  // terminal/non-draft states) fell through to "Continuar gafete
+  // (borrador)", which is wrong: printBadge()'s own `existing` lookup only
+  // matches draft/ready_to_print, so a cancelled/expired latest badge
+  // results in a brand-new row being created, same as having no badge at
+  // all — the title now reflects that.
+  const title = !latest ? 'Crear gafete'
+    : ['draft', 'ready_to_print'].includes(latest.status) ? 'Continuar gafete (borrador)'
+    : ['printed', 'delivered'].includes(latest.status) ? 'Reimprimir gafete'
+    : 'Crear gafete'
+  const reasonText = r.errors.map(e => e.message).join(' · ')
   return `
     <div class="badge-issuance-workspace">
       <button type="button" class="issuance-back" onclick="closeBadgeIssuance()">
@@ -19723,15 +19959,23 @@ function renderBadgeIssuanceView() {
         Colaboradores
       </button>
       <div class="issuance-header">
-        <div>
-          <div class="issuance-title">Crear gafete</div>
-          <div class="issuance-subtitle">${esc(emp.first_name)} ${esc(emp.last_name)}${subtitleParts.length ? ' · ' + esc(subtitleParts.join(' · ')) : ''}</div>
+        <div class="issuance-header-id">
+          <div class="issuance-title">${title}</div>
+          <div class="issuance-subtitle">
+            <span class="issuance-emp-name">${esc(emp.first_name)} ${esc(emp.last_name)}</span>
+            <code class="issuance-emp-code">${emp.employee_code ? esc(emp.employee_code) : 'sin código'}</code>
+            ${badgeStatusBadgeHtml(latest ? latest.status : 'no_badge')}
+          </div>
         </div>
         <div class="issuance-header-actions">
           <button class="btn btn-secondary" onclick="closeBadgeIssuance()">Cancelar</button>
-          <button class="btn btn-primary" onclick="printBadge()">Imprimir gafete</button>
+          <button id="badge-print-btn" class="btn btn-primary" onclick="printBadge()" ${disabled ? 'disabled aria-describedby="badge-print-block-reason"' : ''}>
+            ${issuance.printing ? 'Imprimiendo…' : disabled ? 'Impresión bloqueada' : (st.state === 'missing' ? 'Imprimir gafete (con avisos)' : 'Imprimir gafete')}
+          </button>
         </div>
       </div>
+
+      ${renderBadgeReadinessBanner(emp, r, st)}
 
       <div class="issuance-content">
         <!-- Left: Employee Data -->
@@ -19744,31 +19988,84 @@ function renderBadgeIssuanceView() {
           ${renderBadgePreview(emp)}
         </div>
       </div>
+      <div id="badge-issuance-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     </div>
   `
 }
 
+// Compact readiness summary, always visible directly under the header —
+// this is where the Print button's blockers/warnings live now, instead
+// of being buried at the bottom of the (scrollable) left column. Reuses
+// the exact severity/messages from checkBadgeReadiness() and the
+// existing .badge-ready-yes/-missing/-blocked severity classes.
+function renderBadgeReadinessBanner(emp, r, st) {
+  const reasonText = r.errors.map(e => e.message).join(' · ')
+  const fixFor = (field) => {
+    if (field === 'photo') return `document.getElementById('badge-photo-input')?.click()`
+    if (field === 'blood_type') return `viewEmployeeDetail('${emp.id}','personal')`
+    return `viewEmployeeDetail('${emp.id}','overview')`
+  }
+  const tone = st.state === 'blocked' ? 'blocked' : st.state === 'missing' ? 'missing' : 'ok'
+  if (tone === 'ok') {
+    return `
+      <div class="issuance-readiness-banner is-ok">
+        <span class="irb-icon">${siIcon('check-circle', 16)}</span>
+        <span class="irb-text">Listo para imprimir — todos los datos requeridos y recomendados están completos.</span>
+      </div>
+      <span id="badge-print-block-reason" class="sr-only"></span>
+    `
+  }
+  const items = r.allIssues.map(i => `
+    <li class="irb-item is-${i.level === 'error' ? 'error' : 'warning'}">
+      <span class="irb-item-icon">${siIcon(i.level === 'error' ? 'x-circle' : 'alert-triangle', 14)}</span>
+      <span class="irb-item-msg">${esc(i.message)}</span>
+      ${can('write', 'talento_humano') ? `<button type="button" class="irb-item-fix" onclick="${fixFor(i.field)}">${i.field === 'photo' ? 'Agregar' : 'Corregir'}</button>` : ''}
+    </li>
+  `).join('')
+  return `
+    <div class="issuance-readiness-banner is-${tone}">
+      <div class="irb-summary">
+        <span class="irb-icon">${siIcon(tone === 'blocked' ? 'x-circle' : 'alert-triangle', 16)}</span>
+        <span class="irb-text">${r.errors.length ? `${r.errors.length} dato${r.errors.length !== 1 ? 's' : ''} obligatorio${r.errors.length !== 1 ? 's' : ''} pendiente${r.errors.length !== 1 ? 's' : ''}` : ''}${r.errors.length && r.warnings.length ? ' · ' : ''}${r.warnings.length ? `${r.warnings.length} aviso${r.warnings.length !== 1 ? 's' : ''}` : ''}${tone === 'missing' ? ' — se puede imprimir, pero se recomienda completarlos' : ' — la impresión está bloqueada hasta corregirlos'}</span>
+      </div>
+      <ul class="irb-list">${items}</ul>
+    </div>
+    <span id="badge-print-block-reason" class="sr-only">${esc(reasonText)}</span>
+  `
+}
+
 function renderBadgeDataPanel(emp) {
+  const canWrite = can('write', 'talento_humano')
+  const latest = empLatestBadge(emp)
+  const status = latest ? latest.status : 'no_badge'
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  // employee_code/first_name/last_name are the only fields checkBadgeReadiness
+  // treats as blocking (see the function's own definition); department,
+  // position and photo/blood_type are read here for display but are either
+  // not checked at all (department/position) or only warnings (photo/blood
+  // type) — labeled accordingly rather than implying a uniform requirement.
   return `
     <div class="badge-data-sections">
       <div class="badge-data-section">
-        <h3>Identidad</h3>
+        <h3>Identidad <span class="bds-source">· del registro del colaborador</span></h3>
         <div class="data-row">
           <span class="data-label">Nombre</span>
-          <span class="data-value">${esc(emp.first_name)}</span>
+          <span class="data-value">${esc(emp.first_name) || '<span style="color:var(--danger)">Falta</span>'}</span>
         </div>
         <div class="data-row">
           <span class="data-label">Apellido</span>
-          <span class="data-value">${esc(emp.last_name)}</span>
+          <span class="data-value">${esc(emp.last_name) || '<span style="color:var(--danger)">Falta</span>'}</span>
         </div>
         <div class="data-row">
           <span class="data-label">Código</span>
-          <code>${esc(emp.employee_code)}</code>
+          <code>${emp.employee_code ? esc(emp.employee_code) : '—'}</code>
         </div>
+        <div class="bds-note">No editable aquí — refleja el registro del colaborador.</div>
+        ${canWrite ? `<button type="button" class="badge-profile-link" onclick="viewEmployeeDetail('${emp.id}','overview')">${siIcon('edit', 13)} Editar en el perfil</button>` : ''}
       </div>
 
       <div class="badge-data-section">
-        <h3>Organización</h3>
+        <h3>Organización <span class="bds-source">· del registro del colaborador · no evaluado por preparación</span></h3>
         <div class="data-row">
           <span class="data-label">Departamento</span>
           <span class="data-value">${esc(emp.department || '—')}</span>
@@ -19777,87 +20074,153 @@ function renderBadgeDataPanel(emp) {
           <span class="data-label">Puesto</span>
           <span class="data-value">${esc(emp.position || '—')}</span>
         </div>
+        <div class="data-row">
+          <span class="data-label">Compañía</span>
+          <span class="data-value">${esc(site?.name || '—')}</span>
+        </div>
+        ${canWrite ? `<button type="button" class="badge-profile-link" onclick="viewEmployeeDetail('${emp.id}','employment')">${siIcon('edit', 13)} Editar en el perfil</button>` : ''}
       </div>
 
       <div class="badge-data-section">
-        <h3>Fotografía</h3>
-        <div style="text-align:center;margin:1rem 0">
+        <h3>Fotografía <span class="bds-source">· foto de perfil compartida</span></h3>
+        <div class="badge-photo-frame" id="badge-photo-frame">
           ${emp.photo_url
-            ? `<img src="${emp.photo_url}" style="width:120px;height:120px;border-radius:8px;object-fit:cover" />`
-            : '<div style="width:120px;height:120px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;margin:0 auto;color:var(--text-3)">Sin fotografía</div>'
+            ? `<img src="${esc(emp.photo_url)}" alt="Fotografía de ${esc(emp.first_name)} ${esc(emp.last_name)}" onerror="this.closest('#badge-photo-frame').classList.add('is-broken'); this.remove()" />
+               <div class="badge-photo-broken">${siIcon('alert-triangle', 18)}<span>No se pudo cargar</span></div>`
+            : `<div class="badge-photo-empty">${siIcon('user', 22)}<span>Sin fotografía</span></div>`
           }
         </div>
+        ${canWrite ? `
+        <div class="badge-photo-actions">
+          <label>${emp.photo_url ? 'Cambiar' : 'Agregar fotografía'}<input id="badge-photo-input" type="file" accept="${IMG_TYPES.join(',')}" aria-label="${emp.photo_url ? 'Cambiar fotografía' : 'Agregar fotografía'}" style="display:none" onchange="uploadBadgePhoto('${emp.id}', this)" /></label>
+          ${emp.photo_url ? `<button type="button" class="danger" onclick="removeBadgePhoto('${emp.id}')">Quitar</button>` : ''}
+        </div>
+        <div class="badge-photo-hint">JPG, PNG, WebP, GIF o AVIF · máx ${IMG_MAX_MB} MB</div>
+        ` : (emp.photo_url ? '' : '<div class="badge-photo-hint">Sin permiso de escritura para agregar fotografía</div>')}
+        <div class="bds-note">Esta es la fotografía de perfil del colaborador — no existe una versión exclusiva para el gafete. Cambiarla aquí la cambia en todo el sistema.</div>
       </div>
 
       <div class="badge-data-section">
-        <h3>Información del gafete</h3>
+        <h3>Código de barras <span class="bds-source">· CODE128 sobre el código de colaborador</span></h3>
         <div class="data-row">
-          <span class="data-label">Estado</span>
-          ${badgeStatusBadgeHtml('draft')}
+          <span class="data-label">Valor a codificar</span>
+          <code>${emp.employee_code ? esc(emp.employee_code) : '—'}</code>
         </div>
-        <div class="data-row">
-          <span class="data-label">Código de barras</span>
-          <code>${esc(emp.employee_code)}</code>
-        </div>
-      </div>
-
-      <div class="badge-readiness-checklist">
-        <h4>Lista de preparación</h4>
-        ${renderReadinessChecklist(emp)}
+        ${!emp.employee_code ? '<div class="bds-note" style="color:var(--danger)">Sin código de colaborador, el código de barras no puede generarse — esto bloquea la impresión y solo puede corregirse en el perfil.</div>' : ''}
       </div>
     </div>
   `
 }
 
-function renderReadinessChecklist(emp) {
-  const checks = [
-    { label: 'Código', ok: !!emp.employee_code },
-    { label: 'Nombre', ok: !!emp.first_name },
-    { label: 'Apellido', ok: !!emp.last_name },
-    { label: 'Departamento', ok: !!emp.department },
-    { label: 'Puesto', ok: !!emp.position },
-    { label: 'Fotografía', ok: !!emp.photo_url }
-  ]
-  return `
-    <ul style="margin:0;padding:0;list-style:none">
-      ${checks.map(c => `
-        <li style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:0.85rem;border-bottom:1px solid var(--border)">
-          <span style="color:${c.ok ? 'var(--success)' : 'var(--danger)'}">${c.ok ? '✓' : '✗'}</span>
-          ${c.label}
-        </li>
-      `).join('')}
-    </ul>
-  `
-}
-
+// The preview's fit/compare behavior is computed at paint time (initial
+// values here) and then continuously corrected against the *preview
+// container's* real size by initBadgePreviewWorkspace()'s ResizeObserver
+// (registered after this HTML is inserted — see renderBadgeModule). The
+// values below are only the first-paint guess so there's no flash of
+// wrong size before the observer's first callback fires.
 function renderBadgePreview(emp) {
   const issuance = _badge_ui.issuanceInProgress
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const zoomMode = issuance.zoomMode || 'fit'
+  const zoom = zoomMode === 'manual' ? (issuance.zoom || 1) : (issuance.fitZoom || 1)
+  const zoomPct = Math.round(zoom * 100)
+  const comparing = !!issuance.comparing
 
   return `
-    <div class="badge-preview-container">
-      <div class="badge-preview-tabs">
-        <button class="preview-tab ${issuance.preview_side === 'front' ? 'active' : ''}" onclick="_badge_ui.issuanceInProgress.preview_side = 'front'; renderBadgeModule()">
+    <div class="badge-preview-container${comparing ? ' is-comparing' : ''}" id="badge-preview-container">
+      <div class="badge-preview-tabs" role="tablist" aria-label="Lado del gafete">
+        <button class="preview-tab ${issuance.preview_side === 'front' ? 'active' : ''}" role="tab" id="badge-tab-front" aria-selected="${issuance.preview_side === 'front'}" aria-controls="badge-front-slot" tabindex="${issuance.preview_side === 'front' ? '0' : '-1'}" onclick="_badge_ui.issuanceInProgress.preview_side = 'front'; renderBadgeModule()">
           Frente
         </button>
-        <button class="preview-tab ${issuance.preview_side === 'back' ? 'active' : ''}" onclick="_badge_ui.issuanceInProgress.preview_side = 'back'; renderBadgeModule()">
+        <button class="preview-tab ${issuance.preview_side === 'back' ? 'active' : ''}" role="tab" id="badge-tab-back" aria-selected="${issuance.preview_side === 'back'}" aria-controls="badge-back-slot" tabindex="${issuance.preview_side === 'back' ? '0' : '-1'}" onclick="_badge_ui.issuanceInProgress.preview_side = 'back'; renderBadgeModule()">
           Reverso
         </button>
       </div>
 
-      <div class="badge-preview-area">
-        ${issuance.preview_side === 'front'
-          ? renderBadgeFront(emp, site)
-          : renderBadgeBack(emp, site)
-        }
+      <div class="badge-preview-area" id="badge-preview-area" style="--badge-zoom:${zoom}">
+        <div class="badge-card-slot ${issuance.preview_side === 'front' ? 'is-active' : ''}" id="badge-front-slot" role="tabpanel" aria-labelledby="badge-tab-front" data-side="front" style="transform:scale(${zoom})">
+          ${renderBadgeFront(emp, site)}
+        </div>
+        <div class="badge-card-slot ${issuance.preview_side === 'back' ? 'is-active' : ''}" id="badge-back-slot" role="tabpanel" aria-labelledby="badge-tab-back" data-side="back" style="transform:scale(${zoom})">
+          ${renderBadgeBack(emp, site)}
+        </div>
       </div>
 
+      <div class="badge-scale-caption">Tarjeta CR80 · 85.6 × 53.98 mm · horizontal</div>
+
       <div class="badge-preview-controls">
-        <button class="icon-btn" onclick="zoomBadgePreview(1.1)" title="Zoom In"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 6.5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
-        <button class="icon-btn" onclick="zoomBadgePreview(0.9)" title="Zoom Out"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+        <button class="icon-btn" onclick="zoomBadgePreview(-0.1)" aria-label="Alejar, ${zoomPct}% actual" ${zoom <= 0.5 ? 'disabled' : ''}><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+        <span class="badge-zoom-readout" id="badge-zoom-readout" aria-live="polite">${zoomMode === 'fit' ? `Ajustar · ${zoomPct}%` : `${zoomPct}%`}</span>
+        <button class="icon-btn" onclick="zoomBadgePreview(0.1)" aria-label="Acercar, ${zoomPct}% actual" ${zoom >= 2 ? 'disabled' : ''}><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 6.5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+        <button type="button" class="btn btn-ghost btn-sm badge-zoom-fit-btn" onclick="zoomBadgePreview('fit')" aria-label="Restablecer a tamaño ajustado" ${zoomMode === 'fit' ? 'disabled' : ''}>Ajustar</button>
       </div>
     </div>
   `
+}
+
+// Measures the badge card's real, unscaled layout box (offsetWidth/Height
+// are unaffected by the CSS `transform: scale()` used for zoom, so this
+// reads the true 85.6×53.98mm box as rendered by the browser at 96dpi —
+// no hardcoded mm→px conversion that could drift from actual font/box
+// metrics) so the fit computation is always against the actual card, not
+// an assumption about it.
+function _measureBadgeCardNatural() {
+  // Audit fix (section 5): outside .is-comparing mode, the inactive side's
+  // .badge-card-slot is display:none, which collapses offsetWidth/Height
+  // to 0 for everything inside it — including the front card when the
+  // Reverso tab is showing. Falling back to the back card (same physical
+  // CR80 geometry) means a viewport resize while viewing the back side
+  // still recomputes fit instead of silently freezing until the user
+  // flips back to Frente.
+  const front = document.getElementById('badge-front-preview')
+  if (front && front.offsetWidth) return { w: front.offsetWidth, h: front.offsetHeight }
+  const back = document.getElementById('badge-back-preview')
+  if (back && back.offsetWidth) return { w: back.offsetWidth, h: back.offsetHeight }
+  return null
+}
+
+let _badgePreviewRO = null
+// Container-aware fit + side-by-side compare — replaces the previous
+// fixed-viewport-width @media(min-width:1280px) approximation (flagged
+// as incorrect: a wide window with a narrower preview column, e.g. from
+// a wide data panel, would wrongly show side-by-side). A ResizeObserver
+// on the actual preview container recomputes both the fit scale and
+// whether both sides fit side-by-side, entirely independent of viewport
+// width. This only mutates the already-painted DOM directly (transform,
+// CSS var, readout text, a toggled class) — it never calls
+// renderBadgeModule() itself, so a resize can never trigger a render
+// loop against this same observer.
+function initBadgePreviewWorkspace() {
+  if (_badgePreviewRO) { try { _badgePreviewRO.disconnect() } catch (e) {} ; _badgePreviewRO = null }
+  const area = document.getElementById('badge-preview-area')
+  const container = document.getElementById('badge-preview-container')
+  if (!area || !container || typeof ResizeObserver === 'undefined') return
+  const GAP = 20 // matches .is-comparing .badge-preview-area gap in CSS
+  const apply = () => {
+    const issuance = _badge_ui.issuanceInProgress
+    if (!issuance) return
+    const natural = _measureBadgeCardNatural()
+    if (!natural) return
+    const rect = area.getBoundingClientRect()
+    const availW = Math.max(0, rect.width - 24)
+    const availH = Math.max(0, rect.height - 24)
+    const canCompare = availW >= (natural.w * 2 + GAP) && availH >= natural.h * 0.6
+    container.classList.toggle('is-comparing', canCompare)
+    issuance.comparing = canCompare
+    const rawFit = canCompare
+      ? Math.min((availW - GAP) / (natural.w * 2), availH / natural.h)
+      : Math.min(availW / natural.w, availH / natural.h)
+    issuance.fitZoom = +Math.min(2, Math.max(0.5, rawFit || 1)).toFixed(2)
+    const effectiveZoom = issuance.zoomMode === 'manual' ? (issuance.zoom || 1) : issuance.fitZoom
+    area.style.setProperty('--badge-zoom', effectiveZoom)
+    area.querySelectorAll('.badge-card-slot').forEach(slot => { slot.style.transform = `scale(${effectiveZoom})` })
+    const readout = document.getElementById('badge-zoom-readout')
+    const pct = Math.round(effectiveZoom * 100)
+    if (readout) readout.textContent = issuance.zoomMode === 'manual' ? `${pct}%` : `Ajustar · ${pct}%`
+  }
+  _badgePreviewRO = new ResizeObserver(() => apply())
+  _badgePreviewRO.observe(area)
+  apply()
 }
 
 function renderBadgeFront(emp, site) {
@@ -19874,7 +20237,7 @@ function renderBadgeFront(emp, site) {
       <div class="badge-company-color" style="background-color:${site?.badge_color || '#0A7A72'}"></div>
 
       <div class="badge-front-photo">
-        ${emp.photo_url ? `<img src="${emp.photo_url}" />` : '<div class="badge-photo-empty">No photo</div>'}
+        ${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'badge-photo-empty',textContent:'Sin foto'}))" />` : '<div class="badge-photo-empty">Sin foto</div>'}
       </div>
 
       <div class="badge-front-info">
@@ -19882,7 +20245,7 @@ function renderBadgeFront(emp, site) {
           <div class="badge-first-name">${esc(emp.first_name).toUpperCase()}</div>
           <div class="badge-last-name">${esc(emp.last_name).toUpperCase()}</div>
         </div>
-        <div class="badge-department">${esc(emp.department || 'Department').toUpperCase()}</div>
+        <div class="badge-department">${esc((emp.department || '').toUpperCase())}</div>
       </div>
 
       <div class="badge-front-code">
@@ -19913,41 +20276,88 @@ function renderBadgeBack(emp, site) {
 
       <div class="badge-back-info">
         <div class="badge-back-row">
-          <span class="badge-back-label">Emergency Contact:</span>
+          <span class="badge-back-label">Contacto de emergencia:</span>
           <span class="badge-back-value">${esc(emp.emergency_contact_name || '—')}</span>
         </div>
         <div class="badge-back-row">
-          <span class="badge-back-label">Phone:</span>
+          <span class="badge-back-label">Teléfono:</span>
           <span class="badge-back-value">${esc(emp.emergency_contact_phone || '—')}</span>
         </div>
         <div class="badge-back-row">
-          <span class="badge-back-label">Blood Type:</span>
-          <span class="badge-back-value">${esc(emp.blood_type || 'O+')}</span>
+          <span class="badge-back-label">Tipo de sangre:</span>
+          <span class="badge-back-value">${esc(emp.blood_type || '—')}</span>
         </div>
         ${emp.health_conditions ? `
         <div class="badge-back-row">
-          <span class="badge-back-label">Health Conditions:</span>
+          <span class="badge-back-label">Condiciones de salud:</span>
           <span class="badge-back-value">${esc(emp.health_conditions)}</span>
         </div>
         ` : ''}
       </div>
 
       <div class="badge-back-footer">
-        <p style="margin:0;font-size:6pt;color:#666">In case of emergency, contact the number listed above. Keep badge visible at all times.</p>
+        <p style="margin:0;font-size:6pt;color:#666">En caso de emergencia, contacte al número indicado. Mantenga el gafete visible en todo momento.</p>
       </div>
     </div>
   `
 }
 
+// factor is a delta (e.g. 0.1 / -0.1) applied to the *currently effective*
+// zoom (fit or manual), or the literal string 'fit' to drop back to the
+// live fit-to-container scale computed by initBadgePreviewWorkspace().
+// Clamped 50%-200% per the on-screen zoom range this workspace supports.
 function zoomBadgePreview(factor) {
-  // Implementation for zoom preview
-  toast('Zoom de vista previa — pendiente de implementación completa')
+  const issuance = _badge_ui.issuanceInProgress
+  if (!issuance) return
+  if (factor === 'fit') {
+    issuance.zoomMode = 'fit'
+  } else {
+    const current = issuance.zoomMode === 'manual' ? (issuance.zoom || 1) : (issuance.fitZoom || 1)
+    issuance.zoom = Math.min(2, Math.max(0.5, +(current + factor).toFixed(2)))
+    issuance.zoomMode = 'manual'
+  }
+  renderBadgeModule()
 }
 
 function closeBadgeIssuance() {
+  // Audit fix (section 5): initBadgePreviewWorkspace() disconnects the
+  // *previous* ResizeObserver before creating a new one on the next visit,
+  // but nothing previously disconnected it on the way OUT — leaving one
+  // live observer (watching an about-to-be-removed DOM node) retained by
+  // the _badgePreviewRO global for as long as the page stays open, even if
+  // the badge workspace is never reopened this session.
+  if (_badgePreviewRO) { try { _badgePreviewRO.disconnect() } catch (e) {} ; _badgePreviewRO = null }
   _badge_ui.issuanceInProgress = null
   _badge_ui.view = 'employees'
   renderBadgeModule()
+}
+
+// Thin wrappers around the shared uploadEmployeeDetailPhoto/removeEmployeePhoto
+// functions (same storage bucket, same `photo_url` column — there is no
+// badge-specific photo). Both underlying functions already call
+// renderBadgeModule() themselves, which destroys and rebuilds this
+// workspace's DOM (including the file input and "Cambiar/Agregar
+// fotografía" control) — without this, focus would silently fall back to
+// document.body after every upload/remove. These wrappers restore focus
+// to the (re-rendered) photo action control and announce the outcome via
+// the workspace's own live region.
+function _announceBadgeIssuance(msg) {
+  const el = document.getElementById('badge-issuance-announcer')
+  if (el) el.textContent = msg
+}
+function _focusBadgePhotoControl() {
+  const label = document.querySelector('.badge-photo-actions label')
+  if (label) { label.setAttribute('tabindex', '0'); label.focus() }
+}
+async function uploadBadgePhoto(empId, inputEl) {
+  await uploadEmployeeDetailPhoto(empId, inputEl)
+  _announceBadgeIssuance('Fotografía actualizada.')
+  _focusBadgePhotoControl()
+}
+async function removeBadgePhoto(empId) {
+  await removeEmployeePhoto(empId)
+  _announceBadgeIssuance('Fotografía eliminada.')
+  _focusBadgePhotoControl()
 }
 
 async function printBadge() {
@@ -19955,137 +20365,131 @@ async function printBadge() {
   const emp = _badge.employees.find(e => e.id === issuance.employee_id)
   if (!emp) return
 
-  // Generate real barcode using JsBarcode
-  const barcodeContainer = document.createElement('div')
-  JsBarcode(barcodeContainer, emp.employee_code, {
-    format: 'CODE128',
-    width: 2,
-    height: 50,
-    margin: 0,
-    fontSize: 12
-  })
+  // Defense in depth: the primary-action button is already disabled while
+  // required fields are missing (see renderBadgeIssuanceView), but printBadge
+  // can in principle be invoked directly — never let a badge print without a
+  // valid barcode payload or the other hard requirements.
+  const readiness = checkBadgeReadiness(emp)
+  if (!readiness.ready) {
+    toast('No se puede imprimir: ' + readiness.errors.map(e => e.message).join(' · '))
+    return
+  }
+
+  // Defense in depth, matching the readiness check above: every UI entry
+  // point into startBadgeIssuance() is gated on can('write','talento_humano')
+  // (the badge back carries blood type, emergency contact and health
+  // conditions), but printBadge() itself had no such gate and can in
+  // principle be called directly.
+  if (!can('write', 'talento_humano')) {
+    toast('No tienes permiso para imprimir gafetes')
+    return
+  }
+
+  // Double-submission guard: printBadge() is async and does real work
+  // (opens a window, waits on fonts/photo, writes to badge_issuances)
+  // before the view re-renders — a second click during that window
+  // previously had nothing stopping it from opening a second print
+  // window and inserting/updating a second time.
+  if (issuance.printing) return
+  issuance.printing = true
+  const printBtn = document.getElementById('badge-print-btn')
+  if (printBtn) { printBtn.disabled = true; printBtn.textContent = 'Imprimiendo…' }
+  const resetPrintingState = () => {
+    issuance.printing = false
+    const btn = document.getElementById('badge-print-btn')
+    if (btn) { btn.disabled = false; btn.textContent = 'Imprimir gafete' }
+  }
 
   // Create print document with actual SIERRA badge design
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
   const w = window.open('', '_blank', 'width=900,height=700')
 
+  // Bug fix: window.open() returns null when the browser's popup blocker
+  // intervenes — the previous code went straight into w.document.write(...)
+  // against a null reference, throwing before the user saw any explanation.
+  if (!w) {
+    toast('No se pudo abrir la ventana de impresión — habilita las ventanas emergentes para este sitio e inténtalo de nuevo')
+    resetPrintingState()
+    return
+  }
+
+  // Bug fix: the print window is a brand-new `document`, whose base URL is
+  // about:blank — the main document's @font-face rules use paths relative
+  // to index.html ("Replica Bold.otf") which do NOT resolve there. Build
+  // absolute URLs against the page's own location so the print output uses
+  // real Replica/Replica Mono instead of silently falling back to a
+  // system font (a FOUT-to-print with no visible warning).
+  const fontUrl = (file) => new URL(file, location.href).href
+  const badgeColor = site?.badge_color || '#0A7A72'
+
+  // Bug fix: the previous print document only ever contained the front —
+  // the back (barcode, emergency contact, blood type, health conditions)
+  // was never printed at all, regardless of which preview tab was open.
+  // Both sides now print, one badge-sized page each.
   const html = `
     <!DOCTYPE html>
     <html>
     <head>
       <title>SIERRA Badge - ${esc(emp.first_name)} ${esc(emp.last_name)}</title>
       <style>
+        @font-face { font-family:"Replica"; src:url("${fontUrl('Replica Light.otf')}") format("opentype"); font-weight:300; }
+        @font-face { font-family:"Replica"; src:url("${fontUrl('Replica Regular.otf')}") format("opentype"); font-weight:400; }
+        @font-face { font-family:"Replica"; src:url("${fontUrl('Replica Bold.otf')}") format("opentype"); font-weight:700; }
+        @font-face { font-family:"Replica Mono"; src:url("${fontUrl('ReplicaMonoLL-Regular.otf')}") format("opentype"); font-weight:400; }
         @page { size: 85.6mm 53.98mm; margin: 0; }
         @media print {
-          body { margin: 0; padding: 0; }
-          .badge-sheet { margin: 0; }
+          body { margin: 0; padding: 0; background: #fff; }
+          .badge-sheet { box-shadow: none; margin: 0; page-break-after: always; }
+          .badge-sheet:last-child { page-break-after: auto; }
+          .no-print { display: none !important; }
         }
-        body {
-          font-family: 'Replica', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
-          margin: 10px;
-          background: #f5f5f5;
-        }
-        .badge-sheet {
-          width: 85.6mm;
-          height: 53.98mm;
-          background: #fff;
-          box-sizing: border-box;
-          page-break-inside: avoid;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-          display: grid;
-          grid-template-rows: 1fr;
-          position: relative;
-          margin-bottom: 20px;
-        }
-        .badge-front {
-          grid-row: 1;
-          grid-column: 1;
-          padding: 3mm;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: space-between;
-          text-align: center;
-          background: linear-gradient(135deg, #f9f9f9 0%, #fff 100%);
-          border-radius: 4mm;
-          border: 1px solid #eee;
-          position: relative;
-          overflow: hidden;
-        }
-        .badge-sierra-logo {
-          width: 25mm;
-          height: auto;
-          color: #007d73;
-          font-weight: 700;
-        }
-        .badge-company-bar {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 3mm;
-          background: ${site?.badge_color || '#0A7A72'};
-        }
-        .badge-employee-photo {
-          width: 28mm;
-          height: 28mm;
-          border-radius: 2mm;
-          object-fit: cover;
-          margin: 2mm 0;
-          border: 1px solid #ddd;
-        }
-        .badge-employee-name {
-          margin-top: 2mm;
-          line-height: 1.1;
-        }
-        .badge-first-name {
-          font-size: 11pt;
-          font-weight: 700;
-          color: #000;
-        }
-        .badge-last-name {
-          font-size: 11pt;
-          font-weight: 700;
-          color: #000;
-          margin-top: 1mm;
-        }
-        .badge-department {
-          font-size: 8pt;
-          color: #666;
-          margin-top: 1mm;
-        }
-        .badge-code {
-          font-size: 7pt;
-          color: #888;
-          font-family: 'Courier New', monospace;
-          margin-top: 2mm;
-          letter-spacing: 0.5px;
-        }
-        .badge-barcode {
-          text-align: center;
-          margin: 2mm 0;
-        }
-        .badge-barcode svg {
-          max-width: 100%;
-          height: auto;
-        }
+        body { font-family: 'Replica', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 10px; background: #f5f5f5; }
+        .badge-sheet { width: 85.6mm; height: 53.98mm; background: #fff; box-sizing: border-box; page-break-inside: avoid; box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: relative; margin-bottom: 20px; padding: 3mm; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; border-radius: 4mm; border: 1px solid #eee; overflow: hidden; }
+        .badge-sheet.is-back { justify-content: flex-start; }
+        .badge-sierra-logo { width: 22mm; height: auto; color: #007d73; font-weight: 700; }
+        .badge-company-bar { position: absolute; top: 0; left: 0; right: 0; height: 3mm; background: ${badgeColor}; }
+        .badge-employee-photo { width: 28mm; height: 28mm; border-radius: 2mm; object-fit: cover; margin: 2mm 0; border: 1px solid #ddd; }
+        .badge-employee-name { margin-top: 2mm; line-height: 1.1; }
+        .badge-first-name, .badge-last-name { font-size: 11pt; font-weight: 700; color: #000; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 78mm; }
+        .badge-last-name { margin-top: 1mm; }
+        .badge-department { font-size: 8pt; color: #666; margin-top: 1mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 78mm; }
+        .badge-code { font-size: 7pt; color: #888; font-family: 'Replica Mono', 'Courier New', monospace; margin-top: 2mm; letter-spacing: 0.5px; }
+        .badge-barcode { text-align: center; margin: 2mm 0; width: 100%; }
+        .badge-barcode svg { max-width: 100%; height: auto; }
+        .badge-back-rows { width: 100%; text-align: left; font-size: 7.5pt; color: #222; margin-top: 1mm; }
+        .badge-back-rows div { margin-bottom: 1mm; }
+        .badge-back-rows b { color: #000; }
+        .badge-back-footer { font-size: 6pt; color: #666; margin-top: auto; }
       </style>
     </head>
     <body>
       <div class="badge-sheet">
-        <div class="badge-front">
-          <div class="badge-company-bar"></div>
-          <svg class="badge-sierra-logo" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
-            <text x="50" y="25" font-family="Replica" font-size="18" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text>
-          </svg>
-          ${emp.photo_url ? `<img src="${emp.photo_url}" class="badge-employee-photo" />` : '<div style="width:28mm;height:28mm;background:#eee;border-radius:2mm;display:flex;align-items:center;justify-content:center;color:#999">No photo</div>'}
-          <div class="badge-employee-name">
-            <div class="badge-first-name">${esc(emp.first_name).toUpperCase()}</div>
-            <div class="badge-last-name">${esc(emp.last_name).toUpperCase()}</div>
-          </div>
-          <div class="badge-department">${esc(emp.department || 'Department').toUpperCase()}</div>
-          <div class="badge-code">${esc(emp.employee_code)}</div>
+        <div class="badge-company-bar"></div>
+        <svg class="badge-sierra-logo" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
+          <text x="50" y="25" font-family="Replica" font-size="18" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text>
+        </svg>
+        ${emp.photo_url ? `<img src="${esc(emp.photo_url)}" class="badge-employee-photo" data-badge-asset="photo" />` : '<div style="width:28mm;height:28mm;background:#eee;border-radius:2mm;display:flex;align-items:center;justify-content:center;color:#999">Sin foto</div>'}
+        <div class="badge-employee-name">
+          <div class="badge-first-name" title="${esc(emp.first_name)}">${esc(emp.first_name).toUpperCase()}</div>
+          <div class="badge-last-name" title="${esc(emp.last_name)}">${esc(emp.last_name).toUpperCase()}</div>
         </div>
+        <div class="badge-department" title="${esc(emp.department || '')}">${esc(emp.department || '').toUpperCase()}</div>
+        <div class="badge-code">${esc(emp.employee_code)}</div>
+      </div>
+      <div class="badge-sheet is-back">
+        <div class="badge-company-bar"></div>
+        <svg class="badge-sierra-logo" style="width:16mm" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
+          <text x="50" y="25" font-family="Replica" font-size="14" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text>
+        </svg>
+        <div class="badge-barcode" data-badge-asset="barcode"></div>
+        <div class="badge-code">${esc(emp.employee_code)}</div>
+        <div class="badge-back-rows">
+          <div><b>Contacto de emergencia:</b> ${esc(emp.emergency_contact_name || '—')}</div>
+          <div><b>Teléfono:</b> ${esc(emp.emergency_contact_phone || '—')}</div>
+          <div><b>Tipo de sangre:</b> ${esc(emp.blood_type || '—')}</div>
+          ${emp.health_conditions ? `<div><b>Condiciones de salud:</b> ${esc(emp.health_conditions)}</div>` : ''}
+        </div>
+        <div class="badge-back-footer">En caso de emergencia, contacte al número indicado. Mantenga el gafete visible en todo momento.</div>
       </div>
     </body>
     </html>
@@ -20094,44 +20498,119 @@ async function printBadge() {
   w.document.write(html)
   w.document.close()
 
-  // Generate and inject barcode after document is loaded
-  setTimeout(() => {
-    try {
-      const barcodeDiv = w.document.querySelector('.badge-barcode')
-      if (barcodeDiv && typeof JsBarcode !== 'undefined') {
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-        barcodeDiv.appendChild(svg)
-        JsBarcode(svg, emp.employee_code, { format: 'CODE128', width: 2, height: 40, margin: 0 })
-      }
-      w.print()
-    } catch (e) {
-      console.error('Barcode generation error:', e)
-      w.print()
-    }
-  }, 500)
-
-  // Save issuance record
-  const { error } = await sb.from('badge_issuances').insert({
-    employee_id: emp.id,
-    status: 'printed',
-    snapshot: {
-      first_name: emp.first_name,
-      last_name: emp.last_name,
-      employee_code: emp.employee_code,
-      department: emp.department,
-      position: emp.position
-    },
-    template_id: null,
-    company_color: _badge.sites.find(s => s.id === _badge.activeSite)?.badge_color,
-    printed_at: new Date().toISOString(),
-    printed_by: me.id,
-    created_by: me.id
+  // Bug fix: printing previously fired on a blind, fixed setTimeout(500)
+  // regardless of whether the photo image or the barcode SVG had actually
+  // finished loading/rendering — real risk of a badge printing with a
+  // half-loaded photo or a missing barcode on a slow connection. Now we
+  // explicitly wait for (a) the print window's fonts, and (b) the photo
+  // <img> to load or fail, with a hard 4s cap so a stalled asset can never
+  // block printing indefinitely.
+  await new Promise(resolve => {
+    let settled = false
+    const done = () => { if (!settled) { settled = true; resolve() } }
+    const cap = setTimeout(done, 4000)
+    const imgEl = w.document.querySelector('[data-badge-asset="photo"]')
+    const fontsReady = w.document.fonts && w.document.fonts.ready ? w.document.fonts.ready.catch(() => {}) : Promise.resolve()
+    const imgReady = imgEl && !imgEl.complete
+      ? new Promise(res => { imgEl.addEventListener('load', res, { once: true }); imgEl.addEventListener('error', res, { once: true }) })
+      : Promise.resolve()
+    Promise.all([fontsReady, imgReady]).then(() => { clearTimeout(cap); done() })
   })
 
-  if (!error) {
-    toast('¡Gafete impreso y registrado!')
+  // Bug fix: when JsBarcode isn't loaded (e.g. the cdnjs script failed to
+  // fetch), the old code's `typeof JsBarcode !== 'undefined'` guard just
+  // skipped rendering — leaving `barcodeHolder` empty and printing a blank
+  // rectangle where the barcode belongs, with no indication anything was
+  // wrong. Now an unavailable encoder or an encoder error both print a
+  // legible message instead of empty space, and are worded differently
+  // (unavailable vs. invalid input) since they are different failure modes.
+  const barcodeHolder = w.document.querySelector('[data-badge-asset="barcode"]')
+  if (barcodeHolder) {
+    if (typeof JsBarcode === 'undefined') {
+      barcodeHolder.innerHTML = '<div style="font-size:7pt;color:#b3261e;border:1px dashed #b3261e;padding:2mm">Código de barras no disponible (librería no cargada)</div>'
+    } else {
+      try {
+        const svg = w.document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        barcodeHolder.appendChild(svg)
+        JsBarcode(svg, emp.employee_code, { format: 'CODE128', width: 1.6, height: 34, margin: 0, fontSize: 9 })
+      } catch (e) {
+        console.error('Barcode generation error:', e)
+        barcodeHolder.innerHTML = `<div style="font-size:7pt;color:#b3261e;border:1px dashed #b3261e;padding:2mm">Código de barras inválido para "${esc(emp.employee_code)}"</div>`
+      }
+    }
   }
 
+  w.print()
+
+  // Honesty fix: `.print()` returning does NOT mean the badge was actually
+  // printed — it opens the OS print dialog and returns almost immediately
+  // regardless of whether the user goes on to print or cancels. The
+  // previous code wrote the 'printed' status/printed_at/printed_by and
+  // showed "¡Gafete impreso!" the instant `.print()` was called, which
+  // overclaimed success on every cancellation. `afterprint` fires once the
+  // dialog closes either way (print or cancel) in the browsers this app
+  // targets, which is a strictly better signal than "dialog opened" even
+  // though it still can't distinguish "printed" from "cancelled" — that
+  // ambiguity is real and unresolved by any reliable cross-browser JS
+  // signal, so it is documented here rather than papered over. A 15s
+  // fallback covers browsers/popup setups that never fire `afterprint`, so
+  // the workspace can't be left stuck open indefinitely.
+  await new Promise(resolve => {
+    let settled = false
+    const finish = () => { if (settled) return; settled = true; resolve() }
+    try { w.addEventListener('afterprint', finish, { once: true }) } catch (e) {}
+    setTimeout(finish, 15000)
+  })
+
+  // Bug fix: this used to unconditionally INSERT a new 'printed' row even
+  // when this employee already had an existing draft/ready_to_print
+  // badge_issuances row (created via "Crear gafetes" bulk action or the
+  // hire-wizard's "queue badge" option) — orphaning that row forever in
+  // 'draft' status while a second, disconnected 'printed' row appeared.
+  // We now transition the most recent open issuance for this employee
+  // instead of always creating a new one, matching the documented
+  // draft → ready_to_print → printed lifecycle.
+  //
+  // Known limitation (reported, not fixed — fixing it needs new UI this
+  // pass isn't authorized to add): when the employee's latest badge is
+  // already 'printed' — a genuine reprint — `existing` below is undefined
+  // (it only matches draft/ready_to_print), so this inserts a brand-new
+  // row rather than corrupting the original. That's safe, but the new row
+  // carries no is_reprint/original_issuance_id link back to the badge it
+  // reprints, so a real reprint and a true first-time print are
+  // indistinguishable in badge_issuances history.
+  const existing = _badge.badges.find(b => b.employee_id === emp.id && ['draft', 'ready_to_print'].includes(b.status))
+  const isReprint = !existing && _badge.badges.some(b => b.employee_id === emp.id && b.status === 'printed')
+  // Audit finding (section 2): snapshot carries only the fields the
+  // pre-existing print contract already persisted. photo_url/blood_type
+  // were added here by a prior pass with no authoritative citation —
+  // badge_issuances is readable under the broader 'talento_humano read'
+  // RLS grant (can_view_employee), not the narrower write/manage grant
+  // that gates printing, so persisting blood_type (sensitive medical
+  // data) into this immutable historical record would silently widen who
+  // can see it. Reverted to the original 5-field snapshot pending an
+  // explicit product/legal decision — see report.
+  const snapshot = {
+    first_name: emp.first_name, last_name: emp.last_name, employee_code: emp.employee_code,
+    department: emp.department, position: emp.position,
+  }
+  const payload = {
+    status: 'printed', snapshot,
+    company_color: badgeColor,
+    printed_at: new Date().toISOString(), printed_by: me.id,
+  }
+  const { error } = existing
+    ? await sb.from('badge_issuances').update(payload).eq('id', existing.id)
+    : await sb.from('badge_issuances').insert({ employee_id: emp.id, template_id: null, created_by: me.id, ...payload })
+
+  if (!error) {
+    Audit.log('employee', emp.id, emp, 'badge_printed', `Gafete impreso${existing ? '' : isReprint ? ' (reimpresión, sin registro previo abierto)' : ' (nuevo)'}`)
+    toast('Gafete enviado a impresión y registrado')
+  } else {
+    toast('El gafete se envió a impresión, pero no se pudo registrar: ' + error.message)
+  }
+
+  resetPrintingState()
   closeBadgeIssuance()
   await loadBadgeData()
   renderBadgeModule()
