@@ -6489,21 +6489,26 @@
       color: #cd4f00;
     }
     /* Name is the single dominant element on the card — bold Replica,
-       centered. Item 2 rewrite: fitBadgeNameLines() (real canvas-measured,
-       word-boundary-aware wrapping across the approved size tiers) decides
-       both the font size AND how many lines/what text each line holds
-       BEFORE this markup is built — this rule only has to render whatever
-       line it's given. No ellipsis, no forced single line, no horizontal
-       scaling: a name that cannot fit at any tier is a hard print-blocker
-       (see checkBadgeReadiness()), never a silent truncation. Shared
-       verbatim by the on-screen preview and the print document (identical
-       CSS text properties in both; only the print copy lives in its own
-       inline <style> since it's a separate `document`). */
+       centered. Item 2/8 rework: fitBadgeNameLines() (real canvas-measured,
+       word-boundary-aware wrapping across BADGE_NAME_LINE_TIERS, one row
+       per actual resulting line count) decides the font size, the
+       line-height ratio (tighter for a denser/more-lines block — see
+       BADGE_NAME_LINE_TIERS's comment), AND how many lines/what text each
+       line holds BEFORE this markup is built — this rule only has to
+       render whatever line it's given. font-size/line-height are always
+       supplied inline per resolved tier (matching this pass's rework); the
+       1.05 below is a defensive fallback only, never actually relied on.
+       No ellipsis, no forced single line, no horizontal scaling: a name
+       that cannot fit at any tier is a hard print-blocker (see
+       checkBadgeReadiness()), never a silent truncation. Shared verbatim
+       by the on-screen preview and the print document (identical CSS text
+       properties in both; only the print copy lives in its own inline
+       <style> since it's a separate `document`). */
     .badge-front-nameline {
       font-family: 'Replica', sans-serif;
       font-weight: 700;
       text-transform: uppercase;
-      line-height: 1.16;
+      line-height: 1.05;
       letter-spacing: 0.01em;
       color: #0b0b0b;
       max-width: 100%;
@@ -20748,23 +20753,55 @@ function initBadgePreviewWorkspace() {
 
 // Adaptive-but-bounded name type scale: a very long two-part name steps
 // down through a small fixed ramp instead of clipping or overflowing the
-// physical card. Ellipsis (.badge-front-nameline's overflow:hidden) remains
-// the last-resort floor for a single token that would still overflow even
-// at the smallest step. Shared by the on-screen preview and the print
-// document — never a second, independently-tuned copy of these thresholds.
-// Thresholds/values retuned this pass for the portrait panel's narrower
-// text column (~48mm) vs. the previous landscape layout's ~76mm — see the
-// redesign report's "long name" fixture result for the measured floor.
-// Item 2 rewrite (this pass): badgeNameFontSizePt() used to pick a size
-// tier from raw character COUNT, an heuristic that has nothing to do with
-// how wide the text actually renders (a name in "iiiiii" is a fraction of
-// the width of "MMMMMM" at the same length) — the design system's own
-// bounded tier list is the correct idea, but the size PICK must be driven
-// by genuine rendered-width measurement, not a proxy for it. Kept exactly
-// the tiers a prior pass established (16 / 13.5 / 11pt), re-confirmed
-// unchanged in this pass; only the SELECTION and the LINE-BREAKING logic
-// change, replacing badgeNameFontSizePt() with fitBadgeNameLines() below.
-const BADGE_NAME_SIZE_TIERS_PT = [16, 13.5, 11]
+// physical card. Never truncated/ellipsized — a name with no valid tier is
+// a hard print-blocker (see checkBadgeReadiness()), not a silent overflow.
+// Shared by the on-screen preview and the print document — never a second,
+// independently-tuned copy of these thresholds.
+//
+// Item 2 rework (this pass, badge name compactness): the previous single
+// flat list [16, 13.5, 11]pt + one shared line-height (1.16, in the CSS
+// rule below) picked the LARGEST tier that merely satisfied width and a
+// flat 4-line cap — with no idea how many lines that tier actually
+// produced. A name needing 3 wrapped lines could still land on the 16pt
+// tier if it happened to be narrow enough, making a 3-line block read as
+// oversized with loose leading and crowd the position/footer below (the
+// defect this pass was asked to fix). Replaced with BADGE_NAME_LINE_TIERS
+// below: one row per ACTUAL RESULTING LINE COUNT (1-4), each carrying its
+// own font-size AND its own line-height ratio — tighter leading for a
+// denser, more-lines block; slightly more open leading for a 1-2 line
+// block that isn't fighting for vertical space. fitBadgeNameLines() tries
+// rows in order (fewest lines first) and accepts the first that fits both
+// width and (when supplied) the real remaining vertical budget — this is
+// what makes the algorithm prefer a compact result for a short name
+// instead of dragging every name down to a conservative common size.
+//
+// Sizes/ratios below are a reasoned starting point, verified by actually
+// rendering and screenshotting all four line-count fixtures (see this
+// pass's report), not derived from a formula:
+//  - 1 line (15pt/1.05): only reached when the FULL "first last" sequence
+//    fits on one shared line (root cause #2's fix — see the 1-line branch
+//    of fitBadgeNameLines() below); slightly larger than the 2-line tier
+//    since it's inherently the most compact case and can afford it.
+//  - 2 lines (14pt/1.08): the common case for a normal two-word name
+//    (first name / last name, one line each) — a moderate ~12.5% size cut
+//    from the old flat 16pt default, with tighter leading (from 1.16),
+//    while remaining unmistakably the card's dominant text.
+//  - 3 lines (12pt/1.02): a genuinely longer name (e.g. a compound first
+//    name plus a normal surname) — smaller and tighter so 3 lines still
+//    reads as a compact block, not a 3-line version of the 2-line size.
+//  - 4 lines (10.5pt/0.98): the maximum permitted density, for a name
+//    that needs every one of the 4 lines even at a small size — leading
+//    tightened to just under 1.0 (verified this still reads cleanly for
+//    all-caps display type, which has no descenders to clear).
+// `lines` also doubles as this pass's replacement for the old flat
+// BADGE_NAME_MAX_LINES cap — BADGE_NAME_LINE_TIERS.length rows, last row's
+// `lines` is the true ceiling.
+const BADGE_NAME_LINE_TIERS = [
+  { lines: 1, size: 15, lineHeight: 1.05 },
+  { lines: 2, size: 14, lineHeight: 1.08 },
+  { lines: 3, size: 12, lineHeight: 1.02 },
+  { lines: 4, size: 10.5, lineHeight: 0.98 },
+]
 // Bug fix (this pass): the previous 46mm value only subtracted the panel's
 // own 3mm+3mm horizontal padding from BADGE_W, silently dropping
 // .badge-front's OWN 3mm+3mm outer padding (see .badge-front's `padding:
@@ -20787,14 +20824,16 @@ const BADGE_NAME_MAX_WIDTH_MM = 41.98
 // a reference file): the front card's vertical budget is header (~10mm) +
 // photoblock (30mm min) + panel chrome (idline + position line + padding,
 // ~10mm) + companybar (~7mm) inside an 85.6mm-tall card — leaving roughly
-// enough room for 4 short lines of name text at the smallest (11pt) tier
-// before the panel would have to grow into print-unsafe territory. 2 is
-// the normal case (first name / last name, one line each); up to 4 covers
-// a genuinely compound first AND last name (e.g. "Juan Carlos" / "De La
+// enough room for 4 short lines of name text at the smallest tier before
+// the panel would have to grow into print-unsafe territory. 2 is the
+// normal case (first name / last name, one line each); up to 4 covers a
+// genuinely compound first AND last name (e.g. "Juan Carlos" / "De La
 // Cruz") each needing 2 lines of their own at the smallest tier. Beyond
 // this, checkBadgeReadiness() below reports a hard error rather than
-// letting layout silently overflow past the card's safe margin.
-const BADGE_NAME_MAX_LINES = 4
+// letting layout silently overflow past the card's safe margin. (Formerly
+// a standalone BADGE_NAME_MAX_LINES constant; now simply the `lines` value
+// of BADGE_NAME_LINE_TIERS' last row, so the line-count ceiling and its
+// tier's size/line-height can never drift apart.)
 let _badgeNameMeasureCtx = null
 // Real DOM/canvas measurement of how wide `text` renders in the actual
 // Replica Bold face at `sizePt` — replaces the character-count heuristic.
@@ -20867,14 +20906,90 @@ function badgeWrapWords(words, maxWidthPx, widthFn) {
 function badgeWrapNameWords(words, sizePt, maxWidthPx) {
   return badgeWrapWords(words, maxWidthPx, t => badgeNameTextWidthPx(t, sizePt))
 }
-// The authoritative name-fitting algorithm (item 2), shared verbatim by
-// renderBadgeFront() (preview) and printBadge() (print) so the two can
-// never diverge, and by checkBadgeReadiness() for the hard-blocker below.
-// Tries each approved size tier, largest first; within each tier, wraps
-// the given name(s) and surname(s) independently at real word boundaries
-// (so "Juan Carlos" or "De La Cruz" break between words, never mid-word)
-// and accepts the first tier where every resulting line actually measures
-// within budget AND the total line count stays within the physical cap.
+// Item 4 refinement (this pass, "prefer balanced lines at natural word
+// boundaries"): badgeWrapWords() above is a plain greedy wrap — it always
+// crams as many words as fit onto the current line before starting a new
+// one, which for a 2-word group can produce a visually lopsided result
+// (one very long line, one very short one) even when a more balanced
+// 2-line split of the SAME words would also fit. This wraps `words` at
+// `sizePt`/`maxWidthPx` exactly like the greedy version to find how many
+// lines it actually needs (never changes the resulting LINE COUNT — only
+// which words land on which line), then brute-forces every way to cut the
+// same word sequence into that many contiguous groups, keeping only
+// splits where every group still fits `maxWidthPx`, and returns whichever
+// of those minimizes the widest single line. Word counts in a name are
+// always small (rarely more than 3-4 per first/last group) so the
+// brute-force cost here is negligible. Falls back to the plain greedy
+// result when no split does better (single-word groups, or a group that
+// only fits one way).
+function badgeWrapWordsBalanced(words, maxWidthPx, widthFn) {
+  const greedy = badgeWrapWords(words, maxWidthPx, widthFn)
+  if (words.length <= 1 || greedy.length <= 1) return greedy
+  const n = greedy.length
+  let best = null, bestMaxWidth = Infinity
+  // Enumerate every composition of `words` into exactly `n` contiguous,
+  // non-empty groups via n-1 cut points chosen from the n-1 internal
+  // boundaries between words.
+  const cutPositions = []
+  ;(function choose(startIdx, cutsLeft, chosen) {
+    if (cutsLeft === 0) { cutPositions.push(chosen); return }
+    for (let i = startIdx; i <= words.length - cutsLeft; i++) {
+      choose(i + 1, cutsLeft - 1, [...chosen, i])
+    }
+  })(1, n - 1, [])
+  for (const cuts of cutPositions) {
+    const boundaries = [...cuts, words.length]
+    let prev = 0, ok = true, maxWidth = 0
+    const groups = []
+    for (const b of boundaries) {
+      const group = words.slice(prev, b).join(' ')
+      const w = widthFn(group)
+      if (w > maxWidthPx) { ok = false; break }
+      maxWidth = Math.max(maxWidth, w)
+      groups.push(group)
+      prev = b
+    }
+    if (ok && maxWidth < bestMaxWidth) { bestMaxWidth = maxWidth; best = groups }
+  }
+  return best || greedy
+}
+function badgeWrapNameWordsBalanced(words, sizePt, maxWidthPx) {
+  return badgeWrapWordsBalanced(words, maxWidthPx, t => badgeNameTextWidthPx(t, sizePt))
+}
+// The authoritative name-fitting algorithm (item 2/7/8 rework, this
+// pass), shared verbatim by renderBadgeFront() (preview) and printBadge()
+// (print) so the two can never diverge, and by checkBadgeReadiness() for
+// the hard-blocker below.
+//
+// Tries BADGE_NAME_LINE_TIERS in order — fewest lines (largest, most
+// authoritative size) first — and accepts the first row that both fits
+// the horizontal budget and (when `maxHeightPx` is supplied — the
+// composite call always does, mirroring fitBadgePositionLines()'s
+// pattern below) the real remaining vertical budget. This is what makes
+// the algorithm prefer a compact result for a name that doesn't need
+// more lines, rather than the old flat list's "largest tier that
+// happens to satisfy a flat line-count cap" rule, which could land a
+// 3-line result on the biggest size merely because it was narrow enough.
+//
+// Root cause #2 fix (1-line case): a true single-line name is only
+// possible when the COMPLETE "first last" word sequence fits together on
+// one line — the 1-line tier row is tried as exactly that: the full
+// sequence joined as one string, never a partial merge that would split
+// across the first/last-name boundary (e.g. "JUAN CARLOS DE" / "LA
+// CRUZ" — ambiguous to an operator reading which word starts the
+// surname). If the complete name doesn't fit on one line, this branch
+// simply fails and falls through to the 2-line tier, where first-name
+// words and last-name words go back to being wrapped as two independent
+// groups (unchanged from the original architecture) — so the "which word
+// is the surname" boundary stays visually intact whenever the name needs
+// more than one line, and only collapses when there's truly one line's
+// worth of text and nothing to be ambiguous about.
+//
+// From the 2-line tier down, each group is wrapped with
+// badgeWrapNameWordsBalanced() (item 4) so a group that must itself wrap
+// (e.g. "Juan Carlos" needing 2 lines within a 3-line-total tier) prefers
+// a balanced split over the plain greedy one.
+//
 // Returns `fits:false` (using the smallest tier's best attempt, for
 // diagnostic display only) when no tier/line-break combination works —
 // callers must treat that as a hard print-blocker, never a silent
@@ -20888,23 +21003,42 @@ function badgeWrapNameWords(words, sizePt, maxWidthPx) {
 // 41.98mm was STILL off by a few px against the real rendered column once
 // checked against genuine getBoundingClientRect() numbers — real
 // measurement is the only thing that cannot silently drift from the CSS).
-function fitBadgeNameLines(firstName, lastName, maxWidthPx = BADGE_NAME_MAX_WIDTH_MM * (96 / 25.4)) {
+// `maxHeightPx` (item 7, new this pass): null fits width/line-count only
+// (used by the smallest-tier diagnostic fallback below); every real
+// caller (computeBadgeFrontComposite()) always passes the true measured
+// remaining budget, exactly mirroring fitBadgePositionLines()'s contract.
+function fitBadgeNameLines(firstName, lastName, maxWidthPx = BADGE_NAME_MAX_WIDTH_MM * (96 / 25.4), maxHeightPx = null) {
   const firstWords = String(firstName || '').trim().split(/\s+/).filter(Boolean)
   const lastWords = String(lastName || '').trim().split(/\s+/).filter(Boolean)
-  for (const size of BADGE_NAME_SIZE_TIERS_PT) {
-    const firstLines = badgeWrapNameWords(firstWords, size, maxWidthPx)
-    const lastLines = badgeWrapNameWords(lastWords, size, maxWidthPx)
+  const fullWords = [...firstWords, ...lastWords]
+  for (const tier of BADGE_NAME_LINE_TIERS) {
+    if (tier.lines === 1) {
+      if (!fullWords.length) continue
+      const line = fullWords.join(' ')
+      const widthOk = badgeNameTextWidthPx(line, tier.size) <= maxWidthPx
+      const heightPx = badgeLineHeightPx(tier.size, tier.lineHeight)
+      const heightOk = maxHeightPx == null || heightPx <= maxHeightPx
+      if (widthOk && heightOk) {
+        return { fontSize: tier.size, lineHeight: tier.lineHeight, firstLines: [line], lastLines: [], fits: true }
+      }
+      continue
+    }
+    const firstLines = badgeWrapNameWordsBalanced(firstWords, tier.size, maxWidthPx)
+    const lastLines = badgeWrapNameWordsBalanced(lastWords, tier.size, maxWidthPx)
     const allLines = [...firstLines, ...lastLines]
-    const allFit = allLines.every(l => badgeNameTextWidthPx(l, size) <= maxWidthPx)
-    if (allLines.length <= BADGE_NAME_MAX_LINES && allFit) {
-      return { fontSize: size, firstLines, lastLines, fits: true }
+    const widthOk = allLines.every(l => badgeNameTextWidthPx(l, tier.size) <= maxWidthPx)
+    const heightPx = allLines.length * badgeLineHeightPx(tier.size, tier.lineHeight)
+    const heightOk = maxHeightPx == null || heightPx <= maxHeightPx
+    if (widthOk && allLines.length <= tier.lines && heightOk) {
+      return { fontSize: tier.size, lineHeight: tier.lineHeight, firstLines, lastLines, fits: true }
     }
   }
-  const size = BADGE_NAME_SIZE_TIERS_PT[BADGE_NAME_SIZE_TIERS_PT.length - 1]
+  const tier = BADGE_NAME_LINE_TIERS[BADGE_NAME_LINE_TIERS.length - 1]
   return {
-    fontSize: size,
-    firstLines: badgeWrapNameWords(firstWords, size, maxWidthPx),
-    lastLines: badgeWrapNameWords(lastWords, size, maxWidthPx),
+    fontSize: tier.size,
+    lineHeight: tier.lineHeight,
+    firstLines: badgeWrapNameWordsBalanced(firstWords, tier.size, maxWidthPx),
+    lastLines: badgeWrapNameWordsBalanced(lastWords, tier.size, maxWidthPx),
     fits: false,
   }
 }
@@ -21126,9 +21260,23 @@ function computeBadgeFrontComposite(emp, site) {
   const availableForCardPx = totalInnerHeightPx - geom.headerHeightPx - geom.companybarMarginTopPx - companybarHeightPx
   const availableForPanelPx = availableForCardPx - geom.photoblockMinHeightPx - geom.cardGapPx
 
-  const nameFit = fitBadgeNameLines(emp.first_name, emp.last_name, geom.panelContentWidthPx)
+  // Item 7 (this pass): fitBadgeNameLines() now needs a real vertical
+  // budget too (mirroring fitBadgePositionLines()'s existing contract), not
+  // just width — otherwise it has no way to reject a tier/line-count
+  // combination that fits horizontally but would leave the panel with no
+  // real room at all (an edge case only, since the position's own fit
+  // below already independently reports fits:false once its remainder
+  // goes to zero — this closes the same gap one level up, for the name's
+  // own tier choice). Approximated here (before nameLineCount is known) as
+  // the panel's full available height minus its own padding, the idline,
+  // and a single panelGap — generous rather than exact, since the fine-
+  // grained "is there ALSO room left for the position line" question is
+  // already answered precisely by positionFit below; this only needs to
+  // catch the genuinely-impossible case where the name alone can't fit.
+  const nameMaxHeightPx = Math.max(0, availableForPanelPx - geom.panelPadTopPx - geom.panelPadBottomPx - geom.idlineHeightPx - geom.panelGapPx)
+  const nameFit = fitBadgeNameLines(emp.first_name, emp.last_name, geom.panelContentWidthPx, nameMaxHeightPx)
   const nameLineCount = nameFit.firstLines.length + nameFit.lastLines.length
-  const nameHeightPx = nameLineCount * badgeLineHeightPx(nameFit.fontSize, 1.16)
+  const nameHeightPx = nameLineCount * badgeLineHeightPx(nameFit.fontSize, nameFit.lineHeight)
   // Gaps already committed before the position line: the panel's own flex
   // `gap` applies between the idline and each name line, and between
   // consecutive name lines — (idline + nameLineCount) children means
@@ -21185,7 +21333,7 @@ function renderBadgeFront(emp, site) {
   const composite = computeBadgeFrontComposite(emp, site)
   const { nameFit: fit, positionFit, companyFit, companyName } = composite
   const nameLinesHtml = [...fit.firstLines, ...fit.lastLines]
-    .map(line => `<div class="badge-front-nameline" style="font-size:${fit.fontSize}pt">${esc(line).toUpperCase()}</div>`)
+    .map(line => `<div class="badge-front-nameline" style="font-size:${fit.fontSize}pt; line-height:${fit.lineHeight}">${esc(line).toUpperCase()}</div>`)
     .join('')
   const positionHtml = positionFit
     ? positionFit.lines.map(line => `<div class="badge-front-positionline" style="font-size:${positionFit.fontSize}pt" title="${esc(emp.position)}">${esc(line)}</div>`).join('')
@@ -21689,7 +21837,7 @@ async function printBadge() {
   const { nameFit: fit, positionFit, companyFit, companyName } = composite
   const { countryName } = badgeSiteCompanyInfo(site)
   const nameLinesHtml = [...fit.firstLines, ...fit.lastLines]
-    .map(line => `<div class="badge-name-line" title="${esc(line)}" style="font-size:${fit.fontSize}pt">${esc(line).toUpperCase()}</div>`)
+    .map(line => `<div class="badge-name-line" title="${esc(line)}" style="font-size:${fit.fontSize}pt; line-height:${fit.lineHeight}">${esc(line).toUpperCase()}</div>`)
     .join('')
   const positionLinesHtml = positionFit
     ? positionFit.lines.map(line => `<div class="badge-position-line" title="${esc(emp.position)}" style="font-size:${positionFit.fontSize}pt">${esc(line)}</div>`).join('')
@@ -21733,7 +21881,7 @@ async function printBadge() {
         .badge-photo-placeholder { width: 100%; height: 100%; background: #eee; display: flex; align-items: center; justify-content: center; color: #94a19f; font-size: 7.5pt; text-align: center; line-height: 1.3; }
         .badge-front-panel { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 2mm 3mm 2.2mm; gap: 0.6mm; background: #fff; border-radius: 3mm; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
         .badge-front-idline { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; font-size: 7.5pt; letter-spacing: 0.02em; color: #cd4f00; }
-        .badge-name-line { font-family: 'Replica', sans-serif; font-weight: 700; font-size: ${nameFontSize}pt; text-transform: uppercase; line-height: 1.16; letter-spacing: 0.01em; color: #0b0b0b; max-width: 46mm; white-space: normal; overflow-wrap: normal; word-break: normal; }
+        .badge-name-line { font-family: 'Replica', sans-serif; font-weight: 700; font-size: ${nameFontSize}pt; text-transform: uppercase; line-height: 1.05; letter-spacing: 0.01em; color: #0b0b0b; max-width: 46mm; white-space: normal; overflow-wrap: normal; word-break: normal; }
         .badge-front-photo-broken { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #b3261e; font-size: 6.6pt; text-align: center; line-height: 1.3; }
         .badge-front-photoblock.is-broken .badge-front-photo-broken { display: flex; }
         .badge-front-photoblock.is-broken .badge-employee-photo { display: none; }
