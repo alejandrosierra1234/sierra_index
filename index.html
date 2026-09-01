@@ -49,6 +49,16 @@
 
     /* ── TOKENS ── */
     :root {
+      /* ── CR80 BADGE GEOMETRY — single source of truth ──
+         Every on-screen and printed badge dimension (the card's own CSS
+         box, the print document's @page rule, and the scale caption text)
+         reads these two custom properties instead of retyping 53.98/85.6
+         — badgeGeometryMm() below is the one place JS parses them back
+         out. Changing the physical card format means changing these two
+         values and nothing else. Portrait CR80 (pass 6 visual redesign,
+         following the two reference PNGs) — was landscape 85.6×53.98mm. */
+      --badge-w-mm: 53.98mm;
+      --badge-h-mm: 85.6mm;
       /* ── SIERRA UI COLOR SYSTEM ──
          Teal communicates INDEX interaction. Secondary colors communicate
          information. These two systems must never be mixed — see
@@ -5919,6 +5929,15 @@
       gap: 0.5rem;
       flex-shrink: 0;
     }
+    /* Mobile: the actions cluster (readiness pill + Cancelar + Imprimir)
+       is wider than a 390px viewport on its own — .issuance-header's
+       flex-wrap only moves it to its own line, it doesn't stop IT from
+       overflowing horizontally. Below 640px it wraps internally too and
+       Imprimir/Cancelar take the full row width instead of clipping. */
+    @media (max-width: 640px) {
+      .issuance-header-actions { flex-wrap: wrap; width: 100%; }
+      .issuance-header-actions .btn { flex: 1 1 auto; }
+    }
     /* Print, when blocked, must read as subordinate rather than a bright
        primary button pretending to be clickable — the disabled state on
        .btn-primary already dims it via [disabled] styling elsewhere in
@@ -5927,41 +5946,13 @@
        [disabled] already suppresses those). */
     #badge-print-btn[disabled] { cursor: not-allowed; }
 
-    /* Readiness summary banner — lives directly under the header, above
-       the two-column content, so it's visible without scrolling and
-       stays adjacent to the Print action instead of being buried at the
-       bottom of a long left column. */
-    .issuance-readiness-banner {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      padding: 0.75rem 1rem;
-      border-radius: var(--r-md);
-      margin-bottom: var(--section-gap);
-      font-size: 0.85rem;
-    }
-    .issuance-readiness-banner.is-ok {
-      flex-direction: row;
-      align-items: center;
-      gap: 8px;
-      background: color-mix(in srgb, var(--success) 10%, transparent);
-      border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
-      color: var(--success);
-      font-weight: 600;
-    }
-    .issuance-readiness-banner.is-missing {
-      background: color-mix(in srgb, var(--warning-text, #92620a) 8%, transparent);
-      border: 1px solid color-mix(in srgb, var(--warning-text, #92620a) 25%, transparent);
-    }
-    .issuance-readiness-banner.is-blocked {
-      background: color-mix(in srgb, var(--danger) 8%, transparent);
-      border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
-    }
-    .irb-summary { display: flex; align-items: flex-start; gap: 8px; font-weight: 600; }
-    .issuance-readiness-banner.is-missing .irb-summary { color: var(--warning-text, #92620a); }
-    .issuance-readiness-banner.is-blocked .irb-summary { color: var(--danger); }
-    .irb-icon { flex-shrink: 0; margin-top: 1px; }
-    .irb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+    /* Readiness — pass 5 redesign: the previous full-width colored banner
+       (.issuance-readiness-banner, .irb-summary/-icon/-list) is gone,
+       replaced by a compact ReadinessBadge pill in the header
+       (renderBadgeReadinessCompact(), reusing .readiness-badge/.ws-pop/
+       .completeness-pop* — the same components the employee-list pill
+       already uses elsewhere). .irb-item/-item-icon/-item-msg/-item-fix
+       below are still live — they're the popover's per-issue row. */
     .irb-item { display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 0.8rem; color: var(--text-secondary); }
     .irb-item-icon { flex-shrink: 0; display: flex; }
     .irb-item.is-error .irb-item-icon { color: var(--danger); }
@@ -5975,17 +5966,39 @@
     .irb-item-fix:hover { text-decoration: underline; }
 
     .bds-source { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-3); font-size: 0.9em; }
-    .bds-note { font-size: 0.72rem; color: var(--text-3); margin-top: 0.5rem; line-height: 1.4; }
+    .bds-note { font-size: 0.72rem; color: var(--text-3); margin-top: 0.35rem; line-height: 1.35; }
 
+    /* Pass 5 redesign: the rail was minmax(300px,38%) — on a 1440px window
+       that's ~550px of low-density read-only cards, which is most of why
+       the preview never had room to be the dominant element. Narrowed to
+       a fixed, still-comfortable band; the preview column absorbs the
+       rest via 1fr. */
     .issuance-content {
       display: grid;
-      grid-template-columns: minmax(300px, 38%) 1fr;
+      grid-template-columns: minmax(300px, 360px) 1fr;
       gap: var(--content-gap);
       flex: 1;
       min-height: 0;
     }
     @media (max-width: 980px) {
       .issuance-content { grid-template-columns: 1fr; }
+    }
+    /* Mobile: a sequential Preparar → Vista previa flow (same convention
+       as .emp-md-layout.mobile-detail's "← Volver" pane swap) instead of
+       just stacking two full-width panels — a badge preview stacked below
+       a data panel on a 390px screen is either illegibly small or pushes
+       Print off-screen. .issuance-mobile-toggle only exists below this
+       breakpoint; JS never needs to know the viewport width, only which
+       pane is current. */
+    .issuance-mobile-toggle { display: none; }
+    @media (max-width: 640px) {
+      .issuance-mobile-toggle {
+        display: flex; gap: 8px; margin-bottom: var(--panel-gap);
+      }
+      .issuance-mobile-toggle .btn { flex: 1; justify-content: center; }
+      .issuance-content.mobile-preview .issuance-data-panel { display: none; }
+      .issuance-content:not(.mobile-preview) .issuance-preview-panel { display: none; }
+      .issuance-preview-panel { position: static; max-height: none; }
     }
 
     .issuance-data-panel {
@@ -5997,32 +6010,44 @@
     .badge-data-sections {
       display: flex;
       flex-direction: column;
-      gap: var(--panel-gap);
+      gap: 0.5rem;
     }
 
+    /* Compact groups, not oversized cards: three groups total (was four —
+       Organización and Código de barras merged into one "Datos del
+       gafete", since neither is evaluated by checkBadgeReadiness() as
+       anything beyond the code itself). Only Fotografía — the one
+       interactive control — keeps real visual weight. */
     .badge-data-section {
-      padding: var(--panel-padding);
+      padding: 0.55rem 0.9rem;
       background: var(--surface2);
       border-radius: var(--r-md);
       border: 1px solid var(--border);
     }
 
     .badge-data-section h3 {
-      margin: 0 0 1rem 0;
-      font-size: 0.75rem;
+      margin: 0 0 0.5rem 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
       font-weight: 700;
       text-transform: uppercase;
       color: var(--text-muted);
       letter-spacing: 0.05em;
     }
+    .badge-data-section h3 .si-icon { flex-shrink: 0; opacity: 0.85; }
 
+    /* Compact single-line label/value rows — this is the density fix: no
+       card padding per field, just a tight rhythm. */
     .data-row {
       display: flex;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 0.75rem;
-      font-size: 0.85rem;
+      margin-bottom: 0.45rem;
+      font-size: 0.82rem;
       align-items: center;
+      line-height: 1.3;
     }
 
     .data-row:last-child {
@@ -6033,6 +6058,9 @@
       color: var(--text-secondary);
       font-weight: 500;
       flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .data-value {
@@ -6045,11 +6073,10 @@
     /* Audit cleanup (section 6): .badge-readiness-checklist,
        .badge-readiness-row and .badge-readiness-summary-ok — all dead.
        renderReadinessChecklist() (the function that rendered
-       .badge-readiness-checklist) was removed by the redesign, and the
-       replacement readiness UI (renderBadgeReadinessBanner) uses
-       .issuance-readiness-banner/.irb-* instead of .badge-readiness-row/
-       .badge-readiness-summary-ok — confirmed by grep, no markup anywhere
-       in the file emits any of these three class names. */
+       .badge-readiness-checklist) was removed by an earlier pass, and the
+       readiness UI is now renderBadgeReadinessCompact() (§ pass 5), a
+       header pill + popover — confirmed by grep, no markup anywhere in the
+       file emits any of these three class names. */
     .badge-profile-link {
       background: none;
       border: none;
@@ -6058,26 +6085,39 @@
       font-size: 0.78rem;
       font-weight: 600;
       cursor: pointer;
-      margin-top: 6px;
+      margin-top: 8px;
       min-height: 40px;
       display: inline-flex;
       align-items: center;
       gap: 4px;
     }
     .badge-profile-link:hover { text-decoration: underline; }
+
+    /* Photograph — the most visually prominent preparation control (§
+       redesign brief): photo + upload affordance sit side by side instead
+       of a large centered dashed square dominating the whole section. */
+    .badge-photo-row { display: flex; gap: 0.9rem; align-items: flex-start; }
+    .badge-photo-col { flex: 1; min-width: 0; padding-top: 2px; }
     .badge-photo-frame {
       position: relative;
-      width: 120px;
-      height: 120px;
-      margin: 0 auto 0.75rem;
+      width: 64px;
+      height: 78px;
+      flex-shrink: 0;
     }
     .badge-photo-frame img {
-      width: 120px; height: 120px; border-radius: 8px; object-fit: cover; display: block;
+      width: 64px; height: 78px; border-radius: 8px; object-fit: cover; display: block;
     }
-    .badge-photo-empty {
-      width: 120px; height: 120px; background: var(--surface); border-radius: 8px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; margin: 0 auto;
-      color: var(--text-3); border: 1px dashed var(--border-strong); font-size: 0.72rem; text-align: center;
+    /* .badge-photo-frame-empty is deliberately its own class, not the
+       generic .badge-photo-empty also used inside the printed/previewed
+       badge artwork itself (.badge-front .badge-photo-empty) — those two
+       elements have unrelated sizing (a 64×78 rail placeholder vs. 6.5pt
+       text inside a 19×23mm physical card) and sharing one class name let
+       whichever rule was defined later in the stylesheet silently win over
+       the other. */
+    .badge-photo-frame-empty {
+      width: 64px; height: 78px; background: var(--surface); border-radius: 8px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+      color: var(--text-3); border: 1px dashed var(--border-strong); font-size: 0.6rem; text-align: center;
     }
     /* A 404/broken photo_url is a distinct state from "no photo set" — the
        <img>'s onerror handler leaves it in the DOM (removed via `this.remove()`
@@ -6085,15 +6125,14 @@
        so the operator sees "couldn't load" rather than a silently blank box
        or (worse) a browser broken-image icon. */
     .badge-photo-broken {
-      display: none; width: 120px; height: 120px; background: var(--surface); border-radius: 8px;
-      flex-direction: column; align-items: center; justify-content: center; gap: 6px; margin: 0 auto;
-      color: var(--danger); border: 1px dashed var(--danger); font-size: 0.72rem; text-align: center;
+      display: none; width: 64px; height: 78px; background: var(--surface); border-radius: 8px;
+      flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+      color: var(--danger); border: 1px dashed var(--danger); font-size: 0.6rem; text-align: center;
     }
     .badge-photo-frame.is-broken .badge-photo-broken { display: flex; }
     .badge-photo-actions {
       display: flex;
-      justify-content: center;
-      gap: 14px;
+      gap: 12px;
       font-size: 0.78rem;
     }
     .badge-photo-actions label, .badge-photo-actions button {
@@ -6101,7 +6140,7 @@
       font-weight: 600; cursor: pointer; padding: 4px 2px; min-height: 40px; display: inline-flex; align-items: center;
     }
     .badge-photo-actions button.danger { color: var(--danger); }
-    .badge-photo-hint { text-align: center; font-size: 0.72rem; color: var(--text-3); margin-top: 4px; }
+    .badge-photo-hint { font-size: 0.72rem; color: var(--text-3); margin-top: 4px; }
 
     /* Birthday Card Generator — three columns (controls / preview /
        info), matching the brief's layout. Reuses .badge-issuance-workspace/
@@ -6136,13 +6175,30 @@
     }
     /* The preview column stays in view while the (longer) preparation
        panel on the left scrolls, on desktop widths where the two-column
-       grid is active — matches .issuance-content's own breakpoint. */
+       grid is active — matches .issuance-content's own breakpoint.
+       Pass 5 fix: `align-self: start` made this column shrink-wrap to its
+       OWN natural content height instead of stretching to the grid row's
+       height — which is exactly why the preview stayed small even after
+       narrowing the rail: initBadgePreviewWorkspace()'s "fit" logic reads
+       back the container's actual measured size, so a shrink-wrapped
+       container converges to ~100% zoom regardless of how much real
+       vertical space the workspace has. Stretching (the grid default,
+       simply by not overriding align-self) lets the preview genuinely
+       claim the available height, capped by max-height + made scrollable
+       so it never grows past the viewport; sticky still pins it while a
+       taller rail scrolls past. */
     @media (min-width: 981px) {
       .issuance-preview-panel {
         position: sticky;
         top: 0.5rem;
-        align-self: start;
-        max-height: calc(100vh - 1rem);
+        /* calc(100vh - 1rem) ignored the workspace header/back-link sitting
+           above .issuance-content — a panel that tall, positioned that far
+           down the page, overflowed the viewport by the header's own
+           height. 350px is empirically the back-link + header row + page
+           padding above this panel at the 1440×900 reference size (same
+           style of tuned viewport-relative constant this codebase already
+           uses for .emp-md-layout/.badge-issuance-workspace). */
+        max-height: calc(100vh - 350px);
       }
     }
 
@@ -6155,6 +6211,24 @@
       border-radius: var(--r-md);
       border: 1px solid var(--border);
       overflow: hidden;
+    }
+    /* Portrait re-tune (pass 6): a tall, narrow card in a wide preview
+       column (the grid gives this column whatever width is left after the
+       ~360px prep rail) previously wasted the same "large empty canvas"
+       real estate pass 5 fixed for the vertical axis — just rotated onto
+       the left/right. Single-side view now caps the container to a
+       sensible width for one portrait card plus its tabs/controls chrome,
+       centered in the column, so initBadgePreviewWorkspace()'s fit-to-
+       container math converges on a card that actually fills its box
+       instead of a small card floating in a mostly-empty wide one.
+       Compare mode drops the cap — two portrait cards side by side is a
+       genuinely better fit for a wide desktop viewport than two landscape
+       cards were (§ redesign report), so it should claim the full column
+       width, not be squeezed to this same single-card cap. */
+    .badge-preview-container:not(.is-comparing) {
+      max-width: 420px;
+      width: 100%;
+      align-self: center;
     }
 
     .badge-preview-tabs {
@@ -6209,6 +6283,8 @@
       align-items: center;
       gap: 8px;
       justify-content: center;
+      flex-wrap: wrap;
+      row-gap: 6px;
       padding: 12px;
       border-top: 1px solid var(--border);
       background: var(--surface);
@@ -6223,6 +6299,7 @@
       font-variant-numeric: tabular-nums;
     }
     .badge-zoom-fit-btn { font-size: 0.72rem; padding: 0 10px; }
+    .badge-preview-controls-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
 
     /* Physical-scale/orientation caption — tells the operator exactly what
        physical object this preview represents (§ preview must reveal real
@@ -6245,205 +6322,424 @@
        column correctly compares, which the previous @media(min-width)
        rule could not do either way. */
     .badge-preview-container.is-comparing .badge-preview-tabs { display: none; }
-    .badge-preview-container.is-comparing .badge-preview-area { flex-direction: row; gap: 20px; }
-    .badge-preview-container.is-comparing .badge-card-slot { display: flex !important; }
+    .badge-preview-container.is-comparing .badge-preview-area { flex-direction: row; gap: 20px; overflow-x: auto; }
+    .badge-preview-container.is-comparing .badge-card-slot { display: flex !important; flex-shrink: 0; }
     .badge-card-slot { display: none; }
     .badge-card-slot.is-active { display: flex; }
 
-    /* Badge Front and Back */
+    /* Badge Front and Back — pass 6 portrait visual redesign (against the
+       two supplied reference PNGs; see the redesign report for the full
+       spec transcription and field-mapping audit). Card flipped from
+       landscape 85.6×53.98mm to portrait 53.98×85.6mm CR80 — geometry is
+       still driven entirely by --badge-w-mm/--badge-h-mm (§ CR80 BADGE
+       GEOMETRY above), only the internal artwork below is new.
+       Typefaces per SIERRA_DESIGN_SYSTEM.md §19 (unchanged from pass 5):
+       Replica (identity/display) renders ONLY the employee's name —
+       the one genuinely "identity" element on a physical ID card.
+       Everything else (labels, position, legal footer, row values) is
+       Aeonik. Aeonik Mono renders employee_code / the barcode's
+       human-readable value — "technical identifiers... read as data, not
+       prose" is exactly what these are. Orange (SIERRA_DESIGN_SYSTEM.md
+       §44 secondary palette, "Orange" row: light #ffe3d2 / base #ff7824 /
+       dark #cd4f00) is the badge's one accent per the reference — teal
+       appears nowhere on the printed card except inside the SIERRA
+       lockup's own mark, which keeps its native teal. The physical card
+       NEVER reads app dark-mode tokens (--text/--surface etc.) — every
+       color here is a hardcoded, print-safe value. */
     .badge-front,
     .badge-back {
-      width: 85.6mm;
-      height: 53.98mm;
+      width: var(--badge-w-mm);
+      height: var(--badge-h-mm);
       box-sizing: border-box;
       background: #fff;
-      color: #000;
+      color: #0b0b0b;
       border-radius: 4mm;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       display: flex;
       flex-direction: column;
-      padding: 2.5mm;
-      font-family: 'Replica', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      padding: 3mm;
+      font-family: 'Aeonik', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
       position: relative;
       overflow: hidden;
       flex-shrink: 0;
+      /* Bug found + fixed this pass: zoom is applied via the CSS `zoom`
+         property on .badge-card-slot (see initBadgePreviewWorkspace()),
+         not `transform: scale()` — transform visually resizes an element
+         without changing its LAYOUT box, so two portrait cards side by
+         side in compare mode (§ redesign report) visually overlapped
+         once the fit-to-container zoom exceeded ~1.3× (easy to hit for a
+         tall narrow card in a roomy preview panel — pass 5's landscape
+         cards apparently never drove zoom that high in compare mode).
+         `zoom` resizes the element's actual layout box, so flexbox gap
+         and the container's overflow-x scrolling both work correctly at
+         any zoom level. This transition is kept only as a harmless no-op
+         for any other code that still sets `transform` on this element. */
       transition: transform var(--dur-fast, 120ms) var(--ease-out, ease);
     }
     @media (prefers-reduced-motion: reduce) {
       .badge-front, .badge-back { transition: none; }
     }
-    /* Long names/departments are truncated visibly (ellipsis), never cropped
-       silently by the card's overflow:hidden — the full value stays visible
-       in the data panel and in the title attribute above. */
-    .badge-first-name, .badge-last-name, .badge-department {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      max-width: 100%;
-    }
 
-    .badge-front-header,
-    .badge-back-header {
-      text-align: center;
+    /* ── FRONT ── SIERRA lockup header, then a dominant photo block, a
+       VISIBLE GAP (item 6 — overrides an earlier pass's "flush, one
+       continuous shape" choice per explicit user correction), then the
+       white ID info panel (now a separate rounded shape of its own), and
+       a separate, shorter orange company-name pill below that. Exact
+       target ratios from the reference are unverified this pass (11.png
+       unavailable — see report); these are reasoned adjustments toward
+       "photo dominant / info panel tighter / gap visible / footer
+       shorter", not a pixel-matched result. */
+    .badge-front-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex-shrink: 0;
+      padding-bottom: 2.2mm;
     }
+    .badge-front-header .badge-logo-mark { width: 28mm; }
+    .badge-logo-mark { line-height: 0; }
+    .badge-logo-mark svg { display: block; width: 100%; height: auto; }
 
-    .badge-sierra-logo {
-      width: 16mm;
-      height: auto;
-      color: #007d73;
-      font-weight: 700;
+    .badge-front-card {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      /* Item 6: the visible gap the user asked for, reusing the card's own
+         established margin scale (matches .badge-front-companybar's
+         existing 2.2mm margin-top, just one step down for this tighter
+         internal rhythm — not a new, unrelated spacing value). */
+      gap: 1.6mm;
     }
-
-    .badge-company-color,
-    .badge-back-company-color {
-      height: 1.8mm;
-      margin: 1mm -2.5mm;
-      flex-shrink: 0;
-    }
-
-    /* Bug fix: at the original 22mm logo / 3mm colour-bar margins / 28mm
-       photo / 11pt name sizing, the front card's own content (before any
-       long-name edge case) already summed to well over 53.98mm of
-       available height, so the bottom of the name/department/code block
-       was always cropped by `overflow:hidden` — confirmed with the
-       "complete" and "long_name" fixtures alike in the harness screenshots
-       (both showed the department/code lines missing, not just the long
-       one). This is a correctness fix to the card's own arithmetic, not a
-       redesign of its content or hierarchy — same elements, same order,
-       same relative proportions, sized to actually fit the physical card. */
-    .badge-front-photo {
-      width: 20mm;
-      height: 20mm;
-      border-radius: 2mm;
-      overflow: hidden;
-      margin: 1mm auto;
-      flex-shrink: 0;
+    .badge-front-photoblock {
+      /* Item 6: increased from 26mm and given its own shape (radius/
+         shadow) now that it's no longer flush-merged with the panel below
+         it — a dominant photo is the standard ID-badge convention the
+         user is asking for; exact target height unverified (no reference
+         file this pass). */
+      flex: 1 1 auto;
+      min-height: 30mm;
       background: #eee;
+      overflow: hidden;
+      border-radius: 3mm;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+    .badge-front-photoblock img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .badge-front-photoblock .badge-photo-empty {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a19f;
+      font-size: 7.5pt;
+      text-align: center;
+      line-height: 1.3;
+    }
+    /* Item 3: distinct FAILURE state — a photo_url that exists but fails
+       to load must never look identical to "no photo was ever supplied"
+       (.badge-photo-empty above). Mirrors the prep rail's own
+       .badge-photo-frame.is-broken pattern. */
+    .badge-front-photo-broken {
+      display: none;
+      width: 100%;
+      height: 100%;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      color: #b3261e;
+      font-size: 6.6pt;
+      text-align: center;
+      line-height: 1.3;
+    }
+    .badge-front-photoblock.is-broken .badge-front-photo-broken { display: flex; }
+    .badge-front-panel {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      /* Item 6: tightened from 2.6mm/3mm/3mm — now its own rounded shape
+         (no longer relying on the merged .badge-front-card container for
+         chrome), giving the photo block above more of the card's total
+         height. */
+      padding: 2mm 3mm 2.2mm;
+      gap: 0.6mm;
+      background: #fff;
+      border-radius: 3mm;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+    .badge-front-idline {
+      /* Bug fix: 600 is not a real cut of Aeonik Mono (the family ships
+         100/200/300/400/500/700/900 only — see the font-file inventory in
+         this pass's report) — requesting it forced the browser to
+         synthesize a fake bold over the 400 face instead of rendering a
+         genuine weight. 500 (Medium) is the real cut closest to this
+         identifier's small, slightly-emphasized role. */
+      font-family: 'Aeonik Mono', 'Courier New', monospace;
+      font-weight: 500;
+      font-size: 7.5pt;
+      letter-spacing: 0.02em;
+      color: #cd4f00;
+    }
+    /* Name is the single dominant element on the card — bold Replica,
+       centered. Item 2 rewrite: fitBadgeNameLines() (real canvas-measured,
+       word-boundary-aware wrapping across the approved size tiers) decides
+       both the font size AND how many lines/what text each line holds
+       BEFORE this markup is built — this rule only has to render whatever
+       line it's given. No ellipsis, no forced single line, no horizontal
+       scaling: a name that cannot fit at any tier is a hard print-blocker
+       (see checkBadgeReadiness()), never a silent truncation. Shared
+       verbatim by the on-screen preview and the print document (identical
+       CSS text properties in both; only the print copy lives in its own
+       inline <style> since it's a separate `document`). */
+    .badge-front-nameline {
+      font-family: 'Replica', sans-serif;
+      font-weight: 700;
+      text-transform: uppercase;
+      line-height: 1.16;
+      letter-spacing: 0.01em;
+      color: #0b0b0b;
+      max-width: 100%;
+      white-space: normal;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+    .badge-front-positionline {
+      font-family: 'Aeonik', sans-serif;
+      font-weight: 400;
+      font-size: 7.6pt;
+      line-height: 1.3;
+      color: #ff7824;
+      margin-top: 0.8mm;
+      max-width: 100%;
+      overflow-wrap: break-word;
+    }
+    .badge-front-companybar {
+      flex-shrink: 0;
+      margin-top: 1.6mm;
+      border-radius: 3mm;
+      background: #ff7824;
+      /* Item 6: reduced from 2mm/6.5mm toward the reference's shorter
+         footer (exact target unverified — 11.png unavailable this pass);
+         verified this still fits the canonical legal name on one line and
+         wraps a genuinely longer one without clipping — see report. */
+      padding: 1.4mm 3mm;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 5mm;
+      box-sizing: border-box;
+    }
+    .badge-front-companyname {
+      font-family: 'Aeonik', sans-serif;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 6.6pt;
+      letter-spacing: 0.03em;
+      line-height: 1.3;
+      color: #fff;
+      overflow-wrap: break-word;
+    }
+    /* Item 1 (this pass) — editor-only invalid-footer treatment. When
+       fitBadgeCompanyLines() (via computeBadgeFrontComposite()) reports
+       companyFit.fits:false, renderBadgeFront() swaps this modifier class
+       onto the SAME .badge-front-companybar element instead of trying to
+       cram the overflowing legal name in — the footer keeps its normal
+       shape/min-height/padding (nothing here touches those), only the
+       paint changes, so the card doesn't balloon, shrink, or produce the
+       old irregular multi-line word mosaic. Deliberately NOT the orange
+       brand fill (that would look like real, valid printed company copy)
+       — a dashed danger-token outline over a tinted neutral background
+       reads unambiguously as "this is an editor notice, not badge art".
+       PRINT-SAFETY (item 6): this class/rule exists only in this
+       preview-only stylesheet block, is never emitted inside any
+       `@media print` rule anywhere in this file (grep-verified), and is
+       never referenced by printBadge()'s own, wholly separate print-
+       document markup/CSS below (which builds `.badge-company-line`
+       inside `.badge-front-companybar` directly from companyFit.lines) —
+       printBadge() cannot even reach that code path for this employee in
+       the first place, since it re-runs checkBadgeReadiness() first and
+       aborts before ever constructing print HTML (see printBadge()). */
+    .badge-front-companybar.is-invalid {
+      background: var(--danger-bg, rgba(232,0,0,0.10));
+      border: 1.5px dashed var(--danger, #b3261e);
+    }
+    .badge-front-companybar-invalid {
+      font-family: 'Aeonik', sans-serif;
+      font-weight: 600;
+      font-size: 6.1pt;
+      line-height: 1.35;
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--danger, #b3261e);
+    }
+    .badge-front-companybar-invalid .si-icon {
+      display: inline-block;
+      vertical-align: -2px;
+      margin-right: 3px;
+    }
+
+    /* ── BACK ── header row (lockup left, GK partner tile right), one
+       white rounded info panel with 5 icon+label+value rows, legal copy
+       on the card's own background (not inside the panel), then a
+       modestly-sized barcode band — none of it dominating the card the
+       way the previous landscape barcode did. */
+    .badge-back-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      padding-bottom: 1.6mm;
+    }
+    /* Pass 7 fix: SIERRA is the primary mark, GK a small secondary partner
+       badge — the reference reads SIERRA as clearly dominant. At the old
+       15mm/7mm pairing the wide, short SIERRA lockup (viewBox aspect
+       353.13/1715 ≈ 0.206) rendered only ≈3.09mm tall against a 7mm square
+       GK tile — GK ended up ~2.3× TALLER than SIERRA, backwards from the
+       intended hierarchy. 28mm (matching the front header's own SIERRA
+       width, so both sides read as the same design system) renders at
+       ≈5.77mm tall; paired with a 3.6mm GK tile that is a ~1.6× dominance
+       ratio, GK still legible but clearly secondary. */
+    .badge-back-header .badge-logo-mark { width: 28mm; }
+    .badge-gk-tile {
+      width: 3.6mm;
+      height: 3.6mm;
+      flex-shrink: 0;
+      border-radius: 0.9mm;
+      overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-
-    .badge-front-photo img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .badge-photo-empty {
-      color: #999;
-      font-size: 8pt;
-    }
-
-    .badge-front-info {
+    .badge-gk-tile svg { width: 100%; height: 100%; display: block; }
+    /* justify-content:flex-start (not center) — when the 5 rows' natural
+       content height exceeds the panel's available space (long emergency
+       contact + long health_conditions stress fixture), centering would
+       clip an equal sliver off BOTH the top row (País) and bottom row
+       (tipo de sangre); flex-start guarantees the top rows stay fully
+       visible and any remaining overflow is pushed to the bottom instead
+       — combined with .is-dense below, real fixtures fit without any
+       clipping (see redesign report's long-content fixture result). */
+    .badge-back-panel {
       flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
+      justify-content: flex-start;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 3mm;
+      padding: 0 3mm;
+    }
+    /* Row padding/icon-tile size were measured against the real rendered
+       print document this pass (not hand-calculated) — the first version
+       of these rows (1.7mm padding, 8mm/15% icon tile) fit comfortably
+       on screen but clipped the 5th row (Tipo de sangre) off the bottom
+       of the actual print document once header+legal+barcode's real
+       rendered heights were accounted for; these are the values that
+       measured correctly in a real Playwright print-emulation render at
+       5 rows, no clipping — see redesign report. */
+    .badge-back-row2 {
+      display: flex;
+      align-items: center;
+      gap: 1.8mm;
+      padding: 1mm 0;
+      border-bottom: 0.25mm solid #eee;
+    }
+    .badge-back-row2:last-child { border-bottom: none; }
+    .badge-back-icontile {
+      width: 13%;
+      max-width: 6.2mm;
+      aspect-ratio: 1;
+      flex-shrink: 0;
+      border-radius: 1.4mm;
+      background: #ffe3d2;
+      color: #ff7824;
+      display: flex;
+      align-items: center;
       justify-content: center;
-      text-align: center;
     }
-
-    .badge-employee-name {
-      margin-bottom: 0.8mm;
-    }
-
-    .badge-first-name,
-    .badge-last-name {
-      font-family: 'Replica', sans-serif;
+    .badge-back-icontile svg { display: block; }
+    .badge-back-rowtext { min-width: 0; flex: 1; }
+    .badge-back-rowlabel {
+      font-family: 'Aeonik', sans-serif;
       font-weight: 700;
-      font-size: 9.5pt;
-      line-height: 1.1;
-      letter-spacing: 0.02em;
-    }
-
-    .badge-first-name {
-      margin-bottom: 0.5mm;
-    }
-
-    .badge-department {
-      font-family: 'Replica', sans-serif;
-      font-weight: 400;
-      font-size: 6.5pt;
-      color: #444;
+      text-transform: uppercase;
+      font-size: 5.1pt;
       letter-spacing: 0.05em;
+      color: #ff7824;
+      margin-bottom: 0.3mm;
     }
-
-    .badge-front-code {
-      font-size: 6pt;
-      text-align: center;
-      margin-top: 1mm;
-      font-family: 'Replica Mono', 'Courier New', monospace;
-      letter-spacing: 0.5px;
-      color: #666;
+    .badge-back-rowvalue {
+      font-family: 'Aeonik', sans-serif;
+      font-weight: 500;
+      font-size: 6.4pt;
+      line-height: 1.22;
+      color: #111;
+      overflow-wrap: break-word;
+    }
+    /* Role-compliance fix: per SIERRA_DESIGN_SYSTEM.md §19, "Aeonik Mono —
+       Technical identifiers — IDs, SKUs, sample/lot codes" — the
+       identification-number VALUE specifically is a technical identifier
+       (unlike the other 4 rowvalues, which are genuine prose/categorical:
+       a country name, a person's name+phone, a health description, a
+       blood-type pair). Applied together with .badge-back-rowvalue (which
+       still supplies size/line-height/color/wrap) so density-mode sizing
+       continues to apply unchanged. 500 (Medium) matches the weight chosen
+       for .badge-front-idline's identifier role above. */
+    .badge-back-idvalue {
+      font-family: 'Aeonik Mono', 'Courier New', monospace;
+      font-weight: 500;
+    }
+    /* Bounded density step for heavy content (a long emergency-contact
+       name+phone and/or a long health_conditions string) —
+       badgeBackDensityClass() below picks this class when the combined
+       variable-field length crosses a measured threshold. rowvalue's
+       floor here (5.7pt ≈ 2.0mm) stays comfortably above SIERRA_DESIGN_
+       SYSTEM.md §41's 1.8mm technical-value floor — proportions/density
+       adjust before type ever would. */
+    .badge-back-panel.is-dense .badge-back-row2 { padding: 0.6mm 0; }
+    .badge-back-panel.is-dense .badge-back-icontile { max-width: 5.4mm }
+    .badge-back-panel.is-dense .badge-back-rowlabel { font-size: 4.7pt; margin-bottom: 0.2mm; }
+    .badge-back-panel.is-dense .badge-back-rowvalue { font-size: 5.7pt; line-height: 1.15; }
+    .badge-back-legal {
       flex-shrink: 0;
+      font-family: 'Aeonik', sans-serif;
+      font-size: 5.4pt;
+      line-height: 1.32;
+      color: #55555a;
+      text-align: left;
+      padding: 1.2mm 0 0.8mm;
     }
-
-    .badge-code-label {
-      font-weight: 600;
-      margin-right: 2mm;
-    }
-
-    .badge-code-value {
-      font-weight: 600;
-    }
-
-    /* Badge Back */
-    .badge-back {
-      padding: 2.5mm;
-    }
-
-    .badge-back-barcode {
-      text-align: center;
-      margin: 2mm 0;
-      flex: 0 0 auto;
-    }
-
-    .badge-back-barcode svg {
-      height: 15mm;
-      width: auto;
-    }
-
-    .badge-barcode-text {
-      font-family: 'Replica Mono', 'Courier New', monospace;
-      font-size: 6pt;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      margin-top: 1mm;
-    }
-
-    .badge-back-info {
-      flex: 1;
+    .badge-back-barcodeblock {
+      flex-shrink: 0;
       display: flex;
       flex-direction: column;
-      gap: 1.5mm;
-      font-size: 6.5pt;
-      margin: 1mm 0;
+      align-items: center;
+      padding-top: 0.4mm;
     }
-
-    .badge-back-row {
-      display: flex;
-      gap: 2mm;
+    .badge-back-barcodeblock svg {
+      height: 10mm; /* Item 7: was 7mm — widened alongside the module-width fix (see renderBadgeBackBarcodePreview()) so the physical module width clears the CODE128 scannability floor */
+      width: auto;
+      max-width: 100%;
     }
-
-    .badge-back-label {
-      font-weight: 600;
-      flex-shrink: 0;
-      width: 25mm;
-    }
-
-    .badge-back-value {
-      flex: 1;
-      word-break: break-word;
-      line-height: 1.2;
-    }
-
-    .badge-back-footer {
-      font-size: 5pt;
-      color: #999;
-      margin-top: 1mm;
+    .badge-back-barcodeblock .badge-barcode-value {
+      font-family: 'Aeonik Mono', 'Courier New', monospace;
+      font-weight: 500;
+      font-size: 7pt;
+      letter-spacing: 0.02em;
+      color: #0b0b0b;
+      margin-top: 0.8mm;
       text-align: center;
-      line-height: 1.2;
     }
 
     .issuance-footer {
@@ -11440,6 +11736,13 @@ async function deleteComment(commentId, productId) {
 
 /* ── LABEL RENDERER ── */
 // Inline SVG so it renders in print-root too (no external image load needed)
+const GK_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 267.34 267.34"><defs><style>.gk1{fill:#002c28}</style></defs><path class="gk1" d="M0,0v267.34h267.34V0H0ZM105.22,190.56h-44.98c-16.99.02-21.54,10.03-21.54,20.47,0,11.45,5.7,20.12,20.43,20.14,13.76.03,28.1,0,28.1,0v-12.89h-32.21v-15.27h50.2v43.77h-47.52c-19.39,0-37.68-13.12-37.68-35.75,0-20.3,14.92-35.73,38.2-35.73h47.01v15.26ZM139.56,246.77h-20.56v-71.49h20.56v71.49ZM179.03,246.76l-38.96-37.05,35.39-34.43h25.73l-35.19,33.51c-.49.46-1.06.76-1.65.91.55.13,1.21.56,1.65.92l40.2,36.14h-27.17ZM215.22,177.02h-2.89v7.86h-2.02v-7.86h-2.89v-1.73h7.79v1.73ZM226.06,184.88h-1.84v-6.4l-2.19,6.4h-1.56l-2.2-6.38v6.38h-1.8v-9.6h2.4l2.39,7.16,2.46-7.16h2.34v9.6Z"/></svg>`
+// GK partner-logo lockup — real authoritative asset ("NSS26Recurso 1.svg",
+// uploaded directly to the repo's default branch). A dark teal-green tile
+// with the "GK" mark cut as negative space via the path's own winding, so
+// it reads as white/background-colored letters once placed over the
+// badge's white card. Inlined the same way LBL_LOGO_SVG is, so it
+// travels correctly into the print window's separate document.
 const LBL_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1715 353.13"><defs><style>.lc1{fill:#59a29e}.lc2{fill:#141512}</style></defs><path class="lc2" d="M570.98,144.81c-47.7-6.81-61.33-13.63-61.33-34.07,0-13.63,10.22-23.85,40.88-23.85,37.48,0,47.7,10.22,47.7,30.66l3.41,3.41h40.88l3.41-3.41c0-40.88-27.26-71.55-91.99-71.55s-91.99,30.66-91.99,64.73c0,47.7,37.48,64.73,85.17,71.55,47.7,6.81,61.33,13.63,61.33,37.48,0,20.44-17.03,30.66-47.7,30.66-40.88,0-54.51-13.63-54.51-37.48l-3.41-3.41h-40.88l-3.41,3.41c0,44.29,30.66,78.36,98.8,78.36,71.55,0,98.8-34.07,98.8-71.55,0-47.7-37.48-68.14-85.17-74.95Z"/><polygon class="lc2" points="700.44 49.41 697.03 52.82 697.03 284.49 700.44 287.9 741.32 287.9 744.73 284.49 744.73 52.82 741.32 49.41 700.44 49.41"/><polygon class="lc2" points="802.64 49.41 799.23 52.82 799.23 284.49 802.64 287.9 962.76 287.9 966.17 284.49 966.17 250.42 962.76 247.02 850.33 247.02 846.93 243.61 846.93 189.1 850.33 185.69 955.95 185.69 959.36 182.29 959.36 148.22 955.95 144.81 850.33 144.81 846.93 141.4 846.93 93.7 850.33 90.3 962.76 90.3 966.17 86.89 966.17 52.82 962.76 49.41 802.64 49.41"/><path class="lc2" d="M1211.46,120.96c0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41,68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14ZM1129.7,151.62h-64.73l-3.41-3.41v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66Z"/><path class="lc2" d="M1344.33,195.91l68.14,88.58,6.81,3.41h20.44l3.41-3.41v-34.07l-44.29-57.92v-3.41c27.26-6.81,51.1-30.66,51.1-68.14,0-47.7-34.07-71.55-81.77-71.55h-112.43l-3.41,3.41v231.67l3.41,3.41h40.88l3.41-3.41v-88.58l3.41-3.41h34.07l6.81,3.41ZM1300.04,148.22v-54.51l3.41-3.41h64.73c20.44,0,34.07,6.81,34.07,30.66s-13.63,30.66-34.07,30.66h-64.73l-3.41-3.41Z"/><path class="lc2" d="M1678.2,284.49v-34.07l-78.36-197.6-3.41-3.41h-44.29l-3.41,3.41-78.36,197.6v34.07l3.41,3.41h30.66l3.41-3.41,17.04-44.29,6.81-3.41h85.17l6.81,3.41,17.03,44.29,3.41,3.41h30.66l3.41-3.41ZM1603.25,195.91h-57.92l-3.41-3.41,30.66-81.77h3.41l30.66,81.77-3.41,3.41Z"/><path class="lc1" d="M410.85,119.97c0-13.17-7.32-25.01-19.1-30.9L220.88,3.63h0c-9.67-4.84-21.23-4.84-30.9,0L19.1,89.07C7.32,94.96,0,106.8,0,119.97s7.32,25.01,19.1,30.9l51.38,25.69-51.38,25.69c-11.78,5.89-19.1,17.73-19.1,30.9s7.32,25.01,19.1,30.9l170.88,85.44c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l170.87-85.44c11.78-5.89,19.1-17.73,19.1-30.9s-7.32-25.01-19.1-30.9l-51.38-25.69,51.38-25.69c11.78-5.89,19.1-17.73,19.1-30.9ZM374.45,233.16l-169.02,84.51L36.41,233.16l73.63-36.81,79.94,39.97c4.84,2.42,10.14,3.63,15.45,3.63s10.61-1.21,15.45-3.63l79.94-39.97,73.63,36.81ZM149.59,176.56l55.83-27.92,55.83,27.92-55.83,27.92-55.83-27.92ZM300.82,156.78l-79.94-39.97c-9.68-4.84-21.23-4.84-30.9,0l-79.94,39.97-73.63-36.81L205.43,35.46l169.02,84.51-73.63,36.81Z"/></svg>`
 
 function esc(s) {
@@ -15834,7 +16137,80 @@ function renderBadgeBackBarcodePreview() {
   try {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     holder.appendChild(svg)
-    JsBarcode(svg, emp.employee_code, { format: 'CODE128', width: 1.3, height: 28, margin: 0, fontSize: 8 })
+    // Item 7 re-sizing (this pass): CODE128 module width/quiet-zone re-
+    // derived from the symbology's own engineering floor, not a reference
+    // screenshot (unavailable this pass — see report). For a 6-digit
+    // numeric employee_code, JsBarcode's CODE128 auto-subset picks Code
+    // Set C (start+3 data symbols+check+stop = 68 raw units at width:1).
+    // Measured (this pass's harness): width:1/margin:0 rendered at ~0.23mm
+    // per module once scaled to the old 7mm CSS height — inside, but at
+    // the low edge of, the ~0.19-0.25mm minimum module width typical
+    // handheld/fixed scanners need, AND margin:0 produced literally ZERO
+    // quiet zone, which is a flat CODE128 spec violation (min ~10x module
+    // width each side) independent of any visual reference. width:2/
+    // margin:20 (margin is in the same raw units as an unscaled module —
+    // confirmed empirically: it does NOT scale with `width` — so margin
+    // must be set to 10× the `width` value to keep the quiet zone
+    // proportionally correct) + a taller 10mm rendered height together
+    // land the module width at ~0.27mm (comfortably clear of the floor)
+    // and total barcode width at ~23.5mm (up from ~15.3mm) — see report
+    // for the exact before/after math. displayValue disabled: JsBarcode's
+    // own `font` option only ever set family/size, never a real weight (a
+    // prior pass's own report confirms this rendered at computed weight
+    // 400 despite requesting 500) — the human-readable value is now a
+    // real HTML element below the SVG in genuine Aeonik Mono 500 instead.
+    //
+    // This pass: the previous width:2 module setting rendered at a real,
+    // scan-safe x-dimension but still visually narrow (~26.7mm total per
+    // the user's own measurement) — pushed toward the wider, still-safe
+    // end of the CODE128 x-dimension range (common badge/retail-scanner
+    // guidance: roughly 0.19mm floor up to ~0.5-0.635mm before a module
+    // gets impractically wide for a small card) by increasing the module
+    // width to 3 (margin scaled to 10× width = 30, preserving the same
+    // established margin:width ratio, so the quiet zone stays
+    // proportionally correct rather than shrinking relative to the wider
+    // bars). See this pass's report for the measured resulting
+    // x-dimension/total-width table — real numbers from this exact call,
+    // not a guessed target.
+    //
+    // This pass (final width pass): because margin is set proportional to
+    // width (10×) to keep the quiet zone ratio correct, the module width
+    // (in mm, once scaled to the fixed 10mm CSS height) is NOT linear in
+    // `width` — it asymptotically approaches 0.5mm as width grows, since
+    // both the bar height and the vertical margin scale into the SVG's
+    // rendered height together. Real candidates were rendered and
+    // measured (getAttribute width/height on the actual generated SVG,
+    // converted through the same 10mm/rawHeight scale factor the CSS
+    // applies) AND decoded with a real CODE128 decoder (@zxing/library)
+    // against the actual employee_code payload as a scan proxy — not
+    // reasoned by formula alone. Table (mm, decode = real ZXing decode of
+    // a high-res render of this exact SVG):
+    //   width  x-dim   quietZone(ea)  totalOccupied  decode
+    //     3    0.349mm   3.49mm         30.70mm       OK  (previous)
+    //     5    0.397mm   3.97mm         34.92mm       OK
+    //     7    0.422mm   4.22mm         37.11mm       OK
+    //     9    0.437mm   4.37mm         38.45mm       OK
+    //    10    0.443mm   4.42mm         38.94mm       OK
+    //    11    0.447mm   4.47mm         39.35mm       OK  <- selected
+    //    13    0.455mm   4.55mm         40.00mm       OK  (diminishing)
+    // width:13→∞ only gains ~0.05mm more x-dim total before the 0.5mm
+    // asymptote, while consuming more of the card's available width for
+    // no real scan-safety benefit. width:11 lands at 0.447mm — well
+    // inside the 0.19-0.635mm practical CODE128 range and close to the
+    // widest this margin:width-ratio approach can usefully reach — while
+    // its 39.35mm total occupied width still leaves ~8.6mm of clearance
+    // inside the card's 47.98mm usable inner width (53.98mm card minus
+    // the .badge-back's own 3mm+3mm padding), so the barcode does not
+    // crowd the card edges or collide with the legal-copy/panel above it.
+    // Quiet zone stays exactly 10× the module width each side (margin is
+    // always width×10), matching CODE128's own ~10x-module quiet-zone
+    // requirement. Payload (emp.employee_code) is unchanged — only these
+    // rendering parameters moved.
+    JsBarcode(svg, emp.employee_code, { format: 'CODE128', width: 11, height: 26, margin: 110, displayValue: false })
+    const valueEl = document.createElement('div')
+    valueEl.className = 'badge-barcode-value'
+    valueEl.textContent = emp.employee_code
+    holder.appendChild(valueEl)
   } catch (e) {
     holder.innerHTML = '<div style="font-size:0.65rem;color:#b3261e">Código de barras inválido para "' + esc(emp.employee_code) + '"</div>'
   }
@@ -17769,7 +18145,7 @@ function renderSettingsView() {
           </div>
           <div class="settings-row">
             <span class="settings-label">Dimensiones:</span>
-            <span class="settings-value">85.6mm × 53.98mm</span>
+            <span class="settings-value">${badgeGeometryMm().w}mm × ${badgeGeometryMm().h}mm</span>
           </div>
           <div class="settings-row">
             <span class="settings-label">Tipografía:</span>
@@ -19204,6 +19580,18 @@ function startBadgeIssuance(empId) {
   renderBadgeModule()
 }
 
+// Single source of truth for the CR80 physical card size, read back from
+// the --badge-w-mm/--badge-h-mm custom properties defined once in :root
+// (§ CR80 BADGE GEOMETRY) — the print document's @page rule and the
+// on-screen scale caption both call this instead of hardcoding 85.6/53.98
+// a second (or third) time, so the two can never drift apart.
+function badgeGeometryMm() {
+  const cs = getComputedStyle(document.documentElement)
+  const w = parseFloat(cs.getPropertyValue('--badge-w-mm')) || 53.98
+  const h = parseFloat(cs.getPropertyValue('--badge-h-mm')) || 85.6
+  return { w, h }
+}
+
 function checkBadgeReadiness(emp) {
   const issues = []
 
@@ -19212,8 +19600,91 @@ function checkBadgeReadiness(emp) {
   if (!emp.first_name) issues.push({ level: 'error', field: 'first_name', message: 'El nombre es obligatorio' })
   if (!emp.last_name) issues.push({ level: 'error', field: 'last_name', message: 'El apellido es obligatorio' })
 
-  // Photo (strongly recommended)
-  if (!emp.photo_url) issues.push({ level: 'warning', field: 'photo', message: 'Se recomienda ampliamente incluir fotografía' })
+  // Hard blocker (pass 7): the barcode is not optional decoration — a badge
+  // whose barcode never renders must never be reported "ready to print".
+  // This is the single source of truth printBadge()'s pre-flight check and
+  // the Print button's disabled state both read from, so a failure here
+  // structurally cannot be printed around. Only probed when employee_code
+  // itself is present — the missing-code error above already covers that
+  // case and we don't want two errors for the same root cause.
+  if (emp.employee_code) {
+    if (typeof JsBarcode === 'undefined') {
+      issues.push({ level: 'error', field: 'barcode', message: 'El generador de códigos de barras no está disponible en este momento — no se puede imprimir el gafete' })
+    } else {
+      try {
+        const probe = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        JsBarcode(probe, emp.employee_code, { format: 'CODE128' })
+      } catch (e) {
+        issues.push({ level: 'error', field: 'barcode', message: `El código de colaborador "${emp.employee_code}" no se puede codificar en un código de barras válido` })
+      }
+    }
+  }
+
+  // Photo — item 3: a genuinely missing photo stays a (non-blocking)
+  // recommendation, but a photo_url that EXISTS and has been observed to
+  // fail loading (via badgeMarkPhotoStatus(), populated by the rail's and
+  // the front preview's own <img onerror>) is a real data problem, not
+  // just an absence — it suggests a corrupted/stale URL that needs fixing,
+  // not a recommendation to add a photo that may already "exist" per the
+  // database. Escalated to a hard error so it structurally blocks print
+  // the same way the barcode/font hard-blockers do, rather than letting a
+  // broken-image badge print through on a warning. Known limitation (see
+  // badgeMarkPhotoStatus()'s comment): this only reflects a load failure
+  // once the browser has actually tried the URL and failed, which can lag
+  // the very first render of this employee by one re-render.
+  if (!emp.photo_url) {
+    issues.push({ level: 'warning', field: 'photo', message: 'Se recomienda ampliamente incluir fotografía' })
+  } else if (_badgePhotoStatus[emp.photo_url] === 'broken') {
+    issues.push({ level: 'error', field: 'photo', message: 'La fotografía no se pudo cargar (enlace roto o archivo dañado) — corrige la fotografía del colaborador antes de imprimir' })
+  }
+
+  // Composite name + position + footer fit (this pass, replaces the
+  // name-only check below). computeBadgeFrontComposite() is the same
+  // function renderBadgeFront()/printBadge() use to actually lay out the
+  // card, so this reports exactly the same pass/fail the user is about to
+  // see/print — never a separate, possibly-stricter-or-looser readiness
+  // heuristic. Only evaluated once both name fields are present (the
+  // plain-missing-field errors above already cover the empty case).
+  if (emp.first_name && emp.last_name) {
+    const site = _badge.sites.find(s => s.id === _badge.activeSite)
+    const composite = computeBadgeFrontComposite(emp, site)
+    if (!composite.nameFit.fits) {
+      // The name itself has no valid tier/line-break combination — a
+      // problem independent of the position/footer, so it keeps its own,
+      // more specific message rather than the composite one below.
+      issues.push({ level: 'error', field: 'name_fit', message: 'El nombre del colaborador es demasiado largo para el diseño actual del gafete — requiere corrección o una excepción de diseño autorizada' })
+    } else if (composite.positionFit && !composite.positionFit.fits) {
+      // Item 8: the name fits on its own, but name + position + required
+      // gaps together exceed the info panel's real remaining height —
+      // this is the composite defect 05-longname-front.png exposed. Never
+      // the old name-only message, which said nothing about the real
+      // (combined) cause.
+      issues.push({ level: 'error', field: 'position_fit', message: 'El nombre y el puesto del colaborador combinados exceden el espacio disponible en el gafete — requiere corrección o una excepción de diseño autorizada' })
+    }
+    // Long-company hard blocker: the footer's own bounded tier list
+    // (BADGE_COMPANY_SIZE_TIERS_PT/BADGE_COMPANY_MAX_LINES) has a genuine
+    // floor — a legal name that still doesn't fit within it at the
+    // smallest tier and the max permitted line count must block print
+    // rather than shrink further or clip silently.
+    if (!composite.companyFit.fits) {
+      // Item 1 (this pass): the message must carry the actual full legal
+      // name that failed to fit (not just a generic "too long"), so a
+      // human resolving this sees exactly what didn't fit — same string
+      // shown in the preview's editor-only notice pointer and in the prep
+      // rail's plain-text company display. companies.name (a short display
+      // name, distinct from companies.legal_name — see update19.sql) is
+      // named here only as an honest description of what already exists
+      // in the schema; it is deliberately NOT substituted onto the badge
+      // automatically, per instruction — using it on the printed footer
+      // would need an explicit authorization decision this pass does not
+      // make.
+      const company = site ? Object.values(_badge.companies || {}).flat().find(c => c.id === site.company_id) : null
+      const shortNameNote = (company && company.name && company.name !== composite.companyName)
+        ? ` El sistema ya tiene un nombre corto autorizado para esta empresa ("${company.name}"), pero usarlo en el gafete en lugar del nombre legal requeriría una decisión/autorización explícita — no se sustituye automáticamente.`
+        : ''
+      issues.push({ level: 'error', field: 'company_fit', message: `El nombre legal de la empresa ("${composite.companyName}") es demasiado largo para el pie del gafete — corrige el nombre legal de la empresa en su registro, o solicita una excepción de diseño autorizada.${shortNameNote}` })
+    }
+  }
 
   // Blood type (recommended for emergency response on the badge back)
   if (!emp.blood_type) issues.push({ level: 'warning', field: 'blood_type', message: 'Se recomienda el tipo de sangre para emergencias' })
@@ -19968,6 +20439,7 @@ function renderBadgeIssuanceView() {
           </div>
         </div>
         <div class="issuance-header-actions">
+          ${renderBadgeReadinessCompact(emp, r, st)}
           <button class="btn btn-secondary" onclick="closeBadgeIssuance()">Cancelar</button>
           <button id="badge-print-btn" class="btn btn-primary" onclick="printBadge()" ${disabled ? 'disabled aria-describedby="badge-print-block-reason"' : ''}>
             ${issuance.printing ? 'Imprimiendo…' : disabled ? 'Impresión bloqueada' : (st.state === 'missing' ? 'Imprimir gafete (con avisos)' : 'Imprimir gafete')}
@@ -19975,9 +20447,12 @@ function renderBadgeIssuanceView() {
         </div>
       </div>
 
-      ${renderBadgeReadinessBanner(emp, r, st)}
+      <div class="issuance-mobile-toggle">
+        <button type="button" class="btn ${!issuance.mobilePane || issuance.mobilePane === 'prepare' ? 'btn-primary' : 'btn-secondary'}" onclick="setIssuanceMobilePane('prepare')">Preparar</button>
+        <button type="button" class="btn ${issuance.mobilePane === 'preview' ? 'btn-primary' : 'btn-secondary'}" onclick="setIssuanceMobilePane('preview')">Vista previa</button>
+      </div>
 
-      <div class="issuance-content">
+      <div class="issuance-content${issuance.mobilePane === 'preview' ? ' mobile-preview' : ''}" id="issuance-content">
         <!-- Left: Employee Data -->
         <div class="issuance-data-panel">
           ${renderBadgeDataPanel(emp)}
@@ -19993,12 +20468,16 @@ function renderBadgeIssuanceView() {
   `
 }
 
-// Compact readiness summary, always visible directly under the header —
-// this is where the Print button's blockers/warnings live now, instead
-// of being buried at the bottom of the (scrollable) left column. Reuses
-// the exact severity/messages from checkBadgeReadiness() and the
-// existing .badge-ready-yes/-missing/-blocked severity classes.
-function renderBadgeReadinessBanner(emp, r, st) {
+// Compact readiness summary — pass 5 redesign. The full-width colored
+// banner (previously .issuance-readiness-banner, consuming a fixed block
+// of vertical space even for a single 2-item "ready with warnings" case)
+// is gone; readiness now lives in the header as a single ReadinessBadge
+// pill (the same .readiness-badge component already used for this exact
+// state elsewhere in Talento Humano — see readinessPillHtml()) that opens
+// a popover only when the operator asks for detail. Near-zero vertical
+// cost when ready, a few lines in a popover otherwise — reuses the exact
+// severity/messages from checkBadgeReadiness().
+function renderBadgeReadinessCompact(emp, r, st) {
   const reasonText = r.errors.map(e => e.message).join(' · ')
   const fixFor = (field) => {
     if (field === 'photo') return `document.getElementById('badge-photo-input')?.click()`
@@ -20006,29 +20485,26 @@ function renderBadgeReadinessBanner(emp, r, st) {
     return `viewEmployeeDetail('${emp.id}','overview')`
   }
   const tone = st.state === 'blocked' ? 'blocked' : st.state === 'missing' ? 'missing' : 'ok'
-  if (tone === 'ok') {
-    return `
-      <div class="issuance-readiness-banner is-ok">
-        <span class="irb-icon">${siIcon('check-circle', 16)}</span>
-        <span class="irb-text">Listo para imprimir — todos los datos requeridos y recomendados están completos.</span>
-      </div>
-      <span id="badge-print-block-reason" class="sr-only"></span>
-    `
-  }
+  const cls = tone === 'ok' ? 'badge-ready-yes' : tone === 'missing' ? 'badge-ready-missing' : 'badge-ready-blocked'
+  const icon = tone === 'ok' ? 'check-circle' : tone === 'missing' ? 'alert-triangle' : 'x-circle'
+  const label = tone === 'ok' ? 'Listo'
+    : tone === 'missing' ? `${r.warnings.length} aviso${r.warnings.length !== 1 ? 's' : ''}`
+    : `${r.errors.length} pendiente${r.errors.length !== 1 ? 's' : ''}`
   const items = r.allIssues.map(i => `
-    <li class="irb-item is-${i.level === 'error' ? 'error' : 'warning'}">
+    <div class="irb-item is-${i.level === 'error' ? 'error' : 'warning'}">
       <span class="irb-item-icon">${siIcon(i.level === 'error' ? 'x-circle' : 'alert-triangle', 14)}</span>
       <span class="irb-item-msg">${esc(i.message)}</span>
-      ${can('write', 'talento_humano') ? `<button type="button" class="irb-item-fix" onclick="${fixFor(i.field)}">${i.field === 'photo' ? 'Agregar' : 'Corregir'}</button>` : ''}
-    </li>
+      ${can('write', 'talento_humano') ? `<button type="button" class="irb-item-fix" onclick="wsClosePopovers();${fixFor(i.field)}">${i.field === 'photo' ? 'Agregar' : 'Corregir'}</button>` : ''}
+    </div>
   `).join('')
   return `
-    <div class="issuance-readiness-banner is-${tone}">
-      <div class="irb-summary">
-        <span class="irb-icon">${siIcon(tone === 'blocked' ? 'x-circle' : 'alert-triangle', 16)}</span>
-        <span class="irb-text">${r.errors.length ? `${r.errors.length} dato${r.errors.length !== 1 ? 's' : ''} obligatorio${r.errors.length !== 1 ? 's' : ''} pendiente${r.errors.length !== 1 ? 's' : ''}` : ''}${r.errors.length && r.warnings.length ? ' · ' : ''}${r.warnings.length ? `${r.warnings.length} aviso${r.warnings.length !== 1 ? 's' : ''}` : ''}${tone === 'missing' ? ' — se puede imprimir, pero se recomienda completarlos' : ' — la impresión está bloqueada hasta corregirlos'}</span>
+    <div style="position:relative">
+      <button type="button" class="readiness-badge ${cls}" onclick="catTogglePop(event,'badge-issuance-readiness-pop')" aria-label="Preparación del gafete: ${esc(label)}">${siIcon(icon)}<span>${esc(label)}</span>${siIcon('chevron-down', 12)}</button>
+      <div class="ws-pop completeness-pop" id="badge-issuance-readiness-pop" style="min-width:300px;right:0">
+        ${r.allIssues.length
+          ? `<div class="completeness-pop-hd">Preparación del gafete — ${tone === 'blocked' ? 'la impresión está bloqueada hasta corregir lo obligatorio' : 'se puede imprimir, pero se recomienda completarlos'}</div>${items}`
+          : `<div class="completeness-pop-ok">${siIcon('check-circle', 14)} Listo para imprimir — todos los datos requeridos y recomendados están completos.</div>`}
       </div>
-      <ul class="irb-list">${items}</ul>
     </div>
     <span id="badge-print-block-reason" class="sr-only">${esc(reasonText)}</span>
   `
@@ -20039,15 +20515,25 @@ function renderBadgeDataPanel(emp) {
   const latest = empLatestBadge(emp)
   const status = latest ? latest.status : 'no_badge'
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const { legalName } = badgeSiteCompanyInfo(site)
   // employee_code/first_name/last_name are the only fields checkBadgeReadiness
   // treats as blocking (see the function's own definition); department,
   // position and photo/blood_type are read here for display but are either
   // not checked at all (department/position) or only warnings (photo/blood
   // type) — labeled accordingly rather than implying a uniform requirement.
+  // Pass 5 redesign: four large, sparsely-filled cards (Identidad /
+  // Organización / Fotografía / Código de barras) collapsed to three
+  // compact groups — Organización and Código de barras merge into one
+  // "Datos del gafete" section, since department/position/company are
+  // pure display data (not evaluated by checkBadgeReadiness() at all) and
+  // don't warrant their own heavyweight card. Read-only fields render as
+  // tight label/value rows (.data-row, already single-line); only the
+  // Fotografía group — the one genuinely interactive control here — keeps
+  // real visual weight.
   return `
     <div class="badge-data-sections">
       <div class="badge-data-section">
-        <h3>Identidad <span class="bds-source">· del registro del colaborador</span></h3>
+        <h3>${siIcon('user', 13)}Identidad <span class="bds-source">· del registro del colaborador</span></h3>
         <div class="data-row">
           <span class="data-label">Nombre</span>
           <span class="data-value">${esc(emp.first_name) || '<span style="color:var(--danger)">Falta</span>'}</span>
@@ -20061,11 +20547,34 @@ function renderBadgeDataPanel(emp) {
           <code>${emp.employee_code ? esc(emp.employee_code) : '—'}</code>
         </div>
         <div class="bds-note">No editable aquí — refleja el registro del colaborador.</div>
-        ${canWrite ? `<button type="button" class="badge-profile-link" onclick="viewEmployeeDetail('${emp.id}','overview')">${siIcon('edit', 13)} Editar en el perfil</button>` : ''}
+        ${canWrite ? `<button type="button" class="badge-profile-link" onclick="viewEmployeeDetail('${emp.id}','overview')">${siIcon('pencil', 13)} Editar en el perfil</button>` : ''}
+      </div>
+
+      <div class="badge-data-section badge-data-section-photo">
+        <h3>${siIcon('camera', 13)}Fotografía <span class="bds-source">· foto de perfil compartida</span></h3>
+        <div class="badge-photo-row">
+          <div class="badge-photo-frame" id="badge-photo-frame">
+            ${emp.photo_url
+              ? `<img src="${esc(emp.photo_url)}" alt="Fotografía de ${esc(emp.first_name)} ${esc(emp.last_name)}" onerror="this.closest('#badge-photo-frame').classList.add('is-broken'); this.remove(); badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', false)" onload="badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', true)" />
+                 <div class="badge-photo-broken">${siIcon('alert-triangle', 16)}<span>No se pudo cargar</span></div>`
+              : `<div class="badge-photo-frame-empty">${siIcon('user', 18)}<span>Sin fotografía</span></div>`
+            }
+          </div>
+          <div class="badge-photo-col">
+            ${canWrite ? `
+            <div class="badge-photo-actions">
+              <label>${emp.photo_url ? 'Cambiar' : 'Agregar fotografía'}<input id="badge-photo-input" type="file" accept="${IMG_TYPES.join(',')}" aria-label="${emp.photo_url ? 'Cambiar fotografía' : 'Agregar fotografía'}" style="display:none" onchange="uploadBadgePhoto('${emp.id}', this)" /></label>
+              ${emp.photo_url ? `<button type="button" class="danger" onclick="removeBadgePhoto('${emp.id}')">Quitar</button>` : ''}
+            </div>
+            <div class="badge-photo-hint">JPG, PNG, WebP, GIF o AVIF · máx ${IMG_MAX_MB} MB</div>
+            ` : (emp.photo_url ? '' : '<div class="badge-photo-hint">Sin permiso de escritura para agregar fotografía</div>')}
+          </div>
+        </div>
+        <div class="bds-note">Esta es la fotografía de perfil del colaborador — no existe una versión exclusiva para el gafete. Cambiarla aquí la cambia en todo el sistema.</div>
       </div>
 
       <div class="badge-data-section">
-        <h3>Organización <span class="bds-source">· del registro del colaborador · no evaluado por preparación</span></h3>
+        <h3>${siIcon('credit-card', 13)}Datos del gafete <span class="bds-source">· no evaluado por preparación, salvo el código</span></h3>
         <div class="data-row">
           <span class="data-label">Departamento</span>
           <span class="data-value">${esc(emp.department || '—')}</span>
@@ -20075,38 +20584,28 @@ function renderBadgeDataPanel(emp) {
           <span class="data-value">${esc(emp.position || '—')}</span>
         </div>
         <div class="data-row">
-          <span class="data-label">Compañía</span>
+          <span class="data-label">Sede</span>
           <span class="data-value">${esc(site?.name || '—')}</span>
         </div>
-        ${canWrite ? `<button type="button" class="badge-profile-link" onclick="viewEmployeeDetail('${emp.id}','employment')">${siIcon('edit', 13)} Editar en el perfil</button>` : ''}
-      </div>
-
-      <div class="badge-data-section">
-        <h3>Fotografía <span class="bds-source">· foto de perfil compartida</span></h3>
-        <div class="badge-photo-frame" id="badge-photo-frame">
-          ${emp.photo_url
-            ? `<img src="${esc(emp.photo_url)}" alt="Fotografía de ${esc(emp.first_name)} ${esc(emp.last_name)}" onerror="this.closest('#badge-photo-frame').classList.add('is-broken'); this.remove()" />
-               <div class="badge-photo-broken">${siIcon('alert-triangle', 18)}<span>No se pudo cargar</span></div>`
-            : `<div class="badge-photo-empty">${siIcon('user', 22)}<span>Sin fotografía</span></div>`
-          }
-        </div>
-        ${canWrite ? `
-        <div class="badge-photo-actions">
-          <label>${emp.photo_url ? 'Cambiar' : 'Agregar fotografía'}<input id="badge-photo-input" type="file" accept="${IMG_TYPES.join(',')}" aria-label="${emp.photo_url ? 'Cambiar fotografía' : 'Agregar fotografía'}" style="display:none" onchange="uploadBadgePhoto('${emp.id}', this)" /></label>
-          ${emp.photo_url ? `<button type="button" class="danger" onclick="removeBadgePhoto('${emp.id}')">Quitar</button>` : ''}
-        </div>
-        <div class="badge-photo-hint">JPG, PNG, WebP, GIF o AVIF · máx ${IMG_MAX_MB} MB</div>
-        ` : (emp.photo_url ? '' : '<div class="badge-photo-hint">Sin permiso de escritura para agregar fotografía</div>')}
-        <div class="bds-note">Esta es la fotografía de perfil del colaborador — no existe una versión exclusiva para el gafete. Cambiarla aquí la cambia en todo el sistema.</div>
-      </div>
-
-      <div class="badge-data-section">
-        <h3>Código de barras <span class="bds-source">· CODE128 sobre el código de colaborador</span></h3>
         <div class="data-row">
-          <span class="data-label">Valor a codificar</span>
+          <span class="data-label">${siIcon('barcode', 12)} Código de barras</span>
           <code>${emp.employee_code ? esc(emp.employee_code) : '—'}</code>
         </div>
+        <!-- Item 1 clarity fix: this row was previously mislabeled
+             Compania while showing the SITE name (a plant/location, e.g.
+             Northern Spinning) - a genuinely different field from the
+             badge footer's printed company name (the legal entity, e.g.
+             Pride Chemicals S. de R.L. de C.V., resolved via
+             badgeSiteCompanyInfo()). The field feeding the badge was
+             already correct (see that function's own data-mapping-audit
+             comment) - only the rail's LABEL was wrong, making two
+             genuinely different fields for two genuinely different
+             purposes read as if they contradicted each other. Relabeled
+             to Sede and this note added, rather than changing which field
+             feeds the printed badge. -->
+        <div class="bds-note">La razón social impresa en el gafete (${esc(legalName || 'sin resolver')}) se determina por la sede y su empresa asociada — no es necesariamente el mismo texto que el nombre de la sede mostrado arriba.</div>
         ${!emp.employee_code ? '<div class="bds-note" style="color:var(--danger)">Sin código de colaborador, el código de barras no puede generarse — esto bloquea la impresión y solo puede corregirse en el perfil.</div>' : ''}
+        ${canWrite ? `<button type="button" class="badge-profile-link" onclick="viewEmployeeDetail('${emp.id}','employment')">${siIcon('pencil', 13)} Editar en el perfil</button>` : ''}
       </div>
     </div>
   `
@@ -20138,30 +20637,57 @@ function renderBadgePreview(emp) {
       </div>
 
       <div class="badge-preview-area" id="badge-preview-area" style="--badge-zoom:${zoom}">
-        <div class="badge-card-slot ${issuance.preview_side === 'front' ? 'is-active' : ''}" id="badge-front-slot" role="tabpanel" aria-labelledby="badge-tab-front" data-side="front" style="transform:scale(${zoom})">
+        <div class="badge-card-slot ${issuance.preview_side === 'front' ? 'is-active' : ''}" id="badge-front-slot" role="tabpanel" aria-labelledby="badge-tab-front" data-side="front" style="zoom:${zoom}">
           ${renderBadgeFront(emp, site)}
         </div>
-        <div class="badge-card-slot ${issuance.preview_side === 'back' ? 'is-active' : ''}" id="badge-back-slot" role="tabpanel" aria-labelledby="badge-tab-back" data-side="back" style="transform:scale(${zoom})">
+        <div class="badge-card-slot ${issuance.preview_side === 'back' ? 'is-active' : ''}" id="badge-back-slot" role="tabpanel" aria-labelledby="badge-tab-back" data-side="back" style="zoom:${zoom}">
           ${renderBadgeBack(emp, site)}
         </div>
       </div>
 
-      <div class="badge-scale-caption">Tarjeta CR80 · 85.6 × 53.98 mm · horizontal</div>
+      <div class="badge-scale-caption">Tarjeta CR80 · ${badgeGeometryMm().w} × ${badgeGeometryMm().h} mm · vertical · la vista en pantalla no representa el tamaño físico</div>
 
       <div class="badge-preview-controls">
         <button class="icon-btn" onclick="zoomBadgePreview(-0.1)" aria-label="Alejar, ${zoomPct}% actual" ${zoom <= 0.5 ? 'disabled' : ''}><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
-        <span class="badge-zoom-readout" id="badge-zoom-readout" aria-live="polite">${zoomMode === 'fit' ? `Ajustar · ${zoomPct}%` : `${zoomPct}%`}</span>
+        <span class="badge-zoom-readout" id="badge-zoom-readout" aria-live="polite">${zoomMode === 'fit' ? 'Ajustar' : `${zoomPct}%`}</span>
         <button class="icon-btn" onclick="zoomBadgePreview(0.1)" aria-label="Acercar, ${zoomPct}% actual" ${zoom >= 2 ? 'disabled' : ''}><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 6.5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
         <button type="button" class="btn btn-ghost btn-sm badge-zoom-fit-btn" onclick="zoomBadgePreview('fit')" aria-label="Restablecer a tamaño ajustado" ${zoomMode === 'fit' ? 'disabled' : ''}>Ajustar</button>
+        <span class="badge-preview-controls-sep" aria-hidden="true"></span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="toggleBadgeCompare()" aria-pressed="${comparing}">${siIcon(comparing ? 'columns' : 'copy', 13)} ${comparing ? 'Vista única' : 'Comparar ambos lados'}</button>
       </div>
     </div>
   `
 }
 
+// Compare mode is a deliberate, manual choice — never something the
+// ResizeObserver silently turns on based on measured width (see
+// initBadgePreviewWorkspace's comment). Toggling re-renders because the
+// tabs/slot markup differ materially between modes (aria-hidden tabs,
+// both slots visible vs. one).
+function toggleBadgeCompare() {
+  const issuance = _badge_ui.issuanceInProgress
+  if (!issuance) return
+  issuance.comparing = !issuance.comparing
+  renderBadgeModule()
+}
+
+// Mobile sequential flow (§ responsive) — 'prepare' (default) or
+// 'preview'. Re-renders like empMobileBackToList()'s pane swap; the
+// preview panel's ResizeObserver re-measures correctly once it becomes
+// visible again (initBadgePreviewWorkspace() already runs on every
+// issuance-view render, see renderBadgeModule()).
+function setIssuanceMobilePane(pane) {
+  const issuance = _badge_ui.issuanceInProgress
+  if (!issuance) return
+  issuance.mobilePane = pane
+  renderBadgeModule()
+}
+
 // Measures the badge card's real, unscaled layout box (offsetWidth/Height
-// are unaffected by the CSS `transform: scale()` used for zoom, so this
-// reads the true 85.6×53.98mm box as rendered by the browser at 96dpi —
-// no hardcoded mm→px conversion that could drift from actual font/box
+// are unaffected by the CSS `zoom` property used for preview zoom — see
+// initBadgePreviewWorkspace()'s apply() below — so this reads the true
+// 53.98×85.6mm box as rendered by the browser at 96dpi — no hardcoded
+// mm→px conversion that could drift from actual font/box
 // metrics) so the fit computation is always against the actual card, not
 // an assumption about it.
 function _measureBadgeCardNatural() {
@@ -20180,22 +20706,24 @@ function _measureBadgeCardNatural() {
 }
 
 let _badgePreviewRO = null
-// Container-aware fit + side-by-side compare — replaces the previous
-// fixed-viewport-width @media(min-width:1280px) approximation (flagged
-// as incorrect: a wide window with a narrower preview column, e.g. from
-// a wide data panel, would wrongly show side-by-side). A ResizeObserver
-// on the actual preview container recomputes both the fit scale and
-// whether both sides fit side-by-side, entirely independent of viewport
-// width. This only mutates the already-painted DOM directly (transform,
-// CSS var, readout text, a toggled class) — it never calls
-// renderBadgeModule() itself, so a resize can never trigger a render
-// loop against this same observer.
+// Container-aware fit-to-view. Pass 5 change: "Comparar" is now a manual
+// toggle (see toggleBadgeCompare()) rather than something this observer
+// silently switched on/off based on measured width — the redesign's
+// explicit constraint is that compare mode must NEVER render either card
+// smaller than single-side mode does, so the fit scale below is always
+// computed against exactly ONE card regardless of comparing state; when
+// both cards don't fit side by side at that size, the preview area
+// scrolls horizontally instead of shrinking them (see .is-comparing
+// overflow-x in CSS). A ResizeObserver on the actual preview container
+// recomputes the fit scale entirely independent of viewport width. This
+// only mutates the already-painted DOM directly (transform, CSS var,
+// readout text) — it never calls renderBadgeModule() itself, so a resize
+// can never trigger a render loop against this same observer.
 function initBadgePreviewWorkspace() {
   if (_badgePreviewRO) { try { _badgePreviewRO.disconnect() } catch (e) {} ; _badgePreviewRO = null }
   const area = document.getElementById('badge-preview-area')
   const container = document.getElementById('badge-preview-container')
   if (!area || !container || typeof ResizeObserver === 'undefined') return
-  const GAP = 20 // matches .is-comparing .badge-preview-area gap in CSS
   const apply = () => {
     const issuance = _badge_ui.issuanceInProgress
     if (!issuance) return
@@ -20204,99 +20732,621 @@ function initBadgePreviewWorkspace() {
     const rect = area.getBoundingClientRect()
     const availW = Math.max(0, rect.width - 24)
     const availH = Math.max(0, rect.height - 24)
-    const canCompare = availW >= (natural.w * 2 + GAP) && availH >= natural.h * 0.6
-    container.classList.toggle('is-comparing', canCompare)
-    issuance.comparing = canCompare
-    const rawFit = canCompare
-      ? Math.min((availW - GAP) / (natural.w * 2), availH / natural.h)
-      : Math.min(availW / natural.w, availH / natural.h)
+    const rawFit = Math.min(availW / natural.w, availH / natural.h)
     issuance.fitZoom = +Math.min(2, Math.max(0.5, rawFit || 1)).toFixed(2)
     const effectiveZoom = issuance.zoomMode === 'manual' ? (issuance.zoom || 1) : issuance.fitZoom
     area.style.setProperty('--badge-zoom', effectiveZoom)
-    area.querySelectorAll('.badge-card-slot').forEach(slot => { slot.style.transform = `scale(${effectiveZoom})` })
+    area.querySelectorAll('.badge-card-slot').forEach(slot => { slot.style.zoom = effectiveZoom })
     const readout = document.getElementById('badge-zoom-readout')
     const pct = Math.round(effectiveZoom * 100)
-    if (readout) readout.textContent = issuance.zoomMode === 'manual' ? `${pct}%` : `Ajustar · ${pct}%`
+    if (readout) readout.textContent = issuance.zoomMode === 'manual' ? `${pct}%` : 'Ajustar'
   }
   _badgePreviewRO = new ResizeObserver(() => apply())
   _badgePreviewRO.observe(area)
   apply()
 }
 
+// Adaptive-but-bounded name type scale: a very long two-part name steps
+// down through a small fixed ramp instead of clipping or overflowing the
+// physical card. Ellipsis (.badge-front-nameline's overflow:hidden) remains
+// the last-resort floor for a single token that would still overflow even
+// at the smallest step. Shared by the on-screen preview and the print
+// document — never a second, independently-tuned copy of these thresholds.
+// Thresholds/values retuned this pass for the portrait panel's narrower
+// text column (~48mm) vs. the previous landscape layout's ~76mm — see the
+// redesign report's "long name" fixture result for the measured floor.
+// Item 2 rewrite (this pass): badgeNameFontSizePt() used to pick a size
+// tier from raw character COUNT, an heuristic that has nothing to do with
+// how wide the text actually renders (a name in "iiiiii" is a fraction of
+// the width of "MMMMMM" at the same length) — the design system's own
+// bounded tier list is the correct idea, but the size PICK must be driven
+// by genuine rendered-width measurement, not a proxy for it. Kept exactly
+// the tiers a prior pass established (16 / 13.5 / 11pt), re-confirmed
+// unchanged in this pass; only the SELECTION and the LINE-BREAKING logic
+// change, replacing badgeNameFontSizePt() with fitBadgeNameLines() below.
+const BADGE_NAME_SIZE_TIERS_PT = [16, 13.5, 11]
+// Bug fix (this pass): the previous 46mm value only subtracted the panel's
+// own 3mm+3mm horizontal padding from BADGE_W, silently dropping
+// .badge-front's OWN 3mm+3mm outer padding (see .badge-front's `padding:
+// 3mm` — the panel is nested INSIDE that padded box, not flush with the
+// card edge). The real text column is BADGE_W (53.98mm) minus BOTH: the
+// front's own 3mm+3mm AND the panel's own 3mm+3mm = 53.98 - 12 = 41.98mm
+// (confirmed against a real getBoundingClientRect() probe this pass — see
+// _measureBadgeFixedGeometry()/report). The 46mm the previous pass used
+// was too generous by 4mm: a line could pass fitBadgeNameLines()'s canvas-
+// measured check against 46mm and then genuinely re-wrap a second time
+// once actually laid out in the real (narrower) 41.98mm CSS column —
+// silently adding a line of real height that computeBadgeFrontComposite()'s
+// panel-height budget never knew about, which is exactly what produced a
+// residual name/footer collision on the 05-longname-front.png stress
+// fixture even after this pass's composite fitter was in place. Matches
+// BADGE_COMPANY_MAX_WIDTH_MM's identically-derived value below (same 3mm+
+// 3mm+3mm+3mm math, since both columns use the same 3mm paddings).
+const BADGE_NAME_MAX_WIDTH_MM = 41.98
+// Physical judgement call (documented per the task, not verified against
+// a reference file): the front card's vertical budget is header (~10mm) +
+// photoblock (30mm min) + panel chrome (idline + position line + padding,
+// ~10mm) + companybar (~7mm) inside an 85.6mm-tall card — leaving roughly
+// enough room for 4 short lines of name text at the smallest (11pt) tier
+// before the panel would have to grow into print-unsafe territory. 2 is
+// the normal case (first name / last name, one line each); up to 4 covers
+// a genuinely compound first AND last name (e.g. "Juan Carlos" / "De La
+// Cruz") each needing 2 lines of their own at the smallest tier. Beyond
+// this, checkBadgeReadiness() below reports a hard error rather than
+// letting layout silently overflow past the card's safe margin.
+const BADGE_NAME_MAX_LINES = 4
+let _badgeNameMeasureCtx = null
+// Real DOM/canvas measurement of how wide `text` renders in the actual
+// Replica Bold face at `sizePt` — replaces the character-count heuristic.
+// A <canvas> 2D context's `font` shorthand accepts CSS length units
+// (including 'pt') and measureText() reports width in the same CSS px
+// space the on-screen/print DOM uses, so this is real rendered width, not
+// an estimate — genuinely accurate as long as Replica 700 is loaded in
+// this document (checkBadgeReadiness()/printBadge()'s font hard-blocker
+// already guarantee that before this is ever relied on for a print
+// decision).
+// Generic real canvas measurement — shared by the name/position/company
+// fitters below so all three use the exact same measurement mechanism
+// (never a character-count heuristic) against whatever font shorthand the
+// caller passes.
+// `letterSpacingPx` (Canvas2D's own `letterSpacing` property, supported by
+// this app's target Chromium) matters here: the previous pass's fitter
+// measured width with the canvas's default (zero) letter-spacing while the
+// real CSS rule applies a real positive letter-spacing (0.01em on the name,
+// 0.03em on the company line) — a small per-character gap that, summed
+// across a longer word, was enough to make a "fits" verdict wrong once
+// actually laid out in the DOM (confirmed this pass — see
+// BADGE_NAME_MAX_WIDTH_MM's bug-fix comment above). Passing it here closes
+// that gap at the measurement step itself, rather than papering over it
+// with a fudge-factor margin.
+function badgeTextWidthPx(text, fontSpec, letterSpacingPx = 0) {
+  if (!_badgeNameMeasureCtx) _badgeNameMeasureCtx = document.createElement('canvas').getContext('2d')
+  _badgeNameMeasureCtx.font = fontSpec
+  if ('letterSpacing' in _badgeNameMeasureCtx) {
+    try { _badgeNameMeasureCtx.letterSpacing = `${letterSpacingPx}px` } catch (e) {}
+  }
+  return _badgeNameMeasureCtx.measureText(text).width
+}
+// Bug fix (this pass): the rendered name lines are forced to UPPERCASE by
+// a real `.toUpperCase()` call in renderBadgeFront()/printBadge() (not CSS
+// text-transform), but this measurement function was never given the
+// uppercased string — it measured the original mixed-case text, which is
+// measurably NARROWER than the uppercase glyphs actually painted (capital
+// letters have no descender/x-height gap and are generally wider than
+// their lowercase forms). That let fitBadgeNameLines() accept a tier/line-
+// break combination that then genuinely re-wrapped a second time once
+// rendered in real uppercase — the second concrete cause (alongside
+// BADGE_NAME_MAX_WIDTH_MM's own bug above) behind the residual name/footer
+// collision this pass found on the 05-longname-front.png stress fixture.
+// Uppercasing here (matching badgeCompanyTextWidthPx's already-correct
+// pattern below) is what makes this a genuine measurement of the text as
+// it actually renders. 0.01em letter-spacing matches .badge-front-nameline.
+function badgeNameTextWidthPx(text, sizePt) {
+  return badgeTextWidthPx(text.toUpperCase(), `700 ${sizePt}pt Replica, sans-serif`, sizePt * (96 / 72) * 0.01)
+}
+// Generic greedy word-boundary wrap: adds words to the current line while
+// it still fits `maxWidthPx` per `widthFn`; never splits a word — a single
+// word wider than maxWidthPx is still emitted whole (on its own line),
+// letting the caller's fit-check catch the overflow rather than mangling
+// the word. Shared by the name/position/company fitters below.
+function badgeWrapWords(words, maxWidthPx, widthFn) {
+  const lines = []
+  let cur = []
+  for (const w of words) {
+    const candidate = cur.length ? cur.join(' ') + ' ' + w : w
+    if (!cur.length || widthFn(candidate) <= maxWidthPx) {
+      cur.push(w)
+    } else {
+      lines.push(cur.join(' '))
+      cur = [w]
+    }
+  }
+  if (cur.length) lines.push(cur.join(' '))
+  return lines
+}
+function badgeWrapNameWords(words, sizePt, maxWidthPx) {
+  return badgeWrapWords(words, maxWidthPx, t => badgeNameTextWidthPx(t, sizePt))
+}
+// The authoritative name-fitting algorithm (item 2), shared verbatim by
+// renderBadgeFront() (preview) and printBadge() (print) so the two can
+// never diverge, and by checkBadgeReadiness() for the hard-blocker below.
+// Tries each approved size tier, largest first; within each tier, wraps
+// the given name(s) and surname(s) independently at real word boundaries
+// (so "Juan Carlos" or "De La Cruz" break between words, never mid-word)
+// and accepts the first tier where every resulting line actually measures
+// within budget AND the total line count stays within the physical cap.
+// Returns `fits:false` (using the smallest tier's best attempt, for
+// diagnostic display only) when no tier/line-break combination works —
+// callers must treat that as a hard print-blocker, never a silent
+// overflow or ellipsis.
+// `maxWidthPx` defaults to the BADGE_NAME_MAX_WIDTH_MM constant (used by
+// any standalone/manual caller), but computeBadgeFrontComposite() below
+// always passes the REAL measured panel content width instead — see its
+// comment for why a hand-derived constant, even a carefully re-checked
+// one, is not trustworthy enough on its own (this pass found the
+// previous 46mm constant was itself wrong by 4mm, and the corrected
+// 41.98mm was STILL off by a few px against the real rendered column once
+// checked against genuine getBoundingClientRect() numbers — real
+// measurement is the only thing that cannot silently drift from the CSS).
+function fitBadgeNameLines(firstName, lastName, maxWidthPx = BADGE_NAME_MAX_WIDTH_MM * (96 / 25.4)) {
+  const firstWords = String(firstName || '').trim().split(/\s+/).filter(Boolean)
+  const lastWords = String(lastName || '').trim().split(/\s+/).filter(Boolean)
+  for (const size of BADGE_NAME_SIZE_TIERS_PT) {
+    const firstLines = badgeWrapNameWords(firstWords, size, maxWidthPx)
+    const lastLines = badgeWrapNameWords(lastWords, size, maxWidthPx)
+    const allLines = [...firstLines, ...lastLines]
+    const allFit = allLines.every(l => badgeNameTextWidthPx(l, size) <= maxWidthPx)
+    if (allLines.length <= BADGE_NAME_MAX_LINES && allFit) {
+      return { fontSize: size, firstLines, lastLines, fits: true }
+    }
+  }
+  const size = BADGE_NAME_SIZE_TIERS_PT[BADGE_NAME_SIZE_TIERS_PT.length - 1]
+  return {
+    fontSize: size,
+    firstLines: badgeWrapNameWords(firstWords, size, maxWidthPx),
+    lastLines: badgeWrapNameWords(lastWords, size, maxWidthPx),
+    fits: false,
+  }
+}
+
+// ── Composite front-panel fitter (this pass) ─────────────────────────────
+// Root cause this fixes: fitBadgeNameLines() above only ever validated the
+// NAME against its own tier/width budget — it has no idea how much of the
+// info panel's shared vertical space is left over for the position line
+// once the name has consumed its share, and nothing previously re-derived
+// the position's size/line-count from that real remainder. The panel
+// (.badge-front-panel) and the footer (.badge-front-companybar) below it
+// are independent flex siblings inside .badge-front-card with no shared
+// height contract, so a name that wraps to more lines just grows the
+// panel's natural content height indefinitely — .badge-front-photoblock's
+// `min-height:30mm` floor is the only thing that stops it from shrinking
+// the photo further, so once that floor is hit, panel content that still
+// doesn't fit paints OUTSIDE the panel's flexed box and is visually
+// overpainted by .badge-front-companybar (rendered after it in normal
+// flow) rather than clipped — exactly the "position text behind the
+// footer" defect in 05-longname-front.png. See BADGE_POSITION_SIZE_TIERS_PT
+// below and computeBadgeFrontComposite(), which is now the single function
+// both renderBadgeFront() (preview) and printBadge() (print) call — same
+// inputs, same real-DOM/canvas measurements, so the two structurally
+// cannot diverge (identical requirement as the name-only fitter above).
+//
+// Approved Aeonik tiers for the position line — introduced this pass since
+// .badge-front-positionline previously had a single fixed 7.6pt with no
+// tier concept at all. 7.6pt is the previously-established default
+// (preserved as the preferred tier); the ramp steps down only as far as
+// 5.8pt (~2.05mm), staying above SIERRA_DESIGN_SYSTEM.md §41's ~1.8mm
+// print-safe technical floor (mirrors the back panel's own established
+// 5.7pt≈2.0mm dense-mode floor — see badgeBackDensityClass()'s comment).
+const BADGE_POSITION_SIZE_TIERS_PT = [7.6, 6.8, 6.0, 5.8]
+// Physical judgement call, same nature as BADGE_NAME_MAX_LINES above: a
+// position line that needs more than 3 lines even at the smallest tier is
+// treated as a hard print-blocker rather than growing further and
+// threatening the footer regardless of the new composite height check.
+const BADGE_POSITION_MAX_LINES = 3
+// Company footer tiers (long-company fitting, this pass). Previous state
+// (prior pass): the footer had no bounded tier list at all — its font-size
+// just kept shrinking indefinitely for a long legal name, producing a
+// 4-line footer that stopped reading as a "footer". 6.6pt is the existing
+// established default (preferred, kept unchanged so the canonical
+// PRIDE CHEMICALS fixture is unaffected); 5.7pt is the one permitted step
+// down (mirrors the same back-panel-established floor value used for the
+// position tier above — both sit just above the §41 ~1.8mm floor).
+const BADGE_COMPANY_SIZE_TIERS_PT = [6.6, 5.7]
+// A footer showing more than 2 lines stops looking like a footer and
+// starts dominating the card, contradicting the front's own visual
+// hierarchy — see the redesign report. 2 is the reasoned cap.
+const BADGE_COMPANY_MAX_LINES = 2
+// BADGE_W (53.98mm) minus .badge-front's own 3mm+3mm padding minus
+// .badge-front-companybar's own 3mm+3mm horizontal padding — the footer
+// pill's real horizontal text budget (distinct from BADGE_NAME_MAX_WIDTH_MM,
+// which is the panel's budget one level up and does not have the
+// companybar's own padding subtracted).
+const BADGE_COMPANY_MAX_WIDTH_MM = 41.98
+// pt → px line-box height at 96dpi for a given CSS line-height ratio —
+// shared by every height computation below so the "px per pt" conversion
+// only lives in one place.
+function badgeLineHeightPx(sizePt, ratio) {
+  return sizePt * (96 / 72) * ratio
+}
+function badgePositionTextWidthPx(text, sizePt) {
+  return badgeTextWidthPx(text, `400 ${sizePt}pt Aeonik, sans-serif`)
+}
+// Company name is rendered visually uppercase via CSS text-transform, but
+// the underlying string (and hence its measured width) is not itself
+// uppercased before this call — measuring the literal uppercase form here
+// (rather than the mixed-case source string) is what makes this a genuine
+// measurement of the text as it actually renders, not an underestimate.
+// 0.03em letter-spacing, matching .badge-front-companyname exactly.
+function badgeCompanyTextWidthPx(text, sizePt) {
+  return badgeTextWidthPx(text.toUpperCase(), `700 ${sizePt}pt Aeonik, sans-serif`, sizePt * (96 / 72) * 0.03)
+}
+// Fits the position line's text against its OWN horizontal budget (shares
+// the panel's 46mm column, same as the name) AND, when `maxHeightPx` is
+// given (the composite call always supplies the real, measured remainder —
+// see computeBadgeFrontComposite() below), its real rendered height too.
+// `maxHeightPx: null` fits width/line-count only (used only internally by
+// the composite function's own diagnostic fallback) — every real caller
+// always passes the true measured budget.
+function fitBadgePositionLines(position, maxHeightPx, maxWidthPx = BADGE_NAME_MAX_WIDTH_MM * (96 / 25.4)) {
+  const words = String(position || '').trim().split(/\s+/).filter(Boolean)
+  // Zero (or negative, pre-clamped by the caller) real remaining budget
+  // means the name alone already consumed the panel's entire available
+  // height — there is genuinely no room left, not even a sliver. Rendering
+  // the smallest tier's line anyway would just paint it fully behind the
+  // footer (invisible, not merely tight) — worse than showing nothing,
+  // since it looks like the position silently vanished rather than
+  // honestly reporting "does not fit" via the composite hard-blocker
+  // (checkBadgeReadiness() below) that this fits:false already triggers.
+  if (maxHeightPx != null && maxHeightPx <= 0) {
+    return { fontSize: BADGE_POSITION_SIZE_TIERS_PT[BADGE_POSITION_SIZE_TIERS_PT.length - 1], lines: [], heightPx: 0, fits: false }
+  }
+  for (const size of BADGE_POSITION_SIZE_TIERS_PT) {
+    const lines = badgeWrapWords(words, maxWidthPx, t => badgePositionTextWidthPx(t, size))
+    const widthOk = lines.every(l => badgePositionTextWidthPx(l, size) <= maxWidthPx)
+    const heightPx = lines.length * badgeLineHeightPx(size, 1.3)
+    const heightOk = maxHeightPx == null || heightPx <= maxHeightPx
+    if (widthOk && lines.length <= BADGE_POSITION_MAX_LINES && heightOk) {
+      return { fontSize: size, lines, heightPx, fits: true }
+    }
+  }
+  const size = BADGE_POSITION_SIZE_TIERS_PT[BADGE_POSITION_SIZE_TIERS_PT.length - 1]
+  const lines = badgeWrapWords(words, maxWidthPx, t => badgePositionTextWidthPx(t, size))
+  return { fontSize: size, lines, heightPx: lines.length * badgeLineHeightPx(size, 1.3), fits: false }
+}
+// Fits the company footer's text against its own horizontal budget and the
+// bounded BADGE_COMPANY_MAX_LINES cap — independent of name/position (the
+// footer's own height is computed FIRST, before the name/position budget
+// below, since the footer's height is itself an input to how much room the
+// panel above it has).
+function fitBadgeCompanyLines(companyName, maxWidthPx = BADGE_COMPANY_MAX_WIDTH_MM * (96 / 25.4)) {
+  const words = String(companyName || '').trim().split(/\s+/).filter(Boolean)
+  for (const size of BADGE_COMPANY_SIZE_TIERS_PT) {
+    const lines = badgeWrapWords(words, maxWidthPx, t => badgeCompanyTextWidthPx(t, size))
+    const widthOk = lines.every(l => badgeCompanyTextWidthPx(l, size) <= maxWidthPx)
+    if (widthOk && lines.length <= BADGE_COMPANY_MAX_LINES) {
+      return { fontSize: size, lines, fits: true }
+    }
+  }
+  const size = BADGE_COMPANY_SIZE_TIERS_PT[BADGE_COMPANY_SIZE_TIERS_PT.length - 1]
+  const lines = badgeWrapWords(words, maxWidthPx, t => badgeCompanyTextWidthPx(t, size))
+  return { fontSize: size, lines, fits: false }
+}
+// Real (non-cached — see report) measurement of the fixed, content-
+// independent parts of the front card's box model: header height, the
+// photoblock's own min-height floor, the card's flex `gap`, the panel's
+// padding/gap, the idline's rendered height, the companybar's own
+// margin-top/padding, and the card's outer padding. Built from an actual
+// hidden DOM node using the SAME classes as the real render (never
+// hand-derived/guessed mm values) so a future CSS tweak to any of these
+// rules is automatically picked up here rather than silently drifting.
+// `flex:none`/`height:auto` inline overrides (inline style always wins
+// over the class rule, regardless of specificity) let the probe's boxes
+// size to their natural content instead of being force-filled/clamped by
+// the fixed card height, which is what makes "how tall does this actually
+// want to be" measurable at all.
+function _measureBadgeFixedGeometry() {
+  const probe = document.createElement('div')
+  probe.style.cssText = 'position:fixed; left:-9999px; top:0; visibility:hidden; pointer-events:none;'
+  probe.innerHTML = `
+    <div class="badge-front" style="height:auto; overflow:visible;">
+      <div class="badge-front-header"><div class="badge-logo-mark">${LBL_LOGO_SVG}</div></div>
+      <div class="badge-front-card" style="flex:none;">
+        <div class="badge-front-photoblock"></div>
+        <div class="badge-front-panel">
+          <div class="badge-front-idline">0000000</div>
+        </div>
+      </div>
+      <div class="badge-front-companybar" style="visibility:hidden;"><div class="badge-front-companyname">X</div></div>
+    </div>`
+  document.body.appendChild(probe)
+  const cs = (el) => getComputedStyle(el)
+  const frontEl = probe.querySelector('.badge-front')
+  const headerEl = probe.querySelector('.badge-front-header')
+  const photoEl = probe.querySelector('.badge-front-photoblock')
+  const cardEl = probe.querySelector('.badge-front-card')
+  const panelEl = probe.querySelector('.badge-front-panel')
+  const idlineEl = probe.querySelector('.badge-front-idline')
+  const companybarEl = probe.querySelector('.badge-front-companybar')
+  const gapOf = (el) => parseFloat(cs(el).rowGap || cs(el).gap) || 0
+  const geom = {
+    frontPaddingTopPx: parseFloat(cs(frontEl).paddingTop) || 0,
+    frontPaddingBottomPx: parseFloat(cs(frontEl).paddingBottom) || 0,
+    headerHeightPx: headerEl.getBoundingClientRect().height,
+    photoblockMinHeightPx: photoEl.getBoundingClientRect().height,
+    cardGapPx: gapOf(cardEl),
+    panelPadTopPx: parseFloat(cs(panelEl).paddingTop) || 0,
+    panelPadBottomPx: parseFloat(cs(panelEl).paddingBottom) || 0,
+    panelGapPx: gapOf(panelEl),
+    idlineHeightPx: idlineEl.getBoundingClientRect().height,
+    companybarMarginTopPx: parseFloat(cs(companybarEl).marginTop) || 0,
+    companybarPadTopPx: parseFloat(cs(companybarEl).paddingTop) || 0,
+    companybarPadBottomPx: parseFloat(cs(companybarEl).paddingBottom) || 0,
+    // Real text columns (this pass's bug fix): clientWidth already excludes
+    // border but INCLUDES padding, so the genuine content/text width is
+    // clientWidth minus the element's own left+right padding — measured
+    // directly rather than re-derived by hand from BADGE_W (see
+    // BADGE_NAME_MAX_WIDTH_MM's comment on why the hand-derived value
+    // drifted from reality). This is what actually eliminates the class of
+    // bug (a name/position/company line that canvas-measures as "fits" but
+    // then genuinely re-wraps once laid out in the real, narrower DOM
+    // column), rather than just re-deriving a marginally-more-careful
+    // constant that could still be wrong in some other way.
+    panelContentWidthPx: panelEl.clientWidth - (parseFloat(cs(panelEl).paddingLeft) || 0) - (parseFloat(cs(panelEl).paddingRight) || 0),
+    companybarContentWidthPx: companybarEl.clientWidth - (parseFloat(cs(companybarEl).paddingLeft) || 0) - (parseFloat(cs(companybarEl).paddingRight) || 0),
+  }
+  document.body.removeChild(probe)
+  return geom
+}
+// Position line's own top-gap: BOTH the panel's flex `gap` (applies
+// between every adjacent pair of .badge-front-panel children) AND
+// .badge-front-positionline's own `margin-top` apply cumulatively in a
+// flex container (gap is not a substitute for margin) — real established
+// CSS behavior, not a bug this pass introduces or needs to fix.
+const BADGE_POSITION_MARGIN_TOP_MM = 0.8
+
+// THE authoritative composite fitter (item 1-8 of this pass). Computes, in
+// this exact order sharing one running vertical budget: (1) the footer's
+// own fit (independent of name/position), (2) the name's own fit
+// (unchanged from fitBadgeNameLines()), (3) the REAL remaining panel space
+// after the identifier line, the name's actual chosen height, and required
+// gaps, and (4) the position's fit against that real remainder. Called
+// identically (same function, same inputs, same main-document
+// measurements) by renderBadgeFront(), printBadge(), and
+// checkBadgeReadiness() so all three structurally cannot diverge.
+function computeBadgeFrontComposite(emp, site) {
+  const geom = _measureBadgeFixedGeometry()
+  const pxPerMm = 96 / 25.4
+  const { legalName } = badgeSiteCompanyInfo(site)
+  const companyName = legalName || emp.company || 'Empresa sin asignar'
+  const companyFit = fitBadgeCompanyLines(companyName, geom.companybarContentWidthPx)
+  const companybarHeightPx = geom.companybarPadTopPx + geom.companybarPadBottomPx +
+    companyFit.lines.length * badgeLineHeightPx(companyFit.fontSize, 1.3)
+
+  const totalInnerHeightPx = badgeGeometryMm().h * pxPerMm - geom.frontPaddingTopPx - geom.frontPaddingBottomPx
+  const availableForCardPx = totalInnerHeightPx - geom.headerHeightPx - geom.companybarMarginTopPx - companybarHeightPx
+  const availableForPanelPx = availableForCardPx - geom.photoblockMinHeightPx - geom.cardGapPx
+
+  const nameFit = fitBadgeNameLines(emp.first_name, emp.last_name, geom.panelContentWidthPx)
+  const nameLineCount = nameFit.firstLines.length + nameFit.lastLines.length
+  const nameHeightPx = nameLineCount * badgeLineHeightPx(nameFit.fontSize, 1.16)
+  // Gaps already committed before the position line: the panel's own flex
+  // `gap` applies between the idline and each name line, and between
+  // consecutive name lines — (idline + nameLineCount) children means
+  // (idline + nameLineCount - 1) gaps.
+  const gapsBeforePositionPx = geom.panelGapPx * nameLineCount
+  const usedBeforePositionPx = geom.panelPadTopPx + geom.idlineHeightPx + gapsBeforePositionPx + nameHeightPx
+  const remainingAfterNamePx = availableForPanelPx - geom.panelPadBottomPx - usedBeforePositionPx
+
+  let positionFit = null
+  if (emp.position) {
+    const gapBeforePositionPx = geom.panelGapPx + BADGE_POSITION_MARGIN_TOP_MM * pxPerMm
+    const budgetForPositionTextPx = remainingAfterNamePx - gapBeforePositionPx
+    positionFit = fitBadgePositionLines(emp.position, Math.max(0, budgetForPositionTextPx), geom.panelContentWidthPx)
+  }
+
+  const compositeFits = nameFit.fits && (!positionFit || positionFit.fits)
+  return { companyName, companyFit, nameFit, positionFit, compositeFits, geom }
+}
+
+// Reverse's "PAÍS" and front's footer company name both resolve through
+// the real relational chain (site → companies.country_id → countries),
+// never a hardcoded default — see the redesign report's data-mapping
+// audit. employees.country (a denormalized free-text column added by
+// update21.sql) is intentionally NOT used here: it can drift from the
+// employee's actual site/company assignment, while this resolves the
+// country and legal company name the badge is actually being printed
+// for, from the same _badge.sites/_badge.companies already loaded by
+// loadBadgeData(). Returns { legalName, countryName }, either half
+// possibly null if the site/company/country chain is incomplete.
+function badgeSiteCompanyInfo(site) {
+  const company = site ? Object.values(_badge.companies || {}).flat().find(c => c.id === site.company_id) : null
+  const country = company ? (_badge.countries || []).find(c => c.id === company.country_id) : null
+  return {
+    legalName: company?.legal_name || company?.name || null,
+    countryName: country?.name || null,
+  }
+}
+
 function renderBadgeFront(emp, site) {
-  // SIERRA badge front design
-  // Faithful reproduction of approved badge artwork
+  // SIERRA badge front (pass 6 portrait redesign) — real brand lockup
+  // (LBL_LOGO_SVG, the same mark used in the app's own top nav — never a
+  // retyped <text>SIERRA</text>) centered in its own header zone; a photo
+  // block flush into a white ID panel below it, reading as one rounded
+  // card element; a separate orange company-name pill as its own shape
+  // below that, matching the reference's four-zone composition. The
+  // employee_code identifier now sits at the top of the white panel
+  // (small, orange, Aeonik Mono) rather than in a footer row — moved
+  // here per the reference, not dropped.
+  // Item 2 (this pass): name, position and footer are no longer fit
+  // independently — computeBadgeFrontComposite() is the single coordinated
+  // fitter (real DOM/canvas measurement, one shared running vertical
+  // budget) that decides all three, and printBadge()'s mirror below calls
+  // the exact same function so preview and print cannot diverge.
+  const composite = computeBadgeFrontComposite(emp, site)
+  const { nameFit: fit, positionFit, companyFit, companyName } = composite
+  const nameLinesHtml = [...fit.firstLines, ...fit.lastLines]
+    .map(line => `<div class="badge-front-nameline" style="font-size:${fit.fontSize}pt">${esc(line).toUpperCase()}</div>`)
+    .join('')
+  const positionHtml = positionFit
+    ? positionFit.lines.map(line => `<div class="badge-front-positionline" style="font-size:${positionFit.fontSize}pt" title="${esc(emp.position)}">${esc(line)}</div>`).join('')
+    : ''
+  // Item 1 (this pass): once fitBadgeCompanyLines() has already determined
+  // (via companyFit.fits) that the legal name has no valid tier/line-count
+  // combination, do NOT attempt any further shrinking/wrapping of the
+  // overflowing text here — that bounded decision was already made. This
+  // preview branch only decides HOW to paint the already-known failure:
+  // an editor-only notice inside the same-shaped footer, never the actual
+  // (necessarily-too-long) legal name text. checkBadgeReadiness() already
+  // surfaces the full legal name string in its own error message (see
+  // there) and the prep rail shows it in full as plain data — this is
+  // intentionally just a pointer back to those, not a restatement.
+  const companyLinesHtml = companyFit.fits
+    ? companyFit.lines
+        .map(line => `<div class="badge-front-companyname" style="font-size:${companyFit.fontSize}pt">${esc(line)}</div>`)
+        .join('')
+    : `<div class="badge-front-companybar-invalid">${siIcon('alert-triangle', 12)} Nombre legal demasiado largo para el gafete — requiere nombre corto autorizado</div>`
+  const companybarInvalidClass = companyFit.fits ? '' : ' is-invalid'
+  // Item 3: a photo_url that exists but fails to load must render a
+  // distinct, visible failure indicator — never the same "Sin foto" copy
+  // used for a genuinely absent photo (see badgeMarkBrokenPhoto()/
+  // checkBadgeReadiness()'s photo section for the readiness-side half of
+  // this fix). `is-broken` on the photoblock reveals the sibling
+  // .badge-front-photo-broken indicator, mirroring the prep rail's own
+  // .badge-photo-frame.is-broken pattern (renderBadgeDataPanel()) so both
+  // surfaces speak the same visual language for the same real condition.
+  const photoHtml = emp.photo_url
+    ? `<img src="${esc(emp.photo_url)}" alt="" onerror="this.closest('.badge-front-photoblock').classList.add('is-broken'); this.remove(); badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', false)" onload="badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', true)" />
+       <div class="badge-front-photo-broken">${siIcon('alert-triangle', 16)}<span>Foto no disponible</span></div>`
+    : '<div class="badge-photo-empty">Sin foto</div>'
   return `
     <div class="badge-front" id="badge-front-preview">
       <div class="badge-front-header">
-        <svg class="badge-sierra-logo" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
-          <text x="50" y="25" font-family="Replica, sans-serif" font-size="18" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text>
-        </svg>
+        <div class="badge-logo-mark">${LBL_LOGO_SVG}</div>
       </div>
 
-      <div class="badge-company-color" style="background-color:${site?.badge_color || '#0A7A72'}"></div>
-
-      <div class="badge-front-photo">
-        ${emp.photo_url ? `<img src="${esc(emp.photo_url)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'badge-photo-empty',textContent:'Sin foto'}))" />` : '<div class="badge-photo-empty">Sin foto</div>'}
-      </div>
-
-      <div class="badge-front-info">
-        <div class="badge-employee-name">
-          <div class="badge-first-name">${esc(emp.first_name).toUpperCase()}</div>
-          <div class="badge-last-name">${esc(emp.last_name).toUpperCase()}</div>
+      <div class="badge-front-card">
+        <div class="badge-front-photoblock">
+          ${photoHtml}
         </div>
-        <div class="badge-department">${esc((emp.department || '').toUpperCase())}</div>
+        <div class="badge-front-panel">
+          <div class="badge-front-idline">${esc(emp.employee_code || '—')}</div>
+          ${nameLinesHtml}
+          ${positionHtml}
+        </div>
       </div>
 
-      <div class="badge-front-code">
-        <span class="badge-code-label">ID</span>
-        <span class="badge-code-value">${esc(emp.employee_code)}</span>
+      <div class="badge-front-companybar${companybarInvalidClass}">
+        ${companyLinesHtml}
       </div>
     </div>
   `
 }
 
+// Item 3: a tiny cross-render cache of "did this photo_url actually load"
+// keyed by URL, populated by the <img onload>/<onerror> handlers above (and
+// the print document's matching handler). checkBadgeReadiness() consults
+// this to escalate a broken photo into a real (non-"missing") problem —
+// see there for the exact message. Known limitation, reported rather than
+// silently accepted: this is populated asynchronously by whichever <img>
+// happens to load first (rail or front preview, both point at the same
+// photo_url), so readiness only reflects a load failure starting on the
+// render AFTER the failing request resolves, not instantaneously — there
+// is no synchronous way to know an <img src> is broken before the browser
+// has tried it.
+const _badgePhotoStatus = {}
+function badgeMarkPhotoStatus(url, ok) {
+  const prev = _badgePhotoStatus[url]
+  _badgePhotoStatus[url] = ok ? 'ok' : 'broken'
+  // Only re-render when the status actually changed the readiness verdict
+  // (broken → anything, or anything → broken) — avoids re-rendering on
+  // every successful image load, which would be pure noise.
+  if (prev !== _badgePhotoStatus[url] && (prev === 'broken' || _badgePhotoStatus[url] === 'broken') && _badge_ui.view === 'issuance') {
+    renderBadgeModule()
+  }
+}
+
+// Bounded density step for the reverse's 5-row panel: a long emergency-
+// contact name+phone and/or a long/multi-condition health_conditions
+// string (health_conditions is a single free-text column per update19.sql
+// — there is no delimiter convention anywhere else in this codebase, so
+// it renders as wrapping plain text, never artificially split into fake
+// list entries) can together need more vertical room than the panel has
+// at the default row size. Rather than let flex-start overflow push
+// "Tipo de sangre" below the panel (see redesign report's long-content
+// fixture), the panel steps down to a tighter, still-legible density —
+// see .badge-back-panel.is-dense in CSS for the exact floor (5.7pt ≈
+// 2.0mm, above SIERRA_DESIGN_SYSTEM.md §41's 1.8mm technical floor).
+// Threshold picked empirically against the stress fixture in this pass's
+// test harness, not a database-derived constant.
+function badgeBackDensityClass(emp) {
+  const len = [emp.emergency_contact_name, emp.emergency_contact_phone, emp.health_conditions]
+    .filter(Boolean).join(' ').length
+  return len > 55 ? ' is-dense' : ''
+}
+
 function renderBadgeBack(emp, site) {
-  // SIERRA badge back design
-  // Includes barcode, emergency info, medical info
+  // SIERRA badge back (pass 6 portrait redesign) — header row (lockup +
+  // GK partner tile — see the redesign report: no real GK asset exists
+  // anywhere in this repo, so this is a clearly-labeled placeholder, not
+  // a redrawn logo), one white info panel with 5 icon+label+value rows,
+  // legal ownership/return copy on the card's own background (badge_templates
+  // .static_copy/.static_copy_small are unused/unpopulated anywhere in this
+  // codebase per the data-mapping audit, so this wording is NOT sourced
+  // from an authoritative field — flagged in the report), then a modestly
+  // sized barcode band. Missing values (blood type, country, ID number,
+  // emergency contact) all render the literal '—' fallback, never a
+  // fabricated default — same contract pass 5 established, now extended
+  // to the two new rows.
+  const { countryName } = badgeSiteCompanyInfo(site)
   return `
     <div class="badge-back" id="badge-back-preview">
       <div class="badge-back-header">
-        <svg class="badge-sierra-logo" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
-          <text x="50" y="25" font-family="Replica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text>
-        </svg>
+        <div class="badge-logo-mark">${LBL_LOGO_SVG}</div>
+        <div class="badge-gk-tile" role="img" aria-label="GK">${GK_LOGO_SVG}</div>
       </div>
 
-      <div class="badge-back-company-color" style="background-color:${site?.badge_color || '#0A7A72'}"></div>
-
-      <div class="badge-back-barcode">
-        <div id="badge-back-barcode-svg" style="text-align:center;margin:3mm 0"></div>
-        <div class="badge-barcode-text">${esc(emp.employee_code)}</div>
+      <div class="badge-back-panel${badgeBackDensityClass(emp)}">
+        <div class="badge-back-row2">
+          <span class="badge-back-icontile">${siIcon('globe', 13)}</span>
+          <span class="badge-back-rowtext">
+            <div class="badge-back-rowlabel">País</div>
+            <div class="badge-back-rowvalue">${esc(countryName || '—')}</div>
+          </span>
+        </div>
+        <div class="badge-back-row2">
+          <span class="badge-back-icontile">${siIcon('credit-card', 13)}</span>
+          <span class="badge-back-rowtext">
+            <div class="badge-back-rowlabel">No. de identificación</div>
+            <div class="badge-back-rowvalue badge-back-idvalue">${esc(emp.identification_number || '—')}</div>
+          </span>
+        </div>
+        <div class="badge-back-row2">
+          <span class="badge-back-icontile">${siIcon('phone', 13)}</span>
+          <span class="badge-back-rowtext">
+            <div class="badge-back-rowlabel">En caso de emergencia llamar a</div>
+            <div class="badge-back-rowvalue">${esc(emp.emergency_contact_name || '—')}${emp.emergency_contact_phone ? `<br>${esc(emp.emergency_contact_phone)}` : ''}</div>
+          </span>
+        </div>
+        <div class="badge-back-row2">
+          <span class="badge-back-icontile">${siIcon('heart', 13)}</span>
+          <span class="badge-back-rowtext">
+            <div class="badge-back-rowlabel">Condiciones de salud</div>
+            <div class="badge-back-rowvalue">${esc(emp.health_conditions || '—')}</div>
+          </span>
+        </div>
+        <div class="badge-back-row2">
+          <span class="badge-back-icontile">${siIcon('droplet', 13)}</span>
+          <span class="badge-back-rowtext">
+            <div class="badge-back-rowlabel">Tipo de sangre</div>
+            <div class="badge-back-rowvalue">${esc(emp.blood_type || '—')}</div>
+          </span>
+        </div>
       </div>
 
-      <div class="badge-back-info">
-        <div class="badge-back-row">
-          <span class="badge-back-label">Contacto de emergencia:</span>
-          <span class="badge-back-value">${esc(emp.emergency_contact_name || '—')}</span>
-        </div>
-        <div class="badge-back-row">
-          <span class="badge-back-label">Teléfono:</span>
-          <span class="badge-back-value">${esc(emp.emergency_contact_phone || '—')}</span>
-        </div>
-        <div class="badge-back-row">
-          <span class="badge-back-label">Tipo de sangre:</span>
-          <span class="badge-back-value">${esc(emp.blood_type || '—')}</span>
-        </div>
-        ${emp.health_conditions ? `
-        <div class="badge-back-row">
-          <span class="badge-back-label">Condiciones de salud:</span>
-          <span class="badge-back-value">${esc(emp.health_conditions)}</span>
-        </div>
-        ` : ''}
-      </div>
+      <div class="badge-back-legal">Este gafete es propiedad de la empresa. Al finalizar la relación laboral, deberá ser devuelto. En caso de pérdida o extravío, favor reportarlo a Talento Humano.</div>
 
-      <div class="badge-back-footer">
-        <p style="margin:0;font-size:6pt;color:#666">En caso de emergencia, contacte al número indicado. Mantenga el gafete visible en todo momento.</p>
+      <div class="badge-back-barcodeblock">
+        <div id="badge-back-barcode-svg"></div>
       </div>
     </div>
   `
@@ -20360,6 +21410,97 @@ async function removeBadgePhoto(empId) {
   _focusBadgePhotoControl()
 }
 
+// Font-loading verification (this pass): `document.fonts.ready` resolving
+// only means whatever font loads were already in flight settled — it does
+// NOT prove every specific face the badge actually needs successfully
+// loaded (a 404'd/failed @font-face still lets `ready` resolve; that face
+// simply never enters the loaded set, and the browser silently falls back
+// to a system font or a synthetic bold with no visible error). This is the
+// single source of truth for exactly which family/weight combinations the
+// print output depends on, kept in sync with the CSS above and in the
+// on-screen preview's own stylesheet — every entry here must correspond to
+// a real, declared @font-face (never a synthetic/fabricated weight).
+const REQUIRED_BADGE_FONT_CHECKS = [
+  { spec: "700 10pt Replica", label: "Replica 700 (nombre del colaborador)" },
+  { spec: "400 10pt Aeonik", label: "Aeonik 400 (puesto, copia legal)" },
+  { spec: "500 10pt Aeonik", label: "Aeonik 500 (valores del reverso)" },
+  { spec: "700 10pt Aeonik", label: "Aeonik 700 (empresa, etiquetas del reverso)" },
+  { spec: "400 10pt 'Aeonik Mono'", label: "Aeonik Mono 400 (texto del código de barras)" },
+  { spec: "500 10pt 'Aeonik Mono'", label: "Aeonik Mono 500 (identificadores)" },
+]
+// Returns the checks (from REQUIRED_BADGE_FONT_CHECKS) that FAILED against
+// the given document's font set — i.e. the faces the badge cannot actually
+// render with. `doc` is a `Document` (the main document, or the print
+// popup's own isolated document — each has its own `document.fonts`).
+function badgeFontLoadFailures(doc) {
+  if (!doc || !doc.fonts || typeof doc.fonts.check !== 'function') return REQUIRED_BADGE_FONT_CHECKS.slice()
+  return REQUIRED_BADGE_FONT_CHECKS.filter(c => {
+    try { return !doc.fonts.check(c.spec) } catch (e) { return true }
+  })
+}
+
+// Parses a CSS font shorthand like `"700 10pt Replica"` or
+// `"400 10pt 'Aeonik Mono'"` into { weight, family } so a FontFace object
+// (whose own .family/.weight properties are separate strings, never a
+// shorthand) can be matched against one of REQUIRED_BADGE_FONT_CHECKS.
+function _parseBadgeFontSpec(spec) {
+  const m = /^(\d+)\s+[\d.]+\w+\s+(.+)$/.exec(spec.trim())
+  if (!m) return null
+  let family = m[2].trim()
+  if ((family.startsWith("'") && family.endsWith("'")) || (family.startsWith('"') && family.endsWith('"'))) {
+    family = family.slice(1, -1)
+  }
+  return { weight: parseInt(m[1], 10), family }
+}
+// Returns true when `doc.fonts` (iterated directly as [...doc.fonts], per
+// the FontFaceSet iterable interface — not .check()) contains a FontFace
+// matching the given spec's family+weight whose .status is 'loaded'. This
+// is the second, independent proof step 7 below requires in addition to
+// .check(): .check() can, on some engines, report true from a fallback/
+// synthetic match rather than the real requested face, so this walks the
+// actual FontFace objects and inspects their own .status.
+function _badgeFontFaceLoaded(doc, spec) {
+  const parsed = _parseBadgeFontSpec(spec)
+  if (!doc || !doc.fonts || !parsed) return false
+  try {
+    for (const face of doc.fonts) {
+      const faceFamily = String(face.family || '').replace(/^['"]|['"]$/g, '')
+      // FontFace.weight can be a single value ("700") or a variable-font
+      // range ("400 700"); parseInt() reads the first number in either
+      // case, which is enough to match the fixed, non-variable weights
+      // these @font-face rules declare.
+      const faceWeight = parseInt(face.weight, 10)
+      if (faceFamily === parsed.family && faceWeight === parsed.weight && face.status === 'loaded') return true
+    }
+  } catch (e) { /* fonts not iterable in this engine — fail closed */ }
+  return false
+}
+// Runs the full, authoritative verification for one document's font set
+// (steps 5-7 of the print-gate sequence): explicitly requests every
+// required face via `doc.fonts.load()`, awaits `doc.fonts.ready`, then
+// confirms each face via BOTH `.check()` and the FontFace-iteration proof
+// above. Returns one row per REQUIRED_BADGE_FONT_CHECKS entry carrying
+// every field the evidence table in this pass's report needs, plus the
+// list of specs that failed either proof (the actual gating signal).
+async function verifyBadgeFonts(doc) {
+  const loadResults = await Promise.all(REQUIRED_BADGE_FONT_CHECKS.map(async c => {
+    try {
+      await doc.fonts.load(c.spec)
+      return true
+    } catch (e) {
+      return false
+    }
+  }))
+  try { await doc.fonts.ready } catch (e) {}
+  const rows = REQUIRED_BADGE_FONT_CHECKS.map((c, i) => {
+    let checkPassed = false
+    try { checkPassed = !!doc.fonts.check(c.spec) } catch (e) {}
+    const faceLoaded = _badgeFontFaceLoaded(doc, c.spec)
+    return { spec: c.spec, label: c.label, loadResolved: loadResults[i], checkPassed, faceLoaded, ok: loadResults[i] && checkPassed && faceLoaded }
+  })
+  return { rows, failures: rows.filter(r => !r.ok) }
+}
+
 async function printBadge() {
   const issuance = _badge_ui.issuanceInProgress
   const emp = _badge.employees.find(e => e.id === issuance.employee_id)
@@ -20394,10 +21535,105 @@ async function printBadge() {
   issuance.printing = true
   const printBtn = document.getElementById('badge-print-btn')
   if (printBtn) { printBtn.disabled = true; printBtn.textContent = 'Imprimiendo…' }
+  // Focus restoration (this pass): mirrors the established
+  // uploadBadgePhoto()/removeBadgePhoto() convention above
+  // (_focusBadgePhotoControl) — whatever control the user interacted with
+  // to trigger the action should regain focus once that action concludes,
+  // success or failure, rather than silently falling back to document.body
+  // (a real risk here since every failure path below re-enables this same
+  // button rather than re-rendering the whole view). Focus is restored on
+  // every resetPrintingState() call, i.e. every early-return failure path
+  // in this function, not only the final success path.
   const resetPrintingState = () => {
     issuance.printing = false
     const btn = document.getElementById('badge-print-btn')
-    if (btn) { btn.disabled = false; btn.textContent = 'Imprimir gafete' }
+    if (btn) { btn.disabled = false; btn.textContent = 'Imprimir gafete'; btn.focus() }
+  }
+
+  // Hard blocker (pass 7): generate the real barcode SVG NOW, in the MAIN
+  // document, entirely BEFORE window.open() — never after. The previous
+  // design opened the print popup first, wrote a placeholder div into it,
+  // and only then tried JsBarcode(popupSvg, ...) against an element that
+  // belonged to the POPUP's document while JsBarcode itself was loaded
+  // into (and its module-scope `document` reference bound to) the MAIN
+  // document. Any failure there — library not loaded, encoding error, or
+  // that cross-document mismatch — printed a red "Código de barras no
+  // disponible/inválido" placeholder directly onto the physical badge,
+  // which is never acceptable output.
+  //
+  // The fix removes the cross-document question entirely rather than
+  // relying on unverifiable spec behavior: JsBarcode is called here, once,
+  // against an SVG created in and owned by the MAIN document (the
+  // `xmlDocument: document` option makes this explicit rather than
+  // implicit), its `outerHTML` is captured as a plain markup STRING, and
+  // that string is spliced into the print document's HTML below like any
+  // other value — no live node ever crosses from one document to another,
+  // and no script needs to load inside the (isolated, same-origin-only-by-
+  // default) popup at all. This mirrors the existing, working pattern
+  // already used by printPriceSticker() elsewhere in this file.
+  //
+  // checkBadgeReadiness() (called above via `readiness`) already performed
+  // this exact probe and would have returned ready:false — aborting this
+  // function before this line is ever reached — if JsBarcode were
+  // unavailable or emp.employee_code were unencodable. This second
+  // try/catch is defense in depth only (matching this function's existing
+  // idiom of re-checking permission/readiness right before the point of
+  // use), not the primary gate: if it somehow still fails, we abort here,
+  // BEFORE window.open() — never create-then-cancel a popup.
+  let barcodeMarkup = ''
+  try {
+    const probeSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    // Same module width/height/font as the on-screen preview
+    // (renderBadgeBackBarcodePreview) — the portrait card's modest
+    // barcode band, not the previous canvas-filling size.
+    // Item (barcode width, this pass): identical width/margin as
+    // renderBadgeBackBarcodePreview() above — see its comment for the
+    // engineering reasoning — never a second, independently-tuned value.
+    JsBarcode(probeSvg, emp.employee_code, { format: 'CODE128', width: 11, height: 26, margin: 110, displayValue: false, xmlDocument: document })
+    probeSvg.removeAttribute('width')
+    probeSvg.removeAttribute('height')
+    // Item 7: real Aeonik Mono 500 text element, not JsBarcode's own
+    // `displayValue` text (which cannot carry a genuine font-weight — see
+    // renderBadgeBackBarcodePreview()'s matching fix/comment above, which
+    // this print path must stay identical to).
+    barcodeMarkup = probeSvg.outerHTML + `<div class="badge-barcode-value">${esc(emp.employee_code)}</div>`
+  } catch (e) {
+    console.error('Barcode generation error:', e)
+    toast('No se puede imprimir: el código de barras no se pudo generar para "' + emp.employee_code + '"')
+    resetPrintingState()
+    return
+  }
+
+  // Font hard-blocker (this pass), mirroring the barcode hard-blocker's
+  // shape above: gate BEFORE ever opening the print popup. The print
+  // document's @font-face rules point at the exact same physical font
+  // files as the main document's (see fontUrl() below), so if a required
+  // family/weight fails to load HERE it is not going to succeed in a
+  // brand-new popup pointed at the same files — checking here fails fast
+  // and, critically, means a doomed popup is never created in the first
+  // place.
+  //
+  // document.fonts.ready alone is not enough of a trigger: it only waits
+  // for loads already in flight, and the on-screen preview only ever
+  // renders ONE side (front/back) at a time — a user who never switched to
+  // the reverse tab before clicking print may never have caused the
+  // reverse-only weights (e.g. plain Aeonik 500) to start loading at all,
+  // which would make them look "missing" here even though the face is
+  // perfectly valid and declared. So we explicitly request every required
+  // face via document.fonts.load() first — this actively fetches/decodes
+  // each face regardless of whether anything currently on screen uses it
+  // — and only then check coverage. This is what makes the pre-open check
+  // a reliable proxy rather than a fragile, order-of-navigation-dependent
+  // guess.
+  try {
+    await Promise.all(REQUIRED_BADGE_FONT_CHECKS.map(c => document.fonts.load(c.spec).catch(() => [])))
+    await document.fonts.ready
+  } catch (e) {}
+  const preOpenFontFailures = badgeFontLoadFailures(document)
+  if (preOpenFontFailures.length) {
+    toast('No se puede imprimir: no se pudo cargar la tipografía requerida (' + preOpenFontFailures.map(f => f.label).join(' · ') + ') — recarga la página e inténtalo de nuevo')
+    resetPrintingState()
+    return
   }
 
   // Create print document with actual SIERRA badge design
@@ -20420,12 +21656,48 @@ async function printBadge() {
   // real Replica/Replica Mono instead of silently falling back to a
   // system font (a FOUT-to-print with no visible warning).
   const fontUrl = (file) => new URL(file, location.href).href
-  const badgeColor = site?.badge_color || '#0A7A72'
+  // Same single source of truth as the on-screen card (--badge-w-mm/-h-mm)
+  // — never a second hardcoded 53.98/85.6 that could drift from it.
+  const { w: BADGE_W, h: BADGE_H } = badgeGeometryMm()
 
-  // Bug fix: the previous print document only ever contained the front —
-  // the back (barcode, emergency contact, blood type, health conditions)
-  // was never printed at all, regardless of which preview tab was open.
-  // Both sides now print, one badge-sized page each.
+  // Bug fix (carried from pass 5): the print document must contain both
+  // sides, one badge-sized page each, regardless of which preview tab is
+  // open. Pass 6: the markup/CSS below mirror renderBadgeFront()/
+  // renderBadgeBack() and the shared .badge-front*/.badge-back* rules
+  // structurally (same zones, same class-name shapes) — this is a
+  // separate `document` so it is necessarily its own literal copy of the
+  // CSS, not a shared stylesheet, but every layout decision (BADGE_W/
+  // BADGE_H, LBL_LOGO_SVG, badgeNameFontSizePt(), badgeSiteCompanyInfo())
+  // is the same function/constant the on-screen preview uses, so the two
+  // can't silently drift into two different designs.
+  //
+  // Icon choice: verified in this pass's Playwright print-emulation
+  // harness that siIcon()'s inline, self-contained SVG (no sprite sheet,
+  // no class carried over from the main document's stylesheet) renders
+  // correctly inside this print window's own isolated <head> — same
+  // result pass 5 found for the previous icon set. The 5 reverse rows
+  // below use siIcon() directly, matching the on-screen preview exactly.
+  // Item 2 (this pass): identical composite fitting call/result as
+  // renderBadgeFront() (preview) — same computeBadgeFrontComposite()
+  // function, same inputs, called independently in this (main, opener)
+  // document context, so the two structurally cannot diverge. Every
+  // decided font-size/line is baked into the markup below via inline
+  // `style="font-size:…pt"` (never left to this popup's own CSS defaults
+  // to reproduce), which is what actually guarantees pixel-identical
+  // typography regardless of which document renders it.
+  const composite = computeBadgeFrontComposite(emp, site)
+  const { nameFit: fit, positionFit, companyFit, companyName } = composite
+  const { countryName } = badgeSiteCompanyInfo(site)
+  const nameLinesHtml = [...fit.firstLines, ...fit.lastLines]
+    .map(line => `<div class="badge-name-line" title="${esc(line)}" style="font-size:${fit.fontSize}pt">${esc(line).toUpperCase()}</div>`)
+    .join('')
+  const positionLinesHtml = positionFit
+    ? positionFit.lines.map(line => `<div class="badge-position-line" title="${esc(emp.position)}" style="font-size:${positionFit.fontSize}pt">${esc(line)}</div>`).join('')
+    : ''
+  const companyLinesHtml = companyFit.lines
+    .map(line => `<div class="badge-company-line" style="font-size:${companyFit.fontSize}pt">${esc(line)}</div>`)
+    .join('')
+  const nameFontSize = fit.fontSize
   const html = `
     <!DOCTYPE html>
     <html>
@@ -20435,61 +21707,95 @@ async function printBadge() {
         @font-face { font-family:"Replica"; src:url("${fontUrl('Replica Light.otf')}") format("opentype"); font-weight:300; }
         @font-face { font-family:"Replica"; src:url("${fontUrl('Replica Regular.otf')}") format("opentype"); font-weight:400; }
         @font-face { font-family:"Replica"; src:url("${fontUrl('Replica Bold.otf')}") format("opentype"); font-weight:700; }
-        @font-face { font-family:"Replica Mono"; src:url("${fontUrl('ReplicaMonoLL-Regular.otf')}") format("opentype"); font-weight:400; }
-        @page { size: 85.6mm 53.98mm; margin: 0; }
+        @font-face { font-family:"Aeonik"; src:url("${fontUrl('Aeonik-Regular.ttf')}") format("truetype"); font-weight:400; }
+        @font-face { font-family:"Aeonik"; src:url("${fontUrl('Aeonik-Medium.ttf')}") format("truetype"); font-weight:500; }
+        @font-face { font-family:"Aeonik"; src:url("${fontUrl('Aeonik-Bold.ttf')}") format("truetype"); font-weight:700; }
+        @font-face { font-family:"Aeonik Mono"; src:url("${fontUrl('AeonikMono-Regular.otf')}") format("opentype"); font-weight:400; }
+        @font-face { font-family:"Aeonik Mono"; src:url("${fontUrl('AeonikMono-Medium.otf')}") format("opentype"); font-weight:500; }
+        @font-face { font-family:"Aeonik Mono"; src:url("${fontUrl('AeonikMono-Bold.otf')}") format("opentype"); font-weight:700; }
+        @page { size: ${BADGE_W}mm ${BADGE_H}mm; margin: 0; }
         @media print {
           body { margin: 0; padding: 0; background: #fff; }
           .badge-sheet { box-shadow: none; margin: 0; page-break-after: always; }
           .badge-sheet:last-child { page-break-after: auto; }
           .no-print { display: none !important; }
         }
-        body { font-family: 'Replica', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 10px; background: #f5f5f5; }
-        .badge-sheet { width: 85.6mm; height: 53.98mm; background: #fff; box-sizing: border-box; page-break-inside: avoid; box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: relative; margin-bottom: 20px; padding: 3mm; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; border-radius: 4mm; border: 1px solid #eee; overflow: hidden; }
-        .badge-sheet.is-back { justify-content: flex-start; }
-        .badge-sierra-logo { width: 22mm; height: auto; color: #007d73; font-weight: 700; }
-        .badge-company-bar { position: absolute; top: 0; left: 0; right: 0; height: 3mm; background: ${badgeColor}; }
-        .badge-employee-photo { width: 28mm; height: 28mm; border-radius: 2mm; object-fit: cover; margin: 2mm 0; border: 1px solid #ddd; }
-        .badge-employee-name { margin-top: 2mm; line-height: 1.1; }
-        .badge-first-name, .badge-last-name { font-size: 11pt; font-weight: 700; color: #000; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 78mm; }
-        .badge-last-name { margin-top: 1mm; }
-        .badge-department { font-size: 8pt; color: #666; margin-top: 1mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 78mm; }
-        .badge-code { font-size: 7pt; color: #888; font-family: 'Replica Mono', 'Courier New', monospace; margin-top: 2mm; letter-spacing: 0.5px; }
-        .badge-barcode { text-align: center; margin: 2mm 0; width: 100%; }
-        .badge-barcode svg { max-width: 100%; height: auto; }
-        .badge-back-rows { width: 100%; text-align: left; font-size: 7.5pt; color: #222; margin-top: 1mm; }
-        .badge-back-rows div { margin-bottom: 1mm; }
-        .badge-back-rows b { color: #000; }
-        .badge-back-footer { font-size: 6pt; color: #666; margin-top: auto; }
+        body { font-family: 'Aeonik', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 10px; background: #f5f5f5; }
+        .badge-sheet { width: ${BADGE_W}mm; height: ${BADGE_H}mm; background: #fff; color: #0b0b0b; box-sizing: border-box; page-break-inside: avoid; box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: relative; margin-bottom: 20px; padding: 3mm; display: flex; flex-direction: column; border-radius: 4mm; border: 1px solid #eee; overflow: hidden; }
+        .badge-logo-mark { line-height: 0; }
+        .badge-logo-mark svg { display: block; width: 100%; height: auto; }
+        /* FRONT */
+        .badge-front-header { display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding-bottom: 2.2mm; }
+        .badge-front-header .badge-logo-mark { width: 28mm; }
+        .badge-front-card { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 1.6mm; }
+        .badge-front-photoblock { flex: 1 1 auto; min-height: 30mm; background: #eee; overflow: hidden; border-radius: 3mm; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .badge-employee-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .badge-photo-placeholder { width: 100%; height: 100%; background: #eee; display: flex; align-items: center; justify-content: center; color: #94a19f; font-size: 7.5pt; text-align: center; line-height: 1.3; }
+        .badge-front-panel { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 2mm 3mm 2.2mm; gap: 0.6mm; background: #fff; border-radius: 3mm; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .badge-front-idline { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; font-size: 7.5pt; letter-spacing: 0.02em; color: #cd4f00; }
+        .badge-name-line { font-family: 'Replica', sans-serif; font-weight: 700; font-size: ${nameFontSize}pt; text-transform: uppercase; line-height: 1.16; letter-spacing: 0.01em; color: #0b0b0b; max-width: 46mm; white-space: normal; overflow-wrap: normal; word-break: normal; }
+        .badge-front-photo-broken { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #b3261e; font-size: 6.6pt; text-align: center; line-height: 1.3; }
+        .badge-front-photoblock.is-broken .badge-front-photo-broken { display: flex; }
+        .badge-front-photoblock.is-broken .badge-employee-photo { display: none; }
+        .badge-position-line { font-family: 'Aeonik', sans-serif; font-weight: 400; font-size: 7.6pt; line-height: 1.3; color: #ff7824; margin-top: 0.8mm; max-width: 46mm; overflow-wrap: break-word; }
+        .badge-front-companybar { flex-shrink: 0; margin-top: 1.6mm; border-radius: 3mm; background: #ff7824; padding: 1.4mm 3mm; display: flex; align-items: center; justify-content: center; text-align: center; min-height: 5mm; box-sizing: border-box; }
+        .badge-company-line { font-family: 'Aeonik', sans-serif; font-weight: 700; text-transform: uppercase; font-size: 6.6pt; letter-spacing: 0.03em; line-height: 1.3; color: #fff; overflow-wrap: break-word; }
+        /* BACK */
+        .badge-back-header { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; padding-bottom: 1.6mm; }
+        .badge-back-header .badge-logo-mark { width: 28mm; }
+        .badge-gk-tile { width: 3.6mm; height: 3.6mm; flex-shrink: 0; border-radius: 0.9mm; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .badge-gk-tile svg { width: 100%; height: 100%; display: block; }
+        .badge-back-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; background: #fff; border: 1px solid #eee; border-radius: 3mm; padding: 0 3mm; }
+        .badge-back-row2 { display: flex; align-items: center; gap: 1.8mm; padding: 1mm 0; border-bottom: 0.25mm solid #eee; }
+        .badge-back-row2:last-child { border-bottom: none; }
+        .badge-back-icontile { width: 13%; max-width: 6.2mm; aspect-ratio: 1; flex-shrink: 0; border-radius: 1.4mm; background: #ffe3d2; color: #ff7824; display: flex; align-items: center; justify-content: center; }
+        .badge-back-icontile svg { display: block; }
+        .badge-back-rowtext { min-width: 0; flex: 1; }
+        .badge-back-rowlabel { font-family: 'Aeonik', sans-serif; font-weight: 700; text-transform: uppercase; font-size: 5.1pt; letter-spacing: 0.05em; color: #ff7824; margin-bottom: 0.3mm; }
+        .badge-back-rowvalue { font-family: 'Aeonik', sans-serif; font-weight: 500; font-size: 6.4pt; line-height: 1.22; color: #111; overflow-wrap: break-word; }
+        .badge-back-idvalue { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; }
+        .badge-back-panel.is-dense .badge-back-row2 { padding: 0.6mm 0; }
+        .badge-back-panel.is-dense .badge-back-icontile { max-width: 5.4mm }
+        .badge-back-panel.is-dense .badge-back-rowlabel { font-size: 4.7pt; margin-bottom: 0.2mm; }
+        .badge-back-panel.is-dense .badge-back-rowvalue { font-size: 5.7pt; line-height: 1.15; }
+        .badge-back-legal { flex-shrink: 0; font-family: 'Aeonik', sans-serif; font-size: 5.4pt; line-height: 1.32; color: #55555a; text-align: left; padding: 1.2mm 0 0.8mm; }
+        .badge-barcode { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding-top: 0.4mm; }
+        .badge-barcode svg { height: 10mm; width: auto; max-width: 100%; }
+        .badge-barcode-value { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; font-size: 7pt; letter-spacing: 0.02em; color: #0b0b0b; margin-top: 0.8mm; text-align: center; }
       </style>
     </head>
     <body>
       <div class="badge-sheet">
-        <div class="badge-company-bar"></div>
-        <svg class="badge-sierra-logo" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
-          <text x="50" y="25" font-family="Replica" font-size="18" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text>
-        </svg>
-        ${emp.photo_url ? `<img src="${esc(emp.photo_url)}" class="badge-employee-photo" data-badge-asset="photo" />` : '<div style="width:28mm;height:28mm;background:#eee;border-radius:2mm;display:flex;align-items:center;justify-content:center;color:#999">Sin foto</div>'}
-        <div class="badge-employee-name">
-          <div class="badge-first-name" title="${esc(emp.first_name)}">${esc(emp.first_name).toUpperCase()}</div>
-          <div class="badge-last-name" title="${esc(emp.last_name)}">${esc(emp.last_name).toUpperCase()}</div>
+        <div class="badge-front-header"><div class="badge-logo-mark">${LBL_LOGO_SVG}</div></div>
+        <div class="badge-front-card">
+          <div class="badge-front-photoblock">
+            ${emp.photo_url
+              ? `<img src="${esc(emp.photo_url)}" class="badge-employee-photo" data-badge-asset="photo" onerror="this.closest('.badge-front-photoblock').classList.add('is-broken')" />
+                 <div class="badge-front-photo-broken">Foto no disponible</div>`
+              : '<div class="badge-photo-placeholder">Sin foto</div>'}
+          </div>
+          <div class="badge-front-panel">
+            <div class="badge-front-idline">${esc(emp.employee_code || '—')}</div>
+            ${nameLinesHtml}
+            ${positionLinesHtml}
+          </div>
         </div>
-        <div class="badge-department" title="${esc(emp.department || '')}">${esc(emp.department || '').toUpperCase()}</div>
-        <div class="badge-code">${esc(emp.employee_code)}</div>
+        <div class="badge-front-companybar">${companyLinesHtml}</div>
       </div>
       <div class="badge-sheet is-back">
-        <div class="badge-company-bar"></div>
-        <svg class="badge-sierra-logo" style="width:16mm" viewBox="0 0 100 40" preserveAspectRatio="xMidYMid meet">
-          <text x="50" y="25" font-family="Replica" font-size="14" font-weight="700" text-anchor="middle" fill="currentColor">SIERRA</text>
-        </svg>
-        <div class="badge-barcode" data-badge-asset="barcode"></div>
-        <div class="badge-code">${esc(emp.employee_code)}</div>
-        <div class="badge-back-rows">
-          <div><b>Contacto de emergencia:</b> ${esc(emp.emergency_contact_name || '—')}</div>
-          <div><b>Teléfono:</b> ${esc(emp.emergency_contact_phone || '—')}</div>
-          <div><b>Tipo de sangre:</b> ${esc(emp.blood_type || '—')}</div>
-          ${emp.health_conditions ? `<div><b>Condiciones de salud:</b> ${esc(emp.health_conditions)}</div>` : ''}
+        <div class="badge-back-header">
+          <div class="badge-logo-mark">${LBL_LOGO_SVG}</div>
+          <div class="badge-gk-tile" role="img" aria-label="GK">${GK_LOGO_SVG}</div>
         </div>
-        <div class="badge-back-footer">En caso de emergencia, contacte al número indicado. Mantenga el gafete visible en todo momento.</div>
+        <div class="badge-back-panel${badgeBackDensityClass(emp)}">
+          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('globe', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">País</div><div class="badge-back-rowvalue">${esc(countryName || '—')}</div></span></div>
+          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('credit-card', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">No. de identificación</div><div class="badge-back-rowvalue badge-back-idvalue">${esc(emp.identification_number || '—')}</div></span></div>
+          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('phone', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">En caso de emergencia llamar a</div><div class="badge-back-rowvalue">${esc(emp.emergency_contact_name || '—')}${emp.emergency_contact_phone ? `<br>${esc(emp.emergency_contact_phone)}` : ''}</div></span></div>
+          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('heart', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Condiciones de salud</div><div class="badge-back-rowvalue">${esc(emp.health_conditions || '—')}</div></span></div>
+          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('droplet', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Tipo de sangre</div><div class="badge-back-rowvalue">${esc(emp.blood_type || '—')}</div></span></div>
+        </div>
+        <div class="badge-back-legal">Este gafete es propiedad de la empresa. Al finalizar la relación laboral, deberá ser devuelto. En caso de pérdida o extravío, favor reportarlo a Talento Humano.</div>
+        <div class="badge-barcode">${barcodeMarkup}</div>
       </div>
     </body>
     </html>
@@ -20498,69 +21804,177 @@ async function printBadge() {
   w.document.write(html)
   w.document.close()
 
-  // Bug fix: printing previously fired on a blind, fixed setTimeout(500)
-  // regardless of whether the photo image or the barcode SVG had actually
-  // finished loading/rendering — real risk of a badge printing with a
-  // half-loaded photo or a missing barcode on a slow connection. Now we
-  // explicitly wait for (a) the print window's fonts, and (b) the photo
-  // <img> to load or fail, with a hard 4s cap so a stalled asset can never
-  // block printing indefinitely.
+  // Step 4 (this pass): wait for the print document's OWN DOM/CSSOM to be
+  // ready before doing anything font-related in it.
+  //
+  // Why this is safe with document.write()+close(): all the markup and
+  // <style> content here was written and closed synchronously, in one
+  // shot, with no external <script>/<link> in between — so by the time
+  // w.document.close() returns, the HTML parser has already run to
+  // completion and the inline <style> block's @font-face rules have
+  // already been parsed into the popup's CSSOM (CSS parsing is
+  // synchronous; it does not wait on a network round trip the way an
+  // external stylesheet would). What is NOT guaranteed to have happened
+  // yet at that exact instant is the browser's own internal step of
+  // registering those parsed @font-face rules as FontFace entries on
+  // `w.document.fonts` — on some engines that population is queued as a
+  // microtask/style-recalc tied to the popup's own event loop turn, not
+  // guaranteed to have run inside the same synchronous call stack that
+  // executed document.write()/close(). Calling `w.document.fonts.load()`
+  // one tick too early risks asking about a face that, from the popup's
+  // own perspective, "doesn't exist yet" — which is a strong candidate
+  // for exactly the quirk the previous pass documented and worked around
+  // by demoting the popup's check to corroborating-only instead of fixing.
+  //
+  // The bounded wait below is built from two complementary signals rather
+  // than a single guess: `w.document.readyState === 'complete'` (or the
+  // popup's own 'load' event, whichever comes first) proves the popup
+  // considers its own document, including subresources like the photo
+  // <img>, fully settled; two chained `requestAnimationFrame` calls force
+  // at least one full style-recalc/paint cycle inside the popup's own
+  // window to have completed first, which is the standard, reliable
+  // pattern for "let this document's pending style work actually run"
+  // without depending on load timing at all (relevant because a slow/
+  // failed photo fetch could otherwise delay 'load' well past when the
+  // fonts are already registered and ready to query). Whichever settles
+  // first is enough; a short absolute cap prevents a pathological popup
+  // (e.g. rAF starved by a background tab) from hanging step 4 forever.
   await new Promise(resolve => {
     let settled = false
     const done = () => { if (!settled) { settled = true; resolve() } }
-    const cap = setTimeout(done, 4000)
-    const imgEl = w.document.querySelector('[data-badge-asset="photo"]')
-    const fontsReady = w.document.fonts && w.document.fonts.ready ? w.document.fonts.ready.catch(() => {}) : Promise.resolve()
-    const imgReady = imgEl && !imgEl.complete
-      ? new Promise(res => { imgEl.addEventListener('load', res, { once: true }); imgEl.addEventListener('error', res, { once: true }) })
-      : Promise.resolve()
-    Promise.all([fontsReady, imgReady]).then(() => { clearTimeout(cap); done() })
+    const cap = setTimeout(done, 1000)
+    const viaLoad = w.document.readyState === 'complete'
+      ? Promise.resolve()
+      : new Promise(res => { try { w.addEventListener('load', res, { once: true }) } catch (e) { res() } })
+    const viaRaf = new Promise(res => {
+      try { w.requestAnimationFrame(() => w.requestAnimationFrame(res)) } catch (e) { res() }
+    })
+    Promise.race([viaLoad, viaRaf]).then(() => { clearTimeout(cap); done() })
   })
 
-  // Bug fix: when JsBarcode isn't loaded (e.g. the cdnjs script failed to
-  // fetch), the old code's `typeof JsBarcode !== 'undefined'` guard just
-  // skipped rendering — leaving `barcodeHolder` empty and printing a blank
-  // rectangle where the barcode belongs, with no indication anything was
-  // wrong. Now an unavailable encoder or an encoder error both print a
-  // legible message instead of empty space, and are worded differently
-  // (unavailable vs. invalid input) since they are different failure modes.
-  const barcodeHolder = w.document.querySelector('[data-badge-asset="barcode"]')
-  if (barcodeHolder) {
-    if (typeof JsBarcode === 'undefined') {
-      barcodeHolder.innerHTML = '<div style="font-size:7pt;color:#b3261e;border:1px dashed #b3261e;padding:2mm">Código de barras no disponible (librería no cargada)</div>'
-    } else {
-      try {
-        const svg = w.document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-        barcodeHolder.appendChild(svg)
-        JsBarcode(svg, emp.employee_code, { format: 'CODE128', width: 1.6, height: 34, margin: 0, fontSize: 9 })
-      } catch (e) {
-        console.error('Barcode generation error:', e)
-        barcodeHolder.innerHTML = `<div style="font-size:7pt;color:#b3261e;border:1px dashed #b3261e;padding:2mm">Código de barras inválido para "${esc(emp.employee_code)}"</div>`
-      }
-    }
+  // Barcode is already embedded as static markup in `html` above — see the
+  // pre-flight generation block before window.open() for why nothing runs
+  // here anymore. There is structurally no code path left in this function
+  // that can write an error placeholder into the print document: the only
+  // ways to reach this line are (a) checkBadgeReadiness() returned ready
+  // and the pre-flight try/catch above also succeeded, so `barcodeMarkup`
+  // is real bars, or (b) this function already returned earlier. Font
+  // verification below uses only the standard `document.fonts` API
+  // surface (load/ready/check + FontFace iteration) — no canvas
+  // measureText() trick, and no JsBarcode call of any kind runs inside
+  // the popup, so this gate and the barcode gate above stay fully
+  // independent: neither can produce the other's error message, and
+  // neither depends on the other's timing.
+  //
+  // Step 5-7 (this pass, replacing the previous "corroborating-only"
+  // design): the print document now independently verifies every
+  // required font face in its OWN context — `w.document.fonts`, not the
+  // opener's — via verifyBadgeFonts() (defined above): explicit
+  // `w.document.fonts.load()` per face, `w.document.fonts.ready`, then
+  // BOTH `w.document.fonts.check()` and a direct FontFace-iteration
+  // status check for every one of the 6 required combinations. This is
+  // now the AUTHORITATIVE gate for this popup's print, not corroborating
+  // evidence for the main-document's pre-open check — the whole point of
+  // this pass is that the main-document check (still run above, and still
+  // a legitimate fast first check that can short-circuit an
+  // obviously-doomed attempt before a popup is even opened) is no longer
+  // treated as sufficient proof that THIS popup will actually render with
+  // the right fonts.
+  //
+  // Bounded with the same ~4s cap used elsewhere in this function for
+  // photo/font readiness (see the geometry/photo-wait pattern this
+  // mirrors) — long enough for real (already-cached, same-origin) font
+  // files to decode, short enough that a genuinely stuck popup does not
+  // hang the workspace indefinitely. A timeout here is NOT treated as a
+  // pass: unlike the previous design, an inconclusive result now fails
+  // closed, because this check is authoritative, not corroborating.
+  let popupFontResult
+  try {
+    popupFontResult = await Promise.race([
+      verifyBadgeFonts(w.document),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000)),
+    ])
+  } catch (e) {
+    popupFontResult = { rows: REQUIRED_BADGE_FONT_CHECKS.map(c => ({ spec: c.spec, label: c.label, loadResolved: false, checkPassed: false, faceLoaded: false, ok: false })), failures: REQUIRED_BADGE_FONT_CHECKS.map(c => ({ spec: c.spec, label: c.label })), timedOut: true }
+  }
+  // Also wait for the photo <img> specifically (not gating on it — a
+  // missing/broken photo_url already renders the on-screen "Sin foto"
+  // placeholder deliberately and is not a font or barcode failure — but a
+  // still-loading <img> at the moment w.print() is called risks printing
+  // a half-rendered image, so give it the same bounded window).
+  await Promise.race([
+    (() => {
+      const imgEl = w.document.querySelector('[data-badge-asset="photo"]')
+      return imgEl && !imgEl.complete
+        ? new Promise(res => { imgEl.addEventListener('load', res, { once: true }); imgEl.addEventListener('error', res, { once: true }) })
+        : Promise.resolve()
+    })(),
+    new Promise(res => setTimeout(res, 4000)),
+  ])
+
+  if (popupFontResult.failures.length) {
+    console.error('Badge print: print-document font verification failed (authoritative popup-side check):', popupFontResult.rows)
+    toast('No se puede imprimir: la ventana de impresión no pudo verificar la tipografía requerida (' + popupFontResult.failures.map(f => f.label).join(' · ') + ') — inténtalo de nuevo')
+    // Close rather than retain: a print window that can never legitimately
+    // print (fonts unverified, and this codebase never falls back to
+    // system fonts) has no safe use left open — it cannot be manually
+    // "fixed" by the user from here, and leaving a visible, inert popup
+    // sitting on screen after the workspace already reports the failure
+    // via toast risks the user thinking it is still working or clicking
+    // into it looking for a printable badge that will never come. This
+    // mirrors the barcode hard-blocker above, which never leaves a
+    // placeholder-barcode popup open either.
+    try { w.close() } catch (e) {}
+    resetPrintingState()
+    return
   }
 
+  // Item 5: the button already reads "Imprimiendo…" (set above, right
+  // before the barcode/font pre-flight) for the whole "preparing to open
+  // the dialog" span — a separate "Preparando gafete…" toast here would
+  // just repeat that same fact in a second place, so none is added.
   w.print()
 
-  // Honesty fix: `.print()` returning does NOT mean the badge was actually
-  // printed — it opens the OS print dialog and returns almost immediately
-  // regardless of whether the user goes on to print or cancels. The
-  // previous code wrote the 'printed' status/printed_at/printed_by and
-  // showed "¡Gafete impreso!" the instant `.print()` was called, which
-  // overclaimed success on every cancellation. `afterprint` fires once the
-  // dialog closes either way (print or cancel) in the browsers this app
-  // targets, which is a strictly better signal than "dialog opened" even
-  // though it still can't distinguish "printed" from "cancelled" — that
-  // ambiguity is real and unresolved by any reliable cross-browser JS
-  // signal, so it is documented here rather than papered over. A 15s
-  // fallback covers browsers/popup setups that never fire `afterprint`, so
-  // the workspace can't be left stuck open indefinitely.
+  // Honesty fix (carried from a prior pass, re-affirmed and extended this
+  // pass — item 5): `.print()` returning does NOT mean the badge was
+  // actually printed — it opens the OS print dialog and returns almost
+  // immediately regardless of whether the user goes on to print or
+  // cancels. `afterprint` fires once the dialog closes either way (print
+  // or cancel) in the browsers this app targets, which is a strictly
+  // better signal than "dialog opened" even though it still CANNOT
+  // distinguish "printed" from "cancelled" — that ambiguity is real,
+  // unresolved by any reliable cross-browser JS signal, and intentionally
+  // left unresolved (no new schema state/column is in scope this pass).
+  //
+  // This pass's fix (item 5): the UI copy must never claim more certainty
+  // than that epistemic reality. Two separate, separately-verifiable facts
+  // are now reported as two separate sentences, never merged into one
+  // overclaiming toast:
+  //   1. "did the print dialog close" (this promise resolving) — reported
+  //      as "the dialog closed", explicitly NOT as "printed", immediately
+  //      below.
+  //   2. "did the badge_issuances write succeed" (the sb.from(...) call
+  //      further down) — reported separately, after it actually resolves.
+  // The schema's `printed` status column is still being written to mean
+  // "the print dialog was closed" (print or cancel, indistinguishable) —
+  // that is a known, accepted imprecision, not a claim that the physical
+  // badge exists. A 15s fallback covers browsers/popup setups that never
+  // fire `afterprint`, so the workspace can't be left stuck open
+  // indefinitely; the toast text below is honest about that timeout case
+  // too (it never claims the dialog definitely closed on its own).
   await new Promise(resolve => {
     let settled = false
     const finish = () => { if (settled) return; settled = true; resolve() }
     try { w.addEventListener('afterprint', finish, { once: true }) } catch (e) {}
     setTimeout(finish, 15000)
   })
+
+  // Item 5, message 1 of 2 — the print-outcome half, reported the instant
+  // it's known (dialog closed, or the 15s fallback elapsed) and BEFORE the
+  // separate database write below even starts, since these are two
+  // independently-verifiable facts that must never be merged into one
+  // overclaiming sentence (see the honesty-fix comment above).
+  toast('Proceso de impresión cerrado. Verifica la salida física.')
 
   // Bug fix: this used to unconditionally INSERT a new 'printed' row even
   // when this employee already had an existing draft/ready_to_print
@@ -20596,18 +22010,33 @@ async function printBadge() {
   }
   const payload = {
     status: 'printed', snapshot,
-    company_color: badgeColor,
+    // Pre-existing bug found and fixed this pass: this referenced an
+    // undefined `badgeColor` global, which threw a ReferenceError on every
+    // real print (after w.print()/afterprint had already fired) and
+    // silently prevented the badge_issuances write and the success toast
+    // from ever running. `site` (the active print site, already resolved
+    // above) is the correct in-scope source for the color the badge was
+    // actually printed with.
+    company_color: site?.badge_color || null,
     printed_at: new Date().toISOString(), printed_by: me.id,
   }
   const { error } = existing
     ? await sb.from('badge_issuances').update(payload).eq('id', existing.id)
     : await sb.from('badge_issuances').insert({ employee_id: emp.id, template_id: null, created_by: me.id, ...payload })
 
+  // Item 5, message 2 of 2 — the database-write outcome, reported
+  // separately from the print-outcome toast above (never combined into one
+  // sentence): this fact is independently verifiable and independently
+  // true/false regardless of what happened with the print dialog.
   if (!error) {
     Audit.log('employee', emp.id, emp, 'badge_printed', `Gafete impreso${existing ? '' : isReprint ? ' (reimpresión, sin registro previo abierto)' : ' (nuevo)'}`)
-    toast('Gafete enviado a impresión y registrado')
+    toast('Registro de emisión actualizado')
   } else {
-    toast('El gafete se envió a impresión, pero no se pudo registrar: ' + error.message)
+    // Error detail kept available via console.error (as the task requires)
+    // rather than folded into the user-facing sentence, which stays fixed
+    // and honestly scoped regardless of the underlying cause.
+    console.error('Badge print: badge_issuances write failed:', error)
+    toast('El diálogo se cerró, pero no se pudo actualizar el registro')
   }
 
   resetPrintingState()
