@@ -6430,10 +6430,21 @@
       overflow: hidden;
       border-radius: 3mm;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
+    /* Square photo, not the full (often taller-than-wide) photoblock
+       rectangle: width/height stay auto so aspect-ratio can pick the
+       largest 1:1 box that fits inside the block's current max-width/
+       max-height, and the parent's flex centering keeps it in the same
+       visual center the old full-rectangle photo occupied. */
     .badge-front-photoblock img {
-      width: 100%;
-      height: 100%;
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: 100%;
+      aspect-ratio: 1 / 1;
       object-fit: cover;
       display: block;
     }
@@ -21992,8 +22003,8 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
         .badge-front-header { display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding-bottom: 2.2mm; }
         .badge-front-header .badge-logo-mark { width: 28mm; }
         .badge-front-card { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 1.6mm; }
-        .badge-front-photoblock { flex: 1 1 auto; min-height: 30mm; background: #eee; overflow: hidden; border-radius: 3mm; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-        .badge-employee-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .badge-front-photoblock { flex: 1 1 auto; min-height: 30mm; background: #eee; overflow: hidden; border-radius: 3mm; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center; }
+        .badge-employee-photo { width: auto; height: auto; max-width: 100%; max-height: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; }
         .badge-photo-placeholder { width: 100%; height: 100%; background: #eee; display: flex; align-items: center; justify-content: center; color: #94a19f; font-size: 7.5pt; text-align: center; line-height: 1.3; }
         .badge-front-panel { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 2mm 3mm 2.2mm; gap: 0.6mm; background: #fff; border-radius: 3mm; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
         .badge-front-idline { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; font-size: 7.5pt; letter-spacing: 0.02em; color: #cd4f00; }
