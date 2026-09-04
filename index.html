@@ -6743,6 +6743,23 @@
       height: 10mm; /* Item 7: was 7mm — widened alongside the module-width fix (see renderBadgeBackBarcodePreview()) so the physical module width clears the CODE128 scannability floor */
       width: auto;
       max-width: 100%;
+      /* Preview-only artifact fix: initBadgePreviewWorkspace()'s fit-to-view
+         `zoom` on .badge-card-slot (typically ~0.5-0.7 for a small preview
+         panel) shrinks these already-thin CODE128 bars to well under 2
+         physical pixels wide. At that pixel count the browser's default
+         SVG anti-aliasing blends adjacent black/white bars into a smudgy,
+         broken-looking dashed pattern on screen (verified in an isolated
+         Playwright harness — the underlying vector bar geometry is
+         unaffected and decodes correctly at any scale; only the on-screen
+         raster suffers). crispEdges disables that anti-aliasing and snaps
+         bar edges to pixel boundaries, which measurably sharpens the
+         zoomed-down preview. This selector only reaches the live preview's
+         SVG (#badge-back-barcode-svg) — the isolated print document builds
+         its own copy of this barcode under the completely separate
+         `.badge-barcode`/`.badge-barcode svg` rule (see
+         _badgeBuildPrintHtml()), which was already rendering/printing
+         correctly and is intentionally left untouched here. */
+      shape-rendering: crispEdges;
     }
     .badge-back-barcodeblock .badge-barcode-value {
       font-family: 'Aeonik Mono', 'Courier New', monospace;
@@ -21963,16 +21980,6 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
            the portrait mm values that match the actual design; no rotation
            transform is applied here to "guess" driver behavior. */
         @page { size: ${BADGE_W}mm ${BADGE_H}mm; margin: 0; }
-        @media print {
-          /* print-color-adjust: exact (section 2 audit) — without this,
-             Chrome/Firefox can silently drop background colors/images
-             (the orange footer, icon tiles, photo backgrounds) even though
-             the on-screen preview shows them. */
-          body { margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .badge-sheet { box-shadow: none; margin: 0; page-break-after: always; transform: translate(${calX}mm, ${calY}mm); }
-          .badge-sheet:last-child { page-break-after: auto; }
-          .no-print { display: none !important; }
-        }
         /* Headers/footers and "fit to page" scaling are OS/browser print-
            dialog settings this document cannot force via CSS — see the
            first-run setup assistant (renderZc300SetupAssistantBody()) for
@@ -22025,6 +22032,35 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
            less crisply as a near-black than as pure black. Scoped to ONLY
            this element — not a global recolor. */
         .badge-barcode-value { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; font-size: 7pt; letter-spacing: 0.02em; color: #000; margin-top: 0.8mm; text-align: center; }
+        /* --- PRINT OUTPUT RESET --------------------------------------
+           Deliberately placed LAST in this stylesheet, not merely inside
+           an earlier @media print block. A @media print rule does NOT
+           out-rank a later unconditional rule of equal specificity — CSS
+           cascade order applies regardless of the media condition — so a
+           reset declared earlier (right after @page, as this used to be)
+           was silently overwritten by the plain body/.badge-sheet rules
+           further down. That's what let the popup's own on-screen
+           "floating card" mockup chrome (box-shadow, border, border-
+           radius, the 10px body margin, the #f5f5f5 body background)
+           leak straight into the physical print output: the printed CR80
+           card showed a rounded/bordered card inset inside the page,
+           stacked on top of the ZC300's own real rounded plastic corners,
+           instead of the design filling the page edge-to-edge.
+           The 3mm .badge-sheet padding is intentionally NOT reset here —
+           it's the documented print safe zone (see
+           ZEBRA_ZC300_PROFILE.bleed's comment) keeping critical content
+           (text/photo/barcode) inset from the true card edge for
+           registration tolerance; only the simulated OUTER card boundary
+           (shadow/border/radius) and the popup's screen-only chrome are
+           removed here — every internal panel/photo/footer radius stays
+           exactly as designed. print-color-adjust:exact is kept so
+           backgrounds/colors still survive printing. */
+        @media print {
+          body { margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .badge-sheet { margin: 0; box-shadow: none; border: none; border-radius: 0; outline: none; page-break-after: always; transform: translate(${calX}mm, ${calY}mm); }
+          .badge-sheet:last-child { page-break-after: auto; }
+          .no-print { display: none !important; }
+        }
       </style>
     </head>
     <body>${sheets.join('')}
@@ -22497,17 +22533,21 @@ function _badgeBuildCalibrationHtml(calibration) {
       <style>
         ${_badgeFontFaceCss(fontUrl)}
         @page { size: ${BADGE_W}mm ${BADGE_H}mm; margin: 0; }
-        @media print {
-          body { margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .badge-sheet { box-shadow: none; margin: 0; page-break-after: always; transform: translate(${calX}mm, ${calY}mm); }
-          .badge-sheet:last-child { page-break-after: auto; }
-        }
         body { margin: 10px; background: #f5f5f5; font-family: 'Aeonik', sans-serif; }
         .badge-sheet.cal-sheet { width: ${BADGE_W}mm; height: ${BADGE_H}mm; background: #fff; position: relative; box-sizing: border-box; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .cal-svg { position: absolute; inset: 0; }
         .cal-top-label { position: absolute; top: 3mm; left: 0; right: 0; text-align: center; font-family: 'Aeonik Mono', monospace; font-weight: 700; font-size: 8pt; letter-spacing: 0.05em; }
         .cal-side-label { position: absolute; top: calc(50% - 5mm); left: 0; right: 0; text-align: center; font-family: 'Aeonik Mono', monospace; font-weight: 700; font-size: 11pt; }
         .cal-offset-label { position: absolute; bottom: 3mm; left: 0; right: 0; text-align: center; font-family: 'Aeonik Mono', monospace; font-size: 6.5pt; color: #333; }
+        /* Same PRINT OUTPUT RESET ordering fix as _badgeBuildPrintHtml() —
+           placed LAST so it isn't overwritten by the plain body/.cal-sheet
+           rules above (which exist only for the popup's on-screen preview
+           before the print dialog opens). */
+        @media print {
+          body { margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .badge-sheet { margin: 0; box-shadow: none; border: none; border-radius: 0; outline: none; page-break-after: always; transform: translate(${calX}mm, ${calY}mm); }
+          .badge-sheet:last-child { page-break-after: auto; }
+        }
       </style>
     </head>
     <body>${_badgeCalibrationSheetHtml('ANVERSO (F)', { x: calX, y: calY })}${_badgeCalibrationSheetHtml('REVERSO (R)', { x: calX, y: calY })}
