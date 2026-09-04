@@ -5968,14 +5968,19 @@
     .bds-source { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-3); font-size: 0.9em; }
     .bds-note { font-size: 0.72rem; color: var(--text-3); margin-top: 0.35rem; line-height: 1.35; }
 
-    /* Pass 5 redesign: the rail was minmax(300px,38%) — on a 1440px window
-       that's ~550px of low-density read-only cards, which is most of why
-       the preview never had room to be the dominant element. Narrowed to
-       a fixed, still-comfortable band; the preview column absorbs the
-       rest via 1fr. */
+    /* Pass 7 redesign: pass 5's fixed 300-360px rail plus pass 6's
+       420px cap on the preview container (below) combined to strand most
+       of the column's real width — at 1440px the preview panel measured
+       ~570px wide with a large dead gap beside it, and the card rendered
+       as a ~250px-tall thumbnail. The rail is now a percentage share
+       (minmax floor for narrow columns, ~36% of the content width above
+       that) so the preview column's remaining ~64% is real, measured
+       space — verified via getBoundingClientRect() at 1440×900, not
+       trusted from the CSS value alone, since minmax()'s floor and the
+       gap both affect the actual result. */
     .issuance-content {
       display: grid;
-      grid-template-columns: minmax(300px, 360px) 1fr;
+      grid-template-columns: minmax(320px, 36%) 1fr;
       gap: var(--content-gap);
       flex: 1;
       min-height: 0;
@@ -6194,11 +6199,18 @@
         /* calc(100vh - 1rem) ignored the workspace header/back-link sitting
            above .issuance-content — a panel that tall, positioned that far
            down the page, overflowed the viewport by the header's own
-           height. 350px is empirically the back-link + header row + page
-           padding above this panel at the 1440×900 reference size (same
-           style of tuned viewport-relative constant this codebase already
-           uses for .emp-md-layout/.badge-issuance-workspace). */
-        max-height: calc(100vh - 350px);
+           height. Pass 7: re-measured via getBoundingClientRect() at the
+           1440×900 reference size — the panel's actual top is ~277-278px
+           (back-link + header row + page padding), not the ~350px this
+           constant previously assumed. That stale ~72px of extra slack
+           was root-cause A/B's accomplice: even after fixing the width
+           cap and the fit measurement, this alone was still capping the
+           rendered card at ~385px tall instead of the 430-500px target.
+           300px keeps a small buffer below the panel for spacing/rounding
+           (verified: no page scroll at 1440×900 — scrollHeight ===
+           innerHeight) without re-introducing the header-overlap bug the
+           original comment describes. */
+        max-height: calc(100vh - 300px);
       }
     }
 
@@ -6212,24 +6224,19 @@
       border: 1px solid var(--border);
       overflow: hidden;
     }
-    /* Portrait re-tune (pass 6): a tall, narrow card in a wide preview
-       column (the grid gives this column whatever width is left after the
-       ~360px prep rail) previously wasted the same "large empty canvas"
-       real estate pass 5 fixed for the vertical axis — just rotated onto
-       the left/right. Single-side view now caps the container to a
-       sensible width for one portrait card plus its tabs/controls chrome,
-       centered in the column, so initBadgePreviewWorkspace()'s fit-to-
-       container math converges on a card that actually fills its box
-       instead of a small card floating in a mostly-empty wide one.
-       Compare mode drops the cap — two portrait cards side by side is a
-       genuinely better fit for a wide desktop viewport than two landscape
-       cards were (§ redesign report), so it should claim the full column
-       width, not be squeezed to this same single-card cap. */
-    .badge-preview-container:not(.is-comparing) {
-      max-width: 420px;
-      width: 100%;
-      align-self: center;
-    }
+    /* Pass 6's reasoning (a tall narrow card in a wide column looks
+       stranded, so cap the container) had it backwards: the fix for a
+       narrow-card/wide-stage mismatch is scaling the CARD to fill the
+       stage while keeping ITS aspect ratio (which .badge-preview-area's
+       centering + initBadgePreviewWorkspace()'s fit-to-stage zoom already
+       does) — not putting a hard, arbitrary 420px ceiling on the
+       CONTAINER itself. That cap plus align-self:center is exactly what
+       produced the "small badge thumbnail floating inside a large empty
+       panel" regression: it stranded most of the column's real width
+       instead of letting the fit calculation use it. The container now
+       sizes to the column's full width in both single-side and compare
+       mode; the card's own portrait proportions are preserved by the fit
+       math (§ apply() below), not by constraining the box around it. */
 
     .badge-preview-tabs {
       display: flex;
@@ -19597,6 +19604,133 @@ function badgeGeometryMm() {
   return { w, h }
 }
 
+// ============================================================================
+// ZEBRA ZC300 PRINT PROFILE — single centralized source for every ZC300-
+// specific constant used anywhere in the print pipeline (CSS or JS). Nothing
+// below overrides badgeGeometryMm()/the @page mm sizing — cardMm here is a
+// live reference to that same function, never a second literal 53.98/85.6.
+// dpiTarget/dotsPerMm exist ONLY for raster-validation math (barcode module
+// alignment, photo resolution warnings — see printBadge()'s dpi-audit
+// comment) and must never be used to size @page or any CSS length.
+//
+// Orientation audit (documented here, not assumed in code — see the longer
+// comment on the @page rule in printBadge() for the full reasoning): CR80
+// direct-to-card printers, ZC300 included, physically feed and print the
+// card in a fixed mechanical orientation; "portrait vs landscape" is a
+// property of the SOURCE CONTENT the driver is handed, not a raster
+// rotation this app performs. We deliberately do NOT apply a CSS rotation
+// transform to compensate for either possible driver behavior — doing so
+// would risk double-rotating for whichever behavior turns out to be real on
+// a given install, and cannot be verified without the physical printer. The
+// @page size stays the portrait mm values that match SIERRA's actual design
+// (53.98mm x 85.6mm, width x height) and the print-menu/setup-assistant UI
+// carries the troubleshooting guidance for both possible outcomes instead.
+const ZC300_MODE_STORAGE_KEY = 'sierra_zc300_print_mode'
+const ZC300_SETUP_CONFIRMED_KEY = 'sierra_zc300_setup_confirmed'
+const ZC300_CALIBRATION_STORAGE_KEY = 'sierra_zc300_calibration_offset'
+
+const ZEBRA_ZC300_PROFILE = {
+  id: 'zebra_zc300',
+  label: 'Zebra ZC300',
+  media: 'CR80 / ISO 7810 ID-1',
+  // Live reference, not a duplicated literal — call cardMm() to read the
+  // current physical geometry; badgeGeometryMm() remains the one source of
+  // truth (see its own comment above).
+  cardMm: badgeGeometryMm,
+  orientation: 'portrait',
+  pageOrder: ['front', 'back'],
+  // 300dpi / 11.811 dots-per-mm — reference/validation constant only (barcode
+  // module-width and photo-resolution math in printBadge()/badge print-menu
+  // code), never fed into @page or any physical CSS length.
+  dpiTarget: 300,
+  dotsPerMm: 300 / 25.4,
+  duplex: {
+    modes: [
+      { id: 'duplex', label: 'ZC300 dúplex', requiresFlipperModule: true },
+      { id: 'manual', label: 'ZC300 una cara / giro manual', requiresFlipperModule: false },
+    ],
+    storageKey: ZC300_MODE_STORAGE_KEY,
+    defaultMode: 'duplex',
+  },
+  // Section 6 (safe zone): backgrounds are allowed to run to the true card
+  // edge (the ZC300 does genuine edge-to-edge printing) — only CRITICAL
+  // content (text, logos, photo, barcode) must stay inset by safeZoneMm.
+  // 2.5mm chosen as a conventional direct-to-card registration tolerance
+  // (typical belt-driven CR80 printers register within roughly +/-1mm; 2.5mm
+  // leaves comfortable margin without visibly shrinking the design). The
+  // current badge CSS already keeps all content inside a 3mm .badge-sheet
+  // padding (see printBadge()'s CSS), which already satisfies this with
+  // margin to spare — see the audit note there.
+  bleed: { edgeToEdge: true, safeZoneMm: 2.5 },
+  calibration: {
+    storageKey: ZC300_CALIBRATION_STORAGE_KEY,
+    // Bounded so an operator cannot dial in an offset large enough to push
+    // the design off the physical card — +/-2.5mm covers realistic
+    // registration drift on a CR80 card printer without approaching the
+    // card's own edge margins.
+    boundMm: 2.5,
+    defaultOffset: { x: 0, y: 0 },
+  },
+  setupConfirmedStorageKey: ZC300_SETUP_CONFIRMED_KEY,
+  // Reference/documentation only — Zebra's publicly documented ZC300 specs,
+  // recorded here for the orientation/dpi audits this pass performed. NEVER
+  // read by the rendering pipeline (cardMm/badgeGeometryMm() are the only
+  // physical-size source of truth).
+  officialSpecSheet: {
+    // Zebra commonly quotes the CR80 card landscape (width x height); SIERRA's
+    // canonical badge is the SAME physical card, portrait (53.98 x 85.60).
+    cardMmAsQuotedByZebra: { w: 85.60, h: 53.98 },
+    // Landscape full-bleed raster Zebra documents for CR80 @ ~300dpi. See the
+    // pixel-to-mm validation in printBadge()'s comment for the portrait-
+    // transposed figures this app's own geometry actually implies.
+    fullBleedImagePxAsQuotedByZebra: { w: 1006, h: 640 },
+    dotsPerMmAsQuotedByZebra: 11.8,
+    edgeToEdgePrinting: true,
+    // The ZC300 is sold in single-sided and dual-sided (flipper module)
+    // configurations — dúplex mode above must never be presented as
+    // guaranteed to work on an arbitrary ZC300 unit.
+    duplexHardwareNote: 'Impresión dúplex automática requiere el módulo volteador (flipper) opcional del ZC300 — no todas las unidades lo tienen instalado.',
+    // Dye-sublimation/thermal-transfer (retransfer film) output — see the
+    // rich-black vs pure-black comment on .badge-barcode-value in
+    // printBadge()'s CSS for why this matters for small critical text.
+    ribbonTech: 'dye-sublimation / thermal-transfer (retransfer)',
+  },
+}
+
+// ---- Workstation-scoped ZC300 preferences (localStorage only — NEVER
+// written to the employee record or badge_issuances; these are local
+// browser/device settings, not application data). ----
+function getZc300PrintMode() {
+  try { return localStorage.getItem(ZC300_MODE_STORAGE_KEY) === 'manual' ? 'manual' : ZEBRA_ZC300_PROFILE.duplex.defaultMode }
+  catch (e) { return ZEBRA_ZC300_PROFILE.duplex.defaultMode }
+}
+function setZc300PrintMode(mode) {
+  try { localStorage.setItem(ZC300_MODE_STORAGE_KEY, mode === 'manual' ? 'manual' : 'duplex') } catch (e) {}
+}
+function isZc300SetupConfirmed() {
+  try { return localStorage.getItem(ZC300_SETUP_CONFIRMED_KEY) === '1' } catch (e) { return false }
+}
+function setZc300SetupConfirmed() {
+  try { localStorage.setItem(ZC300_SETUP_CONFIRMED_KEY, '1') } catch (e) {}
+}
+function _zc300ClampOffset(x, y) {
+  const b = ZEBRA_ZC300_PROFILE.calibration.boundMm
+  const clamp = v => Math.max(-b, Math.min(b, Number(v) || 0))
+  return { x: clamp(x), y: clamp(y) }
+}
+function getZc300Calibration() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ZC300_CALIBRATION_STORAGE_KEY) || 'null')
+    return _zc300ClampOffset(raw?.x, raw?.y)
+  } catch (e) { return { x: 0, y: 0 } }
+}
+function setZc300Calibration(x, y) {
+  const clamped = _zc300ClampOffset(x, y)
+  try { localStorage.setItem(ZC300_CALIBRATION_STORAGE_KEY, JSON.stringify(clamped)) } catch (e) {}
+  return clamped
+}
+function resetZc300Calibration() { return setZc300Calibration(0, 0) }
+
 function checkBadgeReadiness(emp) {
   const issues = []
 
@@ -20446,11 +20580,20 @@ function renderBadgeIssuanceView() {
         <div class="issuance-header-actions">
           ${renderBadgeReadinessCompact(emp, r, st)}
           <button class="btn btn-secondary" onclick="closeBadgeIssuance()">Cancelar</button>
+          <button class="btn btn-secondary" onclick="openZc300PrintMenu('${emp.id}')" title="Opciones de impresión Zebra ZC300" aria-label="Opciones de impresión Zebra ZC300">${siIcon('settings', 16)}</button>
+          ${issuance.manualDuplex?.frontPrintedAt ? `
+          <button id="badge-print-reverse-btn" class="btn btn-primary" onclick="printBadgeManualReverseConfirmed()" ${issuance.printing ? 'disabled' : ''}>
+            ${issuance.printing ? 'Imprimiendo…' : 'Ya volteé la tarjeta — imprimir reverso'}
+          </button>
+          ` : `
           <button id="badge-print-btn" class="btn btn-primary" onclick="printBadge()" ${disabled ? 'disabled aria-describedby="badge-print-block-reason"' : ''}>
             ${issuance.printing ? 'Imprimiendo…' : disabled ? 'Impresión bloqueada' : (st.state === 'missing' ? 'Imprimir gafete (con avisos)' : 'Imprimir gafete')}
           </button>
+          `}
         </div>
       </div>
+
+      ${issuance.manualDuplex?.frontPrintedAt ? renderBadgeManualDuplexFlipPanel() : ''}
 
       <div class="issuance-mobile-toggle">
         <button type="button" class="btn ${!issuance.mobilePane || issuance.mobilePane === 'prepare' ? 'btn-primary' : 'btn-secondary'}" onclick="setIssuanceMobilePane('prepare')">Preparar</button>
@@ -20560,7 +20703,7 @@ function renderBadgeDataPanel(emp) {
         <div class="badge-photo-row">
           <div class="badge-photo-frame" id="badge-photo-frame">
             ${emp.photo_url
-              ? `<img src="${esc(emp.photo_url)}" alt="Fotografía de ${esc(emp.first_name)} ${esc(emp.last_name)}" onerror="this.closest('#badge-photo-frame').classList.add('is-broken'); this.remove(); badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', false)" onload="badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', true)" />
+              ? `<img src="${esc(emp.photo_url)}" alt="Fotografía de ${esc(emp.first_name)} ${esc(emp.last_name)}" onerror="this.closest('#badge-photo-frame').classList.add('is-broken'); this.remove(); badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', false)" onload="badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', true); badgeMarkPhotoNaturalSize('${jsStr(emp.photo_url)}', this.naturalWidth, this.naturalHeight)" />
                  <div class="badge-photo-broken">${siIcon('alert-triangle', 16)}<span>No se pudo cargar</span></div>`
               : `<div class="badge-photo-frame-empty">${siIcon('user', 18)}<span>Sin fotografía</span></div>`
             }
@@ -20688,26 +20831,34 @@ function setIssuanceMobilePane(pane) {
   renderBadgeModule()
 }
 
-// Measures the badge card's real, unscaled layout box (offsetWidth/Height
-// are unaffected by the CSS `zoom` property used for preview zoom — see
-// initBadgePreviewWorkspace()'s apply() below — so this reads the true
-// 53.98×85.6mm box as rendered by the browser at 96dpi — no hardcoded
-// mm→px conversion that could drift from actual font/box
-// metrics) so the fit computation is always against the actual card, not
-// an assumption about it.
+// Pass 7 fix: this used to read offsetWidth/Height off the live
+// #badge-front-preview/#badge-back-preview element and assume that was the
+// card's true, unscaled size because CSS `zoom` (unlike `transform:scale`)
+// changes the element's actual LAYOUT box. That assumption was wrong on
+// every recalculation AFTER the first: apply() below sets `zoom` on the
+// ANCESTOR .badge-card-slot, and zoom's layout-box effect is inherited by
+// descendants, so offsetWidth on the very card being measured already
+// reflects whatever zoom the PREVIOUS fit computed — a resize, a
+// Front/Reverso switch, or a Compare toggle fed the new fit calculation a
+// box contaminated by the old result, instead of the card's true 1:1 size.
+// Confirmed by instrumenting apply(): natural.w/h changed across
+// successive resize events even though the card's real physical size
+// never does.
+//
+// Fix: never measure the card at all. The card's true physical proportions
+// are already known exactly and are zoom-invariant — badgeGeometryMm()
+// returns the same --badge-w-mm/--badge-h-mm the print @page rule trusts.
+// Converting that to px once (96dpi, the CSS reference pixel density used
+// everywhere else in this file — NOT window.devicePixelRatio, which is a
+// real screen's physical density and would double-scale on a high-DPI
+// display if conflated with this) gives a natural size that can never be
+// stale, hidden, or self-referential. This also makes the old
+// display:none/inactive-slot fallback (section 5's earlier audit fix)
+// moot — the geometry is identical regardless of which side is showing —
+// so that fallback logic is removed rather than left dead.
 function _measureBadgeCardNatural() {
-  // Audit fix (section 5): outside .is-comparing mode, the inactive side's
-  // .badge-card-slot is display:none, which collapses offsetWidth/Height
-  // to 0 for everything inside it — including the front card when the
-  // Reverso tab is showing. Falling back to the back card (same physical
-  // CR80 geometry) means a viewport resize while viewing the back side
-  // still recomputes fit instead of silently freezing until the user
-  // flips back to Frente.
-  const front = document.getElementById('badge-front-preview')
-  if (front && front.offsetWidth) return { w: front.offsetWidth, h: front.offsetHeight }
-  const back = document.getElementById('badge-back-preview')
-  if (back && back.offsetWidth) return { w: back.offsetWidth, h: back.offsetHeight }
-  return null
+  const { w, h } = badgeGeometryMm()
+  return { w: w * LBL_PX_PER_MM, h: h * LBL_PX_PER_MM }
 }
 
 let _badgePreviewRO = null
@@ -20734,9 +20885,13 @@ function initBadgePreviewWorkspace() {
     if (!issuance) return
     const natural = _measureBadgeCardNatural()
     if (!natural) return
+    // Subtract the stage's own real padding (--panel-gap on both sides,
+    // 14px × 2 = 28px — was a slightly-off "24" leftover from before the
+    // --panel-gap token existed here) so the fit measures the actual
+    // available card area, not the padded box.
     const rect = area.getBoundingClientRect()
-    const availW = Math.max(0, rect.width - 24)
-    const availH = Math.max(0, rect.height - 24)
+    const availW = Math.max(0, rect.width - 28)
+    const availH = Math.max(0, rect.height - 28)
     const rawFit = Math.min(availW / natural.w, availH / natural.h)
     issuance.fitZoom = +Math.min(2, Math.max(0.5, rawFit || 1)).toFixed(2)
     const effectiveZoom = issuance.zoomMode === 'manual' ? (issuance.zoom || 1) : issuance.fitZoom
@@ -21363,7 +21518,7 @@ function renderBadgeFront(emp, site) {
   // .badge-photo-frame.is-broken pattern (renderBadgeDataPanel()) so both
   // surfaces speak the same visual language for the same real condition.
   const photoHtml = emp.photo_url
-    ? `<img src="${esc(emp.photo_url)}" alt="" onerror="this.closest('.badge-front-photoblock').classList.add('is-broken'); this.remove(); badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', false)" onload="badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', true)" />
+    ? `<img src="${esc(emp.photo_url)}" alt="" onerror="this.closest('.badge-front-photoblock').classList.add('is-broken'); this.remove(); badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', false)" onload="badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', true); badgeMarkPhotoNaturalSize('${jsStr(emp.photo_url)}', this.naturalWidth, this.naturalHeight)" />
        <div class="badge-front-photo-broken">${siIcon('alert-triangle', 16)}<span>Foto no disponible</span></div>`
     : '<div class="badge-photo-empty">Sin foto</div>'
   return `
@@ -21402,6 +21557,44 @@ function renderBadgeFront(emp, site) {
 // is no synchronous way to know an <img src> is broken before the browser
 // has tried it.
 const _badgePhotoStatus = {}
+// Section 8 (photo resolution at print size): populated by the same <img
+// onload> handlers as _badgePhotoStatus above, keyed by photo_url, so this
+// only reflects photos the browser has actually decoded at least once —
+// same async-lag limitation as _badgePhotoStatus documents.
+const _badgePhotoNaturalSize = {}
+function badgeMarkPhotoNaturalSize(url, w, h) {
+  if (!w || !h) return
+  const prev = _badgePhotoNaturalSize[url]
+  _badgePhotoNaturalSize[url] = { w, h }
+  if ((!prev || prev.w !== w || prev.h !== h) && _badge_ui.view === 'issuance') renderBadgeModule()
+}
+// Reasoned target: the photo zone's real mm footprint (card width minus the
+// .badge-sheet's 3mm padding on each side; a conservative 30mm height floor
+// — see .badge-front-photoblock's min-height in printBadge()'s CSS, the
+// zone often grows taller) times ZEBRA_ZC300_PROFILE.dotsPerMm (300dpi).
+function badgePhotoPrintTargetPx() {
+  const { w: BADGE_W } = badgeGeometryMm()
+  const dpm = ZEBRA_ZC300_PROFILE.dotsPerMm
+  return { w: Math.round((BADGE_W - 6) * dpm), h: Math.round(30 * dpm) }
+}
+// A WARNING only, never a hard block (section 8) — a real HR photo source
+// is sometimes the best available and printing it soft is still better than
+// refusing to print. 150px is the reasoned floor below which upscaling to
+// the ~300dpi print target would make a face genuinely illegible rather
+// than merely soft.
+function badgePhotoQualityWarning(emp) {
+  if (!emp.photo_url) return null
+  const nat = _badgePhotoNaturalSize[emp.photo_url]
+  if (!nat) return null
+  const target = badgePhotoPrintTargetPx()
+  if (nat.w < 150 || nat.h < 150) {
+    return { level: 'error', message: `Fotografía de muy baja resolución (${nat.w}×${nat.h}px) — se verá notablemente borrosa/pixelada impresa a tamaño real (objetivo ≈ ${target.w}×${target.h}px a 300dpi)` }
+  }
+  if (nat.w < target.w || nat.h < target.h) {
+    return { level: 'warning', message: `Fotografía (${nat.w}×${nat.h}px) por debajo del tamaño recomendado para impresión a 300dpi (≈ ${target.w}×${target.h}px) — puede verse ligeramente suave` }
+  }
+  return null
+}
 function badgeMarkPhotoStatus(url, ok) {
   const prev = _badgePhotoStatus[url]
   _badgePhotoStatus[url] = ok ? 'ok' : 'broken'
@@ -21649,190 +21842,43 @@ async function verifyBadgeFonts(doc) {
   return { rows, failures: rows.filter(r => !r.ok) }
 }
 
-async function printBadge() {
-  const issuance = _badge_ui.issuanceInProgress
-  const emp = _badge.employees.find(e => e.id === issuance.employee_id)
-  if (!emp) return
+// ============================================================================
+// BADGE PRINT PIPELINE — refactored this pass into small composable pieces so
+// the same code path serves three cases without drift: (1) ZC300 dúplex
+// (front+back in one print job, one DB write — the original single-flow
+// behavior), (2) ZC300 manual/una-cara (front printed alone, THEN reverse
+// printed alone after an explicit user confirmation, with the DB write
+// deferred until the reverse step actually completes — see section 3/10 of
+// this pass), and (3) the calibration test card (front+back, no employee
+// data, same @page/font/print-color-adjust machinery). Every piece below is
+// shared by all three; nothing here duplicates BADGE_W/BADGE_H, the font
+// list, or the barcode options a second time.
+// ============================================================================
 
-  // Defense in depth: the primary-action button is already disabled while
-  // required fields are missing (see renderBadgeIssuanceView), but printBadge
-  // can in principle be invoked directly — never let a badge print without a
-  // valid barcode payload or the other hard requirements.
-  const readiness = checkBadgeReadiness(emp)
-  if (!readiness.ready) {
-    toast('No se puede imprimir: ' + readiness.errors.map(e => e.message).join(' · '))
-    return
-  }
+// Shared @font-face block — identical physical font files as the main
+// document (see fontUrl() below), used by every print document this
+// pipeline opens (real badges AND the calibration card) so there is exactly
+// one place that lists them.
+function _badgeFontFaceCss(fontUrl) {
+  return `
+    @font-face { font-family:"Replica"; src:url("${fontUrl('Replica Light.otf')}") format("opentype"); font-weight:300; }
+    @font-face { font-family:"Replica"; src:url("${fontUrl('Replica Regular.otf')}") format("opentype"); font-weight:400; }
+    @font-face { font-family:"Replica"; src:url("${fontUrl('Replica Bold.otf')}") format("opentype"); font-weight:700; }
+    @font-face { font-family:"Aeonik"; src:url("${fontUrl('Aeonik-Regular.ttf')}") format("truetype"); font-weight:400; }
+    @font-face { font-family:"Aeonik"; src:url("${fontUrl('Aeonik-Medium.ttf')}") format("truetype"); font-weight:500; }
+    @font-face { font-family:"Aeonik"; src:url("${fontUrl('Aeonik-Bold.ttf')}") format("truetype"); font-weight:700; }
+    @font-face { font-family:"Aeonik Mono"; src:url("${fontUrl('AeonikMono-Regular.otf')}") format("opentype"); font-weight:400; }
+    @font-face { font-family:"Aeonik Mono"; src:url("${fontUrl('AeonikMono-Medium.otf')}") format("opentype"); font-weight:500; }
+    @font-face { font-family:"Aeonik Mono"; src:url("${fontUrl('AeonikMono-Bold.otf')}") format("opentype"); font-weight:700; }
+  `
+}
 
-  // Defense in depth, matching the readiness check above: every UI entry
-  // point into startBadgeIssuance() is gated on can('write','talento_humano')
-  // (the badge back carries blood type, emergency contact and health
-  // conditions), but printBadge() itself had no such gate and can in
-  // principle be called directly.
-  if (!can('write', 'talento_humano')) {
-    toast('No tienes permiso para imprimir gafetes')
-    return
-  }
-
-  // Double-submission guard: printBadge() is async and does real work
-  // (opens a window, waits on fonts/photo, writes to badge_issuances)
-  // before the view re-renders — a second click during that window
-  // previously had nothing stopping it from opening a second print
-  // window and inserting/updating a second time.
-  if (issuance.printing) return
-  issuance.printing = true
-  const printBtn = document.getElementById('badge-print-btn')
-  if (printBtn) { printBtn.disabled = true; printBtn.textContent = 'Imprimiendo…' }
-  // Focus restoration (this pass): mirrors the established
-  // uploadBadgePhoto()/removeBadgePhoto() convention above
-  // (_focusBadgePhotoControl) — whatever control the user interacted with
-  // to trigger the action should regain focus once that action concludes,
-  // success or failure, rather than silently falling back to document.body
-  // (a real risk here since every failure path below re-enables this same
-  // button rather than re-rendering the whole view). Focus is restored on
-  // every resetPrintingState() call, i.e. every early-return failure path
-  // in this function, not only the final success path.
-  const resetPrintingState = () => {
-    issuance.printing = false
-    const btn = document.getElementById('badge-print-btn')
-    if (btn) { btn.disabled = false; btn.textContent = 'Imprimir gafete'; btn.focus() }
-  }
-
-  // Hard blocker (pass 7): generate the real barcode SVG NOW, in the MAIN
-  // document, entirely BEFORE window.open() — never after. The previous
-  // design opened the print popup first, wrote a placeholder div into it,
-  // and only then tried JsBarcode(popupSvg, ...) against an element that
-  // belonged to the POPUP's document while JsBarcode itself was loaded
-  // into (and its module-scope `document` reference bound to) the MAIN
-  // document. Any failure there — library not loaded, encoding error, or
-  // that cross-document mismatch — printed a red "Código de barras no
-  // disponible/inválido" placeholder directly onto the physical badge,
-  // which is never acceptable output.
-  //
-  // The fix removes the cross-document question entirely rather than
-  // relying on unverifiable spec behavior: JsBarcode is called here, once,
-  // against an SVG created in and owned by the MAIN document (the
-  // `xmlDocument: document` option makes this explicit rather than
-  // implicit), its `outerHTML` is captured as a plain markup STRING, and
-  // that string is spliced into the print document's HTML below like any
-  // other value — no live node ever crosses from one document to another,
-  // and no script needs to load inside the (isolated, same-origin-only-by-
-  // default) popup at all. This mirrors the existing, working pattern
-  // already used by printPriceSticker() elsewhere in this file.
-  //
-  // checkBadgeReadiness() (called above via `readiness`) already performed
-  // this exact probe and would have returned ready:false — aborting this
-  // function before this line is ever reached — if JsBarcode were
-  // unavailable or emp.employee_code were unencodable. This second
-  // try/catch is defense in depth only (matching this function's existing
-  // idiom of re-checking permission/readiness right before the point of
-  // use), not the primary gate: if it somehow still fails, we abort here,
-  // BEFORE window.open() — never create-then-cancel a popup.
-  let barcodeMarkup = ''
-  try {
-    const probeSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    // Same module width/height/font as the on-screen preview
-    // (renderBadgeBackBarcodePreview) — the portrait card's modest
-    // barcode band, not the previous canvas-filling size.
-    // Item (barcode width, this pass): identical width/margin as
-    // renderBadgeBackBarcodePreview() above — see its comment for the
-    // engineering reasoning — never a second, independently-tuned value.
-    JsBarcode(probeSvg, emp.employee_code, { format: 'CODE128', width: 11, height: 26, margin: 110, displayValue: false, xmlDocument: document })
-    probeSvg.removeAttribute('width')
-    probeSvg.removeAttribute('height')
-    // Item 7: real Aeonik Mono 500 text element, not JsBarcode's own
-    // `displayValue` text (which cannot carry a genuine font-weight — see
-    // renderBadgeBackBarcodePreview()'s matching fix/comment above, which
-    // this print path must stay identical to).
-    barcodeMarkup = probeSvg.outerHTML + `<div class="badge-barcode-value">${esc(emp.employee_code)}</div>`
-  } catch (e) {
-    console.error('Barcode generation error:', e)
-    toast('No se puede imprimir: el código de barras no se pudo generar para "' + emp.employee_code + '"')
-    resetPrintingState()
-    return
-  }
-
-  // Font hard-blocker (this pass), mirroring the barcode hard-blocker's
-  // shape above: gate BEFORE ever opening the print popup. The print
-  // document's @font-face rules point at the exact same physical font
-  // files as the main document's (see fontUrl() below), so if a required
-  // family/weight fails to load HERE it is not going to succeed in a
-  // brand-new popup pointed at the same files — checking here fails fast
-  // and, critically, means a doomed popup is never created in the first
-  // place.
-  //
-  // document.fonts.ready alone is not enough of a trigger: it only waits
-  // for loads already in flight, and the on-screen preview only ever
-  // renders ONE side (front/back) at a time — a user who never switched to
-  // the reverse tab before clicking print may never have caused the
-  // reverse-only weights (e.g. plain Aeonik 500) to start loading at all,
-  // which would make them look "missing" here even though the face is
-  // perfectly valid and declared. So we explicitly request every required
-  // face via document.fonts.load() first — this actively fetches/decodes
-  // each face regardless of whether anything currently on screen uses it
-  // — and only then check coverage. This is what makes the pre-open check
-  // a reliable proxy rather than a fragile, order-of-navigation-dependent
-  // guess.
-  try {
-    await Promise.all(REQUIRED_BADGE_FONT_CHECKS.map(c => document.fonts.load(c.spec).catch(() => [])))
-    await document.fonts.ready
-  } catch (e) {}
-  const preOpenFontFailures = badgeFontLoadFailures(document)
-  if (preOpenFontFailures.length) {
-    toast('No se puede imprimir: no se pudo cargar la tipografía requerida (' + preOpenFontFailures.map(f => f.label).join(' · ') + ') — recarga la página e inténtalo de nuevo')
-    resetPrintingState()
-    return
-  }
-
-  // Create print document with actual SIERRA badge design
-  const site = _badge.sites.find(s => s.id === _badge.activeSite)
-  const w = window.open('', '_blank', 'width=900,height=700')
-
-  // Bug fix: window.open() returns null when the browser's popup blocker
-  // intervenes — the previous code went straight into w.document.write(...)
-  // against a null reference, throwing before the user saw any explanation.
-  if (!w) {
-    toast('No se pudo abrir la ventana de impresión — habilita las ventanas emergentes para este sitio e inténtalo de nuevo')
-    resetPrintingState()
-    return
-  }
-
-  // Bug fix: the print window is a brand-new `document`, whose base URL is
-  // about:blank — the main document's @font-face rules use paths relative
-  // to index.html ("Replica Bold.otf") which do NOT resolve there. Build
-  // absolute URLs against the page's own location so the print output uses
-  // real Replica/Replica Mono instead of silently falling back to a
-  // system font (a FOUT-to-print with no visible warning).
-  const fontUrl = (file) => new URL(file, location.href).href
-  // Same single source of truth as the on-screen card (--badge-w-mm/-h-mm)
-  // — never a second hardcoded 53.98/85.6 that could drift from it.
-  const { w: BADGE_W, h: BADGE_H } = badgeGeometryMm()
-
-  // Bug fix (carried from pass 5): the print document must contain both
-  // sides, one badge-sized page each, regardless of which preview tab is
-  // open. Pass 6: the markup/CSS below mirror renderBadgeFront()/
-  // renderBadgeBack() and the shared .badge-front*/.badge-back* rules
-  // structurally (same zones, same class-name shapes) — this is a
-  // separate `document` so it is necessarily its own literal copy of the
-  // CSS, not a shared stylesheet, but every layout decision (BADGE_W/
-  // BADGE_H, LBL_LOGO_SVG, badgeNameFontSizePt(), badgeSiteCompanyInfo())
-  // is the same function/constant the on-screen preview uses, so the two
-  // can't silently drift into two different designs.
-  //
-  // Icon choice: verified in this pass's Playwright print-emulation
-  // harness that siIcon()'s inline, self-contained SVG (no sprite sheet,
-  // no class carried over from the main document's stylesheet) renders
-  // correctly inside this print window's own isolated <head> — same
-  // result pass 5 found for the previous icon set. The 5 reverse rows
-  // below use siIcon() directly, matching the on-screen preview exactly.
-  // Item 2 (this pass): identical composite fitting call/result as
-  // renderBadgeFront() (preview) — same computeBadgeFrontComposite()
-  // function, same inputs, called independently in this (main, opener)
-  // document context, so the two structurally cannot diverge. Every
-  // decided font-size/line is baked into the markup below via inline
-  // `style="font-size:…pt"` (never left to this popup's own CSS defaults
-  // to reproduce), which is what actually guarantees pixel-identical
-  // typography regardless of which document renders it.
+// Computes every side-independent piece printBadge() needs once (name/
+// position/company line-fitting via the SAME computeBadgeFrontComposite()
+// the on-screen preview uses) — kept separate from HTML assembly so both the
+// front-only and back-only manual-mode documents can reuse the identical
+// fitting result instead of recomputing (and risking divergence).
+function _badgePrintPieces(emp, site) {
   const composite = computeBadgeFrontComposite(emp, site)
   const { nameFit: fit, positionFit, companyFit, companyName } = composite
   const { countryName } = badgeSiteCompanyInfo(site)
@@ -21845,31 +21891,94 @@ async function printBadge() {
   const companyLinesHtml = companyFit.lines
     .map(line => `<div class="badge-company-line" style="font-size:${companyFit.fontSize}pt">${esc(line)}</div>`)
     .join('')
-  const nameFontSize = fit.fontSize
-  const html = `
+  return { composite, nameLinesHtml, positionLinesHtml, companyLinesHtml, countryName, nameFontSize: fit.fontSize }
+}
+
+function _badgeFrontSheetHtml(emp, pieces) {
+  return `
+      <div class="badge-sheet">
+        <div class="badge-front-header"><div class="badge-logo-mark">${LBL_LOGO_SVG}</div></div>
+        <div class="badge-front-card">
+          <div class="badge-front-photoblock">
+            ${emp.photo_url
+              ? `<img src="${esc(emp.photo_url)}" class="badge-employee-photo" data-badge-asset="photo" onerror="this.closest('.badge-front-photoblock').classList.add('is-broken')" />
+                 <div class="badge-front-photo-broken">Foto no disponible</div>`
+              : '<div class="badge-photo-placeholder">Sin foto</div>'}
+          </div>
+          <div class="badge-front-panel">
+            <div class="badge-front-idline">${esc(emp.employee_code || '—')}</div>
+            ${pieces.nameLinesHtml}
+            ${pieces.positionLinesHtml}
+          </div>
+        </div>
+        <div class="badge-front-companybar">${pieces.companyLinesHtml}</div>
+      </div>`
+}
+
+function _badgeBackSheetHtml(emp, pieces, barcodeMarkup) {
+  return `
+      <div class="badge-sheet is-back">
+        <div class="badge-back-header">
+          <div class="badge-logo-mark">${LBL_LOGO_SVG}</div>
+          <div class="badge-gk-tile" role="img" aria-label="GK">${GK_LOGO_SVG}</div>
+        </div>
+        <div class="badge-back-panel${badgeBackDensityClass(emp)}">
+          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('globe', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">País</div><div class="badge-back-rowvalue">${esc(pieces.countryName || '—')}</div></span></div>
+          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('credit-card', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">No. de identificación</div><div class="badge-back-rowvalue badge-back-idvalue">${esc(emp.identification_number || '—')}</div></span></div>
+          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('phone', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">En caso de emergencia llamar a</div><div class="badge-back-rowvalue">${esc(emp.emergency_contact_name || '—')}${emp.emergency_contact_phone ? `<br>${esc(emp.emergency_contact_phone)}` : ''}</div></span></div>
+          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('heart', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Condiciones de salud</div><div class="badge-back-rowvalue">${esc(emp.health_conditions || '—')}</div></span></div>
+          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('droplet', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Tipo de sangre</div><div class="badge-back-rowvalue">${esc(emp.blood_type || '—')}</div></span></div>
+        </div>
+        <div class="badge-back-legal">Este gafete es propiedad de la empresa. Al finalizar la relación laboral, deberá ser devuelto. En caso de pérdida o extravío, favor reportarlo a Talento Humano.</div>
+        <div class="badge-barcode">${barcodeMarkup}</div>
+      </div>`
+}
+
+// Assembles the full standalone print <!DOCTYPE html> document for a given
+// employee, containing ONLY the requested sides (['front'], ['back'], or
+// both) — this is what makes manual/una-cara mode possible: the exact same
+// CSS/markup-generating code as dúplex mode, just invoked twice with one
+// side each instead of once with both. `calibration` ({x,y} mm, from
+// getZc300Calibration()) is applied as a single uniform
+// `transform: translate()` on EVERY .badge-sheet in the document — it moves
+// the whole rigid card as one unit, never an individual element.
+function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibration, titleSuffix }) {
+  const { w: BADGE_W, h: BADGE_H } = badgeGeometryMm()
+  const fontUrl = (file) => new URL(file, location.href).href
+  const calX = calibration?.x || 0
+  const calY = calibration?.y || 0
+  const sheets = []
+  if (sides.includes('front')) sheets.push(_badgeFrontSheetHtml(emp, pieces))
+  if (sides.includes('back')) sheets.push(_badgeBackSheetHtml(emp, pieces, barcodeMarkup))
+  return `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>SIERRA Badge - ${esc(emp.first_name)} ${esc(emp.last_name)}</title>
+      <title>SIERRA Badge - ${esc(emp.first_name)} ${esc(emp.last_name)}${titleSuffix ? ' - ' + esc(titleSuffix) : ''}</title>
       <style>
-        @font-face { font-family:"Replica"; src:url("${fontUrl('Replica Light.otf')}") format("opentype"); font-weight:300; }
-        @font-face { font-family:"Replica"; src:url("${fontUrl('Replica Regular.otf')}") format("opentype"); font-weight:400; }
-        @font-face { font-family:"Replica"; src:url("${fontUrl('Replica Bold.otf')}") format("opentype"); font-weight:700; }
-        @font-face { font-family:"Aeonik"; src:url("${fontUrl('Aeonik-Regular.ttf')}") format("truetype"); font-weight:400; }
-        @font-face { font-family:"Aeonik"; src:url("${fontUrl('Aeonik-Medium.ttf')}") format("truetype"); font-weight:500; }
-        @font-face { font-family:"Aeonik"; src:url("${fontUrl('Aeonik-Bold.ttf')}") format("truetype"); font-weight:700; }
-        @font-face { font-family:"Aeonik Mono"; src:url("${fontUrl('AeonikMono-Regular.otf')}") format("opentype"); font-weight:400; }
-        @font-face { font-family:"Aeonik Mono"; src:url("${fontUrl('AeonikMono-Medium.otf')}") format("opentype"); font-weight:500; }
-        @font-face { font-family:"Aeonik Mono"; src:url("${fontUrl('AeonikMono-Bold.otf')}") format("opentype"); font-weight:700; }
+        ${_badgeFontFaceCss(fontUrl)}
+        /* Physical page size — the ONLY source of truth is badgeGeometryMm()
+           (BADGE_W/BADGE_H above), never a second hardcoded 53.98/85.6.
+           Orientation audit: see ZEBRA_ZC300_PROFILE's comment — this stays
+           the portrait mm values that match the actual design; no rotation
+           transform is applied here to "guess" driver behavior. */
         @page { size: ${BADGE_W}mm ${BADGE_H}mm; margin: 0; }
         @media print {
-          body { margin: 0; padding: 0; background: #fff; }
-          .badge-sheet { box-shadow: none; margin: 0; page-break-after: always; }
+          /* print-color-adjust: exact (section 2 audit) — without this,
+             Chrome/Firefox can silently drop background colors/images
+             (the orange footer, icon tiles, photo backgrounds) even though
+             the on-screen preview shows them. */
+          body { margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .badge-sheet { box-shadow: none; margin: 0; page-break-after: always; transform: translate(${calX}mm, ${calY}mm); }
           .badge-sheet:last-child { page-break-after: auto; }
           .no-print { display: none !important; }
         }
+        /* Headers/footers and "fit to page" scaling are OS/browser print-
+           dialog settings this document cannot force via CSS — see the
+           first-run setup assistant (renderZc300SetupAssistantBody()) for
+           the operator-facing checklist covering exactly this limitation. */
         body { font-family: 'Aeonik', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 10px; background: #f5f5f5; }
-        .badge-sheet { width: ${BADGE_W}mm; height: ${BADGE_H}mm; background: #fff; color: #0b0b0b; box-sizing: border-box; page-break-inside: avoid; box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: relative; margin-bottom: 20px; padding: 3mm; display: flex; flex-direction: column; border-radius: 4mm; border: 1px solid #eee; overflow: hidden; }
+        .badge-sheet { width: ${BADGE_W}mm; height: ${BADGE_H}mm; background: #fff; color: #0b0b0b; box-sizing: border-box; page-break-inside: avoid; box-shadow: 0 2px 8px rgba(0,0,0,0.1); position: relative; margin-bottom: 20px; padding: 3mm; display: flex; flex-direction: column; border-radius: 4mm; border: 1px solid #eee; overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .badge-logo-mark { line-height: 0; }
         .badge-logo-mark svg { display: block; width: 100%; height: auto; }
         /* FRONT */
@@ -21881,7 +21990,7 @@ async function printBadge() {
         .badge-photo-placeholder { width: 100%; height: 100%; background: #eee; display: flex; align-items: center; justify-content: center; color: #94a19f; font-size: 7.5pt; text-align: center; line-height: 1.3; }
         .badge-front-panel { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 2mm 3mm 2.2mm; gap: 0.6mm; background: #fff; border-radius: 3mm; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
         .badge-front-idline { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; font-size: 7.5pt; letter-spacing: 0.02em; color: #cd4f00; }
-        .badge-name-line { font-family: 'Replica', sans-serif; font-weight: 700; font-size: ${nameFontSize}pt; text-transform: uppercase; line-height: 1.05; letter-spacing: 0.01em; color: #0b0b0b; max-width: 46mm; white-space: normal; overflow-wrap: normal; word-break: normal; }
+        .badge-name-line { font-family: 'Replica', sans-serif; font-weight: 700; font-size: ${pieces.nameFontSize}pt; text-transform: uppercase; line-height: 1.05; letter-spacing: 0.01em; color: #0b0b0b; max-width: 46mm; white-space: normal; overflow-wrap: normal; word-break: normal; }
         .badge-front-photo-broken { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #b3261e; font-size: 6.6pt; text-align: center; line-height: 1.3; }
         .badge-front-photoblock.is-broken .badge-front-photo-broken { display: flex; }
         .badge-front-photoblock.is-broken .badge-employee-photo { display: none; }
@@ -21909,84 +22018,41 @@ async function printBadge() {
         .badge-back-legal { flex-shrink: 0; font-family: 'Aeonik', sans-serif; font-size: 5.4pt; line-height: 1.32; color: #55555a; text-align: left; padding: 1.2mm 0 0.8mm; }
         .badge-barcode { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding-top: 0.4mm; }
         .badge-barcode svg { height: 10mm; width: auto; max-width: 100%; }
-        .badge-barcode-value { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; font-size: 7pt; letter-spacing: 0.02em; color: #0b0b0b; margin-top: 0.8mm; text-align: center; }
+        /* Section 8 (rich black vs pure black): the badge otherwise uses
+           #0b0b0b (near-black) for design consistency with the rest of the
+           card, but dye-sublimation retransfer output can render very small
+           high-frequency marks (a scanned barcode's human-readable value)
+           less crisply as a near-black than as pure black. Scoped to ONLY
+           this element — not a global recolor. */
+        .badge-barcode-value { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; font-size: 7pt; letter-spacing: 0.02em; color: #000; margin-top: 0.8mm; text-align: center; }
       </style>
     </head>
-    <body>
-      <div class="badge-sheet">
-        <div class="badge-front-header"><div class="badge-logo-mark">${LBL_LOGO_SVG}</div></div>
-        <div class="badge-front-card">
-          <div class="badge-front-photoblock">
-            ${emp.photo_url
-              ? `<img src="${esc(emp.photo_url)}" class="badge-employee-photo" data-badge-asset="photo" onerror="this.closest('.badge-front-photoblock').classList.add('is-broken')" />
-                 <div class="badge-front-photo-broken">Foto no disponible</div>`
-              : '<div class="badge-photo-placeholder">Sin foto</div>'}
-          </div>
-          <div class="badge-front-panel">
-            <div class="badge-front-idline">${esc(emp.employee_code || '—')}</div>
-            ${nameLinesHtml}
-            ${positionLinesHtml}
-          </div>
-        </div>
-        <div class="badge-front-companybar">${companyLinesHtml}</div>
-      </div>
-      <div class="badge-sheet is-back">
-        <div class="badge-back-header">
-          <div class="badge-logo-mark">${LBL_LOGO_SVG}</div>
-          <div class="badge-gk-tile" role="img" aria-label="GK">${GK_LOGO_SVG}</div>
-        </div>
-        <div class="badge-back-panel${badgeBackDensityClass(emp)}">
-          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('globe', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">País</div><div class="badge-back-rowvalue">${esc(countryName || '—')}</div></span></div>
-          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('credit-card', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">No. de identificación</div><div class="badge-back-rowvalue badge-back-idvalue">${esc(emp.identification_number || '—')}</div></span></div>
-          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('phone', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">En caso de emergencia llamar a</div><div class="badge-back-rowvalue">${esc(emp.emergency_contact_name || '—')}${emp.emergency_contact_phone ? `<br>${esc(emp.emergency_contact_phone)}` : ''}</div></span></div>
-          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('heart', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Condiciones de salud</div><div class="badge-back-rowvalue">${esc(emp.health_conditions || '—')}</div></span></div>
-          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('droplet', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Tipo de sangre</div><div class="badge-back-rowvalue">${esc(emp.blood_type || '—')}</div></span></div>
-        </div>
-        <div class="badge-back-legal">Este gafete es propiedad de la empresa. Al finalizar la relación laboral, deberá ser devuelto. En caso de pérdida o extravío, favor reportarlo a Talento Humano.</div>
-        <div class="badge-barcode">${barcodeMarkup}</div>
-      </div>
+    <body>${sheets.join('')}
     </body>
     </html>
   `
+}
+
+// Opens the print popup, writes `html` into it, waits for the popup's own
+// DOM/fonts/photo to settle, runs the AUTHORITATIVE popup-side font
+// verification, and calls w.print() + waits for the (best-effort, ambiguous
+// by design — see the long comment below) afterprint signal. Returns
+// { ok:true } once the print dialog has closed (or the bounded timeout
+// elapsed) with fonts verified, or { ok:false } after already toasting the
+// specific failure and closing any popup it opened. This is shared,
+// unmodified logic between dúplex mode, manual mode's two separate print
+// actions, and the calibration card — none of them get their own,
+// potentially-diverging copy of this wait/verify sequence.
+async function _badgeOpenPopupAndPrint(html, { waitForPhoto = true } = {}) {
+  const w = window.open('', '_blank', 'width=900,height=700')
+  if (!w) {
+    toast('No se pudo abrir la ventana de impresión — habilita las ventanas emergentes para este sitio e inténtalo de nuevo')
+    return { ok: false, reason: 'popup_blocked' }
+  }
 
   w.document.write(html)
   w.document.close()
 
-  // Step 4 (this pass): wait for the print document's OWN DOM/CSSOM to be
-  // ready before doing anything font-related in it.
-  //
-  // Why this is safe with document.write()+close(): all the markup and
-  // <style> content here was written and closed synchronously, in one
-  // shot, with no external <script>/<link> in between — so by the time
-  // w.document.close() returns, the HTML parser has already run to
-  // completion and the inline <style> block's @font-face rules have
-  // already been parsed into the popup's CSSOM (CSS parsing is
-  // synchronous; it does not wait on a network round trip the way an
-  // external stylesheet would). What is NOT guaranteed to have happened
-  // yet at that exact instant is the browser's own internal step of
-  // registering those parsed @font-face rules as FontFace entries on
-  // `w.document.fonts` — on some engines that population is queued as a
-  // microtask/style-recalc tied to the popup's own event loop turn, not
-  // guaranteed to have run inside the same synchronous call stack that
-  // executed document.write()/close(). Calling `w.document.fonts.load()`
-  // one tick too early risks asking about a face that, from the popup's
-  // own perspective, "doesn't exist yet" — which is a strong candidate
-  // for exactly the quirk the previous pass documented and worked around
-  // by demoting the popup's check to corroborating-only instead of fixing.
-  //
-  // The bounded wait below is built from two complementary signals rather
-  // than a single guess: `w.document.readyState === 'complete'` (or the
-  // popup's own 'load' event, whichever comes first) proves the popup
-  // considers its own document, including subresources like the photo
-  // <img>, fully settled; two chained `requestAnimationFrame` calls force
-  // at least one full style-recalc/paint cycle inside the popup's own
-  // window to have completed first, which is the standard, reliable
-  // pattern for "let this document's pending style work actually run"
-  // without depending on load timing at all (relevant because a slow/
-  // failed photo fetch could otherwise delay 'load' well past when the
-  // fonts are already registered and ready to query). Whichever settles
-  // first is enough; a short absolute cap prevents a pathological popup
-  // (e.g. rAF starved by a background tab) from hanging step 4 forever.
   await new Promise(resolve => {
     let settled = false
     const done = () => { if (!settled) { settled = true; resolve() } }
@@ -22000,42 +22066,6 @@ async function printBadge() {
     Promise.race([viaLoad, viaRaf]).then(() => { clearTimeout(cap); done() })
   })
 
-  // Barcode is already embedded as static markup in `html` above — see the
-  // pre-flight generation block before window.open() for why nothing runs
-  // here anymore. There is structurally no code path left in this function
-  // that can write an error placeholder into the print document: the only
-  // ways to reach this line are (a) checkBadgeReadiness() returned ready
-  // and the pre-flight try/catch above also succeeded, so `barcodeMarkup`
-  // is real bars, or (b) this function already returned earlier. Font
-  // verification below uses only the standard `document.fonts` API
-  // surface (load/ready/check + FontFace iteration) — no canvas
-  // measureText() trick, and no JsBarcode call of any kind runs inside
-  // the popup, so this gate and the barcode gate above stay fully
-  // independent: neither can produce the other's error message, and
-  // neither depends on the other's timing.
-  //
-  // Step 5-7 (this pass, replacing the previous "corroborating-only"
-  // design): the print document now independently verifies every
-  // required font face in its OWN context — `w.document.fonts`, not the
-  // opener's — via verifyBadgeFonts() (defined above): explicit
-  // `w.document.fonts.load()` per face, `w.document.fonts.ready`, then
-  // BOTH `w.document.fonts.check()` and a direct FontFace-iteration
-  // status check for every one of the 6 required combinations. This is
-  // now the AUTHORITATIVE gate for this popup's print, not corroborating
-  // evidence for the main-document's pre-open check — the whole point of
-  // this pass is that the main-document check (still run above, and still
-  // a legitimate fast first check that can short-circuit an
-  // obviously-doomed attempt before a popup is even opened) is no longer
-  // treated as sufficient proof that THIS popup will actually render with
-  // the right fonts.
-  //
-  // Bounded with the same ~4s cap used elsewhere in this function for
-  // photo/font readiness (see the geometry/photo-wait pattern this
-  // mirrors) — long enough for real (already-cached, same-origin) font
-  // files to decode, short enough that a genuinely stuck popup does not
-  // hang the workspace indefinitely. A timeout here is NOT treated as a
-  // pass: unlike the previous design, an inconclusive result now fails
-  // closed, because this check is authoritative, not corroborating.
   let popupFontResult
   try {
     popupFontResult = await Promise.race([
@@ -22045,71 +22075,36 @@ async function printBadge() {
   } catch (e) {
     popupFontResult = { rows: REQUIRED_BADGE_FONT_CHECKS.map(c => ({ spec: c.spec, label: c.label, loadResolved: false, checkPassed: false, faceLoaded: false, ok: false })), failures: REQUIRED_BADGE_FONT_CHECKS.map(c => ({ spec: c.spec, label: c.label })), timedOut: true }
   }
-  // Also wait for the photo <img> specifically (not gating on it — a
-  // missing/broken photo_url already renders the on-screen "Sin foto"
-  // placeholder deliberately and is not a font or barcode failure — but a
-  // still-loading <img> at the moment w.print() is called risks printing
-  // a half-rendered image, so give it the same bounded window).
-  await Promise.race([
-    (() => {
-      const imgEl = w.document.querySelector('[data-badge-asset="photo"]')
-      return imgEl && !imgEl.complete
-        ? new Promise(res => { imgEl.addEventListener('load', res, { once: true }); imgEl.addEventListener('error', res, { once: true }) })
-        : Promise.resolve()
-    })(),
-    new Promise(res => setTimeout(res, 4000)),
-  ])
+  if (waitForPhoto) {
+    await Promise.race([
+      (() => {
+        const imgEl = w.document.querySelector('[data-badge-asset="photo"]')
+        return imgEl && !imgEl.complete
+          ? new Promise(res => { imgEl.addEventListener('load', res, { once: true }); imgEl.addEventListener('error', res, { once: true }) })
+          : Promise.resolve()
+      })(),
+      new Promise(res => setTimeout(res, 4000)),
+    ])
+  }
 
   if (popupFontResult.failures.length) {
     console.error('Badge print: print-document font verification failed (authoritative popup-side check):', popupFontResult.rows)
     toast('No se puede imprimir: la ventana de impresión no pudo verificar la tipografía requerida (' + popupFontResult.failures.map(f => f.label).join(' · ') + ') — inténtalo de nuevo')
-    // Close rather than retain: a print window that can never legitimately
-    // print (fonts unverified, and this codebase never falls back to
-    // system fonts) has no safe use left open — it cannot be manually
-    // "fixed" by the user from here, and leaving a visible, inert popup
-    // sitting on screen after the workspace already reports the failure
-    // via toast risks the user thinking it is still working or clicking
-    // into it looking for a printable badge that will never come. This
-    // mirrors the barcode hard-blocker above, which never leaves a
-    // placeholder-barcode popup open either.
     try { w.close() } catch (e) {}
-    resetPrintingState()
-    return
+    return { ok: false, reason: 'fonts' }
   }
 
-  // Item 5: the button already reads "Imprimiendo…" (set above, right
-  // before the barcode/font pre-flight) for the whole "preparing to open
-  // the dialog" span — a separate "Preparando gafete…" toast here would
-  // just repeat that same fact in a second place, so none is added.
   w.print()
 
-  // Honesty fix (carried from a prior pass, re-affirmed and extended this
-  // pass — item 5): `.print()` returning does NOT mean the badge was
-  // actually printed — it opens the OS print dialog and returns almost
-  // immediately regardless of whether the user goes on to print or
-  // cancels. `afterprint` fires once the dialog closes either way (print
-  // or cancel) in the browsers this app targets, which is a strictly
-  // better signal than "dialog opened" even though it still CANNOT
-  // distinguish "printed" from "cancelled" — that ambiguity is real,
-  // unresolved by any reliable cross-browser JS signal, and intentionally
-  // left unresolved (no new schema state/column is in scope this pass).
-  //
-  // This pass's fix (item 5): the UI copy must never claim more certainty
-  // than that epistemic reality. Two separate, separately-verifiable facts
-  // are now reported as two separate sentences, never merged into one
-  // overclaiming toast:
-  //   1. "did the print dialog close" (this promise resolving) — reported
-  //      as "the dialog closed", explicitly NOT as "printed", immediately
-  //      below.
-  //   2. "did the badge_issuances write succeed" (the sb.from(...) call
-  //      further down) — reported separately, after it actually resolves.
-  // The schema's `printed` status column is still being written to mean
-  // "the print dialog was closed" (print or cancel, indistinguishable) —
-  // that is a known, accepted imprecision, not a claim that the physical
-  // badge exists. A 15s fallback covers browsers/popup setups that never
-  // fire `afterprint`, so the workspace can't be left stuck open
-  // indefinitely; the toast text below is honest about that timeout case
-  // too (it never claims the dialog definitely closed on its own).
+  // Honesty limitation (unchanged across dúplex AND manual mode, and the
+  // calibration card): JavaScript has no reliable, cross-browser way to
+  // know whether the operator actually completed or cancelled the native
+  // print dialog. `afterprint` fires once the dialog closes either way, and
+  // a 15s fallback covers popup setups that never fire it at all — but
+  // resolving this promise means only "the dialog is no longer open (or we
+  // gave up waiting)", never "the badge physically printed". Every caller's
+  // UI copy must preserve that distinction rather than implying more
+  // certainty than this can ever provide.
   await new Promise(resolve => {
     let settled = false
     const finish = () => { if (settled) return; settled = true; resolve() }
@@ -22117,54 +22112,88 @@ async function printBadge() {
     setTimeout(finish, 15000)
   })
 
-  // Item 5, message 1 of 2 — the print-outcome half, reported the instant
-  // it's known (dialog closed, or the 15s fallback elapsed) and BEFORE the
-  // separate database write below even starts, since these are two
-  // independently-verifiable facts that must never be merged into one
-  // overclaiming sentence (see the honesty-fix comment above).
-  toast('Proceso de impresión cerrado. Verifica la salida física.')
+  return { ok: true, window: w }
+}
 
-  // Bug fix: this used to unconditionally INSERT a new 'printed' row even
-  // when this employee already had an existing draft/ready_to_print
-  // badge_issuances row (created via "Crear gafetes" bulk action or the
-  // hire-wizard's "queue badge" option) — orphaning that row forever in
-  // 'draft' status while a second, disconnected 'printed' row appeared.
-  // We now transition the most recent open issuance for this employee
-  // instead of always creating a new one, matching the documented
-  // draft → ready_to_print → printed lifecycle.
-  //
-  // Known limitation (reported, not fixed — fixing it needs new UI this
-  // pass isn't authorized to add): when the employee's latest badge is
-  // already 'printed' — a genuine reprint — `existing` below is undefined
-  // (it only matches draft/ready_to_print), so this inserts a brand-new
-  // row rather than corrupting the original. That's safe, but the new row
-  // carries no is_reprint/original_issuance_id link back to the badge it
-  // reprints, so a real reprint and a true first-time print are
-  // indistinguishable in badge_issuances history.
+// Shared preflight: readiness, permission, double-submission guard, barcode
+// generation (main-document, pre-popup — unchanged architecture from the
+// prior pass, see the barcode comment below), and main-document font
+// preload. Identical for dúplex mode and BOTH steps of manual mode — the
+// only difference between callers is which button id it manages and what
+// idle label to restore. Returns null after already toasting + resetting on
+// any failure; otherwise `{ site, pieces, barcodeMarkup, resetPrintingState }`.
+async function _badgePrintPreflight(issuance, emp, btnId, idleLabel) {
+  const readiness = checkBadgeReadiness(emp)
+  if (!readiness.ready) {
+    toast('No se puede imprimir: ' + readiness.errors.map(e => e.message).join(' · '))
+    return null
+  }
+  if (!can('write', 'talento_humano')) {
+    toast('No tienes permiso para imprimir gafetes')
+    return null
+  }
+  if (issuance.printing) return null
+  issuance.printing = true
+  const btn = document.getElementById(btnId)
+  if (btn) { btn.disabled = true; btn.textContent = 'Imprimiendo…' }
+  const resetPrintingState = () => {
+    issuance.printing = false
+    const b = document.getElementById(btnId)
+    if (b) { b.disabled = false; b.textContent = idleLabel; b.focus() }
+  }
+
+  // Hard blocker (unchanged architecture): the real barcode SVG is generated
+  // HERE, in the MAIN document, entirely BEFORE window.open() — never after
+  // — to avoid the cross-document JsBarcode/canvas measurement bug a prior
+  // pass fixed. Same options as the on-screen preview
+  // (renderBadgeBackBarcodePreview()), so the two structurally cannot drift.
+  let barcodeMarkup = ''
+  try {
+    const probeSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    JsBarcode(probeSvg, emp.employee_code, { format: 'CODE128', width: 11, height: 26, margin: 110, displayValue: false, xmlDocument: document })
+    probeSvg.removeAttribute('width')
+    probeSvg.removeAttribute('height')
+    barcodeMarkup = probeSvg.outerHTML + `<div class="badge-barcode-value">${esc(emp.employee_code)}</div>`
+  } catch (e) {
+    console.error('Barcode generation error:', e)
+    toast('No se puede imprimir: el código de barras no se pudo generar para "' + emp.employee_code + '"')
+    resetPrintingState()
+    return null
+  }
+
+  try {
+    await Promise.all(REQUIRED_BADGE_FONT_CHECKS.map(c => document.fonts.load(c.spec).catch(() => [])))
+    await document.fonts.ready
+  } catch (e) {}
+  const preOpenFontFailures = badgeFontLoadFailures(document)
+  if (preOpenFontFailures.length) {
+    toast('No se puede imprimir: no se pudo cargar la tipografía requerida (' + preOpenFontFailures.map(f => f.label).join(' · ') + ') — recarga la página e inténtalo de nuevo')
+    resetPrintingState()
+    return null
+  }
+
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const pieces = _badgePrintPieces(emp, site)
+  return { site, pieces, barcodeMarkup, resetPrintingState }
+}
+
+// The single place that writes the completed-issuance record — called
+// exactly once per fully-completed badge, regardless of mode: after the
+// one dúplex print job in ZC300-dúplex mode, or after the confirmed REVERSE
+// step in manual mode (never after the front-only step — see
+// printBadgeManualFront() below, which is the section 3/10 fix: the DB
+// write timing itself, not just UI copy). Logic unchanged from the
+// pre-existing single-flow contract (draft reuse, reprint detection,
+// 5-field snapshot).
+async function _badgeCommitIssuancePrint(emp, site) {
   const existing = _badge.badges.find(b => b.employee_id === emp.id && ['draft', 'ready_to_print'].includes(b.status))
   const isReprint = !existing && _badge.badges.some(b => b.employee_id === emp.id && b.status === 'printed')
-  // Audit finding (section 2): snapshot carries only the fields the
-  // pre-existing print contract already persisted. photo_url/blood_type
-  // were added here by a prior pass with no authoritative citation —
-  // badge_issuances is readable under the broader 'talento_humano read'
-  // RLS grant (can_view_employee), not the narrower write/manage grant
-  // that gates printing, so persisting blood_type (sensitive medical
-  // data) into this immutable historical record would silently widen who
-  // can see it. Reverted to the original 5-field snapshot pending an
-  // explicit product/legal decision — see report.
   const snapshot = {
     first_name: emp.first_name, last_name: emp.last_name, employee_code: emp.employee_code,
     department: emp.department, position: emp.position,
   }
   const payload = {
     status: 'printed', snapshot,
-    // Pre-existing bug found and fixed this pass: this referenced an
-    // undefined `badgeColor` global, which threw a ReferenceError on every
-    // real print (after w.print()/afterprint had already fired) and
-    // silently prevented the badge_issuances write and the success toast
-    // from ever running. `site` (the active print site, already resolved
-    // above) is the correct in-scope source for the color the badge was
-    // actually printed with.
     company_color: site?.badge_color || null,
     printed_at: new Date().toISOString(), printed_by: me.id,
   }
@@ -22172,25 +22201,339 @@ async function printBadge() {
     ? await sb.from('badge_issuances').update(payload).eq('id', existing.id)
     : await sb.from('badge_issuances').insert({ employee_id: emp.id, template_id: null, created_by: me.id, ...payload })
 
-  // Item 5, message 2 of 2 — the database-write outcome, reported
-  // separately from the print-outcome toast above (never combined into one
-  // sentence): this fact is independently verifiable and independently
-  // true/false regardless of what happened with the print dialog.
   if (!error) {
     Audit.log('employee', emp.id, emp, 'badge_printed', `Gafete impreso${existing ? '' : isReprint ? ' (reimpresión, sin registro previo abierto)' : ' (nuevo)'}`)
     toast('Registro de emisión actualizado')
   } else {
-    // Error detail kept available via console.error (as the task requires)
-    // rather than folded into the user-facing sentence, which stays fixed
-    // and honestly scoped regardless of the underlying cause.
     console.error('Badge print: badge_issuances write failed:', error)
     toast('El diálogo se cerró, pero no se pudo actualizar el registro')
   }
+}
 
+// Entry point — dispatches on the workstation's ZC300 print-mode preference
+// (getZc300PrintMode(), localStorage-only, never on the employee/issuance
+// record). First print on a workstation is gated on the setup assistant
+// (section 4) via _badgeMaybeRunSetupAssistant(); once confirmed it is not
+// shown again automatically.
+async function printBadge() {
+  if (!isZc300SetupConfirmed()) {
+    _badge_ui.pendingZc300Action = 'print'
+    openZc300SetupAssistant()
+    return
+  }
+  const mode = getZc300PrintMode()
+  return mode === 'manual' ? printBadgeManualFront() : printBadgeDuplex()
+}
+
+// ZC300 dúplex: front + back printed together as one job (unchanged
+// front-then-back page order — see section 3), one DB write once the dialog
+// has closed. This is the direct continuation of the original single-flow
+// printBadge() implementation, only reorganized into the shared pieces
+// above.
+async function printBadgeDuplex() {
+  const issuance = _badge_ui.issuanceInProgress
+  const emp = _badge.employees.find(e => e.id === issuance.employee_id)
+  if (!emp) return
+  const pre = await _badgePrintPreflight(issuance, emp, 'badge-print-btn', 'Imprimir gafete')
+  if (!pre) return
+  const { site, pieces, barcodeMarkup, resetPrintingState } = pre
+  const calibration = getZc300Calibration()
+  const html = _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides: ZEBRA_ZC300_PROFILE.pageOrder, calibration })
+  const result = await _badgeOpenPopupAndPrint(html, { waitForPhoto: true })
+  if (!result.ok) { resetPrintingState(); return }
+
+  toast('Proceso de impresión cerrado. Verifica la salida física.')
+  await _badgeCommitIssuancePrint(emp, site)
   resetPrintingState()
   closeBadgeIssuance()
   await loadBadgeData()
   renderBadgeModule()
+}
+
+// ZC300 manual/una-cara, step 1 of 2: prints ONLY the front page. Critically
+// (section 3/10 fix), this does NOT write to badge_issuances — the badge is
+// not issued yet, only half-printed. `issuance.manualDuplex` records that
+// the front step completed so the workspace can render the flip-card
+// confirmation step (see renderBadgeManualDuplexPanel()); it is transient
+// UI state on the in-memory issuance object, never persisted.
+async function printBadgeManualFront() {
+  const issuance = _badge_ui.issuanceInProgress
+  const emp = _badge.employees.find(e => e.id === issuance.employee_id)
+  if (!emp) return
+  const pre = await _badgePrintPreflight(issuance, emp, 'badge-print-btn', 'Imprimir gafete')
+  if (!pre) return
+  const { site, pieces, barcodeMarkup, resetPrintingState } = pre
+  const calibration = getZc300Calibration()
+  const html = _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides: ['front'], calibration, titleSuffix: 'Anverso' })
+  const result = await _badgeOpenPopupAndPrint(html, { waitForPhoto: true })
+  resetPrintingState()
+  if (!result.ok) return
+  toast('Anverso enviado a impresión. Voltea la tarjeta y confirma para imprimir el reverso.')
+  issuance.manualDuplex = { frontPrintedAt: new Date().toISOString() }
+  renderBadgeModule()
+}
+
+// ZC300 manual/una-cara, step 2 of 2: only reachable after step 1 recorded
+// `issuance.manualDuplex.frontPrintedAt` (see renderBadgeManualDuplexPanel()
+// — there is no UI path to this function before that, and the guard below
+// double-checks it directly, matching this file's existing idiom of
+// re-verifying preconditions right before the point of use rather than
+// trusting the caller alone). The badge_issuances write happens ONLY here,
+// after the reverse side has actually gone through its own print+afterprint
+// cycle — this is the fix that prevents a false "printed" status after only
+// the front completed.
+async function printBadgeManualReverseConfirmed() {
+  const issuance = _badge_ui.issuanceInProgress
+  const emp = _badge.employees.find(e => e.id === issuance.employee_id)
+  if (!emp) return
+  if (!issuance.manualDuplex?.frontPrintedAt) {
+    toast('Primero imprime el anverso antes de continuar con el reverso')
+    return
+  }
+  const pre = await _badgePrintPreflight(issuance, emp, 'badge-print-reverse-btn', 'Ya volteé la tarjeta — imprimir reverso')
+  if (!pre) return
+  const { site, pieces, barcodeMarkup, resetPrintingState } = pre
+  const calibration = getZc300Calibration()
+  const html = _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides: ['back'], calibration, titleSuffix: 'Reverso' })
+  const result = await _badgeOpenPopupAndPrint(html, { waitForPhoto: false })
+  if (!result.ok) { resetPrintingState(); return }
+
+  toast('Proceso de impresión cerrado. Verifica la salida física.')
+  await _badgeCommitIssuancePrint(emp, site)
+  resetPrintingState()
+  closeBadgeIssuance()
+  await loadBadgeData()
+  renderBadgeModule()
+}
+
+// Cancelling mid-manual-flow (operator error, wrong card loaded, etc.) must
+// leave the issuance in whatever state is honest: the front side may or may
+// not have physically printed (unknowable — see the afterprint comment
+// above), but the DB record was never touched by step 1, so there is no
+// false "printed" row to undo. This simply clears the transient in-memory
+// flag and returns the workspace to the normal "Imprimir gafete" state; the
+// operator can restart from the front step at any time.
+function printBadgeManualCancel() {
+  const issuance = _badge_ui.issuanceInProgress
+  if (issuance) delete issuance.manualDuplex
+  renderBadgeModule()
+}
+
+// ============================================================================
+// ZC300 PRINT UI — setup assistant (section 4), print-mode/calibration menu
+// (sections 3/5/9), the manual-duplex flip confirmation panel (section 3),
+// and the calibration test card (section 5). Built on the existing
+// openSideDrawer() primitive (the same compact right-side drawer
+// Activity/Comments/Permissions already use) rather than a new modal shell —
+// intentionally short, never a scrolling full-page editor.
+// ============================================================================
+
+function openZc300SetupAssistant() {
+  openSideDrawer({
+    eyebrow: 'Zebra ZC300',
+    title: 'Configurar impresora',
+    onTab: () => renderZc300SetupAssistantBody(),
+  })
+}
+
+function renderZc300SetupAssistantBody() {
+  const body = document.getElementById('sd-body')
+  if (!body) return
+  const mode = getZc300PrintMode()
+  const modeLabel = ZEBRA_ZC300_PROFILE.duplex.modes.find(m => m.id === mode)?.label || mode
+  body.innerHTML = `
+    <div style="font-size:0.8rem;color:var(--text-2);margin-bottom:0.9rem;line-height:1.5">
+      Antes de imprimir por primera vez en este equipo, confirma que el diálogo de impresión del <b>sistema operativo</b> (no esta aplicación) está configurado así. El navegador no puede forzar estos ajustes por sí solo — son del sistema/driver, no de esta página.
+    </div>
+    <ul style="list-style:none;padding:0;margin:0 0 1rem;display:flex;flex-direction:column;gap:0.5rem;font-size:0.8rem">
+      <li>✔ Impresora: <b>Zebra ZC300</b></li>
+      <li>✔ Medio / tarjeta: <b>CR80</b></li>
+      <li>✔ Orientación: <b>Vertical (Portrait)</b></li>
+      <li>✔ Escala: <b>100% / Tamaño real</b> (nunca "Ajustar a la página")</li>
+      <li>✔ Márgenes: <b>Ninguno</b></li>
+      <li>✔ Encabezados y pies de página: <b>Desactivados</b></li>
+      <li>✔ Gráficos e imágenes de fondo: <b>Activados</b></li>
+      <li>✔ Cinta (ribbon) correcta seleccionada en el driver Zebra</li>
+      <li>✔ Modo de impresión seleccionado en esta app: <b>${esc(modeLabel)}</b> <button class="btn btn-ghost btn-sm" style="padding:2px 8px" onclick="closeSideDrawer(); openZc300PrintMenu('${_badge_ui.issuanceInProgress?.employee_id || ''}')">cambiar</button></li>
+    </ul>
+    <div style="font-size:0.74rem;color:var(--text-3);margin-bottom:1rem;line-height:1.5;padding:0.6rem 0.7rem;background:var(--surface-2, #f5f5f5);border-radius:8px">
+      Nota sobre orientación: si la tarjeta física sale girada 90°, cambia la orientación en el diálogo de impresión del sistema (no en esta app) — el comportamiento exacto depende del driver Zebra instalado en este equipo y no puede verificarse sin la impresora física.
+    </div>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+      <button class="btn btn-primary btn-sm" onclick="confirmZc300SetupAndContinue()">Confirmar ajustes y continuar</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeSideDrawer()">Cerrar</button>
+    </div>
+  `
+}
+
+function confirmZc300SetupAndContinue() {
+  setZc300SetupConfirmed()
+  closeSideDrawer()
+  const pending = _badge_ui.pendingZc300Action
+  _badge_ui.pendingZc300Action = null
+  if (pending === 'print') printBadge()
+  else if (pending === 'calibration') printZc300CalibrationCard()
+}
+
+// Compact print-options menu (section 9): mode selector, readiness/barcode/
+// photo-quality summary (reusing existing checks — never a parallel
+// system), calibration offsets, "Configurar impresora" (reopens the setup
+// assistant on demand), and "Imprimir tarjeta de calibración".
+function openZc300PrintMenu(empId) {
+  openSideDrawer({
+    eyebrow: 'Zebra ZC300',
+    title: 'Opciones de impresión',
+    onTab: () => renderZc300PrintMenuBody(empId),
+  })
+}
+
+function renderZc300PrintMenuBody(empId) {
+  const body = document.getElementById('sd-body')
+  if (!body) return
+  const emp = _badge.employees.find(e => e.id === empId)
+  const mode = getZc300PrintMode()
+  const cal = getZc300Calibration()
+  const r = emp ? checkBadgeReadiness(emp) : { ready: false, errors: [] }
+  const photoWarn = emp ? badgePhotoQualityWarning(emp) : null
+  const { w, h } = badgeGeometryMm()
+  const bound = ZEBRA_ZC300_PROFILE.calibration.boundMm
+  body.innerHTML = `
+    <div style="font-size:0.72rem;color:var(--text-3);margin-bottom:0.4rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:700">Modo de impresión</div>
+    <div style="display:flex;flex-direction:column;gap:0.4rem;margin-bottom:1rem">
+      ${ZEBRA_ZC300_PROFILE.duplex.modes.map(m => `
+        <label style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.8rem;cursor:pointer;padding:0.5rem 0.6rem;border:1px solid var(--border);border-radius:8px;${mode === m.id ? 'border-color:var(--accent);background:var(--accent-light)' : ''}">
+          <input type="radio" name="zc300-mode" value="${m.id}" ${mode === m.id ? 'checked' : ''} onchange="setZc300PrintMode('${m.id}'); toast('Modo de impresión: ${esc(m.label)}'); renderZc300PrintMenuBody('${empId}')" style="margin-top:2px" />
+          <span><b>${esc(m.label)}</b><br><span style="color:var(--text-3);font-size:0.72rem">${m.requiresFlipperModule ? 'Requiere el módulo volteador (flipper) instalado en esta unidad ZC300 — no todas las unidades lo tienen.' : 'Imprime el anverso, luego pide voltear la tarjeta y confirmar antes del reverso.'}</span></span>
+        </label>
+      `).join('')}
+    </div>
+
+    <div style="font-size:0.72rem;color:var(--text-3);margin-bottom:0.4rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:700">Resumen</div>
+    <div style="font-size:0.8rem;color:var(--text-2);margin-bottom:0.3rem">Anverso + Reverso · CR80 ${w}×${h}mm · vertical</div>
+    <div style="font-size:0.8rem;margin-bottom:0.3rem">${r.ready ? '✔ Listo para imprimir' : '⚠ ' + esc(r.errors.map(e => e.message).join(' · '))}</div>
+    ${photoWarn ? `<div style="font-size:0.76rem;color:${photoWarn.level === 'error' ? '#b3261e' : '#a6620a'};margin-bottom:0.3rem">⚠ ${esc(photoWarn.message)}</div>` : ''}
+    ${cal.x || cal.y ? `<div style="font-size:0.76rem;color:var(--text-3);margin-bottom:0.6rem">Calibración activa: X ${cal.x}mm · Y ${cal.y}mm</div>` : ''}
+
+    <div style="font-size:0.72rem;color:var(--text-3);margin:1rem 0 0.4rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:700">Calibración (mm, desplazamiento uniforme de toda la tarjeta)</div>
+    <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem">
+      <label style="font-size:0.78rem;display:flex;align-items:center;gap:0.3rem">X <input type="number" step="0.1" min="-${bound}" max="${bound}" value="${cal.x}" id="zc300-cal-x" style="width:64px" /></label>
+      <label style="font-size:0.78rem;display:flex;align-items:center;gap:0.3rem">Y <input type="number" step="0.1" min="-${bound}" max="${bound}" value="${cal.y}" id="zc300-cal-y" style="width:64px" /></label>
+    </div>
+    <div style="font-size:0.7rem;color:var(--text-3);margin-bottom:0.6rem">Rango permitido: ±${bound}mm en cada eje.</div>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
+      <button class="btn btn-secondary btn-sm" onclick="saveZc300CalibrationFromMenu('${empId}')">Guardar desplazamiento</button>
+      <button class="btn btn-ghost btn-sm" onclick="resetZc300Calibration(); renderZc300PrintMenuBody('${empId}')">Restablecer a 0</button>
+    </div>
+
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+      <button class="btn btn-secondary btn-sm" onclick="openZc300SetupAssistant()">Configurar impresora</button>
+      <button class="btn btn-secondary btn-sm" onclick="printZc300CalibrationCard()">Imprimir tarjeta de calibración</button>
+    </div>
+  `
+}
+
+function saveZc300CalibrationFromMenu(empId) {
+  const x = document.getElementById('zc300-cal-x')?.value
+  const y = document.getElementById('zc300-cal-y')?.value
+  const clamped = setZc300Calibration(x, y)
+  toast(`Desplazamiento guardado: X ${clamped.x}mm · Y ${clamped.y}mm`)
+  renderZc300PrintMenuBody(empId)
+}
+
+// Manual-duplex flip instruction (section 3): shown between the front and
+// reverse print steps. A real, visible instruction (siIcon's rotate-ccw
+// glyph plus explicit copy), never just a bare confirm button — and the
+// confirm action lives on the primary header button (rendered by
+// renderBadgeIssuanceView itself) rather than duplicated here, so there is
+// exactly one "Imprimir reverso" trigger, not two.
+function renderBadgeManualDuplexFlipPanel() {
+  return `
+    <div class="zc300-flip-panel" style="display:flex;align-items:center;gap:0.9rem;padding:0.85rem 1rem;margin:0 0 0.9rem;border:1px solid var(--accent, #ff7824);background:var(--accent-light, #fff3ea);border-radius:10px">
+      <div style="flex-shrink:0;color:var(--accent, #ff7824)">${siIcon('rotate-ccw', 30)}</div>
+      <div style="flex:1;min-width:0;font-size:0.82rem;line-height:1.45;color:var(--text)">
+        <b>Anverso impreso.</b> Voltea la tarjeta de arriba hacia abajo (borde superior pasa a ser el inferior) y vuelve a insertarla en la impresora Zebra ZC300 para imprimir el reverso. Confirma solo cuando la tarjeta esté lista.
+      </div>
+      <button class="btn btn-ghost btn-sm" style="flex-shrink:0" onclick="printBadgeManualCancel()">Cancelar giro</button>
+    </div>
+  `
+}
+
+// ---- Calibration test card (section 5) — same @page/font-face/popup
+// pipeline as real badges (_badgeOpenPopupAndPrint, _badgeFontFaceCss,
+// badgeGeometryMm()), no employee data anywhere. ----
+function _badgeCalibrationSheetHtml(sideLabel, calibration) {
+  const { w: W, h: H } = badgeGeometryMm()
+  return `
+      <div class="badge-sheet cal-sheet">
+        <svg class="cal-svg" width="${W}mm" height="${H}mm" viewBox="0 0 ${W} ${H}">
+          <rect x="0.4" y="0.4" width="${W - 0.8}" height="${H - 0.8}" fill="none" stroke="#000" stroke-width="0.25"/>
+          <line x1="${W / 2}" y1="0" x2="${W / 2}" y2="${H}" stroke="#000" stroke-width="0.12"/>
+          <line x1="0" y1="${H / 2}" x2="${W}" y2="${H / 2}" stroke="#000" stroke-width="0.12"/>
+          <path d="M2,2 L2,8 M2,2 L8,2" fill="none" stroke="#000" stroke-width="0.4"/>
+          <path d="M${W - 2},2 L${W - 2},8 M${W - 2},2 L${W - 8},2" fill="none" stroke="#000" stroke-width="0.4"/>
+          <path d="M2,${H - 2} L2,${H - 8} M2,${H - 2} L8,${H - 2}" fill="none" stroke="#000" stroke-width="0.4"/>
+          <path d="M${W - 2},${H - 2} L${W - 2},${H - 8} M${W - 2},${H - 2} L${W - 8},${H - 2}" fill="none" stroke="#000" stroke-width="0.4"/>
+          <line x1="${W / 2 - 5}" y1="${H - 10}" x2="${W / 2 + 5}" y2="${H - 10}" stroke="#000" stroke-width="0.3"/>
+          <line x1="${W / 2 - 5}" y1="${H - 11}" x2="${W / 2 - 5}" y2="${H - 9}" stroke="#000" stroke-width="0.3"/>
+          <line x1="${W / 2 + 5}" y1="${H - 11}" x2="${W / 2 + 5}" y2="${H - 9}" stroke="#000" stroke-width="0.3"/>
+          <text x="${W / 2}" y="${H - 12}" font-size="2.2" text-anchor="middle" font-family="'Aeonik Mono', monospace">10mm</text>
+        </svg>
+        <div class="cal-top-label">ARRIBA &#9650;</div>
+        <div class="cal-side-label">${esc(sideLabel)}</div>
+        <div class="cal-offset-label">X ${calibration.x}mm &middot; Y ${calibration.y}mm</div>
+      </div>`
+}
+
+function _badgeBuildCalibrationHtml(calibration) {
+  const { w: BADGE_W, h: BADGE_H } = badgeGeometryMm()
+  const fontUrl = (file) => new URL(file, location.href).href
+  const calX = calibration?.x || 0
+  const calY = calibration?.y || 0
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>SIERRA - Tarjeta de calibración ZC300</title>
+      <style>
+        ${_badgeFontFaceCss(fontUrl)}
+        @page { size: ${BADGE_W}mm ${BADGE_H}mm; margin: 0; }
+        @media print {
+          body { margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .badge-sheet { box-shadow: none; margin: 0; page-break-after: always; transform: translate(${calX}mm, ${calY}mm); }
+          .badge-sheet:last-child { page-break-after: auto; }
+        }
+        body { margin: 10px; background: #f5f5f5; font-family: 'Aeonik', sans-serif; }
+        .badge-sheet.cal-sheet { width: ${BADGE_W}mm; height: ${BADGE_H}mm; background: #fff; position: relative; box-sizing: border-box; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .cal-svg { position: absolute; inset: 0; }
+        .cal-top-label { position: absolute; top: 3mm; left: 0; right: 0; text-align: center; font-family: 'Aeonik Mono', monospace; font-weight: 700; font-size: 8pt; letter-spacing: 0.05em; }
+        .cal-side-label { position: absolute; top: calc(50% - 5mm); left: 0; right: 0; text-align: center; font-family: 'Aeonik Mono', monospace; font-weight: 700; font-size: 11pt; }
+        .cal-offset-label { position: absolute; bottom: 3mm; left: 0; right: 0; text-align: center; font-family: 'Aeonik Mono', monospace; font-size: 6.5pt; color: #333; }
+      </style>
+    </head>
+    <body>${_badgeCalibrationSheetHtml('ANVERSO (F)', { x: calX, y: calY })}${_badgeCalibrationSheetHtml('REVERSO (R)', { x: calX, y: calY })}
+    </body>
+    </html>
+  `
+}
+
+// Section 11 note: the calibration card must also require appropriate
+// permission — it must never be a permission-free print path just because
+// it carries no personal data.
+async function printZc300CalibrationCard() {
+  if (!can('write', 'talento_humano')) {
+    toast('No tienes permiso para imprimir la tarjeta de calibración')
+    return
+  }
+  if (!isZc300SetupConfirmed()) {
+    _badge_ui.pendingZc300Action = 'calibration'
+    openZc300SetupAssistant()
+    return
+  }
+  closeSideDrawer()
+  const calibration = getZc300Calibration()
+  const html = _badgeBuildCalibrationHtml(calibration)
+  const result = await _badgeOpenPopupAndPrint(html, { waitForPhoto: false })
+  if (result.ok) toast('Tarjeta de calibración enviada a impresión — mide con regla/calibrador contra el tramo de 10mm impreso.')
 }
 
 function showDashboard() {
