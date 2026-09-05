@@ -16282,6 +16282,27 @@ function renderBadgeModule() {
   // consistent and an invalid/empty code is caught before print time.
   if (_badge_ui.view === 'issuance') { renderBadgeBackBarcodePreview(); initBadgePreviewWorkspace() }
 }
+// One physical CODE128 geometry for preview and print. The former `margin:
+// 110` was applied on all four sides by JsBarcode, so 220px of vertical
+// whitespace surrounded only 26px of bars. CSS then fitted that entire SVG
+// into the 10mm barcode slot, visually crushing the bars into a dotted line.
+// Quiet zones belong on the LEFT/RIGHT only; top/bottom stay at zero so the
+// bars occupy the full declared height. At the rendered size this produces a
+// comfortably scannable module width and a >=10-module quiet zone.
+const BADGE_BARCODE_OPTIONS = Object.freeze({
+  format: 'CODE128',
+  width: 1.5,
+  height: 44,
+  margin: 0,
+  marginLeft: 15,
+  marginRight: 15,
+  marginTop: 0,
+  marginBottom: 0,
+  displayValue: false,
+  background: '#ffffff',
+  lineColor: '#000000',
+})
+
 function renderBadgeBackBarcodePreview() {
   const issuance = _badge_ui.issuanceInProgress
   const emp = issuance && _badge.employees.find(e => e.id === issuance.employee_id)
@@ -16304,6 +16325,9 @@ function renderBadgeBackBarcodePreview() {
   try {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     holder.appendChild(svg)
+    // Historical sizing audit below is retained as context, but its old
+    // candidate values are superseded by BADGE_BARCODE_OPTIONS above; the
+    // production call immediately below is the current source of truth.
     // Item 7 re-sizing (this pass): CODE128 module width/quiet-zone re-
     // derived from the symbology's own engineering floor, not a reference
     // screenshot (unavailable this pass — see report). For a 6-digit
@@ -16373,7 +16397,7 @@ function renderBadgeBackBarcodePreview() {
     // always width×10), matching CODE128's own ~10x-module quiet-zone
     // requirement. Payload (emp.employee_code) is unchanged — only these
     // rendering parameters moved.
-    JsBarcode(svg, emp.employee_code, { format: 'CODE128', width: 11, height: 26, margin: 110, displayValue: false })
+    JsBarcode(svg, emp.employee_code, BADGE_BARCODE_OPTIONS)
     const valueEl = document.createElement('div')
     valueEl.className = 'badge-barcode-value'
     valueEl.textContent = emp.employee_code
@@ -23322,7 +23346,7 @@ async function _badgePrintPreflight(issuance, emp, btnId, idleLabel) {
   let barcodeMarkup = ''
   try {
     const probeSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    JsBarcode(probeSvg, emp.employee_code, { format: 'CODE128', width: 11, height: 26, margin: 110, displayValue: false, xmlDocument: document })
+    JsBarcode(probeSvg, emp.employee_code, { ...BADGE_BARCODE_OPTIONS, xmlDocument: document })
     probeSvg.removeAttribute('width')
     probeSvg.removeAttribute('height')
     barcodeMarkup = probeSvg.outerHTML + `<div class="badge-barcode-value">${esc(emp.employee_code)}</div>`
