@@ -6604,7 +6604,7 @@
       gap: 0.6mm;
       background: #fff;
       border-radius: 3mm;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+      box-shadow: none;
     }
     .badge-front-idline {
       /* Bug fix: 600 is not a real cut of Aeonik Mono (the family ships
@@ -6617,7 +6617,7 @@
       font-weight: 500;
       font-size: 7.5pt;
       letter-spacing: 0.02em;
-      color: #cd4f00;
+      color: var(--badge-plant-accent-dark, #44484a);
     }
     /* Name is the single dominant element on the card — bold Replica,
        centered. Item 2/8 rework: fitBadgeNameLines() (real canvas-measured,
@@ -6652,7 +6652,7 @@
       font-weight: 400;
       font-size: 7.6pt;
       line-height: 1.3;
-      color: #ff7824;
+      color: var(--badge-plant-accent, #6f7477);
       margin-top: 0.8mm;
       max-width: 100%;
       overflow-wrap: break-word;
@@ -6661,7 +6661,7 @@
       flex-shrink: 0;
       margin-top: 1.6mm;
       border-radius: 3mm;
-      background: #ff7824;
+      background: var(--badge-plant-accent, #6f7477);
       /* Item 6: reduced from 2mm/6.5mm toward the reference's shorter
          footer (exact target unverified — 11.png unavailable this pass);
          verified this still fits the canonical legal name on one line and
@@ -6798,8 +6798,8 @@
       aspect-ratio: 1;
       flex-shrink: 0;
       border-radius: 1.4mm;
-      background: #ffe3d2;
-      color: #ff7824;
+      background: var(--badge-plant-accent-light, #eceeef);
+      color: var(--badge-plant-accent, #6f7477);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -6812,7 +6812,7 @@
       text-transform: uppercase;
       font-size: 5.1pt;
       letter-spacing: 0.05em;
-      color: #ff7824;
+      color: var(--badge-plant-accent, #6f7477);
       margin-bottom: 0.3mm;
     }
     .badge-back-rowvalue {
@@ -22115,7 +22115,87 @@ function badgeSiteCompanyInfo(site) {
   return {
     legalName: company?.legal_name || company?.name || null,
     countryName: country?.name || null,
+    company,
+    palette: resolveBadgePlantPalette({ site, company }),
   }
+}
+
+// Production badge palette resolver. This is deliberately an identity
+// lookup, not fuzzy classification: authoritative codes win, followed by a
+// stable database id (none are currently fixed by the seed migrations), then
+// an approved exact full-name alias. Unknown organizations remain neutral and
+// are reported so master data can be corrected without silently recolouring a
+// physical credential.
+const BADGE_PLANT_PALETTES = Object.freeze({
+  NT: Object.freeze({ key: 'NT', accent: '#0067b1', accentDark: '#004a80', accentLight: '#dceeff', onAccent: '#ffffff' }),
+  DC: Object.freeze({ key: 'DC', accent: '#ff7824', accentDark: '#cd4f00', accentLight: '#ffe3d2', onAccent: '#ffffff' }),
+  PC: Object.freeze({ key: 'PC', accent: '#68368f', accentDark: '#482064', accentLight: '#eee3f5', onAccent: '#ffffff' }),
+  HSM_NS: Object.freeze({ key: 'HSM_NS', accent: '#008577', accentDark: '#005e54', accentLight: '#d9f1ed', onAccent: '#ffffff' }),
+  VISITA: Object.freeze({ key: 'VISITA', accent: '#55555a', accentDark: '#303034', accentLight: '#e8e8ea', onAccent: '#ffffff' }),
+  NEUTRAL: Object.freeze({ key: 'NEUTRAL', accent: '#6f7477', accentDark: '#44484a', accentLight: '#eceeef', onAccent: '#ffffff' }),
+})
+
+function normalizeBadgeOrgIdentity(value) {
+  return String(value ?? '')
+    .normalize('NFKC')
+    .replace(/[\u2018\u2019\u201a\u201b\u2032\u00b4`]/g, "'")
+    .replace(/[\u2010-\u2015\u2212]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLocaleUpperCase('es')
+}
+
+const BADGE_PALETTE_BY_INTERNAL_CODE = Object.freeze({
+  NT: 'NT', DC: 'DC', PC: 'PC', HSM: 'HSM_NS', NS: 'HSM_NS', VISITA: 'VISITA',
+})
+
+// Populate only with real immutable UUIDs once production IDs are known.
+// Seed migrations use gen_random_uuid(), so this repository has no stable
+// company/site UUID that can honestly be encoded today.
+const BADGE_PALETTE_BY_STABLE_ID = Object.freeze({})
+
+const BADGE_PALETTE_EXACT_ALIASES = Object.freeze({
+  // NT — verified runtime spelling in update28.sql.
+  [normalizeBadgeOrgIdentity('Northern Textiles')]: 'NT',
+  // DC — business-owner-approved exact aliases.
+  [normalizeBadgeOrgIdentity('Hilos y Algodón')]: 'DC',
+  [normalizeBadgeOrgIdentity('Amtex')]: 'DC',
+  [normalizeBadgeOrgIdentity('Pride Yarn')]: 'DC',
+  [normalizeBadgeOrgIdentity('Dominican Republic Yarn Suppliers')]: 'DC',
+  // Explicit non-DC aliases. No generic "Pride" rule exists.
+  [normalizeBadgeOrgIdentity('Pride Chemicals')]: 'PC',
+  [normalizeBadgeOrgIdentity('HSM')]: 'HSM_NS',
+  [normalizeBadgeOrgIdentity('Honduras Spinning Mills')]: 'HSM_NS',
+  [normalizeBadgeOrgIdentity('Northern Spinning')]: 'HSM_NS',
+  [normalizeBadgeOrgIdentity('VISITA')]: 'VISITA',
+})
+
+const _badgeUnknownPaletteWarnings = new Set()
+function resolveBadgePlantPalette({ site = null, company = null, warn = true } = {}) {
+  const codeCandidates = [site?.internal_code, company?.code]
+  for (const rawCode of codeCandidates) {
+    const code = normalizeBadgeOrgIdentity(rawCode)
+    if (BADGE_PALETTE_BY_INTERNAL_CODE[code]) return BADGE_PLANT_PALETTES[BADGE_PALETTE_BY_INTERNAL_CODE[code]]
+  }
+  for (const rawId of [site?.id, company?.id]) {
+    const id = String(rawId || '').trim().toLowerCase()
+    if (BADGE_PALETTE_BY_STABLE_ID[id]) return BADGE_PLANT_PALETTES[BADGE_PALETTE_BY_STABLE_ID[id]]
+  }
+  for (const rawName of [company?.name, company?.legal_name, site?.name]) {
+    const name = normalizeBadgeOrgIdentity(rawName)
+    if (BADGE_PALETTE_EXACT_ALIASES[name]) return BADGE_PLANT_PALETTES[BADGE_PALETTE_EXACT_ALIASES[name]]
+  }
+  const identity = [site?.internal_code, company?.code, company?.name, company?.legal_name, site?.name].filter(Boolean).join(' | ') || '(sin organización)'
+  if (warn && !_badgeUnknownPaletteWarnings.has(identity)) {
+    _badgeUnknownPaletteWarnings.add(identity)
+    console.warn(`[Badge palette] Organización desconocida; se usa NEUTRAL: ${identity}`)
+  }
+  return BADGE_PLANT_PALETTES.NEUTRAL
+}
+
+function badgePaletteStyle(palette) {
+  const p = palette || BADGE_PLANT_PALETTES.NEUTRAL
+  return `--badge-plant-accent:${p.accent};--badge-plant-accent-dark:${p.accentDark};--badge-plant-accent-light:${p.accentLight};--badge-plant-on-accent:${p.onAccent}`
 }
 
 function renderBadgeFront(emp, site, printedNameSelection) {
@@ -22134,6 +22214,7 @@ function renderBadgeFront(emp, site, printedNameSelection) {
   // budget) that decides all three, and printBadge()'s mirror below calls
   // the exact same function so preview and print cannot diverge.
   const composite = computeBadgeFrontComposite(emp, site, printedNameSelection)
+  const palette = badgeSiteCompanyInfo(site).palette
   const { nameFit: fit, positionFit, companyFit, companyName } = composite
   const nameLinesHtml = [...fit.firstLines, ...fit.lastLines]
     .map(line => `<div class="badge-front-nameline" style="font-size:${fit.fontSize}pt; line-height:${fit.lineHeight}">${esc(line).toUpperCase()}</div>`)
@@ -22167,7 +22248,7 @@ function renderBadgeFront(emp, site, printedNameSelection) {
   // surfaces speak the same visual language for the same real condition.
   const photoHtml = badgePhotoMarkup(emp, { trackStatus: true })
   return `
-    <div class="badge-front" id="badge-front-preview">
+    <div class="badge-front" id="badge-front-preview" data-palette="${palette.key}" style="${badgePaletteStyle(palette)}">
       <div class="badge-front-header">
         <div class="badge-logo-mark">${LBL_LOGO_SVG}</div>
       </div>
@@ -22702,9 +22783,9 @@ function renderBadgeBack(emp, site) {
   // emergency contact) all render the literal '—' fallback, never a
   // fabricated default — same contract pass 5 established, now extended
   // to the two new rows.
-  const { countryName } = badgeSiteCompanyInfo(site)
+  const { countryName, palette } = badgeSiteCompanyInfo(site)
   return `
-    <div class="badge-back" id="badge-back-preview">
+    <div class="badge-back" id="badge-back-preview" data-palette="${palette.key}" style="${badgePaletteStyle(palette)}">
       <div class="badge-back-header">
         <div class="badge-logo-mark">${LBL_LOGO_SVG}</div>
         <div class="badge-gk-tile" role="img" aria-label="GK">${GK_LOGO_SVG}</div>
@@ -22958,9 +23039,9 @@ function _badgePrintPieces(emp, site, printedNameSelection) {
   return { composite, nameLinesHtml, positionLinesHtml, companyLinesHtml, countryName, nameFontSize: fit.fontSize }
 }
 
-function _badgeFrontSheetHtml(emp, pieces) {
+function _badgeFrontSheetHtml(emp, pieces, palette) {
   return `
-      <div class="badge-sheet">
+      <div class="badge-sheet" data-palette="${palette.key}" style="${badgePaletteStyle(palette)}">
         <div class="badge-front-header"><div class="badge-logo-mark">${LBL_LOGO_SVG}</div></div>
         <div class="badge-front-card" style="--badge-photo-side: ${pieces.composite.photoSquareSideMm}mm">
           <div class="badge-front-photoblock">
@@ -22976,9 +23057,9 @@ function _badgeFrontSheetHtml(emp, pieces) {
       </div>`
 }
 
-function _badgeBackSheetHtml(emp, pieces, barcodeMarkup) {
+function _badgeBackSheetHtml(emp, pieces, barcodeMarkup, palette) {
   return `
-      <div class="badge-sheet is-back">
+      <div class="badge-sheet is-back" data-palette="${palette.key}" style="${badgePaletteStyle(palette)}">
         <div class="badge-back-header">
           <div class="badge-logo-mark">${LBL_LOGO_SVG}</div>
           <div class="badge-gk-tile" role="img" aria-label="GK">${GK_LOGO_SVG}</div>
@@ -23008,9 +23089,10 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
   const fontUrl = (file) => new URL(file, location.href).href
   const calX = calibration?.x || 0
   const calY = calibration?.y || 0
+  const palette = badgeSiteCompanyInfo(site).palette
   const sheets = []
-  if (sides.includes('front')) sheets.push(_badgeFrontSheetHtml(emp, pieces))
-  if (sides.includes('back')) sheets.push(_badgeBackSheetHtml(emp, pieces, barcodeMarkup))
+  if (sides.includes('front')) sheets.push(_badgeFrontSheetHtml(emp, pieces, palette))
+  if (sides.includes('back')) sheets.push(_badgeBackSheetHtml(emp, pieces, barcodeMarkup, palette))
   return `
     <!DOCTYPE html>
     <html>
@@ -23039,15 +23121,15 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
         .badge-front-photoblock { width: var(--badge-photo-side, calc(${BADGE_W}mm - 6mm)); height: var(--badge-photo-side, calc(${BADGE_W}mm - 6mm)); flex: 0 0 auto; align-self: center; background: #eee; overflow: hidden; border-radius: 3mm; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center; position: relative; }
         .badge-employee-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
         .badge-photo-placeholder { width: 100%; height: 100%; background: #eee; display: flex; align-items: center; justify-content: center; color: #94a19f; font-size: 7.5pt; text-align: center; line-height: 1.3; }
-        .badge-front-panel { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 2mm 3mm 2.2mm; gap: 0.6mm; background: #fff; border-radius: 3mm; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-        .badge-front-idline { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; font-size: 7.5pt; letter-spacing: 0.02em; color: #cd4f00; }
+        .badge-front-panel { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 2mm 3mm 2.2mm; gap: 0.6mm; background: #fff; border-radius: 3mm; box-shadow: none; }
+        .badge-front-idline { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; font-size: 7.5pt; letter-spacing: 0.02em; color: var(--badge-plant-accent-dark, #44484a); }
         .badge-name-line { font-family: 'Replica', sans-serif; font-weight: 700; font-size: ${pieces.nameFontSize}pt; text-transform: uppercase; line-height: 1.05; letter-spacing: 0.01em; color: #0b0b0b; max-width: 46mm; white-space: normal; overflow-wrap: normal; word-break: normal; }
         .badge-front-photo-broken { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #b3261e; font-size: 6.6pt; text-align: center; line-height: 1.3; }
         .badge-front-photoblock.is-broken .badge-front-photo-broken { display: flex; }
         .badge-front-photoblock.is-broken .badge-employee-photo { display: none; }
         .badge-front-photoblock.is-broken .badge-photo-crop { display: none; }
-        .badge-position-line { font-family: 'Aeonik', sans-serif; font-weight: 400; font-size: 7.6pt; line-height: 1.3; color: #ff7824; margin-top: 0.8mm; max-width: 46mm; overflow-wrap: break-word; }
-        .badge-front-companybar { flex-shrink: 0; margin-top: 1.6mm; border-radius: 3mm; background: #ff7824; padding: 1.4mm 3mm; display: flex; align-items: center; justify-content: center; text-align: center; min-height: 5mm; box-sizing: border-box; }
+        .badge-position-line { font-family: 'Aeonik', sans-serif; font-weight: 400; font-size: 7.6pt; line-height: 1.3; color: var(--badge-plant-accent, #6f7477); margin-top: 0.8mm; max-width: 46mm; overflow-wrap: break-word; }
+        .badge-front-companybar { flex-shrink: 0; margin-top: 1.6mm; border-radius: 3mm; background: var(--badge-plant-accent, #6f7477); padding: 1.4mm 3mm; display: flex; align-items: center; justify-content: center; text-align: center; min-height: 5mm; box-sizing: border-box; }
         .badge-company-line { font-family: 'Aeonik', sans-serif; font-weight: 700; text-transform: uppercase; font-size: 6.6pt; letter-spacing: 0.03em; line-height: 1.3; color: #fff; overflow-wrap: break-word; }
         /* BACK */
         .badge-back-header { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; padding-bottom: 1.6mm; }
@@ -23057,10 +23139,10 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
         .badge-back-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; background: #fff; border: 1px solid #eee; border-radius: 3mm; padding: 0 3mm; }
         .badge-back-row2 { display: flex; align-items: center; gap: 1.8mm; padding: 1mm 0; border-bottom: 0.25mm solid #eee; }
         .badge-back-row2:last-child { border-bottom: none; }
-        .badge-back-icontile { width: 13%; max-width: 6.2mm; aspect-ratio: 1; flex-shrink: 0; border-radius: 1.4mm; background: #ffe3d2; color: #ff7824; display: flex; align-items: center; justify-content: center; }
+        .badge-back-icontile { width: 13%; max-width: 6.2mm; aspect-ratio: 1; flex-shrink: 0; border-radius: 1.4mm; background: var(--badge-plant-accent-light, #eceeef); color: var(--badge-plant-accent, #6f7477); display: flex; align-items: center; justify-content: center; }
         .badge-back-icontile svg { display: block; }
         .badge-back-rowtext { min-width: 0; flex: 1; }
-        .badge-back-rowlabel { font-family: 'Aeonik', sans-serif; font-weight: 700; text-transform: uppercase; font-size: 5.1pt; letter-spacing: 0.05em; color: #ff7824; margin-bottom: 0.3mm; }
+        .badge-back-rowlabel { font-family: 'Aeonik', sans-serif; font-weight: 700; text-transform: uppercase; font-size: 5.1pt; letter-spacing: 0.05em; color: var(--badge-plant-accent, #6f7477); margin-bottom: 0.3mm; }
         .badge-back-rowvalue { font-family: 'Aeonik', sans-serif; font-weight: 500; font-size: 6.4pt; line-height: 1.22; color: #111; overflow-wrap: break-word; }
         .badge-back-idvalue { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; }
         .badge-back-panel.is-dense .badge-back-row2 { padding: 0.6mm 0; }
