@@ -4929,9 +4929,12 @@
       transition: width 0.18s var(--ease-out), min-width 0.18s var(--ease-out), opacity 0.12s;
     }
     .emp-md-layout.list-collapsed .emp-md-list { width: 0; min-width: 0; opacity: 0; pointer-events: none; overflow: hidden; border-right: none; }
-    .list-scope-text { font-size: var(--meta-size); color: var(--text-muted); padding: 0.55rem 0.6rem 0; flex-shrink: 0; }
-    .emp-md-toolbar { display: flex; align-items: center; gap: 4px; padding: 0.6rem 0.6rem 0.4rem; flex-shrink: 0; }
-    .emp-md-search { flex: 1; min-width: 0; }
+    .list-scope-text { font-size: var(--meta-size); color: var(--text-muted); padding: 0.7rem 0.75rem 0; flex-shrink: 0; }
+    .emp-md-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 0.65rem 0.7rem 0.55rem; flex-shrink: 0; }
+    .emp-md-search { flex: 1 0 100%; min-width: 0; }
+    .emp-md-toolbar-menu { position: relative; flex: 1 1 0; min-width: 0; }
+    .emp-md-toolbar-action { flex: 1 1 0; justify-content: center; white-space: nowrap; }
+    .emp-md-toolbar-menu .emp-md-toolbar-action { width: 100%; }
     .emp-md-list-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 0.3rem 0.5rem; }
     .emp-md-row {
       display: flex; align-items: center; gap: 10px; padding: 0.5rem 0.55rem; border-radius: 8px; cursor: pointer;
@@ -5445,15 +5448,12 @@
 
     /* Hero — the employee's identity card (§2/§4), structurally distinct
        from the scrolling content below: fixed at the top, never scrolls. */
-    .emp-profile-hero { position: relative; flex-shrink: 0; padding: 1.6rem 1.85rem 1.15rem; overflow: hidden; }
-    .emp-profile-hero-row { position: relative; display: flex; align-items: flex-start; gap: 1.3rem; }
+    .emp-profile-hero { position: relative; flex-shrink: 0; padding: 1.25rem 1.5rem 1rem; overflow: hidden; }
+    .emp-profile-hero-row { position: relative; display: flex; align-items: center; gap: 1rem; }
     .emp-profile-photo-wrap { position: relative; flex-shrink: 0; cursor: pointer; display: block; }
-    /* Real photo keeps outsized visual presence (product decision — bigger
-       than the documented 88px avatar size is fine when there's a real
-       uploaded photo to show). */
     .emp-profile-photo-wrap img {
-      width: 120px; height: 120px; border-radius: 50%; object-fit: cover; display: block;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 6px 18px rgba(0,0,0,0.1);
+      width: 88px; height: 88px; border-radius: 50%; object-fit: cover; display: block;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.08);
     }
     /* No-photo fallback renders at the documented 88px "profile" avatar
        size — same circular/initials/solid-fill contract as the canonical
@@ -5469,12 +5469,15 @@
       color: var(--text-secondary); box-shadow: 0 1px 3px rgba(0,0,0,0.15);
     }
     .emp-profile-photo-wrap:hover .emp-profile-photo-cam, .emp-profile-photo-wrap:focus-within .emp-profile-photo-cam { color: var(--accent); border-color: var(--accent); }
-    .emp-profile-main { flex: 1; min-width: 0; padding-top: 2px; padding-right: 2.4rem; }
-    .emp-profile-name { font-size: 1.65rem; font-weight: 750; letter-spacing: -0.015em; color: var(--text-primary); line-height: 1.2; overflow-wrap: break-word; margin: 0 0 3px; }
-    .emp-profile-position { font-size: 1.05rem; font-weight: 500; color: var(--text-secondary); line-height: 1.3; margin: 0 0 6px; }
-    .emp-profile-org-line { font-size: 0.88rem; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .emp-profile-meta-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 0.65rem; font-size: 0.78rem; color: var(--text-3); }
-    .emp-profile-actions { display: flex; align-items: flex-start; gap: 6px; flex-shrink: 0; margin-top: 1.5rem; }
+    .emp-profile-main { flex: 1; min-width: 0; padding-right: 1rem; }
+    .emp-profile-name { font-size: 1.45rem; font-weight: 750; letter-spacing: -0.018em; color: var(--text-primary); line-height: 1.18; overflow-wrap: break-word; margin: 0 0 3px; }
+    .emp-profile-position { font-size: 0.95rem; font-weight: 500; color: var(--text-secondary); line-height: 1.3; margin: 0 0 7px; }
+    .emp-profile-org-line { font-size: 0.82rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .emp-profile-org-item { display: inline-flex; align-items: center; gap: 5px; }
+    .emp-profile-org-item.is-missing { color: var(--warning-text); }
+    .emp-profile-org-sep { color: var(--border-strong); }
+    .emp-profile-meta-line { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 0.55rem; font-size: 0.78rem; color: var(--text-3); }
+    .emp-profile-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin: 0; }
     .emp-profile-close { position: absolute; top: 1.1rem; right: 1.1rem; z-index: 1; }
     /* .emp-status-dot retired — status now renders as an .lc-pill instance
        (see empStatusPillHtml), the canonical LifecyclePill used everywhere
@@ -17216,11 +17219,11 @@ function renderEmployeesToolbar() {
         <input type="text" class="control-input" placeholder="Buscar colaboradores…" value="${escAttr(_badge_ui.employeeSearch)}" oninput="sfSearchOnInput(this);filterEmployees(this.value)" />
         <button type="button" class="sf-search-clear" onclick="sfSearchClear(this)" tabindex="-1" aria-label="Limpiar búsqueda"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
       </div>
-      <div style="position:relative">
+      <div class="emp-md-toolbar-menu">
         <button class="btn btn-secondary btn-sm cat-tb-btn ${filterCount ? 'has-value' : ''}" onclick="catTogglePop(event,'emp-pop-filter')">Filtrar${filterCount ? `<span class="cat-tb-btn-dot"></span>` : ''}</button>
         <div class="ws-pop cat-pop" id="emp-pop-filter">${empFilterPopHtml()}</div>
       </div>
-      <div style="position:relative">
+      <div class="emp-md-toolbar-menu">
         <button class="btn btn-secondary btn-sm cat-tb-btn" onclick="catTogglePop(event,'emp-pop-sort')">Ordenar: ${esc(sortLabel)}</button>
         <div class="ws-pop cat-pop" id="emp-pop-sort">
           <div class="cat-pop-title">Ordenar por</div>
@@ -17314,11 +17317,11 @@ function empMdListToolbarHtml() {
         <button type="button" class="sf-search-clear" onclick="sfSearchClear(this)" tabindex="-1" aria-label="Limpiar búsqueda"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
       </div>
       <div style="position:relative">
-        <button class="icon-btn icon-btn-quiet icon-btn-sm ${filterCount ? 'has-value' : ''}" onclick="catTogglePop(event,'emp-pop-filter')" title="Filtrar" aria-label="Filtrar">${siIcon('filter', 14)}${filterCount ? `<span class="cat-tb-btn-dot"></span>` : ''}</button>
+        <button class="btn btn-ghost btn-sm emp-md-toolbar-action ${filterCount ? 'has-value' : ''}" onclick="catTogglePop(event,'emp-pop-filter')" aria-label="Filtrar colaboradores">${siIcon('filter', 14)} Filtrar${filterCount ? ` (${filterCount})` : ''}</button>
         <div class="ws-pop cat-pop" id="emp-pop-filter">${empFilterPopHtml()}</div>
       </div>
       <div style="position:relative">
-        <button class="icon-btn icon-btn-quiet icon-btn-sm" onclick="catTogglePop(event,'emp-pop-sort')" title="Ordenar: ${escAttr(sortLabel)}" aria-label="Ordenar">${siIcon('sort', 14)}</button>
+        <button class="btn btn-ghost btn-sm emp-md-toolbar-action" onclick="catTogglePop(event,'emp-pop-sort')" title="Orden actual: ${escAttr(sortLabel)}">${siIcon('sort', 14)} Ordenar</button>
         <div class="ws-pop cat-pop" id="emp-pop-sort">
           <div class="cat-pop-title">Ordenar por</div>
           ${Object.entries(EMP_SORTS).map(([k, s]) => `<button type="button" class="cat-pop-row" onclick="empSetSort('${k}')">${_badge_ui.sort === k ? '✓ ' : ''}${esc(s.label)}</button>`).join('')}
@@ -17326,7 +17329,7 @@ function empMdListToolbarHtml() {
           ${Object.entries(EMP_GROUPS).map(([k, g]) => `<button type="button" class="cat-pop-row" onclick="empSetGroupBy('${k}')">${_badge_ui.groupBy === k ? '✓ ' : ''}${esc(g.label)}</button>`).join('')}
         </div>
       </div>
-      ${can('write', 'talento_humano') ? `<button class="icon-btn icon-btn-quiet icon-btn-sm" onclick="showImportWorkflow()" title="${hasEmployees ? 'Actualizar base' : 'Importar colaboradores'}" aria-label="Importar colaboradores">${siIcon('upload', 14)}</button>` : ''}
+      ${can('write', 'talento_humano') ? `<button class="btn btn-ghost btn-sm emp-md-toolbar-action" onclick="showImportWorkflow()">${siIcon('upload', 14)} ${hasEmployees ? 'Actualizar' : 'Importar'}</button>` : ''}
     </div>
   `
 }
@@ -18860,6 +18863,11 @@ function empProfileHeroHtml(emp, canWrite) {
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
   const reportCount = orgDirectReportIds(emp.id).length
   const b = empLatestBadge(emp)
+  const badgeActionLabel = !b || ['cancelled', 'expired'].includes(b.status)
+    ? 'Crear gafete'
+    : ['draft', 'ready_to_print'].includes(b.status)
+      ? 'Continuar gafete'
+      : 'Reimprimir gafete'
   return `
     <div class="emp-profile-hero">
       <div class="emp-profile-hero-row">
@@ -18873,8 +18881,10 @@ function empProfileHeroHtml(emp, canWrite) {
           <div class="emp-profile-name">${esc(emp.first_name)} ${esc(emp.last_name)}${esc(emp.preferred_name ? ` "${emp.preferred_name}"` : '')}</div>
           ${emp.position ? `<div class="emp-profile-position">${esc(emp.position)}</div>` : ''}
           <div class="emp-profile-org-line">
-            ${emp.company ? `<span class="category-tag">${siIcon('building', 14)}${esc(companyShortCode(emp.company))} · ${esc(emp.company)}</span>` : `<span class="category-tag" style="color:var(--warning-text);background:var(--warning-bg);border-color:var(--warning-border)">${siIcon('alert-triangle', 14)}Empresa sin asignar</span>`}
-            ${emp.department ? `<span>${esc(emp.department)}</span>` : ''}
+            ${emp.company
+              ? `<span class="emp-profile-org-item">${siIcon('building', 13)}${esc(emp.company)}</span>`
+              : `<span class="emp-profile-org-item is-missing">${siIcon('alert-triangle', 13)}Empresa sin asignar</span>`}
+            ${emp.department ? `<span class="emp-profile-org-sep" aria-hidden="true">·</span><span>${esc(emp.department)}</span>` : ''}
           </div>
           <div class="emp-profile-meta-line">
             ${emp.employee_code ? `<span class="emp-detail-hdr-code"><code>${esc(emp.employee_code)}</code><button type="button" class="emp-detail-hdr-code-copy" onclick="event.stopPropagation();copyFieldValue(this,'${jsStr(emp.employee_code)}','Código de colaborador')" title="Copiar código" aria-label="Copiar código de colaborador">${FIELD_COPY_ICON}</button></span>` : ''}
@@ -18885,10 +18895,10 @@ function empProfileHeroHtml(emp, canWrite) {
           </div>
         </div>
         <div class="emp-profile-actions">
-          ${canWrite ? `<button class="btn btn-primary btn-sm" onclick="empStartEdit()">Editar perfil</button>` : ''}
+          ${canWrite ? `<button class="btn btn-primary btn-sm" onclick="startBadgeIssuance('${emp.id}')">${siIcon('credit-card', 14)} ${badgeActionLabel}</button>` : ''}
+          ${canWrite ? `<button class="btn btn-secondary btn-sm" onclick="empStartEdit()">Editar perfil</button>` : ''}
           ${overflowMenuHtml([
             ...(canWrite ? [
-              { label: (!b ? '+ Crear gafete' : (b.status === 'printed' || b.status === 'delivered') ? 'Reimprimir gafete' : 'Ver gafete'), onClick: `startBadgeIssuance('${emp.id}')` },
               { label: 'Descargar ficha', onClick: `copyEmployeeSummary('${emp.id}')` },
               { label: 'Cambiar fotografía', onClick: `document.querySelector('#employee-detail-drawer .emp-profile-photo-wrap input[type=file]')?.click()` },
               ...(emp.photo_url ? [{ label: 'Quitar fotografía', onClick: `removeEmployeePhoto('${emp.id}')` }] : []),
@@ -18915,9 +18925,9 @@ function renderEmployeeDetailDrawer(emp) {
     <div class="emp-profile-tabs">
       <div class="record-tabs" role="tablist" aria-label="Secciones del colaborador">
         <button class="record-tab ${_badge_ui.detailTab === 'overview' ? 'active' : ''}" role="tab" id="emp-tab-overview" aria-selected="${_badge_ui.detailTab === 'overview'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'overview' ? '0' : '-1'}" onclick="switchEmpDetailTab('overview')" onkeydown="empTabKeydown(event,'overview')">Resumen</button>
+        <button class="record-tab ${_badge_ui.detailTab === 'badge' ? 'active' : ''}" role="tab" id="emp-tab-badge" aria-selected="${_badge_ui.detailTab === 'badge'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'badge' ? '0' : '-1'}" onclick="switchEmpDetailTab('badge')" onkeydown="empTabKeydown(event,'badge')">Gafete</button>
         <button class="record-tab ${_badge_ui.detailTab === 'employment' ? 'active' : ''}" role="tab" id="emp-tab-employment" aria-selected="${_badge_ui.detailTab === 'employment'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'employment' ? '0' : '-1'}" onclick="switchEmpDetailTab('employment')" onkeydown="empTabKeydown(event,'employment')">Empleo</button>
         ${canSeePersonal ? `<button class="record-tab ${_badge_ui.detailTab === 'personal' ? 'active' : ''}" role="tab" id="emp-tab-personal" aria-selected="${_badge_ui.detailTab === 'personal'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'personal' ? '0' : '-1'}" onclick="switchEmpDetailTab('personal')" onkeydown="empTabKeydown(event,'personal')">Personal</button>` : ''}
-        <button class="record-tab ${_badge_ui.detailTab === 'badge' ? 'active' : ''}" role="tab" id="emp-tab-badge" aria-selected="${_badge_ui.detailTab === 'badge'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'badge' ? '0' : '-1'}" onclick="switchEmpDetailTab('badge')" onkeydown="empTabKeydown(event,'badge')">Gafete</button>
         <button class="record-tab ${_badge_ui.detailTab === 'activity' ? 'active' : ''}" role="tab" id="emp-tab-activity" aria-selected="${_badge_ui.detailTab === 'activity'}" aria-controls="emp-tab-panel" tabindex="${_badge_ui.detailTab === 'activity' ? '0' : '-1'}" onclick="switchEmpDetailTab('activity')" onkeydown="empTabKeydown(event,'activity')">Actividad</button>
       </div>
     </div>
@@ -18954,7 +18964,7 @@ function empRowKeydown(e, rowEl) {
   selectEmployee(next.dataset.empId)
 }
 function empTabKeydown(e, current) {
-  const order = ['overview', 'employment', 'personal', 'badge', 'activity'].filter(k => document.getElementById('emp-tab-' + k))
+  const order = ['overview', 'badge', 'employment', 'personal', 'activity'].filter(k => document.getElementById('emp-tab-' + k))
   const idx = order.indexOf(current)
   let next = null
   if (e.key === 'ArrowRight') next = order[(idx + 1) % order.length]
@@ -19171,17 +19181,14 @@ function empContactCardHtml(emp) {
   return dataBlockHtml('Contacto', `<div class="data-fields-2">${rows.join('')}</div>`)
 }
 
-// Surfaces real, actionable gaps only — missing company, hierarchy data-
-// quality issues, an unfinished badge — never an empty KPI card manufactured
-// to fill the grid (§7): returns '' outright when there's nothing to flag.
+// Surfaces real, actionable profile gaps only — missing company and
+// hierarchy data-quality issues. Badge work deliberately stays out of this
+// warning list because its state/action is permanently visible in the hero.
 function empImportantContextCardHtml(emp) {
   const items = []
   if (!emp.company) items.push({ icon: 'alert-triangle', text: 'Empresa sin asignar', action: canEditEmpField() ? { label: 'Asignar', onClick: 'empStartEdit()' } : null })
   const issues = (!_badge.reportingRelationshipsUnavailable && typeof orgIssuesFor === 'function') ? orgIssuesFor(emp.id) : []
   issues.forEach(i => items.push({ icon: 'alert-triangle', text: ORG_ISSUE_DEFS[i.type]?.label || i.type }))
-  const b = empLatestBadge(emp)
-  if (!b) items.push({ icon: 'credit-card', text: 'Sin gafete emitido', action: canEditEmpField() ? { label: '+ Crear gafete', onClick: `startBadgeIssuance('${emp.id}')` } : null })
-  else if (b.status !== 'printed' && b.status !== 'delivered' && b.status !== 'cancelled') items.push({ icon: 'clock', text: 'Emisión de gafete pendiente de completar', action: canEditEmpField() ? { label: 'Continuar', onClick: `startBadgeIssuance('${emp.id}')` } : null })
   if (!items.length) return ''
   const body = items.map(it => `<div class="emp-context-item">
     <span style="color:var(--warning-text);flex-shrink:0;display:flex">${siIcon(it.icon, 14)}</span>
