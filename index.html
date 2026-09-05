@@ -6858,11 +6858,18 @@
     .badge-back-legal {
       flex-shrink: 0;
       font-family: 'Aeonik', sans-serif;
+      font-weight: 400;
       font-size: 5.4pt;
       line-height: 1.32;
       color: #55555a;
       text-align: left;
       padding: 1.2mm 0 0.8mm;
+    }
+    .badge-barcode-error {
+      font-family: 'Aeonik', sans-serif;
+      font-weight: 400;
+      font-size: 0.65rem;
+      color: #b3261e;
     }
     .badge-back-barcodeblock {
       flex-shrink: 0;
@@ -16310,7 +16317,7 @@ function renderBadgeBackBarcodePreview() {
   if (!holder) return
   holder.innerHTML = ''
   if (!emp || !emp.employee_code) {
-    holder.innerHTML = '<div style="font-size:0.65rem;color:#b3261e">Sin código — no se puede generar el código de barras</div>'
+    holder.innerHTML = '<div class="badge-barcode-error">Sin código — no se puede generar el código de barras</div>'
     return
   }
   // Distinguish the two real failure modes rather than lumping them into
@@ -16319,7 +16326,7 @@ function renderBadgeBackBarcodePreview() {
   // value that JsBarcode itself rejects, and telling operators which one
   // they're looking at changes what they should do about it.
   if (typeof JsBarcode === 'undefined') {
-    holder.innerHTML = '<div style="font-size:0.65rem;color:#b3261e">Código de barras no disponible (librería no cargada)</div>'
+    holder.innerHTML = '<div class="badge-barcode-error">Código de barras no disponible (librería no cargada)</div>'
     return
   }
   try {
@@ -16403,7 +16410,7 @@ function renderBadgeBackBarcodePreview() {
     valueEl.textContent = emp.employee_code
     holder.appendChild(valueEl)
   } catch (e) {
-    holder.innerHTML = '<div style="font-size:0.65rem;color:#b3261e">Código de barras inválido para "' + esc(emp.employee_code) + '"</div>'
+    holder.innerHTML = '<div class="badge-barcode-error">Código de barras inválido para "' + esc(emp.employee_code) + '"</div>'
   }
 }
 
@@ -23182,7 +23189,8 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
         .badge-back-panel.is-dense .badge-back-icontile { max-width: 5.4mm }
         .badge-back-panel.is-dense .badge-back-rowlabel { font-size: 4.7pt; margin-bottom: 0.4mm; }
         .badge-back-panel.is-dense .badge-back-rowvalue { font-size: 5.7pt; line-height: 1.15; }
-        .badge-back-legal { flex-shrink: 0; font-family: 'Aeonik', sans-serif; font-size: 5.4pt; line-height: 1.32; color: #55555a; text-align: left; padding: 1.2mm 0 0.8mm; }
+        .badge-back-legal { flex-shrink: 0; font-family: 'Aeonik', sans-serif; font-weight: 400; font-size: 5.4pt; line-height: 1.32; color: #55555a; text-align: left; padding: 1.2mm 0 0.8mm; }
+        .badge-barcode-error { font-family: 'Aeonik', sans-serif; font-weight: 400; font-size: 0.65rem; color: #b3261e; }
         .badge-barcode { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding-top: 0.4mm; }
         .badge-barcode svg { height: 10mm; width: auto; max-width: 100%; }
         /* Section 8 (rich black vs pure black): the badge otherwise uses
