@@ -5911,8 +5911,11 @@
     .issuance-header-id { min-width: 0; }
 
     .issuance-title {
-      font-size: 1.1rem;
-      font-weight: 600;
+      font-family: 'Replica', 'Aeonik', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      line-height: 1.15;
     }
 
     .issuance-subtitle {
@@ -6016,23 +6019,44 @@
       min-width: 0;
     }
 
+    .issuance-panel-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 2px 10px;
+    }
+    .issuance-panel-heading strong {
+      font-size: 0.88rem;
+      font-weight: 650;
+      color: var(--text-primary);
+    }
+    .issuance-panel-heading span {
+      font-size: 0.76rem;
+      color: var(--text-3);
+      text-align: right;
+    }
+
     .badge-data-sections {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 0;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
     }
 
-    /* Compact groups, not oversized cards: three groups total (was four —
-       Organización and Código de barras merged into one "Datos del
-       gafete", since neither is evaluated by checkBadgeReadiness() as
-       anything beyond the code itself). Only Fotografía — the one
-       interactive control — keeps real visual weight. */
+    /* One continuous inspector instead of a stack of competing cards.
+       Sections are separated by hairlines; the single outer surface owns
+       the radius and border, matching the document-editor shell in §33–34. */
     .badge-data-section {
-      padding: 0.55rem 0.9rem;
-      background: var(--surface2);
-      border-radius: var(--r-md);
-      border: 1px solid var(--border);
+      padding: 0.9rem 1rem;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border);
     }
+    .badge-data-section:last-child { border-bottom: none; }
 
     .badge-data-section h3 {
       margin: 0 0 0.5rem 0;
@@ -6331,13 +6355,18 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      justify-content: center;
+      justify-content: space-between;
       flex-wrap: wrap;
       row-gap: 6px;
       padding: 12px;
       border-top: 1px solid var(--border);
       background: var(--surface);
       flex-shrink: 0;
+    }
+    .badge-preview-control-group { display: flex; align-items: center; gap: 8px; }
+    @media (max-width: 640px) {
+      .badge-preview-controls { align-items: stretch; }
+      .badge-preview-control-group { flex: 1 1 auto; justify-content: center; }
     }
     .badge-zoom-readout {
       min-width: 3.4em;
@@ -6348,7 +6377,6 @@
       font-variant-numeric: tabular-nums;
     }
     .badge-zoom-fit-btn { font-size: 0.72rem; padding: 0 10px; }
-    .badge-preview-controls-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
 
     /* Physical-scale/orientation caption — tells the operator exactly what
        physical object this preview represents (§ preview must reveal real
@@ -20885,8 +20913,8 @@ function renderBadgeIssuanceView() {
         </div>
         <div class="issuance-header-actions">
           ${renderBadgeReadinessCompact(emp, r, st)}
-          <button class="btn btn-secondary" onclick="closeBadgeIssuance()">Cancelar</button>
-          <button class="btn btn-secondary" onclick="openZc300PrintMenu('${emp.id}')" title="Opciones de impresión Zebra ZC300" aria-label="Opciones de impresión Zebra ZC300">${siIcon('settings', 16)}</button>
+          <button class="btn btn-ghost" onclick="closeBadgeIssuance()">Cancelar</button>
+          <button class="btn btn-secondary" onclick="openZc300PrintMenu('${emp.id}')" title="Opciones de impresión Zebra ZC300">${siIcon('settings', 15)} Impresora</button>
           ${issuance.manualDuplex?.frontPrintedAt ? `
           <button id="badge-print-reverse-btn" class="btn btn-primary" onclick="printBadgeManualReverseConfirmed()" ${issuance.printing ? 'disabled' : ''}>
             ${issuance.printing ? 'Imprimiendo…' : 'Ya volteé la tarjeta — imprimir reverso'}
@@ -20909,6 +20937,10 @@ function renderBadgeIssuanceView() {
       <div class="issuance-content${issuance.mobilePane === 'preview' ? ' mobile-preview' : ''}" id="issuance-content">
         <!-- Left: Employee Data -->
         <div class="issuance-data-panel">
+          <div class="issuance-panel-heading">
+            <strong>Contenido del gafete</strong>
+            <span>Vista previa en tiempo real</span>
+          </div>
           ${renderBadgeDataPanel(emp, issuance)}
         </div>
 
@@ -21254,12 +21286,15 @@ function renderBadgePreview(emp) {
       <div class="badge-scale-caption">Tarjeta CR80 · ${badgeGeometryMm().w} × ${badgeGeometryMm().h} mm · vertical · la vista en pantalla no representa el tamaño físico</div>
 
       <div class="badge-preview-controls">
-        <button class="icon-btn" onclick="zoomBadgePreview(-0.1)" aria-label="Alejar, ${zoomPct}% actual" ${zoom <= 0.5 ? 'disabled' : ''}><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
-        <span class="badge-zoom-readout" id="badge-zoom-readout" aria-live="polite">${zoomMode === 'fit' ? 'Ajustar' : `${zoomPct}%`}</span>
-        <button class="icon-btn" onclick="zoomBadgePreview(0.1)" aria-label="Acercar, ${zoomPct}% actual" ${zoom >= 2 ? 'disabled' : ''}><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 6.5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
-        <button type="button" class="btn btn-ghost btn-sm badge-zoom-fit-btn" onclick="zoomBadgePreview('fit')" aria-label="Restablecer a tamaño ajustado" ${zoomMode === 'fit' ? 'disabled' : ''}>Ajustar</button>
-        <span class="badge-preview-controls-sep" aria-hidden="true"></span>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="toggleBadgeCompare()" aria-pressed="${comparing}">${siIcon(comparing ? 'columns' : 'copy', 13)} ${comparing ? 'Vista única' : 'Comparar ambos lados'}</button>
+        <div class="badge-preview-control-group" aria-label="Controles de zoom">
+          <button class="icon-btn" onclick="zoomBadgePreview(-0.1)" aria-label="Alejar, ${zoomPct}% actual" ${zoom <= 0.5 ? 'disabled' : ''}><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+          <span class="badge-zoom-readout" id="badge-zoom-readout" aria-live="polite">${zoomMode === 'fit' ? 'Ajustado' : `${zoomPct}%`}</span>
+          <button class="icon-btn" onclick="zoomBadgePreview(0.1)" aria-label="Acercar, ${zoomPct}% actual" ${zoom >= 2 ? 'disabled' : ''}><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9 6.5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+          <button type="button" class="btn btn-ghost btn-sm badge-zoom-fit-btn" onclick="zoomBadgePreview('fit')" aria-label="Restablecer a tamaño ajustado" ${zoomMode === 'fit' ? 'disabled' : ''}>Ajustar</button>
+        </div>
+        <div class="badge-preview-control-group">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="toggleBadgeCompare()" aria-pressed="${comparing}">${siIcon(comparing ? 'columns' : 'copy', 13)} ${comparing ? 'Vista única' : 'Comparar lados'}</button>
+        </div>
       </div>
     </div>
   `
