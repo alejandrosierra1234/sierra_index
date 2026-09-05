@@ -8739,6 +8739,10 @@ async function enterApp(user) {
     showDashboard(); return
   } else if (savedRoute === 'collections' && can('read', 'customer_service')) {
     showCollectionsHub(); return
+  } else if (savedRoute && savedRoute.startsWith('badge:')) {
+    const view = savedRoute.slice(6)
+    const title = badgeViewTitle(view)
+    if (title) { await showBadgeTab(view, title); return }
   } else if (savedRoute && savedRoute.startsWith('module:')) {
     const key = savedRoute.slice(7)
     if (key === 'samples') { showSamplesHome(); return }
@@ -9436,7 +9440,8 @@ async function applyRoute(h) {
   const mDiv = (h || '').match(/^#\/division\/([a-z]+)/)
   const mCol = (h || '').match(/^#\/collection\/([\w-]+)/)
   const mEmp = (h || '').match(/^#\/employee\/([\w-]+)(?:\/([a-z]+))?/)
-  if (!mProd && !mDiv && !mCol && !mEmp) return false
+  const mBadge = (h || '').match(/^#\/badge\/([\w-]+)/)
+  if (!mProd && !mDiv && !mCol && !mEmp && !mBadge) return false
   _routeApplying = true
   try {
     if (mDiv) {
@@ -9450,6 +9455,7 @@ async function applyRoute(h) {
       return true
     }
     if (mEmp) return await openEmployeeRoute(mEmp[1], mEmp[2])
+    if (mBadge) return await openBadgeRoute(mBadge[1])
     return await openProductRoute(mProd[1])
   } finally { _routeApplying = false }
 }
@@ -9487,9 +9493,20 @@ async function openEmployeeRoute(empId, tab) {
     return true
   }
   empApplySelection(empId, tab)
-  setHash(`#/employee/${empId}`)
+  setHash(employeeRouteHash(empId, _badge_ui.detailTab))
   renderEmployeeDetailDrawer(emp)
   document.querySelector(`.emp-md-row[data-emp-id="${CSS.escape(empId)}"]`)?.classList.add('active')
+  return true
+}
+
+async function openBadgeRoute(empId) {
+  await showBadgeEmployees()
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp) {
+    toast('El colaborador del gafete no existe en la sede activa o no tienes acceso')
+    return true
+  }
+  startBadgeIssuance(empId)
   return true
 }
 
@@ -16025,6 +16042,14 @@ async function showBadgeTab(view, title) {
   _badge_ui.view = view
   await enterBadgeModule(view, title)
 }
+function badgeViewTitle(view) {
+  return ({
+    overview: 'Resumen', employees: 'Colaboradores', hires: 'Altas',
+    terminations: 'Bajas', vacations: 'Vacaciones', organization: 'Organización',
+    moments: 'Momentos', 'badge-queue': 'Cola de gafetes', history: 'Historial',
+    companies: 'Empresas', settings: 'Configuración',
+  })[view] || null
+}
 // Plain, named top-level functions — required by both call conventions
 // MODULES.tools.run feeds into: showModuleTools()'s onclick="${t.run}()"
 // (an inline function EXPRESSION there would be a SyntaxError at
@@ -16229,6 +16254,11 @@ function orgActiveRels() {
 // eating vertical space above it.
 function renderBadgeModule() {
   const pg = document.getElementById('pg')
+  // Preserve the exact Talento Humano workspace across a browser refresh.
+  // Record-specific screens additionally use a hash route below; ordinary
+  // list/queue/history pages use this session route instead of collapsing
+  // back to the module's tool menu.
+  if (_badge_ui.view) sessionStorage.setItem('sierra_route', 'badge:' + _badge_ui.view)
   const activeSite = _badge.sites.find(s => s.id === _badge.activeSite)
   // "Talento Humano" already names this module in the shell's context bar
   // (§13 — shell says WHERE, workspace says WHAT) — repeating it here
@@ -18673,6 +18703,10 @@ function filterEmployees(query) {
 // fuera de orden").
 let _empSelectionToken = 0
 
+function employeeRouteHash(empId, tab) {
+  return `#/employee/${empId}${tab && tab !== 'overview' ? '/' + tab : ''}`
+}
+
 // Universal entry point (§ "desde cualquier módulo") — navigates to
 // Colaboradores and selects empId. Used when arriving from OUTSIDE the
 // Colaboradores screen (org chart, vacaciones, gafetes, altas/bajas,
@@ -18687,7 +18721,7 @@ function viewEmployeeDetail(empId, tab) {
   if (!emp) return
   _badge_ui.view = 'employees'
   empApplySelection(empId, tab)
-  setHash(`#/employee/${empId}`)
+  setHash(employeeRouteHash(empId, _badge_ui.detailTab))
   renderBadgeModule()
 }
 // Shared selection-state logic between viewEmployeeDetail (cross-module,
@@ -18713,7 +18747,7 @@ function selectEmployee(empId, tab) {
   if (!emp) return
   if (_badge_ui.editingEmployee && !confirm('Tienes cambios sin guardar. ¿Cambiar de colaborador sin guardar?')) return
   empApplySelection(empId, tab)
-  replaceHash(`#/employee/${empId}`)
+  replaceHash(employeeRouteHash(empId, _badge_ui.detailTab))
   renderEmployeeDetailDrawer(emp)
   document.querySelectorAll('.emp-md-row.active').forEach(el => el.classList.remove('active'))
   const row = document.querySelector(`.emp-md-row[data-emp-id="${CSS.escape(empId)}"]`)
@@ -18910,7 +18944,10 @@ function switchEmpDetailTab(tab) {
   _badge_ui.detailTab = tab
   _badge_ui.editingEmployee = false
   const emp = _badge.employees.find(e => e.id === _badge_ui.selectedEmployeeId)
-  if (emp) renderEmployeeDetailDrawer(emp)
+  if (emp) {
+    replaceHash(employeeRouteHash(emp.id, tab))
+    renderEmployeeDetailDrawer(emp)
+  }
 }
 
 // Plain-text, copy-safe employee summary — no medical data, identification
@@ -19838,6 +19875,7 @@ function startBadgeIssuance(empId) {
     printedNameSegmentWarning: null,
   }
   _badge_ui.view = 'issuance'
+  setHash(`#/badge/${empId}`)
   renderBadgeModule()
 }
 
@@ -22904,6 +22942,7 @@ function closeBadgeIssuance() {
   if (_badgePreviewRO) { try { _badgePreviewRO.disconnect() } catch (e) {} ; _badgePreviewRO = null }
   _badge_ui.issuanceInProgress = null
   _badge_ui.view = 'employees'
+  clearHash()
   renderBadgeModule()
 }
 
