@@ -6097,6 +6097,44 @@
       gap: 4px;
     }
     .badge-profile-link:hover { text-decoration: underline; }
+    .badge-profile-link:disabled { opacity: 0.45; cursor: default; text-decoration: none; }
+
+    /* "Nombre en el gafete" printed-name selector (this pass). Chips are
+       NEUTRAL selected/unselected — SIERRA_DESIGN_SYSTEM.md §51: brand teal
+       stays reserved for "you are here"/primary-action wayfinding, never
+       for "this option is toggled on" — so selection uses a solid neutral
+       (dark) fill, the same signal a filled checkbox/segmented toggle
+       gives, rather than an accent color. Global :focus-visible (outline:
+       2px solid var(--accent)) already applies to these <button>s with no
+       override needed. */
+    .badge-name-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      height: 26px; padding: 0 10px; margin: 0 6px 6px 0;
+      border-radius: var(--r-sm); border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text-primary);
+      font-size: 0.76rem; font-weight: 500; cursor: pointer;
+      transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+    }
+    .badge-name-chip:hover { border-color: var(--text-3); }
+    .badge-name-chip.is-selected { background: var(--text-primary); color: var(--surface); border-color: var(--text-primary); }
+    .badge-name-chip.is-selected .si-icon { flex-shrink: 0; }
+    .badge-name-chip:disabled { opacity: 0.55; cursor: default; }
+    .bn-groups { display: flex; flex-direction: column; gap: 0.5rem; margin: 0.4rem 0 0.2rem; }
+    .bn-group-label { font-size: 0.68rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.25rem; }
+    .bn-chips { display: flex; flex-wrap: wrap; }
+    .bn-empty { color: var(--text-3); font-size: 0.78rem; }
+    .bn-warning {
+      display: flex; align-items: center; gap: 6px; font-size: 0.74rem; font-weight: 600;
+      color: var(--danger); margin: 0.3rem 0; line-height: 1.35;
+    }
+    .bn-mismatch {
+      display: flex; align-items: flex-start; gap: 6px; font-size: 0.74rem; line-height: 1.4;
+      color: var(--warning-text); background: var(--warning-bg); border: 1px solid var(--warning-border);
+      border-radius: var(--r-sm); padding: 0.4rem 0.55rem; margin: 0.3rem 0 0.5rem;
+    }
+    .bn-mismatch .si-icon { flex-shrink: 0; margin-top: 1px; }
+    .bn-result-row { padding-top: 0.4rem; margin-top: 0.4rem; border-top: 1px dashed var(--border); }
+    .bn-result-value { font-weight: 700; }
 
     /* Photograph — the most visually prominent preparation control (§
        redesign brief): photo + upload affordance sit side by side instead
@@ -6417,15 +6455,63 @@
          existing 2.2mm margin-top, just one step down for this tighter
          internal rhythm — not a new, unrelated spacing value). */
       gap: 1.6mm;
+      /* Photo-band bug fix: when the photoblock's flex-grown height is
+         capped below the full flexible budget (see its own max-height
+         comment below), any leftover vertical space in the card must not
+         collect as a visible gray band directly under the photo. Centering
+         the {photoblock, panel} pair as a group turns that leftover into
+         symmetric breathing room above/below instead — invisible against
+         the card's own white background. When the panel's real content
+         (long name/position) consumes most of the budget, as in the
+         existing worst-case fixtures, there is no leftover to distribute
+         and this has no visible effect — not a regression risk.
+         `safe center` (not plain `center`): computeBadgeFrontComposite()
+         is designed to never let the panel exceed its budget, so genuine
+         negative free space should not occur in practice, but plain
+         `center` responds to overflow by centering "unsafe" — spilling
+         the excess equally off BOTH the top and bottom of the card
+         (verified in real Chromium) rather than clamping to the start
+         edge the way the old (pre-fix) flex-start default did. `safe
+         center` keeps the centering above but automatically falls back to
+         flex-start alignment if content would ever overflow, matching the
+         old failure mode exactly instead of introducing a new, worse one.
+         Also degrades gracefully to plain flex-start start in any browser
+         that doesn't parse the `safe`/`unsafe` keywords, rather than
+         invalidating the whole declaration. */
+      justify-content: safe center;
     }
     .badge-front-photoblock {
-      /* Item 6: increased from 26mm and given its own shape (radius/
-         shadow) now that it's no longer flush-merged with the panel below
-         it — a dominant photo is the standard ID-badge convention the
-         user is asking for; exact target height unverified (no reference
-         file this pass). */
-      flex: 1 1 auto;
-      min-height: 30mm;
+      /* TRUE-SQUARE FIX (this pass): the box's size is now a single
+         explicit, non-negotiable width===height figure — never a
+         flex-grown rectangle left to `min-height`/`max-height` to
+         reconcile. The old `flex: 1 1 auto` + `max-height: calc(width)`
+         approach only CAPS the grown height at the card's width; it does
+         nothing to force square when the real leftover vertical budget
+         (card height minus the panel's actual rendered height) comes in
+         BELOW that cap, which is the common case — the user measured this
+         directly (~180×168px, a short one-line name with plenty of
+         leftover space still rendering visibly non-square). A max-height
+         is a ceiling, not an assignment.
+         `--badge-photo-side` is set inline on .badge-front-card by
+         computeBadgeFrontComposite()'s `photoSquareSideMm` — computed as
+         Math.min(the card's real content width, the real leftover height
+         after this employee's actual fitted name/position/idline) — the
+         SAME function and SAME number shared by the preview
+         (renderBadgeFront()), Compare mode (same function), the crop
+         editor's live preview (initBadgeCropEditor()), and the print
+         document (_badgeBuildPrintHtml() calls the identical function).
+         `flex: 0 0 auto` (not 1 1 auto) so nothing in this flex column can
+         grow or shrink this box away from that explicit size — its cross-
+         axis position is `align-self: center` below so a square smaller
+         than the card's width sits centered with the card's own white
+         background on either side, never a wider gray band. The
+         `calc(var(--badge-w-mm) - 6mm)` fallback (full-width square) only
+         ever applies if the inline var is somehow absent — every real
+         render path sets it. */
+      width: var(--badge-photo-side, calc(var(--badge-w-mm) - 6mm));
+      height: var(--badge-photo-side, calc(var(--badge-w-mm) - 6mm));
+      flex: 0 0 auto;
+      align-self: center;
       background: #eee;
       overflow: hidden;
       border-radius: 3mm;
@@ -6433,18 +6519,38 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      /* Positioning context for the custom-crop path's invisible 1px
+         load/error probe <img> (badgePhotoMarkup()) and the manual crop
+         editor's drag surface — never relied on for the visible crop div
+         itself, which is sized via plain width/height:100%. */
+      position: relative;
     }
-    /* Square photo, not the full (often taller-than-wide) photoblock
-       rectangle: width/height stay auto so aspect-ratio can pick the
-       largest 1:1 box that fits inside the block's current max-width/
-       max-height, and the parent's flex centering keeps it in the same
-       visual center the old full-rectangle photo occupied. */
+    /* Accessibility fix (Part 4 audit): only the manual crop editor ever
+       gives this element `tabindex="0"`/`role="application"`
+       (badgeCropWireDrag()) — the plain preview/print renders never do —
+       so this rule is a no-op everywhere except while genuinely focused
+       inside the editor. Verified this pass that focusing the element
+       with no rule here produced computed outline-width:0 and an
+       unrelated static box-shadow (the same one applied unconditionally),
+       i.e. no visible indicator at all for a keyboard user tabbing into
+       the drag surface — a real WCAG 2.4.7 gap, not a hypothetical one. */
+    .badge-front-photoblock:focus-visible {
+      outline: 2px solid #ff7824;
+      outline-offset: 2px;
+    }
+    /* The photoblock itself is now capped at max-height: its own width
+       (see its own max-height comment above), so it can never be taller
+       than wide — square at best, a shorter landscape rectangle at worst
+       (long name/position claiming most of the vertical budget), but
+       never portrait. A plain 100%/100% fill therefore always exactly
+       covers the box with no leftover margin, and — unlike the previous
+       width:auto/height:auto + aspect-ratio approach — never under-sizes
+       a source photo whose own natural resolution happens to be smaller
+       than the display box (auto sizing does not stretch a replaced
+       element past its intrinsic size; a fixed percentage does). */
     .badge-front-photoblock img {
-      width: auto;
-      height: auto;
-      max-width: 100%;
-      max-height: 100%;
-      aspect-ratio: 1 / 1;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
       display: block;
     }
@@ -6477,6 +6583,13 @@
       line-height: 1.3;
     }
     .badge-front-photoblock.is-broken .badge-front-photo-broken { display: flex; }
+    /* Custom-crop path (badgePhotoMarkup()): the visible element is a plain
+       background-image div, which — unlike the default path's <img> —
+       is never `.remove()`d by an onerror handler (only the invisible 1px
+       load/error probe img carries that handler), so it must be hidden
+       explicitly here or a broken photo would show its last-good/blank
+       background behind the "Foto no disponible" indicator. */
+    .badge-front-photoblock.is-broken .badge-photo-crop { display: none; }
     .badge-front-panel {
       flex-shrink: 0;
       display: flex;
@@ -15964,8 +16077,14 @@ async function loadBadgeData() {
   if (_badge.activeSite) {
     const empIds = _badge.employees.map(e => e.id)
     if (empIds.length) {
+      // snapshot added this pass (printed-name selector feature): it already
+      // existed on the table (see update19.sql) but nothing previously read
+      // it back — _badge.badges[].snapshot is now needed to restore a
+      // draft's saved printed-name selection when the workspace is reopened
+      // and to detect a reprint's historical-vs-current name mismatch (see
+      // startBadgeIssuance()).
       const { data: badges } = await sb.from('badge_issuances')
-        .select('id, employee_id, status, printed_at, printed_by, delivered_at, is_reprint, reprint_reason, created_at')
+        .select('id, employee_id, status, printed_at, printed_by, delivered_at, is_reprint, reprint_reason, created_at, snapshot')
         .in('employee_id', empIds)
         .order('created_at', { ascending: false })
       _badge.badges = badges || []
@@ -16334,8 +16453,8 @@ function empLatestBadge(emp) {
 
 /* ── Badge Readiness — can a badge be generated correctly? Distinct from
    Badge Status (lifecycle) and Employee Status (employment state). ── */
-function badgeReadinessState(emp) {
-  const r = checkBadgeReadiness(emp)
+function badgeReadinessState(emp, printedNameSelection) {
+  const r = checkBadgeReadiness(emp, printedNameSelection)
   if (!r.ready) return { state: 'blocked', label: READINESS_LABELS.blocked, ...r }
   if (r.warnings.length) return { state: 'missing', label: `Faltan ${r.warnings.length} campo${r.warnings.length > 1 ? 's' : ''}`, ...r }
   return { state: 'ready', label: READINESS_LABELS.ready, ...r }
@@ -16382,10 +16501,21 @@ async function uploadEmployeeRowPhoto(empId, inputEl) {
   const { error: upErr } = await sb.storage.from('product-images').upload(path, file, { contentType: file.type, upsert: false })
   if (upErr) { toast('Error al subir: ' + upErr.message); return }
   const { data } = sb.storage.from('product-images').getPublicUrl(path)
-  const { error } = await sb.from('employees').update({ photo_url: data.publicUrl }).eq('id', empId)
+  // Crop-staleness fix (Part 6 audit): photo_crop is a rect NORMALIZED
+  // (0-1) against the CURRENT photo's own pixel space, so it can never
+  // itself produce NaN/garbage against a differently-sized replacement
+  // photo (see badgePhotoIsValidCrop()'s bounds check — aspect-agnostic).
+  // But a rect chosen to frame the OLD photo's composition has no reason
+  // to still land on the new photo's face — silently keeping it would
+  // misframe the badge with no warning. Reset to '{}' (full-frame cover,
+  // this column's own documented default) on every new upload, from
+  // every upload entry point (this one and uploadEmployeeDetailPhoto's
+  // identical block) — the user can re-open "Ajustar encuadre" and pick a
+  // fresh crop if the new photo needs one.
+  const { error } = await sb.from('employees').update({ photo_url: data.publicUrl, photo_crop: {} }).eq('id', empId)
   if (error) { toast('Error al guardar: ' + error.message); return }
   const emp = _badge.employees.find(e => e.id === empId)
-  if (emp) { emp.photo_url = data.publicUrl; Audit.log('employee', empId, emp, 'photo_updated', 'Fotografía actualizada') }
+  if (emp) { emp.photo_url = data.publicUrl; emp.photo_crop = {}; Audit.log('employee', empId, emp, 'photo_updated', 'Fotografía actualizada') }
   toast('Fotografía actualizada')
   renderBadgeModule()
 }
@@ -18793,10 +18923,21 @@ async function uploadEmployeeDetailPhoto(empId, inputEl) {
   const { error: upErr } = await sb.storage.from('product-images').upload(path, file, { contentType: file.type, upsert: false })
   if (upErr) { toast('Error al subir: ' + upErr.message); return }
   const { data } = sb.storage.from('product-images').getPublicUrl(path)
-  const { error } = await sb.from('employees').update({ photo_url: data.publicUrl }).eq('id', empId)
+  // Crop-staleness fix (Part 6 audit): photo_crop is a rect NORMALIZED
+  // (0-1) against the CURRENT photo's own pixel space, so it can never
+  // itself produce NaN/garbage against a differently-sized replacement
+  // photo (see badgePhotoIsValidCrop()'s bounds check — aspect-agnostic).
+  // But a rect chosen to frame the OLD photo's composition has no reason
+  // to still land on the new photo's face — silently keeping it would
+  // misframe the badge with no warning. Reset to '{}' (full-frame cover,
+  // this column's own documented default) on every new upload, from
+  // every upload entry point (this one and uploadEmployeeDetailPhoto's
+  // identical block) — the user can re-open "Ajustar encuadre" and pick a
+  // fresh crop if the new photo needs one.
+  const { error } = await sb.from('employees').update({ photo_url: data.publicUrl, photo_crop: {} }).eq('id', empId)
   if (error) { toast('Error al guardar: ' + error.message); return }
   const emp = _badge.employees.find(e => e.id === empId)
-  if (emp) { emp.photo_url = data.publicUrl; Audit.log('employee', empId, emp, 'photo_updated', 'Fotografía actualizada') }
+  if (emp) { emp.photo_url = data.publicUrl; emp.photo_crop = {}; Audit.log('employee', empId, emp, 'photo_updated', 'Fotografía actualizada') }
   toast('Fotografía actualizada')
   if (emp) renderEmployeeDetailDrawer(emp)
   renderBadgeModule()
@@ -19604,6 +19745,44 @@ function startBadgeIssuance(empId) {
   // readiness has errors — see printBadge()'s own checkBadgeReadiness()
   // gate, which is unaffected by this.
 
+  // Printed-name selector (this pass) — resolve the starting selection
+  // BEFORE the workspace opens so the rail/preview render correctly on
+  // first paint, never a flash of "full name" that then jumps. Three
+  // cases, matching item 4/7/8 of the spec exactly:
+  //  - No badge at all yet, or the latest one is itself draft/
+  //    ready_to_print (continuing/resuming an open draft): restore the
+  //    saved selection against the employee's LIVE current name — a
+  //    draft is mutable, expected to track live employee data until it
+  //    is actually printed.
+  //  - The latest badge is already printed/delivered/reprinted (this is
+  //    a REPRINT): the selection defaults to the one actually stored on
+  //    THAT historical issuance, restored against the employee's live
+  //    current name (never silently reset to "full current name" just
+  //    because a preference was saved) — but only reused when it can be
+  //    losslessly reapplied (see _badgeRestorePrintedNameSelection()); a
+  //    visible mismatch banner is shown whenever the employee's live
+  //    name differs at all from what was actually printed last time, so
+  //    the operator consciously decides whether to keep it or update it.
+  //  - No badge exists, or a legacy issuance has no printed_name_selection
+  //    key at all (predates this feature): both resolve to null, i.e. the
+  //    full registered name selected — today's exact existing behavior,
+  //    zero silent shortening.
+  const latestForSelection = empLatestBadge(emp)
+  let printedNameSelection = null
+  let printedNameHistoricalMismatch = null
+  if (latestForSelection && ['printed', 'delivered', 'reprinted'].includes(latestForSelection.status)) {
+    const savedSel = latestForSelection.snapshot?.printed_name_selection || null
+    printedNameSelection = _badgeRestorePrintedNameSelection(savedSel, emp.first_name, emp.last_name)
+    const histFirst = latestForSelection.snapshot?.first_name
+    const histLast = latestForSelection.snapshot?.last_name
+    if (histFirst != null && histLast != null && (histFirst !== emp.first_name || histLast !== emp.last_name)) {
+      printedNameHistoricalMismatch = { firstName: histFirst, lastName: histLast }
+    }
+  } else if (latestForSelection && ['draft', 'ready_to_print'].includes(latestForSelection.status)) {
+    const savedSel = latestForSelection.snapshot?.printed_name_selection || null
+    printedNameSelection = _badgeRestorePrintedNameSelection(savedSel, emp.first_name, emp.last_name)
+  }
+
   // Navigate to the dedicated badge workspace (a page, not a modal) —
   // the global app shell (sidebar, topbar, site switcher) stays visible.
   // zoomMode 'fit' is the default — initBadgePreviewWorkspace() computes
@@ -19615,6 +19794,9 @@ function startBadgeIssuance(empId) {
     preview_side: 'front',
     zoomMode: 'fit',
     printing: false,
+    printedNameSelection,
+    printedNameHistoricalMismatch,
+    printedNameSegmentWarning: null,
   }
   _badge_ui.view = 'issuance'
   renderBadgeModule()
@@ -19759,7 +19941,7 @@ function setZc300Calibration(x, y) {
 }
 function resetZc300Calibration() { return setZc300Calibration(0, 0) }
 
-function checkBadgeReadiness(emp) {
+function checkBadgeReadiness(emp, printedNameSelection) {
   const issues = []
 
   // Required fields
@@ -19814,8 +19996,27 @@ function checkBadgeReadiness(emp) {
   // plain-missing-field errors above already cover the empty case).
   if (emp.first_name && emp.last_name) {
     const site = _badge.sites.find(s => s.id === _badge.activeSite)
-    const composite = computeBadgeFrontComposite(emp, site)
-    if (!composite.nameFit.fits) {
+    const composite = computeBadgeFrontComposite(emp, site, printedNameSelection)
+    // Printed-name selector hard blocker (this pass): an empty resolved
+    // given-name or surname group must block print with a specific,
+    // actionable message — the SAME way the barcode/font/photo blockers
+    // already do. Checked BEFORE nameFit below because
+    // fitBadgeNameLines('', '', ...) does NOT itself report fits:false for
+    // an empty name (an empty line count trivially satisfies every tier's
+    // width/height budget) — this is the one and only place that catches
+    // it. The interactive chip UI (toggleBadgeNameSegment()) already
+    // refuses to let an operator reach this state through the rail, but
+    // this is the defense-in-depth check every print/readiness caller
+    // goes through regardless of UI path (including a corrupted/legacy
+    // saved selection).
+    if (!composite.resolvedName.firstName || !composite.resolvedName.lastName) {
+      issues.push({
+        level: 'error', field: 'printed_name_selection',
+        message: !composite.resolvedName.firstName
+          ? 'Selecciona al menos un nombre para el gafete ("Nombre en el gafete")'
+          : 'Selecciona al menos un apellido para el gafete ("Nombre en el gafete")',
+      })
+    } else if (!composite.nameFit.fits) {
       // The name itself has no valid tier/line-break combination — a
       // problem independent of the position/footer, so it keeps its own,
       // more specific message rather than the composite one below.
@@ -20568,8 +20769,8 @@ function renderBadgeIssuanceView() {
   if (!emp) { _badge_ui.view = 'employees'; return renderEmployeesView() }
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
   const latest = empLatestBadge(emp)
-  const r = checkBadgeReadiness(emp)
-  const st = badgeReadinessState(emp)
+  const r = checkBadgeReadiness(emp, issuance.printedNameSelection)
+  const st = badgeReadinessState(emp, issuance.printedNameSelection)
   const disabled = !r.ready || !!issuance.printing
   // Title reflects the real state of this employee's badge lifecycle
   // rather than always saying "Crear" — an employee who already has a
@@ -20631,7 +20832,7 @@ function renderBadgeIssuanceView() {
       <div class="issuance-content${issuance.mobilePane === 'preview' ? ' mobile-preview' : ''}" id="issuance-content">
         <!-- Left: Employee Data -->
         <div class="issuance-data-panel">
-          ${renderBadgeDataPanel(emp)}
+          ${renderBadgeDataPanel(emp, issuance)}
         </div>
 
         <!-- Right: Badge Preview -->
@@ -20686,7 +20887,7 @@ function renderBadgeReadinessCompact(emp, r, st) {
   `
 }
 
-function renderBadgeDataPanel(emp) {
+function renderBadgeDataPanel(emp, issuance) {
   const canWrite = can('write', 'talento_humano')
   const latest = empLatestBadge(emp)
   const status = latest ? latest.status : 'no_badge'
@@ -20726,6 +20927,8 @@ function renderBadgeDataPanel(emp) {
         ${canWrite ? `<button type="button" class="badge-profile-link" onclick="viewEmployeeDetail('${emp.id}','overview')">${siIcon('pencil', 13)} Editar en el perfil</button>` : ''}
       </div>
 
+      ${renderBadgeNameSelectorSection(emp, issuance, canWrite)}
+
       <div class="badge-data-section badge-data-section-photo">
         <h3>${siIcon('camera', 13)}Fotografía <span class="bds-source">· foto de perfil compartida</span></h3>
         <div class="badge-photo-row">
@@ -20740,6 +20943,7 @@ function renderBadgeDataPanel(emp) {
             ${canWrite ? `
             <div class="badge-photo-actions">
               <label>${emp.photo_url ? 'Cambiar' : 'Agregar fotografía'}<input id="badge-photo-input" type="file" accept="${IMG_TYPES.join(',')}" aria-label="${emp.photo_url ? 'Cambiar fotografía' : 'Agregar fotografía'}" style="display:none" onchange="uploadBadgePhoto('${emp.id}', this)" /></label>
+              ${emp.photo_url ? `<button type="button" onclick="openBadgeCropEditor('${emp.id}')">Ajustar encuadre</button>` : ''}
               ${emp.photo_url ? `<button type="button" class="danger" onclick="removeBadgePhoto('${emp.id}')">Quitar</button>` : ''}
             </div>
             <div class="badge-photo-hint">JPG, PNG, WebP, GIF o AVIF · máx ${IMG_MAX_MB} MB</div>
@@ -20787,6 +20991,155 @@ function renderBadgeDataPanel(emp) {
   `
 }
 
+// "Nombre en el gafete" — the printed-name selector section (this pass).
+// Compact chip UI: given-name and surname tokens (see tokenizeBadgeNamePart()
+// for the compound-word heuristic) are each independently toggleable,
+// original order always preserved (no reordering — only on/off), never a
+// free-text field. Reads/writes ONLY issuance.printedNameSelection (an
+// in-memory {selectedFirstNameIndices, selectedLastNameIndices} the
+// workspace mirrors into the draft's badge_issuances.snapshot — see
+// toggleBadgeNameSegment()/_badgeSaveDraftPrintedNameSelection()) — never
+// emp.first_name/last_name.
+function renderBadgeNameSelectorSection(emp, issuance, canWrite) {
+  const registeredName = `${emp.first_name || ''} ${emp.last_name || ''}`.trim()
+  const resolved = resolveBadgePrintedName(emp.first_name, emp.last_name, issuance?.printedNameSelection)
+  const mismatch = issuance?.printedNameHistoricalMismatch
+  const mismatchHtml = mismatch
+    ? `<div class="bn-mismatch" role="status">${siIcon('alert-triangle', 13)}
+        <span>El nombre registrado del colaborador ha cambiado desde la última impresión de este gafete — entonces se imprimió como <b>"${esc(mismatch.firstName)} ${esc(mismatch.lastName)}"</b>. Revisa la selección antes de reimprimir.</span>
+      </div>`
+    : ''
+  const chip = (kind, idx, tok, selected) => `
+    <button type="button" class="badge-name-chip${selected ? ' is-selected' : ''}"
+      aria-pressed="${selected}" ${canWrite ? '' : 'disabled'}
+      onclick="toggleBadgeNameSegment('${kind}', ${idx})">
+      ${selected ? siIcon('check', 11) : ''}${esc(tok)}
+    </button>`
+  const fallbackNoteHtml = (resolved.firstNameFallback || resolved.lastNameFallback)
+    ? `<div class="bds-note">${siIcon('info', 12)} ${resolved.firstNameFallback && resolved.lastNameFallback
+        ? 'El nombre y el apellido no pudieron dividirse con confianza (posible nombre/apellido compuesto) — cada uno se trata como un solo segmento no separable.'
+        : resolved.firstNameFallback
+          ? 'El nombre no pudo dividirse con confianza (posible nombre compuesto) — se trata como un solo segmento no separable.'
+          : 'El apellido no pudo dividirse con confianza (posible apellido compuesto) — se trata como un solo segmento no separable.'}</div>`
+    : ''
+  return `
+    <div class="badge-data-section badge-name-selector-section">
+      <h3>${siIcon('file-edit', 13)}Nombre en el gafete <span class="bds-source">· solo para impresión, no cambia el registro</span></h3>
+      <div class="data-row">
+        <span class="data-label">Nombre registrado</span>
+        <span class="data-value">${esc(registeredName) || '—'}</span>
+      </div>
+      ${mismatchHtml}
+      <div class="bn-groups">
+        <div class="bn-group">
+          <div class="bn-group-label">Nombre(s)</div>
+          <div class="bn-chips" role="group" aria-label="Segmentos del nombre para el gafete">
+            ${resolved.firstNameTokens.map((tok, i) => chip('first', i, tok, resolved.selectedFirstNameIndices.includes(i))).join('') || '<span class="bn-empty">—</span>'}
+          </div>
+        </div>
+        <div class="bn-group">
+          <div class="bn-group-label">Apellido(s)</div>
+          <div class="bn-chips" role="group" aria-label="Segmentos del apellido para el gafete">
+            ${resolved.lastNameTokens.map((tok, i) => chip('last', i, tok, resolved.selectedLastNameIndices.includes(i))).join('') || '<span class="bn-empty">—</span>'}
+          </div>
+        </div>
+      </div>
+      ${issuance?.printedNameSegmentWarning ? `<div class="bn-warning" role="alert">${siIcon('alert-triangle', 12)} ${esc(issuance.printedNameSegmentWarning)}</div>` : ''}
+      ${fallbackNoteHtml}
+      <div class="data-row bn-result-row">
+        <span class="data-label">Se imprimirá</span>
+        <span class="data-value bn-result-value">${esc(resolved.resolvedName) || '<span style="color:var(--danger)">Selecciona al menos un segmento</span>'}</span>
+      </div>
+      ${canWrite ? `<button type="button" class="badge-profile-link" onclick="resetBadgeNameSelectionToFull()" ${resolved.isFullName ? 'disabled' : ''}>${siIcon('rotate-ccw', 13)} Usar nombre completo</button>` : ''}
+    </div>
+  `
+}
+
+// Toggles one given-name/surname segment on/off. Blocks (with a clear
+// inline reason, item 3 of spec) deselecting the LAST remaining selected
+// segment in either group — a badge must always print at least one given
+// name and one surname. Immediately re-renders (updates the live Front
+// preview and reruns checkBadgeReadiness()/computeBadgeFrontComposite(),
+// the exact same shared fitter print uses) and mirrors the new selection
+// into the draft's own badge_issuances row (never employees.first_name/
+// last_name — see _badgeSaveDraftPrintedNameSelection()'s own comment).
+function toggleBadgeNameSegment(kind, idx) {
+  const issuance = _badge_ui.issuanceInProgress
+  if (!issuance) return
+  const emp = _badge.employees.find(e => e.id === issuance.employee_id)
+  if (!emp) return
+  if (!can('write', 'talento_humano')) return
+  const firstTokens = tokenizeBadgeNamePart(emp.first_name).tokens
+  const lastTokens = tokenizeBadgeNamePart(emp.last_name).tokens
+  const current = resolveBadgePrintedName(emp.first_name, emp.last_name, issuance.printedNameSelection)
+  const key = kind === 'first' ? 'selectedFirstNameIndices' : 'selectedLastNameIndices'
+  const groupTokens = kind === 'first' ? firstTokens : lastTokens
+  const indices = current[key].slice()
+  const isOn = indices.includes(idx)
+  if (isOn && indices.length <= 1) {
+    issuance.printedNameSegmentWarning = kind === 'first'
+      ? 'Debe quedar seleccionado al menos un nombre — no puedes quitar el último.'
+      : 'Debe quedar seleccionado al menos un apellido — no puedes quitar el último.'
+    renderBadgeModule()
+    return
+  }
+  issuance.printedNameSegmentWarning = null
+  const nextIndices = (isOn ? indices.filter(i => i !== idx) : [...indices, idx]).sort((a, b) => a - b)
+  issuance.printedNameSelection = {
+    selectedFirstNameIndices: kind === 'first' ? nextIndices : current.selectedFirstNameIndices,
+    selectedLastNameIndices: kind === 'last' ? nextIndices : current.selectedLastNameIndices,
+  }
+  renderBadgeModule()
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  _badgeSaveDraftPrintedNameSelection(emp, site, issuance.printedNameSelection)
+}
+
+// "Usar nombre completo" — explicit, operator-initiated reset to every
+// segment selected (item 4: never applied silently/automatically).
+function resetBadgeNameSelectionToFull() {
+  const issuance = _badge_ui.issuanceInProgress
+  if (!issuance) return
+  const emp = _badge.employees.find(e => e.id === issuance.employee_id)
+  if (!emp) return
+  if (!can('write', 'talento_humano')) return
+  issuance.printedNameSelection = null
+  issuance.printedNameSegmentWarning = null
+  renderBadgeModule()
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  _badgeSaveDraftPrintedNameSelection(emp, site, null)
+}
+
+// Persists the operator's printed-name selection into the draft/
+// ready_to_print badge_issuances row (never a new table/column — reuses
+// the exact same find-and-update pattern _badgeCommitIssuancePrint() uses
+// at print time). If no draft row exists yet for this employee (the
+// operator hasn't printed/saved anything before and this is the first
+// thing they've touched in the workspace), one is created here with
+// status:'draft', mirroring the same snapshot shape bulkCreateBadges()
+// already writes, plus this new key. This NEVER writes to the `employees`
+// table — see this pass's report for the verification test.
+async function _badgeSaveDraftPrintedNameSelection(emp, site, selection) {
+  const persisted = _badgeBuildPersistedNameSelection(emp.first_name, emp.last_name, selection)
+  const existing = _badge.badges.find(b => b.employee_id === emp.id && ['draft', 'ready_to_print'].includes(b.status))
+  const snapshot = {
+    first_name: emp.first_name, last_name: emp.last_name, employee_code: emp.employee_code,
+    department: emp.department, position: emp.position, photo_url: emp.photo_url,
+    printed_name_selection: persisted,
+  }
+  if (existing) {
+    const { error } = await sb.from('badge_issuances').update({ snapshot }).eq('id', existing.id)
+    if (!error) existing.snapshot = snapshot
+    else toast('No se pudo guardar la selección de nombre: ' + error.message)
+    return { error }
+  }
+  const { data, error } = await sb.from('badge_issuances').insert({
+    employee_id: emp.id, status: 'draft', snapshot, company_color: site?.badge_color || null,
+  }).select().single()
+  if (!error && data) _badge.badges.unshift(data)
+  else if (error) toast('No se pudo guardar la selección de nombre: ' + error.message)
+  return { error }
+}
+
 // The preview's fit/compare behavior is computed at paint time (initial
 // values here) and then continuously corrected against the *preview
 // container's* real size by initBadgePreviewWorkspace()'s ResizeObserver
@@ -20814,7 +21167,7 @@ function renderBadgePreview(emp) {
 
       <div class="badge-preview-area" id="badge-preview-area" style="--badge-zoom:${zoom}">
         <div class="badge-card-slot ${issuance.preview_side === 'front' ? 'is-active' : ''}" id="badge-front-slot" role="tabpanel" aria-labelledby="badge-tab-front" data-side="front" style="zoom:${zoom}">
-          ${renderBadgeFront(emp, site)}
+          ${renderBadgeFront(emp, site, issuance.printedNameSelection)}
         </div>
         <div class="badge-card-slot ${issuance.preview_side === 'back' ? 'is-active' : ''}" id="badge-back-slot" role="tabpanel" aria-labelledby="badge-tab-back" data-side="back" style="zoom:${zoom}">
           ${renderBadgeBack(emp, site)}
@@ -21389,6 +21742,15 @@ function _measureBadgeFixedGeometry() {
     frontPaddingTopPx: parseFloat(cs(frontEl).paddingTop) || 0,
     frontPaddingBottomPx: parseFloat(cs(frontEl).paddingBottom) || 0,
     headerHeightPx: headerEl.getBoundingClientRect().height,
+    // Historical field, kept for now but NO LONGER used by
+    // computeBadgeFrontComposite()'s height budget (this pass): this
+    // measures the photoblock's un-overridden CSS fallback size (the full
+    // card content width, since no --badge-photo-side is set in this
+    // probe) — it was never a genuine "minimum", and using it as one is
+    // what made the old per-employee leftover formula this pass replaced
+    // so overly conservative. The photo's actual height budget is now the
+    // two fixed BADGE_PHOTO_SQUARE_MM/BADGE_PHOTO_SQUARE_COMPACT_MM
+    // constants declared above computeBadgeFrontComposite(), not this.
     photoblockMinHeightPx: photoEl.getBoundingClientRect().height,
     cardGapPx: gapOf(cardEl),
     panelPadTopPx: parseFloat(cs(panelEl).paddingTop) || 0,
@@ -21410,6 +21772,15 @@ function _measureBadgeFixedGeometry() {
     // constant that could still be wrong in some other way.
     panelContentWidthPx: panelEl.clientWidth - (parseFloat(cs(panelEl).paddingLeft) || 0) - (parseFloat(cs(panelEl).paddingRight) || 0),
     companybarContentWidthPx: companybarEl.clientWidth - (parseFloat(cs(companybarEl).paddingLeft) || 0) - (parseFloat(cs(companybarEl).paddingRight) || 0),
+    // The photoblock's own rendered width in the probe reflects the card's
+    // real content width (card has no horizontal padding; align-items
+    // defaults to `stretch` so an empty photoblock with no explicit width
+    // of its own fills the card exactly) — this is the authoritative
+    // "square side, uncapped by vertical budget" figure the TRUE-SQUARE fix
+    // below needs. Read as a plain rect width, not re-derived from
+    // --badge-w-mm by hand, so it stays correct if the card's own box
+    // model (padding, border) ever changes.
+    photoblockWidthPx: photoEl.getBoundingClientRect().width,
   }
   document.body.removeChild(probe)
   return geom
@@ -21421,6 +21792,225 @@ function _measureBadgeFixedGeometry() {
 // CSS behavior, not a bug this pass introduces or needs to fix.
 const BADGE_POSITION_MARGIN_TOP_MM = 0.8
 
+// ── Canonical photo-square constants (this pass, "no shrink by name
+// length" fix) ────────────────────────────────────────────────────────────
+// Root cause fixed here: the previous pass's TRUE-SQUARE fix (comment
+// above computeBadgeFrontComposite()) made the photoblock genuinely
+// width===height, but its side length was still Math.min(card content
+// width, PER-EMPLOYEE leftover vertical budget) — a continuous function of
+// how many lines this employee's specific name happened to wrap to. A
+// 1-line name (BADGE_NAME_LINE_TIERS' 15pt/1.05 row) left more vertical
+// budget than a 3-line name (12pt/1.02 row), so the photo measurably
+// shrank (~181px vs ~156px in the reporting user's test harness, ~14%)
+// purely because of name length — inconsistent-looking badges across the
+// company, which the user explicitly rejected as a design-system defect.
+// The fix: the photoblock's side is now one of exactly TWO fixed mm
+// constants (never a formula) — BADGE_PHOTO_SQUARE_MM for any name that
+// resolves to BADGE_NAME_LINE_TIERS' 1/2/3-line rows, and
+// BADGE_PHOTO_SQUARE_COMPACT_MM for the 4-line row only. Variability is
+// now absorbed entirely by the name's own already-existing tiered font
+// size/line-height (BADGE_NAME_LINE_TIERS), exactly as that system was
+// designed to do, never by the photo.
+//
+// Derivation (real, measured budget arithmetic — see this pass's report
+// for the full breakdown table produced by re-implementing this exact
+// arithmetic against a real _measureBadgeFixedGeometry() probe run
+// against this file's actual CSS/fonts in a headless Chromium):
+//   totalInnerHeightPx = card height (85.6mm) − .badge-front's own 3mm+3mm
+//     padding = 79.6mm.
+//   Fixed overhead (independent of any employee) subtracted from that:
+//     headerHeightPx (~7.96mm) + cardGapPx (1.6mm) +
+//     companybarMarginTopPx (1.6mm) + companybarHeightPx (its own
+//     1.4mm+1.4mm padding plus its real fitted line(s) — tested against
+//     both a 1-line and a realistic 2-line legal name, e.g. the canonical
+//     "PRIDE CHEMICALS DE MEXICO S.A. DE C.V." fixture, which wraps to 2
+//     lines at 6.6pt) + panelPadTopPx+panelPadBottomPx (4.2mm) +
+//     idlineHeightPx (~2.91mm) ≈ 24.1–27.1mm depending on company line
+//     count.
+//   What's left (≈52.5–55.5mm) is shared by {photo side + name lines +
+//     panel gaps + position block}. Tested every candidate photo side from
+//     48mm (full card content width) down against BADGE_NAME_LINE_TIERS'
+//     1/2/3-line rows PLUS a real position line (BADGE_POSITION_SIZE_TIERS_PT's
+//     preferred 7.6pt tier, 1 line — the common case) under the
+//     WORST-CASE 2-line company footer: full 48mm leaves negative budget
+//     even for a 1-line name plus its position (confirming the task's own
+//     hint that dominant/full-width does not survive contact with a real
+//     position line and a real 2-line company footer); the largest side
+//     that keeps ALL of BADGE_NAME_LINE_TIERS' 1/2/3-line rows working
+//     together with a 1-line position AT ITS OWN PREFERRED (largest, 7.6pt)
+//     tier, with real measured clearance (not a knife's-edge fit), is
+//     32mm — verified: 1-line name leaves ~12.5mm slack, 2-line ~6.6mm,
+//     3-line ~0.8mm before the position line would even need to step down
+//     to its own next tier (which only happens above ~32.5mm here) — see
+//     report for the exact per-line-count numbers.
+const BADGE_PHOTO_SQUARE_MM = 32
+// The 4-line row (BADGE_NAME_LINE_TIERS' smallest, 10.5pt/0.98) needs more
+// vertical room than the other three even at its own smaller font — at
+// BADGE_PHOTO_SQUARE_MM (32mm) a 4-line name leaves no room at all for even
+// a single-line position at its smallest (5.8pt) tier (real measured
+// deficit). Per the task's explicit instruction, this is NOT papered over
+// with a silent continuous shrink — it is one additional, discrete,
+// explicitly-named/documented smaller tier, reserved ONLY for a name that
+// genuinely needs all 4 lines (checked below via a width-only, pre-budget
+// pass of fitBadgeNameLines() — never inferred from anything else). 30mm
+// is the largest value that restores a 4-line name's 1-line position to
+// its own PREFERRED 7.6pt tier with real measured clearance (~press right
+// up against ~0.7mm at 30mm; 31mm only supports the position at its next
+// tier down, 6.8pt; 32mm fails the position entirely) — see report. A name
+// that still doesn't fit even at this compact allowance (the genuinely
+// "impossible" case — e.g. one unbreakable word wider than the panel, or a
+// combination so extreme even the smallest tier's line count/height
+// overflows) is NOT given a third, smaller tier: it hits nameFit.fits:false
+// exactly as before, which checkBadgeReadiness() below already treats as a
+// hard print-blocker — the existing mechanism, not a new one.
+const BADGE_PHOTO_SQUARE_COMPACT_MM = 30
+
+// ══════════════════════════════════════════════════════════════════════
+// BADGE-SPECIFIC PRINTED-NAME SELECTOR ("Nombre en el gafete") — lets an
+// operator choose which given-name(s)/surname(s) tokens of an employee's
+// real, untouched first_name/last_name actually print on the physical
+// badge (e.g. one given name + one surname out of a longer legal name).
+// This section NEVER writes employees.first_name/last_name — it only
+// changes what fitBadgeNameLines()/computeBadgeFrontComposite() are
+// handed as input, via the resolver below. Persisted inside the relevant
+// badge_issuances row's own `snapshot` jsonb (see
+// _badgeSaveDraftPrintedNameSelection()/_badgeCommitIssuancePrint()) —
+// no new table/column.
+//
+// A conservative, well-known set of Spanish/Latin-American surname
+// connector words. A word in this set is NEVER treated as its own
+// toggleable segment — it is always fused onto the word(s) immediately
+// AFTER it (the head it modifies), so "De León" or "de la Cruz" survive
+// as ONE atomic, non-splittable segment instead of exposing a meaningless
+// standalone "De"/"de"/"la" chip. Applied identically to given names for
+// the rarer but real "Juan de Dios" case (item 2 of this pass's spec).
+//
+// KNOWN LIMITS (documented deliberately, not silently assumed):
+//  - This is a heuristic word list, not a linguistic parser. A connector
+//    word that ALSO happens to be a legitimate standalone surname
+//    elsewhere cannot be disambiguated from the string alone — fusing it
+//    is the conservative failure mode (never destructively drops a real
+//    character/word), but it does mean a genuinely standalone "De" would
+//    still be fused with whatever follows it.
+//  - A connector word with nothing left to attach to (malformed/truncated
+//    data, or a connector as the very last word) is NOT guessed at — see
+//    tokenizeBadgeNamePart()'s fallback below, which then treats the
+//    ENTIRE input string as one atomic, non-splittable segment for that
+//    field rather than emitting a bare, meaningless connector chip.
+//  - Only well-known Spanish/Latin-American connector spellings are
+//    listed, per this pass's explicit scope — no attempt to also cover
+//    connector conventions from other languages/scripts.
+//  - A hyphenated or apostrophe'd single word (e.g. "Pérez-Gómez",
+//    "O'Brien") is never split — there is no whitespace inside it, so it
+//    is naturally already one segment, which is the correct outcome for
+//    a legal compound surname written without a space.
+const BADGE_NAME_CONNECTORS = new Set(['de', 'del', 'la', 'las', 'los', 'san', 'santa', 'van', 'von', 'mac', 'mc'])
+
+// Splits one name FIELD (first_name or last_name — the same function
+// serves both, per this pass's spec) into its toggleable segments,
+// fusing connector words onto the compound they introduce. Returns
+// `{ tokens, fallback }` — `fallback:true` means no confident split was
+// possible (a trailing/unattached connector) and `tokens` is then the
+// single-element array `[originalTrimmedString]`, i.e. the entire field
+// treated as one atomic segment — never a silently-wrong destructive
+// split.
+function tokenizeBadgeNamePart(value) {
+  const raw = String(value || '').trim()
+  const words = raw.split(/\s+/).filter(Boolean)
+  if (!words.length) return { tokens: [], fallback: false }
+  const tokens = []
+  let i = 0
+  while (i < words.length) {
+    const isConnector = BADGE_NAME_CONNECTORS.has(words[i].toLocaleLowerCase('es'))
+    if (isConnector) {
+      let j = i
+      while (j < words.length && BADGE_NAME_CONNECTORS.has(words[j].toLocaleLowerCase('es'))) j++
+      if (j >= words.length) {
+        // Connector(s) with nothing capitalized left to attach to — bail
+        // out to the whole-field fallback rather than emit a bare
+        // connector as its own segment.
+        return { tokens: [raw], fallback: true }
+      }
+      tokens.push(words.slice(i, j + 1).join(' '))
+      i = j + 1
+    } else {
+      tokens.push(words[i])
+      i++
+    }
+  }
+  return { tokens, fallback: false }
+}
+
+// Resolves the actual printed name from a name-source's real first/last
+// name strings PLUS an optional selection ({selectedFirstNameIndices,
+// selectedLastNameIndices}, indices into this SAME tokenization). No
+// selection (null/undefined), or one whose arrays are absent, resolves to
+// "every token selected" — i.e. today's exact existing behavior — the
+// only way this ever silently does anything is to keep the full name,
+// never to shorten it. Out-of-range indices (a stale selection recorded
+// against a name that has since gained/lost words) are dropped rather
+// than throwing.
+function resolveBadgePrintedName(firstNameRaw, lastNameRaw, selection) {
+  const firstTok = tokenizeBadgeNamePart(firstNameRaw)
+  const lastTok = tokenizeBadgeNamePart(lastNameRaw)
+  const selectedFirstNameIndices = selection && Array.isArray(selection.selectedFirstNameIndices)
+    ? selection.selectedFirstNameIndices.filter(idx => idx >= 0 && idx < firstTok.tokens.length)
+    : firstTok.tokens.map((_, idx) => idx)
+  const selectedLastNameIndices = selection && Array.isArray(selection.selectedLastNameIndices)
+    ? selection.selectedLastNameIndices.filter(idx => idx >= 0 && idx < lastTok.tokens.length)
+    : lastTok.tokens.map((_, idx) => idx)
+  const firstName = firstTok.tokens.filter((_, idx) => selectedFirstNameIndices.includes(idx)).join(' ')
+  const lastName = lastTok.tokens.filter((_, idx) => selectedLastNameIndices.includes(idx)).join(' ')
+  return {
+    firstNameTokens: firstTok.tokens, lastNameTokens: lastTok.tokens,
+    firstNameFallback: firstTok.fallback, lastNameFallback: lastTok.fallback,
+    selectedFirstNameIndices, selectedLastNameIndices,
+    firstName, lastName,
+    resolvedName: [firstName, lastName].filter(Boolean).join(' '),
+    isFullName: selectedFirstNameIndices.length === firstTok.tokens.length && selectedLastNameIndices.length === lastTok.tokens.length,
+  }
+}
+
+// Builds the exact, self-describing object persisted at
+// snapshot.printed_name_selection (see _badgeSaveDraftPrintedNameSelection()
+// / _badgeCommitIssuancePrint()) — includes the tokenization it was
+// recorded against (not just the raw indices) so a later reader
+// (_badgeRestorePrintedNameSelection()) can detect whether the name text
+// has since changed and safely refuse to reuse indices that no longer
+// mean the same thing, rather than guessing.
+function _badgeBuildPersistedNameSelection(firstNameRaw, lastNameRaw, selection) {
+  const r = resolveBadgePrintedName(firstNameRaw, lastNameRaw, selection)
+  return {
+    version: 1,
+    firstNameTokens: r.firstNameTokens, lastNameTokens: r.lastNameTokens,
+    selectedFirstNameIndices: r.selectedFirstNameIndices, selectedLastNameIndices: r.selectedLastNameIndices,
+    resolvedName: r.resolvedName,
+  }
+}
+
+// Restores a saved printed_name_selection (see the shape above) against a
+// CURRENT name-source string. Only reused verbatim when the current
+// tokenization is byte-for-byte identical to the tokenization the
+// selection was recorded against (`savedSelection.firstNameTokens`/
+// `lastNameTokens`) — if the underlying name text has changed since
+// (a live employee edit for a draft-resume, or an employee's real name
+// changing since a prior print for a reprint-resume), indices are never
+// remapped/guessed onto the new tokenization; this returns null so the
+// caller falls back to the safe "everything selected" default, exactly
+// like an employee with no saved preference at all (item 4/8 of spec).
+function _badgeRestorePrintedNameSelection(savedSelection, firstNameRaw, lastNameRaw) {
+  if (!savedSelection) return null
+  const liveFirst = tokenizeBadgeNamePart(firstNameRaw).tokens
+  const liveLast = tokenizeBadgeNamePart(lastNameRaw).tokens
+  const sameFirst = JSON.stringify(liveFirst) === JSON.stringify(savedSelection.firstNameTokens || [])
+  const sameLast = JSON.stringify(liveLast) === JSON.stringify(savedSelection.lastNameTokens || [])
+  if (!sameFirst || !sameLast) return null
+  return {
+    selectedFirstNameIndices: Array.isArray(savedSelection.selectedFirstNameIndices) ? savedSelection.selectedFirstNameIndices.slice() : liveFirst.map((_, i) => i),
+    selectedLastNameIndices: Array.isArray(savedSelection.selectedLastNameIndices) ? savedSelection.selectedLastNameIndices.slice() : liveLast.map((_, i) => i),
+  }
+}
+
 // THE authoritative composite fitter (item 1-8 of this pass). Computes, in
 // this exact order sharing one running vertical budget: (1) the footer's
 // own fit (independent of name/position), (2) the name's own fit
@@ -21430,9 +22020,17 @@ const BADGE_POSITION_MARGIN_TOP_MM = 0.8
 // identically (same function, same inputs, same main-document
 // measurements) by renderBadgeFront(), printBadge(), and
 // checkBadgeReadiness() so all three structurally cannot diverge.
-function computeBadgeFrontComposite(emp, site) {
+function computeBadgeFrontComposite(emp, site, printedNameSelection) {
   const geom = _measureBadgeFixedGeometry()
   const pxPerMm = 96 / 25.4
+  // Printed-name selector (this pass): resolves emp.first_name/last_name
+  // (never mutated) plus the operator's segment selection into the actual
+  // strings fed to fitBadgeNameLines() below — the SAME shared fitter, so
+  // a shortened selection reacts through tier/photo-square logic exactly
+  // like a shorter legal name always has. printedNameSelection omitted
+  // (every non-issuance caller — table rows, bulk readiness, etc.)
+  // resolves to the full registered name, i.e. zero behavior change there.
+  const resolvedName = resolveBadgePrintedName(emp.first_name, emp.last_name, printedNameSelection)
   const { legalName } = badgeSiteCompanyInfo(site)
   const companyName = legalName || emp.company || 'Empresa sin asignar'
   const companyFit = fitBadgeCompanyLines(companyName, geom.companybarContentWidthPx)
@@ -21440,43 +22038,65 @@ function computeBadgeFrontComposite(emp, site) {
     companyFit.lines.length * badgeLineHeightPx(companyFit.fontSize, 1.3)
 
   const totalInnerHeightPx = badgeGeometryMm().h * pxPerMm - geom.frontPaddingTopPx - geom.frontPaddingBottomPx
-  const availableForCardPx = totalInnerHeightPx - geom.headerHeightPx - geom.companybarMarginTopPx - companybarHeightPx
-  const availableForPanelPx = availableForCardPx - geom.photoblockMinHeightPx - geom.cardGapPx
+  // Budget for {photo + panel} — the card's own flex `gap` between them is
+  // committed here (independent of which photo tier is chosen below), same
+  // as it always was.
+  const availableForCardPx = totalInnerHeightPx - geom.headerHeightPx - geom.companybarMarginTopPx - companybarHeightPx - geom.cardGapPx
 
-  // Item 7 (this pass): fitBadgeNameLines() now needs a real vertical
-  // budget too (mirroring fitBadgePositionLines()'s existing contract), not
-  // just width — otherwise it has no way to reject a tier/line-count
-  // combination that fits horizontally but would leave the panel with no
-  // real room at all (an edge case only, since the position's own fit
-  // below already independently reports fits:false once its remainder
-  // goes to zero — this closes the same gap one level up, for the name's
-  // own tier choice). Approximated here (before nameLineCount is known) as
-  // the panel's full available height minus its own padding, the idline,
-  // and a single panelGap — generous rather than exact, since the fine-
-  // grained "is there ALSO room left for the position line" question is
-  // already answered precisely by positionFit below; this only needs to
-  // catch the genuinely-impossible case where the name alone can't fit.
-  const nameMaxHeightPx = Math.max(0, availableForPanelPx - geom.panelPadTopPx - geom.panelPadBottomPx - geom.idlineHeightPx - geom.panelGapPx)
-  const nameFit = fitBadgeNameLines(emp.first_name, emp.last_name, geom.panelContentWidthPx, nameMaxHeightPx)
-  const nameLineCount = nameFit.firstLines.length + nameFit.lastLines.length
-  const nameHeightPx = nameLineCount * badgeLineHeightPx(nameFit.fontSize, nameFit.lineHeight)
-  // Gaps already committed before the position line: the panel's own flex
-  // `gap` applies between the idline and each name line, and between
-  // consecutive name lines — (idline + nameLineCount) children means
-  // (idline + nameLineCount - 1) gaps.
-  const gapsBeforePositionPx = geom.panelGapPx * nameLineCount
-  const usedBeforePositionPx = geom.panelPadTopPx + geom.idlineHeightPx + gapsBeforePositionPx + nameHeightPx
-  const remainingAfterNamePx = availableForPanelPx - geom.panelPadBottomPx - usedBeforePositionPx
+  // Given a candidate FIXED photo side (px), compute the real remaining
+  // panel budget and the name/position fits against it. Shared by both the
+  // canonical and compact attempts below so they can never diverge in
+  // method, only in the one input (photoSidePx) that differs between them.
+  function fitAgainstPhotoSide(photoSidePx) {
+    const availableForPanelPx = availableForCardPx - photoSidePx
+    const nameMaxHeightPx = Math.max(0, availableForPanelPx - geom.panelPadTopPx - geom.panelPadBottomPx - geom.idlineHeightPx - geom.panelGapPx)
+    const nameFit = fitBadgeNameLines(resolvedName.firstName, resolvedName.lastName, geom.panelContentWidthPx, nameMaxHeightPx)
+    const nameLineCount = nameFit.firstLines.length + nameFit.lastLines.length
+    const nameHeightPx = nameLineCount * badgeLineHeightPx(nameFit.fontSize, nameFit.lineHeight)
+    // Gaps already committed before the position line: the panel's own
+    // flex `gap` applies between the idline and each name line, and
+    // between consecutive name lines — (idline + nameLineCount) children
+    // means (idline + nameLineCount - 1) gaps.
+    const gapsBeforePositionPx = geom.panelGapPx * nameLineCount
+    const usedBeforePositionPx = geom.panelPadTopPx + geom.idlineHeightPx + gapsBeforePositionPx + nameHeightPx
+    const remainingAfterNamePx = availableForPanelPx - geom.panelPadBottomPx - usedBeforePositionPx
 
-  let positionFit = null
-  if (emp.position) {
-    const gapBeforePositionPx = geom.panelGapPx + BADGE_POSITION_MARGIN_TOP_MM * pxPerMm
-    const budgetForPositionTextPx = remainingAfterNamePx - gapBeforePositionPx
-    positionFit = fitBadgePositionLines(emp.position, Math.max(0, budgetForPositionTextPx), geom.panelContentWidthPx)
+    let positionFit = null
+    if (emp.position) {
+      const gapBeforePositionPx = geom.panelGapPx + BADGE_POSITION_MARGIN_TOP_MM * pxPerMm
+      const budgetForPositionTextPx = remainingAfterNamePx - gapBeforePositionPx
+      positionFit = fitBadgePositionLines(emp.position, Math.max(0, budgetForPositionTextPx), geom.panelContentWidthPx)
+    }
+    return { nameFit, nameLineCount, positionFit }
   }
 
+  const nameTierCeilingLines = BADGE_NAME_LINE_TIERS[BADGE_NAME_LINE_TIERS.length - 1].lines // 4
+
+  // CANONICAL PHOTO SIZE (this pass's fix — see BADGE_PHOTO_SQUARE_MM's own
+  // comment for the full derivation): a fixed constant, never a per-
+  // employee leftover computation. Which of the two documented tiers
+  // applies is decided purely by how many lines the name's own text needs
+  // — a width-driven, pre-budget classification via fitBadgeNameLines()
+  // called with maxHeightPx:null (its existing "diagnostic"/unconstrained
+  // mode), mirroring exactly how BADGE_NAME_LINE_TIERS itself is defined
+  // (one row per actual resulting line count). This never varies
+  // continuously with name length — it only ever picks one of the two
+  // fixed constants below.
+  const widthOnlyNameFit = fitBadgeNameLines(resolvedName.firstName, resolvedName.lastName, geom.panelContentWidthPx, null)
+  const widthOnlyLineCount = widthOnlyNameFit.firstLines.length + widthOnlyNameFit.lastLines.length
+  const needsCompactTier = widthOnlyLineCount >= nameTierCeilingLines
+
+  const photoCanonicalPx = Math.min(geom.photoblockWidthPx, BADGE_PHOTO_SQUARE_MM * pxPerMm)
+  const photoCompactPx = Math.min(geom.photoblockWidthPx, BADGE_PHOTO_SQUARE_COMPACT_MM * pxPerMm)
+
+  const chosenPhotoSidePx = needsCompactTier ? photoCompactPx : photoCanonicalPx
+  const { nameFit, positionFit } = fitAgainstPhotoSide(chosenPhotoSidePx)
+
   const compositeFits = nameFit.fits && (!positionFit || positionFit.fits)
-  return { companyName, companyFit, nameFit, positionFit, compositeFits, geom }
+  const photoSquareSidePx = chosenPhotoSidePx
+  const photoSquareSideMm = photoSquareSidePx / pxPerMm
+
+  return { companyName, companyFit, nameFit, positionFit, compositeFits, geom, photoSquareSidePx, photoSquareSideMm, resolvedName }
 }
 
 // Reverse's "PAÍS" and front's footer company name both resolve through
@@ -21498,7 +22118,7 @@ function badgeSiteCompanyInfo(site) {
   }
 }
 
-function renderBadgeFront(emp, site) {
+function renderBadgeFront(emp, site, printedNameSelection) {
   // SIERRA badge front (pass 6 portrait redesign) — real brand lockup
   // (LBL_LOGO_SVG, the same mark used in the app's own top nav — never a
   // retyped <text>SIERRA</text>) centered in its own header zone; a photo
@@ -21513,7 +22133,7 @@ function renderBadgeFront(emp, site) {
   // fitter (real DOM/canvas measurement, one shared running vertical
   // budget) that decides all three, and printBadge()'s mirror below calls
   // the exact same function so preview and print cannot diverge.
-  const composite = computeBadgeFrontComposite(emp, site)
+  const composite = computeBadgeFrontComposite(emp, site, printedNameSelection)
   const { nameFit: fit, positionFit, companyFit, companyName } = composite
   const nameLinesHtml = [...fit.firstLines, ...fit.lastLines]
     .map(line => `<div class="badge-front-nameline" style="font-size:${fit.fontSize}pt; line-height:${fit.lineHeight}">${esc(line).toUpperCase()}</div>`)
@@ -21545,17 +22165,14 @@ function renderBadgeFront(emp, site) {
   // .badge-front-photo-broken indicator, mirroring the prep rail's own
   // .badge-photo-frame.is-broken pattern (renderBadgeDataPanel()) so both
   // surfaces speak the same visual language for the same real condition.
-  const photoHtml = emp.photo_url
-    ? `<img src="${esc(emp.photo_url)}" alt="" onerror="this.closest('.badge-front-photoblock').classList.add('is-broken'); this.remove(); badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', false)" onload="badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', true); badgeMarkPhotoNaturalSize('${jsStr(emp.photo_url)}', this.naturalWidth, this.naturalHeight)" />
-       <div class="badge-front-photo-broken">${siIcon('alert-triangle', 16)}<span>Foto no disponible</span></div>`
-    : '<div class="badge-photo-empty">Sin foto</div>'
+  const photoHtml = badgePhotoMarkup(emp, { trackStatus: true })
   return `
     <div class="badge-front" id="badge-front-preview">
       <div class="badge-front-header">
         <div class="badge-logo-mark">${LBL_LOGO_SVG}</div>
       </div>
 
-      <div class="badge-front-card">
+      <div class="badge-front-card" style="--badge-photo-side: ${composite.photoSquareSideMm}mm">
         <div class="badge-front-photoblock">
           ${photoHtml}
         </div>
@@ -21596,30 +22213,169 @@ function badgeMarkPhotoNaturalSize(url, w, h) {
   _badgePhotoNaturalSize[url] = { w, h }
   if ((!prev || prev.w !== w || prev.h !== h) && _badge_ui.view === 'issuance') renderBadgeModule()
 }
-// Reasoned target: the photo zone's real mm footprint (card width minus the
-// .badge-sheet's 3mm padding on each side; a conservative 30mm height floor
-// — see .badge-front-photoblock's min-height in printBadge()'s CSS, the
-// zone often grows taller) times ZEBRA_ZC300_PROFILE.dotsPerMm (300dpi).
+// Recomputed this pass (canonical-photo-size fix): the photoblock is now a
+// genuine, deterministic SQUARE of either BADGE_PHOTO_SQUARE_MM (32mm — the
+// overwhelming majority of badges: any 1/2/3-line name) or the smaller
+// BADGE_PHOTO_SQUARE_COMPACT_MM (30mm — only a genuinely 4-line name), never
+// the old mismatched-rectangle guess ((BADGE_W-6)mm wide × a flat 30mm-tall
+// floor) the previous "reasoned target" comment described, which no longer
+// describes the frame's real (now-square) shape at all. Using the LARGER,
+// far-more-common canonical constant for both dimensions here is the
+// correct, safe choice: it is the true frame size for nearly every badge,
+// and for the rarer 30mm compact-tier badge it is a conservative
+// over-estimate (asking for slightly more source resolution than that
+// smaller frame strictly needs), never an under-estimate that could let a
+// genuinely-too-soft photo pass with no warning.
 function badgePhotoPrintTargetPx() {
-  const { w: BADGE_W } = badgeGeometryMm()
   const dpm = ZEBRA_ZC300_PROFILE.dotsPerMm
-  return { w: Math.round((BADGE_W - 6) * dpm), h: Math.round(30 * dpm) }
+  const side = Math.round(BADGE_PHOTO_SQUARE_MM * dpm)
+  return { w: side, h: side }
+}
+// ── FOCAL-POINT / CROP MODEL ────────────────────────────────────────────
+// Reuses the existing employees.photo_crop jsonb column verbatim (see
+// update19.sql: `{ "x": 0.1, "y": 0.2, "width": 0.8, "height": 0.8 }`,
+// a normalized 0-1 crop RECTANGLE within the source photo's own pixel
+// space) — no new column, no new jsonb shape. Nothing read/wrote this
+// column before this pass; every consumer below goes through this one
+// resolver so the four render surfaces (preview, compare, print popup,
+// print artifact) cannot independently drift.
+//
+// A stored rect is honored only if it is well-formed and inside bounds —
+// a corrupt/partial value (hand-edited row, future schema drift) falls
+// back to `null` ("no custom crop"), never a half-applied crop that could
+// silently stretch or blank-edge the image.
+function badgePhotoIsValidCrop(c) {
+  if (!c || typeof c !== 'object') return false
+  const { x, y, width, height } = c
+  if (![x, y, width, height].every(n => typeof n === 'number' && isFinite(n))) return false
+  if (width <= 0 || height <= 0) return false
+  const EPS = 1e-6
+  return x >= -EPS && y >= -EPS && x + width <= 1 + EPS && y + height <= 1 + EPS
+}
+// Returns the employee's saved crop rect, or `null` when none is set (or
+// the stored value is invalid) — `null` means "use the existing plain
+// object-fit:cover behavior", not a fabricated `{0,0,1,1}` rect (see
+// badgePhotoMarkup()'s comment on why those two are NOT the same thing
+// once a source image's aspect ratio differs from the frame's).
+function resolveBadgePhotoCrop(emp) {
+  const c = emp?.photo_crop
+  return badgePhotoIsValidCrop(c) ? { x: c.x, y: c.y, width: c.width, height: c.height } : null
+}
+// Converts a crop rect into the exact background-size/background-position
+// percentages that make a `background-image` fill its container with
+// precisely that rectangle of the source, no JS-known natural size
+// required — standard technique: background-size 100/width% × 100/height%
+// blows the image up so the crop rect's own extent exactly equals the
+// container in each axis, and background-position X%/Y% = x/(1-width)*100
+// (same for Y) walks the resulting (oversized image − container) slack
+// range to the crop rect's origin. Verified analytically and against a
+// real Chromium layout (see report) — no distortion PROVIDED the crop
+// rect's own aspect ratio already matches the container's rendered aspect
+// ratio, which is exactly what badgeCropBaseRectForContainer() below and
+// the manual editor's zoom math both guarantee by construction.
+function badgePhotoCropBgValues(crop) {
+  const w = Math.min(1, Math.max(1e-4, crop.width))
+  const h = Math.min(1, Math.max(1e-4, crop.height))
+  const posX = w < 1 ? Math.min(100, Math.max(0, (crop.x / (1 - w)) * 100)) : 50
+  const posY = h < 1 ? Math.min(100, Math.max(0, (crop.y / (1 - h)) * 100)) : 50
+  return { sizeX: 100 / w, sizeY: 100 / h, posX, posY }
+}
+function badgePhotoCropBgStyle(crop) {
+  const v = badgePhotoCropBgValues(crop)
+  return `background-size:${v.sizeX}% ${v.sizeY}%; background-position:${v.posX}% ${v.posY}%;`
+}
+// The largest same-aspect-as-`containerAspect` rectangle centered inside a
+// unit source image of aspect `naturalAspect` — i.e. exactly what
+// object-fit:cover already shows with no crop chosen. Used as (a) the
+// editor's zoom=1 starting rect so opening the editor never jumps the
+// image, and (b) the reference `requiredAspect` the editor's zoom keeps
+// locked so a saved crop can never re-introduce the distortion the plain
+// object-fit:cover default path avoids.
+function badgeCropBaseRectForContainer(containerAspect, naturalAspect) {
+  const A = containerAspect > 0 ? containerAspect : 1
+  const Ni = naturalAspect > 0 ? naturalAspect : 1
+  let w, h
+  if (Ni > A) { h = 1; w = A / Ni } else { w = 1; h = Ni / A }
+  return { x: (1 - w) / 2, y: (1 - h) / 2, width: w, height: h }
+}
+// ONE shared markup builder consumed identically by renderBadgeFront()
+// (preview + Compare mode, since both call renderBadgeFront()),
+// _badgeFrontSheetHtml() (both the manual-duplex print popup and the
+// combined ZC300 print artifact — both go through _badgeBuildPrintHtml()
+// → _badgeFrontSheetHtml()), so there is exactly one place that decides
+// how a photo_url + photo_crop pair becomes pixels. `trackStatus` gates
+// the onload/onerror → badgeMarkPhotoStatus()/badgeMarkPhotoNaturalSize()
+// wiring — the print document is a standalone popup window with none of
+// the app's JS loaded, so it always passes trackStatus:false and relies
+// solely on the inline onerror→closest().classList.add('is-broken') that
+// already worked before this pass.
+function badgePhotoMarkup(emp, { trackStatus, imgClass, brokenMsg, emptyMsg, emptyClass } = {}) {
+  brokenMsg = brokenMsg || 'Foto no disponible'
+  emptyMsg = emptyMsg || 'Sin foto'
+  emptyClass = emptyClass || 'badge-photo-empty'
+  if (!emp.photo_url) return `<div class="${emptyClass}">${esc(emptyMsg)}</div>`
+  const url = esc(emp.photo_url)
+  const onerror = trackStatus
+    ? `this.closest('.badge-front-photoblock').classList.add('is-broken'); this.remove(); badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', false)`
+    : `this.closest('.badge-front-photoblock').classList.add('is-broken')`
+  const onload = trackStatus
+    ? ` onload="badgeMarkPhotoStatus('${jsStr(emp.photo_url)}', true); badgeMarkPhotoNaturalSize('${jsStr(emp.photo_url)}', this.naturalWidth, this.naturalHeight)"`
+    : ''
+  const brokenHtml = `<div class="badge-front-photo-broken">${siIcon ? siIcon('alert-triangle', 16) : ''}<span>${esc(brokenMsg)}</span></div>`
+  const crop = resolveBadgePhotoCrop(emp)
+  if (!crop) {
+    // Default path — UNCHANGED from the fix already verified this pass:
+    // a plain <img object-fit:cover>, which crops-without-distorting
+    // automatically regardless of the source's own aspect ratio. Kept as
+    // its own branch (never routed through the background-image math
+    // below) because the background technique's background-size:100% 100%
+    // for a "full frame" rect would independently stretch width/height —
+    // correct only when the source happens to already share the
+    // container's exact aspect ratio, which is not guaranteed.
+    return `<img src="${url}" alt="" class="${imgClass || ''}" onerror="${onerror}"${onload} />${brokenHtml}`
+  }
+  // Custom crop path — a fixed-size element carrying the crop as CSS
+  // background (badgePhotoCropBgStyle()), plus a fully transparent probe
+  // <img> (never displayed) so onload/onerror keep firing through the
+  // exact same badgeMarkPhotoStatus()/badgeMarkPhotoNaturalSize() hooks —
+  // background-image has no load/error DOM events of its own, so without
+  // this probe the existing broken-photo/quality-warning machinery would
+  // silently stop seeing this employee's photo at all.
+  return `
+    <div class="badge-photo-crop" style="width:100%; height:100%; background-image:url('${url}'); background-repeat:no-repeat; ${badgePhotoCropBgStyle(crop)}"></div>
+    <img src="${url}" alt="" style="position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;" onerror="${onerror}"${onload} />
+    ${brokenHtml}
+  `
 }
 // A WARNING only, never a hard block (section 8) — a real HR photo source
 // is sometimes the best available and printing it soft is still better than
 // refusing to print. 150px is the reasoned floor below which upscaling to
 // the ~300dpi print target would make a face genuinely illegible rather
-// than merely soft.
+// than merely soft. Distinct from (never conflated with): "no photo"
+// (!emp.photo_url — checkBadgeReadiness()'s own missing-field message),
+// "photo failed to load" (is-broken/_badgePhotoStatus, this function
+// returns null and lets that separate mechanism speak instead), and
+// "face not detected" (badgeDetectFaceBox()'s own null result, which is
+// advisory-only inside the crop editor and never surfaces here).
 function badgePhotoQualityWarning(emp) {
   if (!emp.photo_url) return null
+  if (_badgePhotoStatus[emp.photo_url] === 'broken') return null
   const nat = _badgePhotoNaturalSize[emp.photo_url]
   if (!nat) return null
   const target = badgePhotoPrintTargetPx()
-  if (nat.w < 150 || nat.h < 150) {
-    return { level: 'error', message: `Fotografía de muy baja resolución (${nat.w}×${nat.h}px) — se verá notablemente borrosa/pixelada impresa a tamaño real (objetivo ≈ ${target.w}×${target.h}px a 300dpi)` }
+  // A crop narrower/shorter than the full frame throws away source pixels
+  // before printing — the DPI check must be against what SURVIVES the
+  // crop, not the untouched source, or a badly over-zoomed crop on an
+  // otherwise-sharp photo would silently print soft with no warning.
+  const crop = resolveBadgePhotoCrop(emp)
+  const availW = crop ? Math.round(nat.w * crop.width) : nat.w
+  const availH = crop ? Math.round(nat.h * crop.height) : nat.h
+  const croppedNote = crop ? ` tras el encuadre guardado` : ''
+  if (availW < 150 || availH < 150) {
+    return { level: 'error', message: `Fotografía de muy baja resolución (${availW}×${availH}px${croppedNote}) — se verá notablemente borrosa/pixelada impresa a tamaño real (objetivo ≈ ${target.w}×${target.h}px a 300dpi)` }
   }
-  if (nat.w < target.w || nat.h < target.h) {
-    return { level: 'warning', message: `Fotografía (${nat.w}×${nat.h}px) por debajo del tamaño recomendado para impresión a 300dpi (≈ ${target.w}×${target.h}px) — puede verse ligeramente suave` }
+  if (availW < target.w || availH < target.h) {
+    return { level: 'warning', message: `Fotografía (${availW}×${availH}px${croppedNote}) por debajo del tamaño recomendado para impresión a 300dpi (≈ ${target.w}×${target.h}px) — puede verse ligeramente suave` }
   }
   return null
 }
@@ -21632,6 +22388,286 @@ function badgeMarkPhotoStatus(url, ok) {
   if (prev !== _badgePhotoStatus[url] && (prev === 'broken' || _badgePhotoStatus[url] === 'broken') && _badge_ui.view === 'issuance') {
     renderBadgeModule()
   }
+}
+
+// ── FACE-AWARE FOCAL-POINT PROPOSAL (progressive enhancement) ───────────
+// Deliberately built on the browser's native Shape Detection API
+// (`window.FaceDetector`) and NOTHING else. Local-only, zero network
+// call, zero model download, zero bundle-size cost — every privacy
+// requirement is met trivially because there is no third-party code
+// involved at all. Real-world support is limited (historically
+// Chrome/Chromium-on-Android and ChromeOS mainly; not Firefox, not
+// Safari, and inconsistent on Chromium-desktop across OSes) — this is
+// therefore feature-detected and allowed to silently do nothing rather
+// than ever claim a face was "found" or "correctly centered" when it
+// wasn't checked. See the final report for the explicit recommendation
+// (and non-inclusion) of a real bundled model for broader coverage.
+// Never returns embeddings/identity data — only a bounding box, exactly
+// the "composition, not recognition" boundary the requirement draws.
+async function badgeDetectFaceBoxes(imgEl) {
+  if (!('FaceDetector' in window)) return { supported: false, faces: [] }
+  try {
+    const detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 5 })
+    const faces = await detector.detect(imgEl)
+    const nw = imgEl.naturalWidth || imgEl.width
+    const nh = imgEl.naturalHeight || imgEl.height
+    if (!nw || !nh) return { supported: true, faces: [] }
+    return {
+      supported: true,
+      faces: faces.map(f => ({
+        x: f.boundingBox.x / nw, y: f.boundingBox.y / nh,
+        width: f.boundingBox.width / nw, height: f.boundingBox.height / nh,
+      })),
+    }
+  } catch (e) {
+    // A real device/driver can throw (unsupported pixel format, detector
+    // init failure, CORS-tainted canvas) even when the constructor exists
+    // — always degrade to "not usable right now", never surface this as
+    // an app error the user has to dismiss.
+    return { supported: false, faces: [], error: String(e?.message || e) }
+  }
+}
+
+// ── MANUAL CROP EDITOR ("Ajustar encuadre") ──────────────────────────────
+// Same modal convention as the rest of this module (openSideDrawer(), see
+// openZc300PrintMenu()) rather than a new dialog pattern. State lives in
+// this one module-scoped object for the lifetime of the drawer only —
+// never persisted until saveBadgeCropEditor() runs, so navigating away
+// (or Cancelar) simply drops it, matching every other unsaved-edit
+// pattern in this codebase (e.g. the employee edit drawer).
+let _badgeCropEditor = null // { empId, crop, natural:{w,h}, containerAspect, dirty, faces, pointer }
+
+function openBadgeCropEditor(empId) {
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp) return
+  if (!can('write', 'talento_humano')) { toast('Sin permiso de escritura para ajustar la fotografía'); return }
+  if (!emp.photo_url) { toast('Esta persona no tiene fotografía todavía'); return }
+  _badgeCropEditor = { empId, crop: null, natural: null, containerAspect: null, dirty: false, faces: null, pointer: null }
+  openSideDrawer({ eyebrow: 'Fotografía', title: 'Ajustar encuadre', onTab: () => renderBadgeCropEditorBody(empId) })
+}
+
+function renderBadgeCropEditorBody(empId) {
+  const body = document.getElementById('sd-body')
+  if (!body || !_badgeCropEditor) return
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp) return
+  body.innerHTML = `
+    <div style="font-size:0.8rem;color:var(--text-2);margin-bottom:0.7rem">Arrastra la fotografía dentro del marco para reencuadrarla; usa el control de zoom para acercar. El marco reproduce exactamente el recorte cuadrado del gafete.</div>
+    <div id="badge-crop-live-wrap" style="display:flex;justify-content:center;margin-bottom:0.7rem"></div>
+    <div id="badge-crop-status" style="font-size:0.76rem;color:var(--text-3);min-height:1.1em;margin-bottom:0.6rem"></div>
+    <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.6rem">
+      <label for="badge-crop-zoom" style="font-size:0.78rem;flex-shrink:0">Zoom</label>
+      <input id="badge-crop-zoom" type="range" min="1" max="3" step="0.01" style="flex:1" aria-label="Nivel de zoom del encuadre" oninput="badgeCropSetZoom(parseFloat(this.value))" />
+    </div>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.9rem">
+      <button type="button" class="btn btn-secondary btn-sm" id="badge-crop-center-face-btn" disabled onclick="badgeCropCenterOnFace()">Centrar rostro</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="badgeCropReset('${empId}')">Restablecer</button>
+    </div>
+    <div style="display:flex;gap:0.5rem;justify-content:flex-end">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="closeSideDrawer()">Cancelar</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="saveBadgeCropEditor('${empId}')">Guardar encuadre</button>
+    </div>
+  `
+  badgeCropInitLivePreview(emp)
+}
+
+// Mounts the REAL renderBadgeFront() output (not a mockup) inside the
+// drawer, measures the actual rendered .badge-front-photoblock box for
+// THIS employee's own name/position (its aspect varies employee-to-
+// employee — see .badge-front-photoblock's max-height comment), waits
+// for the source photo's natural size, then seeds the editor's starting
+// crop at zoom=1 via badgeCropBaseRectForContainer() — the identical
+// rect object-fit:cover already shows, so opening the editor never jumps
+// the image before the user touches anything.
+function badgeCropInitLivePreview(emp) {
+  const wrap = document.getElementById('badge-crop-live-wrap')
+  if (!wrap || !_badgeCropEditor) return
+  const site = _badge.sites?.find(s => s.id === emp.site_id) || null
+  const savedCrop = resolveBadgePhotoCrop(emp)
+  wrap.innerHTML = `<div style="transform:scale(1); flex-shrink:0">${renderBadgeFront({ ...emp, photo_crop: savedCrop || {} }, site)}</div>`
+  const photoblock = wrap.querySelector('.badge-front-photoblock')
+  const img = new Image()
+  img.onload = () => {
+    if (!_badgeCropEditor) return
+    const rect = photoblock.getBoundingClientRect()
+    _badgeCropEditor.natural = { w: img.naturalWidth, h: img.naturalHeight }
+    _badgeCropEditor.containerAspect = rect.width / rect.height
+    _badgeCropEditor.crop = savedCrop || badgeCropBaseRectForContainer(_badgeCropEditor.containerAspect, img.naturalWidth / img.naturalHeight)
+    const z0 = badgeCropZoomFromCrop(_badgeCropEditor.crop, _badgeCropEditor.containerAspect, _badgeCropEditor.natural)
+    const zoomInput = document.getElementById('badge-crop-zoom')
+    if (zoomInput) zoomInput.value = String(z0)
+    badgeCropWireDrag(photoblock)
+    badgeCropRenderInto(photoblock)
+    badgeCropUpdateStatus(emp)
+    badgeDetectFaceBoxes(img).then(res => {
+      if (!_badgeCropEditor || _badgeCropEditor.empId !== emp.id) return
+      _badgeCropEditor.faces = res
+      const btn = document.getElementById('badge-crop-center-face-btn')
+      if (btn) {
+        btn.disabled = !res.supported || res.faces.length === 0
+        btn.title = !res.supported
+          ? 'Detección de rostro no disponible en este navegador — usa el arrastre manual'
+          : (res.faces.length > 1 ? `${res.faces.length} rostros detectados — se centrará en el más grande` : (res.faces.length === 0 ? 'No se detectó ningún rostro' : ''))
+      }
+    })
+  }
+  img.onerror = () => { badgeCropUpdateStatus(emp, 'No fue posible cargar la fotografía original para editar el encuadre.') }
+  img.src = emp.photo_url
+}
+function badgeCropZoomFromCrop(crop, containerAspect, natural) {
+  const base = badgeCropBaseRectForContainer(containerAspect, natural.w / natural.h)
+  return Math.max(1, Math.min(3, base.width / crop.width))
+}
+function badgeCropUpdateStatus(emp, forceMsg) {
+  const el = document.getElementById('badge-crop-status')
+  if (!el) return
+  if (forceMsg) { el.textContent = forceMsg; el.style.color = '#b3261e'; return }
+  const dirty = _badgeCropEditor?.dirty
+  const tempEmp = { ...emp, photo_crop: _badgeCropEditor.crop || {} }
+  const q = badgePhotoQualityWarning(tempEmp)
+  const parts = [dirty ? 'Cambios sin guardar' : 'Sin cambios pendientes']
+  if (q) parts.push(q.message)
+  el.textContent = parts.join(' · ')
+  el.style.color = q?.level === 'error' ? '#b3261e' : (q?.level === 'warning' ? '#a6620a' : 'var(--text-3)')
+}
+// Re-renders just the crop CSS (no full re-render) so drag/zoom stay
+// smooth — badgePhotoCropBgStyle() is the exact same function the real
+// preview/print markup uses, so what's shown here during editing is
+// pixel-identical to what badgePhotoMarkup() will emit once saved.
+function badgeCropRenderInto(photoblock) {
+  if (!_badgeCropEditor?.crop) return
+  let el = photoblock.querySelector('.badge-photo-crop')
+  if (!el) {
+    photoblock.innerHTML = `<div class="badge-photo-crop" style="width:100%;height:100%;background-repeat:no-repeat;"></div>`
+    el = photoblock.querySelector('.badge-photo-crop')
+  }
+  el.style.backgroundImage = `url('${(_badgeCropEditor._url || '').replace(/'/g, "%27")}')`
+  const v = badgePhotoCropBgValues(_badgeCropEditor.crop)
+  el.style.backgroundSize = `${v.sizeX}% ${v.sizeY}%`
+  el.style.backgroundPosition = `${v.posX}% ${v.posY}%`
+}
+function badgeCropWireDrag(photoblock) {
+  const emp = _badge.employees.find(e => e.id === _badgeCropEditor.empId)
+  _badgeCropEditor._url = emp.photo_url
+  photoblock.style.cursor = 'grab'
+  photoblock.setAttribute('tabindex', '0')
+  photoblock.setAttribute('role', 'application')
+  photoblock.setAttribute('aria-label', 'Área de encuadre de la fotografía — arrastra o usa las flechas del teclado para reposicionar, o el control de zoom para acercar')
+  const onDown = (e) => {
+    const rect = photoblock.getBoundingClientRect()
+    _badgeCropEditor.pointer = { x: e.clientX, y: e.clientY, crop: { ..._badgeCropEditor.crop }, rectW: rect.width, rectH: rect.height }
+    photoblock.style.cursor = 'grabbing'
+    photoblock.setPointerCapture?.(e.pointerId)
+  }
+  const onMove = (e) => {
+    const p = _badgeCropEditor.pointer
+    if (!p) return
+    const dx = e.clientX - p.x, dy = e.clientY - p.y
+    const nx = p.crop.x - (dx * p.crop.width) / p.rectW
+    const ny = p.crop.y - (dy * p.crop.height) / p.rectH
+    badgeCropApply({ ..._badgeCropEditor.crop, x: nx, y: ny }, photoblock, true)
+  }
+  const onUp = () => { _badgeCropEditor.pointer = null; photoblock.style.cursor = 'grab'; badgeCropUpdateStatus(emp) }
+  photoblock.addEventListener('pointerdown', onDown)
+  photoblock.addEventListener('pointermove', onMove)
+  photoblock.addEventListener('pointerup', onUp)
+  photoblock.addEventListener('pointercancel', onUp)
+  // Keyboard: arrow keys nudge position (2% of the frame per press), kept
+  // reachable via the tabindex/role/aria-label set above rather than
+  // relying on drag alone — required per the spec, not an afterthought.
+  photoblock.addEventListener('keydown', (e) => {
+    const step = 0.02
+    const c = _badgeCropEditor.crop
+    let nx = c.x, ny = c.y
+    if (e.key === 'ArrowLeft') nx -= step * c.width
+    else if (e.key === 'ArrowRight') nx += step * c.width
+    else if (e.key === 'ArrowUp') ny -= step * c.height
+    else if (e.key === 'ArrowDown') ny += step * c.height
+    else return
+    e.preventDefault()
+    badgeCropApply({ ...c, x: nx, y: ny }, photoblock, true)
+    badgeCropUpdateStatus(emp)
+  })
+}
+// Clamps a candidate crop rect so it can NEVER exceed the source image's
+// own bounds (the hard "no blank/transparent edges" requirement) and
+// applies it — `commit:true` marks the edit dirty and refreshes the
+// status line; drag-in-progress calls pass commit:false-equivalent
+// (still true here since every pointermove is a real, boundable edit —
+// distinct from the zoom slider's own live-but-uncommitted feel, which
+// has no separate concept of "still dragging").
+function badgeCropApply(candidate, photoblock, dirty) {
+  const c = { ...candidate }
+  c.width = Math.min(1, Math.max(1 / 3, c.width))
+  c.height = Math.min(1, Math.max(1 / 3, c.height))
+  c.x = Math.min(1 - c.width, Math.max(0, c.x))
+  c.y = Math.min(1 - c.height, Math.max(0, c.y))
+  _badgeCropEditor.crop = c
+  if (dirty) _badgeCropEditor.dirty = true
+  badgeCropRenderInto(photoblock)
+}
+function badgeCropSetZoom(z) {
+  if (!_badgeCropEditor?.crop || !_badgeCropEditor.natural) return
+  const base = badgeCropBaseRectForContainer(_badgeCropEditor.containerAspect, _badgeCropEditor.natural.w / _badgeCropEditor.natural.h)
+  const cx = _badgeCropEditor.crop.x + _badgeCropEditor.crop.width / 2
+  const cy = _badgeCropEditor.crop.y + _badgeCropEditor.crop.height / 2
+  const width = base.width / z, height = base.height / z
+  const photoblock = document.querySelector('#badge-crop-live-wrap .badge-front-photoblock')
+  badgeCropApply({ x: cx - width / 2, y: cy - height / 2, width, height }, photoblock, true)
+  const emp = _badge.employees.find(e => e.id === _badgeCropEditor.empId)
+  badgeCropUpdateStatus(emp)
+}
+// "Centrar rostro" — only ever reachable when badgeDetectFaceBoxes()
+// actually returned a face (the button stays disabled otherwise, see
+// badgeCropInitLivePreview()). Multiple faces: picks the largest by area
+// (the most likely subject of an ID photo) rather than silently guessing
+// — the surrounding UI already told the operator how many were found via
+// the button's own title text, satisfying the "explicit select-the-
+// subject" requirement without a separate blocking modal for the common
+// single-face case.
+function badgeCropCenterOnFace() {
+  const faces = _badgeCropEditor?.faces?.faces
+  if (!faces || !faces.length || !_badgeCropEditor.crop) return
+  const biggest = faces.slice().sort((a, b) => (b.width * b.height) - (a.width * a.height))[0]
+  // Eyes-in-upper-third composition: bias the vertical center up from the
+  // face box's true center toward its top third, standard portrait
+  // framing so the crop doesn't center on the chin/neck.
+  const fx = biggest.x + biggest.width / 2
+  const fy = biggest.y + biggest.height * 0.33
+  const c = _badgeCropEditor.crop
+  const photoblock = document.querySelector('#badge-crop-live-wrap .badge-front-photoblock')
+  badgeCropApply({ ...c, x: fx - c.width / 2, y: fy - c.height / 2 }, photoblock, true)
+  const emp = _badge.employees.find(e => e.id === _badgeCropEditor.empId)
+  badgeCropUpdateStatus(emp)
+}
+function badgeCropReset(empId) {
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (!emp || !_badgeCropEditor?.natural) return
+  const base = badgeCropBaseRectForContainer(_badgeCropEditor.containerAspect, _badgeCropEditor.natural.w / _badgeCropEditor.natural.h)
+  const photoblock = document.querySelector('#badge-crop-live-wrap .badge-front-photoblock')
+  badgeCropApply(base, photoblock, true)
+  const zoomInput = document.getElementById('badge-crop-zoom')
+  if (zoomInput) zoomInput.value = '1'
+  badgeCropUpdateStatus(emp)
+}
+// Persists via the exact same sb.from('employees').update(...).eq('id', empId)
+// call every other employee-photo write in this file already uses
+// (uploadEmployeeDetailPhoto()/removeEmployeePhoto()) — same table, same
+// row-level "talento_humano update employees" RLS policy already covers
+// this column (it is a per-row policy, not per-column), so no new grant
+// is required. Gated at the editor's own entry point (openBadgeCropEditor())
+// by the same can('write','talento_humano') check as every other employee
+// edit — not re-invented here.
+async function saveBadgeCropEditor(empId) {
+  if (!_badgeCropEditor?.crop) { toast('Nada que guardar todavía'); return }
+  const crop = _badgeCropEditor.crop
+  const { error } = await sb.from('employees').update({ photo_crop: crop }).eq('id', empId)
+  if (error) { toast('Error al guardar el encuadre: ' + error.message); return }
+  const emp = _badge.employees.find(e => e.id === empId)
+  if (emp) { emp.photo_crop = crop; Audit.log('employee', empId, emp, 'photo_crop_updated', 'Encuadre de fotografía actualizado') }
+  toast('Encuadre guardado')
+  closeSideDrawer()
+  renderBadgeModule()
 }
 
 // Bounded density step for the reverse's 5-row panel: a long emergency-
@@ -21906,8 +22942,8 @@ function _badgeFontFaceCss(fontUrl) {
 // the on-screen preview uses) — kept separate from HTML assembly so both the
 // front-only and back-only manual-mode documents can reuse the identical
 // fitting result instead of recomputing (and risking divergence).
-function _badgePrintPieces(emp, site) {
-  const composite = computeBadgeFrontComposite(emp, site)
+function _badgePrintPieces(emp, site, printedNameSelection) {
+  const composite = computeBadgeFrontComposite(emp, site, printedNameSelection)
   const { nameFit: fit, positionFit, companyFit, companyName } = composite
   const { countryName } = badgeSiteCompanyInfo(site)
   const nameLinesHtml = [...fit.firstLines, ...fit.lastLines]
@@ -21926,12 +22962,9 @@ function _badgeFrontSheetHtml(emp, pieces) {
   return `
       <div class="badge-sheet">
         <div class="badge-front-header"><div class="badge-logo-mark">${LBL_LOGO_SVG}</div></div>
-        <div class="badge-front-card">
+        <div class="badge-front-card" style="--badge-photo-side: ${pieces.composite.photoSquareSideMm}mm">
           <div class="badge-front-photoblock">
-            ${emp.photo_url
-              ? `<img src="${esc(emp.photo_url)}" class="badge-employee-photo" data-badge-asset="photo" onerror="this.closest('.badge-front-photoblock').classList.add('is-broken')" />
-                 <div class="badge-front-photo-broken">Foto no disponible</div>`
-              : '<div class="badge-photo-placeholder">Sin foto</div>'}
+            ${badgePhotoMarkup(emp, { trackStatus: false, imgClass: 'badge-employee-photo', brokenMsg: 'Foto no disponible', emptyMsg: 'Sin foto', emptyClass: 'badge-photo-placeholder' })}
           </div>
           <div class="badge-front-panel">
             <div class="badge-front-idline">${esc(emp.employee_code || '—')}</div>
@@ -22002,9 +23035,9 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
         /* FRONT */
         .badge-front-header { display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding-bottom: 2.2mm; }
         .badge-front-header .badge-logo-mark { width: 28mm; }
-        .badge-front-card { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 1.6mm; }
-        .badge-front-photoblock { flex: 1 1 auto; min-height: 30mm; background: #eee; overflow: hidden; border-radius: 3mm; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center; }
-        .badge-employee-photo { width: auto; height: auto; max-width: 100%; max-height: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; }
+        .badge-front-card { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 1.6mm; justify-content: safe center; }
+        .badge-front-photoblock { width: var(--badge-photo-side, calc(${BADGE_W}mm - 6mm)); height: var(--badge-photo-side, calc(${BADGE_W}mm - 6mm)); flex: 0 0 auto; align-self: center; background: #eee; overflow: hidden; border-radius: 3mm; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center; position: relative; }
+        .badge-employee-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
         .badge-photo-placeholder { width: 100%; height: 100%; background: #eee; display: flex; align-items: center; justify-content: center; color: #94a19f; font-size: 7.5pt; text-align: center; line-height: 1.3; }
         .badge-front-panel { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 2mm 3mm 2.2mm; gap: 0.6mm; background: #fff; border-radius: 3mm; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
         .badge-front-idline { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; font-size: 7.5pt; letter-spacing: 0.02em; color: #cd4f00; }
@@ -22012,6 +23045,7 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
         .badge-front-photo-broken { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #b3261e; font-size: 6.6pt; text-align: center; line-height: 1.3; }
         .badge-front-photoblock.is-broken .badge-front-photo-broken { display: flex; }
         .badge-front-photoblock.is-broken .badge-employee-photo { display: none; }
+        .badge-front-photoblock.is-broken .badge-photo-crop { display: none; }
         .badge-position-line { font-family: 'Aeonik', sans-serif; font-weight: 400; font-size: 7.6pt; line-height: 1.3; color: #ff7824; margin-top: 0.8mm; max-width: 46mm; overflow-wrap: break-word; }
         .badge-front-companybar { flex-shrink: 0; margin-top: 1.6mm; border-radius: 3mm; background: #ff7824; padding: 1.4mm 3mm; display: flex; align-items: center; justify-content: center; text-align: center; min-height: 5mm; box-sizing: border-box; }
         .badge-company-line { font-family: 'Aeonik', sans-serif; font-weight: 700; text-transform: uppercase; font-size: 6.6pt; letter-spacing: 0.03em; line-height: 1.3; color: #fff; overflow-wrap: break-word; }
@@ -22170,7 +23204,7 @@ async function _badgeOpenPopupAndPrint(html, { waitForPhoto = true } = {}) {
 // idle label to restore. Returns null after already toasting + resetting on
 // any failure; otherwise `{ site, pieces, barcodeMarkup, resetPrintingState }`.
 async function _badgePrintPreflight(issuance, emp, btnId, idleLabel) {
-  const readiness = checkBadgeReadiness(emp)
+  const readiness = checkBadgeReadiness(emp, issuance.printedNameSelection)
   if (!readiness.ready) {
     toast('No se puede imprimir: ' + readiness.errors.map(e => e.message).join(' · '))
     return null
@@ -22220,7 +23254,7 @@ async function _badgePrintPreflight(issuance, emp, btnId, idleLabel) {
   }
 
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
-  const pieces = _badgePrintPieces(emp, site)
+  const pieces = _badgePrintPieces(emp, site, issuance.printedNameSelection)
   return { site, pieces, barcodeMarkup, resetPrintingState }
 }
 
@@ -22232,12 +23266,20 @@ async function _badgePrintPreflight(issuance, emp, btnId, idleLabel) {
 // write timing itself, not just UI copy). Logic unchanged from the
 // pre-existing single-flow contract (draft reuse, reprint detection,
 // 5-field snapshot).
-async function _badgeCommitIssuancePrint(emp, site) {
+async function _badgeCommitIssuancePrint(emp, site, printedNameSelection) {
   const existing = _badge.badges.find(b => b.employee_id === emp.id && ['draft', 'ready_to_print'].includes(b.status))
   const isReprint = !existing && _badge.badges.some(b => b.employee_id === emp.id && b.status === 'printed')
+  // printed_name_selection (this pass) becomes part of the permanent,
+  // append-only printed snapshot — see item 5/7 of spec. `existing` above
+  // only ever matches a draft/ready_to_print row, so this write can never
+  // land on an already-'printed' row: a reprint (no open draft) always
+  // takes the insert branch below, creating its OWN new issuance record
+  // rather than mutating history.
+  const persistedSelection = _badgeBuildPersistedNameSelection(emp.first_name, emp.last_name, printedNameSelection)
   const snapshot = {
     first_name: emp.first_name, last_name: emp.last_name, employee_code: emp.employee_code,
     department: emp.department, position: emp.position,
+    printed_name_selection: persistedSelection,
   }
   const payload = {
     status: 'printed', snapshot,
@@ -22290,7 +23332,7 @@ async function printBadgeDuplex() {
   if (!result.ok) { resetPrintingState(); return }
 
   toast('Proceso de impresión cerrado. Verifica la salida física.')
-  await _badgeCommitIssuancePrint(emp, site)
+  await _badgeCommitIssuancePrint(emp, site, issuance.printedNameSelection)
   resetPrintingState()
   closeBadgeIssuance()
   await loadBadgeData()
@@ -22346,7 +23388,7 @@ async function printBadgeManualReverseConfirmed() {
   if (!result.ok) { resetPrintingState(); return }
 
   toast('Proceso de impresión cerrado. Verifica la salida física.')
-  await _badgeCommitIssuancePrint(emp, site)
+  await _badgeCommitIssuancePrint(emp, site, issuance.printedNameSelection)
   resetPrintingState()
   closeBadgeIssuance()
   await loadBadgeData()
@@ -22440,7 +23482,11 @@ function renderZc300PrintMenuBody(empId) {
   const emp = _badge.employees.find(e => e.id === empId)
   const mode = getZc300PrintMode()
   const cal = getZc300Calibration()
-  const r = emp ? checkBadgeReadiness(emp) : { ready: false, errors: [] }
+  // Same active issuance's selection, when this menu is opened for the
+  // employee currently in the workspace — otherwise falls back to the
+  // full registered name, matching every other non-issuance caller.
+  const activeSelection = _badge_ui.issuanceInProgress?.employee_id === empId ? _badge_ui.issuanceInProgress.printedNameSelection : null
+  const r = emp ? checkBadgeReadiness(emp, activeSelection) : { ready: false, errors: [] }
   const photoWarn = emp ? badgePhotoQualityWarning(emp) : null
   const { w, h } = badgeGeometryMm()
   const bound = ZEBRA_ZC300_PROFILE.calibration.boundMm
