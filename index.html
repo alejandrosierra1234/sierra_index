@@ -6750,14 +6750,14 @@
        GK tile — GK ended up ~2.3× TALLER than SIERRA, backwards from the
        intended hierarchy. 28mm (matching the front header's own SIERRA
        width, so both sides read as the same design system) renders at
-       ≈5.77mm tall; paired with a 3.6mm GK tile that is a ~1.6× dominance
+       ≈5.77mm tall; paired with a 4.2mm GK tile that is a ~1.37× dominance
        ratio, GK still legible but clearly secondary. */
     .badge-back-header .badge-logo-mark { width: 28mm; }
     .badge-gk-tile {
-      width: 3.6mm;
-      height: 3.6mm;
+      width: 4.2mm;
+      height: 4.2mm;
       flex-shrink: 0;
-      border-radius: 0.9mm;
+      border-radius: 1mm;
       overflow: hidden;
       display: flex;
       align-items: center;
@@ -6858,11 +6858,18 @@
     .badge-back-legal {
       flex-shrink: 0;
       font-family: 'Aeonik', sans-serif;
+      font-weight: 400;
       font-size: 5.4pt;
       line-height: 1.32;
       color: #55555a;
       text-align: left;
       padding: 1.2mm 0 0.8mm;
+    }
+    .badge-barcode-error {
+      font-family: 'Aeonik', sans-serif;
+      font-weight: 400;
+      font-size: 0.65rem;
+      color: #b3261e;
     }
     .badge-back-barcodeblock {
       flex-shrink: 0;
@@ -16310,7 +16317,7 @@ function renderBadgeBackBarcodePreview() {
   if (!holder) return
   holder.innerHTML = ''
   if (!emp || !emp.employee_code) {
-    holder.innerHTML = '<div style="font-size:0.65rem;color:#b3261e">Sin código — no se puede generar el código de barras</div>'
+    holder.innerHTML = '<div class="badge-barcode-error">Sin código — no se puede generar el código de barras</div>'
     return
   }
   // Distinguish the two real failure modes rather than lumping them into
@@ -16319,7 +16326,7 @@ function renderBadgeBackBarcodePreview() {
   // value that JsBarcode itself rejects, and telling operators which one
   // they're looking at changes what they should do about it.
   if (typeof JsBarcode === 'undefined') {
-    holder.innerHTML = '<div style="font-size:0.65rem;color:#b3261e">Código de barras no disponible (librería no cargada)</div>'
+    holder.innerHTML = '<div class="badge-barcode-error">Código de barras no disponible (librería no cargada)</div>'
     return
   }
   try {
@@ -16403,7 +16410,7 @@ function renderBadgeBackBarcodePreview() {
     valueEl.textContent = emp.employee_code
     holder.appendChild(valueEl)
   } catch (e) {
-    holder.innerHTML = '<div style="font-size:0.65rem;color:#b3261e">Código de barras inválido para "' + esc(emp.employee_code) + '"</div>'
+    holder.innerHTML = '<div class="badge-barcode-error">Código de barras inválido para "' + esc(emp.employee_code) + '"</div>'
   }
 }
 
@@ -23167,7 +23174,7 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
         .badge-sheet.is-back { padding-right: 13mm; }
         .badge-back-header { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; padding-bottom: 3mm; }
         .badge-back-header .badge-logo-mark { width: 28mm; }
-        .badge-gk-tile { width: 3.6mm; height: 3.6mm; flex-shrink: 0; border-radius: 0.9mm; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .badge-gk-tile { width: 4.2mm; height: 4.2mm; flex-shrink: 0; border-radius: 1mm; overflow: hidden; display: flex; align-items: center; justify-content: center; }
         .badge-gk-tile svg { width: 100%; height: 100%; display: block; }
         .badge-back-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; background: #fff; border: 1px solid #eee; border-radius: 3mm; padding: 0 3mm; }
         .badge-back-row2 { display: flex; align-items: center; gap: 1.8mm; padding: 1mm 0; border-bottom: 0.25mm solid #eee; }
@@ -23182,7 +23189,8 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
         .badge-back-panel.is-dense .badge-back-icontile { max-width: 5.4mm }
         .badge-back-panel.is-dense .badge-back-rowlabel { font-size: 4.7pt; margin-bottom: 0.4mm; }
         .badge-back-panel.is-dense .badge-back-rowvalue { font-size: 5.7pt; line-height: 1.15; }
-        .badge-back-legal { flex-shrink: 0; font-family: 'Aeonik', sans-serif; font-size: 5.4pt; line-height: 1.32; color: #55555a; text-align: left; padding: 1.2mm 0 0.8mm; }
+        .badge-back-legal { flex-shrink: 0; font-family: 'Aeonik', sans-serif; font-weight: 400; font-size: 5.4pt; line-height: 1.32; color: #55555a; text-align: left; padding: 1.2mm 0 0.8mm; }
+        .badge-barcode-error { font-family: 'Aeonik', sans-serif; font-weight: 400; font-size: 0.65rem; color: #b3261e; }
         .badge-barcode { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding-top: 0.4mm; }
         .badge-barcode svg { height: 10mm; width: auto; max-width: 100%; }
         /* Section 8 (rich black vs pure black): the badge otherwise uses
