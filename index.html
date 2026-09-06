@@ -6815,7 +6815,9 @@
       justify-content: flex-start;
       overflow: hidden;
       background: #fff;
-      border: 1px solid #eee;
+      /* Pure-black hairline: unlike #eee, this is eligible for the ZC300
+         resin K panel and therefore survives reliably on the reverse. */
+      border: 0.15mm solid #000;
       border-radius: 3mm;
       padding: 0 3mm;
     }
@@ -6832,7 +6834,7 @@
       align-items: center;
       gap: 1.8mm;
       padding: 1mm 0;
-      border-bottom: 0.25mm solid #eee;
+      border-bottom: 0.15mm solid #000;
     }
     .badge-back-row2:last-child { border-bottom: none; }
     .badge-back-icontile {
@@ -6866,6 +6868,22 @@
       color: #000;
       overflow-wrap: break-word;
     }
+    .badge-back-contact-name,
+    .badge-back-contact-phone { display: block; }
+    .badge-back-contact-phone {
+      font-family: 'Aeonik Mono', 'Courier New', monospace;
+      margin-top: 0.35mm;
+    }
+    .badge-back-health-row { align-items: flex-start; }
+    .badge-back-health-row .badge-back-icontile { margin-top: 0.25mm; }
+    .badge-back-healthvalue {
+      white-space: pre-line;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 5;
+      overflow: hidden;
+      max-height: calc(5 * 1.22em);
+    }
     /* Role-compliance fix: per SIERRA_DESIGN_SYSTEM.md §19, "Aeonik Mono —
        Technical identifiers — IDs, SKUs, sample/lot codes" — the
        identification-number VALUE specifically is a technical identifier
@@ -6890,6 +6908,7 @@
     .badge-back-panel.is-dense .badge-back-icontile { max-width: 5.4mm }
     .badge-back-panel.is-dense .badge-back-rowlabel { font-size: 4.7pt; margin-bottom: 0.4mm; }
     .badge-back-panel.is-dense .badge-back-rowvalue { font-size: 5.7pt; line-height: 1.15; }
+    .badge-back-panel.is-dense .badge-back-healthvalue { max-height: calc(5 * 1.15em); }
     .badge-back-legal {
       flex-shrink: 0;
       font-family: 'Aeonik', sans-serif;
@@ -22890,7 +22909,10 @@ async function saveBadgeCropEditor(empId) {
 function badgeBackDensityClass(emp) {
   const len = [emp.emergency_contact_name, emp.emergency_contact_phone, emp.health_conditions]
     .filter(Boolean).join(' ').length
-  return len > 55 ? ' is-dense' : ''
+  const healthLines = String(emp.health_conditions || '')
+    .split(/\r?\n/)
+    .reduce((total, line) => total + Math.max(1, Math.ceil(line.trim().length / 30)), 0)
+  return len > 55 || healthLines >= 4 ? ' is-dense' : ''
 }
 
 function renderBadgeBack(emp, site) {
@@ -22932,15 +22954,15 @@ function renderBadgeBack(emp, site) {
         <div class="badge-back-row2">
           <span class="badge-back-icontile">${siIcon('phone', 13)}</span>
           <span class="badge-back-rowtext">
-            <div class="badge-back-rowlabel">En caso de emergencia llamar a</div>
-            <div class="badge-back-rowvalue">${esc(emp.emergency_contact_name || '—')}${emp.emergency_contact_phone ? `<br>${esc(emp.emergency_contact_phone)}` : ''}</div>
+            <div class="badge-back-rowlabel">Contacto de emergencia</div>
+            <div class="badge-back-rowvalue"><span class="badge-back-contact-name">${esc(emp.emergency_contact_name || '—')}</span><span class="badge-back-contact-phone">${esc(emp.emergency_contact_phone || '—')}</span></div>
           </span>
         </div>
-        <div class="badge-back-row2">
+        <div class="badge-back-row2 badge-back-health-row">
           <span class="badge-back-icontile">${siIcon('heart', 13)}</span>
           <span class="badge-back-rowtext">
             <div class="badge-back-rowlabel">Condiciones de salud</div>
-            <div class="badge-back-rowvalue">${esc(emp.health_conditions || '—')}</div>
+            <div class="badge-back-rowvalue badge-back-healthvalue">${esc(emp.health_conditions || '—')}</div>
           </span>
         </div>
         <div class="badge-back-row2">
@@ -23191,8 +23213,8 @@ function _badgeBackSheetHtml(emp, pieces, barcodeMarkup, palette) {
         <div class="badge-back-panel${badgeBackDensityClass(emp)}">
           <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('globe', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">País</div><div class="badge-back-rowvalue">${esc(pieces.countryName || '—')}</div></span></div>
           <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('credit-card', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">No. de identificación</div><div class="badge-back-rowvalue badge-back-idvalue">${esc(emp.identification_number || '—')}</div></span></div>
-          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('phone', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">En caso de emergencia llamar a</div><div class="badge-back-rowvalue">${esc(emp.emergency_contact_name || '—')}${emp.emergency_contact_phone ? `<br>${esc(emp.emergency_contact_phone)}` : ''}</div></span></div>
-          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('heart', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Condiciones de salud</div><div class="badge-back-rowvalue">${esc(emp.health_conditions || '—')}</div></span></div>
+          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('phone', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Contacto de emergencia</div><div class="badge-back-rowvalue"><span class="badge-back-contact-name">${esc(emp.emergency_contact_name || '—')}</span><span class="badge-back-contact-phone">${esc(emp.emergency_contact_phone || '—')}</span></div></span></div>
+          <div class="badge-back-row2 badge-back-health-row"><span class="badge-back-icontile">${siIcon('heart', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Condiciones de salud</div><div class="badge-back-rowvalue badge-back-healthvalue">${esc(emp.health_conditions || '—')}</div></span></div>
           <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('droplet', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Tipo de sangre</div><div class="badge-back-rowvalue">${esc(emp.blood_type || '—')}</div></span></div>
         </div>
         <div class="badge-back-legal">Este gafete es propiedad de la empresa. Al finalizar la relación laboral, deberá ser devuelto. En caso de pérdida o extravío, favor reportarlo a Talento Humano.</div>
@@ -23281,19 +23303,25 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
         .badge-back-header .badge-logo-mark { width: 28mm; }
         .badge-gk-tile { width: 5.2mm; height: 5.2mm; flex-shrink: 0; border-radius: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; }
         .badge-gk-tile svg { width: 100%; height: 100%; display: block; }
-        .badge-back-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; background: #fff; border: 1px solid #eee; border-radius: 3mm; padding: 0 3mm; }
-        .badge-back-row2 { display: flex; align-items: center; gap: 1.8mm; padding: 1mm 0; border-bottom: 0.25mm solid #eee; }
+        .badge-back-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; background: #fff; border: 0.15mm solid #000; border-radius: 3mm; padding: 0 3mm; }
+        .badge-back-row2 { display: flex; align-items: center; gap: 1.8mm; padding: 1mm 0; border-bottom: 0.15mm solid #000; }
         .badge-back-row2:last-child { border-bottom: none; }
         .badge-back-icontile { width: 13%; max-width: 6.2mm; aspect-ratio: 1; flex-shrink: 0; border-radius: 1.4mm; background: var(--badge-plant-accent-light, #eceeef); color: var(--badge-plant-accent, #6f7477); display: flex; align-items: center; justify-content: center; }
         .badge-back-icontile svg { display: block; }
         .badge-back-rowtext { min-width: 0; flex: 1; }
         .badge-back-rowlabel { font-family: 'Aeonik', sans-serif; font-weight: 700; text-transform: uppercase; font-size: 5.1pt; letter-spacing: 0.05em; color: var(--badge-plant-accent, #6f7477); margin-bottom: 0.6mm; }
         .badge-back-rowvalue { font-family: 'Aeonik', sans-serif; font-weight: 500; font-size: 6.4pt; line-height: 1.22; color: #111; overflow-wrap: break-word; }
+        .badge-back-contact-name, .badge-back-contact-phone { display: block; }
+        .badge-back-contact-phone { font-family: 'Aeonik Mono', 'Courier New', monospace; margin-top: 0.35mm; }
+        .badge-back-health-row { align-items: flex-start; }
+        .badge-back-health-row .badge-back-icontile { margin-top: 0.25mm; }
+        .badge-back-healthvalue { white-space: pre-line; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; max-height: calc(5 * 1.22em); }
         .badge-back-idvalue { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; }
         .badge-back-panel.is-dense .badge-back-row2 { padding: 0.6mm 0; }
         .badge-back-panel.is-dense .badge-back-icontile { max-width: 5.4mm }
         .badge-back-panel.is-dense .badge-back-rowlabel { font-size: 4.7pt; margin-bottom: 0.4mm; }
         .badge-back-panel.is-dense .badge-back-rowvalue { font-size: 5.7pt; line-height: 1.15; }
+        .badge-back-panel.is-dense .badge-back-healthvalue { max-height: calc(5 * 1.15em); }
         .badge-back-legal { flex-shrink: 0; font-family: 'Aeonik', sans-serif; font-weight: 400; font-size: 5.4pt; line-height: 1.32; color: #55555a; text-align: left; padding: 1.2mm 0 0.8mm; }
         .badge-barcode-error { font-family: 'Aeonik', sans-serif; font-weight: 400; font-size: 0.65rem; color: #b3261e; }
         .badge-barcode { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding-top: 0.4mm; }
