@@ -7790,8 +7790,8 @@
   </div>
 </div>
 <!-- ══ IMAGE LIGHTBOX (canonical, generic — any gallery can call openImageLightbox) ══ -->
-<div class="lightbox-overlay" id="lightbox-overlay" onclick="if(event.target===this)closeImageLightbox()">
-  <button class="lightbox-close" onclick="closeImageLightbox()" title="Close (Esc)">
+<div class="lightbox-overlay" id="lightbox-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Vista ampliada de imagen">
+  <button type="button" class="lightbox-close" id="lightbox-close" title="Cerrar (Esc)" aria-label="Cerrar vista ampliada">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>
   </button>
   <div class="lightbox-counter" id="lightbox-counter"></div>
@@ -10295,18 +10295,31 @@ function emptyStateHtml(opts) {
    ImageLightbox — generic full-screen image viewer (SIERRA_DESIGN_
    SYSTEM.md "ImageLightbox"). Any gallery in the app can call
    openImageLightbox(urls, startIndex) — not product-detail-only. ══ */
-let _lightboxImages = [], _lightboxIdx = 0
+let _lightboxImages = [], _lightboxIdx = 0, _lightboxReturnFocus = null
 function openImageLightbox(images, startIndex = 0) {
   _lightboxImages = images || []
   if (!_lightboxImages.length) return
   _lightboxIdx = Math.max(0, Math.min(startIndex, _lightboxImages.length - 1))
-  document.getElementById('lightbox-overlay').classList.add('open')
+  const overlay = document.getElementById('lightbox-overlay')
+  _lightboxReturnFocus = document.activeElement
+  overlay.classList.add('open')
+  overlay.setAttribute('aria-hidden', 'false')
   document.body.style.overflow = 'hidden'
   renderLightbox()
+  requestAnimationFrame(() => document.getElementById('lightbox-close')?.focus())
 }
 function closeImageLightbox() {
-  document.getElementById('lightbox-overlay').classList.remove('open')
+  const overlay = document.getElementById('lightbox-overlay')
+  if (!overlay) return
+  overlay.classList.remove('open')
+  overlay.setAttribute('aria-hidden', 'true')
   document.body.style.overflow = ''
+  const img = document.getElementById('lightbox-img')
+  if (img) img.removeAttribute('src')
+  _lightboxImages = []
+  _lightboxIdx = 0
+  _lightboxReturnFocus?.focus?.()
+  _lightboxReturnFocus = null
 }
 function lightboxNav(delta) {
   if (!_lightboxImages.length) return
@@ -10328,6 +10341,16 @@ function renderLightbox() {
     ).join('')
   }
 }
+const lightboxOverlay = document.getElementById('lightbox-overlay')
+const lightboxClose = document.getElementById('lightbox-close')
+lightboxClose?.addEventListener('click', e => {
+  e.preventDefault()
+  e.stopPropagation()
+  closeImageLightbox()
+})
+lightboxOverlay?.addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeImageLightbox()
+})
 document.addEventListener('keydown', e => {
   if (!document.getElementById('lightbox-overlay')?.classList.contains('open')) return
   if (e.key === 'Escape') closeImageLightbox()
