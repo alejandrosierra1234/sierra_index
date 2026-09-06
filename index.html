@@ -22511,7 +22511,7 @@ function badgePhotoPrintTargetPx() {
 // a normalized 0-1 crop RECTANGLE within the source photo's own pixel
 // space) — no new column, no new jsonb shape. Nothing read/wrote this
 // column before this pass; every consumer below goes through this one
-// resolver so the four render surfaces (preview, compare, print popup,
+// resolver so the four render surfaces (preview, compare, print frame,
 // print artifact) cannot independently drift.
 //
 // A stored rect is honored only if it is well-formed and inside bounds —
@@ -22574,12 +22574,12 @@ function badgeCropBaseRectForContainer(containerAspect, naturalAspect) {
 }
 // ONE shared markup builder consumed identically by renderBadgeFront()
 // (preview + Compare mode, since both call renderBadgeFront()),
-// _badgeFrontSheetHtml() (both the manual-duplex print popup and the
+// _badgeFrontSheetHtml() (both the manual-duplex print frame and the
 // combined ZC300 print artifact — both go through _badgeBuildPrintHtml()
 // → _badgeFrontSheetHtml()), so there is exactly one place that decides
 // how a photo_url + photo_crop pair becomes pixels. `trackStatus` gates
 // the onload/onerror → badgeMarkPhotoStatus()/badgeMarkPhotoNaturalSize()
-// wiring — the print document is a standalone popup window with none of
+// wiring — the print document is a standalone iframe document with none of
 // the app's JS loaded, so it always passes trackStatus:false and relies
 // solely on the inline onerror→closest().classList.add('is-broken') that
 // already worked before this pass.
@@ -23122,7 +23122,7 @@ const REQUIRED_BADGE_FONT_CHECKS = [
 // Returns the checks (from REQUIRED_BADGE_FONT_CHECKS) that FAILED against
 // the given document's font set — i.e. the faces the badge cannot actually
 // render with. `doc` is a `Document` (the main document, or the print
-// popup's own isolated document — each has its own `document.fonts`).
+// print frame's own isolated document — each has its own `document.fonts`).
 function badgeFontLoadFailures(doc) {
   if (!doc || !doc.fonts || typeof doc.fonts.check !== 'function') return REQUIRED_BADGE_FONT_CHECKS.slice()
   return REQUIRED_BADGE_FONT_CHECKS.filter(c => {
@@ -23399,7 +23399,7 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
            cascade order applies regardless of the media condition — so a
            reset declared earlier (right after @page, as this used to be)
            was silently overwritten by the plain body/.badge-sheet rules
-           further down. That's what let the popup's own on-screen
+           further down. That's what let the print document's screen-only
            "floating card" mockup chrome (box-shadow, border, border-
            radius, the 10px body margin, the #f5f5f5 body background)
            leak straight into the physical print output: the printed CR80
@@ -23411,7 +23411,7 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
            ZEBRA_ZC300_PROFILE.bleed's comment) keeping critical content
            (text/photo/barcode) inset from the true card edge for
            registration tolerance; only the simulated OUTER card boundary
-           (shadow/border/radius) and the popup's screen-only chrome are
+           (shadow/border/radius) and the print document's screen chrome are
            removed here — every internal panel/photo/footer radius stays
            exactly as designed. print-color-adjust:exact is kept so
            backgrounds/colors still survive printing. */
@@ -23429,23 +23429,34 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
   `
 }
 
-// Opens the print popup, writes `html` into it, waits for the popup's own
-// DOM/fonts/photo to settle, runs the AUTHORITATIVE popup-side font
-// verification, and calls w.print() + waits for the (best-effort, ambiguous
+// Mounts an invisible, same-origin print frame inside the editor, writes
+// `html` into it, waits for that frame's DOM/fonts/photo to settle, runs the
+// AUTHORITATIVE print-document font verification, and calls print() + waits
+// for the (best-effort, ambiguous
 // by design — see the long comment below) afterprint signal. Returns
 // { ok:true } once the print dialog has closed (or the bounded timeout
 // elapsed) with fonts verified, or { ok:false } after already toasting the
-// specific failure and closing any popup it opened. This is shared,
+// specific failure and removing its frame. The native system dialog remains
+// mandatory, but no visible intermediary window or popup permission is
+// needed. This is shared,
 // unmodified logic between dúplex mode, manual mode's two separate print
 // actions, and the calibration card — none of them get their own,
 // potentially-diverging copy of this wait/verify sequence.
-async function _badgeOpenPopupAndPrint(html, { waitForPhoto = true } = {}) {
-  const w = window.open('', '_blank', 'width=900,height=700')
+async function _badgePrintFromEditor(html, { waitForPhoto = true } = {}) {
+  const frame = document.createElement('iframe')
+  frame.setAttribute('aria-hidden', 'true')
+  frame.setAttribute('title', 'Documento temporal de impresión de gafete')
+  Object.assign(frame.style, {
+    position: 'fixed', width: '1px', height: '1px', right: '0', bottom: '0',
+    border: '0', opacity: '0', pointerEvents: 'none',
+  })
+  document.body.appendChild(frame)
+  const w = frame.contentWindow
   if (!w) {
-    toast('No se pudo abrir la ventana de impresión — habilita las ventanas emergentes para este sitio e inténtalo de nuevo')
-    return { ok: false, reason: 'popup_blocked' }
+    frame.remove()
+    toast('No se pudo preparar el documento de impresión — inténtalo de nuevo')
+    return { ok: false, reason: 'print_frame' }
   }
-
   w.document.write(html)
   w.document.close()
 
@@ -23462,14 +23473,14 @@ async function _badgeOpenPopupAndPrint(html, { waitForPhoto = true } = {}) {
     Promise.race([viaLoad, viaRaf]).then(() => { clearTimeout(cap); done() })
   })
 
-  let popupFontResult
+  let printFontResult
   try {
-    popupFontResult = await Promise.race([
+    printFontResult = await Promise.race([
       verifyBadgeFonts(w.document),
       new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000)),
     ])
   } catch (e) {
-    popupFontResult = { rows: REQUIRED_BADGE_FONT_CHECKS.map(c => ({ spec: c.spec, label: c.label, loadResolved: false, checkPassed: false, faceLoaded: false, ok: false })), failures: REQUIRED_BADGE_FONT_CHECKS.map(c => ({ spec: c.spec, label: c.label })), timedOut: true }
+    printFontResult = { rows: REQUIRED_BADGE_FONT_CHECKS.map(c => ({ spec: c.spec, label: c.label, loadResolved: false, checkPassed: false, faceLoaded: false, ok: false })), failures: REQUIRED_BADGE_FONT_CHECKS.map(c => ({ spec: c.spec, label: c.label })), timedOut: true }
   }
   if (waitForPhoto) {
     await Promise.race([
@@ -23483,20 +23494,29 @@ async function _badgeOpenPopupAndPrint(html, { waitForPhoto = true } = {}) {
     ])
   }
 
-  if (popupFontResult.failures.length) {
-    console.error('Badge print: print-document font verification failed (authoritative popup-side check):', popupFontResult.rows)
-    toast('No se puede imprimir: la ventana de impresión no pudo verificar la tipografía requerida (' + popupFontResult.failures.map(f => f.label).join(' · ') + ') — inténtalo de nuevo')
-    try { w.close() } catch (e) {}
+  if (printFontResult.failures.length) {
+    console.error('Badge print: print-document font verification failed (authoritative frame-side check):', printFontResult.rows)
+    toast('No se puede imprimir: el documento de impresión no pudo verificar la tipografía requerida (' + printFontResult.failures.map(f => f.label).join(' · ') + ') — inténtalo de nuevo')
+    frame.remove()
     return { ok: false, reason: 'fonts' }
   }
 
-  w.print()
+  try {
+    w.focus()
+    w.print()
+  } catch (e) {
+    console.error('Badge print: browser rejected frame printing:', e)
+    frame.remove()
+    toast('No se pudo abrir el diálogo de impresión — inténtalo de nuevo')
+    return { ok: false, reason: 'print_dialog' }
+  }
 
   // Honesty limitation (unchanged across dúplex AND manual mode, and the
   // calibration card): JavaScript has no reliable, cross-browser way to
   // know whether the operator actually completed or cancelled the native
   // print dialog. `afterprint` fires once the dialog closes either way, and
-  // a 15s fallback covers popup setups that never fire it at all — but
+  // a 15s fallback covers browser/frame combinations that never fire it
+  // at all — but
   // resolving this promise means only "the dialog is no longer open (or we
   // gave up waiting)", never "the badge physically printed". Every caller's
   // UI copy must preserve that distinction rather than implying more
@@ -23508,11 +23528,12 @@ async function _badgeOpenPopupAndPrint(html, { waitForPhoto = true } = {}) {
     setTimeout(finish, 15000)
   })
 
-  return { ok: true, window: w }
+  frame.remove()
+  return { ok: true }
 }
 
 // Shared preflight: readiness, permission, double-submission guard, barcode
-// generation (main-document, pre-popup — unchanged architecture from the
+// generation (main-document, pre-frame — unchanged architecture from the
 // prior pass, see the barcode comment below), and main-document font
 // preload. Identical for dúplex mode and BOTH steps of manual mode — the
 // only difference between callers is which button id it manages and what
@@ -23539,7 +23560,8 @@ async function _badgePrintPreflight(issuance, emp, btnId, idleLabel) {
   }
 
   // Hard blocker (unchanged architecture): the real barcode SVG is generated
-  // HERE, in the MAIN document, entirely BEFORE window.open() — never after
+  // HERE, in the MAIN document, entirely BEFORE mounting the print frame —
+  // never after
   // — to avoid the cross-document JsBarcode/canvas measurement bug a prior
   // pass fixed. Same options as the on-screen preview
   // (renderBadgeBackBarcodePreview()), so the two structurally cannot drift.
@@ -23643,7 +23665,7 @@ async function printBadgeDuplex() {
   const { site, pieces, barcodeMarkup, resetPrintingState } = pre
   const calibration = getZc300Calibration()
   const html = _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides: ZEBRA_ZC300_PROFILE.pageOrder, calibration })
-  const result = await _badgeOpenPopupAndPrint(html, { waitForPhoto: true })
+  const result = await _badgePrintFromEditor(html, { waitForPhoto: true })
   if (!result.ok) { resetPrintingState(); return }
 
   toast('Proceso de impresión cerrado. Verifica la salida física.')
@@ -23669,7 +23691,7 @@ async function printBadgeManualFront() {
   const { site, pieces, barcodeMarkup, resetPrintingState } = pre
   const calibration = getZc300Calibration()
   const html = _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides: ['front'], calibration, titleSuffix: 'Anverso' })
-  const result = await _badgeOpenPopupAndPrint(html, { waitForPhoto: true })
+  const result = await _badgePrintFromEditor(html, { waitForPhoto: true })
   resetPrintingState()
   if (!result.ok) return
   toast('Anverso enviado a impresión. Voltea la tarjeta y confirma para imprimir el reverso.')
@@ -23699,7 +23721,7 @@ async function printBadgeManualReverseConfirmed() {
   const { site, pieces, barcodeMarkup, resetPrintingState } = pre
   const calibration = getZc300Calibration()
   const html = _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides: ['back'], calibration, titleSuffix: 'Reverso' })
-  const result = await _badgeOpenPopupAndPrint(html, { waitForPhoto: false })
+  const result = await _badgePrintFromEditor(html, { waitForPhoto: false })
   if (!result.ok) { resetPrintingState(); return }
 
   toast('Proceso de impresión cerrado. Verifica la salida física.')
@@ -23870,8 +23892,8 @@ function renderBadgeManualDuplexFlipPanel() {
   `
 }
 
-// ---- Calibration test card (section 5) — same @page/font-face/popup
-// pipeline as real badges (_badgeOpenPopupAndPrint, _badgeFontFaceCss,
+// ---- Calibration test card (section 5) — same @page/font-face/frame
+// pipeline as real badges (_badgePrintFromEditor, _badgeFontFaceCss,
 // badgeGeometryMm()), no employee data anywhere. ----
 function _badgeCalibrationSheetHtml(sideLabel, calibration) {
   const { w: W, h: H } = badgeGeometryMm()
@@ -23917,7 +23939,7 @@ function _badgeBuildCalibrationHtml(calibration) {
         .cal-offset-label { position: absolute; bottom: 3mm; left: 0; right: 0; text-align: center; font-family: 'Aeonik Mono', monospace; font-size: 6.5pt; color: #333; }
         /* Same PRINT OUTPUT RESET ordering fix as _badgeBuildPrintHtml() —
            placed LAST so it isn't overwritten by the plain body/.cal-sheet
-           rules above (which exist only for the popup's on-screen preview
+           rules above (which exist only for the frame's screen rendering
            before the print dialog opens). */
         @media print {
           body { margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -23948,7 +23970,7 @@ async function printZc300CalibrationCard() {
   closeSideDrawer()
   const calibration = getZc300Calibration()
   const html = _badgeBuildCalibrationHtml(calibration)
-  const result = await _badgeOpenPopupAndPrint(html, { waitForPhoto: false })
+  const result = await _badgePrintFromEditor(html, { waitForPhoto: false })
   if (result.ok) toast('Tarjeta de calibración enviada a impresión — mide con regla/calibrador contra el tramo de 10mm impreso.')
 }
 
