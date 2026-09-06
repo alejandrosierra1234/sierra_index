@@ -4923,7 +4923,7 @@
       overflow: hidden;
     }
     .emp-md-list {
-      width: 340px; min-width: 340px; flex-shrink: 0;
+      width: 380px; min-width: 380px; flex-shrink: 0;
       display: flex; flex-direction: column; min-height: 0;
       border-right: 1px solid var(--border); background: var(--surface);
       transition: width 0.18s var(--ease-out), min-width 0.18s var(--ease-out), opacity 0.12s;
@@ -4964,14 +4964,29 @@
        gets a chance to reposition it. .emp-profile-body still scrolls
        its own content via its own overflow-y:auto. */
     .emp-md-detail { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: visible; background: var(--surface); }
-    .emp-md-empty { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    .emp-md-empty { flex: 1; display: flex; align-items: center; justify-content: center; padding: clamp(2rem, 6vw, 5rem); }
+    .emp-md-empty-inner { width: 100%; max-width: 430px; text-align: center; display: flex; flex-direction: column; align-items: center; }
+    .emp-md-empty-symbol {
+      width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center;
+      color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+      border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border)); margin-bottom: 1.15rem;
+    }
+    .emp-md-empty-symbol .si-icon { width: 24px; height: 24px; }
+    .emp-md-empty-title { margin: 0; color: var(--text-primary); font-size: 1.15rem; font-weight: 650; letter-spacing: -0.018em; }
+    .emp-md-empty-desc { max-width: 350px; margin: 0.45rem 0 0; color: var(--text-secondary); font-size: 0.82rem; line-height: 1.5; }
+    .emp-md-empty-capabilities { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.4rem 0.65rem; margin-top: 1rem; color: var(--text-3); font-size: 0.7rem; }
+    .emp-md-empty-capability { display: inline-flex; align-items: center; gap: 0.3rem; }
+    .emp-md-empty-capability .si-icon { width: 12px; height: 12px; }
+    .emp-md-empty-actions { display: flex; align-items: center; justify-content: center; gap: 0.55rem; margin-top: 1.25rem; }
+    .emp-md-empty-hint { margin-top: 0.8rem; color: var(--text-muted); font-size: 0.67rem; }
+    .emp-md-empty-hint kbd { font: inherit; border: 1px solid var(--border); border-bottom-color: var(--border-strong); border-radius: 5px; background: var(--surface2); padding: 1px 5px; }
     /* Record Detail's own 1080/860/767 collapse steps (§ SIERRA_DESIGN_
        SYSTEM.md) are the template mirrored here: tablet narrows the list,
        mobile switches to list-OR-detail (never a squeezed 3-up). */
-    @media (max-width: 1080px) { .emp-md-list { width: 280px; min-width: 280px; } }
+    @media (max-width: 1080px) { .emp-md-list { width: 300px; min-width: 300px; } }
     @media (max-width: 860px) {
       .emp-md-layout { height: calc(100vh - 170px); flex-direction: row; position: relative; }
-      .emp-md-list { width: 240px; min-width: 240px; }
+      .emp-md-list { width: 260px; min-width: 260px; }
       .emp-md-collapse-btn { display: none; }
     }
     @media (max-width: 767px) {
@@ -17403,12 +17418,26 @@ document.addEventListener('click', e => {
 // person in the list, since that can mislead ("why is this person's
 // data showing, I didn't click them").
 function empDetailEmptyStateHtml(opts) {
+  if (opts) return `<div class="emp-md-empty">${emptyStateHtml(opts)}</div>`
+  const hasVisibleEmployee = empFilteredList().length > 0
   return `<div class="emp-md-empty">
-    ${emptyStateHtml(opts || {
-      title: 'Selecciona un colaborador',
-      desc: 'Elige a alguien de la lista para ver su perfil completo.',
-    })}
+    <div class="emp-md-empty-inner">
+      <div class="emp-md-empty-symbol" aria-hidden="true">${siIcon('user', 24)}</div>
+      <h2 class="emp-md-empty-title">Selecciona un colaborador</h2>
+      <p class="emp-md-empty-desc">Consulta su información, completa datos pendientes y prepara su gafete sin salir de esta vista.</p>
+      <div class="emp-md-empty-capabilities" aria-label="Acciones disponibles">
+        <span class="emp-md-empty-capability">${siIcon('user', 12)} Perfil</span>
+        <span class="emp-md-empty-capability">${siIcon('credit-card', 12)} Gafete</span>
+        <span class="emp-md-empty-capability">${siIcon('clock', 12)} Historial</span>
+      </div>
+      ${hasVisibleEmployee ? `<div class="emp-md-empty-actions"><button type="button" class="btn btn-primary btn-sm" onclick="selectFirstVisibleEmployee()">Abrir primer resultado</button></div>` : ''}
+      <div class="emp-md-empty-hint">También puedes usar <kbd>↑</kbd> <kbd>↓</kbd> y <kbd>Enter</kbd> en la lista.</div>
+    </div>
   </div>`
+}
+function selectFirstVisibleEmployee() {
+  const first = empFilteredList()[0]
+  if (first) selectEmployee(first.id)
 }
 function renderEmployeesView() {
   const list = empFilteredList()
