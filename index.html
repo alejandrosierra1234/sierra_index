@@ -15993,6 +15993,7 @@ let _badge_ui = {
   editingEmployee: false,
   detailReturnFocusEl: null,  // element to return keyboard focus to when the detail drawer closes
   issuanceInProgress: null,   // badge issuance being created
+  returnAfterEmployeeSave: null, // { employeeId } when profile editing was opened from a badge
   moments: {                   // Momentos workspace filters
     search: '', range: '30',   // 'today' | '7' | '30' | 'all'
     types: new Set(['birthday', 'anniversary', 'new_hire']),
@@ -18761,6 +18762,36 @@ function employeeRouteHash(empId, tab) {
   return `#/employee/${empId}${tab && tab !== 'overview' ? '/' + tab : ''}`
 }
 
+// Editing shared employee data from the badge workspace is a temporary
+// detour, not a navigation away from the badge. Keep the live issuance
+// object (crop/name/side/zoom/manual-duplex state) and return to it only
+// after a successful save. Direct profile edits continue to stay in the
+// selected collaborator exactly as before.
+function editEmployeeFromBadge(empId, tab) {
+  const issuance = _badge_ui.issuanceInProgress
+  if (!issuance || issuance.employee_id !== empId) return viewEmployeeDetail(empId, tab)
+  _badge_ui.returnAfterEmployeeSave = { employeeId: empId }
+  viewEmployeeDetail(empId, tab)
+}
+
+function restoreEmployeeSaveContext(empId, fallbackTab) {
+  const returnsToBadge = _badge_ui.returnAfterEmployeeSave?.employeeId === empId
+    && _badge_ui.issuanceInProgress?.employee_id === empId
+  _badge_ui.returnAfterEmployeeSave = null
+  _badge_ui.editingEmployee = false
+  _badge_ui.selectedEmployeeId = empId
+  if (returnsToBadge) {
+    _badge_ui.view = 'issuance'
+    replaceHash(`#/badge/${empId}`)
+    renderBadgeModule()
+    return
+  }
+  _badge_ui.view = 'employees'
+  _badge_ui.detailTab = fallbackTab || _badge_ui.detailTab || 'overview'
+  replaceHash(employeeRouteHash(empId, _badge_ui.detailTab))
+  renderBadgeModule()
+}
+
 // Universal entry point (§ "desde cualquier módulo") — navigates to
 // Colaboradores and selects empId. Used when arriving from OUTSIDE the
 // Colaboradores screen (org chart, vacaciones, gafetes, altas/bajas,
@@ -18816,6 +18847,7 @@ function selectEmployee(empId, tab) {
 function closeEmployeeDetail() {
   if (_badge_ui.editingEmployee && !confirm('Tienes cambios sin guardar. ¿Cerrar sin guardar?')) return
   _badge_ui.selectedEmployeeId = null
+  _badge_ui.returnAfterEmployeeSave = null
   _badge_ui.editingEmployee = false
   _empSelectionToken++
   clearHash()
@@ -19050,6 +19082,8 @@ function copyEmployeeOrgInfo(empId) {
 }
 
 async function uploadEmployeeDetailPhoto(empId, inputEl) {
+  const originView = _badge_ui.view
+  const originTab = _badge_ui.detailTab
   const file = inputEl.files[0]
   if (!file) return
   if (!IMG_TYPES.includes(file.type)) { toast('Tipo de imagen no soportado'); return }
@@ -19076,13 +19110,20 @@ async function uploadEmployeeDetailPhoto(empId, inputEl) {
   const emp = _badge.employees.find(e => e.id === empId)
   if (emp) { emp.photo_url = data.publicUrl; emp.photo_crop = {}; Audit.log('employee', empId, emp, 'photo_updated', 'Fotografía actualizada') }
   toast('Fotografía actualizada')
-  if (emp) renderEmployeeDetailDrawer(emp)
-  renderBadgeModule()
+  if (originView === 'issuance' && _badge_ui.issuanceInProgress?.employee_id === empId) {
+    _badge_ui.view = 'issuance'
+    replaceHash(`#/badge/${empId}`)
+    renderBadgeModule()
+  } else {
+    restoreEmployeeSaveContext(empId, originTab)
+  }
 }
 // "Remove photo" (§5 secondary overflow action) — keeps the original
 // file in storage (nothing is deleted from the bucket), it just detaches
 // it from the record so the profile falls back to initials.
 async function removeEmployeePhoto(empId) {
+  const originView = _badge_ui.view
+  const originTab = _badge_ui.detailTab
   const emp = _badge.employees.find(e => e.id === empId)
   if (!emp || !emp.photo_url) return
   if (!confirm(`¿Quitar la fotografía de ${orgFullName(emp)}?`)) return
@@ -19091,8 +19132,13 @@ async function removeEmployeePhoto(empId) {
   emp.photo_url = null
   Audit.log('employee', empId, emp, 'photo_removed', 'Fotografía eliminada')
   toast('Fotografía eliminada')
-  renderEmployeeDetailDrawer(emp)
-  renderBadgeModule()
+  if (originView === 'issuance' && _badge_ui.issuanceInProgress?.employee_id === empId) {
+    _badge_ui.view = 'issuance'
+    replaceHash(`#/badge/${empId}`)
+    renderBadgeModule()
+  } else {
+    restoreEmployeeSaveContext(empId, originTab)
+  }
 }
 
 /* ── Overview tab: the everyday-use summary — organization, contact,
@@ -19427,11 +19473,16 @@ function empStartEdit() {
   if (emp) renderEmployeeDetailDrawer(emp)
 }
 function empCancelEdit() {
+  if (_badge_ui.returnAfterEmployeeSave?.employeeId === _badge_ui.selectedEmployeeId) {
+    restoreEmployeeSaveContext(_badge_ui.selectedEmployeeId, _badge_ui.detailTab)
+    return
+  }
   _badge_ui.editingEmployee = false
   const emp = _badge.employees.find(e => e.id === _badge_ui.selectedEmployeeId)
   if (emp) renderEmployeeDetailDrawer(emp)
 }
 async function empSaveEdit(empId) {
+  const returnTab = _badge_ui.detailTab
   const fields = ['first_name', 'last_name', 'preferred_name', 'birth_date', 'department', 'position',
     'supervisor_name', 'hire_date', 'employee_category', 'company', 'country', 'employee_status',
     'phone', 'email', 'identification_type', 'identification_number',
@@ -19446,8 +19497,7 @@ async function empSaveEdit(empId) {
   const diffs = Audit.diff(before, { ...before, ...payload })
   Object.assign(before, payload)
   Audit.log('employee', empId, before, 'edited', 'Registro de colaborador actualizado', diffs)
-  _badge_ui.editingEmployee = false
-  renderEmployeeDetailDrawer(before)
+  restoreEmployeeSaveContext(empId, returnTab)
   toast('Colaborador actualizado')
 }
 
@@ -19856,6 +19906,7 @@ function closeImportModal() {
 }
 
 function startBadgeIssuance(empId) {
+  _badge_ui.returnAfterEmployeeSave = null
   // Defense in depth: every UI entry point that calls startBadgeIssuance()
   // is already gated on can('write','talento_humano') (the badge back
   // carries blood type, emergency contact and health conditions — PII),
@@ -20997,8 +21048,8 @@ function renderBadgeReadinessCompact(emp, r, st) {
   const reasonText = r.errors.map(e => e.message).join(' · ')
   const fixFor = (field) => {
     if (field === 'photo') return `document.getElementById('badge-photo-input')?.click()`
-    if (field === 'blood_type') return `viewEmployeeDetail('${emp.id}','personal')`
-    return `viewEmployeeDetail('${emp.id}','overview')`
+    if (field === 'blood_type') return `editEmployeeFromBadge('${emp.id}','personal')`
+    return `editEmployeeFromBadge('${emp.id}','overview')`
   }
   const tone = st.state === 'blocked' ? 'blocked' : st.state === 'missing' ? 'missing' : 'ok'
   const cls = tone === 'ok' ? 'badge-ready-yes' : tone === 'missing' ? 'badge-ready-missing' : 'badge-ready-blocked'
@@ -21063,7 +21114,7 @@ function renderBadgeDataPanel(emp, issuance) {
           <code>${emp.employee_code ? esc(emp.employee_code) : '—'}</code>
         </div>
         <div class="bds-note">No editable aquí — refleja el registro del colaborador.</div>
-        ${canWrite ? `<button type="button" class="badge-profile-link" onclick="viewEmployeeDetail('${emp.id}','overview')">${siIcon('pencil', 13)} Editar en el perfil</button>` : ''}
+        ${canWrite ? `<button type="button" class="badge-profile-link" onclick="editEmployeeFromBadge('${emp.id}','overview')">${siIcon('pencil', 13)} Editar en el perfil</button>` : ''}
       </div>
 
       ${renderBadgeNameSelectorSection(emp, issuance, canWrite)}
@@ -22883,6 +22934,8 @@ function badgeCropReset(empId) {
 // edit — not re-invented here.
 async function saveBadgeCropEditor(empId) {
   if (!_badgeCropEditor?.crop) { toast('Nada que guardar todavía'); return }
+  const originView = _badge_ui.view
+  const originTab = _badge_ui.detailTab
   const crop = _badgeCropEditor.crop
   const { error } = await sb.from('employees').update({ photo_crop: crop }).eq('id', empId)
   if (error) { toast('Error al guardar el encuadre: ' + error.message); return }
@@ -22890,7 +22943,13 @@ async function saveBadgeCropEditor(empId) {
   if (emp) { emp.photo_crop = crop; Audit.log('employee', empId, emp, 'photo_crop_updated', 'Encuadre de fotografía actualizado') }
   toast('Encuadre guardado')
   closeSideDrawer()
-  renderBadgeModule()
+  if (originView === 'issuance' && _badge_ui.issuanceInProgress?.employee_id === empId) {
+    _badge_ui.view = 'issuance'
+    replaceHash(`#/badge/${empId}`)
+    renderBadgeModule()
+  } else {
+    restoreEmployeeSaveContext(empId, originTab)
+  }
 }
 
 // Bounded density step for the reverse's 5-row panel: a long emergency-
