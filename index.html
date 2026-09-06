@@ -16842,6 +16842,7 @@ function empActiveFilterCount() {
 function empClearFilters() {
   Object.values(_badge_ui.filters).forEach(s => s.clear())
   _badge_ui.quickFilter = null
+  _badge_ui.employeeSearch = ''
   renderBadgeModule()
 }
 function empRemoveFilterChipVal(key, val) {
@@ -16869,12 +16870,15 @@ const QUICK_FILTER_LABELS = {
   ready_delivery: 'Listo para entrega', new_hires: 'Nuevo ingreso (30 días)',
   upcoming_hires: 'Ingreso próximo',
 }
+function normalizeEmployeeSearch(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+}
 function empFilteredList() {
-  const q = (_badge_ui.employeeSearch || '').toLowerCase()
+  const q = normalizeEmployeeSearch(_badge_ui.employeeSearch)
   const canId = can('write', 'talento_humano')
   let list = _badge.employees.filter(e => {
     if (q) {
-      const hay = [e.first_name, e.last_name, e.employee_code, e.department, e.position, canId ? e.identification_number : ''].filter(Boolean).join(' ').toLowerCase()
+      const hay = normalizeEmployeeSearch([e.first_name, e.last_name, e.employee_code, e.department, e.position, canId ? e.identification_number : ''].filter(Boolean).join(' '))
       if (!hay.includes(q)) return false
     }
     if (_badge_ui.filters.department.size && !_badge_ui.filters.department.has(e.department)) return false
@@ -18767,8 +18771,26 @@ async function setSiteContext(siteId) {
 }
 
 function filterEmployees(query) {
-  _badge_ui.employeeSearch = query.toLowerCase()
-  renderBadgeModule()
+  _badge_ui.employeeSearch = query
+  const list = empFilteredList()
+  const listBody = document.getElementById('emp-md-list-scroll')
+  if (!listBody) {
+    renderBadgeModule()
+    return
+  }
+  // Search is an in-place list operation. Rebuilding the whole module on
+  // every keystroke destroyed the input node (and its focus) after the
+  // first character, which made the field appear broken. Only replace the
+  // result region; the input/caret, selected profile and detail scroll all
+  // remain untouched.
+  listBody.innerHTML = empMdListHtml(list)
+  listBody.scrollTop = 0
+  if (!_badge_ui.selectedEmployeeId) {
+    const detail = document.getElementById('employee-detail-drawer')
+    if (detail) detail.innerHTML = empDetailEmptyStateHtml()
+  }
+  const announcer = document.getElementById('emp-md-announcer')
+  if (announcer) announcer.textContent = `${list.length} colaborador${list.length === 1 ? '' : 'es'} encontrado${list.length === 1 ? '' : 's'}`
 }
 
 /* ══════════════════════════════════════════════════════════════════════
