@@ -5972,6 +5972,12 @@
       flex-shrink: 0;
     }
     .issuance-actions-divider { width: 1px; height: 24px; background: var(--border); margin: 0 0.15rem; }
+    .responsiva-modal-content { width: min(920px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: hidden; }
+    .responsiva-preview-shell { background: var(--surface-subtle); padding: 1.25rem; overflow: auto; display: flex; justify-content: center; }
+    .responsiva-preview-frame { width: 216mm; height: 279mm; max-width: 100%; border: 0; background: #fff; box-shadow: 0 10px 32px rgba(0,0,0,.12); transform-origin: top center; }
+    .company-logo-field { display: flex; align-items: center; gap: 0.9rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface-subtle); }
+    .company-logo-preview { width: 72px; height: 48px; object-fit: contain; background: #fff; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 5px; box-sizing: border-box; }
+    .company-logo-placeholder { width: 72px; height: 48px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--border-strong); border-radius: var(--r-sm); color: var(--text-muted); font-size: .65rem; text-align: center; }
     @media (max-width: 1050px) {
       .issuance-header { grid-template-columns: auto minmax(0, 1fr); }
       .issuance-header-actions { grid-column: 1 / -1; justify-content: flex-end; }
@@ -16195,7 +16201,14 @@ async function loadBadgeData() {
   _badge.sites = sites || []
 
   // Load companies
-  const { data: companies } = await sb.from('companies').select('id, country_id, name, legal_name, code').order('name')
+  let { data: companies, error: companiesLoadError } = await sb.from('companies').select('id, country_id, name, legal_name, code, logo_url').order('name')
+  // update33.sql may be deployed moments after the UI. Keep organizational
+  // master data usable during that window; the responsiva surfaces a clear
+  // "logo pendiente" state until the column exists and a logo is uploaded.
+  if (companiesLoadError && /logo_url/i.test(companiesLoadError.message || '')) {
+    const fallback = await sb.from('companies').select('id, country_id, name, legal_name, code').order('name')
+    companies = (fallback.data || []).map(c => ({ ...c, logo_url: null }))
+  }
   _badge.companies = {}
   companies?.forEach(c => {
     if (!_badge.companies[c.country_id]) _badge.companies[c.country_id] = []
@@ -18598,14 +18611,14 @@ function renderCompaniesView() {
       <div class="badge-table-wrap">
         <table class="erp-table">
           <thead>
-            <tr><th>Nombre</th><th>Código</th><th>Razón social</th><th>País</th><th>Sedes</th><th>Acciones</th></tr>
+            <tr><th>Empresa</th><th>Código</th><th>Razón social</th><th>País</th><th>Sedes</th><th>Acciones</th></tr>
           </thead>
           <tbody>
             ${rows.length ? rows.map(c => {
               const sites = _badge.sites.filter(s => s.company_id === c.id)
               return `
               <tr>
-                <td class="emp-td-trunc">${esc(c.name)}</td>
+                <td><div style="display:flex;align-items:center;gap:.6rem">${c.logo_url ? `<img src="${escAttr(c.logo_url)}" alt="" style="width:38px;height:26px;object-fit:contain">` : `<span class="company-logo-placeholder" style="width:38px;height:26px">Logo</span>`}<span class="emp-td-trunc">${esc(c.name)}</span></div></td>
                 <td class="emp-td-trunc">${esc(c.code || '—')}</td>
                 <td class="emp-td-trunc" title="${escAttr(c.legal_name || '')}">${esc(c.legal_name || '—')}</td>
                 <td class="emp-td-trunc">${esc(c.countryName)}</td>
@@ -18659,6 +18672,13 @@ function openCompanyEditor(id) {
             ${_badge.countries.map(c => `<option value="${c.id}" ${company?.country_id === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
           </select>
         </div>
+        <div class="import-map-row">
+          <label>Logo legal de la empresa</label>
+          <div class="company-logo-field">
+            ${company?.logo_url ? `<img class="company-logo-preview" src="${escAttr(company.logo_url)}" alt="Logo actual de ${escAttr(company.name)}">` : `<div class="company-logo-placeholder">Sin logo</div>`}
+            <div style="min-width:0;flex:1"><label class="btn btn-secondary btn-sm" style="display:inline-flex;cursor:pointer">${siIcon('upload', 13)} ${company?.logo_url ? 'Reemplazar logo' : 'Subir logo'}<input id="company-logo-file" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none" onchange="previewCompanyLogoFile(this)"></label><div id="company-logo-file-name" style="margin-top:.35rem;font-size:.68rem;color:var(--text-muted)">PNG, JPG, WebP o SVG · máximo ${IMG_MAX_MB} MB</div></div>
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeCompanyEditor()">Cancelar</button>
@@ -18685,7 +18705,19 @@ async function saveCompany(id) {
   // company by id/code (Colaboradores, badges, Organización, filters,
   // exports) picks up the new display name automatically without a
   // separate migration per screen.
-  const payload = { name, code: code || null, legal_name: legal_name || null, country_id }
+  const company = id ? Object.values(_badge.companies).flat().find(c => c.id === id) : null
+  let logo_url = company?.logo_url || null
+  const logoFile = document.getElementById('company-logo-file')?.files?.[0]
+  if (logoFile) {
+    if (!IMG_TYPES.includes(logoFile.type) && logoFile.type !== 'image/svg+xml') { toast('Tipo de logo no soportado'); return }
+    if (logoFile.size > IMG_MAX_MB * 1024 * 1024) { toast(`El logo supera ${IMG_MAX_MB} MB`); return }
+    const ext = (logoFile.name.split('.').pop() || 'png').toLowerCase()
+    const path = `company-logos/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const { error: uploadError } = await sb.storage.from('product-images').upload(path, logoFile, { contentType: logoFile.type, upsert: false })
+    if (uploadError) { toast('Error al subir el logo: ' + uploadError.message); return }
+    logo_url = sb.storage.from('product-images').getPublicUrl(path).data.publicUrl
+  }
+  const payload = { name, code: code || null, legal_name: legal_name || null, country_id, logo_url }
   const { error } = id
     ? await sb.from('companies').update(payload).eq('id', id)
     : await sb.from('companies').insert(payload)
@@ -18694,6 +18726,22 @@ async function saveCompany(id) {
   await loadBadgeData()
   renderBadgeModule()
   toast(id ? 'Empresa actualizada' : 'Empresa creada')
+}
+
+function previewCompanyLogoFile(input) {
+  const file = input.files?.[0]
+  if (!file) return
+  const name = document.getElementById('company-logo-file-name')
+  if (name) name.textContent = file.name
+  const preview = document.querySelector('#company-editor-modal .company-logo-preview, #company-editor-modal .company-logo-placeholder')
+  if (!preview) return
+  const url = URL.createObjectURL(file)
+  const img = document.createElement('img')
+  img.className = 'company-logo-preview'
+  img.alt = 'Vista previa del logo seleccionado'
+  img.src = url
+  img.onload = () => URL.revokeObjectURL(url)
+  preview.replaceWith(img)
 }
 
 async function deleteCompany(id) {
@@ -21112,6 +21160,7 @@ function renderBadgeIssuanceView() {
         <div class="issuance-header-actions">
           ${renderBadgeReadinessCompact(emp, r, st)}
           <span class="issuance-actions-divider" aria-hidden="true"></span>
+          <button class="btn btn-secondary" onclick="openBadgeResponsiva()" title="Preparar carta responsiva de entrega">${siIcon('file', 15)} Carta responsiva</button>
           <button class="btn btn-secondary" onclick="openZc300PrintMenu('${emp.id}')" title="Opciones de impresión Zebra ZC300">${siIcon('settings', 15)} Impresora</button>
           <button class="btn btn-ghost" onclick="closeBadgeIssuance()">Cancelar</button>
           ${issuance.manualDuplex?.frontPrintedAt ? `
@@ -21151,6 +21200,98 @@ function renderBadgeIssuanceView() {
       <div id="badge-issuance-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     </div>
   `
+}
+
+function badgeResponsivaBarcodeMarkup(emp) {
+  try {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    JsBarcode(svg, emp.employee_code, { ...BADGE_BARCODE_OPTIONS, xmlDocument: document })
+    svg.removeAttribute('width')
+    svg.removeAttribute('height')
+    return svg.outerHTML + `<div class="badge-barcode-value">${esc(emp.employee_code)}</div>`
+  } catch (e) {
+    return `<div class="badge-barcode-error">Código no disponible</div>`
+  }
+}
+
+function badgeResponsivaHtml(emp, site) {
+  const issuance = _badge_ui.issuanceInProgress
+  const info = badgeSiteCompanyInfo(site)
+  const company = info.company
+  const legalName = info.legalName || 'Empresa no asignada'
+  const employeeName = `${emp.first_name || ''} ${emp.last_name || ''}`.trim()
+  const printedName = resolveBadgePrintedName(emp.first_name, emp.last_name, issuance?.printedNameSelection)
+  const pieces = _badgePrintPieces(emp, site, issuance?.printedNameSelection)
+  const palette = info.palette
+  const barcode = badgeResponsivaBarcodeMarkup(emp)
+  const front = _badgeFrontSheetHtml(emp, pieces, palette)
+  const back = _badgeBackSheetHtml(emp, pieces, barcode, palette)
+  const date = new Intl.DateTimeFormat('es-HN', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())
+  const fontUrl = file => new URL(file, location.href).href
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><base href="${escAttr(location.href)}"><title>Carta responsiva de gafete — ${esc(employeeName)}</title><style>
+    ${_badgeFontFaceCss(fontUrl)}
+    @page { size: letter; margin: 15mm 17mm; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:#eef0f1; color:#111; font-family:'Aeonik',Arial,sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .responsiva-page { width:216mm; min-height:279mm; margin:12px auto; padding:15mm 17mm; background:#fff; display:flex; flex-direction:column; }
+    .resp-header { display:flex; align-items:center; justify-content:space-between; gap:12mm; padding-bottom:7mm; border-bottom:.35mm solid #111; }
+    .resp-company-logo { width:43mm; height:17mm; display:flex; align-items:center; }
+    .resp-company-logo img { max-width:100%; max-height:100%; object-fit:contain; object-position:left center; }
+    .resp-logo-fallback { font-family:'Replica',sans-serif; font-size:14pt; font-weight:700; line-height:1.05; }
+    .resp-title { text-align:right; }
+    .resp-title h1 { margin:0; font-family:'Replica',sans-serif; font-size:17pt; letter-spacing:-.02em; }
+    .resp-title p { margin:1.5mm 0 0; font-size:7.5pt; text-transform:uppercase; letter-spacing:.1em; color:#666; }
+    .resp-meta { display:grid; grid-template-columns:1.25fr .75fr; gap:4mm 12mm; padding:6mm 0 5mm; border-bottom:.2mm solid #d7d9db; }
+    .resp-field label { display:block; margin-bottom:1mm; color:#666; font-size:7pt; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .resp-field strong { font-size:10pt; font-weight:600; }
+    .resp-badges { display:flex; align-items:flex-start; justify-content:center; gap:12mm; padding:7mm 0 6mm; }
+    .resp-badge-item { text-align:center; }
+    .resp-badge-item > span { display:block; margin-bottom:2mm; color:#666; font-size:7pt; font-weight:700; letter-spacing:.09em; text-transform:uppercase; }
+    .resp-badge-frame { width:46mm; height:73mm; position:relative; overflow:hidden; background:#fff; border-radius:3.4mm; box-shadow:0 1mm 4mm rgba(0,0,0,.12); }
+    .resp-badge-frame > .badge-sheet { transform:scale(.852); transform-origin:top left; margin:0; box-shadow:none; }
+    .resp-copy { font-size:9pt; line-height:1.55; color:#262729; }
+    .resp-copy p { margin:0 0 3.2mm; }
+    .resp-copy strong { color:#000; }
+    .resp-signatures { margin-top:auto; display:grid; grid-template-columns:1fr 1fr; gap:16mm; padding-top:16mm; }
+    .resp-signature { border-top:.3mm solid #222; padding-top:2mm; font-size:8pt; line-height:1.5; }
+    .resp-signature b { display:block; font-size:9pt; }
+    .resp-signature span { color:#666; }
+    .resp-footer { margin-top:9mm; padding-top:3mm; border-top:.2mm solid #d7d9db; display:flex; justify-content:space-between; color:#777; font-size:6.8pt; }
+    .badge-sheet { width:53.98mm; height:85.6mm; background:#fff; color:#000; padding:3mm; display:flex; flex-direction:column; overflow:hidden; position:relative; }
+    .badge-logo-mark svg { width:100%; height:auto; display:block; } .badge-front-header{display:flex;justify-content:center;padding:1mm 0 2.2mm}.badge-front-header .badge-logo-mark{width:28mm}.badge-front-card{flex:1;display:flex;flex-direction:column;gap:1.6mm;justify-content:center}.badge-front-photoblock{width:var(--badge-photo-side);height:var(--badge-photo-side);align-self:center;overflow:hidden;border-radius:3mm;position:relative}.badge-employee-photo,.badge-photo-crop{width:100%;height:100%;object-fit:cover}.badge-front-panel{display:flex;flex-direction:column;align-items:center;text-align:center;padding:2mm 3mm;gap:.8mm}.badge-front-idline,.badge-barcode-value{font-family:'Aeonik Mono';font-size:7pt}.badge-name-line{font-family:'Replica';font-weight:700;text-transform:uppercase}.badge-position-line{font-size:7.6pt}.badge-front-companybar{margin-top:1.6mm;border-radius:3mm;background:var(--badge-plant-accent);padding:1.4mm 3mm;text-align:center}.badge-company-line{font-size:6.6pt;font-weight:700;color:#fff;text-transform:uppercase}.badge-sheet.is-back{padding-right:13mm}.badge-back-header{display:flex;justify-content:space-between;padding-bottom:3mm}.badge-back-header .badge-logo-mark{width:28mm}.badge-gk-tile{width:5.2mm;height:5.2mm}.badge-gk-tile svg{width:100%;height:100%}.badge-back-panel{flex:1;border:.15mm solid #000;border-radius:3mm;padding:0 3mm;overflow:hidden}.badge-back-row2{display:flex;align-items:center;gap:1.8mm;padding:1mm 0;border-bottom:.15mm solid #000}.badge-back-row2:last-child{border:0}.badge-back-icontile{width:5.5mm;display:flex}.badge-back-rowtext{flex:1}.badge-back-rowlabel{font-size:5.1pt;font-weight:700;text-transform:uppercase}.badge-back-rowvalue{font-size:6.4pt;line-height:1.2}.badge-back-contact-name,.badge-back-contact-phone{display:block}.badge-back-legal{font-size:5.4pt;line-height:1.3;padding:1.2mm 0 .8mm}.badge-barcode{text-align:center}.badge-barcode svg{height:10mm;max-width:100%}.badge-photo-placeholder,.badge-front-photo-broken{font-size:6pt;text-align:center}.badge-front-photo-broken{display:none}
+    @media print { body{background:#fff}.responsiva-page{margin:0;padding:0;width:auto;min-height:249mm;box-shadow:none}.resp-badge-frame{box-shadow:0 0 0 .2mm #ddd}.no-print{display:none!important} }
+  </style></head><body><main class="responsiva-page">
+    <header class="resp-header"><div class="resp-company-logo">${company?.logo_url ? `<img src="${escAttr(company.logo_url)}" alt="Logo de ${escAttr(legalName)}">` : `<div class="resp-logo-fallback">${esc(legalName)}</div>`}</div><div class="resp-title"><h1>Carta responsiva de gafete</h1><p>Constancia de entrega y uso responsable</p></div></header>
+    <section class="resp-meta"><div class="resp-field"><label>Colaborador</label><strong>${esc(employeeName)}</strong></div><div class="resp-field"><label>Fecha</label><strong>${esc(date)}</strong></div><div class="resp-field"><label>Empresa</label><strong>${esc(legalName)}</strong></div><div class="resp-field"><label>Código</label><strong>${esc(emp.employee_code || '—')}</strong></div></section>
+    <section class="resp-badges"><div class="resp-badge-item"><span>Frente</span><div class="resp-badge-frame">${front}</div></div><div class="resp-badge-item"><span>Reverso</span><div class="resp-badge-frame">${back}</div></div></section>
+    <section class="resp-copy"><p>Yo, <strong>${esc(employeeName)}</strong>, hago constar que recibí de <strong>${esc(legalName)}</strong> el gafete de identificación reproducido en este documento y confirmo que los datos impresos, incluido el nombre «${esc(printedName.resolvedName)}», son correctos.</p><p>Reconozco que el gafete es de uso personal e intransferible. Me comprometo a utilizarlo responsablemente dentro de la organización, conservarlo en condiciones adecuadas y no prestarlo, alterarlo ni permitir su uso por terceros.</p><p>Me comprometo a devolverlo al finalizar mi relación con la organización, cualquiera que sea la causa. En caso de pérdida, robo o extravío, informaré de manera urgente a Talento Humano para que se adopten las medidas correspondientes.</p></section>
+    <section class="resp-signatures"><div class="resp-signature"><b>${esc(employeeName)}</b><span>Nombre y firma de quien recibe</span></div><div class="resp-signature"><b>&nbsp;</b><span>Nombre y firma de quien entrega</span></div></section>
+    <footer class="resp-footer"><span>${esc(legalName)}</span><span>Documento de recepción de gafete · ${esc(emp.employee_code || '')}</span></footer>
+  </main></body></html>`
+}
+
+function openBadgeResponsiva() {
+  const issuance = _badge_ui.issuanceInProgress
+  const emp = issuance && _badge.employees.find(e => e.id === issuance.employee_id)
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  if (!emp || !site) return
+  const company = badgeSiteCompanyInfo(site).company
+  const modal = document.createElement('div')
+  modal.className = 'modal-overlay'
+  modal.id = 'badge-responsiva-modal'
+  modal.innerHTML = `<div class="modal-content responsiva-modal-content"><div class="modal-header"><div><h2 style="margin:0">Carta responsiva</h2><div style="font-size:.72rem;color:var(--text-muted);margin-top:2px">Hoja carta · ${esc(emp.first_name)} ${esc(emp.last_name)}</div></div><button type="button" class="icon-btn icon-btn-quiet" onclick="closeBadgeResponsiva()" aria-label="Cerrar">${siIcon('x', 18)}</button></div>${company?.logo_url ? '' : `<div class="alert alert-warning" style="margin:1rem 1.25rem 0">${siIcon('alert-triangle', 15)} Esta empresa aún no tiene logo legal. Puedes cargarlo desde Empresas.</div>`}<div class="responsiva-preview-shell"><iframe class="responsiva-preview-frame" title="Vista previa de carta responsiva"></iframe></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeBadgeResponsiva()">Cerrar</button><button class="btn btn-secondary" onclick="printBadgeResponsiva(true)">${siIcon('download', 14)} Descargar PDF</button><button class="btn btn-primary" onclick="printBadgeResponsiva(false)">${siIcon('printer', 14)} Imprimir</button></div></div>`
+  document.body.appendChild(modal)
+  modal.querySelector('iframe').srcdoc = badgeResponsivaHtml(emp, site)
+  modal.addEventListener('click', e => { if (e.target === modal) closeBadgeResponsiva() })
+}
+function closeBadgeResponsiva() { document.getElementById('badge-responsiva-modal')?.remove() }
+async function printBadgeResponsiva(asPdf) {
+  const issuance = _badge_ui.issuanceInProgress
+  const emp = issuance && _badge.employees.find(e => e.id === issuance.employee_id)
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  if (!emp || !site) return
+  if (asPdf) toast('En el diálogo de impresión, selecciona “Guardar como PDF”.', 4000)
+  await _badgePrintFromEditor(badgeResponsivaHtml(emp, site), { waitForPhoto: true })
 }
 
 // Compact readiness summary — pass 5 redesign. The full-width colored
