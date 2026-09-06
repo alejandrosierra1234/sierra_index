@@ -5972,9 +5972,28 @@
       flex-shrink: 0;
     }
     .issuance-actions-divider { width: 1px; height: 24px; background: var(--border); margin: 0 0.15rem; }
-    .responsiva-modal-content { width: min(920px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: hidden; }
-    .responsiva-preview-shell { background: var(--surface-subtle); padding: 1.25rem; overflow: auto; display: flex; justify-content: center; }
-    .responsiva-preview-frame { width: 216mm; height: 279mm; max-width: 100%; border: 0; background: #fff; box-shadow: 0 10px 32px rgba(0,0,0,.12); transform-origin: top center; }
+    .responsiva-modal-content {
+      width: min(920px, calc(100vw - 32px)); height: min(900px, calc(100vh - 32px)); max-height: calc(100vh - 32px);
+      overflow: hidden; display: flex; flex-direction: column;
+    }
+    .responsiva-modal-content > .modal-header,
+    .responsiva-modal-content > .modal-footer,
+    .responsiva-logo-warning { flex: 0 0 auto; }
+    .responsiva-preview-shell {
+      min-height: 0; flex: 1 1 auto; background: var(--surface-subtle); padding: 1.25rem;
+      overflow: auto; overscroll-behavior: contain; display: block; text-align: center;
+    }
+    .responsiva-preview-frame {
+      display: block; width: 216mm; height: 279mm; max-width: none; margin: 0 auto;
+      border: 0; background: #fff; box-shadow: 0 10px 32px rgba(0,0,0,.12);
+    }
+    .responsiva-modal-content > .modal-footer { position: relative; z-index: 2; background: var(--surface); border-top: 1px solid var(--border); }
+    @media (max-width: 760px) {
+      .responsiva-modal-content { width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; }
+      .responsiva-preview-shell { padding: 0.75rem; }
+      .responsiva-modal-content > .modal-footer { flex-wrap: wrap; }
+      .responsiva-modal-content > .modal-footer .btn { flex: 1 1 auto; }
+    }
     .company-logo-field { display: flex; align-items: center; gap: 0.9rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface-subtle); }
     .company-logo-preview { width: 72px; height: 48px; object-fit: contain; background: #fff; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 5px; box-sizing: border-box; }
     .company-logo-placeholder { width: 72px; height: 48px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--border-strong); border-radius: var(--r-sm); color: var(--text-muted); font-size: .65rem; text-align: center; }
@@ -21279,7 +21298,7 @@ function openBadgeResponsiva() {
   const modal = document.createElement('div')
   modal.className = 'modal-overlay'
   modal.id = 'badge-responsiva-modal'
-  modal.innerHTML = `<div class="modal-content responsiva-modal-content"><div class="modal-header"><div><h2 style="margin:0">Carta responsiva</h2><div style="font-size:.72rem;color:var(--text-muted);margin-top:2px">Hoja carta · ${esc(emp.first_name)} ${esc(emp.last_name)}</div></div><button type="button" class="icon-btn icon-btn-quiet" onclick="closeBadgeResponsiva()" aria-label="Cerrar">${siIcon('x', 18)}</button></div>${company?.logo_url ? '' : `<div class="alert alert-warning" style="margin:1rem 1.25rem 0">${siIcon('alert-triangle', 15)} Esta empresa aún no tiene logo legal. Puedes cargarlo desde Empresas.</div>`}<div class="responsiva-preview-shell"><iframe class="responsiva-preview-frame" title="Vista previa de carta responsiva"></iframe></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closeBadgeResponsiva()">Cerrar</button><button class="btn btn-secondary" onclick="printBadgeResponsiva(true)">${siIcon('download', 14)} Descargar PDF</button><button class="btn btn-primary" onclick="printBadgeResponsiva(false)">${siIcon('printer', 14)} Imprimir</button></div></div>`
+  modal.innerHTML = `<div class="modal-content responsiva-modal-content"><div class="modal-header"><div><h2 style="margin:0">Carta responsiva</h2><div style="font-size:.72rem;color:var(--text-muted);margin-top:2px">Hoja carta · ${esc(emp.first_name)} ${esc(emp.last_name)}</div></div><button type="button" class="icon-btn icon-btn-quiet" onclick="closeBadgeResponsiva()" aria-label="Cerrar">${siIcon('x', 18)}</button></div>${company?.logo_url ? '' : `<div class="alert alert-warning responsiva-logo-warning" style="margin:1rem 1.25rem 0">${siIcon('alert-triangle', 15)} Esta empresa aún no tiene logo legal. Puedes cargarlo desde Empresas.</div>`}<div class="responsiva-preview-shell"><iframe class="responsiva-preview-frame" title="Vista previa de carta responsiva"></iframe></div><div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeBadgeResponsiva()">Cerrar</button><button type="button" class="btn btn-secondary" onclick="printBadgeResponsiva(true)">${siIcon('download', 14)} Descargar PDF</button><button type="button" class="btn btn-primary" onclick="printBadgeResponsiva(false)">${siIcon('printer', 14)} Imprimir</button></div></div>`
   document.body.appendChild(modal)
   modal.querySelector('iframe').srcdoc = badgeResponsivaHtml(emp, site)
   modal.addEventListener('click', e => { if (e.target === modal) closeBadgeResponsiva() })
