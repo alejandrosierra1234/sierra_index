@@ -18698,7 +18698,7 @@ function openCompanyEditor(id) {
           <label>Logo legal de la empresa</label>
           <div class="company-logo-field">
             ${company?.logo_url ? `<img class="company-logo-preview" src="${escAttr(company.logo_url)}" alt="Logo actual de ${escAttr(company.name)}">` : `<div class="company-logo-placeholder">Sin logo</div>`}
-            <div style="min-width:0;flex:1"><label class="btn btn-secondary btn-sm" style="display:inline-flex;cursor:pointer">${siIcon('upload', 13)} ${company?.logo_url ? 'Reemplazar logo' : 'Subir logo'}<input id="company-logo-file" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none" onchange="previewCompanyLogoFile(this)"></label><div id="company-logo-file-name" style="margin-top:.35rem;font-size:.68rem;color:var(--text-muted)">PNG, JPG, WebP o SVG · máximo ${IMG_MAX_MB} MB</div></div>
+            <div style="min-width:0;flex:1"><input id="company-logo-file" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" tabindex="-1" onchange="previewCompanyLogoFile(this)"><button type="button" class="btn btn-secondary btn-sm" onclick="openCompanyLogoPicker()">${siIcon('upload', 13)} ${company?.logo_url ? 'Reemplazar logo' : 'Subir logo'}</button><div id="company-logo-file-name" style="margin-top:.35rem;font-size:.68rem;color:var(--text-muted)">PNG, JPG, WebP o SVG · máximo ${IMG_MAX_MB} MB</div></div>
           </div>
         </div>
       </div>
@@ -18743,7 +18743,11 @@ async function saveCompany(id) {
   const { error } = id
     ? await sb.from('companies').update(payload).eq('id', id)
     : await sb.from('companies').insert(payload)
-  if (error) { toast('Error: ' + error.message); return }
+  if (error) {
+    if (/logo_url|schema cache/i.test(error.message || '')) toast('Falta aplicar update33.sql en Supabase para guardar logos de empresa.', 6000)
+    else toast('Error: ' + error.message)
+    return
+  }
   closeCompanyEditor()
   await loadBadgeData()
   renderBadgeModule()
@@ -18754,7 +18758,7 @@ function previewCompanyLogoFile(input) {
   const file = input.files?.[0]
   if (!file) return
   const name = document.getElementById('company-logo-file-name')
-  if (name) name.textContent = file.name
+  if (name) name.innerHTML = `<strong style="color:var(--text-primary)">${esc(file.name)}</strong><br>Se cargará al pulsar Guardar.`
   const preview = document.querySelector('#company-editor-modal .company-logo-preview, #company-editor-modal .company-logo-placeholder')
   if (!preview) return
   const url = URL.createObjectURL(file)
@@ -18764,6 +18768,12 @@ function previewCompanyLogoFile(input) {
   img.src = url
   img.onload = () => URL.revokeObjectURL(url)
   preview.replaceWith(img)
+}
+function openCompanyLogoPicker() {
+  const input = document.getElementById('company-logo-file')
+  if (!input) { toast('No se encontró el selector de archivos'); return }
+  input.value = ''
+  input.click()
 }
 
 async function deleteCompany(id) {
