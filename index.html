@@ -6477,6 +6477,7 @@
       padding: 1mm 0 2.2mm;
     }
     .badge-front-header .badge-logo-mark { width: 28mm; }
+    .badge-front-header .badge-logo-mark svg .lc2 { fill: #000 !important; }
     .badge-logo-mark { line-height: 0; }
     .badge-logo-mark svg { display: block; width: 100%; height: auto; }
 
@@ -6652,7 +6653,7 @@
       font-weight: 500;
       font-size: 7.5pt;
       letter-spacing: 0.02em;
-      color: var(--badge-plant-accent-dark, #44484a);
+      color: #000;
     }
     /* Name is the single dominant element on the card — bold Replica,
        centered. Item 2/8 rework: fitBadgeNameLines() (real canvas-measured,
@@ -6676,7 +6677,7 @@
       text-transform: uppercase;
       line-height: 1.05;
       letter-spacing: 0.01em;
-      color: #0b0b0b;
+      color: #000;
       max-width: 100%;
       white-space: normal;
       overflow-wrap: normal;
@@ -6684,10 +6685,10 @@
     }
     .badge-front-positionline {
       font-family: 'Aeonik', sans-serif;
-      font-weight: 400;
+      font-weight: 500;
       font-size: 7.6pt;
       line-height: 1.3;
-      color: var(--badge-plant-accent, #6f7477);
+      color: #000;
       margin-top: 0;
       max-width: 100%;
       overflow-wrap: break-word;
@@ -6781,12 +6782,12 @@
        GK tile — GK ended up ~2.3× TALLER than SIERRA, backwards from the
        intended hierarchy. 28mm (matching the front header's own SIERRA
        width, so both sides read as the same design system) renders at
-       ≈5.77mm tall; paired with a 4.2mm GK tile that is a ~1.37× dominance
+       ≈5.77mm tall; paired with a 5.2mm GK tile that remains secondary
        ratio, GK still legible but clearly secondary. */
     .badge-back-header .badge-logo-mark { width: 28mm; }
     .badge-gk-tile {
-      width: 4.2mm;
-      height: 4.2mm;
+      width: 5.2mm;
+      height: 5.2mm;
       flex-shrink: 0;
       border-radius: 0;
       overflow: hidden;
@@ -6795,6 +6796,9 @@
       justify-content: center;
     }
     .badge-gk-tile svg { width: 100%; height: 100%; display: block; }
+    .badge-back .badge-logo-mark svg .lc1,
+    .badge-back .badge-logo-mark svg .lc2,
+    .badge-back .badge-gk-tile svg .gk1 { fill: #000 !important; }
     /* justify-content:flex-start (not center) — when the 5 rows' natural
        content height exceeds the panel's available space (long emergency
        contact + long health_conditions stress fixture), centering would
@@ -6837,8 +6841,8 @@
       aspect-ratio: 1;
       flex-shrink: 0;
       border-radius: 1.4mm;
-      background: var(--badge-plant-accent-light, #eceeef);
-      color: var(--badge-plant-accent, #6f7477);
+      background: #fff;
+      color: #000;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -6851,7 +6855,7 @@
       text-transform: uppercase;
       font-size: 5.1pt;
       letter-spacing: 0.05em;
-      color: var(--badge-plant-accent, #6f7477);
+      color: #000;
       margin-bottom: 0.6mm;
     }
     .badge-back-rowvalue {
@@ -6859,7 +6863,7 @@
       font-weight: 500;
       font-size: 6.4pt;
       line-height: 1.22;
-      color: #111;
+      color: #000;
       overflow-wrap: break-word;
     }
     /* Role-compliance fix: per SIERRA_DESIGN_SYSTEM.md §19, "Aeonik Mono —
@@ -6892,7 +6896,7 @@
       font-weight: 400;
       font-size: 5.4pt;
       line-height: 1.32;
-      color: #55555a;
+      color: #000;
       text-align: left;
       padding: 1.2mm 0 0.8mm;
     }
@@ -23237,25 +23241,45 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
         /* FRONT */
         .badge-front-header { display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 1mm 0 2.2mm; }
         .badge-front-header .badge-logo-mark { width: 28mm; }
+        /* Literal process black is routed through the ribbon's K panel and
+           prints with the same hard vector edge visible on the barcode.
+           Keep SIERRA's teal mark and the photo/company color in YMCK, but
+           make every small critical front-side glyph true #000. */
+        .badge-front-header .badge-logo-mark svg .lc2 { fill: #000 !important; }
         .badge-front-card { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 1.6mm; justify-content: safe center; }
         .badge-front-photoblock { width: var(--badge-photo-side, calc(${BADGE_W}mm - 6mm)); height: var(--badge-photo-side, calc(${BADGE_W}mm - 6mm)); flex: 0 0 auto; align-self: center; background: #eee; overflow: hidden; border-radius: 3mm; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center; position: relative; }
         .badge-employee-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
         .badge-photo-placeholder { width: 100%; height: 100%; background: #eee; display: flex; align-items: center; justify-content: center; color: #94a19f; font-size: 7.5pt; text-align: center; line-height: 1.3; }
         .badge-front-panel { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 2mm 3mm 2.2mm; gap: 0.8mm; background: #fff; border-radius: 3mm; box-shadow: none; }
-        .badge-front-idline { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; font-size: 7.5pt; letter-spacing: 0.02em; color: var(--badge-plant-accent-dark, #44484a); }
-        .badge-name-line { font-family: 'Replica', sans-serif; font-weight: 700; font-size: ${pieces.nameFontSize}pt; text-transform: uppercase; line-height: 1.05; letter-spacing: 0.01em; color: #0b0b0b; max-width: 46mm; white-space: normal; overflow-wrap: normal; word-break: normal; }
+        .badge-front-idline { font-family: 'Aeonik Mono', 'Courier New', monospace; font-weight: 500; font-size: 7.5pt; letter-spacing: 0.02em; color: #000; }
+        .badge-name-line { font-family: 'Replica', sans-serif; font-weight: 700; font-size: ${pieces.nameFontSize}pt; text-transform: uppercase; line-height: 1.05; letter-spacing: 0.01em; color: #000; max-width: 46mm; white-space: normal; overflow-wrap: normal; word-break: normal; }
         .badge-front-photo-broken { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #b3261e; font-size: 6.6pt; text-align: center; line-height: 1.3; }
         .badge-front-photoblock.is-broken .badge-front-photo-broken { display: flex; }
         .badge-front-photoblock.is-broken .badge-employee-photo { display: none; }
         .badge-front-photoblock.is-broken .badge-photo-crop { display: none; }
-        .badge-position-line { font-family: 'Aeonik', sans-serif; font-weight: 400; font-size: 7.6pt; line-height: 1.3; color: var(--badge-plant-accent, #6f7477); margin-top: 0; max-width: 46mm; overflow-wrap: break-word; }
+        .badge-position-line { font-family: 'Aeonik', sans-serif; font-weight: 500; font-size: 7.6pt; line-height: 1.3; color: #000; margin-top: 0; max-width: 46mm; overflow-wrap: break-word; }
         .badge-front-companybar { flex-shrink: 0; margin-top: 1.6mm; border-radius: 3mm; background: var(--badge-plant-accent, #6f7477); padding: 1.4mm 3mm; display: flex; align-items: center; justify-content: center; text-align: center; min-height: 5mm; box-sizing: border-box; }
         .badge-company-line { font-family: 'Aeonik', sans-serif; font-weight: 700; text-transform: uppercase; font-size: 6.6pt; letter-spacing: 0.03em; line-height: 1.3; color: #fff; overflow-wrap: break-word; }
         /* BACK */
         .badge-sheet.is-back { padding-right: 13mm; }
+        /* The installed duplex ribbon prints the reverse through its K
+           panel. Only literal process black is extracted reliably: the
+           physical sample showed the #000 barcode at full density while
+           teal, blue and gray artwork nearly disappeared. The editor now
+           mirrors this monochrome reverse; these rules also enforce solid
+           K inside the isolated print document. */
+        .badge-sheet.is-back,
+        .badge-sheet.is-back .badge-back-rowlabel,
+        .badge-sheet.is-back .badge-back-rowvalue,
+        .badge-sheet.is-back .badge-back-legal,
+        .badge-sheet.is-back .badge-back-icontile { color: #000; }
+        .badge-sheet.is-back .badge-back-icontile { background: #fff; }
+        .badge-sheet.is-back .badge-logo-mark svg .lc1,
+        .badge-sheet.is-back .badge-logo-mark svg .lc2,
+        .badge-sheet.is-back .badge-gk-tile svg .gk1 { fill: #000 !important; }
         .badge-back-header { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; padding-bottom: 3mm; }
         .badge-back-header .badge-logo-mark { width: 28mm; }
-        .badge-gk-tile { width: 4.2mm; height: 4.2mm; flex-shrink: 0; border-radius: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .badge-gk-tile { width: 5.2mm; height: 5.2mm; flex-shrink: 0; border-radius: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; }
         .badge-gk-tile svg { width: 100%; height: 100%; display: block; }
         .badge-back-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; background: #fff; border: 1px solid #eee; border-radius: 3mm; padding: 0 3mm; }
         .badge-back-row2 { display: flex; align-items: center; gap: 1.8mm; padding: 1mm 0; border-bottom: 0.25mm solid #eee; }
@@ -23648,9 +23672,13 @@ function renderZc300SetupAssistantBody() {
       <li>✔ Gráficos e imágenes de fondo: <b>Activados</b></li>
       <li>✔ Cinta (ribbon) correcta seleccionada en el driver Zebra</li>
       <li>✔ Modo de impresión seleccionado en esta app: <b>${esc(modeLabel)}</b> <button class="btn btn-ghost btn-sm" style="padding:2px 8px" onclick="closeSideDrawer(); openZc300PrintMenu('${_badge_ui.issuanceInProgress?.employee_id || ''}')">cambiar</button></li>
+      <li>✔ Reverso monocromático: <b>negro K</b> (texto, iconos y logos)</li>
+      <li>✔ <b>Front K Extraction</b>: activar <b>Print all black data</b></li>
+      <li>✔ <b>Back K Extraction</b>: activar <b>Print all black data</b></li>
+      <li>✔ Umbral de extracción: incluir como mínimo <b>RGB 0, 0, 0</b></li>
     </ul>
     <div style="font-size:0.74rem;color:var(--text-3);margin-bottom:1rem;line-height:1.5;padding:0.6rem 0.7rem;background:var(--surface-2, #f5f5f5);border-radius:8px">
-      Nota sobre orientación: si la tarjeta física sale girada 90°, cambia la orientación en el diálogo de impresión del sistema (no en esta app) — el comportamiento exacto depende del driver Zebra instalado en este equipo y no puede verificarse sin la impresora física.
+      Nitidez: la app genera texto, iconos y logos críticos en negro puro, pero el driver debe enviarlos al panel de resina K. Si la extracción K altera la fotografía, excluye únicamente el rectángulo de la foto en la configuración avanzada. Orientación: si el reverso queda invertido 180° respecto al frente, selecciona <b>Rotate 180° → Back (Reverso)</b>. Estas opciones pertenecen al driver y la página web no puede activarlas automáticamente.
     </div>
     <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
       <button class="btn btn-primary btn-sm" onclick="confirmZc300SetupAndContinue()">Confirmar ajustes y continuar</button>
@@ -23748,7 +23776,7 @@ function renderBadgeManualDuplexFlipPanel() {
     <div class="zc300-flip-panel" style="display:flex;align-items:center;gap:0.9rem;padding:0.85rem 1rem;margin:0 0 0.9rem;border:1px solid var(--accent, #ff7824);background:var(--accent-light, #fff3ea);border-radius:10px">
       <div style="flex-shrink:0;color:var(--accent, #ff7824)">${siIcon('rotate-ccw', 30)}</div>
       <div style="flex:1;min-width:0;font-size:0.82rem;line-height:1.45;color:var(--text)">
-        <b>Anverso impreso.</b> Voltea la tarjeta de arriba hacia abajo (borde superior pasa a ser el inferior) y vuelve a insertarla en la impresora Zebra ZC300 para imprimir el reverso. Confirma solo cuando la tarjeta esté lista.
+        <b>Anverso impreso.</b> Voltea la tarjeta lateralmente, como la página de un libro: el borde superior debe seguir siendo el borde superior. Vuelve a insertarla en la Zebra ZC300 para imprimir el reverso y confirma solo cuando esté lista.
       </div>
       <button class="btn btn-ghost btn-sm" style="flex-shrink:0" onclick="printBadgeManualCancel()">Cancelar giro</button>
     </div>
