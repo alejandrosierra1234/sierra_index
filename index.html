@@ -1635,6 +1635,13 @@
     .content-hdr-l p { font-size:0.8rem; color:var(--text-2); margin-top:0.2rem; }
     .content-hdr-l p:empty { display:none; }
     .content-hdr-r { display:flex; align-items:center; gap:0.5rem; flex-shrink:0; }
+    /* A selected employee is a focused record workspace. Compress the
+       generic page heading and hand the reclaimed height to the record;
+       the module/sidebar already provide the surrounding context. */
+    .content.emp-record-active { padding-top: 0.9rem; padding-bottom: 0; overflow: hidden; }
+    .content.emp-record-active .content-hdr { margin-bottom: 0.55rem; }
+    .content.emp-record-active .content-hdr-l h2 { font-size: 1.45rem; letter-spacing: -0.025em; }
+    .content.emp-record-active .content-hdr-l p { margin-top: 0.1rem; font-size: 0.74rem; }
 
     /* ── SEARCH (content header — hidden, sidebar handles search) ── */
     .search-wrap { display:none; }
@@ -4922,6 +4929,7 @@
       height: calc(100vh - 190px); min-height: 420px;
       overflow: hidden;
     }
+    .content.emp-record-active .emp-md-layout { height: calc(100vh - 132px); }
     .emp-md-list {
       width: 380px; min-width: 380px; flex-shrink: 0;
       display: flex; flex-direction: column; min-height: 0;
@@ -4958,12 +4966,10 @@
       color: var(--text-3); cursor: pointer; padding: 0;
     }
     .emp-md-collapse-btn:hover { color: var(--text-primary); background: var(--surface-hover); }
-    /* overflow:visible (not hidden) — this pane doesn't need corner
-       clipping (that's .emp-md-layout's job), and hidden here would clip
-       the hero's "Más acciones" popover before empFixPopoverBounds()
-       gets a chance to reposition it. .emp-profile-body still scrolls
-       its own content via its own overflow-y:auto. */
-    .emp-md-detail { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: visible; background: var(--surface); }
+    /* One continuous record scroll: identity naturally moves away while
+       the tab bar stays available. This replaces the former small nested
+       body scroller that made most of the screen feel frozen. */
+    .emp-md-detail { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; background: var(--surface); }
     .emp-md-empty { flex: 1; display: flex; align-items: center; justify-content: center; padding: clamp(2rem, 6vw, 5rem); }
     .emp-md-empty-inner { width: 100%; max-width: 430px; text-align: center; display: flex; flex-direction: column; align-items: center; }
     .emp-md-empty-symbol {
@@ -5461,37 +5467,37 @@
       .emp-profile-modal { width: 100vw; height: 100vh; max-height: 100vh; border-radius: 0; }
     }
 
-    /* Hero — the employee's identity card (§2/§4), structurally distinct
-       from the scrolling content below: fixed at the top, never scrolls. */
-    .emp-profile-hero { position: relative; flex-shrink: 0; padding: 1.25rem 1.5rem 1rem; overflow: hidden; }
-    .emp-profile-hero-row { position: relative; display: flex; align-items: center; gap: 1rem; }
+    /* Compact identity strip: enough hierarchy to orient the operator,
+       without consuming the working viewport before the record begins. */
+    .emp-profile-hero { position: relative; flex-shrink: 0; padding: 0.8rem 1.4rem 0.7rem; }
+    .emp-profile-hero-row { position: relative; display: flex; align-items: center; gap: 0.85rem; }
     .emp-profile-photo-wrap { position: relative; flex-shrink: 0; cursor: pointer; display: block; }
     .emp-profile-photo-wrap img {
-      width: 88px; height: 88px; border-radius: 50%; object-fit: cover; display: block;
+      width: 64px; height: 64px; border-radius: 50%; object-fit: cover; display: block;
       box-shadow: 0 1px 2px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.08);
     }
-    /* No-photo fallback renders at the documented 88px "profile" avatar
-       size — same circular/initials/solid-fill contract as the canonical
+    /* No-photo fallback follows the same compact identity-strip size —
+       same circular/initials/solid-fill contract as the canonical
        Avatar everywhere else (avatarStyle(id), never the old company tint). */
     .emp-profile-photo-wrap .emp-profile-avatar-init {
-      width: 88px; height: 88px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-size: 1.9rem; font-weight: 700; letter-spacing: 0.01em;
+      width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 1.35rem; font-weight: 700; letter-spacing: 0.01em;
       box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 6px 18px rgba(0,0,0,0.1);
     }
     .emp-profile-photo-cam {
-      position: absolute; bottom: -5px; right: -5px; width: 28px; height: 28px; border-radius: 50%;
+      position: absolute; bottom: -3px; right: -3px; width: 24px; height: 24px; border-radius: 50%;
       background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
       color: var(--text-secondary); box-shadow: 0 1px 3px rgba(0,0,0,0.15);
     }
     .emp-profile-photo-wrap:hover .emp-profile-photo-cam, .emp-profile-photo-wrap:focus-within .emp-profile-photo-cam { color: var(--accent); border-color: var(--accent); }
-    .emp-profile-main { flex: 1; min-width: 0; padding-right: 1rem; }
-    .emp-profile-name { font-size: 1.45rem; font-weight: 750; letter-spacing: -0.018em; color: var(--text-primary); line-height: 1.18; overflow-wrap: break-word; margin: 0 0 3px; }
-    .emp-profile-position { font-size: 0.95rem; font-weight: 500; color: var(--text-secondary); line-height: 1.3; margin: 0 0 7px; }
-    .emp-profile-org-line { font-size: 0.82rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .emp-profile-main { flex: 1; min-width: 0; padding-right: 0.6rem; }
+    .emp-profile-name { font-size: 1.2rem; font-weight: 720; letter-spacing: -0.016em; color: var(--text-primary); line-height: 1.18; overflow-wrap: break-word; margin: 0 0 2px; }
+    .emp-profile-position { font-size: 0.82rem; font-weight: 500; color: var(--text-secondary); line-height: 1.3; margin: 0 0 4px; }
+    .emp-profile-org-line { font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
     .emp-profile-org-item { display: inline-flex; align-items: center; gap: 5px; }
     .emp-profile-org-item.is-missing { color: var(--warning-text); }
     .emp-profile-org-sep { color: var(--border-strong); }
-    .emp-profile-meta-line { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 0.55rem; font-size: 0.78rem; color: var(--text-3); }
+    .emp-profile-meta-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 0.35rem; font-size: 0.72rem; color: var(--text-3); }
     .emp-profile-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin: 0; }
     .emp-profile-close { position: absolute; top: 1.1rem; right: 1.1rem; z-index: 1; }
     /* .emp-status-dot retired — status now renders as an .lc-pill instance
@@ -5515,14 +5521,16 @@
       .emp-profile-name { font-size: 1.3rem; }
       .emp-profile-close { top: 0.7rem; right: 0.7rem; }
     }
-    .emp-profile-tabs { padding: 0 1.85rem; flex-shrink: 0; border-top: 1px solid var(--border); overflow-x: auto; }
+    .emp-profile-tabs { position: sticky; top: 0; z-index: 12; padding: 0 1.4rem; flex-shrink: 0; overflow-x: auto; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
     @media (max-width: 640px) { .emp-profile-tabs { padding: 0 1.1rem; } }
-    .emp-profile-body { flex: 1; overflow-y: auto; padding: 1.4rem 1.85rem 2.2rem; }
+    .emp-profile-body { flex: none; overflow: visible; padding: 1rem 1.4rem 2.5rem; }
     @media (max-width: 640px) { .emp-profile-body { padding: 1.1rem 1.1rem 1.6rem; } }
     /* Non-overview tabs (Empleo/Tiempo/Personal/Gafete/Actividad) stay a
        single reading column even inside the wide modal — capped so field
        grids don't stretch into unreadably wide rows (§11). */
     .emp-profile-body > .data-column { max-width: 900px; }
+    .emp-profile-body .record-grid { row-gap: 1.25rem; }
+    .emp-profile-body .data-column { gap: 1.45rem; }
 
     /* Resumen (§7/§9/§11) reuses the canonical RecordGrid/DataColumn/
        DataBlock primitives (see .record-grid, .data-column, .data-block
@@ -9675,6 +9683,7 @@ function leaveView(keepHash) {
   document.getElementById('view-samples').style.display = 'none'
   document.getElementById('view-sample-detail').style.display = 'none'
   document.getElementById('content').classList.remove('detail-active')
+  document.getElementById('content').classList.remove('emp-record-active')
   document.getElementById('view-products').style.display = 'block'
   // The fabric construction filter bar only belongs to the Fabric division
   // grid; renderProducts() re-shows it when that grid renders. Without
@@ -16324,6 +16333,10 @@ function orgActiveRels() {
 // eating vertical space above it.
 function renderBadgeModule() {
   const pg = document.getElementById('pg')
+  document.getElementById('content')?.classList.toggle(
+    'emp-record-active',
+    _badge_ui.view === 'employees' && !!_badge_ui.selectedEmployeeId
+  )
   // Preserve the exact Talento Humano workspace across a browser refresh.
   // Record-specific screens additionally use a hash route below; ordinary
   // list/queue/history pages use this session route instead of collapsing
@@ -18876,6 +18889,7 @@ function selectEmployee(empId, tab) {
 function closeEmployeeDetail() {
   if (_badge_ui.editingEmployee && !confirm('Tienes cambios sin guardar. ¿Cerrar sin guardar?')) return
   _badge_ui.selectedEmployeeId = null
+  document.getElementById('content')?.classList.remove('emp-record-active')
   _badge_ui.returnAfterEmployeeSave = null
   _badge_ui.editingEmployee = false
   _empSelectionToken++
@@ -19000,6 +19014,7 @@ function empProfileHeroHtml(emp, canWrite) {
 function renderEmployeeDetailDrawer(emp) {
   const drawer = document.getElementById('employee-detail-drawer')
   if (!drawer) return
+  document.getElementById('content')?.classList.add('emp-record-active')
   const canWrite = can('write', 'talento_humano')
   const canSeePersonal = can('write', 'talento_humano') // Personal tab holds identity/emergency/medical data
   document.getElementById('emp-md-layout')?.classList.add('mobile-detail') // no-op above the mobile breakpoint
