@@ -5988,6 +5988,9 @@
       border: 0; background: #fff; box-shadow: 0 10px 32px rgba(0,0,0,.12);
     }
     .responsiva-modal-content > .modal-footer { position: relative; z-index: 2; background: var(--surface); border-top: 1px solid var(--border); }
+    .responsiva-language-control { display: flex; align-items: center; gap: 0.55rem; margin-left: auto; margin-right: 0.75rem; }
+    .responsiva-language-control label { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; }
+    .responsiva-language-control select { height: var(--control-h-sm); padding: 0 1.8rem 0 0.65rem; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); color: var(--text-primary); font: inherit; font-size: 0.75rem; }
     @media (max-width: 760px) {
       .responsiva-modal-content { width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; }
       .responsiva-preview-shell { padding: 0.75rem; }
@@ -21233,7 +21236,8 @@ function badgeResponsivaBarcodeMarkup(emp) {
   }
 }
 
-function badgeResponsivaHtml(emp, site) {
+let _badgeResponsivaLanguage = 'es'
+function badgeResponsivaHtml(emp, site, language = _badgeResponsivaLanguage) {
   const issuance = _badge_ui.issuanceInProgress
   const info = badgeSiteCompanyInfo(site)
   const company = info.company
@@ -21245,9 +21249,27 @@ function badgeResponsivaHtml(emp, site) {
   const barcode = badgeResponsivaBarcodeMarkup(emp)
   const front = _badgeFrontSheetHtml(emp, pieces, palette)
   const back = _badgeBackSheetHtml(emp, pieces, barcode, palette)
-  const date = new Intl.DateTimeFormat('es-HN', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())
+  const lang = language === 'en' ? 'en' : 'es'
+  const copy = lang === 'en' ? {
+    htmlLang: 'en', locale: 'en-US', documentTitle: 'Badge acknowledgment form',
+    title: 'Badge acknowledgment form', subtitle: 'Receipt and responsible use acknowledgment',
+    employee: 'Employee', date: 'Date', company: 'Company', code: 'Employee ID', front: 'Front', back: 'Back',
+    paragraph1: `I, <strong>${esc(employeeName)}</strong>, acknowledge receipt from <strong>${esc(legalName)}</strong> of the identification badge reproduced in this document and confirm that the printed information, including the name “${esc(printedName.resolvedName)},” is correct.`,
+    paragraph2: 'I understand that this badge is personal and non-transferable. I agree to use it responsibly within the organization, keep it in good condition, and not lend, alter, or allow its use by any third party.',
+    paragraph3: 'I agree to return the badge when my relationship with the organization ends, regardless of the reason. If it is lost, stolen, or misplaced, I will notify Human Resources immediately so that the appropriate measures can be taken.',
+    receiver: 'Name and signature of recipient', deliverer: 'Name and signature of issuer', footer: 'Badge receipt acknowledgment',
+  } : {
+    htmlLang: 'es', locale: 'es-HN', documentTitle: 'Carta responsiva de gafete',
+    title: 'Carta responsiva de gafete', subtitle: 'Constancia de entrega y uso responsable',
+    employee: 'Colaborador', date: 'Fecha', company: 'Empresa', code: 'Código', front: 'Frente', back: 'Reverso',
+    paragraph1: `Yo, <strong>${esc(employeeName)}</strong>, hago constar que recibí de <strong>${esc(legalName)}</strong> el gafete de identificación reproducido en este documento y confirmo que los datos impresos, incluido el nombre «${esc(printedName.resolvedName)}», son correctos.`,
+    paragraph2: 'Reconozco que el gafete es de uso personal e intransferible. Me comprometo a utilizarlo responsablemente dentro de la organización, conservarlo en condiciones adecuadas y no prestarlo, alterarlo ni permitir su uso por terceros.',
+    paragraph3: 'Me comprometo a devolverlo al finalizar mi relación con la organización, cualquiera que sea la causa. En caso de pérdida, robo o extravío, informaré de manera urgente a Talento Humano para que se adopten las medidas correspondientes.',
+    receiver: 'Nombre y firma de quien recibe', deliverer: 'Nombre y firma de quien entrega', footer: 'Documento de recepción de gafete',
+  }
+  const date = new Intl.DateTimeFormat(copy.locale, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())
   const fontUrl = file => new URL(file, location.href).href
-  return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><base href="${escAttr(location.href)}"><title>Carta responsiva de gafete — ${esc(employeeName)}</title><style>
+  return `<!DOCTYPE html><html lang="${copy.htmlLang}"><head><meta charset="utf-8"><base href="${escAttr(location.href)}"><title>${copy.documentTitle} — ${esc(employeeName)}</title><style>
     ${_badgeFontFaceCss(fontUrl)}
     @page { size: letter; margin: 15mm 17mm; }
     * { box-sizing: border-box; }
@@ -21280,12 +21302,12 @@ function badgeResponsivaHtml(emp, site) {
     .badge-logo-mark svg { width:100%; height:auto; display:block; } .badge-front-header{display:flex;justify-content:center;padding:1mm 0 2.2mm}.badge-front-header .badge-logo-mark{width:28mm}.badge-front-card{flex:1;display:flex;flex-direction:column;gap:1.6mm;justify-content:center}.badge-front-photoblock{width:var(--badge-photo-side);height:var(--badge-photo-side);align-self:center;overflow:hidden;border-radius:3mm;position:relative}.badge-employee-photo,.badge-photo-crop{width:100%;height:100%;object-fit:cover}.badge-front-panel{display:flex;flex-direction:column;align-items:center;text-align:center;padding:2mm 3mm;gap:.8mm}.badge-front-idline,.badge-barcode-value{font-family:'Aeonik Mono';font-size:7pt}.badge-name-line{font-family:'Replica';font-weight:700;text-transform:uppercase}.badge-position-line{font-size:7.6pt}.badge-front-companybar{margin-top:1.6mm;border-radius:3mm;background:var(--badge-plant-accent);padding:1.4mm 3mm;text-align:center}.badge-company-line{font-size:6.6pt;font-weight:700;color:#fff;text-transform:uppercase}.badge-sheet.is-back{padding-right:13mm}.badge-back-header{display:flex;justify-content:space-between;padding-bottom:3mm}.badge-back-header .badge-logo-mark{width:28mm}.badge-gk-tile{width:5.2mm;height:5.2mm}.badge-gk-tile svg{width:100%;height:100%}.badge-back-panel{flex:1;border:.15mm solid #000;border-radius:3mm;padding:0 3mm;overflow:hidden}.badge-back-row2{display:flex;align-items:center;gap:1.8mm;padding:1mm 0;border-bottom:.15mm solid #000}.badge-back-row2:last-child{border:0}.badge-back-icontile{width:5.5mm;display:flex}.badge-back-rowtext{flex:1}.badge-back-rowlabel{font-size:5.1pt;font-weight:700;text-transform:uppercase}.badge-back-rowvalue{font-size:6.4pt;line-height:1.2}.badge-back-contact-name,.badge-back-contact-phone{display:block}.badge-back-legal{font-size:5.4pt;line-height:1.3;padding:1.2mm 0 .8mm}.badge-barcode{text-align:center}.badge-barcode svg{height:10mm;max-width:100%}.badge-photo-placeholder,.badge-front-photo-broken{font-size:6pt;text-align:center}.badge-front-photo-broken{display:none}
     @media print { body{background:#fff}.responsiva-page{margin:0;padding:0;width:auto;min-height:249mm;box-shadow:none}.resp-badge-frame{box-shadow:0 0 0 .2mm #ddd}.no-print{display:none!important} }
   </style></head><body><main class="responsiva-page">
-    <header class="resp-header"><div class="resp-company-logo">${company?.logo_url ? `<img src="${escAttr(company.logo_url)}" alt="Logo de ${escAttr(legalName)}">` : `<div class="resp-logo-fallback">${esc(legalName)}</div>`}</div><div class="resp-title"><h1>Carta responsiva de gafete</h1><p>Constancia de entrega y uso responsable</p></div></header>
-    <section class="resp-meta"><div class="resp-field"><label>Colaborador</label><strong>${esc(employeeName)}</strong></div><div class="resp-field"><label>Fecha</label><strong>${esc(date)}</strong></div><div class="resp-field"><label>Empresa</label><strong>${esc(legalName)}</strong></div><div class="resp-field"><label>Código</label><strong>${esc(emp.employee_code || '—')}</strong></div></section>
-    <section class="resp-badges"><div class="resp-badge-item"><span>Frente</span><div class="resp-badge-frame">${front}</div></div><div class="resp-badge-item"><span>Reverso</span><div class="resp-badge-frame">${back}</div></div></section>
-    <section class="resp-copy"><p>Yo, <strong>${esc(employeeName)}</strong>, hago constar que recibí de <strong>${esc(legalName)}</strong> el gafete de identificación reproducido en este documento y confirmo que los datos impresos, incluido el nombre «${esc(printedName.resolvedName)}», son correctos.</p><p>Reconozco que el gafete es de uso personal e intransferible. Me comprometo a utilizarlo responsablemente dentro de la organización, conservarlo en condiciones adecuadas y no prestarlo, alterarlo ni permitir su uso por terceros.</p><p>Me comprometo a devolverlo al finalizar mi relación con la organización, cualquiera que sea la causa. En caso de pérdida, robo o extravío, informaré de manera urgente a Talento Humano para que se adopten las medidas correspondientes.</p></section>
-    <section class="resp-signatures"><div class="resp-signature"><b>${esc(employeeName)}</b><span>Nombre y firma de quien recibe</span></div><div class="resp-signature"><b>&nbsp;</b><span>Nombre y firma de quien entrega</span></div></section>
-    <footer class="resp-footer"><span>${esc(legalName)}</span><span>Documento de recepción de gafete · ${esc(emp.employee_code || '')}</span></footer>
+    <header class="resp-header"><div class="resp-company-logo">${company?.logo_url ? `<img src="${escAttr(company.logo_url)}" alt="${lang === 'en' ? 'Logo of' : 'Logo de'} ${escAttr(legalName)}">` : `<div class="resp-logo-fallback">${esc(legalName)}</div>`}</div><div class="resp-title"><h1>${copy.title}</h1><p>${copy.subtitle}</p></div></header>
+    <section class="resp-meta"><div class="resp-field"><label>${copy.employee}</label><strong>${esc(employeeName)}</strong></div><div class="resp-field"><label>${copy.date}</label><strong>${esc(date)}</strong></div><div class="resp-field"><label>${copy.company}</label><strong>${esc(legalName)}</strong></div><div class="resp-field"><label>${copy.code}</label><strong>${esc(emp.employee_code || '—')}</strong></div></section>
+    <section class="resp-badges"><div class="resp-badge-item"><span>${copy.front}</span><div class="resp-badge-frame">${front}</div></div><div class="resp-badge-item"><span>${copy.back}</span><div class="resp-badge-frame">${back}</div></div></section>
+    <section class="resp-copy"><p>${copy.paragraph1}</p><p>${copy.paragraph2}</p><p>${copy.paragraph3}</p></section>
+    <section class="resp-signatures"><div class="resp-signature"><b>${esc(employeeName)}</b><span>${copy.receiver}</span></div><div class="resp-signature"><b>&nbsp;</b><span>${copy.deliverer}</span></div></section>
+    <footer class="resp-footer"><span>${esc(legalName)}</span><span>${copy.footer} · ${esc(emp.employee_code || '')}</span></footer>
   </main></body></html>`
 }
 
@@ -21295,13 +21317,22 @@ function openBadgeResponsiva() {
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
   if (!emp || !site) return
   const company = badgeSiteCompanyInfo(site).company
+  _badgeResponsivaLanguage = 'es'
   const modal = document.createElement('div')
   modal.className = 'modal-overlay'
   modal.id = 'badge-responsiva-modal'
-  modal.innerHTML = `<div class="modal-content responsiva-modal-content"><div class="modal-header"><div><h2 style="margin:0">Carta responsiva</h2><div style="font-size:.72rem;color:var(--text-muted);margin-top:2px">Hoja carta · ${esc(emp.first_name)} ${esc(emp.last_name)}</div></div><button type="button" class="icon-btn icon-btn-quiet" onclick="closeBadgeResponsiva()" aria-label="Cerrar">${siIcon('x', 18)}</button></div>${company?.logo_url ? '' : `<div class="alert alert-warning responsiva-logo-warning" style="margin:1rem 1.25rem 0">${siIcon('alert-triangle', 15)} Esta empresa aún no tiene logo legal. Puedes cargarlo desde Empresas.</div>`}<div class="responsiva-preview-shell"><iframe class="responsiva-preview-frame" title="Vista previa de carta responsiva"></iframe></div><div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeBadgeResponsiva()">Cerrar</button><button type="button" class="btn btn-secondary" onclick="printBadgeResponsiva(true)">${siIcon('download', 14)} Descargar PDF</button><button type="button" class="btn btn-primary" onclick="printBadgeResponsiva(false)">${siIcon('printer', 14)} Imprimir</button></div></div>`
+  modal.innerHTML = `<div class="modal-content responsiva-modal-content"><div class="modal-header"><div><h2 style="margin:0">Carta responsiva</h2><div style="font-size:.72rem;color:var(--text-muted);margin-top:2px">Hoja carta · ${esc(emp.first_name)} ${esc(emp.last_name)}</div></div><div class="responsiva-language-control"><label for="responsiva-language">Idioma</label><select id="responsiva-language" onchange="setBadgeResponsivaLanguage(this.value)"><option value="es" selected>Español</option><option value="en">English</option></select></div><button type="button" class="icon-btn icon-btn-quiet" onclick="closeBadgeResponsiva()" aria-label="Cerrar">${siIcon('x', 18)}</button></div>${company?.logo_url ? '' : `<div class="alert alert-warning responsiva-logo-warning" style="margin:1rem 1.25rem 0">${siIcon('alert-triangle', 15)} Esta empresa aún no tiene logo legal. Puedes cargarlo desde Empresas.</div>`}<div class="responsiva-preview-shell"><iframe class="responsiva-preview-frame" title="Vista previa de carta responsiva"></iframe></div><div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeBadgeResponsiva()">Cerrar</button><button type="button" class="btn btn-secondary" onclick="printBadgeResponsiva(true)">${siIcon('download', 14)} Descargar PDF</button><button type="button" class="btn btn-primary" onclick="printBadgeResponsiva(false)">${siIcon('printer', 14)} Imprimir</button></div></div>`
   document.body.appendChild(modal)
-  modal.querySelector('iframe').srcdoc = badgeResponsivaHtml(emp, site)
+  modal.querySelector('iframe').srcdoc = badgeResponsivaHtml(emp, site, _badgeResponsivaLanguage)
   modal.addEventListener('click', e => { if (e.target === modal) closeBadgeResponsiva() })
+}
+function setBadgeResponsivaLanguage(language) {
+  _badgeResponsivaLanguage = language === 'en' ? 'en' : 'es'
+  const issuance = _badge_ui.issuanceInProgress
+  const emp = issuance && _badge.employees.find(e => e.id === issuance.employee_id)
+  const site = _badge.sites.find(s => s.id === _badge.activeSite)
+  const frame = document.querySelector('#badge-responsiva-modal .responsiva-preview-frame')
+  if (emp && site && frame) frame.srcdoc = badgeResponsivaHtml(emp, site, _badgeResponsivaLanguage)
 }
 function closeBadgeResponsiva() { document.getElementById('badge-responsiva-modal')?.remove() }
 async function printBadgeResponsiva(asPdf) {
@@ -21310,7 +21341,7 @@ async function printBadgeResponsiva(asPdf) {
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
   if (!emp || !site) return
   if (asPdf) toast('En el diálogo de impresión, selecciona “Guardar como PDF”.', 4000)
-  await _badgePrintFromEditor(badgeResponsivaHtml(emp, site), { waitForPhoto: true })
+  await _badgePrintFromEditor(badgeResponsivaHtml(emp, site, _badgeResponsivaLanguage), { waitForPhoto: true })
 }
 
 // Compact readiness summary — pass 5 redesign. The full-width colored
