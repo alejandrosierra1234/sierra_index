@@ -11,6 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3/dist/JsBarcode.all.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/monday-sdk-js/dist/main.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1/dist/jsQR.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js" defer></script>
   <style>
@@ -7144,6 +7145,20 @@
       to { opacity: 0; transform: translateY(20px); }
     }
 
+    /* monday.com Item View: reuse the production badge workspace without
+       nesting SIERRA Index's own navigation chrome inside monday's shell. */
+    html.monday-embedded, html.monday-embedded body { min-width:0; overflow:hidden; }
+    html.monday-embedded #system-bar,
+    html.monday-embedded #sidebar,
+    html.monday-embedded #mob-topbar,
+    html.monday-embedded #drawer-backdrop,
+    html.monday-embedded #ctx-shell { display:none !important; }
+    html.monday-embedded #app { display:flex !important; min-height:100vh; }
+    html.monday-embedded .main { height:100vh; min-width:0; }
+    html.monday-embedded .main-panel { width:100% !important; margin:0 !important; }
+    html.monday-embedded #content { height:100vh; border-radius:0; }
+    html.monday-embedded #product-controls { display:none !important; }
+    html.monday-embedded .content-hdr { padding-top:18px; }
   </style>
   <style>
 /* legacy detail-hero stubs — pre-date the current ProductHeader/RecordTabs
@@ -8702,9 +8717,216 @@ function hideLoadingScreen() {
   setTimeout(() => ls.remove(), 350)
 }
 
+/* ── monday.com Item View bridge ───────────────────────────────────────
+   monday is the source of employee data; SIERRA Index remains the single
+   rendering, validation, crop-preview, print and responsibility-letter
+   engine. Column lookup is by exact title because monday column IDs differ
+   among the three regional photo boards. */
+let _mondayBridge = null
+
+function mondayColumnByTitle(item, title) {
+  return (item?.column_values || []).find(value => value?.column?.title === title) || null
+}
+
+function mondayColumnText(item, title) {
+  return String(mondayColumnByTitle(item, title)?.text || '').trim()
+}
+
+function mondayColumnJSON(item, title) {
+  const raw = mondayColumnByTitle(item, title)?.value
+  if (!raw) return null
+  try { return typeof raw === 'string' ? JSON.parse(raw) : raw } catch (_) { return null }
+}
+
+function mondayLinkedItemIds(item, title) {
+  const value = mondayColumnJSON(item, title)
+  const ids = []
+  const visit = node => {
+    if (!node) return
+    if (Array.isArray(node)) { node.forEach(visit); return }
+    if (typeof node !== 'object') return
+    for (const [key, child] of Object.entries(node)) {
+      if (/^(linkedPulseId|linkedItemId)$/i.test(key) && child != null) ids.push(String(child))
+      else if (/^(linkedPulseIds|linkedItemIds)$/i.test(key) && Array.isArray(child)) {
+        child.forEach(entry => ids.push(String(entry?.linkedPulseId ?? entry?.linkedItemId ?? entry?.id ?? entry)))
+      } else visit(child)
+    }
+  }
+  visit(value)
+  return [...new Set(ids.filter(id => /^\d+$/.test(id)))]
+}
+
+function mondayOrgCode(organization) {
+  const name = normalizeBadgeOrgIdentity(organization)
+  const exact = {
+    [normalizeBadgeOrgIdentity('Northern Textiles')]: 'NT',
+    [normalizeBadgeOrgIdentity('Hilos y Algodón')]: 'DC',
+    [normalizeBadgeOrgIdentity('Amtex')]: 'DC',
+    [normalizeBadgeOrgIdentity('Pride Yarn')]: 'DC',
+    [normalizeBadgeOrgIdentity('Dominican Republic Yarn Suppliers')]: 'DC',
+    [normalizeBadgeOrgIdentity('Pride Chemicals')]: 'PC',
+    [normalizeBadgeOrgIdentity('HSM')]: 'HSM',
+    [normalizeBadgeOrgIdentity('Honduras Spinning Mills')]: 'HSM',
+    [normalizeBadgeOrgIdentity('Northern Spinning')]: 'NS',
+    [normalizeBadgeOrgIdentity('VISITA')]: 'VISITA',
+  }
+  return exact[name] || null
+}
+
+function mondayEmployeeCode(rawCode, organization) {
+  const raw = String(rawCode || '').trim()
+  if (!raw) return ''
+  if (/^[\p{L}]+\s*[-–—]/u.test(raw)) return raw.replace(/\s*[–—]\s*/, '-')
+  const prefix = mondayOrgCode(organization)
+  return prefix && /^\d+$/.test(raw) ? `${prefix}-${raw.padStart(5, '0')}` : raw
+}
+
+function mondayPrintedNameSelection(firstName, lastName, printedName) {
+  const desired = normalizeBadgeOrgIdentity(printedName)
+  if (!desired) return null
+  const firstTokens = tokenizeBadgeNamePart(firstName).tokens
+  const lastTokens = tokenizeBadgeNamePart(lastName).tokens
+  const hasWholeSegment = segment => {
+    const normalized = normalizeBadgeOrgIdentity(segment)
+    return desired === normalized || desired.startsWith(normalized + ' ') ||
+      desired.endsWith(' ' + normalized) || desired.includes(' ' + normalized + ' ')
+  }
+  const selectedFirstNameIndices = firstTokens.map((token, index) => hasWholeSegment(token) ? index : -1).filter(index => index >= 0)
+  const selectedLastNameIndices = lastTokens.map((token, index) => hasWholeSegment(token) ? index : -1).filter(index => index >= 0)
+  if (!selectedFirstNameIndices.length || !selectedLastNameIndices.length) return null
+  const selection = { selectedFirstNameIndices, selectedLastNameIndices }
+  return normalizeBadgeOrgIdentity(resolveBadgePrintedName(firstName, lastName, selection).resolvedName) === desired ? selection : null
+}
+
+async function mondayFetchItems(monday, ids) {
+  const cleanIds = [...new Set((ids || []).map(String).filter(id => /^\d+$/.test(id)))]
+  if (!cleanIds.length) return []
+  const query = `query ($ids: [ID!]!) {
+    items(ids: $ids) {
+      id name board { id }
+      column_values { id type text value column { title } }
+      assets { id name url public_url }
+    }
+  }`
+  const response = await monday.api(query, { variables: { ids: cleanIds } })
+  if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+  return response?.data?.items || []
+}
+
+function mondayPhotoUrl(item) {
+  const column = mondayColumnByTitle(item, 'FOTO EDITADA')
+  if (!column) return ''
+  const parsed = mondayColumnJSON(item, 'FOTO EDITADA')
+  const assetIds = new Set()
+  const visit = node => {
+    if (!node) return
+    if (Array.isArray(node)) { node.forEach(visit); return }
+    if (typeof node !== 'object') return
+    Object.entries(node).forEach(([key, child]) => {
+      if (/^(assetId|asset_id)$/i.test(key) && child != null) assetIds.add(String(child))
+      else visit(child)
+    })
+  }
+  visit(parsed)
+  const assets = item?.assets || []
+  const asset = assets.find(candidate => assetIds.has(String(candidate.id))) || assets[0]
+  return asset?.public_url || asset?.url || ''
+}
+
+function mondayShowBridgeError(message) {
+  hideLoadingScreen()
+  document.documentElement.classList.add('monday-embedded')
+  document.getElementById('auth-screen').style.display = 'none'
+  document.getElementById('app').style.display = 'flex'
+  leaveView(true)
+  document.getElementById('sec-title').textContent = 'Crear gafete'
+  document.getElementById('sec-sub').textContent = ''
+  document.getElementById('pg').innerHTML = `<div class="empty-state" style="max-width:620px;margin:64px auto"><h3>No se pudo abrir este gafete</h3><p>${esc(message)}</p><p>Confirma que el elemento de Control de gafetes esté conectado con un colaborador y vuelve a abrir la vista.</p></div>`
+}
+
+async function enterMondayBadgeApp() {
+  if (!window.__SIERRA_MONDAY_SDK__ && typeof mondaySdk !== 'function') throw new Error('No se pudo cargar la conexión segura con monday.com.')
+  const monday = window.__SIERRA_MONDAY_SDK__ || mondaySdk()
+  const contextResult = await monday.get('context')
+  const context = contextResult?.data || {}
+  const controlItemId = String(context.itemId || context.pulseId || '')
+  if (!/^\d+$/.test(controlItemId)) throw new Error('Abre esta vista desde un elemento de Control de gafetes.')
+
+  const [controlItem] = await mondayFetchItems(monday, [controlItemId])
+  if (!controlItem) throw new Error('No se encontró el elemento de Control de gafetes.')
+  const collaboratorIds = mondayLinkedItemIds(controlItem, 'Colaboradores 2026')
+  if (!collaboratorIds.length) throw new Error('Este control todavía no está conectado con Colaboradores 2026.')
+  const [collaborator] = await mondayFetchItems(monday, [collaboratorIds[0]])
+  if (!collaborator) throw new Error('No se pudo leer el colaborador conectado.')
+
+  const photoItemIds = mondayLinkedItemIds(collaborator, 'Tablero Fotos')
+  const photoItems = await mondayFetchItems(monday, photoItemIds)
+  const photoItem = photoItems.find(item => mondayColumnByTitle(item, 'FOTO EDITADA')) || null
+  const organization = mondayColumnText(collaborator, 'Empresa/planta') || 'Organización sin asignar'
+  const country = mondayColumnText(collaborator, 'Country') || '—'
+  const orgCode = mondayOrgCode(organization)
+  const firstName = mondayColumnText(collaborator, 'Nombres')
+  const lastName = mondayColumnText(collaborator, 'Apellidos')
+  const now = new Date().toISOString()
+  const employee = {
+    id: `monday-${collaborator.id}`,
+    site_id: 'monday-site',
+    employee_code: mondayEmployeeCode(mondayColumnText(collaborator, 'Código interno'), organization),
+    first_name: firstName,
+    last_name: lastName,
+    preferred_name: mondayColumnText(collaborator, 'Nombre que se imprimirá') || null,
+    position: mondayColumnText(collaborator, 'Puesto') || null,
+    department: null,
+    country,
+    photo_url: mondayPhotoUrl(photoItem),
+    photo_crop: null,
+    identification_number: mondayColumnText(collaborator, 'Número de identificación') || null,
+    emergency_contact_name: mondayColumnText(collaborator, 'Contacto de emergencia') || null,
+    emergency_contact_phone: mondayColumnText(collaborator, 'Teléfono de emergencia') || null,
+    emergency_contact_relationship: null,
+    health_conditions: mondayColumnText(collaborator, 'Condiciones de salud') || null,
+    blood_type: mondayColumnText(collaborator, 'Tipo de sangre') || null,
+    employee_status: 'active',
+    created_at: now,
+    updated_at: now,
+  }
+
+  _mondayBridge = { monday, context, controlItemId, collaboratorItemId: String(collaborator.id) }
+  me = { id: `monday-${context.user?.id || 'user'}`, email: 'monday@app.local' }
+  profile = { role: 'admin', full_name: context.user?.name || 'Talento Humano' }
+  myGrants = []
+  _badge.activeSite = 'monday-site'
+  _badge.sites = [{ id: 'monday-site', company_id: 'monday-company', internal_code: orgCode, name: organization, badge_color: null }]
+  _badge.companies = { monday: [{ id: 'monday-company', country_id: 'monday-country', name: organization, legal_name: organization, code: orgCode, logo_url: null }] }
+  _badge.countries = [{ id: 'monday-country', name: country }]
+  _badge.employees = [employee]
+  _badge.badges = []
+  _badge.events = []
+
+  hideLoadingScreen()
+  document.documentElement.classList.add('monday-embedded')
+  document.getElementById('auth-screen').style.display = 'none'
+  document.getElementById('app').style.display = 'flex'
+  leaveView(true)
+  startBadgeIssuance(employee.id)
+  const mondayNameSelection = mondayPrintedNameSelection(firstName, lastName, employee.preferred_name)
+  if (mondayNameSelection && _badge_ui.issuanceInProgress) {
+    _badge_ui.issuanceInProgress.printedNameSelection = mondayNameSelection
+    renderBadgeModule()
+  }
+}
+
 // (the Label Builder registers its own resize handler alongside lbFitPreview)
 window.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search)
+  if (params.get('monday') === '1') {
+    try { await enterMondayBadgeApp() }
+    catch (error) {
+      console.error('monday badge bridge:', error)
+      mondayShowBridgeError(error?.message || 'Error desconocido al leer monday.com.')
+    }
+    return
+  }
   const pubId = params.get('pub')
   if (pubId) {
     hideLoadingScreen()
@@ -21439,6 +21661,7 @@ function renderBadgeReadinessCompact(emp, r, st) {
 
 function renderBadgeDataPanel(emp, issuance) {
   const canWrite = can('write', 'talento_humano')
+  const canEditMaster = canWrite && !_mondayBridge
   const latest = empLatestBadge(emp)
   const status = latest ? latest.status : 'no_badge'
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
@@ -21474,7 +21697,7 @@ function renderBadgeDataPanel(emp, issuance) {
           <code>${emp.employee_code ? esc(emp.employee_code) : '—'}</code>
         </div>
         <div class="bds-note">No editable aquí — refleja el registro del colaborador.</div>
-        ${canWrite ? `<button type="button" class="badge-profile-link" onclick="editEmployeeFromBadge('${emp.id}','overview')">${siIcon('pencil', 13)} Editar en el perfil</button>` : ''}
+        ${canEditMaster ? `<button type="button" class="badge-profile-link" onclick="editEmployeeFromBadge('${emp.id}','overview')">${siIcon('pencil', 13)} Editar en el perfil</button>` : ''}
       </div>
 
       ${renderBadgeNameSelectorSection(emp, issuance, canWrite)}
@@ -21490,14 +21713,16 @@ function renderBadgeDataPanel(emp, issuance) {
             }
           </div>
           <div class="badge-photo-col">
-            ${canWrite ? `
+            ${canEditMaster ? `
             <div class="badge-photo-actions">
               <label>${emp.photo_url ? 'Cambiar' : 'Agregar fotografía'}<input id="badge-photo-input" type="file" accept="${IMG_TYPES.join(',')}" aria-label="${emp.photo_url ? 'Cambiar fotografía' : 'Agregar fotografía'}" style="display:none" onchange="uploadBadgePhoto('${emp.id}', this)" /></label>
               ${emp.photo_url ? `<button type="button" onclick="openBadgeCropEditor('${emp.id}')">Ajustar encuadre</button>` : ''}
               ${emp.photo_url ? `<button type="button" class="danger" onclick="removeBadgePhoto('${emp.id}')">Quitar</button>` : ''}
             </div>
             <div class="badge-photo-hint">JPG, PNG, WebP, GIF o AVIF · máx ${IMG_MAX_MB} MB</div>
-            ` : (emp.photo_url ? '' : '<div class="badge-photo-hint">Sin permiso de escritura para agregar fotografía</div>')}
+            ` : (emp.photo_url
+              ? (_mondayBridge ? `<div class="badge-photo-actions"><button type="button" onclick="openBadgeCropEditor('${emp.id}')">Ajustar encuadre</button></div><div class="badge-photo-hint">La fotografía proviene de FOTO EDITADA en monday</div>` : '')
+              : `<div class="badge-photo-hint">${_mondayBridge ? 'Agrega la foto en FOTO EDITADA del tablero regional' : 'Sin permiso de escritura para agregar fotografía'}</div>`)}
           </div>
         </div>
         <div class="bds-note">Esta es la fotografía de perfil del colaborador — no existe una versión exclusiva para el gafete. Cambiarla aquí la cambia en todo el sistema.</div>
@@ -21535,7 +21760,7 @@ function renderBadgeDataPanel(emp, issuance) {
              feeds the printed badge. -->
         <div class="bds-note">La razón social impresa en el gafete (${esc(legalName || 'sin resolver')}) se determina por la sede y su empresa asociada — no es necesariamente el mismo texto que el nombre de la sede mostrado arriba.</div>
         ${!emp.employee_code ? '<div class="bds-note" style="color:var(--danger)">Sin código de colaborador, el código de barras no puede generarse — esto bloquea la impresión y solo puede corregirse en el perfil.</div>' : ''}
-        ${canWrite ? `<button type="button" class="badge-profile-link" onclick="viewEmployeeDetail('${emp.id}','employment')">${siIcon('pencil', 13)} Editar en el perfil</button>` : ''}
+        ${canEditMaster ? `<button type="button" class="badge-profile-link" onclick="viewEmployeeDetail('${emp.id}','employment')">${siIcon('pencil', 13)} Editar en el perfil</button>` : ''}
       </div>
     </div>
   `
@@ -21669,6 +21894,7 @@ function resetBadgeNameSelectionToFull() {
 // already writes, plus this new key. This NEVER writes to the `employees`
 // table — see this pass's report for the verification test.
 async function _badgeSaveDraftPrintedNameSelection(emp, site, selection) {
+  if (_mondayBridge) return { error: null }
   const persisted = _badgeBuildPersistedNameSelection(emp.first_name, emp.last_name, selection)
   const existing = _badge.badges.find(b => b.employee_id === emp.id && ['draft', 'ready_to_print'].includes(b.status))
   const snapshot = {
@@ -23297,6 +23523,16 @@ async function saveBadgeCropEditor(empId) {
   const originView = _badge_ui.view
   const originTab = _badge_ui.detailTab
   const crop = _badgeCropEditor.crop
+  if (_mondayBridge) {
+    const emp = _badge.employees.find(e => e.id === empId)
+    if (emp) emp.photo_crop = crop
+    toast('Encuadre aplicado para esta sesión de impresión')
+    closeSideDrawer()
+    _badge_ui.view = 'issuance'
+    replaceHash(`#/badge/${empId}`)
+    renderBadgeModule()
+    return
+  }
   const { error } = await sb.from('employees').update({ photo_crop: crop }).eq('id', empId)
   if (error) { toast('Error al guardar el encuadre: ' + error.message); return }
   const emp = _badge.employees.find(e => e.id === empId)
@@ -23964,6 +24200,14 @@ async function _badgePrintPreflight(issuance, emp, btnId, idleLabel) {
 // pre-existing single-flow contract (draft reuse, reprint detection,
 // 5-field snapshot).
 async function _badgeCommitIssuancePrint(emp, site, printedNameSelection) {
+  // In monday's Item View, monday owns the employee/control records and
+  // SIERRA Index is the print surface. Do not create an unrelated Supabase
+  // issuance row for a synthetic employee ID. The selected monday item
+  // remains open so the operator can also generate the responsibility letter.
+  if (_mondayBridge) {
+    toast('Impresión finalizada; el control de monday permanece abierto')
+    return
+  }
   const existing = _badge.badges.find(b => b.employee_id === emp.id && ['draft', 'ready_to_print'].includes(b.status))
   const isReprint = !existing && _badge.badges.some(b => b.employee_id === emp.id && b.status === 'printed')
   // printed_name_selection (this pass) becomes part of the permanent,
@@ -24031,6 +24275,7 @@ async function printBadgeDuplex() {
   toast('Proceso de impresión cerrado. Verifica la salida física.')
   await _badgeCommitIssuancePrint(emp, site, issuance.printedNameSelection)
   resetPrintingState()
+  if (_mondayBridge) { renderBadgeModule(); return }
   closeBadgeIssuance()
   await loadBadgeData()
   renderBadgeModule()
@@ -24087,6 +24332,11 @@ async function printBadgeManualReverseConfirmed() {
   toast('Proceso de impresión cerrado. Verifica la salida física.')
   await _badgeCommitIssuancePrint(emp, site, issuance.printedNameSelection)
   resetPrintingState()
+  if (_mondayBridge) {
+    delete issuance.manualDuplex
+    renderBadgeModule()
+    return
+  }
   closeBadgeIssuance()
   await loadBadgeData()
   renderBadgeModule()
