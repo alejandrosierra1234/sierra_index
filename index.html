@@ -8804,8 +8804,18 @@ async function mondayFetchItems(monday, ids) {
   const query = `query ($ids: [ID!]!) {
     items(ids: $ids) {
       id name board { id }
-      column_values { id type text value column { title } }
-      assets { id name url public_url }
+      column_values {
+        id type text value column { title }
+        ... on FileValue {
+          files {
+            ... on FileAssetValue {
+              asset_id name is_image
+              asset { id name public_url url url_thumbnail file_extension file_size }
+            }
+          }
+        }
+      }
+      assets { id name url public_url url_thumbnail file_extension file_size }
     }
   }`
   const response = await monday.api(query, { variables: { ids: cleanIds } })
@@ -8816,6 +8826,15 @@ async function mondayFetchItems(monday, ids) {
 function mondayPhotoUrl(item) {
   const column = mondayColumnByTitle(item, 'FOTO EDITADA')
   if (!column) return ''
+  // FileValue.files is the authoritative association between this exact
+  // column and its asset. Do not fall through to the first item asset: an
+  // item can contain unrelated attachments and monday does not guarantee
+  // their order. public_url is deliberately requested afresh every time the
+  // app opens because monday expires it after one hour.
+  const columnFile = (column.files || []).find(file => file?.is_image !== false && file?.asset)
+  if (columnFile?.asset?.public_url) return columnFile.asset.public_url
+  if (columnFile?.asset?.url_thumbnail) return columnFile.asset.url_thumbnail
+  if (columnFile?.url) return columnFile.url
   const parsed = mondayColumnJSON(item, 'FOTO EDITADA')
   const assetIds = new Set()
   const visit = node => {
@@ -8830,7 +8849,7 @@ function mondayPhotoUrl(item) {
   visit(parsed)
   const assets = item?.assets || []
   const asset = assets.find(candidate => assetIds.has(String(candidate.id))) || assets[0]
-  return asset?.public_url || asset?.url || ''
+  return asset?.public_url || asset?.url_thumbnail || asset?.url || ''
 }
 
 function mondayShowBridgeError(message) {
@@ -20471,18 +20490,11 @@ function badgeGeometryMm() {
 // alignment, photo resolution warnings — see printBadge()'s dpi-audit
 // comment) and must never be used to size @page or any CSS length.
 //
-// Orientation audit (documented here, not assumed in code — see the longer
-// comment on the @page rule in printBadge() for the full reasoning): CR80
-// direct-to-card printers, ZC300 included, physically feed and print the
-// card in a fixed mechanical orientation; "portrait vs landscape" is a
-// property of the SOURCE CONTENT the driver is handed, not a raster
-// rotation this app performs. We deliberately do NOT apply a CSS rotation
-// transform to compensate for either possible driver behavior — doing so
-// would risk double-rotating for whichever behavior turns out to be real on
-// a given install, and cannot be verified without the physical printer. The
-// @page size stays the portrait mm values that match SIERRA's actual design
-// (53.98mm x 85.6mm, width x height) and the print-menu/setup-assistant UI
-// carries the troubleshooting guidance for both possible outcomes instead.
+// Orientation audit: the production ZC300 duplex sample confirmed that its
+// flipper places page 2 exactly 180 degrees opposite page 1. Compensate in
+// the source document, on the back sheet only, so one duplex job produces
+// two upright sides without asking the operator to reinsert the card. The
+// @page size remains the canonical portrait CR80 geometry (53.98 x 85.6mm).
 const ZC300_MODE_STORAGE_KEY = 'sierra_zc300_print_mode'
 const ZC300_SETUP_CONFIRMED_KEY = 'sierra_zc300_setup_confirmed'
 const ZC300_CALIBRATION_STORAGE_KEY = 'sierra_zc300_calibration_offset'
@@ -20497,6 +20509,10 @@ const ZEBRA_ZC300_PROFILE = {
   cardMm: badgeGeometryMm,
   orientation: 'portrait',
   pageOrder: ['front', 'back'],
+  // Verified against the physical production output on 2026-09-07. This is
+  // deliberately part of the printer profile rather than badge layout CSS:
+  // preview, responsiva and front output must never inherit the correction.
+  reverseRotationDeg: 180,
   // 300dpi / 11.811 dots-per-mm — reference/validation constant only (barcode
   // module-width and photo-resolution math in printBadge()/badge print-menu
   // code), never fed into @page or any physical CSS length.
@@ -23885,7 +23901,7 @@ function _badgeBackSheetHtml(emp, pieces, barcodeMarkup, palette) {
 // getZc300Calibration()) is applied as a single uniform
 // `transform: translate()` on EVERY .badge-sheet in the document — it moves
 // the whole rigid card as one unit, never an individual element.
-function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibration, titleSuffix }) {
+function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibration, titleSuffix, reverseRotationDeg = 0 }) {
   const { w: BADGE_W, h: BADGE_H } = badgeGeometryMm()
   const fontUrl = (file) => new URL(file, location.href).href
   const calX = calibration?.x || 0
@@ -23903,9 +23919,9 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
         ${_badgeFontFaceCss(fontUrl)}
         /* Physical page size — the ONLY source of truth is badgeGeometryMm()
            (BADGE_W/BADGE_H above), never a second hardcoded 53.98/85.6.
-           Orientation audit: see ZEBRA_ZC300_PROFILE's comment — this stays
-           the portrait mm values that match the actual design; no rotation
-           transform is applied here to "guess" driver behavior. */
+           Orientation audit: this stays the portrait mm geometry. The
+           verified ZC300 flipper correction is applied only to .is-back in
+           the final print reset below. */
         @page { size: ${BADGE_W}mm ${BADGE_H}mm; margin: 0; }
         /* Headers/footers and "fit to page" scaling are OS/browser print-
            dialog settings this document cannot force via CSS — see the
@@ -24013,7 +24029,12 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
            backgrounds/colors still survive printing. */
         @media print {
           body { margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .badge-sheet { margin: 0; box-shadow: none; border: none; border-radius: 0; outline: none; page-break-after: always; transform: translate(${calX}mm, ${calY}mm); }
+          .badge-sheet { margin: 0; box-shadow: none; border: none; border-radius: 0; outline: none; page-break-after: always; transform: translate(${calX}mm, ${calY}mm); transform-origin: 50% 50%; }
+          /* Production ZC300 duplex flipper: page 2 otherwise exits upside
+             down relative to page 1. Rotation around the card centre keeps
+             CR80 geometry/calibration intact and returns the reserved 1cm
+             preprinted-number strip to the physical right-hand edge. */
+          .badge-sheet.is-back { transform: translate(${calX}mm, ${calY}mm) rotate(${reverseRotationDeg}deg); }
           .badge-sheet:last-child { page-break-after: auto; }
           .no-print { display: none !important; }
         }
@@ -24268,7 +24289,12 @@ async function printBadgeDuplex() {
   if (!pre) return
   const { site, pieces, barcodeMarkup, resetPrintingState } = pre
   const calibration = getZc300Calibration()
-  const html = _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides: ZEBRA_ZC300_PROFILE.pageOrder, calibration })
+  const html = _badgeBuildPrintHtml({
+    emp, site, pieces, barcodeMarkup,
+    sides: ZEBRA_ZC300_PROFILE.pageOrder,
+    calibration,
+    reverseRotationDeg: ZEBRA_ZC300_PROFILE.reverseRotationDeg,
+  })
   const result = await _badgePrintFromEditor(html, { waitForPhoto: true })
   if (!result.ok) { resetPrintingState(); return }
 
@@ -24397,7 +24423,7 @@ function renderZc300SetupAssistantBody() {
       <li>✔ Umbral de extracción: incluir como mínimo <b>RGB 0, 0, 0</b></li>
     </ul>
     <div style="font-size:0.74rem;color:var(--text-3);margin-bottom:1rem;line-height:1.5;padding:0.6rem 0.7rem;background:var(--surface-2, #f5f5f5);border-radius:8px">
-      Nitidez: la app genera texto, iconos y logos críticos en negro puro, pero el driver debe enviarlos al panel de resina K. Si la extracción K altera la fotografía, excluye únicamente el rectángulo de la foto en la configuración avanzada. Orientación: si el reverso queda invertido 180° respecto al frente, selecciona <b>Rotate 180° → Back (Reverso)</b>. Estas opciones pertenecen al driver y la página web no puede activarlas automáticamente.
+      Nitidez: la app genera texto, iconos y logos críticos en negro puro, pero el driver debe enviarlos al panel de resina K. Si la extracción K altera la fotografía, excluye únicamente el rectángulo de la foto en la configuración avanzada. En modo dúplex, la app ya compensa automáticamente el giro de 180° observado en el reverso; deja desactivada cualquier rotación adicional del reverso en el driver.
     </div>
     <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
       <button class="btn btn-primary btn-sm" onclick="confirmZc300SetupAndContinue()">Confirmar ajustes y continuar</button>
