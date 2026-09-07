@@ -11,7 +11,9 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3/dist/JsBarcode.all.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/monday-sdk-js/dist/main.js"></script>
+  <!-- Keep the browser build pinned: the unversioned package currently resolves
+       to the incompatible 1.0.0 beta instead of the stable item-view SDK. -->
+  <script src="https://cdn.jsdelivr.net/npm/monday-sdk-js@0.5.9/dist/main.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1/dist/jsQR.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js" defer></script>
   <style>
@@ -8864,8 +8866,11 @@ function mondayShowBridgeError(message) {
 }
 
 async function enterMondayBadgeApp() {
-  if (!window.__SIERRA_MONDAY_SDK__ && typeof mondaySdk !== 'function') throw new Error('No se pudo cargar la conexión segura con monday.com.')
-  const monday = window.__SIERRA_MONDAY_SDK__ || mondaySdk()
+  if (typeof window.mondaySdk !== 'function') throw new Error('No se pudo cargar la conexión segura con monday.com.')
+  const monday = window.mondaySdk()
+  if (!monday || typeof monday.get !== 'function' || typeof monday.api !== 'function') {
+    throw new Error('La conexión con monday.com no es compatible. Recarga el elemento e inténtalo de nuevo.')
+  }
   const contextResult = await monday.get('context')
   const context = contextResult?.data || {}
   const controlItemId = String(context.itemId || context.pulseId || '')
