@@ -8991,6 +8991,7 @@ async function enterMondayBadgeApp() {
     monday, context, controlItemId, collaboratorItemId: String(collaborator.id),
     controlBoardId: String(controlItem.board?.id || context.boardId || ''),
     workflowStatusColumnId: workflowStatusColumn?.id || null,
+    workflowStatusText: String(workflowStatusColumn?.text || '').trim(),
     responsibilityLetterColumnId: responsibilityLetterColumn?.id || null,
     responsibilityLetterUploaded: false,
   }
@@ -9016,6 +9017,11 @@ async function enterMondayBadgeApp() {
     _badge_ui.issuanceInProgress.printedNameSelection = mondayNameSelection
     renderBadgeModule()
   }
+  // The Item View is the first point at which this client-side app runs.
+  // Classify the newly-created control record from the same production
+  // readiness rules used by preview and print; never maintain a second,
+  // weaker list of required fields just for monday.
+  await mondaySyncBadgeReadinessStatus(employee)
 }
 
 // (the Label Builder registers its own resize handler alongside lbFitPreview)
@@ -21841,12 +21847,24 @@ async function mondayUploadResponsibilityLetter(emp, site, { force = false } = {
 }
 
 async function mondayMarkBadgePrinted() {
+  return mondaySetWorkflowStatus('Impreso', { preserveFinal: false })
+}
+
+const MONDAY_BADGE_FINAL_WORKFLOW_STATUSES = new Set(['impreso', 'entregado', 'cancelado'])
+
+async function mondaySetWorkflowStatus(value, { preserveFinal = true } = {}) {
   const bridge = _mondayBridge
   if (!bridge) return { ok: false, skipped: true }
   if (!bridge.workflowStatusColumnId) {
     throw new Error('No encuentro la columna de estado “Estado del Workflow” en Control de gafetes.')
   }
   if (!/^\d+$/.test(bridge.controlBoardId)) throw new Error('No se pudo identificar el tablero de Control de gafetes.')
+  const current = normalizeBadgeOrgIdentity(bridge.workflowStatusText)
+  const target = normalizeBadgeOrgIdentity(value)
+  if (current === target) return { ok: true, skipped: true }
+  if (preserveFinal && MONDAY_BADGE_FINAL_WORKFLOW_STATUSES.has(current)) {
+    return { ok: true, skipped: true, preserved: bridge.workflowStatusText }
+  }
   const mutation = `mutation ($boardId: ID!, $itemId: ID!, $columnId: String!, $value: String!) {
     change_simple_column_value(board_id: $boardId, item_id: $itemId, column_id: $columnId, value: $value) { id }
   }`
@@ -21854,10 +21872,34 @@ async function mondayMarkBadgePrinted() {
     boardId: bridge.controlBoardId,
     itemId: bridge.controlItemId,
     columnId: bridge.workflowStatusColumnId,
-    value: 'Impreso',
+    value,
   } })
   if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
-  return { ok: true }
+  bridge.workflowStatusText = value
+  return { ok: true, value }
+}
+
+function mondayBadgeReadinessWorkflowStatus(emp) {
+  const selection = _badge_ui.issuanceInProgress?.printedNameSelection || null
+  const readiness = checkBadgeReadiness(emp, selection)
+  const photoBroken = !!emp.photo_url && _badgePhotoStatus[emp.photo_url] === 'broken'
+  if (!emp.photo_url || photoBroken) return { value: 'Foto faltante', readiness }
+  if (readiness.errors.length) return { value: 'Datos faltantes', readiness }
+  return { value: 'Listo para imprimir', readiness }
+}
+
+async function mondaySyncBadgeReadinessStatus(emp, { quiet = false } = {}) {
+  if (!_mondayBridge || !emp) return { ok: false, skipped: true }
+  const classification = mondayBadgeReadinessWorkflowStatus(emp)
+  try {
+    const result = await mondaySetWorkflowStatus(classification.value)
+    if (!quiet && !result.skipped) toast(`monday actualizado: ${classification.value}`, 3500)
+    return { ...result, classification }
+  } catch (error) {
+    console.error('monday badge readiness sync failed:', error)
+    if (!quiet) toast(`No se pudo actualizar el estado en monday: ${error?.message || 'Error desconocido'}`, 7000)
+    return { ok: false, error, classification }
+  }
 }
 
 async function mondayCompleteBadgePrint(emp, site) {
@@ -23594,6 +23636,10 @@ function badgeMarkPhotoStatus(url, ok) {
   // every successful image load, which would be pure noise.
   if (prev !== _badgePhotoStatus[url] && (prev === 'broken' || _badgePhotoStatus[url] === 'broken') && _badge_ui.view === 'issuance') {
     renderBadgeModule()
+    if (_mondayBridge) {
+      const emp = _badge.employees.find(item => item.id === _badge_ui.issuanceInProgress?.employee_id)
+      mondaySyncBadgeReadinessStatus(emp, { quiet: true })
+    }
   }
 }
 
