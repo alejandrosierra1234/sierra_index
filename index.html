@@ -6784,6 +6784,23 @@
       letter-spacing: 0.08em;
       margin-top: 0.3mm;
     }
+    /* Front-side elements intended as black must remain literal process
+       black; never inherit softened UI grays, opacity or text effects. */
+    .badge-front .badge-front-idline,
+    .badge-front .badge-front-nameline,
+    .badge-front .badge-front-positionline,
+    .badge-front .badge-front-departmentline {
+      color: #000 !important;
+      opacity: 1 !important;
+      text-shadow: none !important;
+      filter: none !important;
+      forced-color-adjust: none;
+    }
+    .badge-front .badge-front-header .badge-logo-mark svg .lc2 {
+      fill: #000 !important;
+      fill-opacity: 1 !important;
+      stroke-opacity: 1 !important;
+    }
     .badge-front-companybar {
       flex-shrink: 0;
       margin-top: 1.6mm;
@@ -19925,11 +19942,13 @@ function renderEmpPersonalTab(emp) {
 // changing mode, not a jump to a different, unrelated form.
 function empEditFieldHtml(label, key, emp, opts = {}) {
   const val = emp[key] || ''
+  const proseField = ['department', 'position', 'badge_position', 'emergency_contact_name', 'emergency_contact_relationship', 'health_conditions'].includes(key)
+  const writingAttrs = proseField ? ' lang="es" spellcheck="true" autocapitalize="words"' : ''
   const input = opts.select
     ? `<select id="edemp-${key}">${opts.select.map(o => `<option value="${escAttr(o.value ?? o)}" ${val === (o.value ?? o) ? 'selected' : ''}>${esc(o.label ?? o)}</option>`).join('')}</select>`
     : opts.textarea
-    ? `<textarea id="edemp-${key}" rows="2">${esc(val)}</textarea>`
-    : `<input type="${opts.type || 'text'}" id="edemp-${key}" value="${escAttr(String(val).slice(0, opts.type === 'date' ? 10 : undefined))}" />`
+    ? `<textarea id="edemp-${key}" rows="2"${writingAttrs}>${esc(val)}</textarea>`
+    : `<input type="${opts.type || 'text'}" id="edemp-${key}" value="${escAttr(String(val).slice(0, opts.type === 'date' ? 10 : undefined))}"${writingAttrs} />`
   const cls = ['data-field', 'emp-edit-field', opts.span === 2 ? 'data-field-span-2' : ''].filter(Boolean).join(' ')
   return `<div class="${cls}">
     <div class="data-field-label">${opts.icon ? `<span class="data-field-label-icon">${siIcon(opts.icon, 12)}</span>` : ''}${esc(label)}</div>
@@ -20646,6 +20665,64 @@ function setZc300Calibration(x, y) {
 }
 function resetZc300Calibration() { return setZc300Calibration(0, 0) }
 
+// Presentation normalization for human-readable badge fields. It is kept
+// out of persistence deliberately: monday/Supabase remain the source of
+// truth, while preview, responsiva and print share the same transformation.
+// Short all-uppercase tokens (EHS, RRHH, IT, etc.) remain acronyms.
+function badgeTitleCase(value) {
+  return String(value || '').replace(/[\p{L}\p{M}]+/gu, word => {
+    if (word.length <= 5 && word === word.toLocaleUpperCase('es')) return word
+    const lower = word.toLocaleLowerCase('es')
+    return lower.charAt(0).toLocaleUpperCase('es') + lower.slice(1)
+  })
+}
+
+// High-confidence, domain-specific Spanish corrections only. This is not a
+// speculative language model: it warns on exact normalized words and always
+// shows the proposed replacement. Names are intentionally excluded.
+const BADGE_SPELLING_CORRECTIONS = Object.freeze({
+  administracion: 'administración', almacen: 'almacén', analisis: 'análisis',
+  atencion: 'atención', cardiaco: 'cardíaco', comunicacion: 'comunicación',
+  condicion: 'condición', condiciones: 'condiciones', coordinacion: 'coordinación',
+  diagnostico: 'diagnóstico', electrico: 'eléctrico', electronica: 'electrónica',
+  emergenciaa: 'emergencia', hipertencion: 'hipertensión', identificacion: 'identificación',
+  ingenieria: 'ingeniería', logistica: 'logística', mecanica: 'mecánica',
+  operacion: 'operación', produccion: 'producción', quimica: 'química',
+  respiracion: 'respiración', telefono: 'teléfono', supervision: 'supervisión',
+  supervisorra: 'supervisora', mantenimieno: 'mantenimiento', manteniemiento: 'mantenimiento',
+  alergiaas: 'alergias', diabetis: 'diabetes', presion: 'presión', perdida: 'pérdida',
+})
+
+function badgeSpellingSuggestions(value) {
+  const source = String(value || '')
+  const found = new Map()
+  for (const match of source.matchAll(/[\p{L}\p{M}]+/gu)) {
+    const raw = match[0]
+    const key = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es')
+    const correction = BADGE_SPELLING_CORRECTIONS[key]
+    if (correction && raw.toLocaleLowerCase('es') !== correction.toLocaleLowerCase('es')) {
+      found.set(raw.toLocaleLowerCase('es'), { written: raw, suggestion: correction })
+    }
+  }
+  return [...found.values()]
+}
+
+function badgeTextQualityIssues(emp) {
+  const fields = [
+    { key: 'badge_position', fallback: 'position', label: 'Puesto' },
+    { key: 'department', label: 'Departamento' },
+    { key: 'emergency_contact_relationship', label: 'Parentesco' },
+    { key: 'health_conditions', label: 'Condiciones de salud' },
+  ]
+  return fields.flatMap(({ key, fallback, label }) => {
+    const value = emp[key] || (fallback ? emp[fallback] : '')
+    const suggestions = badgeSpellingSuggestions(value)
+    if (!suggestions.length) return []
+    const detail = suggestions.map(s => `“${s.written}” → “${s.suggestion}”`).join('; ')
+    return [{ level: 'warning', field: key, message: `Posible falta de ortografía en ${label}: ${detail}` }]
+  })
+}
+
 function checkBadgeReadiness(emp, printedNameSelection) {
   const issues = []
 
@@ -20758,6 +20835,10 @@ function checkBadgeReadiness(emp, printedNameSelection) {
 
   // Blood type (recommended for emergency response on the badge back)
   if (!emp.blood_type) issues.push({ level: 'warning', field: 'blood_type', message: 'Se recomienda el tipo de sangre para emergencias' })
+
+  // Non-blocking editorial review. Suggestions are visible before print but
+  // never prevent an authorized operator from issuing a badge.
+  issues.push(...badgeTextQualityIssues(emp))
 
   const errors = issues.filter(i => i.level === 'error')
   const warnings = issues.filter(i => i.level === 'warning')
@@ -21626,7 +21707,7 @@ function badgeResponsivaHtml(emp, site, language = _badgeResponsivaLanguage) {
     .resp-signature span { color:#666; }
     .resp-footer { margin-top:9mm; padding-top:3mm; border-top:.2mm solid #d7d9db; display:flex; justify-content:space-between; color:#777; font-size:6.8pt; }
     .badge-sheet { width:53.98mm; height:85.6mm; background:#fff; color:#000; padding:3mm; display:flex; flex-direction:column; overflow:hidden; position:relative; }
-    .badge-logo-mark svg { width:100%; height:auto; display:block; } .badge-front-header{display:flex;justify-content:center;padding:1mm 0 2.2mm}.badge-front-header .badge-logo-mark{width:28mm}.badge-front-card{flex:1;display:flex;flex-direction:column;gap:1.6mm;justify-content:center}.badge-front-photoblock{width:var(--badge-photo-side);height:var(--badge-photo-side);align-self:center;overflow:hidden;border-radius:3mm;position:relative}.badge-employee-photo,.badge-photo-crop{width:100%;height:100%;object-fit:cover}.badge-front-panel{display:flex;flex-direction:column;align-items:center;text-align:center;padding:2mm 3mm;gap:.8mm}.badge-front-idline,.badge-barcode-value{font-family:'Aeonik Mono';font-size:7pt}.badge-name-line{font-family:'Replica';font-weight:700;text-transform:uppercase}.badge-position-block{display:flex;flex-direction:column;align-items:center}.badge-position-line{font-size:7.6pt}.badge-department-line{font-size:5.8pt;font-weight:400;line-height:1.25;text-transform:uppercase;letter-spacing:.08em;margin-top:.3mm}.badge-front-companybar{margin-top:1.6mm;border-radius:3mm;background:var(--badge-plant-accent);padding:1.4mm 3mm;text-align:center}.badge-company-line{font-size:6.6pt;font-weight:700;color:var(--badge-plant-on-accent,#fff);text-transform:uppercase}.badge-sheet.is-back{padding-right:13mm}.badge-back-header{display:flex;justify-content:space-between;padding-bottom:3mm}.badge-back-header .badge-logo-mark{width:28mm}.badge-gk-tile{width:5.2mm;height:5.2mm}.badge-gk-tile svg{width:100%;height:100%}.badge-back-panel{flex:0 0 auto;border:.15mm solid #000;border-radius:3mm;padding:0 3mm;overflow:hidden}.badge-back-row2{display:flex;align-items:center;gap:1.8mm;padding:1mm 0;border-bottom:.15mm solid #000}.badge-back-row2:last-child{border:0}.badge-back-icontile{width:5.5mm;display:flex}.badge-back-rowtext{flex:1}.badge-back-rowlabel{font-size:5.1pt;font-weight:700;text-transform:uppercase}.badge-back-rowvalue{font-size:6.4pt;line-height:1.2}.badge-back-contact-name,.badge-back-contact-phone{display:block}.badge-back-legal{margin-top:auto;font-size:5.4pt;line-height:1.3;padding:1.2mm 0 .8mm}.badge-barcode{text-align:center}.badge-barcode svg{height:10mm;max-width:100%}.badge-photo-placeholder,.badge-front-photo-broken{font-size:6pt;text-align:center}.badge-front-photo-broken{display:none}
+    .badge-logo-mark svg { width:100%; height:auto; display:block; } .badge-front-header{display:flex;justify-content:center;padding:1mm 0 2.2mm}.badge-front-header .badge-logo-mark{width:28mm}.badge-front-card{flex:1;display:flex;flex-direction:column;gap:1.6mm;justify-content:center}.badge-front-photoblock{width:var(--badge-photo-side);height:var(--badge-photo-side);align-self:center;overflow:hidden;border-radius:3mm;position:relative}.badge-employee-photo,.badge-photo-crop{width:100%;height:100%;object-fit:cover}.badge-front-panel{display:flex;flex-direction:column;align-items:center;text-align:center;padding:2mm 3mm;gap:.8mm}.badge-front-idline,.badge-barcode-value{font-family:'Aeonik Mono';font-size:7pt}.badge-name-line{font-family:'Replica';font-weight:700;text-transform:uppercase}.badge-position-block{display:flex;flex-direction:column;align-items:center}.badge-position-line{font-size:7.6pt}.badge-department-line{font-size:5.8pt;font-weight:400;line-height:1.25;text-transform:uppercase;letter-spacing:.08em;margin-top:.3mm}.badge-sheet:not(.is-back) .badge-front-idline,.badge-sheet:not(.is-back) .badge-name-line,.badge-sheet:not(.is-back) .badge-position-line,.badge-sheet:not(.is-back) .badge-department-line{color:#000!important;opacity:1!important;text-shadow:none!important;filter:none!important;forced-color-adjust:none}.badge-sheet:not(.is-back) .badge-logo-mark svg .lc2{fill:#000!important;fill-opacity:1!important;stroke-opacity:1!important}.badge-front-companybar{margin-top:1.6mm;border-radius:3mm;background:var(--badge-plant-accent);padding:1.4mm 3mm;text-align:center}.badge-company-line{font-size:6.6pt;font-weight:700;color:var(--badge-plant-on-accent,#fff);text-transform:uppercase}.badge-sheet.is-back{padding-right:13mm}.badge-back-header{display:flex;justify-content:space-between;padding-bottom:3mm}.badge-back-header .badge-logo-mark{width:28mm}.badge-gk-tile{width:5.2mm;height:5.2mm}.badge-gk-tile svg{width:100%;height:100%}.badge-back-panel{flex:0 0 auto;border:.15mm solid #000;border-radius:3mm;padding:0 3mm;overflow:hidden}.badge-back-row2{display:flex;align-items:center;gap:1.8mm;padding:1mm 0;border-bottom:.15mm solid #000}.badge-back-row2:last-child{border:0}.badge-back-icontile{width:5.5mm;display:flex}.badge-back-rowtext{flex:1}.badge-back-rowlabel{font-size:5.1pt;font-weight:700;text-transform:uppercase}.badge-back-rowvalue{font-size:6.4pt;line-height:1.2}.badge-back-contact-name,.badge-back-contact-phone{display:block}.badge-back-legal{margin-top:auto;font-size:5.4pt;line-height:1.3;padding:1.2mm 0 .8mm}.badge-barcode{text-align:center}.badge-barcode svg{height:10mm;max-width:100%}.badge-photo-placeholder,.badge-front-photo-broken{font-size:6pt;text-align:center}.badge-front-photo-broken{display:none}
     @media print { body{background:#fff}.responsiva-page{margin:0;padding:0;width:auto;min-height:249mm;box-shadow:none}.resp-badge-frame{box-shadow:0 0 0 .2mm #ddd}.no-print{display:none!important} }
   </style></head><body><main class="responsiva-page">
     <header class="resp-header"><div class="resp-company-logo">${company?.logo_url ? `<img src="${escAttr(company.logo_url)}" alt="${lang === 'en' ? 'Logo of' : 'Logo de'} ${escAttr(legalName)}">` : `<div class="resp-logo-fallback">${esc(legalName)}</div>`}</div><div class="resp-title"><h1>${copy.title}</h1><p>${copy.subtitle}</p></div></header>
@@ -22894,7 +22975,8 @@ function computeBadgeFrontComposite(emp, site, printedNameSelection) {
   // (every non-issuance caller — table rows, bulk readiness, etc.)
   // resolves to the full registered name, i.e. zero behavior change there.
   const resolvedName = resolveBadgePrintedName(emp.first_name, emp.last_name, printedNameSelection)
-  const printedPosition = String(emp.badge_position || emp.position || '').trim()
+  const printedPosition = badgeTitleCase(String(emp.badge_position || emp.position || '').trim())
+  const printedDepartment = badgeTitleCase(String(emp.department || '').trim())
   const { legalName } = badgeSiteCompanyInfo(site)
   const companyName = legalName || emp.company || 'Empresa sin asignar'
   const companyFit = fitBadgeCompanyLines(companyName, geom.companybarContentWidthPx)
@@ -22929,18 +23011,18 @@ function computeBadgeFrontComposite(emp, site, printedNameSelection) {
     let departmentFit = null
     if (printedPosition) {
       const gapBeforePositionPx = geom.panelGapPx + BADGE_POSITION_MARGIN_TOP_MM * pxPerMm
-      const departmentWidthFit = emp.department
-        ? fitBadgeDepartmentLines(emp.department, null, geom.panelContentWidthPx)
+      const departmentWidthFit = printedDepartment
+        ? fitBadgeDepartmentLines(printedDepartment, null, geom.panelContentWidthPx)
         : null
       const departmentSpacePx = departmentWidthFit ? geom.panelGapPx + BADGE_DEPARTMENT_MARGIN_TOP_MM * pxPerMm + departmentWidthFit.heightPx : 0
       const budgetForPositionTextPx = remainingAfterNamePx - gapBeforePositionPx - departmentSpacePx
       positionFit = fitBadgePositionLines(printedPosition, Math.max(0, budgetForPositionTextPx), geom.panelContentWidthPx)
-      if (emp.department) {
+      if (printedDepartment) {
         const remainingForDepartmentPx = remainingAfterNamePx - gapBeforePositionPx - positionFit.heightPx - geom.panelGapPx - BADGE_DEPARTMENT_MARGIN_TOP_MM * pxPerMm
-        departmentFit = fitBadgeDepartmentLines(emp.department, Math.max(0, remainingForDepartmentPx), geom.panelContentWidthPx)
+        departmentFit = fitBadgeDepartmentLines(printedDepartment, Math.max(0, remainingForDepartmentPx), geom.panelContentWidthPx)
       }
-    } else if (emp.department) {
-      departmentFit = fitBadgeDepartmentLines(emp.department, Math.max(0, remainingAfterNamePx - geom.panelGapPx - BADGE_DEPARTMENT_MARGIN_TOP_MM * pxPerMm), geom.panelContentWidthPx)
+    } else if (printedDepartment) {
+      departmentFit = fitBadgeDepartmentLines(printedDepartment, Math.max(0, remainingAfterNamePx - geom.panelGapPx - BADGE_DEPARTMENT_MARGIN_TOP_MM * pxPerMm), geom.panelContentWidthPx)
     }
     return { nameFit, nameLineCount, positionFit, departmentFit }
   }
@@ -22985,7 +23067,7 @@ function computeBadgeFrontComposite(emp, site, printedNameSelection) {
   const photoSquareSidePx = chosenPhotoSidePx
   const photoSquareSideMm = photoSquareSidePx / pxPerMm
 
-  return { companyName, companyFit, nameFit, positionFit, departmentFit, printedPosition, compositeFits, geom, photoSquareSidePx, photoSquareSideMm, resolvedName }
+  return { companyName, companyFit, nameFit, positionFit, departmentFit, printedPosition, printedDepartment, compositeFits, geom, photoSquareSidePx, photoSquareSideMm, resolvedName }
 }
 
 // Reverse's "PAÍS" and front's footer company name both resolve through
@@ -23120,7 +23202,7 @@ function renderBadgeFront(emp, site, printedNameSelection) {
     ? `<div class="badge-front-positionblock" title="${esc(composite.printedPosition)}">${positionFit.lines.map(line => `<div class="badge-front-positionline" style="font-size:${positionFit.fontSize}pt">${esc(line)}</div>`).join('')}</div>`
     : ''
   const departmentHtml = departmentFit
-    ? departmentFit.lines.map(line => `<div class="badge-front-departmentline" style="font-size:${departmentFit.fontSize}pt" title="${esc(emp.department)}">${esc(line)}</div>`).join('')
+    ? departmentFit.lines.map(line => `<div class="badge-front-departmentline" style="font-size:${departmentFit.fontSize}pt" title="${esc(composite.printedDepartment)}">${esc(line)}</div>`).join('')
     : ''
   // Item 1 (this pass): once fitBadgeCompanyLines() has already determined
   // (via companyFit.fits) that the legal name has no valid tier/line-count
@@ -23718,7 +23800,7 @@ function renderBadgeBack(emp, site) {
           <span class="badge-back-icontile">${siIcon('globe', 13)}</span>
           <span class="badge-back-rowtext">
             <div class="badge-back-rowlabel">País</div>
-            <div class="badge-back-rowvalue">${esc(countryName || '—')}</div>
+            <div class="badge-back-rowvalue">${esc(badgeTitleCase(countryName || '—'))}</div>
           </span>
         </div>
         <div class="badge-back-row2">
@@ -23732,14 +23814,14 @@ function renderBadgeBack(emp, site) {
           <span class="badge-back-icontile">${siIcon('phone', 13)}</span>
           <span class="badge-back-rowtext">
             <div class="badge-back-rowlabel">Contacto de emergencia</div>
-            <div class="badge-back-rowvalue"><span class="badge-back-contact-name">${esc(emp.emergency_contact_name || '—')}</span><span class="badge-back-contact-phone">${esc(emp.emergency_contact_phone || '—')}</span></div>
+            <div class="badge-back-rowvalue"><span class="badge-back-contact-name">${esc(badgeTitleCase(emp.emergency_contact_name || '—'))}</span><span class="badge-back-contact-phone">${esc(emp.emergency_contact_phone || '—')}</span></div>
           </span>
         </div>
         <div class="badge-back-row2 badge-back-health-row">
           <span class="badge-back-icontile">${siIcon('heart', 13)}</span>
           <span class="badge-back-rowtext">
             <div class="badge-back-rowlabel">Condiciones de salud</div>
-            <div class="badge-back-rowvalue badge-back-healthvalue">${esc(emp.health_conditions || '—')}</div>
+            <div class="badge-back-rowvalue badge-back-healthvalue">${esc(badgeTitleCase(emp.health_conditions || '—'))}</div>
           </span>
         </div>
         <div class="badge-back-row2">
@@ -23957,7 +24039,7 @@ function _badgePrintPieces(emp, site, printedNameSelection) {
     ? `<div class="badge-position-block" title="${esc(composite.printedPosition)}">${positionFit.lines.map(line => `<div class="badge-position-line" style="font-size:${positionFit.fontSize}pt">${esc(line)}</div>`).join('')}</div>`
     : ''
   const departmentLinesHtml = departmentFit
-    ? departmentFit.lines.map(line => `<div class="badge-department-line" title="${esc(emp.department)}" style="font-size:${departmentFit.fontSize}pt">${esc(line)}</div>`).join('')
+    ? departmentFit.lines.map(line => `<div class="badge-department-line" title="${esc(composite.printedDepartment)}" style="font-size:${departmentFit.fontSize}pt">${esc(line)}</div>`).join('')
     : ''
   const companyLinesHtml = companyFit.lines
     .map(line => `<div class="badge-company-line" style="font-size:${companyFit.fontSize}pt">${esc(line)}</div>`)
@@ -23992,10 +24074,10 @@ function _badgeBackSheetHtml(emp, pieces, barcodeMarkup, palette) {
           <div class="badge-gk-tile" role="img" aria-label="GK">${GK_LOGO_SVG}</div>
         </div>
         <div class="badge-back-panel${badgeBackDensityClass(emp)}">
-          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('globe', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">País</div><div class="badge-back-rowvalue">${esc(pieces.countryName || '—')}</div></span></div>
+          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('globe', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">País</div><div class="badge-back-rowvalue">${esc(badgeTitleCase(pieces.countryName || '—'))}</div></span></div>
           <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('credit-card', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">No. de identificación</div><div class="badge-back-rowvalue badge-back-idvalue">${esc(emp.identification_number || '—')}</div></span></div>
-          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('phone', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Contacto de emergencia</div><div class="badge-back-rowvalue"><span class="badge-back-contact-name">${esc(emp.emergency_contact_name || '—')}</span><span class="badge-back-contact-phone">${esc(emp.emergency_contact_phone || '—')}</span></div></span></div>
-          <div class="badge-back-row2 badge-back-health-row"><span class="badge-back-icontile">${siIcon('heart', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Condiciones de salud</div><div class="badge-back-rowvalue badge-back-healthvalue">${esc(emp.health_conditions || '—')}</div></span></div>
+          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('phone', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Contacto de emergencia</div><div class="badge-back-rowvalue"><span class="badge-back-contact-name">${esc(badgeTitleCase(emp.emergency_contact_name || '—'))}</span><span class="badge-back-contact-phone">${esc(emp.emergency_contact_phone || '—')}</span></div></span></div>
+          <div class="badge-back-row2 badge-back-health-row"><span class="badge-back-icontile">${siIcon('heart', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Condiciones de salud</div><div class="badge-back-rowvalue badge-back-healthvalue">${esc(badgeTitleCase(emp.health_conditions || '—'))}</div></span></div>
           <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('droplet', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Tipo de sangre</div><div class="badge-back-rowvalue">${esc(emp.blood_type || '—')}</div></span></div>
         </div>
         <div class="badge-back-legal">Este gafete es propiedad de la empresa. Al finalizar la relación laboral, deberá ser devuelto. En caso de pérdida o extravío, favor reportarlo a Talento Humano.</div>
@@ -24049,6 +24131,21 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
            Keep SIERRA's teal mark and the photo/company color in YMCK, but
            make every small critical front-side glyph true #000. */
         .badge-front-header .badge-logo-mark svg .lc2 { fill: #000 !important; }
+        .badge-sheet:not(.is-back) .badge-front-idline,
+        .badge-sheet:not(.is-back) .badge-name-line,
+        .badge-sheet:not(.is-back) .badge-position-line,
+        .badge-sheet:not(.is-back) .badge-department-line {
+          color: #000 !important;
+          opacity: 1 !important;
+          text-shadow: none !important;
+          filter: none !important;
+          forced-color-adjust: none;
+        }
+        .badge-sheet:not(.is-back) .badge-front-header .badge-logo-mark svg .lc2 {
+          fill: #000 !important;
+          fill-opacity: 1 !important;
+          stroke-opacity: 1 !important;
+        }
         .badge-front-card { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 1.6mm; justify-content: safe center; }
         .badge-front-photoblock { width: var(--badge-photo-side, calc(${BADGE_W}mm - 6mm)); height: var(--badge-photo-side, calc(${BADGE_W}mm - 6mm)); flex: 0 0 auto; align-self: center; background: #eee; overflow: hidden; border-radius: 3mm; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center; position: relative; }
         .badge-employee-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
