@@ -6241,6 +6241,20 @@
     .bn-result-row { padding-top: 0.4rem; margin-top: 0.4rem; border-top: 1px dashed var(--border); }
     .bn-result-value { font-weight: 700; }
 
+    .badge-proof-summary { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+    .badge-proof-copy { font-size:.76rem; line-height:1.4; color:var(--text-secondary); }
+    .badge-proof-copy strong { display:block; color:var(--text-primary); font-size:.82rem; margin-bottom:2px; }
+    .badge-proof-list { display:flex; flex-direction:column; gap:7px; margin-top:10px; }
+    .badge-proof-item { padding:8px 9px; border:1px solid var(--warning-border); background:var(--warning-bg); border-radius:var(--r-sm); }
+    .badge-proof-label { color:var(--warning-text); font-size:.66rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+    .badge-proof-change { margin-top:3px; color:var(--text-primary); font-size:.78rem; line-height:1.35; }
+    .badge-proof-change del { color:var(--text-muted); text-decoration-thickness:1px; }
+    .badge-proof-change b { color:var(--text-primary); }
+    .badge-proof-actions { display:flex; gap:7px; margin-top:7px; }
+    .badge-proof-actions button { min-height:30px; padding:4px 9px; border-radius:var(--r-sm); border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:.72rem; font-weight:650; cursor:pointer; }
+    .badge-proof-actions button:first-child { background:var(--text-primary); border-color:var(--text-primary); color:var(--surface); }
+    .badge-proof-clear { display:flex; align-items:center; gap:6px; color:var(--success-text); font-size:.77rem; font-weight:600; }
+
     /* Photograph — the most visually prominent preparation control (§
        redesign brief): photo + upload affordance sit side by side instead
        of a large centered dashed square dominating the whole section. */
@@ -8991,6 +9005,8 @@ async function enterMondayBadgeApp() {
   const initialWorkflowStatus = String(workflowStatusColumn?.text || '').trim()
   _mondayBridge = {
     monday, context, controlItemId, collaboratorItemId: String(collaborator.id),
+    collaboratorBoardId: String(collaborator.board?.id || ''),
+    collaboratorColumnIds: Object.fromEntries((collaborator.column_values || []).map(value => [value?.column?.title, value?.id]).filter(([title, id]) => title && id)),
     controlBoardId: String(controlItem.board?.id || context.boardId || ''),
     workflowStatusColumnId: workflowStatusColumn?.id || null,
     workflowStatusText: initialWorkflowStatus,
@@ -20750,9 +20766,9 @@ function badgeFormatEmergencyPhone(value, country) {
   return `(${code}) ${local}`
 }
 
-// High-confidence, domain-specific Spanish corrections only. This is not a
-// speculative language model: it warns on exact normalized words and always
-// shows the proposed replacement. Names are intentionally excluded.
+// Conservative accent/spelling lexicon used by the badge editor's explicit
+// proofreading step. It never changes source data silently: every match is
+// shown as original → suggestion and must be accepted by the operator.
 const BADGE_SPELLING_CORRECTIONS = Object.freeze({
   administracion: 'administración', almacen: 'almacén', analisis: 'análisis',
   atencion: 'atención', cardiaco: 'cardíaco', comunicacion: 'comunicación',
@@ -20764,7 +20780,37 @@ const BADGE_SPELLING_CORRECTIONS = Object.freeze({
   respiracion: 'respiración', telefono: 'teléfono', supervision: 'supervisión',
   supervisorra: 'supervisora', mantenimieno: 'mantenimiento', manteniemiento: 'mantenimiento',
   alergiaas: 'alergias', diabetis: 'diabetes', presion: 'presión', perdida: 'pérdida',
+  academico: 'académico', adquisicion: 'adquisición', auditoria: 'auditoría',
+  automatizacion: 'automatización', calidad: 'calidad', certificacion: 'certificación',
+  confeccion: 'confección', credito: 'crédito', direccion: 'dirección', distribucion: 'distribución',
+  educacion: 'educación', ejecucion: 'ejecución', exportacion: 'exportación',
+  fabricacion: 'fabricación', gestion: 'gestión', importacion: 'importación', inspeccion: 'inspección',
+  investigacion: 'investigación', medico: 'médico', nomina: 'nómina', planificacion: 'planificación',
+  programacion: 'programación', recepcion: 'recepción', reparacion: 'reparación', seguridad: 'seguridad',
+  tecnico: 'técnico', tecnologia: 'tecnología', tesoreria: 'tesorería', validacion: 'validación',
+  angel: 'ángel', andres: 'andrés', adrian: 'adrián', cesar: 'césar', fabian: 'fabián',
+  german: 'germán', jesus: 'jesús', joaquin: 'joaquín', jose: 'josé', maria: 'maría',
+  martin: 'martín', nicolas: 'nicolás', oscar: 'óscar', ramon: 'ramón', raul: 'raúl',
+  ruben: 'rubén', sebastian: 'sebastián', victor: 'víctor',
+  alvarez: 'álvarez', colon: 'colón', diaz: 'díaz', gonzalez: 'gonzález', hernandez: 'hernández',
+  jimenez: 'jiménez', lopez: 'lópez', martinez: 'martínez', nuñez: 'núñez', perez: 'pérez',
+  ramirez: 'ramírez', rodriguez: 'rodríguez', sanchez: 'sánchez', suarez: 'suárez',
 })
+
+const BADGE_PROOFREAD_FIELDS = Object.freeze([
+  { key: 'first_name', label: 'Nombre' }, { key: 'last_name', label: 'Apellido' },
+  { key: 'badge_position', fallback: 'position', label: 'Puesto' },
+  { key: 'department', label: 'Departamento' },
+  { key: 'emergency_contact_name', label: 'Contacto de emergencia' },
+  { key: 'emergency_contact_relationship', label: 'Parentesco' },
+  { key: 'health_conditions', label: 'Condiciones de salud' },
+])
+
+function badgeMatchCase(written, correction) {
+  if (written === written.toLocaleUpperCase('es')) return correction.toLocaleUpperCase('es')
+  if (written[0] === written[0]?.toLocaleUpperCase('es')) return correction[0].toLocaleUpperCase('es') + correction.slice(1)
+  return correction
+}
 
 function badgeSpellingSuggestions(value) {
   const source = String(value || '')
@@ -20774,26 +20820,104 @@ function badgeSpellingSuggestions(value) {
     const key = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es')
     const correction = BADGE_SPELLING_CORRECTIONS[key]
     if (correction && raw.toLocaleLowerCase('es') !== correction.toLocaleLowerCase('es')) {
-      found.set(raw.toLocaleLowerCase('es'), { written: raw, suggestion: correction })
+      found.set(raw.toLocaleLowerCase('es'), { written: raw, suggestion: badgeMatchCase(raw, correction) })
     }
   }
   return [...found.values()]
 }
 
 function badgeTextQualityIssues(emp) {
-  const fields = [
-    { key: 'badge_position', fallback: 'position', label: 'Puesto' },
-    { key: 'department', label: 'Departamento' },
-    { key: 'emergency_contact_relationship', label: 'Parentesco' },
-    { key: 'health_conditions', label: 'Condiciones de salud' },
-  ]
-  return fields.flatMap(({ key, fallback, label }) => {
-    const value = emp[key] || (fallback ? emp[fallback] : '')
-    const suggestions = badgeSpellingSuggestions(value)
-    if (!suggestions.length) return []
-    const detail = suggestions.map(s => `“${s.written}” → “${s.suggestion}”`).join('; ')
-    return [{ level: 'warning', field: key, message: `Posible falta de ortografía en ${label}: ${detail}` }]
+  const suggestions = badgeProofreadingSuggestions(emp, _badge_ui.issuanceInProgress)
+  const byField = new Map()
+  suggestions.forEach(item => {
+    if (!byField.has(item.field)) byField.set(item.field, { label: item.label, items: [] })
+    byField.get(item.field).items.push(item)
   })
+  return [...byField.entries()].map(([field, group]) => ({
+    level: 'warning', field,
+    message: `Posible falta de ortografía en ${group.label}: ${group.items.map(s => `“${s.written}” → “${s.suggestion}”`).join('; ')}`,
+  }))
+}
+
+function badgeProofreadingSuggestions(emp, issuance) {
+  const ignored = new Set(issuance?.proofreadingIgnored || [])
+  return BADGE_PROOFREAD_FIELDS.flatMap(({ key, fallback, label }) => {
+    const sourceKey = emp[key] ? key : (fallback || key)
+    return badgeSpellingSuggestions(emp[sourceKey]).map(item => ({
+      ...item, field: sourceKey, label,
+      id: `${sourceKey}:${item.written.toLocaleLowerCase('es')}:${item.suggestion.toLocaleLowerCase('es')}`,
+    })).filter(item => !ignored.has(item.id))
+  })
+}
+
+function badgeReplaceProofreadWord(value, written, suggestion) {
+  return String(value || '').replace(/[\p{L}\p{M}]+/gu, word => {
+    return word.toLocaleLowerCase('es') === written.toLocaleLowerCase('es') ? suggestion : word
+  })
+}
+
+async function badgePersistProofreadChanges(emp, payload) {
+  if (!Object.keys(payload).length) return
+  if (_mondayBridge) {
+    const titles = {
+      first_name: 'Nombres', last_name: 'Apellidos', position: 'Puesto', badge_position: 'Puesto en gafete',
+      department: 'Departamento', emergency_contact_name: 'Contacto de emergencia',
+      health_conditions: 'Condiciones de salud',
+    }
+    for (const [field, value] of Object.entries(payload)) {
+      const columnId = _mondayBridge.collaboratorColumnIds?.[titles[field]]
+      if (!columnId) continue
+      const mutation = `mutation ($boardId: ID!, $itemId: ID!, $columnId: String!, $value: String!) { change_simple_column_value(board_id:$boardId,item_id:$itemId,column_id:$columnId,value:$value){id} }`
+      const response = await _mondayBridge.monday.api(mutation, { variables: {
+        boardId: _mondayBridge.collaboratorBoardId, itemId: _mondayBridge.collaboratorItemId, columnId, value,
+      } })
+      if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+    }
+    return
+  }
+  const { error } = await sb.from('employees').update(payload).eq('id', emp.id)
+  if (error) throw error
+}
+
+async function applyBadgeProofreading(ids = null) {
+  const issuance = _badge_ui.issuanceInProgress
+  const emp = issuance && _badge.employees.find(item => item.id === issuance.employee_id)
+  if (!emp || !can('write', 'talento_humano')) return
+  const selected = badgeProofreadingSuggestions(emp, issuance).filter(item => !ids || ids.includes(item.id))
+  if (!selected.length) return
+  const payload = {}
+  selected.forEach(item => {
+    const current = payload[item.field] ?? emp[item.field] ?? ''
+    payload[item.field] = badgeReplaceProofreadWord(current, item.written, item.suggestion)
+  })
+  Object.assign(emp, payload)
+  if (payload.first_name || payload.last_name) issuance.printedNameSelection = null
+  renderBadgeModule()
+  try {
+    await badgePersistProofreadChanges(emp, payload)
+    toast(selected.length === 1 ? 'Corrección aplicada' : `${selected.length} correcciones aplicadas`)
+  } catch (error) {
+    console.error('Badge proofreading save failed:', error)
+    toast('La vista se corrigió, pero no se pudo guardar en el origen: ' + (error?.message || 'Error desconocido'), 7000)
+  }
+}
+
+function ignoreBadgeProofreading(id) {
+  const issuance = _badge_ui.issuanceInProgress
+  if (!issuance) return
+  issuance.proofreadingIgnored = [...new Set([...(issuance.proofreadingIgnored || []), id])]
+  renderBadgeModule()
+}
+
+function renderBadgeProofreadingSection(emp, issuance, canWrite) {
+  const suggestions = badgeProofreadingSuggestions(emp, issuance)
+  const encodedIds = escAttr(JSON.stringify(suggestions.map(item => item.id)))
+  return `<div class="badge-data-section badge-proof-section">
+    <h3>${siIcon('check-circle', 13)}Ortografía y acentuación <span class="bds-source">· revisión antes de imprimir</span></h3>
+    ${suggestions.length ? `<div class="badge-proof-summary"><div class="badge-proof-copy"><strong>${suggestions.length} sugerencia${suggestions.length === 1 ? '' : 's'}</strong>Revisa cada cambio; los nombres nunca se corrigen sin tu aprobación.</div>${canWrite ? `<button type="button" class="btn btn-secondary btn-sm" onclick='applyBadgeProofreading(JSON.parse(this.dataset.ids))' data-ids="${encodedIds}">Aplicar todas</button>` : ''}</div>
+      <div class="badge-proof-list">${suggestions.map(item => `<div class="badge-proof-item"><div class="badge-proof-label">${esc(item.label)}</div><div class="badge-proof-change"><del>${esc(item.written)}</del> → <b>${esc(item.suggestion)}</b></div>${canWrite ? `<div class="badge-proof-actions"><button type="button" onclick='applyBadgeProofreading([${JSON.stringify(item.id)}])'>Aplicar</button><button type="button" onclick='ignoreBadgeProofreading(${JSON.stringify(item.id)})'>Ignorar</button></div>` : ''}</div>`).join('')}</div>`
+      : `<div class="badge-proof-clear">${siIcon('check-circle', 14)} No se detectaron tildes u errores conocidos pendientes.</div>`}
+  </div>`
 }
 
 function checkBadgeReadiness(emp, printedNameSelection) {
@@ -22162,6 +22286,8 @@ function renderBadgeDataPanel(emp, issuance) {
       </div>
 
       ${renderBadgeNameSelectorSection(emp, issuance, canWrite)}
+
+      ${renderBadgeProofreadingSection(emp, issuance, canWrite)}
 
       <div class="badge-data-section badge-data-section-photo">
         <h3>${siIcon('camera', 13)}Fotografía <span class="bds-source">· foto de perfil compartida</span></h3>
