@@ -22435,9 +22435,10 @@ const BADGE_POSITION_MAX_LINES = 3
 // 4-line footer that stopped reading as a "footer". 6.6pt is the existing
 // established default (preferred, kept unchanged so the canonical
 // PRIDE CHEMICALS fixture is unaffected); 5.7pt is the one permitted step
-// down (mirrors the same back-panel-established floor value used for the
-// position tier above — both sit just above the §41 ~1.8mm floor).
-const BADGE_COMPANY_SIZE_TIERS_PT = [6.6, 5.7]
+// down. 5.1pt is the final one-line tier and equals the §41 1.8mm
+// print-safe floor; the fitter tries the complete legal name at every tier
+// before allowing a wrap, keeping medium-length legal names on one line.
+const BADGE_COMPANY_SIZE_TIERS_PT = [6.6, 5.7, 5.1]
 // A footer showing more than 2 lines stops looking like a footer and
 // starts dominating the card, contradicting the front's own visual
 // hierarchy — see the redesign report. 2 is the reasoned cap.
@@ -22506,6 +22507,12 @@ function fitBadgePositionLines(position, maxHeightPx, maxWidthPx = BADGE_NAME_MA
 // panel above it has).
 function fitBadgeCompanyLines(companyName, maxWidthPx = BADGE_COMPANY_MAX_WIDTH_MM * (96 / 25.4)) {
   const words = String(companyName || '').trim().split(/\s+/).filter(Boolean)
+  const fullName = words.join(' ')
+  for (const size of BADGE_COMPANY_SIZE_TIERS_PT) {
+    if (fullName && badgeCompanyTextWidthPx(fullName, size) <= maxWidthPx) {
+      return { fontSize: size, lines: [fullName], fits: true }
+    }
+  }
   for (const size of BADGE_COMPANY_SIZE_TIERS_PT) {
     const lines = badgeWrapWords(words, maxWidthPx, t => badgeCompanyTextWidthPx(t, size))
     const widthOk = lines.every(l => badgeCompanyTextWidthPx(l, size) <= maxWidthPx)
