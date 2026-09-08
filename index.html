@@ -6765,6 +6765,16 @@
       max-width: 100%;
       overflow-wrap: break-word;
     }
+    .badge-front-departmentline {
+      font-family: 'Aeonik', sans-serif;
+      font-weight: 400;
+      font-size: 6.4pt;
+      line-height: 1.25;
+      color: #000;
+      margin-top: 0;
+      max-width: 100%;
+      overflow-wrap: break-word;
+    }
     .badge-front-companybar {
       flex-shrink: 0;
       margin-top: 1.6mm;
@@ -8916,7 +8926,7 @@ async function enterMondayBadgeApp() {
     last_name: lastName,
     preferred_name: mondayColumnText(collaborator, 'Nombre que se imprimirá') || null,
     position: mondayColumnText(collaborator, 'Puesto') || null,
-    department: null,
+    department: mondayColumnText(collaborator, 'Departamento') || null,
     country,
     photo_url: mondayPhotoUrl(photoItem),
     photo_crop: null,
@@ -20713,6 +20723,8 @@ function checkBadgeReadiness(emp, printedNameSelection) {
       // the old name-only message, which said nothing about the real
       // (combined) cause.
       issues.push({ level: 'error', field: 'position_fit', message: 'El nombre y el puesto del colaborador combinados exceden el espacio disponible en el gafete — requiere corrección o una excepción de diseño autorizada' })
+    } else if (composite.departmentFit && !composite.departmentFit.fits) {
+      issues.push({ level: 'error', field: 'department_fit', message: 'El nombre, puesto y departamento combinados exceden el espacio disponible en el gafete — requiere corrección o una excepción de diseño autorizada' })
     }
     // Long-company hard blocker: the footer's own bounded tier list
     // (BADGE_COMPANY_SIZE_TIERS_PT/BADGE_COMPANY_MAX_LINES) has a genuine
@@ -21609,7 +21621,7 @@ function badgeResponsivaHtml(emp, site, language = _badgeResponsivaLanguage) {
     .resp-signature span { color:#666; }
     .resp-footer { margin-top:9mm; padding-top:3mm; border-top:.2mm solid #d7d9db; display:flex; justify-content:space-between; color:#777; font-size:6.8pt; }
     .badge-sheet { width:53.98mm; height:85.6mm; background:#fff; color:#000; padding:3mm; display:flex; flex-direction:column; overflow:hidden; position:relative; }
-    .badge-logo-mark svg { width:100%; height:auto; display:block; } .badge-front-header{display:flex;justify-content:center;padding:1mm 0 2.2mm}.badge-front-header .badge-logo-mark{width:28mm}.badge-front-card{flex:1;display:flex;flex-direction:column;gap:1.6mm;justify-content:center}.badge-front-photoblock{width:var(--badge-photo-side);height:var(--badge-photo-side);align-self:center;overflow:hidden;border-radius:3mm;position:relative}.badge-employee-photo,.badge-photo-crop{width:100%;height:100%;object-fit:cover}.badge-front-panel{display:flex;flex-direction:column;align-items:center;text-align:center;padding:2mm 3mm;gap:.8mm}.badge-front-idline,.badge-barcode-value{font-family:'Aeonik Mono';font-size:7pt}.badge-name-line{font-family:'Replica';font-weight:700;text-transform:uppercase}.badge-position-line{font-size:7.6pt}.badge-front-companybar{margin-top:1.6mm;border-radius:3mm;background:var(--badge-plant-accent);padding:1.4mm 3mm;text-align:center}.badge-company-line{font-size:6.6pt;font-weight:700;color:var(--badge-plant-on-accent,#fff);text-transform:uppercase}.badge-sheet.is-back{padding-right:13mm}.badge-back-header{display:flex;justify-content:space-between;padding-bottom:3mm}.badge-back-header .badge-logo-mark{width:28mm}.badge-gk-tile{width:5.2mm;height:5.2mm}.badge-gk-tile svg{width:100%;height:100%}.badge-back-panel{flex:0 0 auto;border:.15mm solid #000;border-radius:3mm;padding:0 3mm;overflow:hidden}.badge-back-row2{display:flex;align-items:center;gap:1.8mm;padding:1mm 0;border-bottom:.15mm solid #000}.badge-back-row2:last-child{border:0}.badge-back-icontile{width:5.5mm;display:flex}.badge-back-rowtext{flex:1}.badge-back-rowlabel{font-size:5.1pt;font-weight:700;text-transform:uppercase}.badge-back-rowvalue{font-size:6.4pt;line-height:1.2}.badge-back-contact-name,.badge-back-contact-phone{display:block}.badge-back-legal{margin-top:auto;font-size:5.4pt;line-height:1.3;padding:1.2mm 0 .8mm}.badge-barcode{text-align:center}.badge-barcode svg{height:10mm;max-width:100%}.badge-photo-placeholder,.badge-front-photo-broken{font-size:6pt;text-align:center}.badge-front-photo-broken{display:none}
+    .badge-logo-mark svg { width:100%; height:auto; display:block; } .badge-front-header{display:flex;justify-content:center;padding:1mm 0 2.2mm}.badge-front-header .badge-logo-mark{width:28mm}.badge-front-card{flex:1;display:flex;flex-direction:column;gap:1.6mm;justify-content:center}.badge-front-photoblock{width:var(--badge-photo-side);height:var(--badge-photo-side);align-self:center;overflow:hidden;border-radius:3mm;position:relative}.badge-employee-photo,.badge-photo-crop{width:100%;height:100%;object-fit:cover}.badge-front-panel{display:flex;flex-direction:column;align-items:center;text-align:center;padding:2mm 3mm;gap:.8mm}.badge-front-idline,.badge-barcode-value{font-family:'Aeonik Mono';font-size:7pt}.badge-name-line{font-family:'Replica';font-weight:700;text-transform:uppercase}.badge-position-line{font-size:7.6pt}.badge-department-line{font-size:6.4pt;font-weight:400;line-height:1.25}.badge-front-companybar{margin-top:1.6mm;border-radius:3mm;background:var(--badge-plant-accent);padding:1.4mm 3mm;text-align:center}.badge-company-line{font-size:6.6pt;font-weight:700;color:var(--badge-plant-on-accent,#fff);text-transform:uppercase}.badge-sheet.is-back{padding-right:13mm}.badge-back-header{display:flex;justify-content:space-between;padding-bottom:3mm}.badge-back-header .badge-logo-mark{width:28mm}.badge-gk-tile{width:5.2mm;height:5.2mm}.badge-gk-tile svg{width:100%;height:100%}.badge-back-panel{flex:0 0 auto;border:.15mm solid #000;border-radius:3mm;padding:0 3mm;overflow:hidden}.badge-back-row2{display:flex;align-items:center;gap:1.8mm;padding:1mm 0;border-bottom:.15mm solid #000}.badge-back-row2:last-child{border:0}.badge-back-icontile{width:5.5mm;display:flex}.badge-back-rowtext{flex:1}.badge-back-rowlabel{font-size:5.1pt;font-weight:700;text-transform:uppercase}.badge-back-rowvalue{font-size:6.4pt;line-height:1.2}.badge-back-contact-name,.badge-back-contact-phone{display:block}.badge-back-legal{margin-top:auto;font-size:5.4pt;line-height:1.3;padding:1.2mm 0 .8mm}.badge-barcode{text-align:center}.badge-barcode svg{height:10mm;max-width:100%}.badge-photo-placeholder,.badge-front-photo-broken{font-size:6pt;text-align:center}.badge-front-photo-broken{display:none}
     @media print { body{background:#fff}.responsiva-page{margin:0;padding:0;width:auto;min-height:249mm;box-shadow:none}.resp-badge-frame{box-shadow:0 0 0 .2mm #ddd}.no-print{display:none!important} }
   </style></head><body><main class="responsiva-page">
     <header class="resp-header"><div class="resp-company-logo">${company?.logo_url ? `<img src="${escAttr(company.logo_url)}" alt="${lang === 'en' ? 'Logo of' : 'Logo de'} ${escAttr(legalName)}">` : `<div class="resp-logo-fallback">${esc(legalName)}</div>`}</div><div class="resp-title"><h1>${copy.title}</h1><p>${copy.subtitle}</p></div></header>
@@ -22429,6 +22441,8 @@ const BADGE_POSITION_SIZE_TIERS_PT = [7.6, 6.8, 6.0, 5.8]
 // treated as a hard print-blocker rather than growing further and
 // threatening the footer regardless of the new composite height check.
 const BADGE_POSITION_MAX_LINES = 3
+const BADGE_DEPARTMENT_SIZE_TIERS_PT = [6.4, 5.8, 5.2]
+const BADGE_DEPARTMENT_MAX_LINES = 2
 // Company footer tiers (long-company fitting, this pass). Previous state
 // (prior pass): the footer had no bounded tier list at all — its font-size
 // just kept shrinking indefinitely for a long legal name, producing a
@@ -22499,6 +22513,23 @@ function fitBadgePositionLines(position, maxHeightPx, maxWidthPx = BADGE_NAME_MA
   const size = BADGE_POSITION_SIZE_TIERS_PT[BADGE_POSITION_SIZE_TIERS_PT.length - 1]
   const lines = badgeWrapWords(words, maxWidthPx, t => badgePositionTextWidthPx(t, size))
   return { fontSize: size, lines, heightPx: lines.length * badgeLineHeightPx(size, 1.3), fits: false }
+}
+function fitBadgeDepartmentLines(department, maxHeightPx, maxWidthPx = BADGE_NAME_MAX_WIDTH_MM * (96 / 25.4)) {
+  const words = String(department || '').trim().split(/\s+/).filter(Boolean)
+  if (maxHeightPx != null && maxHeightPx <= 0) {
+    return { fontSize: BADGE_DEPARTMENT_SIZE_TIERS_PT.at(-1), lines: [], heightPx: 0, fits: false }
+  }
+  for (const size of BADGE_DEPARTMENT_SIZE_TIERS_PT) {
+    const lines = badgeWrapWords(words, maxWidthPx, t => badgePositionTextWidthPx(t, size))
+    const widthOk = lines.every(l => badgePositionTextWidthPx(l, size) <= maxWidthPx)
+    const heightPx = lines.length * badgeLineHeightPx(size, 1.25)
+    if (widthOk && lines.length <= BADGE_DEPARTMENT_MAX_LINES && (maxHeightPx == null || heightPx <= maxHeightPx)) {
+      return { fontSize: size, lines, heightPx, fits: true }
+    }
+  }
+  const size = BADGE_DEPARTMENT_SIZE_TIERS_PT.at(-1)
+  const lines = badgeWrapWords(words, maxWidthPx, t => badgePositionTextWidthPx(t, size))
+  return { fontSize: size, lines, heightPx: lines.length * badgeLineHeightPx(size, 1.25), fits: false }
 }
 // Fits the company footer's text against its own horizontal budget and the
 // bounded BADGE_COMPANY_MAX_LINES cap — independent of name/position (the
@@ -22885,12 +22916,23 @@ function computeBadgeFrontComposite(emp, site, printedNameSelection) {
     const remainingAfterNamePx = availableForPanelPx - geom.panelPadBottomPx - usedBeforePositionPx
 
     let positionFit = null
+    let departmentFit = null
     if (emp.position) {
       const gapBeforePositionPx = geom.panelGapPx + BADGE_POSITION_MARGIN_TOP_MM * pxPerMm
-      const budgetForPositionTextPx = remainingAfterNamePx - gapBeforePositionPx
+      const departmentWidthFit = emp.department
+        ? fitBadgeDepartmentLines(emp.department, null, geom.panelContentWidthPx)
+        : null
+      const departmentSpacePx = departmentWidthFit ? geom.panelGapPx + departmentWidthFit.heightPx : 0
+      const budgetForPositionTextPx = remainingAfterNamePx - gapBeforePositionPx - departmentSpacePx
       positionFit = fitBadgePositionLines(emp.position, Math.max(0, budgetForPositionTextPx), geom.panelContentWidthPx)
+      if (emp.department) {
+        const remainingForDepartmentPx = remainingAfterNamePx - gapBeforePositionPx - positionFit.heightPx - geom.panelGapPx
+        departmentFit = fitBadgeDepartmentLines(emp.department, Math.max(0, remainingForDepartmentPx), geom.panelContentWidthPx)
+      }
+    } else if (emp.department) {
+      departmentFit = fitBadgeDepartmentLines(emp.department, Math.max(0, remainingAfterNamePx - geom.panelGapPx), geom.panelContentWidthPx)
     }
-    return { nameFit, nameLineCount, positionFit }
+    return { nameFit, nameLineCount, positionFit, departmentFit }
   }
 
   const nameTierCeilingLines = BADGE_NAME_LINE_TIERS[BADGE_NAME_LINE_TIERS.length - 1].lines // 4
@@ -22913,13 +22955,13 @@ function computeBadgeFrontComposite(emp, site, printedNameSelection) {
   const photoCompactPx = Math.min(geom.photoblockWidthPx, BADGE_PHOTO_SQUARE_COMPACT_MM * pxPerMm)
 
   const chosenPhotoSidePx = needsCompactTier ? photoCompactPx : photoCanonicalPx
-  const { nameFit, positionFit } = fitAgainstPhotoSide(chosenPhotoSidePx)
+  const { nameFit, positionFit, departmentFit } = fitAgainstPhotoSide(chosenPhotoSidePx)
 
-  const compositeFits = nameFit.fits && (!positionFit || positionFit.fits)
+  const compositeFits = nameFit.fits && (!positionFit || positionFit.fits) && (!departmentFit || departmentFit.fits)
   const photoSquareSidePx = chosenPhotoSidePx
   const photoSquareSideMm = photoSquareSidePx / pxPerMm
 
-  return { companyName, companyFit, nameFit, positionFit, compositeFits, geom, photoSquareSidePx, photoSquareSideMm, resolvedName }
+  return { companyName, companyFit, nameFit, positionFit, departmentFit, compositeFits, geom, photoSquareSidePx, photoSquareSideMm, resolvedName }
 }
 
 // Reverse's "PAÍS" and front's footer company name both resolve through
@@ -23046,12 +23088,15 @@ function renderBadgeFront(emp, site, printedNameSelection) {
   // the exact same function so preview and print cannot diverge.
   const composite = computeBadgeFrontComposite(emp, site, printedNameSelection)
   const palette = badgeSiteCompanyInfo(site).palette
-  const { nameFit: fit, positionFit, companyFit, companyName } = composite
+  const { nameFit: fit, positionFit, departmentFit, companyFit, companyName } = composite
   const nameLinesHtml = [...fit.firstLines, ...fit.lastLines]
     .map(line => `<div class="badge-front-nameline" style="font-size:${fit.fontSize}pt; line-height:${fit.lineHeight}">${esc(line).toUpperCase()}</div>`)
     .join('')
   const positionHtml = positionFit
     ? positionFit.lines.map(line => `<div class="badge-front-positionline" style="font-size:${positionFit.fontSize}pt" title="${esc(emp.position)}">${esc(line)}</div>`).join('')
+    : ''
+  const departmentHtml = departmentFit
+    ? departmentFit.lines.map(line => `<div class="badge-front-departmentline" style="font-size:${departmentFit.fontSize}pt" title="${esc(emp.department)}">${esc(line)}</div>`).join('')
     : ''
   // Item 1 (this pass): once fitBadgeCompanyLines() has already determined
   // (via companyFit.fits) that the legal name has no valid tier/line-count
@@ -23092,6 +23137,7 @@ function renderBadgeFront(emp, site, printedNameSelection) {
           <div class="badge-front-idline">${esc(emp.employee_code || '—')}</div>
           ${nameLinesHtml}
           ${positionHtml}
+          ${departmentHtml}
         </div>
       </div>
 
@@ -23878,7 +23924,7 @@ function _badgeFontFaceCss(fontUrl) {
 // fitting result instead of recomputing (and risking divergence).
 function _badgePrintPieces(emp, site, printedNameSelection) {
   const composite = computeBadgeFrontComposite(emp, site, printedNameSelection)
-  const { nameFit: fit, positionFit, companyFit, companyName } = composite
+  const { nameFit: fit, positionFit, departmentFit, companyFit, companyName } = composite
   const { countryName } = badgeSiteCompanyInfo(site)
   const nameLinesHtml = [...fit.firstLines, ...fit.lastLines]
     .map(line => `<div class="badge-name-line" title="${esc(line)}" style="font-size:${fit.fontSize}pt; line-height:${fit.lineHeight}">${esc(line).toUpperCase()}</div>`)
@@ -23886,10 +23932,13 @@ function _badgePrintPieces(emp, site, printedNameSelection) {
   const positionLinesHtml = positionFit
     ? positionFit.lines.map(line => `<div class="badge-position-line" title="${esc(emp.position)}" style="font-size:${positionFit.fontSize}pt">${esc(line)}</div>`).join('')
     : ''
+  const departmentLinesHtml = departmentFit
+    ? departmentFit.lines.map(line => `<div class="badge-department-line" title="${esc(emp.department)}" style="font-size:${departmentFit.fontSize}pt">${esc(line)}</div>`).join('')
+    : ''
   const companyLinesHtml = companyFit.lines
     .map(line => `<div class="badge-company-line" style="font-size:${companyFit.fontSize}pt">${esc(line)}</div>`)
     .join('')
-  return { composite, nameLinesHtml, positionLinesHtml, companyLinesHtml, countryName, nameFontSize: fit.fontSize }
+  return { composite, nameLinesHtml, positionLinesHtml, departmentLinesHtml, companyLinesHtml, countryName, nameFontSize: fit.fontSize }
 }
 
 function _badgeFrontSheetHtml(emp, pieces, palette) {
@@ -23904,6 +23953,7 @@ function _badgeFrontSheetHtml(emp, pieces, palette) {
             <div class="badge-front-idline">${esc(emp.employee_code || '—')}</div>
             ${pieces.nameLinesHtml}
             ${pieces.positionLinesHtml}
+            ${pieces.departmentLinesHtml}
           </div>
         </div>
         <div class="badge-front-companybar">${pieces.companyLinesHtml}</div>
@@ -23987,6 +24037,7 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
         .badge-front-photoblock.is-broken .badge-employee-photo { display: none; }
         .badge-front-photoblock.is-broken .badge-photo-crop { display: none; }
         .badge-position-line { font-family: 'Aeonik', sans-serif; font-weight: 500; font-size: 7.6pt; line-height: 1.3; color: #000; margin-top: 0; max-width: 46mm; overflow-wrap: break-word; }
+        .badge-department-line { font-family: 'Aeonik', sans-serif; font-weight: 400; font-size: 6.4pt; line-height: 1.25; color: #000; margin-top: 0; max-width: 46mm; overflow-wrap: break-word; }
         .badge-front-companybar { flex-shrink: 0; margin-top: 1.6mm; border-radius: 3mm; background: var(--badge-plant-accent, #6f7477); padding: 1.4mm 3mm; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 5mm; box-sizing: border-box; }
         .badge-company-line { width: 100%; font-family: 'Aeonik', sans-serif; font-weight: 700; text-transform: uppercase; font-size: 6.6pt; letter-spacing: 0.03em; line-height: 1.3; color: var(--badge-plant-on-accent, #fff); overflow-wrap: break-word; }
         /* BACK */
