@@ -8767,6 +8767,7 @@ function mondayOrgCode(organization) {
   const name = normalizeBadgeOrgIdentity(organization)
   const exact = {
     [normalizeBadgeOrgIdentity('Northern Textiles')]: 'NT',
+    [normalizeBadgeOrgIdentity('Northern Textiles, S.A. de C.V.')]: 'NT',
     [normalizeBadgeOrgIdentity('Hilos y Algodón')]: 'DC',
     [normalizeBadgeOrgIdentity('Amtex')]: 'DC',
     [normalizeBadgeOrgIdentity('Pride Yarn')]: 'DC',
@@ -22967,6 +22968,8 @@ const BADGE_PALETTE_BY_STABLE_ID = Object.freeze({})
 const BADGE_PALETTE_EXACT_ALIASES = Object.freeze({
   // NT — verified runtime spelling in update28.sql.
   [normalizeBadgeOrgIdentity('Northern Textiles')]: 'NT',
+  // NT — exact legal-name spelling verified in the monday production board.
+  [normalizeBadgeOrgIdentity('Northern Textiles, S.A. de C.V.')]: 'NT',
   // DC — business-owner-approved exact aliases.
   [normalizeBadgeOrgIdentity('Hilos y Algodón')]: 'DC',
   [normalizeBadgeOrgIdentity('Amtex')]: 'DC',
