@@ -8741,6 +8741,7 @@ function mondayColumnJSON(item, title) {
 }
 
 function mondayLinkedItemIds(item, title) {
+  const column = mondayColumnByTitle(item, title)
   const value = mondayColumnJSON(item, title)
   const ids = []
   const visit = node => {
@@ -8754,6 +8755,10 @@ function mondayLinkedItemIds(item, title) {
       } else visit(child)
     }
   }
+  // Since monday API 2025-04, board-relation `value` is always null.
+  // The typed fields below are now the authoritative source of linked IDs.
+  ;(column?.linked_item_ids || []).forEach(id => ids.push(String(id)))
+  ;(column?.linked_items || []).forEach(linkedItem => ids.push(String(linkedItem?.id || '')))
   visit(value)
   return [...new Set(ids.filter(id => /^\d+$/.test(id)))]
 }
@@ -8808,6 +8813,11 @@ async function mondayFetchItems(monday, ids) {
       id name board { id }
       column_values {
         id type text value column { title }
+        ... on BoardRelationValue {
+          display_value
+          linked_item_ids
+          linked_items { id name }
+        }
         ... on FileValue {
           files {
             ... on FileAssetValue {
