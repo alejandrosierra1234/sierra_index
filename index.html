@@ -6253,7 +6253,7 @@
     .badge-proof-actions { display:flex; gap:7px; margin-top:7px; }
     .badge-proof-actions button { min-height:30px; padding:4px 9px; border-radius:var(--r-sm); border:1px solid var(--border); background:var(--surface); color:var(--text-primary); font-size:.72rem; font-weight:650; cursor:pointer; }
     .badge-proof-actions button:first-child { background:var(--text-primary); border-color:var(--text-primary); color:var(--surface); }
-    .badge-proof-clear { display:flex; align-items:center; gap:6px; color:var(--success-text); font-size:.77rem; font-weight:600; }
+    .badge-proof-clear { display:flex; align-items:center; gap:6px; color:var(--text-secondary); font-size:.77rem; font-weight:600; }
 
     /* Photograph — the most visually prominent preparation control (§
        redesign brief): photo + upload affordance sit side by side instead
@@ -20788,13 +20788,27 @@ const BADGE_SPELLING_CORRECTIONS = Object.freeze({
   investigacion: 'investigación', medico: 'médico', nomina: 'nómina', planificacion: 'planificación',
   programacion: 'programación', recepcion: 'recepción', reparacion: 'reparación', seguridad: 'seguridad',
   tecnico: 'técnico', tecnologia: 'tecnología', tesoreria: 'tesorería', validacion: 'validación',
-  angel: 'ángel', andres: 'andrés', adrian: 'adrián', cesar: 'césar', fabian: 'fabián',
-  german: 'germán', jesus: 'jesús', joaquin: 'joaquín', jose: 'josé', maria: 'maría',
-  martin: 'martín', nicolas: 'nicolás', oscar: 'óscar', ramon: 'ramón', raul: 'raúl',
-  rene: 'rené', ruben: 'rubén', sebastian: 'sebastián', victor: 'víctor',
-  alvarez: 'álvarez', colon: 'colón', diaz: 'díaz', gonzalez: 'gonzález', hernandez: 'hernández',
-  jimenez: 'jiménez', lopez: 'lópez', martinez: 'martínez', nuñez: 'núñez', perez: 'pérez',
-  ramirez: 'ramírez', rodriguez: 'rodríguez', sabillon: 'sabillón', sanchez: 'sánchez', suarez: 'suárez',
+  aaron: 'aarón', adan: 'adán', adrian: 'adrián', agustin: 'agustín', alvaro: 'álvaro',
+  angel: 'ángel', andres: 'andrés', anton: 'antón', barbara: 'bárbara', belen: 'belén',
+  benjamin: 'benjamín', cesar: 'césar', cristobal: 'cristóbal', damian: 'damián', debora: 'débora',
+  elias: 'elías', fabian: 'fabián', fatima: 'fátima', felix: 'félix', german: 'germán',
+  hector: 'héctor', ines: 'inés', ivan: 'iván', jesus: 'jesús', joaquin: 'joaquín', jose: 'josé',
+  julian: 'julián', lazaro: 'lázaro', lucia: 'lucía', maria: 'maría', martin: 'martín',
+  monica: 'mónica', nicolas: 'nicolás', noemi: 'noemí', oscar: 'óscar', ramon: 'ramón',
+  raul: 'raúl', rene: 'rené', rocio: 'rocío', ruben: 'rubén', sebastian: 'sebastián',
+  sofia: 'sofía', tomas: 'tomás', victor: 'víctor',
+  alarcon: 'alarcón', aleman: 'alemán', alvarez: 'álvarez', angeles: 'ángeles', aragon: 'aragón',
+  avila: 'ávila', benitez: 'benítez', bermudez: 'bermúdez', caceres: 'cáceres',
+  calderon: 'calderón', cardenas: 'cárdenas', carreon: 'carreón', castaneda: 'castañeda',
+  castellon: 'castellón', cedeno: 'cedeño', colon: 'colón', cordoba: 'córdoba', cordova: 'córdova',
+  cortes: 'cortés', davila: 'dávila', diaz: 'díaz', dominguez: 'domínguez', duran: 'durán',
+  fernandez: 'fernández', gomez: 'gómez', gonzalez: 'gonzález', gutierrez: 'gutiérrez',
+  guzman: 'guzmán', hernandez: 'hernández', ibanez: 'ibáñez', jimenez: 'jiménez', leon: 'león',
+  lopez: 'lópez', marquez: 'márquez', martinez: 'martínez', mejia: 'mejía', mendez: 'méndez',
+  menendez: 'menéndez', munoz: 'muñoz', nunez: 'núñez', nuñez: 'núñez', ordonez: 'ordóñez',
+  perez: 'pérez', quinonez: 'quiñónez', ramirez: 'ramírez', rios: 'ríos', rodriguez: 'rodríguez',
+  sabillon: 'sabillón', sanchez: 'sánchez', simon: 'simón', suarez: 'suárez',
+  vasquez: 'vásquez', velasquez: 'velásquez',
 })
 
 const BADGE_PROOFREAD_FIELDS = Object.freeze([
@@ -20916,7 +20930,7 @@ function renderBadgeProofreadingSection(emp, issuance, canWrite) {
     <h3>${siIcon('check-circle', 13)}Ortografía y acentuación <span class="bds-source">· revisión antes de imprimir</span></h3>
     ${suggestions.length ? `<div class="badge-proof-summary"><div class="badge-proof-copy"><strong>${suggestions.length} sugerencia${suggestions.length === 1 ? '' : 's'}</strong>Revisa cada cambio; los nombres nunca se corrigen sin tu aprobación.</div>${canWrite ? `<button type="button" class="btn btn-secondary btn-sm" onclick='applyBadgeProofreading(JSON.parse(this.dataset.ids))' data-ids="${encodedIds}">Aplicar todas</button>` : ''}</div>
       <div class="badge-proof-list">${suggestions.map(item => `<div class="badge-proof-item"><div class="badge-proof-label">${esc(item.label)}</div><div class="badge-proof-change"><del>${esc(item.written)}</del> → <b>${esc(item.suggestion)}</b></div>${canWrite ? `<div class="badge-proof-actions"><button type="button" onclick='applyBadgeProofreading([${JSON.stringify(item.id)}])'>Aplicar</button><button type="button" onclick='ignoreBadgeProofreading(${JSON.stringify(item.id)})'>Ignorar</button></div>` : ''}</div>`).join('')}</div>`
-      : `<div class="badge-proof-clear">${siIcon('check-circle', 14)} No se detectaron tildes u errores conocidos pendientes.</div>`}
+      : `<div class="badge-proof-clear">${siIcon('info', 14)} Sin sugerencias del vocabulario actual. Verifica los nombres propios antes de imprimir.</div>`}
   </div>`
 }
 
