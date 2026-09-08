@@ -11,6 +11,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3/dist/JsBarcode.all.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
   <!-- Keep the browser build pinned: the unversioned package currently resolves
        to the incompatible 1.0.0 beta instead of the stable item-view SDK. -->
   <script src="https://cdn.jsdelivr.net/npm/monday-sdk-js@0.5.9/dist/main.js"></script>
@@ -8773,6 +8775,18 @@ function mondayColumnText(item, title) {
   return String(mondayColumnByTitle(item, title)?.text || '').trim()
 }
 
+function mondayColumnByApprovedTitles(item, titles, type = null) {
+  const approved = new Set(titles.map(normalizeBadgeOrgIdentity))
+  return (item?.column_values || []).find(value =>
+    (!type || value?.type === type) && approved.has(normalizeBadgeOrgIdentity(value?.column?.title))
+  ) || null
+}
+
+const MONDAY_BADGE_CONTROL_COLUMNS = Object.freeze({
+  workflowStatus: ['Estado del Workflow', 'Estado de Workflow'],
+  responsibilityLetter: ['Carta responsiva', 'Carta de responsabilidad', 'PDF carta responsiva'],
+})
+
 function mondayColumnJSON(item, title) {
   const raw = mondayColumnByTitle(item, title)?.value
   if (!raw) return null
@@ -8971,7 +8985,15 @@ async function enterMondayBadgeApp() {
     updated_at: now,
   }
 
-  _mondayBridge = { monday, context, controlItemId, collaboratorItemId: String(collaborator.id) }
+  const workflowStatusColumn = mondayColumnByApprovedTitles(controlItem, MONDAY_BADGE_CONTROL_COLUMNS.workflowStatus, 'status')
+  const responsibilityLetterColumn = mondayColumnByApprovedTitles(controlItem, MONDAY_BADGE_CONTROL_COLUMNS.responsibilityLetter, 'file')
+  _mondayBridge = {
+    monday, context, controlItemId, collaboratorItemId: String(collaborator.id),
+    controlBoardId: String(controlItem.board?.id || context.boardId || ''),
+    workflowStatusColumnId: workflowStatusColumn?.id || null,
+    responsibilityLetterColumnId: responsibilityLetterColumn?.id || null,
+    responsibilityLetterUploaded: false,
+  }
   me = { id: `monday-${context.user?.id || 'user'}`, email: 'monday@app.local' }
   profile = { role: 'admin', full_name: context.user?.name || 'Talento Humano' }
   myGrants = []
@@ -21746,11 +21768,129 @@ function setBadgeResponsivaLanguage(language) {
   if (emp && site && frame) frame.srcdoc = badgeResponsivaHtml(emp, site, _badgeResponsivaLanguage)
 }
 function closeBadgeResponsiva() { document.getElementById('badge-responsiva-modal')?.remove() }
+
+async function badgeResponsivaPdfBlob(emp, site, language = _badgeResponsivaLanguage) {
+  if (typeof window.html2canvas !== 'function' || !window.jspdf?.jsPDF) {
+    throw new Error('No se pudo cargar el generador de PDF. Recarga la vista e inténtalo de nuevo.')
+  }
+  const frame = document.createElement('iframe')
+  frame.setAttribute('aria-hidden', 'true')
+  // Keep the document painted (html2canvas cannot capture display:none or
+  // visibility:hidden), but place it wholly outside the visible viewport.
+  frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:816px;height:1056px;border:0;pointer-events:none'
+  document.body.appendChild(frame)
+  try {
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('La carta tardó demasiado en prepararse.')), 12000)
+      frame.onload = () => { clearTimeout(timeout); resolve() }
+      frame.srcdoc = badgeResponsivaHtml(emp, site, language)
+    })
+    const doc = frame.contentDocument
+    await doc.fonts?.ready
+    const images = [...doc.images]
+    await Promise.all(images.map(img => img.complete ? Promise.resolve() : new Promise(resolve => {
+      img.addEventListener('load', resolve, { once: true })
+      img.addEventListener('error', resolve, { once: true })
+    })))
+    const page = doc.querySelector('.responsiva-page')
+    if (!page) throw new Error('No se encontró el contenido de la carta.')
+    const canvas = await window.html2canvas(page, {
+      scale: 3.125,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+      logging: false,
+      width: page.scrollWidth,
+      height: page.scrollHeight,
+      windowWidth: page.scrollWidth,
+      windowHeight: page.scrollHeight,
+    })
+    const pdf = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter', compress: true })
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.96), 'JPEG', 0, 0, 215.9, 279.4, undefined, 'FAST')
+    return pdf.output('blob')
+  } finally {
+    frame.remove()
+  }
+}
+
+function badgeResponsivaFileName(emp, language = _badgeResponsivaLanguage) {
+  const code = String(emp?.employee_code || 'sin-codigo').replace(/[^a-z0-9_-]+/gi, '-')
+  return `carta-responsiva-${code}-${language === 'en' ? 'en' : 'es'}.pdf`
+}
+
+async function mondayUploadResponsibilityLetter(emp, site, { force = false } = {}) {
+  const bridge = _mondayBridge
+  if (!bridge) return { ok: false, skipped: true }
+  if (bridge.responsibilityLetterUploaded && !force) return { ok: true, skipped: true }
+  if (!bridge.responsibilityLetterColumnId) {
+    throw new Error('No encuentro una columna de archivos llamada “Carta responsiva” en Control de gafetes.')
+  }
+  const blob = await badgeResponsivaPdfBlob(emp, site, _badgeResponsivaLanguage)
+  const file = new File([blob], badgeResponsivaFileName(emp), { type: 'application/pdf' })
+  const mutation = `mutation ($file: File!, $itemId: ID!, $columnId: String!) {
+    add_file_to_column(file: $file, item_id: $itemId, column_id: $columnId) { id name }
+  }`
+  const response = await bridge.monday.api(mutation, { variables: {
+    file,
+    itemId: bridge.controlItemId,
+    columnId: bridge.responsibilityLetterColumnId,
+  } })
+  if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+  bridge.responsibilityLetterUploaded = true
+  return { ok: true, fileName: file.name }
+}
+
+async function mondayMarkBadgePrinted() {
+  const bridge = _mondayBridge
+  if (!bridge) return { ok: false, skipped: true }
+  if (!bridge.workflowStatusColumnId) {
+    throw new Error('No encuentro la columna de estado “Estado del Workflow” en Control de gafetes.')
+  }
+  if (!/^\d+$/.test(bridge.controlBoardId)) throw new Error('No se pudo identificar el tablero de Control de gafetes.')
+  const mutation = `mutation ($boardId: ID!, $itemId: ID!, $columnId: String!, $value: String!) {
+    change_simple_column_value(board_id: $boardId, item_id: $itemId, column_id: $columnId, value: $value) { id }
+  }`
+  const response = await bridge.monday.api(mutation, { variables: {
+    boardId: bridge.controlBoardId,
+    itemId: bridge.controlItemId,
+    columnId: bridge.workflowStatusColumnId,
+    value: 'Impreso',
+  } })
+  if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+  return { ok: true }
+}
+
+async function mondayCompleteBadgePrint(emp, site) {
+  const results = await Promise.allSettled([
+    mondayMarkBadgePrinted(),
+    mondayUploadResponsibilityLetter(emp, site),
+  ])
+  const failures = results.filter(result => result.status === 'rejected').map(result => result.reason?.message || 'Error desconocido')
+  if (failures.length) {
+    console.error('monday badge completion sync failed:', failures)
+    toast('El gafete se imprimió, pero monday no pudo completar todo: ' + failures.join(' · '), 7000)
+    return false
+  }
+  toast('monday actualizado: estado Impreso y carta responsiva adjunta', 5000)
+  return true
+}
+
 async function printBadgeResponsiva(asPdf) {
   const issuance = _badge_ui.issuanceInProgress
   const emp = issuance && _badge.employees.find(e => e.id === issuance.employee_id)
   const site = _badge.sites.find(s => s.id === _badge.activeSite)
   if (!emp || !site) return
+  if (_mondayBridge) {
+    try {
+      toast('Preparando y guardando la carta en monday…', 4000)
+      await mondayUploadResponsibilityLetter(emp, site, { force: true })
+      toast('Carta responsiva guardada en monday', 4000)
+    } catch (error) {
+      console.error('monday responsibility-letter upload failed:', error)
+      toast('No se pudo guardar la carta en monday: ' + (error?.message || 'Error desconocido'), 7000)
+      return
+    }
+  }
   if (asPdf) toast('En el diálogo de impresión, selecciona “Guardar como PDF”.', 4000)
   await _badgePrintFromEditor(badgeResponsivaHtml(emp, site, _badgeResponsivaLanguage), { waitForPhoto: true })
 }
@@ -24441,7 +24581,7 @@ async function _badgeCommitIssuancePrint(emp, site, printedNameSelection) {
   // issuance row for a synthetic employee ID. The selected monday item
   // remains open so the operator can also generate the responsibility letter.
   if (_mondayBridge) {
-    toast('Impresión finalizada; el control de monday permanece abierto')
+    await mondayCompleteBadgePrint(emp, site)
     return
   }
   const existing = _badge.badges.find(b => b.employee_id === emp.id && ['draft', 'ready_to_print'].includes(b.status))
