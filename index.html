@@ -20747,7 +20747,7 @@ function badgeFormatEmergencyPhone(value, country) {
   let local = localDigits
   if (localDigits.length === 8) local = `${localDigits.slice(0, 4)}-${localDigits.slice(4)}`
   else if (localDigits.length === 10) local = `${localDigits.slice(0, 3)}-${localDigits.slice(3, 6)}-${localDigits.slice(6)}`
-  return `+${code} · ${local}`
+  return `(${code}) ${local}`
 }
 
 // High-confidence, domain-specific Spanish corrections only. This is not a
