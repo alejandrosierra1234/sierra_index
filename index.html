@@ -20713,6 +20713,43 @@ function badgeTitleCase(value) {
   })
 }
 
+// Print-only formatting for legal/medical identifiers. Source data remains
+// untouched; preview and the physical print call these same helpers so they
+// cannot disagree. Honduras identity numbers use the official 4-4-5 visual
+// grouping whenever monday supplies the thirteen digits without separators.
+function badgeFormatIdentificationNumber(value, country) {
+  const raw = String(value || '').trim().replace(/[–—]/g, '-')
+  if (!raw) return '—'
+  const digits = raw.replace(/\D/g, '')
+  const isHonduras = normalizeBadgeOrgIdentity(country) === 'honduras'
+  if (isHonduras && digits.length === 13 && /^[\d\s-]+$/.test(raw)) {
+    return `${digits.slice(0, 4)}-${digits.slice(4, 8)}-${digits.slice(8)}`
+  }
+  return raw
+}
+
+function badgeFormatEmergencyPhone(value, country) {
+  const raw = String(value || '').trim().replace(/[–—]/g, '-')
+  if (!raw) return '—'
+  if (!raw.startsWith('+')) return raw
+  const digits = raw.replace(/\D/g, '')
+  const countryCodes = {
+    honduras: '504', guatemala: '502', nicaragua: '505',
+    'republica dominicana': '1', mexico: '52',
+  }
+  const normalizedCountry = normalizeBadgeOrgIdentity(country)
+  let code = countryCodes[normalizedCountry] || ''
+  if (!code || !digits.startsWith(code)) {
+    code = ['504', '502', '505', '52', '1'].find(candidate => digits.startsWith(candidate)) || ''
+  }
+  if (!code) return raw
+  const localDigits = digits.slice(code.length)
+  let local = localDigits
+  if (localDigits.length === 8) local = `${localDigits.slice(0, 4)}-${localDigits.slice(4)}`
+  else if (localDigits.length === 10) local = `${localDigits.slice(0, 3)}-${localDigits.slice(3, 6)}-${localDigits.slice(6)}`
+  return `+${code} · ${local}`
+}
+
 // High-confidence, domain-specific Spanish corrections only. This is not a
 // speculative language model: it warns on exact normalized words and always
 // shows the proposed replacement. Names are intentionally excluded.
@@ -24100,14 +24137,14 @@ function renderBadgeBack(emp, site) {
           <span class="badge-back-icontile">${siIcon('credit-card', 13)}</span>
           <span class="badge-back-rowtext">
             <div class="badge-back-rowlabel">No. de identificación</div>
-            <div class="badge-back-rowvalue badge-back-idvalue">${esc(emp.identification_number || '—')}</div>
+            <div class="badge-back-rowvalue badge-back-idvalue">${esc(badgeFormatIdentificationNumber(emp.identification_number, countryName))}</div>
           </span>
         </div>
         <div class="badge-back-row2">
           <span class="badge-back-icontile">${siIcon('phone', 13)}</span>
           <span class="badge-back-rowtext">
             <div class="badge-back-rowlabel">Contacto de emergencia</div>
-            <div class="badge-back-rowvalue"><span class="badge-back-contact-name">${esc(badgeTitleCase(emp.emergency_contact_name || '—'))}</span><span class="badge-back-contact-phone">${esc(emp.emergency_contact_phone || '—')}</span></div>
+            <div class="badge-back-rowvalue"><span class="badge-back-contact-name">${esc(badgeTitleCase(emp.emergency_contact_name || '—'))}</span><span class="badge-back-contact-phone">${esc(badgeFormatEmergencyPhone(emp.emergency_contact_phone, countryName))}</span></div>
           </span>
         </div>
         <div class="badge-back-row2 badge-back-health-row">
@@ -24368,8 +24405,8 @@ function _badgeBackSheetHtml(emp, pieces, barcodeMarkup, palette) {
         </div>
         <div class="badge-back-panel${badgeBackDensityClass(emp)}">
           <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('globe', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">País</div><div class="badge-back-rowvalue">${esc(badgeTitleCase(pieces.countryName || '—'))}</div></span></div>
-          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('credit-card', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">No. de identificación</div><div class="badge-back-rowvalue badge-back-idvalue">${esc(emp.identification_number || '—')}</div></span></div>
-          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('phone', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Contacto de emergencia</div><div class="badge-back-rowvalue"><span class="badge-back-contact-name">${esc(badgeTitleCase(emp.emergency_contact_name || '—'))}</span><span class="badge-back-contact-phone">${esc(emp.emergency_contact_phone || '—')}</span></div></span></div>
+          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('credit-card', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">No. de identificación</div><div class="badge-back-rowvalue badge-back-idvalue">${esc(badgeFormatIdentificationNumber(emp.identification_number, pieces.countryName))}</div></span></div>
+          <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('phone', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Contacto de emergencia</div><div class="badge-back-rowvalue"><span class="badge-back-contact-name">${esc(badgeTitleCase(emp.emergency_contact_name || '—'))}</span><span class="badge-back-contact-phone">${esc(badgeFormatEmergencyPhone(emp.emergency_contact_phone, pieces.countryName))}</span></div></span></div>
           <div class="badge-back-row2 badge-back-health-row"><span class="badge-back-icontile">${siIcon('heart', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Condiciones de salud</div><div class="badge-back-rowvalue badge-back-healthvalue">${esc(badgeTitleCase(emp.health_conditions || '—'))}</div></span></div>
           <div class="badge-back-row2"><span class="badge-back-icontile">${siIcon('droplet', 13)}</span><span class="badge-back-rowtext"><div class="badge-back-rowlabel">Tipo de sangre</div><div class="badge-back-rowvalue">${esc(emp.blood_type || '—')}</div></span></div>
         </div>
