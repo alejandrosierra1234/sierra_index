@@ -8870,6 +8870,7 @@ async function mondayFetchItems(monday, ids) {
   const query = `query ($ids: [ID!]!) {
     items(ids: $ids) {
       id name board { id }
+      subitems { id name }
       column_values {
         id type text value column { title }
         ... on BoardRelationValue {
@@ -8987,11 +8988,15 @@ async function enterMondayBadgeApp() {
 
   const workflowStatusColumn = mondayColumnByApprovedTitles(controlItem, MONDAY_BADGE_CONTROL_COLUMNS.workflowStatus, 'status')
   const responsibilityLetterColumn = mondayColumnByApprovedTitles(controlItem, MONDAY_BADGE_CONTROL_COLUMNS.responsibilityLetter, 'file')
+  const initialWorkflowStatus = String(workflowStatusColumn?.text || '').trim()
   _mondayBridge = {
     monday, context, controlItemId, collaboratorItemId: String(collaborator.id),
     controlBoardId: String(controlItem.board?.id || context.boardId || ''),
     workflowStatusColumnId: workflowStatusColumn?.id || null,
-    workflowStatusText: String(workflowStatusColumn?.text || '').trim(),
+    workflowStatusText: initialWorkflowStatus,
+    printRecords: Array.isArray(controlItem.subitems) ? controlItem.subitems : [],
+    hadPriorPrint: ['impreso', 'reimpreso', 'entregado'].includes(normalizeBadgeOrgIdentity(initialWorkflowStatus)),
+    operatorName: context.user?.name || 'Usuario de monday',
     responsibilityLetterColumnId: responsibilityLetterColumn?.id || null,
     responsibilityLetterUploaded: false,
   }
@@ -21586,6 +21591,8 @@ function renderBadgeIssuanceView() {
   const r = checkBadgeReadiness(emp, issuance.printedNameSelection)
   const st = badgeReadinessState(emp, issuance.printedNameSelection)
   const disabled = !r.ready || !!issuance.printing
+  const mondayNeedsReprintApproval = !!_mondayBridge && mondayKnownPrintCount() > 0 && !mondayReprintIsAuthorized()
+  const mondayReprintRequested = normalizeBadgeOrgIdentity(_mondayBridge?.workflowStatusText) === 'reimpresion solicitada'
   // Title reflects the real state of this employee's badge lifecycle
   // rather than always saying "Crear" — an employee who already has a
   // printed badge is being reprinted, not created for the first time.
@@ -21629,9 +21636,15 @@ function renderBadgeIssuanceView() {
             ${issuance.printing ? 'Imprimiendo…' : 'Ya volteé la tarjeta — imprimir reverso'}
           </button>
           ` : `
-          <button id="badge-print-btn" class="btn btn-primary" onclick="printBadge()" ${disabled ? 'disabled aria-describedby="badge-print-block-reason"' : ''}>
-            ${issuance.printing ? 'Imprimiendo…' : disabled ? 'Impresión bloqueada' : (st.state === 'missing' ? 'Imprimir gafete (con avisos)' : 'Imprimir gafete')}
+          ${mondayNeedsReprintApproval ? `
+          <button id="badge-print-btn" class="btn ${mondayReprintRequested ? 'btn-secondary' : 'btn-primary'}" onclick="mondayRequestBadgeReprint()">
+            ${mondayReprintRequested ? 'Verificar autorización' : 'Solicitar reimpresión'}
           </button>
+          ` : `
+          <button id="badge-print-btn" class="btn btn-primary" onclick="printBadge()" ${disabled ? 'disabled aria-describedby="badge-print-block-reason"' : ''}>
+            ${issuance.printing ? 'Imprimiendo…' : disabled ? 'Impresión bloqueada' : (_mondayBridge && mondayKnownPrintCount() ? 'Imprimir reimpresión autorizada' : (st.state === 'missing' ? 'Imprimir gafete (con avisos)' : 'Imprimir gafete'))}
+          </button>
+          `}
           `}
         </div>
       </div>
@@ -21847,10 +21860,13 @@ async function mondayUploadResponsibilityLetter(emp, site, { force = false } = {
 }
 
 async function mondayMarkBadgePrinted() {
-  return mondaySetWorkflowStatus('Impreso', { preserveFinal: false })
+  return mondaySetWorkflowStatus(mondayKnownPrintCount() ? 'Reimpreso' : 'Impreso', { preserveFinal: false })
 }
 
-const MONDAY_BADGE_FINAL_WORKFLOW_STATUSES = new Set(['impreso', 'entregado', 'cancelado'])
+const MONDAY_BADGE_FINAL_WORKFLOW_STATUSES = new Set([
+  'impreso', 'reimpreso', 'entregado', 'cancelado',
+  'reimpresion solicitada', 'reimpresion autorizada',
+])
 
 async function mondaySetWorkflowStatus(value, { preserveFinal = true } = {}) {
   const bridge = _mondayBridge
@@ -21902,10 +21918,98 @@ async function mondaySyncBadgeReadinessStatus(emp, { quiet = false } = {}) {
   }
 }
 
+function mondayKnownPrintCount() {
+  if (!_mondayBridge) return 0
+  return Math.max(_mondayBridge.printRecords?.length || 0, _mondayBridge.hadPriorPrint ? 1 : 0)
+}
+
+function mondayReprintIsAuthorized() {
+  return normalizeBadgeOrgIdentity(_mondayBridge?.workflowStatusText) === 'reimpresion autorizada'
+}
+
+async function mondayRefreshPrintControl() {
+  const bridge = _mondayBridge
+  if (!bridge) return null
+  const [item] = await mondayFetchItems(bridge.monday, [bridge.controlItemId])
+  if (!item) throw new Error('No se pudo volver a consultar el control del gafete.')
+  const status = mondayColumnByApprovedTitles(item, MONDAY_BADGE_CONTROL_COLUMNS.workflowStatus, 'status')
+  bridge.workflowStatusText = String(status?.text || '').trim()
+  bridge.printRecords = Array.isArray(item.subitems) ? item.subitems : []
+  bridge.hadPriorPrint = bridge.hadPriorPrint || ['impreso', 'reimpreso', 'entregado'].includes(normalizeBadgeOrgIdentity(bridge.workflowStatusText))
+  return item
+}
+
+async function mondayRequestBadgeReprint() {
+  try {
+    await mondayRefreshPrintControl()
+    if (!mondayKnownPrintCount()) {
+      toast('Este gafete todavía no tiene una impresión registrada')
+      return
+    }
+    if (mondayReprintIsAuthorized()) {
+      toast('La reimpresión ya está autorizada')
+      renderBadgeModule()
+      return
+    }
+    await mondaySetWorkflowStatus('Reimpresión solicitada', { preserveFinal: false })
+    toast('Reimpresión solicitada. Debe autorizarse en monday antes de imprimir.', 6000)
+    renderBadgeModule()
+  } catch (error) {
+    console.error('monday reprint request failed:', error)
+    toast('No se pudo solicitar la reimpresión: ' + (error?.message || 'Error desconocido'), 7000)
+  }
+}
+
+async function mondayCheckPrintPermission() {
+  if (!_mondayBridge) return true
+  try {
+    await mondayRefreshPrintControl()
+  } catch (error) {
+    toast('No se pudo verificar el historial de impresión en monday. No se imprimirá para evitar un duplicado.', 7000)
+    return false
+  }
+  if (mondayKnownPrintCount() && !mondayReprintIsAuthorized()) {
+    toast('Este gafete ya fue impreso. Solicita y autoriza la reimpresión antes de continuar.', 7000)
+    renderBadgeModule()
+    return false
+  }
+  return true
+}
+
+async function mondayCreatePrintSubitem() {
+  const bridge = _mondayBridge
+  if (!bridge) return { ok: false, skipped: true }
+  const previousCount = mondayKnownPrintCount()
+  const number = previousCount + 1
+  const type = previousCount ? 'Reimpresión' : 'Impresión original'
+  const stamp = new Intl.DateTimeFormat('es-HN', {
+    dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Tegucigalpa',
+  }).format(new Date())
+  const itemName = `${type} ${number} · ${stamp} · ${bridge.operatorName}`
+  const mutation = `mutation ($parentItemId: ID!, $itemName: String!) {
+    create_subitem(parent_item_id: $parentItemId, item_name: $itemName) { id name }
+  }`
+  const response = await bridge.monday.api(mutation, { variables: {
+    parentItemId: bridge.controlItemId,
+    itemName,
+  } })
+  if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+  const record = response?.data?.create_subitem
+  if (!record) throw new Error('monday no devolvió el registro de impresión creado.')
+  bridge.printRecords = [...(bridge.printRecords || []), record]
+  bridge.hadPriorPrint = true
+  return { ok: true, record, number, type }
+}
+
+function confirmBadgePrintedCorrectly() {
+  return window.confirm('¿El gafete se imprimió correctamente?\n\nSolo al confirmar se registrará esta impresión en monday y se marcará el gafete como impreso.')
+}
+
 async function mondayCompleteBadgePrint(emp, site) {
   const results = await Promise.allSettled([
     mondayMarkBadgePrinted(),
     mondayUploadResponsibilityLetter(emp, site),
+    mondayCreatePrintSubitem(),
   ])
   const failures = results.filter(result => result.status === 'rejected').map(result => result.reason?.message || 'Error desconocido')
   if (failures.length) {
@@ -24567,6 +24671,7 @@ async function _badgePrintPreflight(issuance, emp, btnId, idleLabel) {
     toast('No tienes permiso para imprimir gafetes')
     return null
   }
+  if (_mondayBridge && !(await mondayCheckPrintPermission())) return null
   if (issuance.printing) return null
   issuance.printing = true
   const btn = document.getElementById(btnId)
@@ -24700,6 +24805,11 @@ async function printBadgeDuplex() {
   if (!result.ok) { resetPrintingState(); return }
 
   toast('Proceso de impresión cerrado. Verifica la salida física.')
+  if (!confirmBadgePrintedCorrectly()) {
+    toast('La impresión no se registró. Puedes corregir el problema e intentarlo nuevamente.', 5500)
+    resetPrintingState()
+    return
+  }
   await _badgeCommitIssuancePrint(emp, site, issuance.printedNameSelection)
   resetPrintingState()
   if (_mondayBridge) { renderBadgeModule(); return }
@@ -24757,6 +24867,11 @@ async function printBadgeManualReverseConfirmed() {
   if (!result.ok) { resetPrintingState(); return }
 
   toast('Proceso de impresión cerrado. Verifica la salida física.')
+  if (!confirmBadgePrintedCorrectly()) {
+    toast('La impresión no se registró. Revisa la tarjeta antes de intentarlo nuevamente.', 5500)
+    resetPrintingState()
+    return
+  }
   await _badgeCommitIssuancePrint(emp, site, issuance.printedNameSelection)
   resetPrintingState()
   if (_mondayBridge) {
