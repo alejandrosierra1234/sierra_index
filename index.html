@@ -6776,6 +6776,7 @@
          wraps a genuinely longer one without clipping — see report. */
       padding: 1.4mm 3mm;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
@@ -6783,13 +6784,14 @@
       box-sizing: border-box;
     }
     .badge-front-companyname {
+      width: 100%;
       font-family: 'Aeonik', sans-serif;
       font-weight: 700;
       text-transform: uppercase;
       font-size: 6.6pt;
       letter-spacing: 0.03em;
       line-height: 1.3;
-      color: #fff;
+      color: var(--badge-plant-on-accent, #fff);
       overflow-wrap: break-word;
     }
     /* Item 1 (this pass) — editor-only invalid-footer treatment. When
@@ -8778,6 +8780,9 @@ function mondayOrgCode(organization) {
     [normalizeBadgeOrgIdentity('Honduras Spinning Mills, S.A. de C.V.')]: 'HSM',
     [normalizeBadgeOrgIdentity('Northern Spinning')]: 'NS',
     [normalizeBadgeOrgIdentity('Northern Spinning, S.A. de C.V.')]: 'NS',
+    [normalizeBadgeOrgIdentity('PDM')]: 'PDM',
+    [normalizeBadgeOrgIdentity('Pride Denim Mills')]: 'PDM',
+    [normalizeBadgeOrgIdentity('Pride Denim Mills, S.A.')]: 'PDM',
     [normalizeBadgeOrgIdentity('VISITA')]: 'VISITA',
   }
   return exact[name] || null
@@ -21606,7 +21611,7 @@ function badgeResponsivaHtml(emp, site, language = _badgeResponsivaLanguage) {
     .resp-signature span { color:#666; }
     .resp-footer { margin-top:9mm; padding-top:3mm; border-top:.2mm solid #d7d9db; display:flex; justify-content:space-between; color:#777; font-size:6.8pt; }
     .badge-sheet { width:53.98mm; height:85.6mm; background:#fff; color:#000; padding:3mm; display:flex; flex-direction:column; overflow:hidden; position:relative; }
-    .badge-logo-mark svg { width:100%; height:auto; display:block; } .badge-front-header{display:flex;justify-content:center;padding:1mm 0 2.2mm}.badge-front-header .badge-logo-mark{width:28mm}.badge-front-card{flex:1;display:flex;flex-direction:column;gap:1.6mm;justify-content:center}.badge-front-photoblock{width:var(--badge-photo-side);height:var(--badge-photo-side);align-self:center;overflow:hidden;border-radius:3mm;position:relative}.badge-employee-photo,.badge-photo-crop{width:100%;height:100%;object-fit:cover}.badge-front-panel{display:flex;flex-direction:column;align-items:center;text-align:center;padding:2mm 3mm;gap:.8mm}.badge-front-idline,.badge-barcode-value{font-family:'Aeonik Mono';font-size:7pt}.badge-name-line{font-family:'Replica';font-weight:700;text-transform:uppercase}.badge-position-line{font-size:7.6pt}.badge-front-companybar{margin-top:1.6mm;border-radius:3mm;background:var(--badge-plant-accent);padding:1.4mm 3mm;text-align:center}.badge-company-line{font-size:6.6pt;font-weight:700;color:#fff;text-transform:uppercase}.badge-sheet.is-back{padding-right:13mm}.badge-back-header{display:flex;justify-content:space-between;padding-bottom:3mm}.badge-back-header .badge-logo-mark{width:28mm}.badge-gk-tile{width:5.2mm;height:5.2mm}.badge-gk-tile svg{width:100%;height:100%}.badge-back-panel{flex:1;border:.15mm solid #000;border-radius:3mm;padding:0 3mm;overflow:hidden}.badge-back-row2{display:flex;align-items:center;gap:1.8mm;padding:1mm 0;border-bottom:.15mm solid #000}.badge-back-row2:last-child{border:0}.badge-back-icontile{width:5.5mm;display:flex}.badge-back-rowtext{flex:1}.badge-back-rowlabel{font-size:5.1pt;font-weight:700;text-transform:uppercase}.badge-back-rowvalue{font-size:6.4pt;line-height:1.2}.badge-back-contact-name,.badge-back-contact-phone{display:block}.badge-back-legal{font-size:5.4pt;line-height:1.3;padding:1.2mm 0 .8mm}.badge-barcode{text-align:center}.badge-barcode svg{height:10mm;max-width:100%}.badge-photo-placeholder,.badge-front-photo-broken{font-size:6pt;text-align:center}.badge-front-photo-broken{display:none}
+    .badge-logo-mark svg { width:100%; height:auto; display:block; } .badge-front-header{display:flex;justify-content:center;padding:1mm 0 2.2mm}.badge-front-header .badge-logo-mark{width:28mm}.badge-front-card{flex:1;display:flex;flex-direction:column;gap:1.6mm;justify-content:center}.badge-front-photoblock{width:var(--badge-photo-side);height:var(--badge-photo-side);align-self:center;overflow:hidden;border-radius:3mm;position:relative}.badge-employee-photo,.badge-photo-crop{width:100%;height:100%;object-fit:cover}.badge-front-panel{display:flex;flex-direction:column;align-items:center;text-align:center;padding:2mm 3mm;gap:.8mm}.badge-front-idline,.badge-barcode-value{font-family:'Aeonik Mono';font-size:7pt}.badge-name-line{font-family:'Replica';font-weight:700;text-transform:uppercase}.badge-position-line{font-size:7.6pt}.badge-front-companybar{margin-top:1.6mm;border-radius:3mm;background:var(--badge-plant-accent);padding:1.4mm 3mm;text-align:center}.badge-company-line{font-size:6.6pt;font-weight:700;color:var(--badge-plant-on-accent,#fff);text-transform:uppercase}.badge-sheet.is-back{padding-right:13mm}.badge-back-header{display:flex;justify-content:space-between;padding-bottom:3mm}.badge-back-header .badge-logo-mark{width:28mm}.badge-gk-tile{width:5.2mm;height:5.2mm}.badge-gk-tile svg{width:100%;height:100%}.badge-back-panel{flex:1;border:.15mm solid #000;border-radius:3mm;padding:0 3mm;overflow:hidden}.badge-back-row2{display:flex;align-items:center;gap:1.8mm;padding:1mm 0;border-bottom:.15mm solid #000}.badge-back-row2:last-child{border:0}.badge-back-icontile{width:5.5mm;display:flex}.badge-back-rowtext{flex:1}.badge-back-rowlabel{font-size:5.1pt;font-weight:700;text-transform:uppercase}.badge-back-rowvalue{font-size:6.4pt;line-height:1.2}.badge-back-contact-name,.badge-back-contact-phone{display:block}.badge-back-legal{font-size:5.4pt;line-height:1.3;padding:1.2mm 0 .8mm}.badge-barcode{text-align:center}.badge-barcode svg{height:10mm;max-width:100%}.badge-photo-placeholder,.badge-front-photo-broken{font-size:6pt;text-align:center}.badge-front-photo-broken{display:none}
     @media print { body{background:#fff}.responsiva-page{margin:0;padding:0;width:auto;min-height:249mm;box-shadow:none}.resp-badge-frame{box-shadow:0 0 0 .2mm #ddd}.no-print{display:none!important} }
   </style></head><body><main class="responsiva-page">
     <header class="resp-header"><div class="resp-company-logo">${company?.logo_url ? `<img src="${escAttr(company.logo_url)}" alt="${lang === 'en' ? 'Logo of' : 'Logo de'} ${escAttr(legalName)}">` : `<div class="resp-logo-fallback">${esc(legalName)}</div>`}</div><div class="resp-title"><h1>${copy.title}</h1><p>${copy.subtitle}</p></div></header>
@@ -22940,11 +22945,12 @@ function badgeSiteCompanyInfo(site) {
 // are reported so master data can be corrected without silently recolouring a
 // physical credential.
 const BADGE_PLANT_PALETTES = Object.freeze({
-  NT: Object.freeze({ key: 'NT', accent: '#0067b1', accentDark: '#004a80', accentLight: '#dceeff', onAccent: '#ffffff' }),
-  DC: Object.freeze({ key: 'DC', accent: '#ff7824', accentDark: '#cd4f00', accentLight: '#ffe3d2', onAccent: '#ffffff' }),
-  PC: Object.freeze({ key: 'PC', accent: '#68368f', accentDark: '#482064', accentLight: '#eee3f5', onAccent: '#ffffff' }),
-  HSM_NS: Object.freeze({ key: 'HSM_NS', accent: '#008577', accentDark: '#005e54', accentLight: '#d9f1ed', onAccent: '#ffffff' }),
-  VISITA: Object.freeze({ key: 'VISITA', accent: '#55555a', accentDark: '#303034', accentLight: '#e8e8ea', onAccent: '#ffffff' }),
+  NT: Object.freeze({ key: 'NT', accent: '#009fff', accentDark: '#004a86', accentLight: '#c5e9ff', onAccent: '#000000' }),
+  DC: Object.freeze({ key: 'DC', accent: '#16cdbe', accentDark: '#007d73', accentLight: '#cffffb', onAccent: '#000000' }),
+  PC: Object.freeze({ key: 'PC', accent: '#ff7824', accentDark: '#cd4f00', accentLight: '#ffe3d2', onAccent: '#000000' }),
+  HSM_NS: Object.freeze({ key: 'HSM_NS', accent: '#c4c412', accentDark: '#827e00', accentLight: '#efefaf', onAccent: '#000000' }),
+  VISITA: Object.freeze({ key: 'VISITA', accent: '#ffc529', accentDark: '#bb9800', accentLight: '#fff0af', onAccent: '#000000' }),
+  PDM: Object.freeze({ key: 'PDM', accent: '#3ed600', accentDark: '#2a9200', accentLight: '#d1ffbe', onAccent: '#000000' }),
   NEUTRAL: Object.freeze({ key: 'NEUTRAL', accent: '#6f7477', accentDark: '#44484a', accentLight: '#eceeef', onAccent: '#ffffff' }),
 })
 
@@ -22959,7 +22965,7 @@ function normalizeBadgeOrgIdentity(value) {
 }
 
 const BADGE_PALETTE_BY_INTERNAL_CODE = Object.freeze({
-  NT: 'NT', DC: 'DC', PC: 'PC', HSM: 'HSM_NS', NS: 'HSM_NS', VISITA: 'VISITA',
+  NT: 'NT', DC: 'DC', PC: 'PC', HSM: 'HSM_NS', NS: 'HSM_NS', PDM: 'PDM', VISITA: 'VISITA',
 })
 
 // Populate only with real immutable UUIDs once production IDs are known.
@@ -22984,6 +22990,9 @@ const BADGE_PALETTE_EXACT_ALIASES = Object.freeze({
   [normalizeBadgeOrgIdentity('Honduras Spinning Mills, S.A. de C.V.')]: 'HSM_NS',
   [normalizeBadgeOrgIdentity('Northern Spinning')]: 'HSM_NS',
   [normalizeBadgeOrgIdentity('Northern Spinning, S.A. de C.V.')]: 'HSM_NS',
+  [normalizeBadgeOrgIdentity('PDM')]: 'PDM',
+  [normalizeBadgeOrgIdentity('Pride Denim Mills')]: 'PDM',
+  [normalizeBadgeOrgIdentity('Pride Denim Mills, S.A.')]: 'PDM',
   [normalizeBadgeOrgIdentity('VISITA')]: 'VISITA',
 })
 
@@ -23973,8 +23982,8 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
         .badge-front-photoblock.is-broken .badge-employee-photo { display: none; }
         .badge-front-photoblock.is-broken .badge-photo-crop { display: none; }
         .badge-position-line { font-family: 'Aeonik', sans-serif; font-weight: 500; font-size: 7.6pt; line-height: 1.3; color: #000; margin-top: 0; max-width: 46mm; overflow-wrap: break-word; }
-        .badge-front-companybar { flex-shrink: 0; margin-top: 1.6mm; border-radius: 3mm; background: var(--badge-plant-accent, #6f7477); padding: 1.4mm 3mm; display: flex; align-items: center; justify-content: center; text-align: center; min-height: 5mm; box-sizing: border-box; }
-        .badge-company-line { font-family: 'Aeonik', sans-serif; font-weight: 700; text-transform: uppercase; font-size: 6.6pt; letter-spacing: 0.03em; line-height: 1.3; color: #fff; overflow-wrap: break-word; }
+        .badge-front-companybar { flex-shrink: 0; margin-top: 1.6mm; border-radius: 3mm; background: var(--badge-plant-accent, #6f7477); padding: 1.4mm 3mm; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 5mm; box-sizing: border-box; }
+        .badge-company-line { width: 100%; font-family: 'Aeonik', sans-serif; font-weight: 700; text-transform: uppercase; font-size: 6.6pt; letter-spacing: 0.03em; line-height: 1.3; color: var(--badge-plant-on-accent, #fff); overflow-wrap: break-word; }
         /* BACK */
         .badge-sheet.is-back { padding-right: 13mm; }
         /* The installed duplex ribbon prints the reverse through its K
