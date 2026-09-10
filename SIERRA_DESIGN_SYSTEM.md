@@ -3024,6 +3024,8 @@ La biblioteca distingue Activos, Archivados y Papelera; estos destinos no cambia
 
 Los selectores de estado, clasificación y bloques usan `pdSelect`; las acciones y descargas usan el contenedor compartido `.ws-pop` y `.pop-menu-item`. Mantener chevron, etiquetas accesibles y navegación por teclado. No usar selects nativos para estos controles.
 
-El formato de párrafos ofrece colores editoriales deliberados: Predeterminado (#343438), Negro (#0b0b0b), Azul oscuro (#004a86), Morado oscuro (#670084) y Rojo oscuro (#b40b0b). Los tres colores retoman la paleta del §44 para texto del documento; no agregan estados semánticos de interfaz. Mostrar muestras con nombre, selección actual e indicador de colores mezclados. Predeterminado aplica el neutral de texto conservando negrita, cursiva y subrayado.
+El selector editorial utiliza la paleta SIERRA completa de la referencia de marca: principales #cffffb, #16cdbe y #007d73; siete familias secundarias con sus tres tonos (oliva, verde, azul, morado, amarillo, naranja y rojo); y neutros #0b0b0b, #2b2b2b, #444444, #a4a4a4, #e5e5e5, #f5f5f5 y #ffffff. La fuente de valores del componente es `COMMS_COLOR_GROUPS`. No reducir la paleta a tres tonos oscuros ni sustituir los principales por colores semánticos de interfaz.
+
+Presentar muestras compactas de 28 px, agrupadas en Principales, Secundarios y Neutros, dentro del popover compartido. Evitar tarjetas con una letra y un nombre por color. Mostrar nombre y hexadecimal al enfocar o pasar el cursor, una marca en la selección actual y etiqueta accesible en cada muestra. Restablecer color aplica el negro SIERRA conservando los demás formatos.
 
 La clasificación interna (tipo, departamento y etiquetas) no se imprime. Mostrar que el almacenamiento pertenece al navegador; no presentar el guardado local como respaldo compartido.
