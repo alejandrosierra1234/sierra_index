@@ -1,0 +1,25 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const {JSDOM}=require('jsdom');
+const source=fs.readFileSync(require('node:path').join(__dirname,'../../index.html'),'utf8');
+const dom=new JSDOM('<div id="pg"></div><div id="sec-title"></div><div id="sec-sub"></div>',{url:'https://test.local',runScripts:'outside-only'});
+const w=dom.window;w.eval=code=>vm.runInContext(code,dom.getInternalVMContext());w.esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');w.escAttr=w.esc;w.siIcon=()=>'';w.setSecCrumbs=()=>{};w.requestAnimationFrame=()=>{};w.document.queryCommandState=()=>false;
+w.jsStr=v=>String(v??'').replaceAll("'","\\'");w.clearSecCrumbs=()=>{};w.toast=()=>{};
+w.eval(source.slice(source.indexOf('function pdSelect('),source.indexOf('/* ═',source.indexOf('function pickPdSelect('))));
+let scripts=0;for(const match of source.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){if(!match[2].trim()||/application\/ld\+json/.test(match[1]))continue;new vm.Script(match[2]);scripts++}console.log(`PASS: syntax of ${scripts} inline scripts`);
+const start=source.indexOf("const COMMS_STORE_KEY="),end=source.indexOf('\n',source.indexOf('function printCommunicationMemo()',start));
+w.eval('const LBL_LOGO_SVG="";\n'+source.slice(start,end));
+
+let checks=0;function test(name,fn){fn();console.log('PASS: '+name);checks++}
+w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'))};
+w.newCommunicationDraft();const id=w.eval('_commsCurrent.id');
+w.eval("_commsCurrent.status='Aprobado';_commsCurrent.category='Política';_commsCurrent.department='Operaciones';_commsCurrent.tags=['urgente'];_commsCurrent.signature='data:image/png;base64,AA'");w.commsPersist();
+const folio=w.eval('_commsCurrent.communicationNumber');
+test('archive keeps status and classification; restore keeps folio',()=>{w.commsLifecycle(id,'archive');let d=w.eval('_commsDrafts[0]');assert.equal(d.lifecycle,'archived');assert.equal(d.status,'Aprobado');w.commsLifecycle(id,'trash');assert.equal(w.eval('_commsDrafts[0].previousLifecycle'),'archived');w.commsLifecycle(id,'restore');d=w.eval('_commsDrafts[0]');assert.equal(d.lifecycle,'archived');assert.equal(d.communicationNumber,folio);assert.equal(d.category,'Política')});
+test('duplicate creates independent draft, folio and unsigned copy',()=>{w.commsDuplicate(id);let d=w.eval('_commsCurrent');assert.notEqual(d.id,id);assert.ok(d.communicationNumber>folio);assert.equal(d.status,'Borrador');assert.equal(d.lifecycle,'active');assert.equal(d.signature,'');assert.equal(d.department,'Operaciones');assert.deepEqual(Array.from(d.tags),['urgente']);d.tags.push('otra');assert.equal(w.eval('_commsDrafts.find(d=>d.id=== '+JSON.stringify(id)+').tags.length'),1)});
+test('editor and library render only Index selectors',()=>{assert.equal(w.document.querySelectorAll('select').length,0);assert.ok(w.document.querySelector('.pd-select'));w.commsBack();assert.equal(w.document.querySelectorAll('select').length,0);const input=w.document.querySelector('.comms-search');input.focus();w.eval("_commsQuery='urgente'");w.renderCommunicationsResults();assert.equal(w.document.activeElement,input);assert.equal(w.commsFiltered().length,1)});
+test('storage failure cannot archive or discard a record',()=>{const original=w.Storage.prototype.setItem;w.Storage.prototype.setItem=function(){throw Error('quota')};w.commsLifecycle(id,'unarchive');assert.equal(w.eval('_commsDrafts.find(d=>d.id=== '+JSON.stringify(id)+').lifecycle'),'archived');w.Storage.prototype.setItem=original});
+test('signature removal can be undone',()=>{w.openCommunicationDraft(id);w.commsLifecycle(id,'unarchive');w.openCommunicationDraft(id);w.commsRemoveSignature();assert.equal(w.eval('_commsCurrent.signature'),'');w.commsUndoEdit();assert.match(w.eval('_commsCurrent.signature'),/^data:/)});
+test('new department remains available before autosave',()=>{w.eval("_commsCurrent.department='Finanzas'");assert.ok(w.commsDepartments().includes('Finanzas'))});
+test('deletion cancels autosave and preserves consecutive numbers',()=>{w.commsAutosave();w.commsLifecycle(id,'trash');w.commsDeletePermanently(id);const dialog=w.document.querySelector('dialog');assert.ok(dialog);dialog.querySelectorAll('button')[1].click();assert.equal(w.eval('_commsDrafts.some(d=>d.id=== '+JSON.stringify(id)+')'),false);assert.equal(w.eval('_commsCurrent'),null);assert.ok(w.createCommunicationDraft().communicationNumber>folio)});
+test('palette uses documented colors and selected state',()=>{w.newCommunicationDraft();const button=w.document.querySelector('[data-memo-color]');button.dataset.color='rgb(0, 74, 134)';w.commsColorMenu({currentTarget:button,stopPropagation(){}});const options=w.document.querySelectorAll('.comms-color-option');assert.equal(options.length,5);assert.equal(w.document.querySelector('.comms-color-option[aria-pressed="true"]').title,'Azul oscuro');w.commsCloseMenu()});
+console.log(checks+' management checks passed');w.close();

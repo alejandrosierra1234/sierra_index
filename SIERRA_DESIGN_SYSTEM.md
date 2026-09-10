@@ -3016,3 +3016,14 @@ screen's composition.
   columns to `localStorage`; Inventory's toolbar state resets on every
   visit, matching most other screens' toolbars (Dispatch Queue, Sample
   Center) rather than Catalog's specific persistence choice.
+
+
+## Comunicados: gestión y formato editorial
+
+La biblioteca distingue Activos, Archivados y Papelera; estos destinos no cambian el estado editorial del documento. El borrado definitivo se ofrece únicamente en Papelera, con diálogo de confirmación y Cancelar como foco inicial. Duplicar crea un borrador con folio nuevo y sin imagen de firma.
+
+Los selectores de estado, clasificación y bloques usan `pdSelect`; las acciones y descargas usan el contenedor compartido `.ws-pop` y `.pop-menu-item`. Mantener chevron, etiquetas accesibles y navegación por teclado. No usar selects nativos para estos controles.
+
+El formato de párrafos ofrece colores editoriales deliberados: Predeterminado (#343438), Negro (#0b0b0b), Azul oscuro (#004a86), Morado oscuro (#670084) y Rojo oscuro (#b40b0b). Los tres colores retoman la paleta del §44 para texto del documento; no agregan estados semánticos de interfaz. Mostrar muestras con nombre, selección actual e indicador de colores mezclados. Predeterminado aplica el neutral de texto conservando negrita, cursiva y subrayado.
+
+La clasificación interna (tipo, departamento y etiquetas) no se imprime. Mostrar que el almacenamiento pertenece al navegador; no presentar el guardado local como respaldo compartido.
