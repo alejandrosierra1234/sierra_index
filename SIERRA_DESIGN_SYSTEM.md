@@ -3034,3 +3034,7 @@ La clasificación interna (tipo, departamento y etiquetas) no se imprime. Mostra
 ### Selector de bloques del comunicado
 
 «Agregar contenido» agrupa Texto y listas e Imágenes y estructura. Usar botones compactos de al menos 44 px de alto con íconos del catálogo SI_ICON, etiquetas explícitas y ayuda al enfocar. Tres columnas en escritorio y dos en móvil. Los fondos claros de marca se limitan al ícono: turquesa para texto, azul para imagen/datos, morado para estructura y naranja para destacados. Evitar la cuadrícula de celdas con divisores y descripciones repetidas. «Destacado» es el nombre de la opción que inserta una pleca. Tras insertar, llevar el bloque a la vista y enfocar su primer campo editable.
+
+### Íconos de Comunicados
+
+Usar la matriz de `docs/COMUNICADOS_ICONOS.md`. Íconos de tipos: text-size, list, list-numbers, photo, table, sitemap, route y layout-bottombar. Mantener el mismo símbolo al insertar y editar. Las acciones usan SVG de 16 px; el selector de bloques usa 18 px. Eliminar usa trash, cerrar usa x y volver usa arrow-left: no intercambiar significados ni sustituirlos por caracteres. B/I/U y A con indicador de color son las excepciones tipográficas deliberadas. Las cargas de archivos deben activarse por teclado y los botones sin texto deben tener nombre accesible.

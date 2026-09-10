@@ -9,6 +9,7 @@ let scripts=0;for(const match of source.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/
 const start=source.indexOf("const COMMS_STORE_KEY="),end=source.indexOf('\n',source.indexOf('function printCommunicationMemo()',start));
 w.eval('const LBL_LOGO_SVG="";\n'+source.slice(start,end));
 
+w.eval(source.slice(source.indexOf('const SI_ICON = {'),source.indexOf('// StatusBadge (',source.indexOf('const SI_ICON = {'))));
 let checks=0;function test(name,fn){fn();console.log('PASS: '+name);checks++}
 w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'))};
 w.newCommunicationDraft();const id=w.eval('_commsCurrent.id');
@@ -22,4 +23,15 @@ test('signature removal can be undone',()=>{w.openCommunicationDraft(id);w.comms
 test('new department remains available before autosave',()=>{w.eval("_commsCurrent.department='Finanzas'");assert.ok(w.commsDepartments().includes('Finanzas'))});
 test('deletion cancels autosave and preserves consecutive numbers',()=>{w.commsAutosave();w.commsLifecycle(id,'trash');w.commsDeletePermanently(id);const dialog=w.document.querySelector('dialog');assert.ok(dialog);dialog.querySelectorAll('button')[1].click();assert.equal(w.eval('_commsDrafts.some(d=>d.id=== '+JSON.stringify(id)+')'),false);assert.equal(w.eval('_commsCurrent'),null);assert.ok(w.createCommunicationDraft().communicationNumber>folio)});
 test('palette uses documented colors and selected state',()=>{w.newCommunicationDraft();const button=w.document.querySelector('[data-memo-color]');button.dataset.color='rgb(0, 74, 134)';w.commsColorMenu({currentTarget:button,stopPropagation(){}});const options=w.document.querySelectorAll('.comms-color-option');assert.equal(options.length,31);assert.equal(w.document.querySelector('.comms-color-option[aria-pressed="true"]').title,'Azul oscuro · #004a86');w.commsCloseMenu()});
+test('all communication icon keys exist and destructive controls are labeled',()=>{
+  const moduleSource=source.slice(start,end);
+  for(const [,name] of moduleSource.matchAll(/siIcon\('([^']+)'/g))assert.ok(w.siIcon(name),`Missing icon ${name}`);
+  w.newCommunicationDraft();
+  for(const type of ['image','table','orgchart','process','banner'])w.commsAddBlock(type);
+  assert.equal(w.document.querySelectorAll('.memo-insert-icon svg').length,8);
+  assert.ok(w.document.querySelector('[aria-label="Eliminar etapa"] svg'));
+  assert.ok(w.document.querySelector('[aria-label="Eliminar persona"] svg'));
+  for(const button of w.document.querySelectorAll('button'))if(button.querySelector('svg')&&!button.textContent.trim())assert.ok(button.getAttribute('aria-label')||button.title,'Icon button needs a name');
+  assert.ok(w.document.querySelector('.memo-upload[tabindex="0"][role="button"]'));
+});
 console.log(checks+' management checks passed');w.close();
