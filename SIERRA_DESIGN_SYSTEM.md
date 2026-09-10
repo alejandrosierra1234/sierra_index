@@ -3029,3 +3029,8 @@ El selector editorial utiliza la paleta SIERRA completa de la referencia de marc
 Presentar muestras compactas de 28 px, agrupadas en Principales, Secundarios y Neutros, dentro del popover compartido. Evitar tarjetas con una letra y un nombre por color. Mostrar nombre y hexadecimal al enfocar o pasar el cursor, una marca en la selección actual y etiqueta accesible en cada muestra. Restablecer color aplica el negro SIERRA conservando los demás formatos.
 
 La clasificación interna (tipo, departamento y etiquetas) no se imprime. Mostrar que el almacenamiento pertenece al navegador; no presentar el guardado local como respaldo compartido.
+
+
+### Selector de bloques del comunicado
+
+«Agregar contenido» agrupa Texto y listas e Imágenes y estructura. Usar botones compactos de al menos 44 px de alto con íconos del catálogo SI_ICON, etiquetas explícitas y ayuda al enfocar. Tres columnas en escritorio y dos en móvil. Los fondos claros de marca se limitan al ícono: turquesa para texto, azul para imagen/datos, morado para estructura y naranja para destacados. Evitar la cuadrícula de celdas con divisores y descripciones repetidas. «Destacado» es el nombre de la opción que inserta una pleca. Tras insertar, llevar el bloque a la vista y enfocar su primer campo editable.
