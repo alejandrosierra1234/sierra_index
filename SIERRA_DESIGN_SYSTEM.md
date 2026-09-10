@@ -3038,3 +3038,11 @@ La clasificación interna (tipo, departamento y etiquetas) no se imprime. Mostra
 ### Íconos de Comunicados
 
 Usar la matriz de `docs/COMUNICADOS_ICONOS.md`. Íconos de tipos: text-size, list, list-numbers, photo, table, sitemap, route y layout-bottombar. Mantener el mismo símbolo al insertar y editar. Las acciones usan SVG de 16 px; el selector de bloques usa 18 px. Eliminar usa trash, cerrar usa x y volver usa arrow-left: no intercambiar significados ni sustituirlos por caracteres. B/I/U y A con indicador de color son las excepciones tipográficas deliberadas. Las cargas de archivos deben activarse por teclado y los botones sin texto deben tener nombre accesible.
+
+### Flujogramas dentro de Comunicados
+
+El bloque Proceso representa un flujo secuencial conectado por flechas. La distribución horizontal admite tres figuras por fila y continúa en sentido alterno; la vertical conserva una columna. El editor muestra una lista de etapas y únicamente las propiedades de la seleccionada. Al cambiar propiedades se conserva la posición y el foco; agregar, duplicar, mover y eliminar son acciones independientes. Eliminar una etapa admite Deshacer.
+
+Cada etapa tiene figura (rectángulo redondeado, cápsula o rombo redondeado), color propio de la paleta SIERRA y distintivo opcional. El distintivo es un ícono del catálogo compartido o numeración automática (1, 01, romana, alfabética) o personalizada de hasta cuatro caracteres. Siempre se aloja en un cuadrado redondeado. La paleta y la búsqueda de íconos usan el popover de Index; los demás selectores usan pdSelect.
+
+El dibujo SVG integra figuras, conectores, texto e íconos para compartir exactamente el mismo contenido entre vista previa, impresión y exportación. El texto se ajusta en líneas sin truncarlo; el tamaño se adapta a su contenido. El color de texto se elige por contraste entre negro SIERRA y blanco. Los procesos antiguos conservan texto, orden y color, que se hereda inicialmente en cada figura. La numeración automática sigue el orden al mover etapas. Los rombos son figuras visuales de la secuencia, sin bifurcaciones configurables.

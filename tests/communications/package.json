@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "test": "node check.cjs && node management.cjs && node export.cjs"
+    "test": "node check.cjs && node management.cjs && node export.cjs && node flow.cjs"
   },
   "devDependencies": {
     "jsdom": "30.0.1"
