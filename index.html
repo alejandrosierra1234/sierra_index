@@ -34183,7 +34183,7 @@ function renderCommunicationEditor(){
           <div class="memo-field-row"><div class="memo-field"><label>Nombre</label><input class="control-input" placeholder="Nombre de quien firma" value="${escAttr(_commsCurrent.signerName)}" oninput="commsSet('signerName',this.value)"></div><div class="memo-field"><label>Cargo</label><input class="control-input" placeholder="Cargo" value="${escAttr(_commsCurrent.signerTitle)}" oninput="commsSet('signerTitle',this.value)"></div></div>
           <label class="memo-upload">${_commsCurrent.signature?`<img class="memo-thumb" src="${escAttr(_commsCurrent.signature)}" alt="Firma">`:siIcon('upload',18)}<span><b>${_commsCurrent.signature?'Cambiar firma':'Agregar firma'}</b><br><small>PNG transparente recomendado</small></span><input type="file" accept="image/*" onchange="commsSignature(this)"></label>
         </div>
-        <div class="memo-studio-actions"><span class="memo-save-state" id="memo-save-state">Cambios guardados</span><button class="btn btn-ghost" onclick="commsBack()">Cerrar</button><button class="btn btn-secondary" onclick="printCommunicationMemo()">PDF / Imprimir</button><button class="btn btn-primary" onclick="commsPersist()">Guardar</button></div>
+        <div class="memo-studio-actions"><span class="memo-save-state" id="memo-save-state">Cambios guardados</span><button class="btn btn-ghost" onclick="commsBack()">Cerrar</button><button class="btn btn-secondary" onclick="printCommunicationMemo()">PDF / Imprimir</button><button type="button" class="btn btn-secondary" data-memo-image-format="png" ${_memoImageExporting?'disabled':''} title="Descargar el comunicado completo en PNG" onclick="downloadCommunicationImage('png')">PNG</button><button type="button" class="btn btn-secondary" data-memo-image-format="jpg" ${_memoImageExporting?'disabled':''} title="Descargar el comunicado completo en JPG" onclick="downloadCommunicationImage('jpg')">JPG</button><button class="btn btn-primary" onclick="commsPersist()">Guardar</button><span id="memo-image-export-status" class="memo-save-state" style="flex-basis:100%" role="status" aria-live="polite"></span></div>
       </div>
     </section>
     <section class="memo-preview-shell" aria-label="Vista previa completa del memorándum">
@@ -34213,6 +34213,64 @@ function communicationAdvancedPrintCss(){return`.memo-table th{padding:2.6mm 3mm
 function communicationOrgPrintCss(){return`.memo-orgchart{display:block;overflow:visible;padding:2mm 0 7mm;margin:2mm 0 0}.memo-org-tree,.memo-org-tree ul{display:flex;justify-content:center;position:relative;margin:0;padding:5mm 0 0}.memo-org-tree{width:max-content;min-width:100%;padding-top:0}.memo-org-tree li{list-style:none;position:relative;text-align:center;padding:5mm 2mm 0}.memo-org-tree>li{padding-top:0}.memo-org-tree li::before,.memo-org-tree li::after{content:'';position:absolute;top:0;width:50%;height:5mm;border-top:.25mm solid #a9abad}.memo-org-tree li::before{right:50%;border-right:.25mm solid #a9abad}.memo-org-tree li::after{left:50%;border-left:.25mm solid #a9abad}.memo-org-tree li:only-child::before,.memo-org-tree li:only-child::after{display:none}.memo-org-tree li:first-child::before,.memo-org-tree li:last-child::after{border-top:0}.memo-org-tree ul::before{content:'';position:absolute;top:0;left:50%;height:5mm;border-left:.25mm solid #a9abad}.memo-person-card{width:34mm;min-height:34mm;position:relative;z-index:1}.memo-person-name{font-weight:700;line-height:1.2}.memo-person-role{margin-top:1mm;color:#343438}`}
 function communicationOrgPalettePrintCss(){return`.memo-org-tree>li::before,.memo-org-tree>li::after{display:none}.memo-org-heading span{color:#007d73}.memo-org-tree li::before,.memo-org-tree li::after,.memo-org-tree ul::before{border-color:color-mix(in srgb,var(--org-color) 42%,#66666d)}.memo-person-card,.memo-person-card-level-1,.memo-person-card-level-2,.memo-person-card-level-3,.memo-person-card-level-4{margin-left:auto;margin-right:auto;border:.3mm solid color-mix(in srgb,var(--org-color) 46%,#77777d);background:color-mix(in srgb,var(--org-color) 14%,#fff);box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}.memo-person-card img,.memo-person-card-placeholder{border-radius:2mm!important}.memo-person-card-placeholder{background:color-mix(in srgb,var(--org-color) 18%,#e2e4e5)}`}
 function communicationOrgLayoutPrintCss(){return`.memo-org-section{margin:4mm 0 7mm;padding:4mm;border:.25mm solid #dedee2;border-radius:3mm;background:#fff}.memo-org-section-no-heading{padding-top:3mm}.memo-org-heading{display:flex;align-items:center;justify-content:space-between;gap:4mm;padding:0 1mm 3mm;border-bottom:.25mm solid #dedee2}.memo-org-heading span{font-size:8pt;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.memo-org-heading strong{font-size:7.4pt;font-weight:400;color:#66666d}.memo-person-card img,.memo-person-card-placeholder{width:20mm;height:16mm;border-radius:2mm;object-fit:cover}.memo-org-count-small .memo-person-card{width:58mm;min-height:29mm;padding:3.2mm;display:grid;grid-template-columns:20mm minmax(0,1fr);grid-template-rows:auto auto auto;column-gap:3mm;align-content:center;text-align:left}.memo-org-count-small .memo-person-card img,.memo-org-count-small .memo-person-card-placeholder{grid-column:1;grid-row:1/4;width:20mm;height:18mm;margin:0;align-self:center}.memo-org-count-small .memo-person-name,.memo-org-count-small .memo-person-role,.memo-org-count-small .memo-person-dept{grid-column:2;margin:0}.memo-org-count-small .memo-person-name{font-size:9.2pt}.memo-org-count-small .memo-person-role{font-size:7.7pt;margin-top:.6mm}.memo-org-count-small .memo-person-dept{font-size:6.7pt;margin-top:.8mm}.memo-org-count-medium .memo-person-card img,.memo-org-count-medium .memo-person-card-placeholder{width:18mm;height:15mm}.memo-org-count-large .memo-person-card img,.memo-org-count-large .memo-person-card-placeholder{width:16mm;height:13mm}.memo-org-tree,.memo-org-tree ul{padding-top:4mm}.memo-org-tree{padding-top:0}.memo-org-tree li{padding:4mm 2.2mm 0}.memo-org-tree>li{padding-top:0}.memo-org-tree li>.memo-person-card+ul{margin-top:0;padding-top:4mm}.memo-org-tree li>.memo-person-card+ul::before{top:0}.memo-org-tree li>.memo-person-card+ul>li{padding-top:4mm}.memo-org-tree li::before,.memo-org-tree li::after,.memo-org-tree ul::before{height:4mm}.memo-org-tree ul>li::before,.memo-org-tree ul>li::after{border-left:0;border-right:0;border-radius:0!important}.memo-org-tree ul>li>.memo-person-card::before{content:'';position:absolute;left:50%;top:-4mm;height:4mm;border-left:.25mm solid color-mix(in srgb,var(--org-color) 42%,#66666d)}.memo-org-tree>li>.memo-person-card::before{display:none}`}
+let _memoImageExporting=false;
+function memoImageExportState(busy,message=''){
+  document.querySelectorAll('[data-memo-image-format]').forEach(button=>{button.disabled=busy;button.setAttribute('aria-busy',String(busy))});
+  const status=document.getElementById('memo-image-export-status');if(status)status.textContent=message;
+}
+function memoImageDocumentHtml(d){
+  const css=[communicationPrintCss(),communicationAdvancedPrintCss(),communicationOrgPrintCss(),communicationOrgPalettePrintCss(),communicationOrgLayoutPrintCss()].join('').replaceAll("url('/Replica", "url('Replica");
+  return`<!doctype html><html><head><meta charset="utf-8"><base href="${escAttr(document.baseURI)}"><style>${css}.memo-page{background:#fff;overflow-wrap:anywhere}.memo-orgchart{overflow:visible}</style></head><body>${memoPageHtml(d)}</body></html>`;
+}
+function memoImageFileName(d,format){
+  const subject=String(d.subject||'comunicado').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9_-]+/gi,'-').replace(/^-+|-+$/g,'').slice(0,80)||'comunicado';
+  return`${memoFolio(d)}-${subject}.${format}`;
+}
+// html2canvas 1.4 does not parse color-mix(). Resolve the organigram palette
+// ahead of capture, including connector pseudo-elements, using the same mixes.
+function memoImagePalette(doc){
+  doc.querySelectorAll('.memo-org-section').forEach((section,index)=>{
+    const color=section.style.getPropertyValue('--org-color').trim()||'#16cdbe';
+    if(!/^#[0-9a-f]{6}$/i.test(color))return;
+    const mix=(base,weight)=>`rgb(${[1,3,5].map(i=>Math.round(parseInt(color.slice(i,i+2),16)*weight+parseInt(base.slice(i,i+2),16)*(1-weight))).join(',')})`;
+    section.id=`memo-export-org-${index}`;
+    const prefix=`#${section.id}`,style=doc.createElement('style');
+    style.textContent=`${prefix} .memo-person-card{border-color:${mix('#77777d',.46)}!important;background:${mix('#ffffff',.14)}!important}${prefix} .memo-person-card-placeholder{background:${mix('#e2e4e5',.18)}!important}${prefix} li::before,${prefix} li::after,${prefix} ul::before,${prefix} .memo-person-card::before{border-color:${mix('#66666d',.42)}!important}`;
+    doc.head.appendChild(style);
+  });
+}
+async function memoImageBlob(d,format){
+  if(typeof window.html2canvas!=='function')throw new Error('No se pudo cargar el generador de imágenes. Recarga la página e inténtalo de nuevo.');
+  const frame=document.createElement('iframe');frame.title='Preparando imagen del comunicado';frame.setAttribute('aria-hidden','true');frame.tabIndex=-1;
+  frame.style.cssText='position:fixed;left:-10000px;top:0;width:817px;height:1056px;border:0;pointer-events:none';
+  let timer;
+  try{
+    const ready=new Promise((resolve,reject)=>{frame.onload=resolve;timer=setTimeout(()=>reject(new Error('La imagen tardó demasiado en prepararse. Inténtalo de nuevo.')),20000)});
+    frame.srcdoc=memoImageDocumentHtml(d);document.body.appendChild(frame);await ready;clearTimeout(timer);
+    const doc=frame.contentDocument;
+    await Promise.race([Promise.all([doc.fonts?.ready,...Array.from(doc.images,img=>img.decode())]),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('No se terminaron de cargar las fuentes o imágenes. Inténtalo de nuevo.')),20000)})]);
+    clearTimeout(timer);memoImagePalette(doc);
+    const page=doc.querySelector('.memo-page'),width=Math.ceil(page.scrollWidth),height=Math.ceil(page.scrollHeight);
+    // Keep long memos complete while bounding canvas memory on mobile devices.
+    const scale=Math.min(3,16384/Math.max(width,height),Math.sqrt(16000000/(width*height)));
+    const canvas=await window.html2canvas(page,{scale,useCORS:true,allowTaint:false,backgroundColor:'#ffffff',logging:false,width,height,windowWidth:width,windowHeight:height,scrollX:0,scrollY:0});
+    const mime=format==='jpg'?'image/jpeg':'image/png';
+    return await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('No se pudo generar la imagen. Reduce su tamaño e inténtalo de nuevo.')),mime,.95));
+  }finally{clearTimeout(timer);frame.remove()}
+}
+async function downloadCommunicationImage(format){
+  if(!_commsCurrent||_memoImageExporting||!['png','jpg'].includes(format))return;
+  const draft=JSON.parse(JSON.stringify(_commsCurrent));commsPersist();_memoImageExporting=true;
+  memoImageExportState(true,`Preparando ${format.toUpperCase()}…`);
+  try{
+    const blob=await memoImageBlob(draft,format),url=URL.createObjectURL(blob),link=document.createElement('a');
+    link.href=url;link.download=memoImageFileName(draft,format);document.body.appendChild(link);
+    try{link.click()}finally{link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
+    memoImageExportState(false,`Descarga ${format.toUpperCase()} iniciada.`);
+  }catch(error){memoImageExportState(false,'No se pudo descargar la imagen.');alert(error.message||'No se pudo descargar la imagen. Inténtalo de nuevo.')}
+  finally{_memoImageExporting=false;memoImageExportState(false,document.getElementById('memo-image-export-status')?.textContent||'')}
+}
+
 function printCommunicationMemo(){if(!_commsCurrent)return;commsPersist();const w=window.open('','_blank');if(!w){alert('Permite ventanas emergentes para imprimir o guardar el PDF.');return}w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(_commsCurrent.subject)}</title><style>${communicationPrintCss()}${communicationAdvancedPrintCss()}${communicationOrgPrintCss()}${communicationOrgPalettePrintCss()}${communicationOrgLayoutPrintCss()}</style></head><body>${memoPageHtml(_commsCurrent)}<script>window.onload=()=>document.fonts.ready.then(()=>setTimeout(()=>window.print(),80))<\/script></body></html>`);w.document.close()}
 </script>
 
