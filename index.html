@@ -7315,7 +7315,9 @@
 .lbl-codes-bc canvas { width:100%; height:auto; display:block; }
 .lbl-codes-id { font-size:1.6mm; color:#999; font-family:Arial,Helvetica,sans-serif; margin-top:0.5mm; letter-spacing:0.03em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   </style>
-<link rel="stylesheet" href="css/sample-workflow.css?v=20260911-8">
+<link rel="stylesheet" href="css/sample-workflow.css?v=20260911-9">
+<link rel="stylesheet" href="css/catalog-experience.css?v=20260911-9">
+<script src="js/catalog-experience.js?v=20260911-9"></script>
 </head>
 <body>
 
@@ -7850,11 +7852,11 @@
 </div>
 
 <!-- SELECT BAR (BulkActionBar) -->
-<div id="select-bar">
-  <span id="select-count">0 selected</span>
-  <button class="btn btn-secondary btn-sm" onclick="clearSelection()" style="color:var(--bg);border-color:rgba(255,255,255,0.25)">Cancel</button>
-  <button class="btn btn-secondary btn-sm" onclick="bulkRequestSamples()" style="color:var(--bg);border-color:rgba(255,255,255,0.25)">Request samples</button>
-  <button class="btn btn-primary btn-sm" onclick="openBulkReq()">Add to Collection</button>
+<div id="select-bar" role="region" aria-label="Selección de productos">
+  <span id="select-count" aria-live="polite">0 seleccionados</span>
+  <button class="btn btn-secondary" onclick="clearSelection()">Limpiar</button>
+  <button class="btn btn-secondary" id="catalog-compare" onclick="catCompareSelection()" disabled>Comparar</button>
+  <button class="btn btn-primary" onclick="openBulkReq()">Agregar a colección</button>
 </div>
 
 <!-- ══ SCAN OVERLAY ══ -->
@@ -8731,7 +8733,7 @@ const CAT_COLUMNS = [
   { key: 'updated',      label: 'Last Updated' },
 ]
 let catalogHiddenCols = (() => {
-  try { return new Set(JSON.parse(localStorage.getItem('sierra_catalog_hidden_cols') || '[]')) } catch { return new Set() }
+  try { return new Set(JSON.parse(localStorage.getItem('sierra_catalog_hidden_cols') || '["dye","lot","price","updated"]')) } catch { return new Set() }
 })()
 function canSeeCatalogPricing() { return canEditPricing() || isAdmin() }
 let fabricFilter = null // active construction type key, null = all
@@ -9494,7 +9496,7 @@ function renderProducts(products) {
   // Queue, Inventory, Sample Center, …); Catalog is the only screen that
   // re-shows them, every time it actually paints.
   const catViewTabs = document.getElementById('cat-view-tabs')
-  if (catViewTabs) catViewTabs.style.display = 'flex'
+  if (catViewTabs) catViewTabs.style.display = 'none'
   const catToolbar = document.getElementById('cat-toolbar')
   if (catToolbar) catToolbar.style.display = 'flex'
   document.querySelectorAll('#cat-view-tabs .view-tab').forEach(b => b.classList.toggle('active', b.dataset.view === catalogView))
@@ -9502,15 +9504,16 @@ function renderProducts(products) {
   renderCatalogToolbar()
 
   const filtered = catApplyFacetFilters(products)
+  const resultHeader=catResultsHtml(filtered.length)
   if (!filtered.length) {
-    pg.innerHTML = `<div class="empty"><div class="empty-icon">◻</div><p>${_showArchived ? tx('catalog.noArchived') : searchQuery ? tx('catalog.noResults', { query: esc(searchQuery) }) : tx('catalog.noProducts')}</p></div>`
+    pg.innerHTML = resultHeader + `<div class="empty"><div class="empty-icon">${siIcon('search',24)}</div><p>${_showArchived ? tx('catalog.noArchived') : searchQuery ? tx('catalog.noResults', { query: esc(searchQuery) }) : tx('catalog.noProducts')}</p></div>`
     _renderArchivedFooter(pg)
     return
   }
   const sorted = catSort(filtered)
   const groups = catGroup(sorted)
 
-  pg.innerHTML = catalogView === 'cards' ? catCardsHtml(groups) : catTableHtml(groups)
+  pg.innerHTML = resultHeader + (catalogView === 'cards' ? catCardsHtml(groups) : catTableHtml(groups))
   _renderArchivedFooter(pg)
 }
 
@@ -9538,7 +9541,7 @@ function renderCatalogSavedViews() {
   bar.innerHTML = `<div class="cat-tabs">
     ${CAT_SAVED_VIEWS.map(v => {
       const n = allProducts.filter(p => !isArchived(p) && catSavedViewMatch(p, v.key)).length
-      return `<button class="cat-tab ${activeKey === v.key ? 'active' : ''}" onclick="setFabricFilter('${v.key === 'all' ? '' : v.key}')">${esc(v.label)}<span class="cat-tab-count">${n}</span></button>`
+      return `<button class="cat-tab ${activeKey === v.key ? 'active' : ''}" onclick="setFabricFilter('${v.key === 'all' ? '' : v.key}')">${esc(v.key==='all'?catL('Todas las telas','All fabrics'):v.key==='sustainable'?catL('Sostenibles','Sustainable'):v.label)}<span class="cat-tab-count">${n}</span></button>`
     }).join('')}
   </div>`
 }
@@ -9576,68 +9579,18 @@ function renderCatalogHeaderActions() {
    by:" prefix the leading icon already communicates (§1/§26). */
 let _catLastFacetValues = {}
 function renderCatalogToolbar() {
-  const el = document.getElementById('cat-toolbar')
-  if (!el) return
-  const base = filterProducts() // search + saved view + archived, before facet filters — keeps facet counts honest
-  const filterCount = catActiveFilterCount()
-  const sortLabel = CAT_SORTS[catalogSort]?.label || 'Sort'
-  const groupLabel = catalogGroupBy === 'none' ? 'No grouping' : (CAT_GROUP_DEFS[catalogGroupBy]?.label || 'No grouping')
-
-  el.innerHTML = `
-    <div class="sf-search ${searchQuery ? 'has-value' : ''}">
-      <svg class="sf-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
-      <input type="text" class="control-input" placeholder="Search code, name, composition…" value="${escAttr(searchQuery)}" oninput="sfSearchOnInput(this);onSearch(this.value)" />
-      <button type="button" class="sf-search-clear" onclick="sfSearchClear(this)" tabindex="-1" aria-label="Clear search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-    </div>
-
-    <div style="position:relative">
-      <button class="btn btn-secondary cat-tb-btn ${filterCount ? 'has-value' : ''}" onclick="catTogglePop(event,'cat-pop-filter')">${siIcon('filter', 16)}Filter${filterCount ? `<span class="cat-tb-btn-dot"></span>` : ''}</button>
-      <div class="ws-pop cat-pop" id="cat-pop-filter">${catFilterPopHtml(base)}</div>
-    </div>
-
-    <div style="position:relative">
-      <button class="btn btn-secondary cat-tb-btn" onclick="catTogglePop(event,'cat-pop-sort')">${siIcon('sort', 16)}${esc(sortLabel)}</button>
-      <div class="ws-pop cat-pop" id="cat-pop-sort">
-        <div class="cat-pop-title">Sort by</div>
-        ${Object.entries(CAT_SORTS).map(([key, s]) => `<button type="button" class="cat-pop-row" onclick="catSetSort('${key}')">${catalogSort === key ? '✓ ' : ''}${esc(s.label)}</button>`).join('')}
-      </div>
-    </div>
-
-    <div style="position:relative">
-      <button class="btn btn-secondary cat-tb-btn" onclick="catTogglePop(event,'cat-pop-group')">${siIcon('grid', 16)}${esc(groupLabel)}</button>
-      <div class="ws-pop cat-pop" id="cat-pop-group">
-        <button type="button" class="cat-pop-row" onclick="catSetGroupBy('none')">${catalogGroupBy === 'none' ? '✓ ' : ''}No grouping</button>
-        ${Object.entries(CAT_GROUP_DEFS).map(([key, g]) => `<button type="button" class="cat-pop-row" onclick="catSetGroupBy('${key}')">${catalogGroupBy === key ? '✓ ' : ''}${esc(g.label)}</button>`).join('')}
-      </div>
-    </div>
-
-    ${catalogView === 'table' && division !== 'yarn' ? `
-    <div style="position:relative">
-      <button class="btn btn-secondary cat-tb-btn" onclick="catTogglePop(event,'cat-pop-cols')">${siIcon('columns', 16)}Columns</button>
-      <div class="ws-pop cat-pop" id="cat-pop-cols">
-        <div class="cat-pop-title">Columns</div>
-        ${CAT_COLUMNS.filter(c => !c.alwaysOn).map(c => `
-          <label class="cat-pop-row" style="cursor:pointer">
-            <input type="checkbox" ${catalogHiddenCols.has(c.key) ? '' : 'checked'} onchange="catToggleColumn('${c.key}', this.checked)" />
-            ${esc(c.label)}
-          </label>`).join('')}
-      </div>
-    </div>` : ''}
-
-    <div class="cat-toolbar-spacer"></div>
-
-    <div style="position:relative">
-      <button class="icon-btn cat-tb-btn" onclick="catTogglePop(event,'cat-pop-more')" title="More">
-        ${siIcon('dots', 16)}
-      </button>
-      <div class="ws-pop cat-pop" id="cat-pop-more" style="right:0;left:auto">
-        ${canEditDiv(division) ? `<button type="button" class="pop-menu-item" onclick="wsClosePopovers(); openImport()">Import products</button>` : ''}
-        <button type="button" class="pop-menu-item" onclick="wsClosePopovers(); openScanMode()">Scan</button>
-        <div class="pop-menu-sep"></div>
-        <button type="button" class="pop-menu-item" onclick="wsClosePopovers(); toggleArchivedView()">${_showArchived ? 'Back to catalog' : 'Show archived'}</button>
-      </div>
-    </div>
-  `
+ const el=document.getElementById('cat-toolbar');if(!el)return;
+ const focused=el.contains(document.activeElement)&&document.activeElement.matches('input[type=text]');
+ const caret=focused?document.activeElement.selectionStart:null;
+ const filterCount=catActiveFilterCount();
+ el.innerHTML=`<div class="sf-search ${searchQuery?'has-value':''}">${siIcon('search',16)}<input type="text" class="control-input" aria-label="${catL('Buscar productos','Search products')}" placeholder="${catL('Buscar código, nombre o composición…','Search code, name or composition…')}" value="${escAttr(searchQuery)}" oninput="sfSearchOnInput(this);onSearch(this.value)"><button class="sf-search-clear" onclick="sfSearchClear(this)" aria-label="${catL('Limpiar búsqueda','Clear search')}">${siIcon('x',16)}</button></div>
+ <div style="position:relative"><button class="btn btn-secondary" onclick="catTogglePop(event,'cat-pop-filter')">${siIcon('filter',16)} ${catL('Filtros','Filters')}${filterCount?' · '+filterCount:''}</button><div class="ws-pop cat-pop" id="cat-pop-filter">${catFilterPopHtml(filterProducts())}</div></div>
+ <div style="position:relative"><button class="btn btn-secondary" onclick="catTogglePop(event,'cat-pop-sort')">${siIcon('sort',16)} ${catL('Ordenar','Sort')}</button><div class="ws-pop cat-pop" id="cat-pop-sort"><div class="cat-pop-title">${catL('Ordenar por','Sort by')}</div>${Object.entries(CAT_SORTS).map(([key,v])=>`<button class="cat-pop-row" onclick="catSetSort('${key}')">${catalogSort===key?siIcon('check',16):''}${esc(catSortLabel(key,v.label))}</button>`).join('')}</div></div>
+ <div style="position:relative;margin-left:auto"><button class="btn btn-secondary" onclick="catTogglePop(event,'cat-pop-more')" aria-label="${catL('Más opciones de catálogo','More catalog options')}">${siIcon('dots',16)} ${catL('Opciones','Options')}</button><div class="ws-pop cat-pop catalog-options" id="cat-pop-more" style="right:0;left:auto">
+ <details><summary>${siIcon('grid',16)} ${catL('Agrupar referencias','Group references')}</summary><button class="cat-pop-row" onclick="catSetGroupBy('none')">${catL('Sin agrupación','No grouping')}</button>${Object.entries(CAT_GROUP_DEFS).map(([k,v])=>`<button class="cat-pop-row" onclick="catSetGroupBy('${k}')">${catalogGroupBy===k?siIcon('check',16):''}${esc(catFieldLabel(k,v.label))}</button>`).join('')}</details>
+ ${catalogView==='table'&&division!=='yarn'?`<details><summary>${siIcon('columns',16)} ${catL('Columnas visibles','Visible columns')}</summary>${CAT_COLUMNS.filter(c=>!c.alwaysOn).map(c=>`<label class="cat-pop-row"><input type="checkbox" ${catalogHiddenCols.has(c.key)?'':'checked'} onchange="catToggleColumn('${c.key}',this.checked)">${esc(catFieldLabel(c.key,c.label))}</label>`).join('')}</details>`:''}
+ <div class="pop-menu-sep"></div>${canEditDiv(division)?`<button class="pop-menu-item" onclick="wsClosePopovers();openImport()">${siIcon('upload',16)} ${catL('Importar productos','Import products')}</button>`:''}<button class="pop-menu-item" onclick="wsClosePopovers();openScanMode()">${siIcon('search',16)} ${catL('Escanear código','Scan code')}</button><button class="pop-menu-item" onclick="wsClosePopovers();toggleArchivedView()">${siIcon('archive',16)} ${_showArchived?catL('Volver al catálogo','Back to catalog'):catL('Ver archivados','Show archived')}</button></div></div>`;
+ if(focused){const input=el.querySelector('input[type=text]');input.focus();input.setSelectionRange(caret,caret)}
 }
 
 function catFilterPopHtml(base) {
@@ -9657,7 +9610,7 @@ function catFilterPopHtml(base) {
     const values = catFacetValues(base, f.key).slice(0, 12)
     _catLastFacetValues[f.key] = values.map(v => v[0])
     if (!values.length) return ''
-    return `<div class="cat-pop-title">${esc(f.label)}</div>${values.map(([val, count], i) => `
+    return `<div class="cat-pop-title">${esc(catFieldLabel(f.key,f.label))}</div>${values.map(([val, count], i) => `
       <label class="cat-pop-row" style="cursor:pointer">
         <input type="checkbox" ${catalogFilters[f.key].has(val) ? 'checked' : ''} onchange="catToggleFacet('${f.key}', ${i}, this.checked)" />
         ${esc(val)}<span class="cat-pop-count">${count}</span>
@@ -9800,7 +9753,7 @@ function catTableHtml(groups) {
   const cols = catVisibleColumns()
   const thead = `<thead><tr>
     <th class="cat-th-select"></th>
-    ${cols.map(c => `<th ${c.num ? 'data-num' : ''}>${esc(c.label)}</th>`).join('')}
+    ${cols.map(c => `<th ${c.num ? 'data-num' : ''}>${esc(catFieldLabel(c.key,c.label))}</th>`).join('')}
     <th></th>
   </tr></thead>`
   const body = groups.map(g => {
@@ -9823,56 +9776,26 @@ function catToggleGroup(key) {
    reads as a link, not an e-commerce CTA (§ SIERRA_DESIGN_SYSTEM.md
    "Catalog Cards view"). */
 function catCardHtml(p) {
-  const c = DIV_CLR[p.division] || '#aaa'
-  const ep = enc(p)
-  const metaIcon = DIV_ICON[p.division] || DIV_ICON.all
-  // "All products" view: the meta slot identifies which DIVISION the card
-  // belongs to (a category tag, division-tinted). A single-division view
-  // (Fiber/Yarn/Fabric/Chemicals/Apparel) already establishes the division
-  // by context, so the same slot instead identifies the RECORD — its code,
-  // via the canonical RecordID component, never the division pill.
-  const metaEl = division === 'all'
-    ? `<span class="card-div-pill" style="background:${c}12;color:${c};border-color:${c}20">
-        <span class="card-div-icon">${metaIcon}</span><span>${esc(DIV_LBL[p.division] || p.division || 'Product')}</span>
-      </span>`
-    : recordIdHtml(catCode(p), metaIcon)
-  const thumb = (p.image_urls && p.image_urls[0]) || p.image_url || null
-  const imgEl = thumb
-    ? `<div class="card-img"><img src="${thumb}" alt="${esc(p.name)}" loading="lazy" /></div>`
-    : `<div class="card-img-placeholder"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="var(--border)" stroke-width="1.5"/><circle cx="8.5" cy="8.5" r="1.5" stroke="var(--text-3)" stroke-width="1.2"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="var(--text-3)" stroke-width="1.2" stroke-linecap="round"/></svg></div>`
-  const isSelected = selectedProducts.some(s => s.id === p.id)
-  const techLine = catTechLine(p)
-  return `<div class="card ${isSelected ? 'card-selected' : ''}" data-id="${p.id}" onclick="openCatalogDrawer(dec('${ep}'))">
-    ${imgEl}
-    <input type="checkbox" class="card-check" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleProductSelect(dec('${ep}'))" aria-label="Select ${escAttr(p.name)}" />
+  const ep=enc(p), checked=selectedProducts.some(s=>s.id===p.id);
+  const thumb=(p.image_urls&&p.image_urls[0])||p.image_url;
+  return `<article class="card catalog-card ${checked?'card-selected':''}" data-id="${escAttr(p.id)}">
+    <button class="catalog-media" onclick="openCatalogDrawer(dec('${ep}'))" aria-label="${escAttr(catL('Ver ficha de ','View ')+p.name)}">
+      ${thumb?`<img src="${escAttr(thumb)}" alt="${escAttr(p.name)}" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden>${siIcon('grid',24)} ${catL('Imagen no disponible','Image unavailable')}</span>`:`<span>${DIV_ICON[p.division]||siIcon('grid',24)}<small>${catL('Sin fotografía','No photograph')}</small></span>`}
+    </button>
+    <label class="catalog-select"><input class="card-check" type="checkbox" ${checked?'checked':''} onchange="toggleProductSelect(dec('${ep}'))" aria-label="${escAttr(catL('Seleccionar ','Select ')+p.name)}"><span>${catL('Seleccionar','Select')}</span></label>
     <div class="card-body">
-      <div class="card-name wrap-full">${esc(p.name)}</div>
-      <div class="card-meta">
-        ${metaEl}
-        <span class="card-meta-side" title="${appLang==='es'?'Estado del desarrollo; no representa existencia física':'Development status; not physical stock'}">${lcPill(p)}</span>
-      </div>
-      <div class="card-tech-block">
-        ${catCompositionHtml(p)}
-        ${techLine ? `<div class="card-tech">${esc(techLine)}</div>` : ''}
-      </div>
-      <div class="card-actions" onclick="event.stopPropagation()">
-        <button class="btn btn-primary" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p) ? '' : `disabled title="${esc(tx('lifecycle.' + lc(p)))} products can't be requested"`}>${siIcon('package', 16)}Request sample</button>
-        ${overflowMenuHtml([
-          { label: 'View full record', onClick: `openFicha(dec('${ep}'))`,
-            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2" /><path d="M9 9l1 0" /><path d="M9 13l6 0" /><path d="M9 17l6 0" /></svg>` },
-          { label: 'Print label', onClick: `quickLabel(dec('${ep}'))`,
-            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 17h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-14a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h2" /><path d="M17 9v-4a2 2 0 0 0 -2 -2h-6a2 2 0 0 0 -2 2v4" /><path d="M7 15a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2l0 -4" /></svg>` },
-          ...(canDeleteDiv(p.division) && !isArchived(p) ? [{ label: tx('product.archive'), onClick: `confirmArchive(dec('${ep}'))`, danger: true,
-            icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2" /><path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" /><path d="M10 12l4 0" /></svg>` }] : []),
-        ], { btnClass: 'icon-btn', title: 'More' })}
-      </div>
+      <button class="catalog-name" onclick="openCatalogDrawer(dec('${ep}'))">${esc(p.name)}</button>
+      <div class="catalog-identity"><span>${esc(catCode(p))}</span><span>${esc(DIV_LBL[p.division]||p.division)}</span></div>
+      <p class="catalog-composition">${esc(catComposition(p))}</p>
+      <dl class="catalog-specs">${catQuickSpecs(p).map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+      <div class="catalog-state" title="${escAttr(catL('Estado del desarrollo; no indica existencia física','Development status; not physical stock'))}">${lcPill(p)}<span>${catL('Desarrollo','Development')}</span></div>
+      <div class="card-actions"><button class="btn btn-secondary" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p)?'':'disabled'}>${siIcon('plus',16)} ${catL('Agregar muestra','Add sample')}</button><button class="icon-btn" onclick="openCatalogDrawer(dec('${ep}'))" aria-label="${escAttr(catL('Ver ficha de ','View ')+p.name)}">${siIcon('arrow-right',16)}</button></div>
     </div>
-    <div class="card-check">${isSelected ? '✓' : ''}</div>
-  </div>`
+  </article>`
 }
 function catCardsHtml(groups) {
   return groups.map(g => {
-    const grid = `<div class="pg-grid">${g.items.map(catCardHtml).join('')}</div>`
+    const grid = `<div class="pg-grid catalog-grid">${g.items.map(catCardHtml).join('')}</div>`
     if (g.key === null) return grid
     const collapsed = _catCollapsedGroups.has(g.key)
     return `<div class="const-section">
@@ -9897,38 +9820,20 @@ function openCatalogDrawer(p) {
   })
 }
 function catRenderDrawerBody(p) {
-  const body = document.getElementById('sd-body')
-  if (!body) return
-  const thumb = (p.image_urls && p.image_urls[0]) || p.image_url || null
-  const ep = enc(p)
-  body.innerHTML = `
-    ${thumb ? `<img src="${thumb}" alt="${esc(p.name)}" style="width:100%;height:150px;object-fit:cover;border-radius:10px;margin-bottom:0.9rem;border:1px solid var(--border)" />` : ''}
-    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.9rem">
-      ${recordIdHtml(catCode(p), DIV_ICON[p.division] || DIV_ICON.all)}
-      ${lcPill(p)}
-    </div>
-    <div class="ctx-lbl">Construction</div>
-    <div class="ctx-line">${esc(CONST_META[inferConstruction(p)]?.label || '—')}</div>
-    <div class="ctx-sep"></div>
-    <div class="ctx-lbl">Technical specification</div>
-    <div class="ctx-stat"><span>Composition</span><b>${esc(catComposition(p))}</b></div>
-    <div class="ctx-stat"><span>Color</span><b>${esc(catColor(p))}</b></div>
-    <div class="ctx-stat"><span>Width</span><b>${esc(catWidth(p))}</b></div>
-    <div class="ctx-stat"><span>GSM</span><b>${esc(catGSM(p))}</b></div>
-    <div class="ctx-stat"><span>Dyed method</span><b>${esc(catDye(p))}</b></div>
-    <div class="ctx-stat"><span>Lot</span><b>${p.lot ? esc(p.lot) : '—'}</b></div>
-    ${canSeeCatalogPricing() ? `<div class="ctx-stat"><span>Price</span><b>${esc(catPriceText(p))}</b></div>` : ''}
-    <div class="ctx-stat"><span>Last updated</span><b>${esc(catUpdated(p))}</b></div>
-    <div class="ctx-sep"></div>
-    <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-      <button class="btn btn-primary btn-sm" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p) ? '' : 'disabled'}>Request sample</button>
-      <button class="btn btn-secondary btn-sm" onclick="closeSideDrawer(); quickLabel(dec('${ep}'))">Print label</button>
-      <button class="btn btn-secondary btn-sm" onclick="toggleProductSelect(dec('${ep}')); catRenderDrawerBody(dec('${ep}'))">${selectedProducts.some(s => s.id === p.id) ? '✓ Selected' : 'Add to selection'}</button>
-      <button class="btn btn-secondary btn-sm" onclick="closeSideDrawer(); openFicha(dec('${ep}'))">Open full record</button>
-    </div>`
+ const body=document.getElementById('sd-body');if(!body)return;
+ const ep=enc(p),thumb=p.image_urls?.[0]||p.image_url,checked=selectedProducts.some(s=>s.id===p.id);
+ body.innerHTML=`<section class="catalog-quickview">
+ ${thumb?`<img class="catalog-detail-image" src="${escAttr(thumb)}" alt="${escAttr(p.name)}">`:''}
+ <div class="catalog-identity">${recordIdHtml(catCode(p),DIV_ICON[p.division]||DIV_ICON.all)}</div>
+ <div class="catalog-state">${lcPill(p)}<span>${catL('Estado del desarrollo','Development status')}</span></div>
+ <h3>${catL('Características','Specifications')}</h3><p class="catalog-composition">${esc(catComposition(p))}</p>
+ <dl class="catalog-specs">${catQuickSpecs(p).map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}<div><dt>${catL('Lote','Lot')}</dt><dd>${esc(p.lot||'—')}</dd></div>${canSeeCatalogPricing()?`<div><dt>${catL('Precio de referencia','Reference price')}</dt><dd>${esc(catPriceText(p))}</dd></div>`:''}</dl>
+ <p class="sf-hint">${catL('Consulta existencias, ubicaciones e historial en la ficha completa.','See physical stock, locations and history in the full record.')}</p>
+ <div class="catalog-detail-actions"><button class="btn btn-primary" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p)?'':'disabled'}>${siIcon('plus',16)} ${catL('Agregar muestra','Add sample')}</button><button class="btn btn-secondary" aria-pressed="${checked}" onclick="toggleProductSelect(dec('${ep}'));catRenderDrawerBody(dec('${ep}'))">${siIcon(checked?'check':'columns',16)} ${checked?catL('Seleccionada','Selected'):catL('Seleccionar para comparar','Select to compare')}</button></div>
+ <div class="catalog-detail-actions"><button class="btn btn-secondary" onclick="closeSideDrawer();openFicha(dec('${ep}'))">${siIcon('arrow-right',16)} ${catL('Ficha completa e inventario','Full record and stock')}</button><button class="btn btn-secondary" onclick="closeSideDrawer();quickLabel(dec('${ep}'))">${siIcon('printer',16)} ${catL('Etiqueta','Label')}</button></div></section>`;
 }
 
-function enc(p) { return encodeURIComponent(JSON.stringify(p)) }
+function enc(p) { return encodeURIComponent(JSON.stringify(p)).replace(/'/g, '%27') }
 function dec(s) { return JSON.parse(decodeURIComponent(s)) }
 
 /* ── HASH ROUTER ──
@@ -12361,7 +12266,8 @@ function toggleProductSelect(p) {
 function updateSelectBar() {
   const bar = document.getElementById('select-bar')
   const n = selectedProducts.length
-  document.getElementById('select-count').textContent = `${n} product${n !== 1 ? 's' : ''} selected`
+  document.getElementById('select-count').textContent = catL(`${n} seleccionado${n!==1?'s':''}`,`${n} selected`)
+  const compare=document.getElementById('catalog-compare');compare.disabled=n<2||n>4;compare.title=catL('Selecciona de 2 a 4 referencias para comparar','Select 2 to 4 references to compare');compare.innerHTML=siIcon('columns',16)+' '+catL('Comparar','Compare')
   bar.classList.toggle('show', n > 0)
 }
 
@@ -17254,7 +17160,7 @@ function empTableHtml(list) {
   const allSelected = list.length > 0 && list.every(e => _badge_ui.selected.has(e.id))
   const thead = `<thead><tr>
     <th class="cat-th-select"><input type="checkbox" ${allSelected ? 'checked' : ''} onchange="toggleEmpSelectAll(this.checked)" /></th>
-    ${cols.map(c => `<th>${esc(c.label)}</th>`).join('')}
+    ${cols.map(c => `<th>${esc(catFieldLabel(c.key,c.label))}</th>`).join('')}
     <th>Acciones</th>
   </tr></thead>`
   let body
