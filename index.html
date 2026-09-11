@@ -7315,7 +7315,7 @@
 .lbl-codes-bc canvas { width:100%; height:auto; display:block; }
 .lbl-codes-id { font-size:1.6mm; color:#999; font-family:Arial,Helvetica,sans-serif; margin-top:0.5mm; letter-spacing:0.03em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   </style>
-<link rel="stylesheet" href="css/sample-workflow.css?v=20260911-6">
+<link rel="stylesheet" href="css/sample-workflow.css?v=20260911-7">
 </head>
 <body>
 
@@ -8726,7 +8726,7 @@ const CAT_COLUMNS = [
   { key: 'gsm',          label: 'GSM', num: true },
   { key: 'dye',          label: 'Finish (Dye method)' },
   { key: 'lot',          label: 'Lot' },
-  { key: 'availability', label: 'Availability' },
+  { key: 'availability', get label(){return appLang==='es'?'Estado del desarrollo':'Development status'} },
   { key: 'price',        label: 'Price', priceGated: true },
   { key: 'updated',      label: 'Last Updated' },
 ]
@@ -9564,7 +9564,7 @@ function onSearch(val) {
 function renderCatalogHeaderActions() {
   const el = document.getElementById('product-controls')
   if (!el) return
-  el.innerHTML = canEditDiv(division) ? `<button class="btn btn-primary" onclick="openAdd()">+ New product</button>` : ''
+  el.innerHTML = canEditDiv(division) ? `<button class="btn btn-primary" onclick="openAdd()">${siIcon('plus',16)} ${appLang==='es'?'Nuevo producto':'New product'}</button>` : ''
 }
 
 /* ── DataToolbar (PageHeader Level 3) ── the one shared toolbar for the
@@ -9644,12 +9644,12 @@ function catFilterPopHtml(base) {
   const facets = division === 'yarn'
     ? [
         { key: 'yarnCount', label: 'Yarn Count' },
-        { key: 'availability', label: 'Availability' },
+        { key: 'availability', get label(){return appLang==='es'?'Estado del desarrollo':'Development status'} },
         { key: 'composition', label: 'Content' },
       ]
     : [
         division === 'fabric' ? { key: 'construction', label: 'Construction' } : null,
-        { key: 'availability', label: 'Availability' },
+        { key: 'availability', get label(){return appLang==='es'?'Estado del desarrollo':'Development status'} },
         { key: 'composition', label: 'Composition' },
         { key: 'color', label: 'Color' },
       ].filter(Boolean)
@@ -9760,14 +9760,14 @@ function catVisibleColumns() { return CAT_COLUMNS.filter(c => c.alwaysOn || !cat
 function catColCellHtml(p, key) {
   switch (key) {
     case 'code': return `<td class="cat-row-code">${esc(catCode(p))}</td>`
-    case 'product': return `<td><div class="cat-row-name">${esc(p.name)}${productNameTag()}</div><div class="cat-row-name-sub">${esc(CONST_META[inferConstruction(p)]?.label || '—')}</div></td>`
+    case 'product': return `<td><div class="cat-row-name">${esc(p.name)}</div><div class="cat-row-name-sub">${esc(CONST_META[inferConstruction(p)]?.label || '—')}</div></td>`
     case 'composition': return `<td>${esc(catComposition(p))}</td>`
     case 'color': return `<td>${esc(catColor(p))}</td>`
     case 'width': return `<td>${esc(catWidth(p))}</td>`
     case 'gsm': return `<td data-num>${esc(catGSM(p))}</td>`
     case 'dye': return `<td>${esc(catDye(p))}</td>`
     case 'lot': return `<td>${p.lot ? esc(p.lot) : '—'}</td>`
-    case 'availability': return `<td>${lcPill(p, true)}</td>`
+    case 'availability': return `<td title="${appLang==='es'?'Estado del desarrollo. Consulta el inventario para conocer la existencia física.':'Development status. Check inventory for physical availability.'}">${lcPill(p, true)}</td>`
     case 'price': return `<td data-num>${canSeeCatalogPricing() ? esc(catPriceText(p)) : '<span style="color:var(--text-3)">—</span>'}</td>`
     case 'updated': return `<td style="white-space:nowrap;color:var(--text-3)">${esc(catUpdated(p))}</td>`
     default: return '<td></td>'
@@ -9776,7 +9776,7 @@ function catColCellHtml(p, key) {
 function catRowActionsHtml(p) {
   const ep = enc(p)
   return `<td class="cat-row-actions" onclick="event.stopPropagation()">
-    <button class="btn btn-primary btn-sm" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p) ? '' : `disabled title="${esc(tx('lifecycle.' + lc(p)))} products can't be requested"`}>Request sample</button>
+    <button class="btn btn-secondary btn-sm" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p) ? '' : `disabled title="${esc(tx('lifecycle.' + lc(p)))} products can't be requested"`}>${siIcon('package',16)} ${appLang==='es'?'Solicitar muestra':'Request sample'}</button>
     ${overflowMenuHtml([
       { label: 'View full record', onClick: `openFicha(dec('${ep}'))`,
         icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2" /><path d="M9 9l1 0" /><path d="M9 13l6 0" /><path d="M9 17l6 0" /></svg>` },
@@ -9846,10 +9846,10 @@ function catCardHtml(p) {
     ${imgEl}
     <input type="checkbox" class="card-check" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleProductSelect(dec('${ep}'))" aria-label="Select ${escAttr(p.name)}" />
     <div class="card-body">
-      <div class="card-name wrap-full">${esc(p.name)}${productNameTag()}</div>
+      <div class="card-name wrap-full">${esc(p.name)}</div>
       <div class="card-meta">
         ${metaEl}
-        <span class="card-meta-side">${lcPill(p)}</span>
+        <span class="card-meta-side" title="${appLang==='es'?'Estado del desarrollo; no representa existencia física':'Development status; not physical stock'}">${lcPill(p)}</span>
       </div>
       <div class="card-tech-block">
         ${catCompositionHtml(p)}
@@ -31020,10 +31020,10 @@ function fmtPrice(i) {
 function wsPriceCellHtml(it) {
   const editable = canEditPricing() || _wsMyCap.edit_pricing
   if (!editable && it.price == null) return '<span class="ws-price-empty">—</span>'
-  const label = it.price != null ? `$${Number(it.price).toFixed(2)}` : (editable ? '+ Precio' : '—')
+  const label = it.price != null ? `${esc(it.price_currency||'USD')} ${Number(it.price).toFixed(2)}${it.price_unit?' / '+esc(({piece:'pieza',m:'m',yd:'yd'})[it.price_unit]||it.price_unit):''}` : (editable ? 'Precio' : '—')
   if (!editable) return `<span class="ws-price-empty" style="color:var(--text)">${label}</span>`
   return `
-    <button type="button" class="ws-price-btn" onclick="wsTogglePricePop(event,'${it.id}')">${label}</button>
+    <button type="button" class="ws-price-btn" aria-label="Editar precio de ${esc(it.products?.name||it.sample_id)}" onclick="wsTogglePricePop(event,'${it.id}')">${siIcon(it.price==null?'plus':'pencil',16)} ${label}</button>
     <div class="ws-pop ws-price-pop" id="price-pop-${it.id}">
       <label>Precio (USD)</label>
       <input type="number" min="0" step="0.01" id="pr-${it.id}" class="tl-search" value="${it.price ?? ''}" placeholder="0.00" />
@@ -34505,10 +34505,10 @@ function printCommunicationMemo(){return commsReviewExport('pdf')}
     <div class="spotlight-results" id="spotlight-results"></div>
   </div>
 </div>
-<script src="js/sample-workflow.js?v=20260911-6"></script>
-<script src="js/sample-development.js?v=20260911-6"></script>
-<script src="js/sample-stock.js?v=20260911-6"></script>
-<script src="js/sample-experience.js?v=20260911-6"></script>
-<script src="js/sample-center.js?v=20260911-6"></script>
+<script src="js/sample-workflow.js?v=20260911-7"></script>
+<script src="js/sample-development.js?v=20260911-7"></script>
+<script src="js/sample-stock.js?v=20260911-7"></script>
+<script src="js/sample-experience.js?v=20260911-7"></script>
+<script src="js/sample-center.js?v=20260911-7"></script>
 </body>
 </html>

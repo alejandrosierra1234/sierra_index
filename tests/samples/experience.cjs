@@ -15,5 +15,7 @@ w.eval(html.slice(html.indexOf('function pdSelect('),html.indexOf('/* ═══�
  const dynamic=d.createElement('select');dynamic.innerHTML='<option>USD</option><option>GTQ</option>';d.getElementById('view-sample-detail').append(dynamic);await new Promise(r=>setTimeout(r,0));assert(dynamic.hidden);assert.equal(d.querySelectorAll('.sample-select-host').length,2);
  const extra=d.createElement('option');extra.value='mxn';extra.textContent='MXN';dynamic.append(extra);await new Promise(r=>setTimeout(r,0));assert.equal(dynamic.nextElementSibling.querySelectorAll('[role=option]').length,3);
  w.enhanceSampleSelects(d);assert.equal(d.querySelectorAll('.sample-select-host').length,2);
+ w.siIcon=k=>`<svg data-icon="${k}"></svg>`;w.canEditPricing=()=>true;w.eval(html.slice(html.indexOf('function wsPriceCellHtml('),html.indexOf('function wsTogglePricePop(')));
+ const price=w.wsPriceCellHtml({id:'sample',sample_id:'S-1',price:4.5,price_currency:'USD',price_unit:'yd',products:{name:'Tela'}});assert(price.includes('USD 4.50 / yd'));assert(price.includes('Editar precio de Tela'));assert(price.includes('data-icon="pencil"'));
  console.log('PASS: Sierra dropdown value preservation, original handler, keyboard arrows, Escape/focus, disabled options and dynamic rendering');w.close();
 })().catch(e=>{console.error(e);process.exit(1)});
