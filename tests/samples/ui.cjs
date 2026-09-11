@@ -1,0 +1,13 @@
+const {JSDOM}=require('../communications/node_modules/jsdom');const fs=require('node:fs');const assert=require('node:assert/strict');
+const id='00000000-0000-0000-0000-000000000010';
+const col={id,status:'requested',recipient:'Cliente'};const item={id:'one',sample_id:'SMP-1',product_id:'p',sample_type:'Hanger',products:{name:'Tela <script>bad()</script>',division:'fabric'}};
+let flow={collection_id:id,revision:3,stage:'packing_review',destination_kind:'client',configured:true,costing_required:true,packing_id:'pack'};
+const dom=new JSDOM('<div id="sample-workflow-panel"></div>',{runScripts:'outside-only',url:'https://example.test'});const w=dom.window;
+w.siIcon=()=>'<svg aria-hidden="true"></svg>';w.esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));w.toast=()=>{};
+w.sb={rpc:async()=>({data:true}),from:table=>{const q={select(){return q},eq(){return q},in(){return q},order(){return q},limit(){return q},maybeSingle:async()=>({data:flow}),single:async()=>({data:{revision:3,content:{items:[{name:item.products.name,sample_id:'SMP-1',format:'Hanger',quantity:1,excluded:false}]}}}),then(resolve){return Promise.resolve({data:[]}).then(resolve)}};return q}};
+w.eval(fs.readFileSync(require('node:path').join(__dirname,'../../js/sample-workflow.js'),'utf8'));
+(async()=>{await w.renderSampleWorkflow(col,[item]);assert(w.document.body.textContent.includes('Aprobar packing list'));assert(!w.document.querySelector('script'));assert(w.document.body.textContent.includes(item.products.name));
+flow={...flow,stage:'packed',destination_kind:'internal'};await w.renderSampleWorkflow(col,[item]);assert(!w.document.body.textContent.includes('Aprobar packing list'));assert(w.document.body.textContent.includes('Confirmar salida'));
+flow={...flow,stage:'selection'};await w.renderSampleWorkflow(col,[item]);assert.equal(w.document.querySelectorAll('input[type=radio]').length,3);assert(w.document.querySelector('label[for=sf-brief]'));assert(w.document.querySelectorAll('svg[aria-hidden=true]').length>5);
+w.sb.rpc=async()=>({error:{message:'Otro integrante cambió la colección'}});await w.runSampleWorkflow(id,'release');assert(w.document.querySelector('[role=alert]').textContent.includes('Otro integrante'));
+console.log('PASS: external approval, internal destination, escaped content, labeled controls, actionable error');dom.window.close();})().catch(e=>{console.error(e);process.exit(1)});

@@ -7315,6 +7315,7 @@
 .lbl-codes-bc canvas { width:100%; height:auto; display:block; }
 .lbl-codes-id { font-size:1.6mm; color:#999; font-family:Arial,Helvetica,sans-serif; margin-top:0.5mm; letter-spacing:0.03em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   </style>
+<link rel="stylesheet" href="css/sample-workflow.css">
 </head>
 <body>
 
@@ -9148,24 +9149,10 @@ async function showPublicProductPage(productId, fallback = {}) {
   const ls = document.getElementById('loading-screen')
   if (ls) ls.style.display = 'none'
 
-  // Show inline fallback immediately while DB loads — works even if RLS blocks anon reads
-  if (fallback.name || fallback.ref) {
-    el.innerHTML = pubPageHTML({ name: fallback.name, sku: fallback.ref })
-  } else {
-    el.innerHTML = `<div class="pub-wrap"><div class="pub-logo">${LBL_LOGO_SVG}</div><div style="font-size:0.82rem;color:#aaa;margin-top:2rem">Loading…</div></div>`
-  }
-
-  let { data: p } = await sb.from('products').select('id,name,code,division,specs,lifecycle').eq('id', productId).single()
-  if (!p) {
-    // lifecycle column may not exist yet — retry without it
-    ;({ data: p } = await sb.from('products').select('id,name,code,division,specs').eq('id', productId).single())
-  }
-  if (p && ['draft','archived'].includes(p.lifecycle)) {
-    el.innerHTML = `<div class="pub-wrap"><div class="pub-logo">${LBL_LOGO_SVG}</div>
-      <div style="font-size:0.9rem;color:#aaa;margin-top:2.5rem">This product is not available.</div></div>`
-    return
-  }
-  if (p) el.innerHTML = pubPageHTML(p)
+  el.innerHTML = `<div class="pub-wrap"><div class="pub-logo">${LBL_LOGO_SVG}</div><p>Cargando ficha…</p></div>`
+  const {data:p,error}=await sb.rpc('get_sample_public_card',{p_product:productId,p_revision:/^\d+$/.test(new URLSearchParams(location.search).get('rev')||'')?Number(new URLSearchParams(location.search).get('rev')):null})
+  if(error||!p){el.innerHTML=`<div class="pub-wrap"><div class="pub-logo">${LBL_LOGO_SVG}</div><p>${error?'No se pudo cargar la ficha. Inténtalo de nuevo.':'Esta ficha no está publicada o fue retirada.'}</p></div>`;return}
+  el.innerHTML=pubPageHTML(p)+(p.card_id?samplePublicRequestForm(p):'')
 }
 
 function pubPageHTML(p) {
@@ -9186,6 +9173,7 @@ function pubPageHTML(p) {
     <div class="pub-logo">${LBL_LOGO_SVG}</div>
     <div class="pub-eyebrow">${esc(divLbl)}</div>
     <div class="pub-name">${esc(name)}</div>
+    ${p.image_url && /^https:\/\//i.test(p.image_url) ? `<img class="pub-product-image" src="${escAttr(p.image_url)}" alt="${escAttr(name)}">` : ''}
     ${sku ? `<div class="pub-sku-line">${esc(sku)}</div>` : ''}
     ${fields.length ? `<div class="pub-fields">${fields.map(f => `
       <div class="pub-field">
@@ -9195,7 +9183,7 @@ function pubPageHTML(p) {
     </div>` : ''}
     <div class="pub-footer">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="M3 7v-2a2 2 0 0 1 2 -2h2" /><path d="M3 17v2a2 2 0 0 0 2 2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M17 21h2a2 2 0 0 0 2 -2v-2" /></svg>
-      Verified by SIERRA Index
+      Ficha publicada por SIERRA Index
     </div>
   </div>`
 }
@@ -11325,6 +11313,7 @@ function showProductDetail(p) {
 
     <!-- ── SAMPLES & INVENTORY ── operational area (8) + summary rail (4) ── -->
     <div id="pd-view-samples" style="display:none">
+      <div id="sample-development-panel"></div>
       <div class="record-grid">
         <div class="rg-8">
           <div class="data-column">
@@ -11399,6 +11388,7 @@ function showProductDetail(p) {
   initPdAudit(p)
   loadPdRelated(p)
   loadPdInventory(p)
+  if (typeof renderSampleDevelopment === 'function') renderSampleDevelopment(p)
 }
 
 // RecordTabs — Overview / Technical / Samples & Inventory / Documents /
@@ -16078,10 +16068,10 @@ function navLeafHtml(key, id, label, iconSvg, depthClass, fnExpr, extraAttrs) {
 function navDivisionRowHtml(d, expanded, isCurrent) {
   const a = DIV_ACCENT[d] || DIV_ACCENT.all
   const showDisp = canDispatchDiv(d)
-  const showInv = hasWarehouseAccess(d)
+  const showInv = hasWarehouseAccess(d) || (['fabric','garment'].includes(d) && can('read', d))
   let children = navLeafHtml('samples|' + d + '|catalog', 'catalog', 'Catálogo', NAV_ICON_CATALOG, 'lvl3', `function(){setDiv('${d}')}`)
   if (showDisp) children += navLeafHtml('samples|' + d + '|dispatch', 'dispatch', 'Cola de despacho', NAV_ICON_DISPATCH, 'lvl3', `function(){showDispatchQueue('${d}')}`)
-  if (showInv) children += navLeafHtml('samples|' + d + '|inventory', 'inventory', 'Inventario', NAV_ICON_INVENTORY, 'lvl3', `function(){showWarehouseInventory('${d}')}`)
+  if (showInv) children += navLeafHtml('samples|' + d + '|inventory', 'inventory', 'Inventario', NAV_ICON_INVENTORY, 'lvl3', `function(){${['fabric','garment'].includes(d)?'showPhysicalSampleStock':'showWarehouseInventory'}('${d}')}`)
   return `
     <button class="nav-item nav-tree-div${isCurrent ? ' nav-current-div' : ''}" data-tip="${escAttr(DIV_LBL[d] || d)}" onclick="navToggleDivision('${d}')">
       <span class="nav-tree-chevron${expanded ? ' expanded' : ''}">${NAV_CHEVRON_SVG}</span>
@@ -16097,6 +16087,7 @@ function navDivisionRowHtml(d, expanded, isCurrent) {
 function samplesSharedTools() {
   const items = []
   if (can('read', 'customer_service')) {
+    items.push({key:'samples|_|qrrequests',id:'qrrequests',label:'Solicitudes QR',icon:NAV_ICON_REQUESTS,fnExpr:'showSamplePublicRequests'})
     items.push({ key: 'samples|_|requests', id: 'requests', label: 'Solicitudes', icon: NAV_ICON_REQUESTS, fnExpr: 'showSampleCenter' })
     const n = (typeof sampleCart !== 'undefined' ? sampleCart.reduce((s, i) => s + i.qty, 0) : 0)
     items.push({
@@ -29185,7 +29176,7 @@ function orgSelectedNodeDetailHtml() {
 const DIV_SAMPLE_TYPES = {
   fiber:     ['Sample', 'Bale Sample', 'Top Sample', 'Roving'],
   yarn:      ['Cone', 'Skein', 'Sample Card', 'Spool'],
-  fabric:    ['Hanger', 'Yard', 'Swatch', 'Roll Sample'],
+  fabric:    ['Hanger', 'Yard', 'Meter', 'Swatch', 'Roll Sample'],
   chemicals: ['Bottle Sample', 'Bag Sample', 'Technical Sample'],
   garment:   ['Prototype', 'Mock-up', 'Fit Sample', 'Salesman Sample'],
 }
@@ -29648,8 +29639,12 @@ async function submitCart() {
   Audit.log('collection', collectionDbId, null, 'created',
     `Collection ${collectionRef} created`, [],
     { name: name || null, items: itemsSnapshot.length, customer, priority, delivery })
-  sb.rpc('reserve_collection_inventory', { p_collection: collectionDbId })
-    .then(({ error: re }) => { if (re) console.error('reserve inventory:', re) })
+  let governedFlow = null
+  try { governedFlow = await getSampleWorkflow(collectionDbId) } catch(e) { toast(e.message) }
+  if (!governedFlow && !itemsSnapshot.every(i => ['fabric','garment'].includes(allProducts.find(p => p.id===i.product_id)?.division))) {
+    const {error: re} = await sb.rpc('reserve_collection_inventory', { p_collection: collectionDbId })
+    if (re) toast('Solicitud guardada; no se pudo reservar inventario: ' + re.message)
+  }
   itemsSnapshot.forEach(i => Audit.log('product', i.product_id, i, 'sample_requested',
     `Sample requested (${i.type} × ${i.qty})`, [], { collection: collectionRef }))
   invalidateDraftsCache()
@@ -29670,6 +29665,7 @@ async function submitCart() {
   document.getElementById('cart-recipient').value = ''
   document.getElementById('cart-address').value = ''
   document.getElementById('cart-notes').value = ''
+  if (governedFlow) { closeCart(); await showCollectionRecord(collectionDbId); toast('Selección enviada. Confirma las condiciones y libera para PD.'); return }
   renderCartSuccess()
   toast(`Collection ${collectionRef} created — ${created.length} sample${created.length>1?'s':''}`)
 }
@@ -30275,12 +30271,13 @@ async function showCollectionRecord(collectionId, backTo) {
   _colWorkspaceBack = backTo || _colWorkspaceBack || 'showCollectionsHub'
 
   setHash('#/collection/' + collectionId)
-  const [colRes, itemsRes, collabRes, catRes, commentsRes] = await Promise.all([
+  const [colRes, itemsRes, collabRes, catRes, commentsRes, flowRes] = await Promise.all([
     sb.from('sample_collections').select('*, profiles!requested_by(*)').eq('id', collectionId).single(),
     sb.from('samples').select('*, products(name,division,code)').eq('collection_id', collectionId).order('created_at', { ascending: true }),
     sb.from('collection_collaborators').select('*, profiles!user_id(*)').eq('collection_id', collectionId),
     sb.from('collection_categories').select('*').eq('collection_id', collectionId).order('created_at', { ascending: true }),
     sb.from('collection_comments').select('*, profiles(full_name)').eq('collection_id', collectionId).order('created_at', { ascending: true }),
+    sb.rpc('get_sample_workflow_view',{p_collection:collectionId}),
   ])
 
   if (colRes.error || !colRes.data) {
@@ -30292,8 +30289,10 @@ async function showCollectionRecord(collectionId, backTo) {
     return
   }
 
+  if (itemsRes.error || collabRes.error || flowRes.error) { vs.innerHTML='<div class="detail-view-inner" role="alert">No se pudo cargar la colección completa. Actualiza para reintentar.</div>'; return }
+  const governedFlow = flowRes.data?.workflow || null
   const col = colRes.data
-  const items = itemsRes.data || []
+  const items = governedFlow ? flowRes.data.items : (itemsRes.data || [])
   const collaborators = collabRes.data || []
   const categories = catRes.data || []
   const comments = commentsRes.data || []
@@ -30369,7 +30368,7 @@ async function showCollectionRecord(collectionId, backTo) {
       </div>
     </div>`
 
-  const nextStatuses = SMP_STATUS_ORDER.filter(st => st !== col.status && st !== 'draft').slice(0, 4)
+  const nextStatuses = governedFlow ? [] : ({requested:['approved'],approved:['preparing'],preparing:['ready'],ready:['shipped'],picked_up:['delivered'],shipped:['delivered']})[col.status] || []
   const statusActionsHtml = canEdit ? `
     <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.75rem">
       ${nextStatuses.map(st => `<button class="btn btn-secondary btn-sm" onclick="updateCollectionStatus('${col.id}','${st}')">${SMP_STATUS_LABEL[st]}</button>`).join('')}
@@ -30445,6 +30444,7 @@ async function showCollectionRecord(collectionId, backTo) {
     </div>
 
     ${headerHtml}
+    <div id="sample-workflow-panel"></div>
 
     <div class="pd-tabs ws-view-tabs">
       <button class="pd-tab active" data-tab="board" onclick="switchWsTab('board')">Tablero</button>
@@ -30489,6 +30489,7 @@ async function showCollectionRecord(collectionId, backTo) {
   </div>`
 
   wsClosePopovers()
+  if (typeof renderSampleWorkflow === 'function') await renderSampleWorkflow(col, items, governedFlow)
 }
 let _colWorkspaceBack = 'showCollectionsHub'
 let _wsStatCharts = {}
@@ -30991,8 +30992,12 @@ async function submitWorkspaceDraft(collectionId) {
 
   Audit.log('collection', collectionId, null, 'created', `Colección ${data.collection_ref} enviada`, [],
     { customer, priority, delivery })
-  sb.rpc('reserve_collection_inventory', { p_collection: collectionId })
-    .then(({ error: re }) => { if (re) console.error('reserve inventory:', re) })
+  try {
+    if (!await getSampleWorkflow(collectionId)) {
+      const {error: re} = await sb.rpc('reserve_collection_inventory', { p_collection: collectionId })
+      if (re) toast('Solicitud guardada; no se pudo reservar inventario: ' + re.message)
+    }
+  } catch(e) { toast('Solicitud guardada; actualiza para continuar: ' + e.message) }
   invalidateDraftsCache()
 
   if (draftCollectionId === collectionId) {
@@ -31063,6 +31068,8 @@ function wsPriceCellHtml(it) {
     <div class="ws-pop ws-price-pop" id="price-pop-${it.id}">
       <label>Precio (USD)</label>
       <input type="number" min="0" step="0.01" id="pr-${it.id}" class="tl-search" value="${it.price ?? ''}" placeholder="0.00" />
+      <label>Precio por</label>
+      <div class="sf-options">${[['piece','Pieza'],['m','Metro'],['yd','Yarda']].map(([unit,label])=>`<label><input type="radio" name="price-unit-${it.id}" value="${unit}" ${it.price_unit===unit?'checked':''}>${label}</label>`).join('')}</div>
       <label>MOQ</label>
       <input type="text" id="moq-${it.id}" class="tl-search" value="${esc(it.moq || '')}" placeholder="Cantidad mínima" />
       <label>Válido hasta</label>
@@ -31084,11 +31091,13 @@ async function wsSavePrice(itemId) {
   if (price != null && (Number.isNaN(price) || price < 0)) { toast('Precio inválido'); return }
   const upd = {
     price, price_currency: 'USD',
+    price_unit: document.querySelector(`[name="price-unit-${itemId}"]:checked`)?.value || null,
     moq: document.getElementById('moq-' + itemId)?.value?.trim() || null,
     price_valid_until: document.getElementById('val-' + itemId)?.value || null,
   }
   const { data: before } = await sb.from('samples').select('collection_id,price,products(name)').eq('id', itemId).single()
-  const { error } = await sb.from('samples').update(upd).eq('id', itemId)
+  const workflow = before?.collection_id ? sampleWorkflowViews.get(before.collection_id)?.w : null
+  const { error } = workflow ? await sb.rpc('save_sample_costing',{p_sample:itemId,p_revision:workflow.revision,p_price:price,p_unit:upd.price_unit,p_moq:upd.moq,p_valid_until:upd.price_valid_until}) : await sb.from('samples').update(upd).eq('id', itemId)
   if (error) { toast('No se pudo guardar el precio: ' + error.message); return }
   if (before?.collection_id) {
     Audit.log('collection', before.collection_id, null, 'pricing_updated',
@@ -31103,6 +31112,9 @@ async function printPriceSticker(sampleId) {
     .select('*, products(name,code), sample_collections!collection_id(collection_id,customer,name)')
     .eq('id', sampleId).single()
   if (!s) { toast('Item not found'); return }
+  if (!await sampleWorkflowLabelAllowed(s.collection_id)) return
+  const flow = s.collection_id ? await getSampleWorkflow(s.collection_id) : null
+  if (flow) return printGovernedSampleLabel(s, flow)
   if (s.price == null) { toast('This item has no pricing yet — Customer Service adds it on the collection'); return }
   let bcHtml = ''
   try {
@@ -31114,6 +31126,7 @@ async function printPriceSticker(sampleId) {
   } catch (_) {}
   const col = s.sample_collections || {}
   const w = window.open('', '_blank')
+  if (!w) { toast('Permite abrir la ventana de impresión'); return }
   w.document.write(`<html><head><title>Price sticker ${esc(s.sample_id)}</title><style>
     @page { size: 62mm 40mm; margin: 2mm; }
     body { font-family: -apple-system, Helvetica, Arial, sans-serif; margin:0; color:#000; }
@@ -31134,7 +31147,8 @@ async function printPriceSticker(sampleId) {
     <div class="small" style="text-align:center">${esc(s.sample_id)}</div>
   </div></body></html>`)
   w.document.close(); w.print()
-  await sb.from('samples').update({ sticker_printed_at: new Date().toISOString() }).eq('id', sampleId)
+  const {error: printError} = await sb.from('samples').update({ sticker_printed_at: new Date().toISOString() }).eq('id', sampleId)
+  if (printError) { toast('Etiqueta abierta; no se pudo registrar: ' + printError.message); return }
   const item = (_dispatchItems || []).find(i => i.id === sampleId)
   if (item) item.sticker_printed_at = new Date().toISOString()
   Audit.log('sample', sampleId, null, 'price_sticker_printed',
@@ -31145,24 +31159,30 @@ async function printPriceSticker(sampleId) {
 async function printBaseLabelFor(sampleId) {
   const item = (_dispatchItems || []).find(i => i.id === sampleId)
   if (!item) return
+  if (!await sampleWorkflowLabelAllowed(item.collection_id)) return
+  const flow = await getSampleWorkflow(item.collection_id)
+  if (flow) return printGovernedSampleLabel(item, flow)
   const { data: prod } = await sb.from('products').select('*').eq('id', item.product_id).single()
   if (!prod) { toast('Product not found'); return }
   quickLabel(prod)
-  await sb.from('samples').update({ label_printed_at: new Date().toISOString() }).eq('id', sampleId)
+  const {error: printError} = await sb.from('samples').update({ label_printed_at: new Date().toISOString() }).eq('id', sampleId)
+  if (printError) { toast('No se pudo registrar la etiqueta: ' + printError.message); return }
   item.label_printed_at = new Date().toISOString()
   Audit.log('sample', sampleId, null, 'label_printed', `Base product label printed for ${prod.name}`)
   renderDispatchScreen()
 }
 
 async function updateCollectionStatus(id, status) {
+  try {
+    if (await getSampleWorkflow(id)) { toast('Continúa desde la siguiente acción del flujo de la colección.'); await showCollectionRecord(id); return false }
+  } catch(e) { toast(e.message); return false }
   const userName = profile?.full_name || me?.email?.split('@')[0] || 'User'
   const { error } = await sb.rpc('update_collection_status', {
     p_id: id, p_status: status, p_user_id: me.id, p_user_name: userName
   })
   if (error) {
-    console.error('update_collection_status error:', error)
-    await sb.from('sample_collections').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
-    await sb.from('samples').update({ status, updated_at: new Date().toISOString() }).eq('collection_id', id)
+    toast('No se pudo cambiar el estado: ' + error.message)
+    return false
   }
   Audit.log('collection', id, null, 'status_changed', `Collection ${SMP_STATUS_LABEL[status] || status}`,
     [{ field: 'status', from: '', to: SMP_STATUS_LABEL[status] || status }])
@@ -31173,6 +31193,7 @@ async function updateCollectionStatus(id, status) {
   }
   toast(`Collection status: ${SMP_STATUS_LABEL[status]}`)
   showCollectionRecord(id)
+  return true
 }
 
 /* ── Manage-people modal — mirrors the Monday "Invite to this board"
@@ -31367,7 +31388,7 @@ async function loadProductById(id) {
    before Print & Notify unlocks. Printing sets the collection to 'ready'
    and notifies the requester + collaborators with what shipped and what
    didn't. */
-let _dispatchCol = null, _dispatchItems = []
+let _dispatchCol = null, _dispatchItems = [], _dispatchFlow = null
 
 /* ── DISPATCH QUEUE — every collection past customer-service handoff and
    not yet ready/shipped, across all customers. Warehouse's entry point;
@@ -31572,11 +31593,15 @@ async function showDispatch(collectionId) {
 
   const [colRes, itemsRes] = await Promise.all([
     sb.from('sample_collections').select('*, profiles!requested_by(full_name)').eq('id', collectionId).single(),
-    sb.from('samples').select('*, products(name,division,code)').eq('collection_id', collectionId).order('created_at', { ascending: true }),
+    sb.from('samples').select('*, products(name,division,code),stock:sample_stock(color,lot,unit)').eq('collection_id', collectionId).order('created_at', { ascending: true }),
   ])
   if (colRes.error || !colRes.data) { vs.innerHTML = `<div class="detail-view-inner"><p>Error loading collection.</p></div>`; return }
   _dispatchCol = colRes.data
+  if (itemsRes.error) { vs.innerHTML='<div class="detail-view-inner" role="alert">No se pudieron cargar las muestras.</div>'; return }
   _dispatchItems = itemsRes.data || []
+  try { _dispatchFlow = await getSampleWorkflow(collectionId) } catch(e) { vs.innerHTML=`<p role="alert">${esc(e.message)}</p>`; return }
+  if (_dispatchFlow) { const permission=await sb.rpc('sample_workflow_can',{p_collection:collectionId,p_cap:'pd'}); if(permission.error||!permission.data){await showCollectionRecord(collectionId);return} }
+  if (_dispatchFlow && _dispatchFlow.stage !== 'preparing') { await showCollectionRecord(collectionId); return }
   // Scope the sidebar to whichever division this collection's items belong
   // to (single-division going forward — falls back to the first one found
   // if an older mixed collection still exists), keeping the bu-switch and
@@ -31618,10 +31643,10 @@ function dispatchRowHtml(i) {
       ? `<button class="btn btn-secondary btn-sm" onclick="dispatchRevealExclude('${i.id}')">Undo</button>`
       : `<button class="btn btn-primary btn-sm" onclick="dispatchVerify('${i.id}')">Scan</button>
          <button class="btn btn-secondary btn-sm" style="color:var(--danger)" onclick="dispatchRevealExclude('${i.id}')">Unavailable</button>`
-  const needsSticker = i.price != null
+  const needsSticker = _dispatchFlow ? _dispatchFlow.label_show_price : i.price != null
   const labelFlags = [
-    !i.excluded && !i.label_printed_at ? `<button class="btn btn-secondary btn-sm" onclick="printBaseLabelFor('${i.id}')" title="Label needed">🏷</button>` : '',
-    !i.excluded && needsSticker && !i.sticker_printed_at ? `<button class="btn btn-secondary btn-sm" onclick="printPriceSticker('${i.id}')" title="Price sticker needed">💲</button>` : '',
+    !i.excluded && !i.label_printed_at ? `<button class="btn btn-secondary btn-sm" onclick="printBaseLabelFor('${i.id}')" title="Generar etiqueta">${siIcon('printer',16)} Etiqueta</button>` : '',
+    !i.excluded && needsSticker && !i.sticker_printed_at ? `<button class="btn btn-secondary btn-sm" onclick="printPriceSticker('${i.id}')" title="Etiqueta comercial">${siIcon('credit-card',16)} Precio</button>` : '',
   ].filter(Boolean).join('')
   return `<tr>
     <td><span class="pick-scan-dot ${scanClass}"></span></td>
@@ -31645,6 +31670,7 @@ function dispatchRowHtml(i) {
 }
 
 function renderDispatchScreen() {
+  if (_dispatchFlow) return renderGovernedDispatch()
   const col = _dispatchCol, items = _dispatchItems
   const confirmed = items.filter(i => i.verified).length
   const unavailable = items.filter(i => i.excluded).length
@@ -31754,17 +31780,18 @@ function dispatchToggleAddProduct() {
 }
 
 async function advanceOrderStatus(status) {
-  await updateCollectionStatus(_dispatchCol.id, status)
+  if (!await updateCollectionStatus(_dispatchCol.id, status)) return
   _dispatchCol.status = status
   renderDispatchScreen()
 }
 
 async function dispatchVerify(sampleId) {
+  if (_dispatchFlow) return markGovernedPreparation(sampleId,true,null)
   const userName = profile?.full_name || me?.email?.split('@')[0] || 'User'
   const { error } = await sb.rpc('verify_sample', { p_id: sampleId, p_user_id: me.id, p_user_name: userName })
   if (error) {
-    console.error('verify_sample error:', error)
-    await sb.from('samples').update({ verified: true, verified_by: me.id, verified_at: new Date().toISOString(), excluded: false, exclusion_reason: null }).eq('id', sampleId)
+    toast('No se pudo verificar la muestra: ' + error.message)
+    return false
   }
   const item = _dispatchItems.find(i => i.id === sampleId)
   if (item) { item.verified = true; item.excluded = false; item.exclusion_reason = null }
@@ -31779,12 +31806,13 @@ function dispatchRevealExclude(sampleId) {
 async function dispatchExclude(sampleId) {
   const reasonEl = document.getElementById(`exclude-reason-${sampleId}`)
   const reason = reasonEl?.value.trim()
-  if (!reason) { toast('Please explain why this item is excluded'); return }
+  if (!reason) { toast('Explica por qué no se incluye esta muestra'); return }
+  if (_dispatchFlow) return markGovernedPreparation(sampleId,false,reason)
   const userName = profile?.full_name || me?.email?.split('@')[0] || 'User'
   const { error } = await sb.rpc('exclude_sample', { p_id: sampleId, p_reason: reason, p_user_id: me.id, p_user_name: userName })
   if (error) {
-    console.error('exclude_sample error:', error)
-    await sb.from('samples').update({ excluded: true, exclusion_reason: reason, verified: false }).eq('id', sampleId)
+    toast('No se pudo registrar el faltante: ' + error.message)
+    return false
   }
   const item = _dispatchItems.find(i => i.id === sampleId)
   if (item) { item.excluded = true; item.exclusion_reason = reason; item.verified = false }
@@ -31829,6 +31857,17 @@ async function dispatchAddProduct(productId) {
 }
 
 async function finalizeDispatch() {
+  if (_dispatchCol && typeof getSampleWorkflow === 'function') {
+    try {
+      const flow = await getSampleWorkflow(_dispatchCol.id)
+      if (flow) {
+        const {error} = await sb.rpc('sample_workflow_action', {p_collection:_dispatchCol.id,p_revision:flow.revision,p_action:'pack',p_tracking:null})
+        if (error) { toast(error.message); return false }
+        await showCollectionRecord(_dispatchCol.id)
+        return true
+      }
+    } catch(e) { toast(e.message); return false }
+  }
   const col = _dispatchCol, items = _dispatchItems
   if (!col) return
   const unresolved = items.filter(i => !i.verified && !i.excluded)
@@ -31836,6 +31875,7 @@ async function finalizeDispatch() {
 
   const included = items.filter(i => !i.excluded)
   const excluded = items.filter(i => i.excluded)
+  if (!included.length) { toast('No se puede preparar un paquete vacío. Revisa los faltantes de la colección.'); return false }
   const userName = profile?.full_name || me?.email?.split('@')[0] || 'User'
 
   // Labeling gate: every included item needs its base label, and a price
@@ -31856,7 +31896,7 @@ async function finalizeDispatch() {
   }
 
   const { error } = await sb.rpc('update_collection_status', { p_id: col.id, p_status: 'ready', p_user_id: me.id, p_user_name: userName })
-  if (error) console.error('update_collection_status error:', error)
+  if (error) { toast('No se pudo confirmar la preparación: ' + error.message); return false }
 
   // Notify the requester + every collaborator with what shipped and what didn't
   const recipients = new Set([col.requested_by].filter(Boolean))
@@ -31907,10 +31947,8 @@ async function updateSampleStatus(id, status) {
     p_id: id, p_status: status, p_user_id: me.id, p_user_name: userName
   })
   if (error) {
-    // Fallback direct update
-    await sb.from('samples').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
-    const label = `${SMP_STATUS_LABEL[status]} by ${userName}`
-    await sb.from('sample_events').insert({ sample_id: id, event_type: 'status_change', event_label: label, event_data: { status }, created_by: me.id })
+    toast('No se pudo cambiar el estado: ' + error.message)
+    return false
   }
   Audit.log('sample', id, null, 'status_changed', `Sample ${SMP_STATUS_LABEL[status] || status}`,
     [{ field: 'status', from: '', to: SMP_STATUS_LABEL[status] || status }])
@@ -32548,6 +32586,7 @@ const INV_EMPTY_HTML = emptyStateHtml({
   desc: 'Inventory will appear here once samples are received or adjusted.',
 })
 async function loadPdInventory(p) {
+  if (['fabric','garment'].includes(p.division) && typeof renderProductPhysicalStock === 'function') return renderProductPhysicalStock(p)
   const el = document.getElementById('pd-inventory')
   if (!el) return
   const locs = await loadInvLocations()
@@ -33827,7 +33866,7 @@ async function executeScan(val) {
     const item = _dispatchItems.find(i => i.sample_id.toUpperCase() === v.toUpperCase())
     if (!item) { setScanStatus('No pertenece a esta colección: ' + v); toast('No pertenece a esta colección: ' + v); return }
     if (item.excluded) { setScanStatus(item.sample_id + ' está excluida — inclúyela primero'); return }
-    await dispatchVerify(item.id)
+    if (await dispatchVerify(item.id) === false) { setScanStatus('No se pudo guardar la verificación'); return }
     setScanStatus(item.sample_id + ' ✓ verificada', 'found')
     document.getElementById('scan-input').value = ''
     return
@@ -34507,5 +34546,8 @@ function printCommunicationMemo(){return commsReviewExport('pdf')}
     <div class="spotlight-results" id="spotlight-results"></div>
   </div>
 </div>
+<script src="js/sample-workflow.js"></script>
+<script src="js/sample-development.js"></script>
+<script src="js/sample-stock.js"></script>
 </body>
 </html>

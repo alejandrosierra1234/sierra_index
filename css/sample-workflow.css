@@ -1,0 +1,58 @@
+.sf-panel{border:1px solid var(--border,#e5e5e5);border-radius:16px;padding:var(--sp-5,24px);margin:var(--sp-5,24px) 0;background:var(--surface,#fff);font-size:14px}
+.sf-heading{display:flex;align-items:start;justify-content:space-between;gap:16px}
+.sf-heading h2{font-size:1rem;margin:0;display:flex;gap:8px;align-items:center}
+.sf-panel p{line-height:1.6}
+.sf-heading p,.sf-hint{color:var(--text-3,#666);font-size:13px}
+.sf-steps{display:flex;flex-wrap:wrap;gap:12px;list-style:none;padding:12px 0;margin:8px 0}
+.sf-steps li{display:flex;align-items:center;gap:6px;color:var(--text-3,#666);font-size:13px}
+.sf-steps li span{display:grid;place-items:center;background:var(--bg,#f5f5f5);border-radius:8px;width:24px;height:24px}
+.sf-steps li.active{color:#007d73;font-weight:650}
+.sf-steps li.active span{background:#cffffb}
+.sf-panel details{border-top:1px solid var(--border,#e5e5e5);padding:14px 0}
+.sf-panel summary{cursor:pointer;font-weight:600;display:flex;gap:8px;align-items:center}
+.sf-panel summary::after{content:'';width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin-left:auto;margin-right:4px}
+.sf-panel details[open]>summary::after{transform:rotate(225deg)}
+.sf-panel details[open]>summary{margin-bottom:14px}
+.sf-panel fieldset{border:0;padding:0;margin:0}
+.sf-panel legend,.sf-label{display:block;font-weight:600;margin:12px 0 8px}
+.sf-options{display:flex;flex-wrap:wrap;gap:8px}
+.sf-options label{border:1px solid var(--border,#e5e5e5);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;cursor:pointer}
+.sf-options label:has(input:checked){border-color:#007d73;background:#cffffb;color:#007d73}
+.sf-panel input[type=radio],.sf-panel input[type=checkbox]{accent-color:#007d73}
+.sf-check{display:flex;gap:8px;align-items:center;margin:14px 0}
+.sf-panel textarea,.sf-panel input:not([type]){display:block;width:100%;box-sizing:border-box;border:1px solid var(--border,#e5e5e5);border-radius:10px;padding:12px;font:inherit;color:inherit;background:var(--surface,#fff);margin-bottom:12px}
+.sf-panel button{display:inline-flex;gap:8px;align-items:center}
+.sf-next{padding-bottom:16px}
+.sf-brief{white-space:pre-wrap}
+.sf-error{color:var(--danger,#b40b0b);margin:0}
+.sf-error:empty{display:none}
+.sf-table-wrap{overflow:auto}
+.sf-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+.sf-table th,.sf-table td{text-align:left;padding:12px 8px;border-bottom:1px solid var(--border,#e5e5e5);vertical-align:top}
+.sf-table small,.sf-history small{display:block;color:var(--text-3,#666);margin-top:4px}
+.sf-history{padding-left:20px}
+.sf-history li{margin:12px 0}
+.sf-panel :focus-visible{outline:2px solid #007d73;outline-offset:3px}
+@media(max-width:640px){.sf-panel{padding:14px}
+.sf-heading{flex-wrap:wrap}
+.sf-steps{gap:8px}
+.sf-options{flex-direction:column}
+}
+
+.sf-product-title{display:flex;gap:8px;align-items:center;font-size:1rem}
+.sf-snapshot{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;color:var(--text-3)}
+.pub-request{max-width:520px;margin:32px auto;padding:24px;border-top:1px solid #e5e5e5;text-align:left}
+.pub-request h2{font-size:1.15rem}
+.pub-request p,.pub-request small{font-size:14px;line-height:1.6}
+.pub-request label{display:block;margin:12px 0;font-size:14px}
+.pub-request input,.pub-request textarea{display:block;width:100%;padding:10px;border:1px solid #e5e5e5;border-radius:8px;font:inherit;margin-top:5px;box-sizing:border-box}
+.sf-honeypot{position:absolute;left:-10000px}
+.pub-product-image{display:block;width:100%;max-width:400px;max-height:320px;object-fit:contain;margin:24px auto;border-radius:12px}
+
+
+.sf-panel input:not([type=radio]):not([type=checkbox]),.sf-panel textarea{font-family:inherit;font-size:14px;border:1px solid var(--border);border-radius:var(--control-radius,8px);padding:8px var(--control-padding-x,14px);background:var(--surface,#fff);color:var(--text);box-sizing:border-box;width:100%}
+.sf-panel input:not([type=radio]):not([type=checkbox]){min-height:var(--control-h,36px)}
+.sf-panel fieldset{margin-bottom:var(--sp-4,16px)}
+.ws-price-pop .sf-options label{display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0}
+.ws-price-pop .sf-options input{width:auto}
+
