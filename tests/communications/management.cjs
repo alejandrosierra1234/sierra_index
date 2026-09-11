@@ -29,7 +29,7 @@ test('all communication icon keys exist and destructive controls are labeled',()
   for(const [,name] of moduleSource.matchAll(/siIcon\('([^']+)'/g))assert.ok(w.siIcon(name),`Missing icon ${name}`);
   w.newCommunicationDraft();
   for(const type of ['image','table','orgchart','process','banner'])w.commsAddBlock(type);
-  assert.equal(w.document.querySelectorAll('.memo-insert-icon svg').length,8);
+  assert.equal(w.document.querySelectorAll('.memo-insert-icon svg').length,9);
   assert.ok(w.document.querySelector('[aria-label="Eliminar etapa"] svg'));
   assert.ok(w.document.querySelector('[aria-label="Eliminar persona"] svg'));
   for(const button of w.document.querySelectorAll('button'))if(button.querySelector('svg')&&!button.textContent.trim())assert.ok(button.getAttribute('aria-label')||button.title,'Icon button needs a name');
