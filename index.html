@@ -7315,7 +7315,7 @@
 .lbl-codes-bc canvas { width:100%; height:auto; display:block; }
 .lbl-codes-id { font-size:1.6mm; color:#999; font-family:Arial,Helvetica,sans-serif; margin-top:0.5mm; letter-spacing:0.03em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   </style>
-<link rel="stylesheet" href="css/sample-workflow.css?v=20260911-3">
+<link rel="stylesheet" href="css/sample-workflow.css?v=20260911-4">
 </head>
 <body>
 
@@ -9262,6 +9262,8 @@ async function enterApp(user) {
     showStyleGuide(); return
   } else if (savedRoute === 'dashboard') {
     showDashboard(); return
+  } else if (savedRoute?.startsWith('sample-center:') && moduleAccessible(MODULES.samples)) {
+    showSampleCenter(savedRoute.slice(14)); return
   } else if (savedRoute === 'collections' && can('read', 'customer_service')) {
     showCollectionsHub(); return
   } else if (savedRoute && savedRoute.startsWith('badge:')) {
@@ -29777,13 +29779,13 @@ async function openReq() { if (selected) { await addToCart(selected); openCart()
 async function quickReq(p) { await addToCart(p) }
 
 /* ── SAMPLE CENTER VIEW ── */
-async function showSampleCenter() {
+async function showLegacyIndividualSamples() {
   _navLeaf = 'samples|_|requests'
   syncModule('samples')
   document.getElementById('div-toolbar').style.display = 'none'
   leaveView()
-  document.getElementById('sec-title').textContent = 'Centro de Muestras'
-  document.getElementById('sec-sub').textContent = 'Rastrea cada muestra física desde la solicitud hasta el archivo'
+  document.getElementById('sec-title').textContent = 'Solicitudes individuales anteriores'
+  document.getElementById('sec-sub').textContent = 'Historial anterior · hasta 80 solicitudes recientes sin colección'
   document.getElementById('product-controls').style.display = 'none'
   document.getElementById('view-products').style.display = 'block'
 
@@ -29794,17 +29796,11 @@ async function showSampleCenter() {
   let q = sb.from('samples')
     .select('*, products(name,division,code), profiles!requested_by(full_name)')
     .neq('status', 'draft')
+    .is('collection_id', null)
     .order('created_at', { ascending: false })
     .limit(80)
-  let colQ = sb.from('sample_collections')
-    .select('*')
-    .neq('status', 'draft')
-    .order('created_at', { ascending: false })
-    .limit(30)
-
-  if (!can('read', 'customer_service')) { q = q.eq('requested_by', me.id); colQ = colQ.eq('requested_by', me.id) }
-
-  const [{ data, error }, { data: collections }] = await Promise.all([q, colQ])
+  if (!can('read', 'customer_service') && !['fabric','garment'].some(canDispatchDiv)) q = q.eq('requested_by', me.id)
+  const {data,error}=await q
 
   if (error) {
     console.error('showSampleCenter error:', error)
@@ -29827,31 +29823,6 @@ async function showSampleCenter() {
     return
   }
 
-  // Item counts per collection, derived from the samples already loaded
-  const collectionCounts = {}
-  data.forEach(s => { if (s.collection_id) collectionCounts[s.collection_id] = (collectionCounts[s.collection_id] || 0) + 1 })
-
-  const collectionsHtml = (collections?.length ? `
-    <div class="srd-section-label" style="margin-top:0">Colecciones</div>
-    <div class="smp-list" style="margin-bottom:2rem">
-      ${collections.map(c => {
-        const n = collectionCounts[c.id] || 0
-        const date = new Date(c.created_at).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' })
-        return `<div class="smp-row" onclick="showCollectionRecord('${c.id}','showSampleCenter')">
-          <div class="smp-row-id">${esc(c.collection_id)}</div>
-          <div class="smp-row-product">
-            <div class="smp-row-name">${esc(c.delivery_method||'Recolección')}${c.customer ? ' · ' + esc(c.customer) : ''}</div>
-            <div class="smp-row-meta"><span class="smp-id-inline">${esc(c.collection_id)} · </span>${n} muestra${n!==1?'s':''}${c.priority==='urgent' ? ' · Urgente' : ''}</div>
-          </div>
-          <div class="smp-row-type">${esc(c.recipient||'')}</div>
-          <div class="smp-row-right">
-            ${smpBadge(c.status)}
-            <div class="smp-row-date">${date}</div>
-          </div>
-        </div>`
-      }).join('')}
-    </div>` : '')
-
   // Group by division
   const DIV_ORDER = ['fiber','yarn','fabric','chemicals','garment']
   const divGroups = {}
@@ -29872,8 +29843,8 @@ async function showSampleCenter() {
   // Filter tabs
   smpStatusFilter = 'all'; smpDivFilter = 'all'
   const activeStatuses = ORDER.filter(s => statusGroups[s]?.length)
-  let html = collectionsHtml + `
-    <div class="srd-section-label" style="${collectionsHtml ? '' : 'margin-top:0'}">Muestras individuales</div>
+  let html = `<button class="btn btn-secondary" onclick="showSampleCenter('tracking')">${siIcon('arrow-left',16)} Volver a seguimiento</button>` + `
+    <div class="srd-section-label" style="margin-top:20px">Muestras individuales</div>
     ${activeDivs.length > 1 ? `
     <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.6rem" id="smp-div-tabs">
       <button class="div-toolbar-btn active" id="smp-divtab-all" onclick="filterSampleDivision('all',this)">Todas las divisiones (${data.length})</button>
@@ -30104,31 +30075,7 @@ async function showSampleRecord(sampleId) {
    as a visual card grid instead of a single hidden cart. Solves working
    on several client collections in parallel: each is its own card, its
    own workspace, its own room for collaborators to join. ── */
-async function showCollectionsHub() {
-  _navLeaf = 'samples|_|collections'
-  document.getElementById('div-toolbar').style.display = 'none'
-  leaveView()
-  syncModule('samples')
-  sessionStorage.setItem('sierra_route', 'collections')
-  document.getElementById('sec-title').textContent = 'Colecciones'
-  document.getElementById('sec-sub').textContent = 'Arma pedidos de muestras en equipo — por cliente, visita o proyecto'
-  document.getElementById('product-controls').style.display = 'none'
-  document.getElementById('view-products').style.display = 'block'
-
-  const pg = document.getElementById('pg')
-  pg.style.display = 'block'
-  pg.innerHTML = '<div class="empty"><div class="empty-icon" style="opacity:0.35">◻</div><p>Cargando colecciones…</p></div>'
-
-  const mine = await myCollections()
-  _colhTab = _colhTab || 'draft'
-  pg.innerHTML = `
-    <div class="colh-tabs">
-      <button class="div-toolbar-btn${_colhTab==='draft'?' active':''}" onclick="colhSetTab('draft')">En progreso (${mine.filter(c=>c.status==='draft').length})</button>
-      <button class="div-toolbar-btn${_colhTab==='sent'?' active':''}" onclick="colhSetTab('sent')">Enviadas (${mine.filter(c=>c.status!=='draft').length})</button>
-    </div>
-    <div class="colh-grid" id="colh-grid"></div>`
-  await colhRenderGrid(mine)
-}
+async function showCollectionsHub() { return showSampleCenter('collections') }
 
 let _colhTab = 'draft'
 let _colhCache = []
@@ -30439,7 +30386,7 @@ async function showCollectionRecord(collectionId, backTo) {
     <div style="margin-bottom:1rem">
       <button class="detail-back-btn" onclick="${_colWorkspaceBack}()">
         <span class="detail-back-dot" style="background:var(--accent)"></span>
-        ${_colWorkspaceBack === 'showCollectionsHub' ? 'Colecciones' : 'Sample Center'}
+        ${_colWorkspaceBack === 'showCollectionsHub' ? 'Colecciones' : 'Centro de muestras'}
       </button>
     </div>
 
@@ -34546,8 +34493,9 @@ function printCommunicationMemo(){return commsReviewExport('pdf')}
     <div class="spotlight-results" id="spotlight-results"></div>
   </div>
 </div>
-<script src="js/sample-workflow.js?v=20260911-3"></script>
-<script src="js/sample-development.js?v=20260911-3"></script>
-<script src="js/sample-stock.js?v=20260911-3"></script>
+<script src="js/sample-workflow.js?v=20260911-4"></script>
+<script src="js/sample-development.js?v=20260911-4"></script>
+<script src="js/sample-stock.js?v=20260911-4"></script>
+<script src="js/sample-center.js?v=20260911-4"></script>
 </body>
 </html>
