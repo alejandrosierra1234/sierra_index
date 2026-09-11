@@ -7317,8 +7317,8 @@
   </style>
 <link rel="stylesheet" href="css/sample-workflow.css?v=20260911-9">
 <link rel="stylesheet" href="css/catalog-experience.css?v=20260911-9">
-<link rel="stylesheet" href="css/label-printers.css?v=20260911-11">
-<script src="js/label-printers.js?v=20260911-11"></script>
+<link rel="stylesheet" href="css/label-printers.css?v=20260911-12">
+<script src="js/label-printers.js?v=20260911-12"></script>
 <script src="js/catalog-experience.js?v=20260911-9"></script>
 </head>
 <body>
@@ -7632,7 +7632,6 @@
       </div>
     </div>
 
-    <div class="label-printer-bar" data-printer-bar></div>
     <div class="lbl-dr-body">
       <!-- LEFT: editor -->
       <div class="lbl-dr-editor">
@@ -7643,6 +7642,7 @@
       <!-- RIGHT: live preview -->
       <div class="lbl-dr-preview">
         <div class="lbl-pv-bar">
+          <div class="label-printer-inline" data-printer-bar></div>
           <span class="lbl-pv-dims" id="lbl-pv-dims"></span>
           <span style="flex:1 1 auto"></span>
           <span id="lbl-zoom" style="display:flex;gap:4px">
@@ -7693,7 +7693,6 @@
       </div>
     </div>
 
-    <div class="label-printer-bar" data-printer-bar></div>
     <div class="lbl-dr-body">
       <!-- LEFT: structured yarn editor -->
       <div class="lbl-dr-editor" style="width:460px">
@@ -7704,6 +7703,7 @@
       <!-- RIGHT: live physical label preview -->
       <div class="lbl-dr-preview">
         <div class="lbl-pv-bar">
+          <div class="label-printer-inline" data-printer-bar></div>
           <span class="lbl-pv-dims" id="yc-pv-dims"></span>
           <span style="flex:1 1 auto"></span>
           <span id="yc-zoom" style="display:flex;gap:4px">
@@ -12137,13 +12137,7 @@ function lbPrintHtml() {
         </div>`).join('')}</div>`
         : `<div class="lbl-ed-note" style="margin-top:0">No issues — this label is ready to print.</div>`}
     </div>
-    <div class="lbl-ed-group">
-      <div class="lbl-ed-label">Printer</div>
-      <div class="lbl-ed-row"><span class="lbl-ed-row-label">Target</span><span style="font-size:14px;font-weight:650">${labelPrinter().name}</span></div>
-      <div class="lbl-ed-row"><span class="lbl-ed-row-label">Media</span><span style="font-size:14px;font-weight:650">${labelPrinterKey()==='zebra'?'2 × 3 pulgadas':t.widthMm+' mm'}</span></div>
-      <div class="lbl-ed-row"><span class="lbl-ed-row-label">Sheet</span><span style="font-size:14px;font-weight:650">${t.widthMm} × ${lbSheetMm(lbMeasuredMm(document.querySelector('#label-preview .lbl')))} mm</span></div>
-      <div class="lbl-ed-note">${labelPrinterKey()==='zebra'?'Papel de 50,8 × 76,2 mm. El contenido se imprime a tamaño real, sin reducirse.':'La longitud sigue el formato Brother actual.'} Selecciona ${labelPrinter().name} en el diálogo, escala 100%, sin encabezados ni pies.</div>
-    </div>
+    <details class="label-driver-help"><summary>${LB_ICON.print} Ajustes de impresión</summary><p>Selecciona ${labelPrinter().name} en el diálogo del sistema. ${labelPrinterKey()==='zebra'?'Papel 50,8 × 76,2 mm.':'Papel Brother de 62 mm según la plantilla.'} Escala 100%, sin encabezados ni pies.</p></details>
     <div class="lbl-ed-group">
       <div class="lbl-ed-label">Copies</div>
       <input class="control-input" style="width:100px" type="number" min="1" max="50" value="1" id="lbl-copies" />
@@ -12202,7 +12196,7 @@ function lbUpdateHeader() {
   if (saveBtn) saveBtn.disabled = !lbCanEdit() || !lbDirty()
   const printBtn = document.getElementById('lbl-print-btn')
   if (printBtn) {
-    printBtn.innerHTML = LB_ICON.print + 'Imprimir · ' + (labelPrinterKey()==='zebra'?'Zebra 2 × 3':'Brother')
+    printBtn.innerHTML = LB_ICON.print + 'Imprimir'
     printBtn.disabled = lbBlocking()
     printBtn.title = lbBlocking() ? 'Fix the errors in the Print tab first' : 'Print this label'
   }
@@ -12773,7 +12767,7 @@ function lbFitPreview() {
   if (dims) {
     const t = lbTemplate()
     const sheet = lbSheetMm(lbMeasuredMm(label.querySelector('.lbl')))
-    dims.textContent = `${labelPrinter().name} · ${t.widthMm} × ${sheet} mm  ·  ${Math.round(scale * 100)}%`
+    dims.textContent = `${t.widthMm} × ${sheet} mm  ·  ${Math.round(scale * 100)}%`
   }
 }
 
