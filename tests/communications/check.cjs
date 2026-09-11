@@ -6,6 +6,7 @@ const w=dom.window;w.eval=code=>vm.runInContext(code,dom.getInternalVMContext())
 w.jsStr=v=>String(v??'').replaceAll("'","\\'");w.clearSecCrumbs=()=>{};w.toast=()=>{};
 w.eval(source.slice(source.indexOf('function pdSelect('),source.indexOf('/* ═',source.indexOf('function pickPdSelect('))));
 let scripts=0;for(const match of source.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){if(!match[2].trim()||/application\/ld\+json/.test(match[1]))continue;new vm.Script(match[2]);scripts++}console.log(`PASS: syntax of ${scripts} inline scripts`);
+w.eval(source.match(/const PRODUCT_COUNTRIES = \[[^\n]+/)[0]);
 const start=source.indexOf("const COMMS_STORE_KEY="),end=source.indexOf('\n',source.indexOf('function printCommunicationMemo()',start));
 w.eval('const LBL_LOGO_SVG="";\n'+source.slice(start,end));
 let checks=0;function test(name,fn){fn();console.log('PASS: '+name);checks++}
