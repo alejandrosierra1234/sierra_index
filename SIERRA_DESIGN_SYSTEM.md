@@ -3062,3 +3062,5 @@ Las firmas guardadas almacenan imagen, nombre y cargo localmente en este navegad
 - PDF se compone en hojas carta con pie SIERRA, folio y «Página X de Y». Los párrafos conservan formato al dividirse; listas continúan su numeración y tablas repiten encabezados. Las figuras que exceden una hoja se ajustan proporcionalmente.
 - La opción «Marcar como confidencial» vive en Datos y agrega una marca de agua discreta al documento y a cada página exportada. Se conserva al guardar y duplicar.
 - El pie no incluye «Comunicación interna». La vista continua informa cuando el PDF ocupará varias páginas sin presentarlo como error.
+
+- Firmantes: editor con selección de persona y acción Agregar firmante; cada persona conserva nombre, cargo e imagen independientes y puede usar la biblioteca local. El documento distribuye dos firmas por fila; el PDF pagina filas completas. Eliminar firmante admite Deshacer.
