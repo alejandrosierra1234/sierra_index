@@ -3078,3 +3078,22 @@ Bloque con 2, 3 o 4 columnas y cualquier cantidad de tarjetas. Cambiar columnas 
 Guardar imágenes y firmas en IndexedDB antes de incorporarlas al editor. Los registros y la biblioteca local conservan referencias, evitando duplicar imágenes en localStorage. Migrar imágenes anteriores sin reducir calidad ni reemplazar registros antes de confirmar su escritura; si falta un recurso, conservar los registros y permitir reintentar. Ante fallo de guardado, indicar cambios sin guardar, ofrecer reintento y respaldo JSON, y advertir al cerrar la pestaña. El almacenamiento continúa siendo local a este navegador.
 
 - Editor de comunicados: bloques plegables con un solo bloque abierto, resumen por tipo y nombre interno opcional. Resaltar únicamente el bloque activo en vista previa, nunca en exportaciones. La acción «Eliminar bloque completo» vive en el menú del bloque y confirma su identidad y contenido; «Eliminar esta tarjeta» es una acción distinta. Mantener Deshacer y restaurar el bloque activo.
+
+## 66. Muestras: espacios operativos (2026-09-11)
+
+Muestras conserva un motor compartido y ofrece espacios por equipo: Tela y Prendas,
+Hilo, Químicos y Fibra. Esta organización actualiza el árbol de divisiones de §64:
+solo se presentan las divisiones del espacio elegido. Tela y Prendas pueden formar
+una misma colección. Las colecciones de distintos equipos no se mezclan.
+
+El Centro es la entrada operativa para Ventas y PD, con Mi trabajo, Colecciones,
+Inventario y Seguimiento como navegación de sección: texto, icono y subrayado; no
+píldoras rellenas. La consulta general se identifica explícitamente. Los borradores
+anteriores sin referencias permanecen accesibles allí, sin asignarles equipo por
+suposición. Insights mantiene su alcance general identificado.
+
+Los selects heredados de Muestras se adaptan a `pdSelect`, conservando valores,
+eventos y estados deshabilitados. No se permite introducir nuevos dropdowns nativos.
+Entrega, opciones de etiqueta y detalle de existencias usan revelado progresivo.
+Los iconos de acción se obtienen del registro instalado; no se incorporan familias
+externas ni se declara completada la migración de iconos de §61.

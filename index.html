@@ -7315,7 +7315,7 @@
 .lbl-codes-bc canvas { width:100%; height:auto; display:block; }
 .lbl-codes-id { font-size:1.6mm; color:#999; font-family:Arial,Helvetica,sans-serif; margin-top:0.5mm; letter-spacing:0.03em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   </style>
-<link rel="stylesheet" href="css/sample-workflow.css?v=20260911-5">
+<link rel="stylesheet" href="css/sample-workflow.css?v=20260911-6">
 </head>
 <body>
 
@@ -10189,6 +10189,7 @@ function focusSearch() { openSpotlight() }
 // re-queries products/inventory scoped to the new division, it doesn't
 // union anything.
 function setDiv(d) {
+  if(typeof setSampleSpace==='function')setSampleSpace(sampleSpaceForDivision(d))
   _navLeaf = 'samples|' + d + '|catalog'
   syncModule('samples')
   sessionStorage.setItem('sierra_route', 'div:' + d)
@@ -10227,6 +10228,7 @@ function showSamplesCatalog() {
 // falling back to Solicitudes or the warehouse queue for a pure warehouse
 // user with no division read access, so nobody lands on a blank screen.
 function showSamplesHome() {
+  if(typeof showSampleSpaces==='function'){showSampleSpaces();return}
   const d = firstAuthDivision()
   if (d) { setDiv(d); return }
   if (can('read', 'customer_service')) { showSampleCenter(); return }
@@ -15856,7 +15858,7 @@ const MODULES = {
     // samples module" at a glance, per the module identity refresh.
     token: 'samples',
     color: '#009fff', light: '#c5e9ff', accent: '#004a86',
-    icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 10a7 7 0 0114 0v3.5a1.5 1.5 0 01-1.5 1.5H14v-5h3a5 5 0 00-10 0h3v5H4.5A1.5 1.5 0 013 13.5V10z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
+    icon: siIcon('package',20),
     tools: [], // contextual — Muestras jumps straight into showSamplesHome(), see enterModule()
   },
   comunicaciones: {
@@ -15944,6 +15946,8 @@ let activeModule = null
 // out of sync with what's actually on screen.
 function syncModule(key) {
   activeModule = key
+  document.body.classList.toggle('samples-ui',key==='samples')
+  if(key==='samples'&&typeof sampleEnhanceScreen==='function')queueMicrotask(sampleEnhanceScreen)
   if (key) {
     sessionStorage.setItem('sierra_active_module', key)
     // "Last module" persists across Dashboard/Módulos-hub visits (which
@@ -16072,7 +16076,7 @@ function navDivisionRowHtml(d, expanded, isCurrent) {
   const showDisp = canDispatchDiv(d)
   const showInv = hasWarehouseAccess(d) || (['fabric','garment'].includes(d) && can('read', d))
   let children = navLeafHtml('samples|' + d + '|catalog', 'catalog', 'Catálogo', NAV_ICON_CATALOG, 'lvl3', `function(){setDiv('${d}')}`)
-  if (showDisp) children += navLeafHtml('samples|' + d + '|dispatch', 'dispatch', 'Cola de despacho', NAV_ICON_DISPATCH, 'lvl3', `function(){showDispatchQueue('${d}')}`)
+  if (showDisp && !['fabric','garment'].includes(d)) children += navLeafHtml('samples|' + d + '|dispatch', 'dispatch', 'Cola de despacho', NAV_ICON_DISPATCH, 'lvl3', `function(){showDispatchQueue('${d}')}`)
   if (showInv) children += navLeafHtml('samples|' + d + '|inventory', 'inventory', 'Inventario', NAV_ICON_INVENTORY, 'lvl3', `function(){${['fabric','garment'].includes(d)?'showPhysicalSampleStock':'showWarehouseInventory'}('${d}')}`)
   return `
     <button class="nav-item nav-tree-div${isCurrent ? ' nav-current-div' : ''}" data-tip="${escAttr(DIV_LBL[d] || d)}" onclick="navToggleDivision('${d}')">
@@ -16088,20 +16092,20 @@ function navDivisionRowHtml(d, expanded, isCurrent) {
 // division. Data-first so the tree renderer below stays one generic loop.
 function samplesSharedTools() {
   const items = []
+  if(can('read','customer_service')||AUTH_DIVISIONS.some(d=>canDispatchDiv(d)))items.push({ key:'samples|_|requests',id:'requests',label:'Centro de muestras',icon:NAV_ICON_REQUESTS,fnExpr:'showSampleCenter' })
   if (can('read', 'customer_service')) {
-    items.push({key:'samples|_|qrrequests',id:'qrrequests',label:'Solicitudes QR',icon:NAV_ICON_REQUESTS,fnExpr:'showSamplePublicRequests'})
-    items.push({ key: 'samples|_|requests', id: 'requests', label: 'Solicitudes', icon: NAV_ICON_REQUESTS, fnExpr: 'showSampleCenter' })
+    if(!sampleActiveSpace||sampleActiveSpace==='textiles')items.push({key:'samples|_|qrrequests',id:'qrrequests',label:'Solicitudes QR',icon:NAV_ICON_REQUESTS,fnExpr:'showSamplePublicRequests'})
     const n = (typeof sampleCart !== 'undefined' ? sampleCart.reduce((s, i) => s + i.qty, 0) : 0)
     items.push({
-      key: 'samples|_|collections', id: 'collections', label: 'Colecciones', icon: NAV_ICON_COLLECTIONS, fnExpr: 'openCollectionsNav',
+      key: 'samples|_|collections', id: 'sample-selection', label: 'Selección actual', icon: NAV_ICON_COLLECTIONS, fnExpr: 'openCollectionsNav',
       extraAttrs: {
         elId: 'nav-cart', iconStyle: 'position:relative',
         badge: `<span class="cart-nav-badge" id="cart-nav-badge" style="display:${n ? 'flex' : 'none'}">${n}</span>`,
-        trailing: `<span class="cart-nav-count" id="cart-nav-count">${n}</span>`,
+        trailing: `<span class="cart-nav-count" id="cart-nav-count" hidden></span>`,
       },
     })
   }
-  if (insightsSections().length) items.push({ key: 'samples|_|insights', id: 'insights', label: 'Insights', icon: NAV_ICON_INSIGHTS, fnExpr: 'showInsights' })
+  if (insightsSections().length) items.push({ key: 'samples|_|insights', id: 'insights-global', label: 'Insights · general', icon: NAV_ICON_INSIGHTS, fnExpr: 'showInsights' })
   return items
 }
 
@@ -16145,7 +16149,8 @@ function renderSidebarTree() {
 
   let html = ''
   if (key === 'samples') {
-    const divs = authorizedDivisions()
+    const divs = _navLeaf==='samples|_|spaces'?[]:authorizedDivisions().filter(d=>!sampleActiveSpace||sampleSpaceDivisions().includes(d))
+    html += sampleSpaceNavHtml()
     const expandedDiv = _navExpandedDivision.samples && divs.includes(_navExpandedDivision.samples)
       ? _navExpandedDivision.samples
       : (divs[0] || null)
@@ -29353,9 +29358,9 @@ async function addToCart(p) {
 }
 
 async function addItemToActiveDraft(p) {
-  const otherDiv = sampleCart.find(i => i.division !== p.division)
+  const otherDiv = sampleCart.find(i => sampleSpaceForDivision(i.division) !== sampleSpaceForDivision(p.division))
   if (otherDiv) {
-    toast(`Esta colección ya tiene muestras de ${DIV_LBL[otherDiv.division] || otherDiv.division} — cada colección es de una sola división. Empieza una nueva para ${DIV_LBL[p.division] || p.division}.`)
+    toast(`Esta colección ya tiene muestras de ${DIV_LBL[otherDiv.division] || otherDiv.division} — cada colección pertenece a un equipo de muestras. Empieza una nueva para ${DIV_LBL[p.division] || p.division}.`)
     return
   }
   const existing = sampleCart.find(i => i.product_id === p.id)
@@ -30171,7 +30176,8 @@ async function colhRenderGrid(mine) {
 }
 
 async function startBlankDraft() {
-  const { data, error } = await sb.rpc('create_draft_collection', {})
+  if(!sampleActiveSpace){showSampleSpaces();toast('Elige el equipo para crear la colección');return}
+  const { data, error } = await sb.rpc('create_sample_collection', {p_space:sampleActiveSpace})
   if (error || !data) { toast('No se pudo crear la colección: ' + (error?.message || 'error desconocido')); return }
   draftCollectionId = data.collection_id
   draftCollectionRef = data.collection_ref
@@ -30239,13 +30245,16 @@ async function showCollectionRecord(collectionId, backTo) {
   if (itemsRes.error || collabRes.error || flowRes.error) { vs.innerHTML='<div class="detail-view-inner" role="alert">No se pudo cargar la colección completa. Actualiza para reintentar.</div>'; return }
   const governedFlow = flowRes.data?.workflow || null
   const col = colRes.data
+  _wsCollectionSpace=col.sample_space||''
+  if(sampleSpaces[_wsCollectionSpace])setSampleSpace(_wsCollectionSpace)
+  renderSidebarTree()
   const items = governedFlow ? flowRes.data.items : (itemsRes.data || [])
   const collaborators = collabRes.data || []
   const categories = catRes.data || []
   const comments = commentsRes.data || []
   const isDraft = col.status === 'draft'
   const requesterName = col.profiles?.full_name || col.profiles?.email || '—'
-  const dateStr = new Date(col.created_at).toLocaleDateString('en-US', { day:'2-digit', month:'long', year:'numeric' })
+  const dateStr = new Date(col.created_at).toLocaleDateString('es-GT', { day:'2-digit', month:'long', year:'numeric' })
   const canEdit = can('manage_status', 'customer_service')
   // Per-collaborator role preset (§Roles) — gates the finer-grained
   // actions (manage samples/pricing/submit/people) on top of the
@@ -30262,26 +30271,26 @@ async function showCollectionRecord(collectionId, backTo) {
 
   const moreMenuItems = []
   if (isReadyOrLater) {
-    moreMenuItems.push(`<button class="ws-menu-item" onclick="wsClosePopovers();printCollectionGuide('${col.id}')">Reimprimir guía de envío</button>`)
+    moreMenuItems.push(`<button class="ws-menu-item" onclick="wsClosePopovers();printCollectionGuide('${col.id}')">${siIcon('printer',16)} Reimprimir guía de envío</button>`)
   } else if (!isDraft && canDispatch) {
-    moreMenuItems.push(`<button class="ws-menu-item" onclick="wsClosePopovers();showDispatch('${col.id}')">Ir a Despacho</button>`)
+    moreMenuItems.push(`<button class="ws-menu-item" onclick="wsClosePopovers();showDispatch('${col.id}')">${siIcon('box',16)} Preparar muestras</button>`)
   }
-  moreMenuItems.push(`<button class="ws-menu-item" onclick="wsShowQr('${col.id}','${esc(col.collection_id).replace(/'/g,"\\'")}')">Ver código QR</button>`)
+  moreMenuItems.push(`<button class="ws-menu-item" onclick="wsShowQr('${col.id}','${esc(col.collection_id).replace(/'/g,"\\'")}')">${siIcon('qrcode',16)} Ver código QR</button>`)
   if (!isDraft) {
-    moreMenuItems.push(`<button class="ws-menu-item" onclick="wsClosePopovers();cloneCollectionToDraft('${col.id}')">Empezar borrador desde esta</button>`)
+    moreMenuItems.push(`<button class="ws-menu-item" onclick="wsClosePopovers();cloneCollectionToDraft('${col.id}')">${siIcon('copy',16)} Crear una copia</button>`)
   } else {
-    moreMenuItems.push(`<button class="ws-menu-item ws-menu-danger" onclick="wsClosePopovers();discardWorkspaceDraft('${col.id}')">Descartar borrador</button>`)
+    moreMenuItems.push(`<button class="ws-menu-item ws-menu-danger" onclick="wsClosePopovers();discardWorkspaceDraft('${col.id}')">${siIcon('trash',16)} Descartar borrador</button>`)
   }
 
   const headerHtml = `
     <div class="ws-hdr">
       <div class="ws-hdr-name">
-        <input class="ws-name-input" id="ws-name-input" value="${esc(col.name || '')}" placeholder="${esc(col.collection_id)} — sin nombre" onblur="saveCollectionName('${col.id}', this.value)" onkeydown="if(event.key==='Enter') this.blur()" />
+        <input class="ws-name-input" id="ws-name-input" aria-label="Nombre de la colección" value="${esc(col.name || '')}" placeholder="${esc(col.collection_id)} — sin nombre" onblur="saveCollectionName('${col.id}', this.value)" onkeydown="if(event.key==='Enter') this.blur()" />
         <div class="ws-hdr-meta">
           <span>${esc(col.collection_id)} · ${items.length} muestra${items.length!==1?'s':''} · ${totalQty} unidades</span>
           <span class="ws-deadline-wrap${col.deadline ? ' set' : ''}" title="Fecha límite">
             <svg width="11" height="11" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 8h14M7 2.5v3M13 2.5v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-            <input type="date" class="ws-deadline-input" value="${col.deadline || ''}" onchange="wsSetDeadline('${col.id}', this.value)" />
+            <input type="date" class="ws-deadline-input" aria-label="Fecha requerida de la colección" value="${col.deadline || ''}" onchange="wsSetDeadline('${col.id}', this.value)" />
           </span>
         </div>
       </div>
@@ -30339,20 +30348,20 @@ async function showCollectionRecord(collectionId, backTo) {
       <div class="cart-fg"><label id="ws-dest-label">${(col.delivery_method && col.delivery_method!=='Pickup') ? 'Destinatario' : 'Entregar a'}</label><input type="text" id="ws-recipient" value="${esc(col.recipient||'')}" placeholder="¿Quién recibe esta colección?" /></div>
       <div class="cart-fg" id="ws-address-fg" style="display:${(col.delivery_method && col.delivery_method!=='Pickup')?'block':'none'}"><label>Dirección de envío</label><input type="text" id="ws-address" value="${esc(col.address||'')}" /></div>
       <div class="cart-fg"><label>Notas</label><textarea id="ws-notes">${esc(col.notes||'')}</textarea></div>
-      <button class="cart-submit" id="ws-submit-btn" onclick="submitWorkspaceDraft('${col.id}')">Enviar colección</button>
+      <button class="cart-submit" id="ws-submit-btn" onclick="submitWorkspaceDraft('${col.id}')">${siIcon('check',16)} Enviar selección</button>
     </div>` : `
-    <div class="srd-section-label" style="margin-top:0">Delivery</div>
+    <div class="srd-section-label" style="margin-top:0">Entrega</div>
     <div class="srd-card">
       <div class="srd-grid">
-        <div class="srd-field"><div class="srd-field-lbl">Method</div><div class="srd-field-val">${esc(col.delivery_method||'Pickup')}</div></div>
-        <div class="srd-field"><div class="srd-field-lbl">Priority</div><div class="srd-field-val">${col.priority==='urgent' ? 'Urgent' : 'Normal'}</div></div>
-        <div class="srd-field"><div class="srd-field-lbl">Recipient</div><div class="srd-field-val">${esc(col.recipient||'—')}</div></div>
-        ${col.address ? `<div class="srd-field"><div class="srd-field-lbl">Address</div><div class="srd-field-val">${esc(col.address)}</div></div>` : ''}
-        ${col.customer ? `<div class="srd-field"><div class="srd-field-lbl">Customer</div><div class="srd-field-val">${esc(col.customer)}</div></div>` : ''}
-        <div class="srd-field"><div class="srd-field-lbl">Requested By</div><div class="srd-field-val">${esc(requesterName)}</div></div>
-        <div class="srd-field"><div class="srd-field-lbl">Request Date</div><div class="srd-field-val">${dateStr}</div></div>
+        <div class="srd-field"><div class="srd-field-lbl">Método</div><div class="srd-field-val">${esc(col.delivery_method||'Pickup')}</div></div>
+        <div class="srd-field"><div class="srd-field-lbl">Prioridad</div><div class="srd-field-val">${col.priority==='urgent' ? 'Urgent' : 'Normal'}</div></div>
+        <div class="srd-field"><div class="srd-field-lbl">Destinatario</div><div class="srd-field-val">${esc(col.recipient||'—')}</div></div>
+        ${col.address ? `<div class="srd-field"><div class="srd-field-lbl">Dirección</div><div class="srd-field-val">${esc(col.address)}</div></div>` : ''}
+        ${col.customer ? `<div class="srd-field"><div class="srd-field-lbl">Cliente</div><div class="srd-field-val">${esc(col.customer)}</div></div>` : ''}
+        <div class="srd-field"><div class="srd-field-lbl">Solicitante</div><div class="srd-field-val">${esc(requesterName)}</div></div>
+        <div class="srd-field"><div class="srd-field-lbl">Fecha de solicitud</div><div class="srd-field-val">${dateStr}</div></div>
       </div>
-      ${col.notes ? `<div style="border-top:1px solid var(--border);margin-top:1rem;padding-top:1rem"><div class="srd-field-lbl" style="margin-bottom:0.35rem">Notes</div><div style="font-size:0.85rem;color:var(--text-2);line-height:1.6">${esc(col.notes)}</div></div>` : ''}
+      ${col.notes ? `<div style="border-top:1px solid var(--border);margin-top:1rem;padding-top:1rem"><div class="srd-field-lbl" style="margin-bottom:0.35rem">Notas</div><div style="font-size:0.85rem;color:var(--text-2);line-height:1.6">${esc(col.notes)}</div></div>` : ''}
       ${statusActionsHtml}
     </div>`
 
@@ -30369,7 +30378,7 @@ async function showCollectionRecord(collectionId, backTo) {
         <div class="comment-meta">
           <span class="comment-author">${esc(c.profiles?.full_name || 'Usuario')}</span>
           <span style="display:flex;align-items:center;gap:0.4rem">
-            ${new Date(c.created_at).toLocaleDateString('en-US',{day:'2-digit',month:'short',year:'numeric'})}
+            ${new Date(c.created_at).toLocaleDateString('es-GT',{day:'2-digit',month:'short',year:'numeric'})}
             ${(me.id === c.user_id || canEdit) ? `<button class="comment-del" onclick="deleteCollectionComment('${c.id}','${col.id}')">✕</button>` : ''}
           </span>
         </div>
@@ -30385,7 +30394,7 @@ async function showCollectionRecord(collectionId, backTo) {
   <div class="detail-view-inner" style="padding-bottom:2rem">
     <div style="margin-bottom:1rem">
       <button class="detail-back-btn" onclick="${_colWorkspaceBack}()">
-        <span class="detail-back-dot" style="background:var(--accent)"></span>
+        ${siIcon('arrow-left',16)}
         ${_colWorkspaceBack === 'showCollectionsHub' ? 'Colecciones' : 'Centro de muestras'}
       </button>
     </div>
@@ -30394,19 +30403,19 @@ async function showCollectionRecord(collectionId, backTo) {
     <div id="sample-workflow-panel"></div>
 
     <div class="pd-tabs ws-view-tabs">
-      <button class="pd-tab active" data-tab="board" onclick="switchWsTab('board')">Tablero</button>
-      <button class="pd-tab" data-tab="cards" onclick="switchWsTab('cards')">Tarjetas</button>
-      <button class="pd-tab" data-tab="table" onclick="switchWsTab('table')">Tabla</button>
-      <button class="pd-tab" data-tab="stats" onclick="switchWsTab('stats')">Estadísticas</button>
+      <button class="pd-tab active" data-tab="board" onclick="switchWsTab('board')">${siIcon('columns',16)} Tablero</button>
+      <button class="pd-tab" data-tab="cards" onclick="switchWsTab('cards')">${siIcon('grid',16)} Tarjetas</button>
+      <button class="pd-tab" data-tab="table" onclick="switchWsTab('table')">${siIcon('table',16)} Tabla</button>
+      <button class="pd-tab" data-tab="stats" onclick="switchWsTab('stats')">${siIcon('activity',16)} Estadísticas</button>
     </div>
 
     <div id="ws-tab-board">
-    ${submitFormHtml}
+    <details class="sample-delivery"><summary>${siIcon('truck',16)} ${isDraft?'Datos de entrega':'Resumen de entrega'}<span>${esc(col.recipient||'Completar destinatario')}</span></summary>${submitFormHtml}</details>
 
     <div class="srd-section-label" style="display:flex;align-items:center;gap:0.5rem">
       ${isDraft && myCap.manage_samples && items.length ? `<input type="checkbox" class="ws-select-all" onchange="wsToggleSelectAll(this.checked)" title="Seleccionar todo" />` : ''}
       <span>Muestras</span>
-      ${isDraft && myCap.manage_samples ? `<button class="ws-add-cat-btn" onclick="wsAddCategory('${col.id}')">+ Categoría</button>` : ''}
+      ${isDraft && myCap.manage_samples ? `<button class="ws-add-cat-btn" onclick="wsAddCategory('${col.id}')">${siIcon('plus',16)} Categoría</button>` : ''}
     </div>
     ${isDraft && myCap.manage_samples && items.length ? `
     <div class="ws-bulk-bar" id="ws-bulk-bar" style="display:none">
@@ -30426,7 +30435,7 @@ async function showCollectionRecord(collectionId, backTo) {
         <input type="text" id="ws-add-input" placeholder="Agregar producto por nombre o código…" oninput="wsSearchProducts('${col.id}', this.value)" />
       </div>
       <div id="ws-add-results"></div>` : ''}
-      ${itemsHtml || '<div style="font-size:0.82rem;color:var(--text-3);padding:0.4rem 0">No samples found.</div>'}
+      ${itemsHtml || '<div style="font-size:0.82rem;color:var(--text-3);padding:0.4rem 0">Aún no hay referencias. Busca un producto para empezar.</div>'}
     </div>
     </div>
 
@@ -30438,6 +30447,7 @@ async function showCollectionRecord(collectionId, backTo) {
   wsClosePopovers()
   if (typeof renderSampleWorkflow === 'function') await renderSampleWorkflow(col, items, governedFlow)
 }
+let _wsCollectionSpace=''
 let _colWorkspaceBack = 'showCollectionsHub'
 let _wsStatCharts = {}
 let _wsStatItems = []
@@ -30745,13 +30755,13 @@ function categorizedItemsHtml(items, categories, col, editable) {
             ${(DIV_SAMPLE_TYPES[it.products?.division]||['Sample']).map(t=>`<option ${t===it.sample_type?'selected':''}>${esc(t)}</option>`).join('')}
           </select>
           <div class="cart-stepper ws-row-qty">
-            <button class="cart-step-btn" onclick="wsSetQty('${it.id}','${col.id}',-1,${it.quantity||1})">−</button>
+            <button class="cart-step-btn" aria-label="Reducir cantidad de ${esc(it.products?.name||it.sample_id)}" onclick="wsSetQty('${it.id}','${col.id}',-1,${it.quantity||1})">${siIcon('minus',16)}</button>
             <span class="cart-step-qty">${it.quantity||1}</span>
-            <button class="cart-step-btn" onclick="wsSetQty('${it.id}','${col.id}',1,${it.quantity||1})">+</button>
+            <button class="cart-step-btn" aria-label="Aumentar cantidad de ${esc(it.products?.name||it.sample_id)}" onclick="wsSetQty('${it.id}','${col.id}',1,${it.quantity||1})">${siIcon('plus',16)}</button>
           </div>
           <select class="grant-sel ws-row-cat" onchange="wsSetCategory('${it.id}','${col.id}',this.value)">${catOptions(it.category_id)}</select>
           <div class="ws-price-wrap">${wsPriceCellHtml(it)}</div>
-          <button class="cart-item-remove" onclick="wsRemoveItem('${it.id}','${col.id}')" title="Quitar">
+          <button class="cart-item-remove" onclick="wsRemoveItem('${it.id}','${col.id}')" title="Quitar ${esc(it.products?.name||it.sample_id)}" aria-label="Quitar ${esc(it.products?.name||it.sample_id)} de esta colección">
             <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </button>
         </div>` : `
@@ -30892,7 +30902,9 @@ async function wsSearchProducts(collectionId, query) {
   if (!el) return
   const q = query.trim()
   if (q.length < 2) { el.innerHTML = ''; return }
-  const { data } = await sb.from('products').select('id,name,code,division').or(`name.ilike.%${q}%,code.ilike.%${q}%`).limit(6)
+  let search=sb.from('products').select('id,name,code,division').or(`name.ilike.%${q}%,code.ilike.%${q}%`)
+  const space=sampleSpaces[_wsCollectionSpace||sampleActiveSpace];if(space)search=search.in('division',space.divisions)
+  const { data } = await search.limit(6)
   if (!data?.length) { el.innerHTML = '<div style="font-size:0.76rem;color:var(--text-3);padding:0.5rem 0.3rem">Sin resultados</div>'; return }
   el.innerHTML = data.map(p => `<div class="ws-add-row" onclick="wsAddProduct('${collectionId}','${p.id}','${p.division}')">
     <span style="width:8px;height:8px;border-radius:50%;background:${DIV_CLR[p.division]||'#aaa'};flex-shrink:0"></span>
@@ -30902,8 +30914,8 @@ async function wsSearchProducts(collectionId, query) {
 async function wsAddProduct(collectionId, productId, division) {
   const { data: existing } = await sb.from('samples').select('products(division)').eq('collection_id', collectionId).limit(1)
   const otherDiv = existing?.[0]?.products?.division
-  if (otherDiv && otherDiv !== division) {
-    toast(`Esta colección ya tiene muestras de ${DIV_LBL[otherDiv] || otherDiv} — cada colección es de una sola división.`)
+  if (otherDiv && sampleSpaceForDivision(otherDiv) !== sampleSpaceForDivision(division)) {
+    toast(`Esta colección ya tiene muestras de ${DIV_LBL[otherDiv] || otherDiv} — cada colección pertenece a un equipo de muestras.`)
     return
   }
   const types = DIV_SAMPLE_TYPES[division] || ['Sample']
@@ -34493,9 +34505,10 @@ function printCommunicationMemo(){return commsReviewExport('pdf')}
     <div class="spotlight-results" id="spotlight-results"></div>
   </div>
 </div>
-<script src="js/sample-workflow.js?v=20260911-5"></script>
-<script src="js/sample-development.js?v=20260911-5"></script>
-<script src="js/sample-stock.js?v=20260911-5"></script>
-<script src="js/sample-center.js?v=20260911-5"></script>
+<script src="js/sample-workflow.js?v=20260911-6"></script>
+<script src="js/sample-development.js?v=20260911-6"></script>
+<script src="js/sample-stock.js?v=20260911-6"></script>
+<script src="js/sample-experience.js?v=20260911-6"></script>
+<script src="js/sample-center.js?v=20260911-6"></script>
 </body>
 </html>
