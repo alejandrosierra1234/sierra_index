@@ -1,0 +1,25 @@
+const {JSDOM}=require('../communications/node_modules/jsdom');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const repo=path.join(__dirname,'../..'),html=fs.readFileSync(path.join(repo,'index.html'),'utf8');
+const dom=new JSDOM('<main id="pg"></main>',{runScripts:'outside-only',url:'https://example.test'}),w=dom.window;
+w.eval(html.slice(html.indexOf('const SI_ICON ='),html.indexOf('// StatusBadge (workflow/lifecycle')));
+const originalIcon=w.siIcon;w.siIcon=(key,size)=>{const icon=originalIcon(key,size);assert(icon,`Missing icon ${key}`);return icon};
+w.esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+w.can=()=>true;w.canDispatchDiv=()=>true;w.showSampleTool=()=>w.document.getElementById('pg');
+const row={id:'one',collection_id:'COL-1',name:'Colección <script>bad()</script>',customer:'Cliente',owner_name:'Ventas',recipient:'Cliente',destination_country:'Guatemala',governed:true,configured:true,item_count:4,stage:'selection',costing_required:true,pending_prices:3,can_sales:true,can_select:true,can_pd:false,actionable:true};
+let reply={rows:[row],total:1,counts:{work:1,collections:8,tracking:0}};
+w.sb={rpc:async()=>({data:reply})};w.eval(fs.readFileSync(path.join(repo,'js/sample-center.js'),'utf8'));
+(async()=>{
+ await w.showSampleCenter();assert(w.document.body.textContent.includes('3 precios por completar'));assert.equal(w.document.querySelectorAll('script').length,0);assert(w.document.querySelector('[aria-current=page]').textContent.includes('Mi trabajo'));
+ assert(!w.document.querySelector('select'));assert(w.document.querySelector('input[aria-label="Buscar colecciones"]'));
+ assert.equal(w.sampleCenterTask({...row,stage:'packing_review',can_sales:false}).active,false);
+ assert.equal(w.sampleCenterTask({...row,can_sales:false,can_select:true}).action,'Editar selección');
+ assert(w.sampleCenterTask({...row,stage:'preparing',pending_preparation:0,pending_stock:2,can_pd:true}).detail.includes('2 lotes'));
+ await w.showSampleCenter('inventory');assert(w.document.body.textContent.includes('Telas'));assert(w.document.body.textContent.includes('Prendas'));
+ await w.showSampleCenter('tracking');assert(w.document.querySelector('details').textContent.includes('Solicitudes individuales anteriores'));
+ w.sb.rpc=async()=>({error:{message:'Conexión perdida'}});await w.loadSampleCenter();assert(w.document.querySelector('[role=alert]').textContent.includes('Reintentar'));assert(!w.document.body.textContent.includes('No tienes acciones pendientes'));
+ let resolveOld;w.sb.rpc=()=>new Promise(resolve=>resolveOld=resolve);const old=w.loadSampleCenter();
+ w.sb.rpc=async()=>({data:{...reply,rows:[{...row,name:'Resultado reciente'}]}});await w.loadSampleCenter();resolveOld({data:reply});await old;
+ assert(w.document.body.textContent.includes('Resultado reciente'));assert(!w.document.body.textContent.includes(row.name));
+ console.log('PASS: center hierarchy, icons, roles, blockers, safe content, inventory, errors and stale responses');w.close();
+})().catch(e=>{console.error(e);process.exit(1)});
