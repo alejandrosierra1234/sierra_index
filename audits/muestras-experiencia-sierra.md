@@ -49,3 +49,13 @@ La migración 38 se ensayó con rollback y después se aplicó en Supabase. No c
 ## Límites operativos que el diseño no sustituye
 
 La validación con la sesión administrativa y pruebas automatizadas no equivale a una sesión real con Ventas y PD. Falta cargar inventario fiable y confirmar las cuentas y permisos de las personas; no se inventan datos. La ficha QR no habilita todavía el catálogo colaborativo de autoservicio para clientes de fase dos. Los recorridos históricos de Hilo, Fibra y Químicos conservan sus reglas actuales de operación; la gobernanza nueva de PD sigue correspondiendo a Tela/Prendas.
+
+### Verificación publicada y cierre visual
+
+Comprobados en producción: entrada de cuatro espacios, navegación de Tela/Prendas,
+Centro con ocho colecciones de ese espacio frente a treinta en la consulta general,
+detalle real de colección y selector Sierra de formatos (abrir/cerrar sin modificar
+el registro). En la revisión final del catálogo se retiró el aviso repetido Nombre
+original, se distinguió Estado del desarrollo de existencia física y se redujo el
+peso de la acción repetida en cada fila. El control de precio identifica la
+referencia, la moneda almacenada y la unidad, y tiene icono y altura operativa.
