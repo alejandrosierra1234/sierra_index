@@ -3097,3 +3097,7 @@ eventos y estados deshabilitados. No se permite introducir nuevos dropdowns nati
 Entrega, opciones de etiqueta y detalle de existencias usan revelado progresivo.
 Los iconos de acción se obtienen del registro instalado; no se incorporan familias
 externas ni se declara completada la migración de iconos de §61.
+
+## Catálogo — recorrido de selección y comparación (2026-09-11)
+
+La búsqueda, filtros y orden son herramientas principales; agrupación, columnas y administración se revelan dentro de Opciones. El control de vista comparte fila con el contexto de resultados. La tarjeta usa `.card` y `.pg-grid` con la anatomía `.catalog-card`: media, nombre, identidad, composición, especificaciones y acciones. No se repiten casillas ni llamadas equivalentes para agregar a colección. La selección ofrece comparación de 2–4 referencias mediante el Drawer existente. Los datos importantes se muestran completos; la comparación permite desplazamiento horizontal. El estado del desarrollo nunca representa existencia física. Tokens y componentes de botón existentes conservan su escala.
