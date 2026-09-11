@@ -3072,3 +3072,7 @@ Las firmas guardadas almacenan imagen, nombre y cargo localmente en este navegad
 ### Tarjetas en columnas para comunicados
 
 Bloque con 2, 3 o 4 columnas y cualquier cantidad de tarjetas. Cambiar columnas conserva el contenido. Cada tarjeta incluye imagen opcional, título con la paleta SIERRA y texto enriquecido. Fondo gris suave, esquinas redondeadas, espacios uniformes e imágenes alineadas por fila. Mostrar imágenes completas de forma predeterminada; recortar solo por elección explícita. El editor presenta una tarjeta a la vez, con duplicar, reordenar y eliminar con Deshacer. Los títulos y textos participan en la revisión ortográfica. PNG/JPG conservan todo el bloque; el PDF mantiene cada fila completa y ajusta proporcionalmente una fila que exceda una página.
+
+### Almacenamiento de imágenes de comunicados
+
+Guardar imágenes y firmas en IndexedDB antes de incorporarlas al editor. Los registros y la biblioteca local conservan referencias, evitando duplicar imágenes en localStorage. Migrar imágenes anteriores sin reducir calidad ni reemplazar registros antes de confirmar su escritura; si falta un recurso, conservar los registros y permitir reintentar. Ante fallo de guardado, indicar cambios sin guardar, ofrecer reintento y respaldo JSON, y advertir al cerrar la pestaña. El almacenamiento continúa siendo local a este navegador.

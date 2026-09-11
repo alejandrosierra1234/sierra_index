@@ -1,9 +1,10 @@
 {
   "private": true,
   "scripts": {
-    "test": "node check.cjs && node management.cjs && node export.cjs && node flow.cjs && node clean.cjs && node spelling.cjs && node cards.cjs"
+    "test": "node check.cjs && node management.cjs && node export.cjs && node flow.cjs && node clean.cjs && node spelling.cjs && node cards.cjs && node storage.cjs"
   },
   "devDependencies": {
+    "fake-indexeddb": "^6.2.2",
     "jsdom": "30.0.1"
   }
 }
