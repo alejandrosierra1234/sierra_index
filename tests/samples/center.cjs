@@ -8,7 +8,7 @@ w.esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 w.can=()=>true;w.canDispatchDiv=()=>true;w.showSampleTool=()=>w.document.getElementById('pg');
 const row={id:'one',collection_id:'COL-1',name:'Colección <script>bad()</script>',customer:'Cliente',owner_name:'Ventas',recipient:'Cliente',destination_country:'Guatemala',governed:true,configured:true,item_count:4,stage:'selection',costing_required:true,pending_prices:3,can_sales:true,can_select:true,can_pd:false,actionable:true};
 let reply={rows:[row],total:1,counts:{work:1,collections:8,tracking:0}};
-w.sb={rpc:async()=>({data:reply})};w.eval(fs.readFileSync(path.join(repo,'js/sample-center.js'),'utf8'));
+w.sb={rpc:async()=>({data:reply})};w.eval(fs.readFileSync(path.join(repo,'js/sample-experience.js'),'utf8')+'\n'+fs.readFileSync(path.join(repo,'js/sample-center.js'),'utf8'));
 (async()=>{
  await w.showSampleCenter();assert(w.document.body.textContent.includes('3 precios por completar'));assert.equal(w.document.querySelectorAll('script').length,0);assert(w.document.querySelector('[aria-current=page]').textContent.includes('Mi trabajo'));
  assert(w.sampleCenterRow({...row,name:null}).includes('>COL-1</button>'));
@@ -23,5 +23,7 @@ w.sb={rpc:async()=>({data:reply})};w.eval(fs.readFileSync(path.join(repo,'js/sam
  let resolveOld;w.sb.rpc=()=>new Promise(resolve=>resolveOld=resolve);const old=w.loadSampleCenter();
  w.sb.rpc=async()=>({data:{...reply,rows:[{...row,name:'Resultado reciente'}]}});await w.loadSampleCenter();resolveOld({data:reply});await old;
  assert(w.document.body.textContent.includes('Resultado reciente'));assert(!w.document.body.textContent.includes(row.name));
+ let args;w.sb.rpc=async(name,input)=>{args=input;return {data:reply}};await w.enterSampleSpace('textiles');assert.equal(args.p_space,'textiles');
+ w.showCollectionRecord=()=>w.setSampleSpace('yarn');w.openSampleCenterCollection('one');await w.returnToSampleCenter();assert.equal(args.p_space,'textiles');
  console.log('PASS: center hierarchy, icons, roles, blockers, safe content, inventory, errors and stale responses');w.close();
 })().catch(e=>{console.error(e);process.exit(1)});
