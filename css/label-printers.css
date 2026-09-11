@@ -2,3 +2,27 @@
 /* Zebra is composed at its physical size, with bounded type and no print scaling. */
 .lbl.lbl-zebra{position:relative;width:50.8mm;height:76.2mm;padding:2mm;--ink:#000;--ink-2:#000;--ink-3:#000;--rule:#000;--teal:#000;gap:0}.lbl.lbl-zebra>*{flex-shrink:0}.lbl-zebra .lbl-hdr{min-height:5mm;margin-bottom:1mm;margin-right:20mm}.lbl-zebra .lbl-hdr-logo svg{height:4mm}.lbl-zebra .lbl-hdr-logo svg *{fill:#000!important}.lbl-zebra .lbl-hdr-qr{position:absolute;top:2mm;right:2mm;gap:0}.lbl-zebra .lbl-hdr-qr canvas,.lbl-zebra .lbl-hdr-qr img{width:18mm!important;height:18mm!important}.lbl-zebra .lbl-qr-hint{display:none}.lbl-zebra .lbl-block{margin-top:1mm;padding-top:1mm}.lbl-zebra .lbl-block[data-section=identity]{margin:0 20mm 0 0;padding:0;border:0;min-height:13mm}.lbl-zebra .lbl-title,.lbl-zebra .lbl-title.len-2,.lbl-zebra .lbl-title.len-3{font-size:3.3mm;line-height:1.05}.lbl-zebra .lbl-origin{font-size:2mm;margin-top:.7mm}.lbl-zebra .lbl-kv-k{width:13mm;font-size:1.9mm;letter-spacing:0}.lbl-zebra .lbl-kv-v{font-size:2.5mm;line-height:1.15}.lbl-zebra .lbl-kv+.lbl-kv{margin-top:.8mm}.lbl-zebra .lbl-spec-k,.lbl-zebra .lbl-meta-k,.lbl-zebra .lbl-yarn-k{font-size:1.8mm;letter-spacing:0;margin-bottom:.4mm}.lbl-zebra .lbl-spec-v,.lbl-zebra .lbl-meta-v,.lbl-zebra .lbl-yarn-v{font-size:2.3mm;line-height:1.1}.lbl-zebra .lbl-yarn+.lbl-yarn{margin-top:.6mm}.lbl-zebra .lbl-meta{gap:1mm}.lbl-zebra .lbl-rule{height:.25mm;margin:1.2mm 0 1mm}.lbl-zebra .lbl-bc-wrap{height:9mm}.lbl-zebra .lbl-bc-footer{margin-top:.8mm}.lbl-zebra .lbl-bc-id,.lbl-zebra .lbl-bc-site{font-size:1.9mm;letter-spacing:0}.lbl-zebra .lbl-bc-site{color:#000}.lbl-zebra .lbl-ykey{font-size:1.8mm}.lbl-zebra .lbl-ycomp-line,.lbl-zebra .lbl-ycomment,.lbl-zebra .lbl-yconstr{font-size:2.5mm;line-height:1.2}
 .lbl-zebra .lbl-block{margin-top:.7mm;padding-top:.7mm}.lbl-zebra .lbl-bc-wrap{height:8mm}.lbl-zebra .lbl-rule{margin:.8mm 0 .8mm}.lbl-zebra .lbl-bc-footer{margin-top:.6mm}
+/* Printer choice belongs to the document header, outside either scrolling pane. */
+.label-printer-bar{flex:0 0 auto;border-bottom:1px solid var(--border);padding:16px 24px;background:var(--surface)}
+.label-printer-picker{display:grid;grid-template-columns:190px minmax(0,1fr);gap:10px 24px;border:0;padding:0;margin:0}
+.label-printer-intro{display:flex;flex-direction:column;gap:6px;justify-content:center}
+.label-printer-intro strong{display:flex;align-items:center;gap:8px;font-size:14px}
+.label-printer-intro>span{font-size:13px;color:var(--text-3);line-height:1.4}
+.label-printer-picker>.label-printer-intro{display:flex;grid-template-columns:none}
+.label-printer-picker>.label-printer-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:780px}
+.label-printer-option{display:flex;align-items:center;gap:12px;min-height:68px;padding:12px 16px;border:1px solid var(--border);border-radius:10px;background:var(--surface);font:inherit;color:var(--text);text-align:left;cursor:pointer}
+.label-printer-option.active{border-color:var(--accent);background:var(--surface2);box-shadow:inset 0 0 0 1px var(--accent)}
+.label-printer-option:hover{background:var(--surface2)}
+.label-printer-option:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.label-printer-option-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:5px}
+.label-printer-option-copy strong{font-size:14px;line-height:1.3}
+.label-printer-option-copy small{font-size:12px;line-height:1.3}
+.label-printer-check{width:18px;height:18px;flex-shrink:0;color:var(--accent)}
+.label-paper-icon{width:28px;height:36px;border:1.5px solid currentColor;border-radius:4px;padding:7px 4px;display:flex;flex-direction:column;gap:4px;flex-shrink:0;color:var(--text-3)}
+.label-paper-icon.brother{width:32px;height:30px;border-bottom-style:dashed}
+.label-paper-icon i{height:2px;display:block;background:currentColor;opacity:.6}
+.label-paper-icon i:last-child{width:60%}
+.label-printer-picker>.label-printer-hint{grid-column:2;margin:0;font-size:12px;line-height:1.4;color:var(--text-3)}
+.label-printer-dialog .label-printer-picker,#m-yarn-print .label-printer-picker{grid-template-columns:1fr;margin:20px 0}
+.label-printer-dialog .label-printer-hint,#m-yarn-print .label-printer-hint{grid-column:1}
+@media(max-width:760px){.label-printer-bar{padding:12px 16px}.label-printer-picker{grid-template-columns:1fr;gap:10px}.label-printer-intro>span{display:none}.label-printer-picker>.label-printer-hint{grid-column:1}.label-printer-option{padding:10px;gap:8px}.label-paper-icon{display:none}}
