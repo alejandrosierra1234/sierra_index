@@ -26,3 +26,17 @@
 .label-printer-dialog .label-printer-picker,#m-yarn-print .label-printer-picker{grid-template-columns:1fr;margin:20px 0}
 .label-printer-dialog .label-printer-hint,#m-yarn-print .label-printer-hint{grid-column:1}
 @media(max-width:760px){.label-printer-bar{padding:12px 16px}.label-printer-picker{grid-template-columns:1fr;gap:10px}.label-printer-intro>span{display:none}.label-printer-picker>.label-printer-hint{grid-column:1}.label-printer-option{padding:10px;gap:8px}.label-paper-icon{display:none}}
+
+/* A local output setting, housed beside preview zoom rather than above the document. */
+.label-printer-inline{display:flex;align-items:center;gap:8px;flex:0 0 auto;color:var(--text-3)}
+.label-printer-inline>svg{width:16px;height:16px}
+.label-printer-select .pd-select-btn{height:var(--control-h);min-height:var(--control-h);padding:0 10px;gap:16px;font-size:13px;font-weight:500;border-color:transparent;background:transparent;color:var(--text)}
+.label-printer-select .pd-select-btn:hover,.label-printer-select.open .pd-select-btn{border-color:var(--border);background:var(--surface)}
+.lbl-pv-bar:has(.label-printer-inline){gap:12px;flex-wrap:wrap}
+.lbl-pv-bar .lbl-pv-dims{font-size:12px;color:var(--text-3)}
+.label-driver-help{padding:16px 0;margin:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.label-driver-help summary{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;color:var(--text-2);list-style:none}
+.label-driver-help summary svg{width:16px;height:16px}
+.label-driver-help summary::after{content:'⌄';margin-left:auto}
+.label-driver-help p{font-size:13px;line-height:1.5;margin:12px 0 0;color:var(--text-3)}
+@media(max-width:650px){.lbl-pv-bar .lbl-pv-dims{display:none}}
