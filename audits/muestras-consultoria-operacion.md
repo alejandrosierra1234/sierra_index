@@ -88,3 +88,7 @@ El cierre actual excluye renglones completos; para suministrar menos unidades de
 El historial de observaciones copia la ficha al registrar el comentario; no infiere automáticamente qué versión recibió un cliente. El vínculo a un desarrollo sucesor existe en servidor, pero aún falta un selector dedicado en la interfaz. Conviene añadir una bandeja global de decisiones de PD y plazos de atención.
 
 Las pruebas automatizadas cubren transacciones, permisos, concurrencia, faltantes, unidades fraccionarias, publicación pública y errores de interfaz. No sustituyen una prueba operativa con las cuentas reales de Ventas y PD y un inventario previamente conciliado. Las colecciones históricas ya preparadas conservan su circuito anterior; las nuevas de Fabric/Garment usan las reglas nuevas después de activar la configuración.
+
+### Verificación de publicación · 11 de septiembre de 2026
+
+Migraciones 34–36 instaladas en Supabase; diez tablas nuevas verificadas con RLS activo. Flujo automático activado para nuevas colecciones elegibles después de publicar la interfaz. Se conservaron las 30 colecciones existentes y no se crearon saldos ficticios. Inventario y bandeja QR comprobados en la aplicación publicada con la sesión existente. La validación operativa entre las cuentas reales de Ventas y PD sigue pendiente del alta de existencias y la confirmación de permisos.

@@ -10,4 +10,8 @@ w.eval(fs.readFileSync(require('node:path').join(__dirname,'../../js/sample-work
 flow={...flow,stage:'packed',destination_kind:'internal'};await w.renderSampleWorkflow(col,[item]);assert(!w.document.body.textContent.includes('Aprobar packing list'));assert(w.document.body.textContent.includes('Confirmar salida'));
 flow={...flow,stage:'selection'};await w.renderSampleWorkflow(col,[item]);assert.equal(w.document.querySelectorAll('input[type=radio]').length,3);assert(w.document.querySelector('label[for=sf-brief]'));assert(w.document.querySelectorAll('svg[aria-hidden=true]').length>5);
 w.sb.rpc=async()=>({error:{message:'Otro integrante cambió la colección'}});await w.runSampleWorkflow(id,'release');assert(w.document.querySelector('[role=alert]').textContent.includes('Otro integrante'));
+w.document.body.innerHTML='<div id=div-toolbar></div><h2 id=sec-title></h2><p id=sec-sub></p><div id=product-controls></div><div id=view-products><div id=pg></div></div>';
+w.syncModule=()=>{};w.leaveView=()=>{};w.renderSidebarTree=()=>{};
+assert.equal(w.showSampleTool('Inventario','Existencias','samples|fabric|inventory').id,'pg');assert.equal(w.document.getElementById('sec-title').textContent,'Inventario');assert.equal(w.document.getElementById('view-products').style.display,'block');
+console.log('PASS: sample tools use the real visible workspace container');
 console.log('PASS: external approval, internal destination, escaped content, labeled controls, actionable error');dom.window.close();})().catch(e=>{console.error(e);process.exit(1)});
