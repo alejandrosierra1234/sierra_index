@@ -3076,3 +3076,5 @@ Bloque con 2, 3 o 4 columnas y cualquier cantidad de tarjetas. Cambiar columnas 
 ### Almacenamiento de imágenes de comunicados
 
 Guardar imágenes y firmas en IndexedDB antes de incorporarlas al editor. Los registros y la biblioteca local conservan referencias, evitando duplicar imágenes en localStorage. Migrar imágenes anteriores sin reducir calidad ni reemplazar registros antes de confirmar su escritura; si falta un recurso, conservar los registros y permitir reintentar. Ante fallo de guardado, indicar cambios sin guardar, ofrecer reintento y respaldo JSON, y advertir al cerrar la pestaña. El almacenamiento continúa siendo local a este navegador.
+
+- Editor de comunicados: bloques plegables con un solo bloque abierto, resumen por tipo y nombre interno opcional. Resaltar únicamente el bloque activo en vista previa, nunca en exportaciones. La acción «Eliminar bloque completo» vive en el menú del bloque y confirma su identidad y contenido; «Eliminar esta tarjeta» es una acción distinta. Mantener Deshacer y restaurar el bloque activo.
