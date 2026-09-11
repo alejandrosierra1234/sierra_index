@@ -1,0 +1,26 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const {JSDOM}=require('jsdom');
+const source=fs.readFileSync(require('node:path').join(__dirname,'../../index.html'),'utf8');
+const dom=new JSDOM('<div id="pg"></div><div id="sec-title"></div><div id="sec-sub"></div>',{url:'https://test.local',runScripts:'outside-only'});
+const w=dom.window;w.eval=code=>vm.runInContext(code,dom.getInternalVMContext());w.esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');w.escAttr=w.esc;w.siIcon=()=>'';w.setSecCrumbs=()=>{};w.requestAnimationFrame=()=>{};w.document.queryCommandState=()=>false;
+w.jsStr=v=>String(v??'').replaceAll("'","\\'");w.clearSecCrumbs=()=>{};w.toast=()=>{};
+w.eval(source.slice(source.indexOf('function pdSelect('),source.indexOf('/* ═',source.indexOf('function pickPdSelect('))));
+let scripts=0;for(const match of source.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){if(!match[2].trim()||/application\/ld\+json/.test(match[1]))continue;new vm.Script(match[2]);scripts++}console.log(`PASS: syntax of ${scripts} inline scripts`);
+const start=source.indexOf("const COMMS_STORE_KEY="),end=source.indexOf('\n',source.indexOf('function printCommunicationMemo()',start));
+w.eval('const LBL_LOGO_SVG="";\n'+source.slice(start,end));
+
+w.eval(source.slice(source.indexOf('const SI_ICON = {'),source.indexOf('// StatusBadge (',source.indexOf('const SI_ICON = {'))));
+
+w.HTMLElement.prototype.scrollIntoView=function(){};
+
+let checks=0;function test(name,fn){fn();console.log('PASS: '+name);checks++}
+w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'))};
+w.newCommunicationDraft();
+test('only the selected editor section is visible',()=>{assert.equal(w.document.querySelectorAll('.memo-form-section:not([hidden])').length,2);w.commsEditorPanel('content');assert.equal(w.document.querySelectorAll('.memo-form-section:not([hidden])').length,1);assert.equal(w.document.querySelector('.memo-add-tools').open,false);w.commsEditorPanel('signature');assert.equal(w.document.querySelectorAll('.memo-form-section:not([hidden])').length,1)});
+test('saved signature includes identity and survives reload',()=>{w.eval("_commsCurrent.signature='data:image/png;base64,AA';_commsCurrent.signerName='Ana';_commsCurrent.signerTitle='Gerente';_commsCurrent.sender='Operaciones'");w.commsSaveSignature();w.document.querySelector('#memo-signature-label').value='Firma Ana';w.document.querySelector('dialog .btn-primary').click();const records=w.commsSignatureRecords();assert.equal(records.length,1);assert.equal(records[0].signerName,'Ana');assert.equal(records[0].label,'Firma Ana')});
+test('reuse preserves department and undo restores previous identity',()=>{const id=w.commsSignatureRecords()[0].id;w.eval("_commsCurrent.signerName='Pedro';_commsCurrent.signerTitle='Director';_commsCurrent.signature='anterior'");w.commsApplySignature(id);assert.equal(w.eval('_commsCurrent.sender'),'Operaciones');assert.equal(w.eval('_commsCurrent.signerName'),'Ana');w.commsUndoEdit();assert.equal(w.eval('_commsCurrent.signerName'),'Pedro');assert.equal(w.eval('_commsCurrent.signerTitle'),'Director');assert.equal(w.eval('_commsCurrent.signature'),'anterior')});
+test('signature storage failure preserves existing records',()=>{const original=w.Storage.prototype.setItem;w.Storage.prototype.setItem=()=>{throw Error('quota')};assert.equal(w.commsWriteSignatures([]),false);w.Storage.prototype.setItem=original;assert.equal(w.commsSignatureRecords().length,1)});
+test('removing a library signature cannot change an applied memo',()=>{w.commsApplySignature(w.commsSignatureRecords()[0].id);const image=w.eval('_commsCurrent.signature');assert.equal(w.commsWriteSignatures([]),true);assert.equal(w.eval('_commsCurrent.signature'),image)});
+test('text hierarchy retains formatting in exported document',()=>{for(const [style,tag]of [['title','H2'],['heading','H3'],['subtitle','P'],['caption','P']]){const html=w.memoRichBlockHtml({type:'text',style,richHtml:'<i>Ejemplo</i>'});const doc=new JSDOM(html).window.document;assert.equal(doc.body.firstChild.tagName,tag);assert.ok(doc.querySelector('em'));assert.ok(doc.body.firstChild.style.fontSize)}});
+test('flow figures are white and only markers use the selected color',()=>{const b={id:'white-flow',type:'process',steps:[{title:'Inicio',color:'#16cdbe',marker:'number'},{title:'Fin',color:'#004a86',marker:'icon',icon:'mail'}]};const doc=new JSDOM(w.memoFlowHtml(b)).window.document;assert.equal(doc.querySelectorAll('g[fill="#ffffff"]').length,2);assert.ok(doc.querySelector('text[fill="#007d73"]'));assert.ok(doc.querySelector('svg[stroke="#004a86"]'));assert.equal(doc.querySelectorAll('g[fill="#16cdbe"]').length,0)});
+console.log(checks+' clean editor checks passed');w.close();
