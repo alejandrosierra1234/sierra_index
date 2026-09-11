@@ -3055,3 +3055,10 @@ Separar Datos, Contenido y Firma en vistas dentro del editor; la vista previa si
 Estilos de texto: Párrafo, Título (22 px), Encabezado (17 px), Subtítulo (15 px) y Nota pequeña (11 px en documento), además de listas y énfasis existentes. Títulos y notas tienen campos de edición más compactos; conservar formato enriquecido y la misma jerarquía en impresión/exportación.
 
 Las firmas guardadas almacenan imagen, nombre y cargo localmente en este navegador. Guardar es explícito; usar una firma no modifica el remitente del comunicado. Retirar una firma de la biblioteca no modifica documentos anteriores. Permitir deshacer la aplicación de una firma, incluidos los datos de quien firma.
+
+### Exportación de comunicados
+
+- PNG y JPG conservan el documento completo en una imagen continua, incluidas firma y pie. Las imágenes insertadas se muestran completas.
+- PDF se compone en hojas carta con pie SIERRA, folio y «Página X de Y». Los párrafos conservan formato al dividirse; listas continúan su numeración y tablas repiten encabezados. Las figuras que exceden una hoja se ajustan proporcionalmente.
+- La opción «Marcar como confidencial» vive en Datos y agrega una marca de agua discreta al documento y a cada página exportada. Se conserva al guardar y duplicar.
+- El pie no incluye «Comunicación interna». La vista continua informa cuando el PDF ocupará varias páginas sin presentarlo como error.
