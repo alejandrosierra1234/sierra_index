@@ -7317,8 +7317,8 @@
   </style>
 <link rel="stylesheet" href="css/sample-workflow.css?v=20260911-9">
 <link rel="stylesheet" href="css/catalog-experience.css?v=20260911-9">
-<link rel="stylesheet" href="css/label-printers.css?v=20260911-10">
-<script src="js/label-printers.js?v=20260911-10"></script>
+<link rel="stylesheet" href="css/label-printers.css?v=20260911-11">
+<script src="js/label-printers.js?v=20260911-11"></script>
 <script src="js/catalog-experience.js?v=20260911-9"></script>
 </head>
 <body>
@@ -7632,6 +7632,7 @@
       </div>
     </div>
 
+    <div class="label-printer-bar" data-printer-bar></div>
     <div class="lbl-dr-body">
       <!-- LEFT: editor -->
       <div class="lbl-dr-editor">
@@ -7692,6 +7693,7 @@
       </div>
     </div>
 
+    <div class="label-printer-bar" data-printer-bar></div>
     <div class="lbl-dr-body">
       <!-- LEFT: structured yarn editor -->
       <div class="lbl-dr-editor" style="width:460px">
@@ -11936,10 +11938,11 @@ function lbRenderEditor() {
   const tabs = [['content', 'Content'], ['layout', 'Layout'], ['codes', 'Codes'], ['print', 'Print']]
   tabsEl.innerHTML = `<div class="sub-tabs" role="tablist">${tabs.map(([k, l]) =>
     `<button class="sub-tab${LB.tab === k ? ' active' : ''}" role="tab" aria-selected="${LB.tab === k}" onclick="lbSwitchTab('${k}')">${l}</button>`).join('')}</div>`
-  bodyEl.innerHTML = '<div data-printer-picker>'+labelPrinterPicker()+'</div>' + (LB.tab === 'content' ? lbContentHtml()
+  refreshLabelPrinterControls()
+  bodyEl.innerHTML = LB.tab === 'content' ? lbContentHtml()
     : LB.tab === 'layout' ? lbLayoutHtml()
     : LB.tab === 'codes' ? lbCodesHtml()
-    : lbPrintHtml())
+    : lbPrintHtml()
 }
 
 function lbFieldHtml(key, opts = {}) {
@@ -12199,6 +12202,7 @@ function lbUpdateHeader() {
   if (saveBtn) saveBtn.disabled = !lbCanEdit() || !lbDirty()
   const printBtn = document.getElementById('lbl-print-btn')
   if (printBtn) {
+    printBtn.innerHTML = LB_ICON.print + 'Imprimir · ' + (labelPrinterKey()==='zebra'?'Zebra 2 × 3':'Brother')
     printBtn.disabled = lbBlocking()
     printBtn.title = lbBlocking() ? 'Fix the errors in the Print tab first' : 'Print this label'
   }
@@ -12769,7 +12773,7 @@ function lbFitPreview() {
   if (dims) {
     const t = lbTemplate()
     const sheet = lbSheetMm(lbMeasuredMm(label.querySelector('.lbl')))
-    dims.textContent = `${t.widthMm} × ${sheet} mm sheet  ·  ${Math.round(scale * 100)}%`
+    dims.textContent = `${labelPrinter().name} · ${t.widthMm} × ${sheet} mm  ·  ${Math.round(scale * 100)}%`
   }
 }
 
@@ -13164,6 +13168,7 @@ function ycMeasureTightness(p, cfg) {
 
 /* ── Live preview — no Preview button, every field updates it (§18) ── */
 function ycRenderPreview() {
+  refreshLabelPrinterControls()
   const host = document.getElementById('yc-label-preview')
   if (!host) return
   const draft = ycDraftProduct()
