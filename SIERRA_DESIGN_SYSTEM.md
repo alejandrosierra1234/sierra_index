@@ -3066,3 +3066,5 @@ Las firmas guardadas almacenan imagen, nombre y cargo localmente en este navegad
 - Firmantes: editor con selección de persona y acción Agregar firmante; cada persona conserva nombre, cargo e imagen independientes y puede usar la biblioteca local. El documento distribuye dos firmas por fila; el PDF pagina filas completas. Eliminar firmante admite Deshacer.
 
 - Antes de exportar PDF, PNG o JPG, presentar revisión ortográfica local en español. Mostrar palabra, contexto y sugerencias; aplicar cambios solo con aceptación explícita y conservar formato. Permitir conservar nombres propios. La revisión no cubre gramática ni texto en imágenes. Si el diccionario falla, ofrecer reintento sin iniciar descarga.
+
+- Cada firmante tiene nombre, puesto y departamento independientes. Nombre en negrita, puesto debajo y departamento en una tercera línea de menor tamaño. El departamento del firmante no se deriva del remitente ni de la clasificación; se conserva en la biblioteca de firmas y se revisa ortográficamente.
