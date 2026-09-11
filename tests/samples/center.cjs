@@ -11,6 +11,8 @@ let reply={rows:[row],total:1,counts:{work:1,collections:8,tracking:0}};
 w.sb={rpc:async()=>({data:reply})};w.eval(fs.readFileSync(path.join(repo,'js/sample-center.js'),'utf8'));
 (async()=>{
  await w.showSampleCenter();assert(w.document.body.textContent.includes('3 precios por completar'));assert.equal(w.document.querySelectorAll('script').length,0);assert(w.document.querySelector('[aria-current=page]').textContent.includes('Mi trabajo'));
+ assert(w.sampleCenterRow({...row,name:null}).includes('>COL-1</button>'));
+ assert.equal(w.sampleCenterTask({...row,governed:false,status:'draft',name:null}).detail,'Dar nombre a la colección');
  assert(!w.document.querySelector('select'));assert(w.document.querySelector('input[aria-label="Buscar colecciones"]'));
  assert.equal(w.sampleCenterTask({...row,stage:'packing_review',can_sales:false}).active,false);
  assert.equal(w.sampleCenterTask({...row,can_sales:false,can_select:true}).action,'Editar selección');

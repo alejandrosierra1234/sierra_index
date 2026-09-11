@@ -22,3 +22,5 @@ Los detalles de faltantes, precios pendientes, lotes por asignar y etiquetas pen
 Pruebas SQL de conteos (82 referencias), roles, borradores vacíos, búsqueda, paginación y RLS; pruebas DOM de jerarquía, iconos existentes, escape de contenido, bloqueos y respuestas fuera de orden. Revisión visual con casos de selección, revisión comercial, preparación y salida. La consulta se instala como `update37.sql` sin cambiar saldos ni estados existentes.
 
 La validación operativa con cuentas reales de Ventas y PD sigue dependiendo de verificar sus permisos y cargar existencias físicas. El historial individual conserva un límite visible de 80 registros recientes; las colecciones usan paginación sin ese recorte.
+
+Verificación publicada: la cuenta actual ve 30 colecciones y 12 pendientes; buscar TARGET devuelve una colección, abrirla y volver conserva la búsqueda. Inventario presenta accesos separados a telas y prendas. La consulta instalada no usa SECURITY DEFINER ni permite ejecución anónima. Las colecciones sin nombre se identifican por su folio y los borradores indican los datos por completar.
