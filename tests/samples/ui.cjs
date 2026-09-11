@@ -9,6 +9,7 @@ w.eval(fs.readFileSync(require('node:path').join(__dirname,'../../js/sample-work
 (async()=>{await w.renderSampleWorkflow(col,[item]);assert(w.document.body.textContent.includes('Aprobar packing list'));assert(!w.document.querySelector('script'));assert(w.document.body.textContent.includes(item.products.name));
 flow={...flow,stage:'packed',destination_kind:'internal'};await w.renderSampleWorkflow(col,[item]);assert(!w.document.body.textContent.includes('Aprobar packing list'));assert(w.document.body.textContent.includes('Confirmar salida'));
 flow={...flow,stage:'selection'};await w.renderSampleWorkflow(col,[item]);assert.equal(w.document.querySelectorAll('input[type=radio]').length,3);assert(w.document.querySelector('label[for=sf-brief]'));assert(w.document.querySelectorAll('svg[aria-hidden=true]').length>5);
+flow={...flow,configured:false};await w.renderSampleWorkflow(col,[item]);assert.equal(w.document.querySelector('.sf-settings').open,false);for(const field of ['sf-country','sf-costing','sf-brief','sf-label-title','sf-label-price'])assert(w.document.getElementById(field));
 w.sb.rpc=async()=>({error:{message:'Otro integrante cambió la colección'}});await w.runSampleWorkflow(id,'release');assert(w.document.querySelector('[role=alert]').textContent.includes('Otro integrante'));
 w.document.body.innerHTML='<div id=div-toolbar></div><h2 id=sec-title></h2><p id=sec-sub></p><div id=product-controls></div><div id=view-products><div id=pg></div></div>';
 w.syncModule=()=>{};w.leaveView=()=>{};w.renderSidebarTree=()=>{};
