@@ -7317,6 +7317,8 @@
   </style>
 <link rel="stylesheet" href="css/sample-workflow.css?v=20260911-9">
 <link rel="stylesheet" href="css/catalog-experience.css?v=20260911-9">
+<link rel="stylesheet" href="css/label-printers.css?v=20260911-10">
+<script src="js/label-printers.js?v=20260911-10"></script>
 <script src="js/catalog-experience.js?v=20260911-9"></script>
 </head>
 <body>
@@ -7740,7 +7742,7 @@
         </div>
       </div>
       <div class="fg"><label id="yc-size-label">Label size</label><div style="font-size:0.88rem;color:var(--text-2)" id="yc-print-size">62 × — mm</div></div>
-      <div class="fg" style="margin-bottom:0"><label id="yc-printer-label">Printer profile</label><div style="font-size:0.88rem;color:var(--text-2)">Brother QL-800 · DK-2205</div></div>
+      <div class="fg" style="margin-bottom:0"><label id="yc-printer-label">Printer profile</label><div data-printer-picker></div></div>
     </div>
     <div class="modal-ftr">
       <button class="btn btn-secondary" id="yc-print-cancel-btn" onclick="closeModal('m-yarn-print')">Cancel</button>
@@ -11678,7 +11680,7 @@ function lbProductValue(key) {
 function lbVisible(key) {
   return !LB.cfg.hidden.includes(key) && lbValue(key).trim() !== ''
 }
-function lbTemplate() { return LABEL_TEMPLATES[LB.cfg.template] || LABEL_TEMPLATES[LABEL_DEFAULT_TEMPLATE] }
+function lbTemplate() { return labelGeometry(LB.cfg) }
 function lbDirty() { return JSON.stringify(LB.cfg) !== JSON.stringify(LB.saved) }
 
 /* Who may do what. UI hiding is not authorization — the actual write is
@@ -11748,9 +11750,11 @@ function lbValidate() {
   // Overflow is measured from the rendered preview, not guessed from
   // string lengths — the label reflows, so only the DOM knows the truth.
   const el = document.querySelector('#label-preview .lbl')
-  if (el) {
+  if (el && el.dataset.product === LB.p.id && el.dataset.template === LB.cfg.template) {
     const hMm = lbMeasuredMm(el)
-    if (hMm > t.maxHeightMm) {
+    if (labelPrinterKey()==='zebra') {
+      const error=labelZebraPreflight(el);if(error)issues.push({sev:'error',field:null,title:'Contenido fuera de la etiqueta',desc:error});
+    } else if (hMm > t.maxHeightMm) {
       const longest = ['yarn01', 'yarn02', 'yarn03', 'composition']
         .filter(k => lbVisible(k))
         .sort((a, b) => lbValue(b).length - lbValue(a).length)[0]
@@ -11932,10 +11936,10 @@ function lbRenderEditor() {
   const tabs = [['content', 'Content'], ['layout', 'Layout'], ['codes', 'Codes'], ['print', 'Print']]
   tabsEl.innerHTML = `<div class="sub-tabs" role="tablist">${tabs.map(([k, l]) =>
     `<button class="sub-tab${LB.tab === k ? ' active' : ''}" role="tab" aria-selected="${LB.tab === k}" onclick="lbSwitchTab('${k}')">${l}</button>`).join('')}</div>`
-  bodyEl.innerHTML = LB.tab === 'content' ? lbContentHtml()
+  bodyEl.innerHTML = '<div data-printer-picker>'+labelPrinterPicker()+'</div>' + (LB.tab === 'content' ? lbContentHtml()
     : LB.tab === 'layout' ? lbLayoutHtml()
     : LB.tab === 'codes' ? lbCodesHtml()
-    : lbPrintHtml()
+    : lbPrintHtml())
 }
 
 function lbFieldHtml(key, opts = {}) {
@@ -12132,12 +12136,10 @@ function lbPrintHtml() {
     </div>
     <div class="lbl-ed-group">
       <div class="lbl-ed-label">Printer</div>
-      <div class="lbl-ed-row"><span class="lbl-ed-row-label">Target</span><span style="font-size:14px;font-weight:650">Brother QL-800</span></div>
-      <div class="lbl-ed-row"><span class="lbl-ed-row-label">Media</span><span style="font-size:14px;font-weight:650">${t.widthMm} mm continuous</span></div>
+      <div class="lbl-ed-row"><span class="lbl-ed-row-label">Target</span><span style="font-size:14px;font-weight:650">${labelPrinter().name}</span></div>
+      <div class="lbl-ed-row"><span class="lbl-ed-row-label">Media</span><span style="font-size:14px;font-weight:650">${labelPrinterKey()==='zebra'?'2 × 3 pulgadas':t.widthMm+' mm'}</span></div>
       <div class="lbl-ed-row"><span class="lbl-ed-row-label">Sheet</span><span style="font-size:14px;font-weight:650">${t.widthMm} × ${lbSheetMm(lbMeasuredMm(document.querySelector('#label-preview .lbl')))} mm</span></div>
-      <div class="lbl-ed-note">Length follows the content on ${t.widthMm} mm continuous tape.
-        The page is set to exactly these dimensions with zero margin, so the printed sheet matches the preview.
-        Choose the QL-800 in the browser's print dialog.</div>
+      <div class="lbl-ed-note">${labelPrinterKey()==='zebra'?'Papel de 50,8 × 76,2 mm. El contenido se imprime a tamaño real, sin reducirse.':'La longitud sigue el formato Brother actual.'} Selecciona ${labelPrinter().name} en el diálogo, escala 100%, sin encabezados ni pies.</div>
     </div>
     <div class="lbl-ed-group">
       <div class="lbl-ed-label">Copies</div>
@@ -12534,7 +12536,7 @@ function renderLabel(p, cfg, opts = {}) {
   // — both hosts can hold stale markup at once, and getElementById must
   // resolve to the right one.
   const { interactive = false, assets = null, idPrefix = 'lbl' } = opts
-  const t = LABEL_TEMPLATES[cfg.template] || LABEL_TEMPLATES[LABEL_DEFAULT_TEMPLATE]
+  const t = labelGeometry(cfg)
   // Value resolution mirrors lbValue() but is driven by the passed cfg so
   // the print path never depends on the live editor being open.
   const V = key => {
@@ -12681,10 +12683,10 @@ function renderLabel(p, cfg, opts = {}) {
     if (!fn) return
     const inner = fn()
     if (!inner) return
-    out.push(secKey === 'footer' ? inner : `<div class="lbl-block">${inner}</div>`)
+    out.push(secKey === 'footer' ? inner : `<div class="lbl-block" data-section="${secKey}">${inner}</div>`)
   })
 
-  return `<div class="lbl ${t.variant}${cfg.tight ? ' is-tight' : ''}" style="width:${t.widthMm}mm">${out.join('')}</div>`
+  return `<div class="lbl ${t.variant}${cfg.tight ? ' is-tight' : ''}" data-product="${escAttr(p.id)}" data-template="${escAttr(cfg.template)}" style="width:${t.widthMm}mm">${out.join('')}</div>`
 }
 
 /* ══ Live preview ══ every edit re-renders here; there is no preview
@@ -12842,6 +12844,7 @@ async function printLabel() {
   const copiesEl = document.getElementById('lbl-copies')
   const copies = Math.max(1, Math.min(50, parseInt(copiesEl?.value, 10) || 1))
   const assets = await lbBuildPrintAssets()
+  if((LB.cfg.qr.enabled&&!assets.qrSrc)||(LB.cfg.barcode.enabled&&!assets.bcSvgHtml)){toast('No se pudieron generar los códigos de la etiqueta. Intenta de nuevo.',5000);return false}
   const html = renderLabel(LB.p, LB.cfg, { assets })
 
   const root = document.getElementById('print-root')
@@ -12851,12 +12854,16 @@ async function printLabel() {
   // exactly that. On continuous media the sheet follows the content, so
   // nothing is scaled; a fixed-length format scales only when it must.
   root.style.cssText = 'display:block;position:fixed;visibility:hidden;top:0;left:0;z-index:-1;pointer-events:none'
-  await new Promise(r => setTimeout(r, 80))
+  await document.fonts.ready
+  await Promise.all([...root.querySelectorAll('img')].map(img=>img.decode()))
+  await new Promise(r => requestAnimationFrame(r))
   const first = root.querySelector('.lbl')
+  const printError=labelZebraPreflight(first);
+  if(printError){root.innerHTML='';root.style.cssText='';LB.issues=[{sev:'error',title:'Contenido fuera de la etiqueta',desc:printError}];toast(printError,6000);return false}
   const sheetMm = lbSheetMm(lbMeasuredMm(first))
   root.querySelectorAll('.lbl').forEach(lbl => {
     const hMm = lbMeasuredMm(lbl)
-    if (hMm > sheetMm) {
+    if (labelPrinterKey()!=='zebra' && hMm > sheetMm) {
       const scale = sheetMm / hMm
       lbl.style.transformOrigin = 'top left'
       lbl.style.transform = `scale(${scale})`
@@ -12879,7 +12886,7 @@ async function printLabel() {
 
   Audit.log('product', LB.p.id, LB.p, 'label_printed',
     `Label printed — ${t.name}${copies > 1 ? ` × ${copies}` : ''}`, [],
-    { template: LB.cfg.template, copies, barcode: lbBarcodePayload() })
+    { printer:labelPrinterKey(), template: LB.cfg.template, copies, barcode: lbBarcodePayload() })
 
   window.print()
   setTimeout(() => { root.innerHTML = ''; pageStyle.textContent = '' }, 1200)
@@ -13226,16 +13233,16 @@ function ycUpdateDims(host, draft) {
   const dims = document.getElementById('yc-pv-dims')
   const printBtn = document.getElementById('yc-save-print-btn')
   if (!lbl || !dims) return
-  const fixedMm = LABEL_TEMPLATES['yarn-label'].fixedHeightMm
+  const fixedMm = labelGeometry({template:'yarn-label'}).fixedHeightMm
   // The physical stock is a fixed 62×100mm, always — not cut to content.
   // Force the on-screen card to that same height (padding out with
   // blank space below short content) so the preview shows exactly what
   // prints, never a shorter card that only matches the content.
   lbl.style.minHeight = fixedMm + 'mm'
   const measuredMm = lbMeasuredMm(lbl)
-  const over = measuredMm > fixedMm
+  const over = labelPrinterKey()==='zebra'?labelOverflows(lbl):measuredMm > fixedMm
   const codeNote = draft.code ? '' : ' <span style="color:var(--text-muted)">· El código se generará al guardar</span>'
-  dims.innerHTML = `62 × ${fixedMm} mm  ·  Brother QL-800 · DK-2205${codeNote}${over ? ' <span style="color:var(--warning-text);font-weight:700">· content taller than the label — will be scaled to fit</span>' : ''}`
+  dims.innerHTML = `${labelPrinter().widthMm} × ${fixedMm} mm · ${labelPrinter().name}${codeNote}${over ? ' <span style="color:var(--warning-text);font-weight:700">· contenido demasiado extenso: revisa los campos</span>' : ''}`
   const hint = document.getElementById('yc-length-hint')
   if (hint) hint.style.display = over ? 'block' : 'none'
 }
@@ -13580,8 +13587,10 @@ async function ycSave(thenPrint) {
    saved record — same code, same barcode, no label recreated. ── */
 let _ycPrintTarget = null
 let _ycPrintCfg = null
-async function ycOpenPrintStep(p) {
+async function ycOpenPrintStep(p,printerChosen=false) {
+  if(!printerChosen)return chooseLabelPrinter(()=>ycOpenPrintStep(p,true))
   _ycPrintTarget = p
+  document.querySelectorAll('#m-yarn-print [data-printer-picker]').forEach(el=>el.innerHTML=labelPrinterPicker())
   const errBox = document.getElementById('yc-print-errors')
   if (errBox) { errBox.style.display = 'none'; errBox.innerHTML = '' }
   const s = p.specs || {}
@@ -13604,11 +13613,11 @@ async function ycOpenPrintStep(p) {
   // Creator is opened directly (the normal case). That threw here,
   // uncaught, before the print modal's own .open class was ever added
   // — Save & Print looked like it silently did nothing after saving.
-  const yt = LABEL_TEMPLATES['yarn-label']
+  const yt = labelGeometry(cfg)
   const measuredMm = lbMeasuredMm(tmp.querySelector('.lbl'))
   const sheetMm = yt.fixedHeightMm || Math.min(Math.max(measuredMm || 0, 40), yt.maxHeightMm)
   document.body.removeChild(tmp)
-  document.getElementById('yc-print-size').textContent = `62 × ${sheetMm} mm${measuredMm > sheetMm ? ' · ' + tx('yc.maxLength') : ''}`
+  document.getElementById('yc-print-size').textContent = `${yt.widthMm} × ${sheetMm} mm${measuredMm > sheetMm ? ' · ' + tx('yc.maxLength') : ''}`
 
   document.getElementById('m-yarn-print').classList.add('open')
 }
@@ -30972,7 +30981,8 @@ async function wsSavePrice(itemId) {
 }
 
 /* ── COMMERCIAL PRICE STICKER (separate from the base product label) ── */
-async function printPriceSticker(sampleId) {
+async function printPriceSticker(sampleId,printerChosen=false) {
+  if(!printerChosen)return chooseLabelPrinter(()=>printPriceSticker(sampleId,true))
   const { data: s } = await sb.from('samples')
     .select('*, products(name,code), sample_collections!collection_id(collection_id,customer,name)')
     .eq('id', sampleId).single()
@@ -30992,6 +31002,7 @@ async function printPriceSticker(sampleId) {
   const col = s.sample_collections || {}
   const w = window.open('', '_blank')
   if (!w) { toast('Permite abrir la ventana de impresión'); return }
+  if(labelPrinterKey()==='brother'){
   w.document.write(`<html><head><title>Price sticker ${esc(s.sample_id)}</title><style>
     @page { size: 62mm 40mm; margin: 2mm; }
     body { font-family: -apple-system, Helvetica, Arial, sans-serif; margin:0; color:#000; }
@@ -31012,6 +31023,10 @@ async function printPriceSticker(sampleId) {
     <div class="small" style="text-align:center">${esc(s.sample_id)}</div>
   </div></body></html>`)
   w.document.close(); w.print()
+  }else{
+  const ready=await openThermalDocument(w,thermalSampleHtml({name:s.products?.name||'',fields:[['Referencia',s.products?.code],['Cliente',col.customer],['Colección',col.collection_id],['MOQ',s.moq],['Vigente hasta',s.price_valid_until],['Observaciones',s.price_notes]],barcode:bcHtml,price:esc(s.price_currency||'USD')+' '+Number(s.price).toFixed(2),note:s.sample_id}),'Precio '+s.sample_id)
+  if(!ready)return
+  }
   const {error: printError} = await sb.from('samples').update({ sticker_printed_at: new Date().toISOString() }).eq('id', sampleId)
   if (printError) { toast('Etiqueta abierta; no se pudo registrar: ' + printError.message); return }
   const item = (_dispatchItems || []).find(i => i.id === sampleId)
@@ -31827,75 +31842,16 @@ async function archiveSample(id) {
 }
 
 /* ── SAMPLE LABEL WITH QR + BARCODE ── */
-function generateSampleLabel(sDataStr) {
-  let sData
-  try { sData = JSON.parse(typeof sDataStr === 'string' ? sDataStr : JSON.stringify(sDataStr)) } catch { return }
-
-  const dateStr = new Date().toLocaleDateString('en-US', { day:'2-digit', month:'short', year:'numeric' })
-
-  const w = window.open('', '_blank', 'width=360,height=640,menubar=no,toolbar=no,location=no')
-  if (!w) { toast('Allow pop-ups to print label'); return }
-
-  const printHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>Sample Label — ${sData.sample_id}</title>
-  <style>
-    @page { size: 62mm auto; margin: 0; }
-    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    body { margin: 0; padding: 0; background: #fff; font-family: Arial, Helvetica, sans-serif; }
-    .smp-lbl { width:62mm; padding:3mm 4.5mm; display:flex; flex-direction:column; gap:1.8mm; background:#fff; color:#000; }
-    .hdr { display:flex; justify-content:space-between; align-items:center; }
-    .logo svg { height:5.5mm; width:auto; }
-    .type-badge { font-size:1.8mm; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; }
-    .rule { height:0.5mm; background:#000; }
-    .name { font-size:4mm; font-weight:700; text-transform:uppercase; line-height:1; overflow-wrap:break-word; padding:0.5mm 0; }
-    .code { font-size:2.5mm; font-weight:600; color:#555; }
-    .smp-id { font-size:3.5mm; font-weight:700; letter-spacing:0.04em; }
-    .codes-row { display:flex; gap:2mm; align-items:flex-start; justify-content:space-between; }
-    .qr-wrap canvas { width:18mm; height:18mm; display:block; }
-    .bc-wrap svg { width:40mm; height:auto; display:block; margin-top:1mm; }
-    .foot { font-size:1.7mm; color:#888; }
-    #save-btn { position:fixed; top:8px; right:8px; background:#16cdbe; color:#fff; border:none; border-radius:6px; padding:6px 14px; font-size:12px; cursor:pointer; font-family:inherit; }
-    @media print { #save-btn { display:none; } }
-  </style>
-  </head><body>
-  <button id="save-btn" onclick="window.print()">Save PDF</button>
-  <div class="smp-lbl" id="label-root">
-    <div class="hdr">
-      <div class="logo">${LBL_LOGO_SVG}</div>
-      <div class="type-badge">${esc(sData.sample_type)}</div>
-    </div>
-    <div class="rule"></div>
-    <div class="name">${esc(sData.product_name)}</div>
-    <div class="code">${esc(sData.product_code)}${sData.customer ? ' · ' + esc(sData.customer) : ''}</div>
-    <div class="rule" style="opacity:0.3"></div>
-    <div class="smp-id">${esc(sData.sample_id)}</div>
-    <div class="codes-row">
-      <div class="qr-wrap"><canvas id="qr-canvas" width="72" height="72"></canvas></div>
-      <div class="bc-wrap"><svg id="bc-svg"></svg></div>
-    </div>
-    <div class="foot">SIERRA INDEX · ${dateStr}${sData.quantity > 1 ? ' · Qty: ' + sData.quantity : ''}</div>
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1/build/qrcode.min.js"><\/script>
-  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3/dist/JsBarcode.all.min.js"><\/script>
-  <script>
-    window.onload = function() {
-      try {
-        QRCode.toCanvas(document.getElementById('qr-canvas'), '${sData.sample_id}', { width:72, margin:1, color:{dark:'#000',light:'#fff'} })
-      } catch(e){}
-      try {
-        JsBarcode(document.getElementById('bc-svg'), '${sData.sample_id}', { format:'CODE128', width:1.4, height:36, displayValue:false, margin:2 })
-      } catch(e){}
-      var lbl = document.querySelector('.smp-lbl')
-      var st = document.createElement('style')
-      var hmm = Math.ceil((lbl.offsetHeight / 96 * 25.4) + 1)
-      st.textContent = '@page { size: 62mm ' + hmm + 'mm; margin: 0; }'
-      document.head.appendChild(st)
-    }
-  <\/script>
-  </body></html>`
-
-  w.document.write(printHtml)
-  w.document.close()
+async function generateSampleLabel(sDataStr,printerChosen=false) {
+ if(!printerChosen)return chooseLabelPrinter(()=>generateSampleLabel(sDataStr,true))
+ let sData;try{sData=JSON.parse(typeof sDataStr==='string'?sDataStr:JSON.stringify(sDataStr))}catch{return}
+ const w=window.open('','_blank');if(!w){toast('Permite abrir la ventana de impresión');return}
+ try{
+ const qr=await new Promise((resolve,reject)=>QRCode.toDataURL(sData.sample_id,{width:256,margin:4},(e,url)=>e?reject(e):resolve(url)));
+ const bc=document.createElementNS('http://www.w3.org/2000/svg','svg');JsBarcode(bc,sData.sample_id,{format:'CODE128',height:60,width:2,marginLeft:20,marginRight:20,marginTop:2,marginBottom:2,displayValue:false});
+ const ready=await openThermalDocument(w,thermalSampleHtml({name:sData.product_name,qr,barcode:bc.outerHTML,fields:[['Referencia',sData.product_code],['Formato',sData.sample_type],['Cliente',sData.customer],['Cantidad',sData.quantity||1]],note:sData.sample_id+' · '+new Date().toLocaleDateString('es-HN')}),'Etiqueta '+sData.sample_id);
+ if(!ready)return
+ }catch(e){w.close();toast('No se pudo generar la etiqueta: '+e.message);return}
 
   // Also add a timeline event
   if (sData.id) {
@@ -34411,7 +34367,7 @@ function printCommunicationMemo(){return commsReviewExport('pdf')}
     <div class="spotlight-results" id="spotlight-results"></div>
   </div>
 </div>
-<script src="js/sample-workflow.js?v=20260911-8"></script>
+<script src="js/sample-workflow.js?v=20260911-10"></script>
 <script src="js/sample-development.js?v=20260911-8"></script>
 <script src="js/sample-stock.js?v=20260911-8"></script>
 <script src="js/sample-experience.js?v=20260911-8"></script>

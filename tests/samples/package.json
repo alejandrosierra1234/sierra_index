@@ -1,5 +1,5 @@
 {
   "private": true,
-  "scripts": {"test": "node workflow.cjs && node ui.cjs && node center.cjs && node experience.cjs && node catalog.cjs"},
+  "scripts": {"test": "node workflow.cjs && node ui.cjs && node center.cjs && node experience.cjs && node catalog.cjs && node labels.cjs"},
   "devDependencies": {"@electric-sql/pglite": "^0.5.8"}
 }

@@ -109,7 +109,8 @@ async function sampleWorkflowLabelAllowed(collectionId){
  if(!collectionId)return true
  try{const w=await getSampleWorkflow(collectionId);if(w&&w.stage==='selection'){toast('Ventas debe liberar la selección y el costing antes de imprimir.');return false}return true}catch(e){toast(e.message);return false}
 }
-async function printGovernedSampleLabel(item,flow){
+async function printGovernedSampleLabel(item,flow,printerChosen=false){
+ if(!printerChosen)return chooseLabelPrinter(()=>printGovernedSampleLabel(item,flow,true))
  if(flow.stage==='selection'){toast('Ventas debe liberar la selección antes de generar etiquetas.');return}
  const win=window.open('','_blank');if(!win){toast('Permite abrir la ventana de impresión');return}
  win.document.write('<p>Preparando etiqueta…</p>')
@@ -120,11 +121,13 @@ async function printGovernedSampleLabel(item,flow){
   if(!cardResult.data)throw new Error('Publica primero la ficha del desarrollo para que el QR tenga un destino disponible.')
   const product=item.released_product;if(!product)throw new Error('Falta la ficha liberada del desarrollo. Reabre y libera la selección.')
   const qr=await new Promise((resolve,reject)=>QRCode.toDataURL(getProductPublicUrl({id:item.product_id})+'&rev='+cardResult.data.revision,{width:240,margin:3,errorCorrectionLevel:'M'},(e,value)=>e?reject(e):resolve(value)))
-  const barcode=document.createElementNS('http://www.w3.org/2000/svg','svg');JsBarcode(barcode,item.sample_id,{format:'CODE128',height:45,width:2,displayValue:true,fontSize:12,margin:8})
+  const barcode=document.createElementNS('http://www.w3.org/2000/svg','svg');JsBarcode(barcode,item.sample_id,{format:'CODE128',height:60,width:2,displayValue:false,marginLeft:20,marginRight:20,marginTop:2,marginBottom:2})
   const stock=stockResult.data,specs=product.specs||{}
-  const fields=[['Referencia',product.code],['Color',stock.color],['Lote',stock.lot],['Composición',specs.Composition],['Ancho',specs.Width],['GSM',specs.GSM],['Formato',item.sample_type],['Cantidad',`${item.quantity} ${stock.unit==='piece'?'piezas':stock.unit}`]]
+  const fields=[['Referencia',product.code],['Color',stock.color],['Composición',specs.Composition],['Lote',stock.lot],['Ancho',specs.Width],['GSM',specs.GSM],['Formato / Cantidad',`${item.sample_type} · ${item.quantity} ${stock.unit==='piece'?'piezas':stock.unit}`]]
   const price=flow.label_show_price?`<p class="price">${esc(item.price_currency)} ${Number(item.price).toFixed(2)} / ${esc(item.price_unit==='piece'?'pieza':item.price_unit)}${item.moq?`<small>MOQ ${esc(item.moq)}</small>`:''}${item.price_valid_until?`<small>Vigente hasta ${esc(item.price_valid_until)}</small>`:''}</p>`:''
-  win.document.open();win.document.write(`<html lang="es"><head><title>Etiqueta ${esc(item.sample_id)}</title><style>@page{size:62mm auto;margin:0}*{box-sizing:border-box}body{margin:0;color:#0b0b0b;font:10px Arial;background:white}.label{width:62mm;padding:4mm}.logo{font-weight:800;font-size:18px;margin-bottom:8px}h1{font-size:15px;line-height:1.3;margin:8px 0}dl{display:grid;grid-template-columns:22mm 1fr;margin:8px 0;gap:4px}dt{color:#444}dd{margin:0;overflow-wrap:anywhere}.qr{width:24mm;display:block;margin:8px auto}.barcode svg{width:100%;height:auto}.price{font-size:14px;font-weight:bold}small{display:block;font-size:9px;font-weight:normal;margin-top:4px}.tools{margin:12px}button{padding:8px 12px}@media print{.tools{display:none}}</style></head><body><div class="tools"><button onclick="window.print()">Imprimir etiqueta</button></div><section class="label"><div class="logo">SIERRA</div>${flow.label_title?`<p>${esc(flow.label_title)}</p>`:''}<h1>${esc(product.name)}</h1><dl>${fields.filter(([,v])=>v!=null&&v!=='').map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(String(v))}</dd>`).join('')}</dl>${price}<img class="qr" src="${qr}" alt="QR de ficha pública"><div class="barcode">${barcode.outerHTML}</div><small>Este código identifica el renglón y la cantidad indicada.</small></section></body></html>`);win.document.close()
+  const ready=await openThermalDocument(win,thermalSampleHtml({name:product.name,fields,qr,barcode:barcode.outerHTML,title:flow.label_title||'',price,note:item.sample_id}),'Etiqueta '+item.sample_id)
+  if(!ready)return
+
   const stamp=new Date().toISOString();const {error}=await sb.from('samples').update({label_printed_at:item.label_printed_at||stamp,...(flow.label_show_price?{sticker_printed_at:item.sticker_printed_at||stamp}:{})}).eq('id',item.id)
   if(error)throw error
   item.label_printed_at=stamp;if(flow.label_show_price)item.sticker_printed_at=stamp
