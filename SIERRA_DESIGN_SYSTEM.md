@@ -3068,3 +3068,7 @@ Las firmas guardadas almacenan imagen, nombre y cargo localmente en este navegad
 - Antes de exportar PDF, PNG o JPG, presentar revisión ortográfica local en español. Mostrar palabra, contexto y sugerencias; aplicar cambios solo con aceptación explícita y conservar formato. Permitir conservar nombres propios. La revisión no cubre gramática ni texto en imágenes. Si el diccionario falla, ofrecer reintento sin iniciar descarga.
 
 - Cada firmante tiene nombre, puesto y departamento independientes. Nombre en negrita, puesto debajo y departamento en una tercera línea de menor tamaño. El departamento del firmante no se deriva del remitente ni de la clasificación; se conserva en la biblioteca de firmas y se revisa ortográficamente.
+
+### Tarjetas en columnas para comunicados
+
+Bloque con 2, 3 o 4 columnas y cualquier cantidad de tarjetas. Cambiar columnas conserva el contenido. Cada tarjeta incluye imagen opcional, título con la paleta SIERRA y texto enriquecido. Fondo gris suave, esquinas redondeadas, espacios uniformes e imágenes alineadas por fila. Mostrar imágenes completas de forma predeterminada; recortar solo por elección explícita. El editor presenta una tarjeta a la vez, con duplicar, reordenar y eliminar con Deshacer. Los títulos y textos participan en la revisión ortográfica. PNG/JPG conservan todo el bloque; el PDF mantiene cada fila completa y ajusta proporcionalmente una fila que exceda una página.
