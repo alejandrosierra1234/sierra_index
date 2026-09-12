@@ -2565,6 +2565,13 @@
       padding:0.65rem 0.8rem; background:var(--accent-light); border-radius:9px; margin-bottom:1rem; line-height:1.45;
     }
     .cart-together svg { color:var(--accent); margin-top:1px; }
+    .cart-step-note {
+      color:var(--text); font-size:0.78rem; font-weight:600; line-height:1.45;
+    }
+    .cart-tip {
+      margin-top:0.6rem; padding:0.55rem 0.7rem; border:1px dashed var(--border-strong); border-radius:9px;
+      color:var(--text-3); font-size:0.68rem; line-height:1.35;
+    }
     .cart-submit {
       width:100%; padding:0.75rem; border:none; border-radius:9px;
       background:var(--interactive-primary-bg); color:var(--interactive-primary-text); font-family:inherit; font-size:0.85rem; font-weight:600;
@@ -4847,9 +4854,27 @@
       transition:border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
     }
     .pick-col-row:hover { border-color:var(--accent); background:var(--surface2); }
+    .pick-col-row[disabled] { opacity:0.55; cursor:not-allowed; }
+    .pick-col-main { min-width:0; flex:1; }
     .pick-col-name { font-size:0.85rem; font-weight:600; }
     .pick-col-sub { font-size:0.7rem; color:var(--text-3); margin-top:0.1rem; }
+    .pick-col-count {
+      flex-shrink:0; min-width:30px; height:24px; border-radius:999px;
+      display:flex; align-items:center; justify-content:center;
+      background:var(--surface2); color:var(--text-2);
+      font-size:0.68rem; font-weight:700;
+    }
     .pick-col-new { justify-content:center; gap:0.4rem; color:var(--accent); border-style:dashed; margin-bottom:0; }
+    .col-preview-list {
+      margin-top:0.35rem; display:flex; flex-direction:column; gap:0.35rem;
+      max-height:220px; overflow:auto;
+      border:1px dashed var(--border); border-radius:10px; padding:0.55rem; background:var(--surface);
+    }
+    .col-preview-item { display:flex; align-items:center; gap:0.5rem; padding:0.34rem 0.45rem; border-radius:8px; background:var(--surface2); }
+    .col-preview-division { font-size:0.61rem; font-weight:700; text-transform:uppercase; min-width:56px; color:var(--text-3); }
+    .col-preview-name { font-size:0.8rem; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .col-preview-code { margin-left:auto; font-size:0.63rem; color:var(--text-3); white-space:nowrap; }
+    .col-modal-meta { margin-top:0.65rem; font-size:0.74rem; color:var(--text-2); }
 
     /* Home quick actions */
     .dash-actions-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; }
@@ -7923,16 +7948,51 @@
     <div class="modal-hdr">
       <div>
         <div class="modal-eyebrow" style="color:var(--text-3)">Colecciones</div>
-        <div class="modal-title">¿A cuál colección lo agregas?</div>
+        <div class="modal-title" id="pick-col-title">¿A qué colección lo agrego?</div>
+        <div class="col-modal-meta" id="pick-col-subtitle">Selecciona un borrador en progreso o crea uno nuevo para esta tanda.</div>
       </div>
-      <button class="btn-icon" onclick="closeModal('m-pick-collection')">✕</button>
+      <button class="btn-icon" onclick="closeCollectionPicker()">✕</button>
     </div>
     <div class="modal-body">
       <div id="pick-col-list"></div>
+      <div class="col-preview-list" id="pick-col-preview"></div>
       <button type="button" class="pick-col-row pick-col-new" onclick="pickNewCollectionForAdd()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
         Nueva colección
       </button>
+      <p id="pick-col-hint" style="margin:0.6rem 0 0;color:var(--text-3);font-size:0.67rem;line-height:1.35">
+        Si hay más de una colección abierta, la selección se guarda solo en el destino que elijas.
+      </p>
+    </div>
+  </div>
+</div>
+<!-- ══ MODAL: START COLLECTION GUIDE (prevents accidental draft creation) ══ -->
+<div class="overlay" id="m-collection-start">
+  <div class="modal" style="width:500px;max-width:94vw">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-eyebrow" style="color:var(--text-3)">Colecciones</div>
+        <div class="modal-title">Crear colección nueva</div>
+      </div>
+      <button class="btn-icon" onclick="closeCollectionStartModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="cart-step-note" id="col-start-note">Selecciona estas referencias para empezar una colección.</div>
+      <div class="col-modal-meta" id="col-start-space-note"></div>
+      <div id="col-start-list" class="col-preview-list"></div>
+      <div class="cart-fg"><label>Nombre de colección (opcional)</label><input id="col-start-name" type="text" placeholder="ej. Nike Fall 26 · Swatches" /></div>
+      <div class="cart-fg"><label>Cliente (opcional)</label><input id="col-start-customer" type="text" placeholder="ej. Nike, Adidas" /></div>
+      <div class="cart-fg"><label>Nivel de prioridad</label>
+        <div class="cart-seg" id="col-start-priority">
+          <button class="on" data-v="normal" onclick="colStartPriority(this)">Normal</button>
+          <button data-v="urgent" onclick="colStartPriority(this)">Urgent</button>
+        </div>
+      </div>
+      <div class="cart-tip">Si seleccionas varias referencias de otra división, la app te lo bloqueará antes de guardar para mantener la consistencia del equipo.</div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-secondary btn-sm" onclick="closeCollectionStartModal()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" id="col-start-confirm" onclick="confirmStartDraftFromSelection()">Crear y agregar</button>
     </div>
   </div>
 </div>
@@ -10102,7 +10162,7 @@ function focusSearch() { openSpotlight() }
 // re-queries products/inventory scoped to the new division, it doesn't
 // union anything.
 function setDiv(d) {
-  if(typeof setSampleSpace==='function')setSampleSpace(sampleSpaceForDivision(d))
+  if(typeof setSampleSpace==='function')setSampleSpace(_safeProductSpace(d))
   _navLeaf = 'samples|' + d + '|catalog'
   syncModule('samples')
   sessionStorage.setItem('sierra_route', 'div:' + d)
@@ -12288,13 +12348,11 @@ function updateSelectBar() {
 // sample button (addToCart → current draft collection / sample cart), just
 // applied to every selected row instead of one at a time.
 async function bulkRequestSamples() {
-  const products = selectedProducts.filter(canRequestSample)
-  if (!products.length) { toast("None of the selected products can be requested as samples"); return }
-  await addToCart(products[0])
-  for (const p of products.slice(1)) await addItemToActiveDraft(p)
+  const products = _normalizeDraftProducts(selectedProducts)
+  if (!products.length) { toast('None of the selected products can be requested as samples'); return }
+  await addProductsToDraft(products, { openCartAfter: true })
   clearSelection()
-  toast(`${products.length} product${products.length > 1 ? 's' : ''} added to ${draftCollectionRef || 'the collection'}`)
-  openCart()
+  toast(`${products.length} producto${products.length > 1 ? 's' : ''} agregado${products.length > 1 ? 's' : ''} a ${draftCollectionRef || 'la colección actual'}`)
 }
 
 function openBulkReq() {
@@ -12315,20 +12373,11 @@ function openBulkReq() {
    qty/type default to 1, refined later in the collection workspace). Bulk-select
    used to write to the retired sample_requests table; this is its replacement. */
 async function submitBulkReq() {
-  const products = selectedProducts.filter(canRequestSample)
+  const products = _normalizeDraftProducts(selectedProducts)
   if (!products.length) { toast('Ninguno de los productos seleccionados puede solicitarse como muestra'); return }
-  const drafts = await myDraftCollections()
-  const activeStillValid = draftCollectionId && drafts.some(d => d.id === draftCollectionId)
-  if (!activeStillValid && drafts.length > 1) {
-    toast('Tienes varias colecciones abiertas — activa una desde Colecciones antes de agregar en lote')
-    return
-  }
-  await addToCart(products[0])
-  for (const p of products.slice(1)) await addItemToActiveDraft(p)
+  await addProductsToDraft(products, { openCartAfter: true })
   closeModal('m-bulk')
   clearSelection()
-  toast(`${products.length} producto${products.length > 1 ? 's' : ''} agregado${products.length > 1 ? 's' : ''} a ${draftCollectionRef || 'la colección'}`)
-  openCart()
 }
 
 /* ── COMMENTS ── */
@@ -26720,8 +26769,24 @@ async function showForgotPassword() {
 }
 
 /* ── UTILS ── */
-function closeModal(id) { document.getElementById(id).classList.remove('open') }
-document.querySelectorAll('.overlay').forEach(el => { el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open') }) })
+function closeModal(id) {
+  if (id === 'm-collection-start') return closeCollectionStartModal()
+  if (id === 'm-pick-collection') return closeCollectionPicker()
+  const el = document.getElementById(id)
+  if (el) el.classList.remove('open')
+}
+document.querySelectorAll('.overlay').forEach(el => {
+  el.addEventListener('click', e => {
+    if (e.target !== el) return
+    const id = e.target.id
+    if (id === 'm-collection-start' || id === 'm-pick-collection') {
+      if (id === 'm-collection-start') closeCollectionStartModal()
+      if (id === 'm-pick-collection') closeCollectionPicker()
+      return
+    }
+    el.classList.remove('open')
+  })
+})
 /* Escape closes the label drawer (and any open overlay) */
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return
@@ -29257,41 +29322,278 @@ let _myDraftsCacheAt = 0
 async function myDraftCollections(force) {
   if (!force && _myDraftsCache && Date.now() - _myDraftsCacheAt < 20000) return _myDraftsCache
   const all = await myCollections()
-  _myDraftsCache = all.filter(c => c.status === 'draft')
+  const drafts = all.filter(c => c.status === 'draft')
+  const ids = drafts.map(c => c.id)
+  const { data: items } = ids.length
+    ? await sb.from('samples').select('collection_id, products(division)').in('collection_id', ids).eq('status', 'draft')
+    : { data: [] }
+  const meta = {}
+  ;(items || []).forEach(i => {
+    const m = meta[i.collection_id] || { count: 0, divisions: new Set() }
+    m.count += 1
+    if (i.products?.division) m.divisions.add(i.products.division)
+    meta[i.collection_id] = m
+  })
+  _myDraftsCache = drafts.map(c => {
+    const m = meta[c.id]
+    const spaces = [...(m?.divisions || [])].map(_safeProductSpace).filter(Boolean)
+    return { ...c, _itemCount: m?.count || 0, _space: [...new Set(spaces)][0] || '' }
+  })
   _myDraftsCacheAt = Date.now()
   return _myDraftsCache
 }
 function invalidateDraftsCache() { _myDraftsCache = null }
 
 async function addToCart(p) {
-  if (!canRequestSample(p)) {
-    toast(`${LIFECYCLE[lc(p)].label} products can't be requested as samples`)
+  if (!p || !canRequestSample(p)) {
+    toast('This product can not be requested as a sample right now')
     return
   }
+  await addProductsToDraft([p], { openCartAfter: true })
+}
+
+let _pendingCartProducts = []
+let _pendingOpenCartAfter = true
+let _pendingDraftName = ''
+let _pendingDraftCustomer = ''
+let _pendingDraftPriority = 'normal'
+let _pendingDraftPrefill = null
+let _collectionStartInFlight = false
+let _collectionPendingFlowSpace = ''
+function _prodSpace(p) { return _safeProductSpace(p?.division) }
+function _normalizeDraftProducts(products) {
+  return (products || []).filter(canRequestSample).filter(p => p?.id && p.division)
+}
+
+function _dedupeDraftProducts(products) {
+  const seen = new Set()
+  const out = []
+  ;(products || []).forEach(p => {
+    if (!p?.id || seen.has(p.id)) return
+    seen.add(p.id)
+    out.push(p)
+  })
+  return out
+}
+
+function _safeProductSpace(division) {
+  if (typeof sampleSpaceForDivision === 'function') return sampleSpaceForDivision(division)
+  return (division === 'fabric' || division === 'garment') ? 'textiles' : division
+}
+
+function _currentDraftSpace() {
+  const first = sampleCart.find(i => i?.division)
+  return first ? _safeProductSpace(first.division) : ''
+}
+
+function _renderCollectionProducts(targetId, products) {
+  const el = document.getElementById(targetId)
+  if (!el) return
+  el.innerHTML = (products || []).map(p => {
+    const c = DIV_CLR[p.division] || '#9ca3af'
+    return `<div class="col-preview-item">
+      <span class="col-preview-division" style="color:${c}">${DIV_LBL[p.division] || p.division}</span>
+      <span class="col-preview-name" title="${esc(p.name)}">${esc(p.name)}</span>
+      ${p.code ? `<span class="col-preview-code">${esc(p.code)}</span>` : ''}
+    </div>`
+  }).join('')
+}
+
+function closeCollectionStartModal() {
+  document.getElementById('m-collection-start')?.classList.remove('open')
+  _pendingCartProducts = []
+  _pendingOpenCartAfter = true
+  _collectionPendingFlowSpace = ''
+  const btn = document.getElementById('col-start-confirm')
+  if (btn) {
+    btn.disabled = false
+    btn.innerHTML = 'Crear y agregar'
+  }
+  _collectionStartInFlight = false
+}
+
+function closeCollectionPicker() {
+  document.getElementById('m-pick-collection')?.classList.remove('open')
+  _pendingCartProducts = []
+  _pendingOpenCartAfter = true
+  _collectionPendingFlowSpace = ''
+}
+
+function setCollectionStartConfirmState(busy) {
+  _collectionStartInFlight = busy
+  const btn = document.getElementById('col-start-confirm')
+  if (btn) {
+    btn.disabled = !!busy
+    btn.innerHTML = busy ? '<span class="spinner"></span>Creando colección…' : 'Crear y agregar'
+  }
+}
+
+function colStartPriority(btn) {
+  const wrap = btn.parentElement
+  wrap.querySelectorAll('button').forEach(b => b.classList.remove('on'))
+  btn.classList.add('on')
+}
+
+async function addProductsToDraft(products, { openCartAfter = false } = {}) {
+  const normalized = _normalizeDraftProducts(products)
+  if (!normalized.length) {
+    toast('No valid products selected for samples')
+    return
+  }
+  // Each collection belongs to one "space". Guard early so users don't start
+  // a run that will fail product-by-product and leave the flow fragmented.
+  const spaces = [...new Set(normalized.map(p => _prodSpace(p)))]
+  if (spaces.length > 1) {
+    toast('Selecciona referencias del mismo flujo de muestras (tejidos, hilo, químicos, etc.) para crear una colección.')
+    return
+  }
+
   const drafts = await myDraftCollections()
   const activeStillValid = draftCollectionId && drafts.some(d => d.id === draftCollectionId)
-  if (!activeStillValid) {
-    if (drafts.length === 0) {
-      const { data, error } = await sb.rpc('create_draft_collection', {})
-      if (error || !data) { toast('Could not start a collection: ' + (error?.message || 'unknown error')); return }
-      draftCollectionId = data.collection_id
-      draftCollectionRef = data.collection_ref
-      try { localStorage.setItem('sierra_draft_collection_id', draftCollectionId) } catch {}
-      invalidateDraftsCache()
-    } else if (drafts.length === 1) {
-      draftCollectionId = drafts[0].id
-      draftCollectionRef = drafts[0].collection_id
-      try { localStorage.setItem('sierra_draft_collection_id', draftCollectionId) } catch {}
-    } else {
-      openCollectionPicker(p, drafts)
-      return
+
+  if (activeStillValid) {
+    if (!sampleCart.length) await loadDraftCart()
+    if (sampleCart.length) {
+      const existingSpace = _currentDraftSpace()
+      if (existingSpace && existingSpace !== spaces[0]) {
+        toast(`La colección activa pertenece a ${sampleActiveLabel(existingSpace)} y no puede mezclar ${sampleActiveLabel(spaces[0])}.`)
+        return
+      }
+    }
+    for (const product of normalized) await addItemToActiveDraft(product)
+    if (openCartAfter) openCart()
+    return
+  }
+
+  if (!drafts.length) return openCollectionStartModal(normalized, { openCartAfter })
+  return openCollectionPicker(normalized, drafts, { openCartAfter })
+}
+
+function sampleActiveLabel(space) {
+  if (typeof sampleSpaces !== 'undefined' && sampleSpaces[space]?.label) return sampleSpaces[space].label
+  if (space === 'textiles') return 'Tela y prendas'
+  return space
+}
+
+function applyDraftPrefillToCart() {
+  if (!_pendingDraftPrefill) return
+  const name = _pendingDraftPrefill.name || ''
+  const customer = _pendingDraftPrefill.customer || ''
+  const priority = _pendingDraftPrefill.priority || 'normal'
+  const nameInput = document.getElementById('cart-name')
+  const customerInput = document.getElementById('cart-customer')
+  if (name && nameInput) nameInput.value = name
+  if (customer && customerInput) customerInput.value = customer
+  if (priority === 'urgent') {
+    const uBtn = document.querySelector('#cart-priority button[data-v="urgent"]')
+    if (uBtn) cartSeg(uBtn)
+  } else {
+    const nBtn = document.querySelector('#cart-priority button[data-v="normal"]')
+    if (nBtn) cartSeg(nBtn)
+  }
+  _pendingDraftPrefill = null
+}
+
+function openCollectionStartModal(products, { openCartAfter = false } = {}) {
+  const normalized = _normalizeDraftProducts(products)
+  if (!normalized.length) return
+  _pendingOpenCartAfter = !!openCartAfter
+  const incomingSpace = [...new Set(normalized.map(p => _prodSpace(p)))][0] || ''
+  _collectionPendingFlowSpace = incomingSpace || _collectionPendingFlowSpace
+
+  if (document.getElementById('m-collection-start')?.classList.contains('open')) {
+    _pendingCartProducts = _dedupeDraftProducts([..._pendingCartProducts, ...normalized])
+  } else {
+    _pendingCartProducts = _dedupeDraftProducts(normalized)
+  }
+
+  _renderCollectionProducts('col-start-list', _pendingCartProducts)
+  const nameInput = document.getElementById('col-start-name')
+  const customerInput = document.getElementById('col-start-customer')
+  if (nameInput && !nameInput.value) nameInput.value = _pendingDraftName || ''
+  if (customerInput && !customerInput.value) customerInput.value = _pendingDraftCustomer || ''
+  const note = document.getElementById('col-start-note')
+  if (note) {
+    const n = _pendingCartProducts.length
+    note.textContent = `${n} referencia${n !== 1 ? 's' : ''} se agregar${n !== 1 ? 'án' : 'á'} a una sola colección nueva.`
+  }
+  const spaceEl = document.getElementById('col-start-space-note')
+  if (spaceEl) {
+    const spaceLabel = sampleActiveLabel(_collectionPendingFlowSpace || _prodSpace(_pendingCartProducts[0]))
+    spaceEl.textContent = _collectionPendingFlowSpace ? `Flujo: ${spaceLabel}` : ''
+  }
+  _pendingDraftPriority = _pendingDraftPriority || 'normal'
+  const priorityWrap = document.getElementById('col-start-priority')
+  if (priorityWrap) {
+    priorityWrap.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === _pendingDraftPriority))
+    if (![...priorityWrap.querySelectorAll('button')].some(b => b.classList.contains('on'))) {
+      const btn = priorityWrap.querySelector('button[data-v="normal"]')
+      if (btn) btn.classList.add('on')
     }
   }
-  await addItemToActiveDraft(p)
+  setCollectionStartConfirmState(false)
+  document.getElementById('m-collection-start').classList.add('open')
+}
+
+async function confirmStartDraftFromSelection() {
+  if (_collectionStartInFlight) return
+  const products = _dedupeDraftProducts(_pendingCartProducts)
+  if (!products.length) { closeCollectionStartModal(); return }
+  const spaces = [...new Set(products.map(p => _prodSpace(p)))]
+  if (spaces.length > 1) {
+    toast('No puedes crear una colección con varias divisiones diferentes.')
+    return
+  }
+  const targetSpace = spaces[0] || _collectionPendingFlowSpace
+  const name = (document.getElementById('col-start-name')?.value || '').trim()
+  const customer = (document.getElementById('col-start-customer')?.value || '').trim()
+  const priority = document.querySelector('#col-start-priority button.on')?.dataset?.v || 'normal'
+  const shouldOpenCart = _pendingOpenCartAfter
+
+  _pendingDraftName = name
+  _pendingDraftCustomer = customer
+  _pendingDraftPriority = priority
+
+  setCollectionStartConfirmState(true)
+  let data, error
+  if (typeof sampleSpaces !== 'undefined' && sampleSpaces[targetSpace]) {
+    ({ data, error } = await sb.rpc('create_sample_collection', { p_space: targetSpace }))
+    if (error) {
+      // Legacy fallback if RPC signature is not available in the environment yet.
+      ({ data, error } = await sb.rpc('create_draft_collection', {}))
+    }
+  } else {
+    ({ data, error } = await sb.rpc('create_draft_collection', {}))
+  }
+
+  if (error || !data) {
+    setCollectionStartConfirmState(false)
+    toast('No se pudo iniciar la colección: ' + (error?.message || 'unknown error'))
+    return
+  }
+  draftCollectionId = data.collection_id
+  draftCollectionRef = data.collection_ref || null
+  try { localStorage.setItem('sierra_draft_collection_id', draftCollectionId) } catch {}
+  invalidateDraftsCache()
+  if (typeof setSampleSpace === 'function' && typeof sampleSpaces !== 'undefined' && sampleSpaces[targetSpace]) setSampleSpace(targetSpace)
+  if (data.collection_id) toast(`Colección ${draftCollectionRef || data.collection_id} creada`)
+  document.getElementById('m-collection-start')?.classList.remove('open')
+
+  await loadDraftCart()
+  for (const p of products) await addItemToActiveDraft(p)
+  if (name) { const el = document.getElementById('cart-name'); if (el) el.value = name }
+  if (customer) { const el = document.getElementById('cart-customer'); if (el) el.value = customer }
+  _pendingDraftPrefill = { name, customer, priority }
+  if (shouldOpenCart) openCart()
+  _pendingCartProducts = []
+  _collectionPendingFlowSpace = ''
+  setCollectionStartConfirmState(false)
+  _pendingDraftName = name
+  _pendingDraftCustomer = customer
 }
 
 async function addItemToActiveDraft(p) {
-  const otherDiv = sampleCart.find(i => sampleSpaceForDivision(i.division) !== sampleSpaceForDivision(p.division))
+  const otherDiv = sampleCart.find(i => _safeProductSpace(i.division) !== _safeProductSpace(p.division))
   if (otherDiv) {
     toast(`Esta colección ya tiene muestras de ${DIV_LBL[otherDiv.division] || otherDiv.division} — cada colección pertenece a un equipo de muestras. Empieza una nueva para ${DIV_LBL[p.division] || p.division}.`)
     return
@@ -29317,39 +29619,50 @@ async function addItemToActiveDraft(p) {
 
 /* Modal: "which collection does this go into?" — only shown when it's
    genuinely ambiguous (several drafts open, none currently active). */
-let _pendingCartProduct = null
-function openCollectionPicker(product, drafts) {
-  _pendingCartProduct = product
+function openCollectionPicker(products, drafts, options = {}) {
+  const normalized = _dedupeDraftProducts(_normalizeDraftProducts(products))
+  if (!normalized.length) return
+  _pendingOpenCartAfter = !!options.openCartAfter
+  _pendingCartProducts = normalized
+  _collectionPendingFlowSpace = [...new Set(normalized.map(p => _prodSpace(p)))][0] || ''
+  _renderCollectionProducts('pick-col-preview', normalized)
+  const title = document.getElementById('pick-col-title')
+  if (title) title.textContent = normalized.length === 1 ? '¿Dónde agrego esta muestra?' : '¿Dónde agrego estas muestras?'
+  const sub = document.getElementById('pick-col-subtitle')
+  if (sub) sub.textContent = `${normalized.length} referencia${normalized.length !== 1 ? 's' : ''} pendiente${normalized.length !== 1 ? 's' : ''}. Elige una colección existente o crea una nueva.`
   const list = document.getElementById('pick-col-list')
   if (list) {
     list.innerHTML = drafts.map(c => `
-      <button type="button" class="pick-col-row" onclick="pickCollectionForAdd('${c.id}','${esc(c.collection_id)}')">
-        <div>
+      <button type="button" class="pick-col-row" onclick="pickCollectionForAdd('${escAttr(c.id)}','${escAttr(jsStr(c.collection_id))}')" ${c._space && c._space !== _collectionPendingFlowSpace ? 'disabled title="Esta colección pertenece a otro flujo de muestras"' : ''}>
+        <div class="pick-col-main">
           <div class="pick-col-name">${esc(c.name || 'Colección sin nombre')}</div>
-          <div class="pick-col-sub">${esc(c.collection_id)}${c.customer ? ' · ' + esc(c.customer) : ''}</div>
+          <div class="pick-col-sub">${esc(c.collection_id)}${c.customer ? ' · ' + esc(c.customer) : ''}${c._space ? ' · ' + esc(sampleActiveLabel(c._space)) : ''}</div>
         </div>
+        <span class="pick-col-count">${Number(c._itemCount || 0)}</span>
       </button>`).join('')
   }
+  const hint = document.getElementById('pick-col-hint')
+  if (hint) hint.textContent = 'Para evitar duplicados, Sierra no crea otra colección hasta que confirmes “Nueva colección”.'
   document.getElementById('m-pick-collection').classList.add('open')
 }
 async function pickCollectionForAdd(id, ref) {
-  closeModal('m-pick-collection')
+  const items = _dedupeDraftProducts(_pendingCartProducts)
+  const shouldOpenCart = _pendingOpenCartAfter
+  closeCollectionPicker()
   draftCollectionId = id
   draftCollectionRef = ref
   try { localStorage.setItem('sierra_draft_collection_id', id) } catch {}
-  const p = _pendingCartProduct; _pendingCartProduct = null
-  if (p) await addItemToActiveDraft(p)
+  invalidateDraftsCache()
+  await loadDraftCart()
+  for (const p of items) await addItemToActiveDraft(p)
+  if (shouldOpenCart) openCart()
 }
 async function pickNewCollectionForAdd() {
-  closeModal('m-pick-collection')
-  const { data, error } = await sb.rpc('create_draft_collection', {})
-  if (error || !data) { toast('Could not start a collection: ' + (error?.message || 'unknown error')); return }
-  draftCollectionId = data.collection_id
-  draftCollectionRef = data.collection_ref
-  try { localStorage.setItem('sierra_draft_collection_id', draftCollectionId) } catch {}
-  invalidateDraftsCache()
-  const p = _pendingCartProduct; _pendingCartProduct = null
-  if (p) await addItemToActiveDraft(p)
+  const items = _dedupeDraftProducts(_pendingCartProducts)
+  const shouldOpenCart = _pendingOpenCartAfter
+  document.getElementById('m-pick-collection')?.classList.remove('open')
+  _pendingCartProducts = []
+  openCollectionStartModal(items, { openCartAfter: shouldOpenCart })
 }
 
 /* Single entry point for every "go to my collections" trigger (sidebar,
@@ -29366,6 +29679,7 @@ async function openCart() {
   document.getElementById('cart-body').innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">◻</div>Loading…</div>`
   document.getElementById('cart-checkout').style.display = 'none'
   await loadDraftCart()
+  applyDraftPrefillToCart()
   renderCart()
 }
 function closeCart() {
@@ -30847,7 +31161,7 @@ async function wsSearchProducts(collectionId, query) {
 async function wsAddProduct(collectionId, productId, division) {
   const { data: existing } = await sb.from('samples').select('products(division)').eq('collection_id', collectionId).limit(1)
   const otherDiv = existing?.[0]?.products?.division
-  if (otherDiv && sampleSpaceForDivision(otherDiv) !== sampleSpaceForDivision(division)) {
+  if (otherDiv && _safeProductSpace(otherDiv) !== _safeProductSpace(division)) {
     toast(`Esta colección ya tiene muestras de ${DIV_LBL[otherDiv] || otherDiv} — cada colección pertenece a un equipo de muestras.`)
     return
   }
