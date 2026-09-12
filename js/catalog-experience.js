@@ -1,7 +1,7 @@
 /* Catalog decision surfaces reuse the product dataset and existing collection actions. */
 function catL(es,en){return appLang==='es'?es:en}
 function catQuickSpecs(p){
- if(p.division==='fabric')return [[catL('Construcción','Construction'),CONST_META[inferConstruction(p)]?.label||'—'],[catL('Gramaje','Weight'),catGSM(p)==='—'?'—':catGSM(p)+' GSM'],[catL('Ancho','Width'),catWidth(p)],['Color',catColor(p)]];
+ if(p.division==='fabric')return [[catL('Construcción','Construction'),CONST_META[inferConstruction(p)]?.label||'—'],[catL('Gramaje','Weight'),Number.parseFloat(catGSM(p))>0?String(catGSM(p)).replace(/\s*GSM$/i,'')+' GSM':'—'],[catL('Ancho','Width'),catWidth(p)],['Color',catColor(p)]];
  if(p.division==='yarn')return [[catL('Título','Yarn count'),p.specs?.['Yarn Count']||'—'],['Color',catColor(p)]];
  return Object.entries(p.specs||{}).filter(([k])=>!['composition','price','recipe'].includes(k.toLowerCase())).slice(0,4).map(([k,v])=>[k,String(v??'—')]);
 }

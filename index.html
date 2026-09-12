@@ -7316,10 +7316,10 @@
 .lbl-codes-id { font-size:1.6mm; color:#999; font-family:Arial,Helvetica,sans-serif; margin-top:0.5mm; letter-spacing:0.03em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   </style>
 <link rel="stylesheet" href="css/sample-workflow.css?v=20260911-9">
-<link rel="stylesheet" href="css/catalog-experience.css?v=20260911-9">
+<link rel="stylesheet" href="css/catalog-experience.css?v=20260911-16">
 <link rel="stylesheet" href="css/label-printers.css?v=20260911-15">
 <script src="js/label-printers.js?v=20260911-13"></script>
-<script src="js/catalog-experience.js?v=20260911-9"></script>
+<script src="js/catalog-experience.js?v=20260911-16"></script>
 </head>
 <body>
 
@@ -9826,15 +9826,19 @@ function openCatalogDrawer(p) {
 function catRenderDrawerBody(p) {
  const body=document.getElementById('sd-body');if(!body)return;
  const ep=enc(p),thumb=p.image_urls?.[0]||p.image_url,checked=selectedProducts.some(s=>s.id===p.id);
+ const specs=[...catQuickSpecs(p),[catL('Lote','Lot'),p.lot||'—'],...(canSeeCatalogPricing()?[[catL('Precio de referencia','Reference price'),catPriceText(p)]]:[])];
  body.innerHTML=`<section class="catalog-quickview">
+ <div class="cq-content">
+ <div class="cq-reference"><span>${siIcon('barcode',16)} <strong>${esc(catCode(p))}</strong></span><span class="cq-caption">${catL('Vista rápida','Quick view')}</span></div>
  ${thumb?`<img class="catalog-detail-image" src="${escAttr(thumb)}" alt="${escAttr(p.name)}">`:''}
- <div class="catalog-identity">${recordIdHtml(catCode(p),DIV_ICON[p.division]||DIV_ICON.all)}</div>
- <div class="catalog-state">${lcPill(p)}<span>${catL('Estado del desarrollo','Development status')}</span></div>
- <h3>${catL('Características','Specifications')}</h3><p class="catalog-composition">${esc(catComposition(p))}</p>
- <dl class="catalog-specs">${catQuickSpecs(p).map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}<div><dt>${catL('Lote','Lot')}</dt><dd>${esc(p.lot||'—')}</dd></div>${canSeeCatalogPricing()?`<div><dt>${catL('Precio de referencia','Reference price')}</dt><dd>${esc(catPriceText(p))}</dd></div>`:''}</dl>
- <p class="sf-hint">${catL('Consulta existencias, ubicaciones e historial en la ficha completa.','See physical stock, locations and history in the full record.')}</p>
- <div class="catalog-detail-actions"><button class="btn btn-primary" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p)?'':'disabled'}>${siIcon('plus',16)} ${catL('Agregar muestra','Add sample')}</button><button class="btn btn-secondary" aria-pressed="${checked}" onclick="toggleProductSelect(dec('${ep}'));catRenderDrawerBody(dec('${ep}'))">${siIcon(checked?'check':'columns',16)} ${checked?catL('Seleccionada','Selected'):catL('Seleccionar para comparar','Select to compare')}</button></div>
- <div class="catalog-detail-actions"><button class="btn btn-secondary" onclick="closeSideDrawer();openFicha(dec('${ep}'))">${siIcon('arrow-right',16)} ${catL('Ficha completa e inventario','Full record and stock')}</button><button class="btn btn-secondary" onclick="closeSideDrawer();quickLabel(dec('${ep}'))">${siIcon('printer',16)} ${catL('Etiqueta','Label')}</button></div></section>`;
+ <div class="cq-status"><span>${catL('Estado del desarrollo','Development status')}</span>${lcPill(p)}</div>
+ <section class="cq-composition"><h3>${siIcon('grid',16)} ${catL('Composición','Composition')}</h3><p>${esc(catComposition(p))}</p></section>
+ <section class="cq-spec-section"><h3>${siIcon('list',16)} ${catL('Datos de la referencia','Reference details')}</h3><dl class="catalog-specs">${specs.map(([k,v])=>`<div><dt>${esc(k)}</dt><dd class="${!v||v==='—'?'cq-missing':''}">${esc(!v||v==='—'?catL('Sin registrar','Not recorded'):v)}</dd></div>`).join('')}</dl></section>
+ <button class="cq-record" onclick="closeSideDrawer();openFicha(dec('${ep}'))"><span class="cq-record-icon">${siIcon('box',20)}</span><span><strong>${catL('Ficha completa e inventario','Full record and stock')}</strong><small>${catL('Existencias, ubicaciones e historial','Stock, locations and history')}</small></span>${siIcon('arrow-right',18)}</button>
+ </div>
+ <footer class="cq-actions"><button class="btn btn-primary" onclick="quickReq(dec('${ep}'))" ${canRequestSample(p)?'':'disabled'}>${siIcon('plus',16)} ${catL('Agregar muestra','Add sample')}</button>
+ ${!canRequestSample(p)?`<p class="cq-caption">${catL('Esta referencia no admite solicitudes de muestra.','This reference is not available for sample requests.')}</p>`:''}
+ <div><button class="btn btn-secondary" data-cq-compare aria-pressed="${checked}" onclick="toggleProductSelect(dec('${ep}'));catRenderDrawerBody(dec('${ep}'));document.querySelector('[data-cq-compare]')?.focus()">${siIcon(checked?'check':'columns',16)} ${checked?catL('En comparación','In comparison'):catL('Comparar','Compare')}</button><button class="btn btn-secondary" onclick="closeSideDrawer();quickLabel(dec('${ep}'))">${siIcon('printer',16)} ${catL('Etiqueta','Label')}</button></div></footer></section>`;
 }
 
 function enc(p) { return encodeURIComponent(JSON.stringify(p)).replace(/'/g, '%27') }

@@ -62,3 +62,33 @@ body:has(.sd-overlay.open .catalog-comparison) #select-bar {visibility:hidden;po
 .catalog-detail-actions {display:flex;flex-wrap:wrap;gap:8px}
 #cat-toolbar .cat-pop-row {font-size:14px;min-height:36px}
 #cat-toolbar .cat-pop-title {font-size:12px;text-transform:none;letter-spacing:0}
+
+/* Quick view: compact reference summary and a stable action area. */
+.sd-body:has(>.catalog-quickview){padding:0;display:flex;flex-direction:column}
+.catalog-quickview{gap:0;min-height:100%;flex:1}
+.cq-content{padding:24px;display:flex;flex-direction:column;gap:24px}
+.cq-reference,.cq-reference>span,.cq-status{display:flex;align-items:center;gap:8px}
+.cq-reference{justify-content:space-between}
+.cq-reference strong{font-size:14px;font-family:var(--font-mono,monospace);color:var(--text)}
+.cq-reference svg,.cq-caption{color:var(--text-3)}
+.cq-caption{font-size:12px;line-height:1.5}
+.cq-status{justify-content:space-between;font-size:12px;color:var(--text-3)}
+.catalog-quickview h3{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--text-3);margin:0 0 12px}
+.cq-composition{padding:16px;border-radius:var(--r-md,8px);background:var(--surface2)}
+.cq-composition p{font-size:17px;font-weight:500;line-height:1.5;color:var(--text)}
+.cq-spec-section .catalog-specs{margin:0;padding:0;border:0;gap:20px 24px}
+.cq-spec-section .catalog-specs dd{font-weight:500}
+.cq-spec-section .catalog-specs .cq-missing{font-weight:400;color:var(--text-3);font-size:13px}
+.cq-record{display:flex;align-items:center;gap:12px;text-align:left;font:inherit;color:var(--text);padding:16px 0;border:0;border-top:1px solid var(--border);background:transparent;cursor:pointer;width:100%}
+.cq-record>span:nth-child(2){flex:1;min-width:0}
+.cq-record strong{display:block;font-size:14px;font-weight:600}
+.cq-record small{display:block;font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.5}
+.cq-record-icon{display:flex;color:var(--text-3)}
+.cq-record:hover strong{color:var(--accent-dark)}
+.cq-record:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:var(--r-md,8px)}
+.cq-actions{position:sticky;bottom:-1px;margin-top:auto;padding:16px 24px;background:var(--surface);border-top:1px solid var(--border);display:grid;gap:10px}
+.cq-actions>.btn{width:100%;justify-content:center}
+.cq-actions>div{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cq-actions .btn{justify-content:center}
+.cq-actions .btn[aria-pressed=true]{border-color:var(--accent-dark);color:var(--accent-dark)}
+@media(max-width:480px){.cq-content{padding:20px;gap:20px}.cq-actions{padding:12px 20px}}
