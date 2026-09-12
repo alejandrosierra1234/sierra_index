@@ -124,8 +124,10 @@ async function printGovernedSampleLabel(item,flow,printerChosen=false){
   const barcode=document.createElementNS('http://www.w3.org/2000/svg','svg');JsBarcode(barcode,item.sample_id,{format:'CODE128',height:60,width:2,displayValue:false,marginLeft:20,marginRight:20,marginTop:2,marginBottom:2})
   const stock=stockResult.data,specs=product.specs||{}
   const fields=[['Referencia',product.code],['Color',stock.color],['Composición',specs.Composition],['Lote',stock.lot],['Ancho',specs.Width],['GSM',specs.GSM],['Formato / Cantidad',`${item.sample_type} · ${item.quantity} ${stock.unit==='piece'?'piezas':stock.unit}`]]
+  const confidentialMap={'Color':'color','Ancho':'width','GSM':'gsm'};
+  const labelFields=fields.filter(([name])=>!confidentialMap[name]||labelFieldAllowed(product.specs?.label_config,confidentialMap[name]));
   const price=flow.label_show_price?`<p class="price">${esc(item.price_currency)} ${Number(item.price).toFixed(2)} / ${esc(item.price_unit==='piece'?'pieza':item.price_unit)}${item.moq?`<small>MOQ ${esc(item.moq)}</small>`:''}${item.price_valid_until?`<small>Vigente hasta ${esc(item.price_valid_until)}</small>`:''}</p>`:''
-  const ready=await openThermalDocument(win,thermalSampleHtml({name:product.name,fields,qr,barcode:barcode.outerHTML,title:flow.label_title||'',price,note:item.sample_id}),'Etiqueta '+item.sample_id)
+  const ready=await openThermalDocument(win,thermalSampleHtml({name:product.name,fields:labelFields,qr,barcode:barcode.outerHTML,title:flow.label_title||'',price,note:item.sample_id}),'Etiqueta '+item.sample_id)
   if(!ready)return
 
   const stamp=new Date().toISOString();const {error}=await sb.from('samples').update({label_printed_at:item.label_printed_at||stamp,...(flow.label_show_price?{sticker_printed_at:item.sticker_printed_at||stamp}:{})}).eq('id',item.id)

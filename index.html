@@ -7317,8 +7317,8 @@
   </style>
 <link rel="stylesheet" href="css/sample-workflow.css?v=20260911-9">
 <link rel="stylesheet" href="css/catalog-experience.css?v=20260911-9">
-<link rel="stylesheet" href="css/label-printers.css?v=20260911-12">
-<script src="js/label-printers.js?v=20260911-12"></script>
+<link rel="stylesheet" href="css/label-printers.css?v=20260911-13">
+<script src="js/label-printers.js?v=20260911-13"></script>
 <script src="js/catalog-experience.js?v=20260911-9"></script>
 </head>
 <body>
@@ -11514,6 +11514,7 @@ function yarnContentLinesText(p) {
 }
 
 /* ── Field definitions ── `read` maps product master → label value. ── */
+const LABEL_CONFIDENTIAL_FIELDS = ['color','dyeMethod','width','gsm','dia','gauge']
 const LABEL_FIELDS = {
   productName: { label: 'Product name',    section: 'identity', required: true,  read: p => p.name },
   origin:      { label: 'Manufactured in', section: 'identity', read: p => p.country || 'Honduras' },
@@ -11635,7 +11636,8 @@ function labelDefaultConfig(templateId = LABEL_DEFAULT_TEMPLATE) {
   return {
     template: templateId,
     overrides: {},
-    hidden: [...(t.defaultHidden || [])],
+    hidden: [...new Set([...(t.defaultHidden || []), ...LABEL_CONFIDENTIAL_FIELDS])],
+    confidentialApproved: [],
     order: [...t.order],
     qr: { enabled: true, target: 'product', url: '' },
     barcode: { enabled: true, format: 'CODE128', source: 'millArticle' },
@@ -11652,7 +11654,8 @@ function labelNormalizeConfig(raw, templateId) {
   return {
     template: base.template,
     overrides: (raw.overrides && typeof raw.overrides === 'object') ? { ...raw.overrides } : {},
-    hidden: Array.isArray(raw.hidden) ? [...raw.hidden] : base.hidden,
+    hidden: [...new Set([...(Array.isArray(raw.hidden) ? raw.hidden : base.hidden), ...LABEL_CONFIDENTIAL_FIELDS.filter(k=>!(Array.isArray(raw.confidentialApproved)&&raw.confidentialApproved.includes(k)))])],
+    confidentialApproved: Array.isArray(raw.confidentialApproved)?raw.confidentialApproved.filter(k=>LABEL_CONFIDENTIAL_FIELDS.includes(k)):[],
     order: [...storedOrder, ...t.order.filter(k => !storedOrder.includes(k))],
     qr: { ...base.qr, ...(raw.qr || {}) },
     barcode: { ...base.barcode, ...(raw.barcode || {}) },
@@ -11796,20 +11799,26 @@ function lbResetField(key) {
   delete LB.cfg.overrides[key]
   lbRenderEditor(); lbRenderPreview()
 }
-function lbToggleVisible(key) {
-  const i = LB.cfg.hidden.indexOf(key)
-  if (i >= 0) LB.cfg.hidden.splice(i, 1); else LB.cfg.hidden.push(key)
-  lbRenderEditor(); lbRenderPreview()
+async function lbToggleVisible(key) {
+  if(!LB)return;
+  const editing=LB,i=editing.cfg.hidden.indexOf(key);
+  if(i>=0&&LABEL_CONFIDENTIAL_FIELDS.includes(key)){
+    const accepted=await confirmLabelConfidential([key]);
+    if(!accepted||LB!==editing)return;
+    editing.cfg.confidentialApproved=[...new Set([...(editing.cfg.confidentialApproved||[]),key])];
+  }
+  if(i>=0)editing.cfg.hidden=editing.cfg.hidden.filter(k=>k!==key);
+  else {editing.cfg.hidden.push(key);editing.cfg.confidentialApproved=(editing.cfg.confidentialApproved||[]).filter(k=>k!==key)}
+  lbRenderEditor();lbRenderPreview();
 }
-function lbToggleSection(secKey) {
-  const fields = LABEL_SECTIONS[secKey].fields
-  const allHidden = fields.every(k => LB.cfg.hidden.includes(k))
-  fields.forEach(k => {
-    const i = LB.cfg.hidden.indexOf(k)
-    if (allHidden && i >= 0) LB.cfg.hidden.splice(i, 1)
-    else if (!allHidden && i < 0) LB.cfg.hidden.push(k)
-  })
-  lbRenderEditor(); lbRenderPreview()
+async function lbToggleSection(secKey) {
+  if(!LB)return;
+  const editing=LB,fields=LABEL_SECTIONS[secKey].fields,allHidden=fields.every(k=>editing.cfg.hidden.includes(k));
+  const sensitive=fields.filter(k=>LABEL_CONFIDENTIAL_FIELDS.includes(k));
+  if(allHidden&&sensitive.length){if(!await confirmLabelConfidential(sensitive)||LB!==editing)return;editing.cfg.confidentialApproved=[...new Set([...(editing.cfg.confidentialApproved||[]),...sensitive])]}
+  editing.cfg.hidden=allHidden?editing.cfg.hidden.filter(k=>!fields.includes(k)):[...new Set([...editing.cfg.hidden,...fields])];
+  if(!allHidden)editing.cfg.confidentialApproved=(editing.cfg.confidentialApproved||[]).filter(k=>!fields.includes(k));
+  lbRenderEditor();lbRenderPreview();
 }
 function lbMoveSection(secKey, dir) {
   const o = LB.cfg.order
@@ -11962,7 +11971,7 @@ function lbFieldHtml(key, opts = {}) {
          oninput="lbSetOverride('${key}', this.value)" />`
   return `<div class="lbl-fld${hidden ? ' is-hidden' : ''}${sel}" id="lbrow-${key}" data-field="${key}">
     <div class="lbl-fld-top">
-      <span class="lbl-fld-key">${esc(def.label)}</span>
+      <span class="lbl-fld-key">${esc(def.label)}${LABEL_CONFIDENTIAL_FIELDS.includes(key)?` <span class="label-confidential-mark" title="Dato confidencial">${siIcon('lock',12)}</span>`:''}</span>
       <span class="lbl-fld-src" id="lbsrc-${key}">${overridden ? 'Label override' : 'Product data'}</span>
       ${overridden && !ro ? `<button type="button" class="lbl-fld-reset" title="Reset to product value" aria-label="Reset ${escAttr(def.label)} to product value" onclick="lbResetField('${key}')">${LB_ICON.reset}</button>` : ''}
       <span style="margin-left:auto"></span>
@@ -12543,7 +12552,7 @@ function renderLabel(p, cfg, opts = {}) {
     const v = LABEL_FIELDS[key]?.read(p)
     return v === null || v === undefined ? '' : String(v)
   }
-  const show = key => !cfg.hidden.includes(key) && V(key).trim() !== ''
+  const show = key => labelFieldAllowed(cfg,key) && V(key).trim() !== ''
 
   const out = []
 
@@ -13136,7 +13145,8 @@ function ycDraftProduct() {
 function ycCfg() {
   const t = LABEL_TEMPLATES['yarn-label']
   return {
-    template: 'yarn-label', overrides: { footer: '' }, hidden: [...(t.defaultHidden || [])],
+    template: 'yarn-label', overrides: { footer: '' }, hidden: [...new Set([...(t.defaultHidden || []), ...LABEL_CONFIDENTIAL_FIELDS])],
+    confidentialApproved: [],
     order: [...t.order], qr: { enabled: true, target: 'product', url: '' },
     barcode: { enabled: true, format: 'CODE128', source: 'millArticle' },
   }
@@ -34366,7 +34376,7 @@ function printCommunicationMemo(){return commsReviewExport('pdf')}
     <div class="spotlight-results" id="spotlight-results"></div>
   </div>
 </div>
-<script src="js/sample-workflow.js?v=20260911-10"></script>
+<script src="js/sample-workflow.js?v=20260911-13"></script>
 <script src="js/sample-development.js?v=20260911-8"></script>
 <script src="js/sample-stock.js?v=20260911-8"></script>
 <script src="js/sample-experience.js?v=20260911-8"></script>
