@@ -4779,6 +4779,9 @@
     .ws-hdr { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.1rem; flex-wrap:wrap; }
     .ws-hdr-name { flex:1; min-width:200px; }
     .ws-hdr-meta { display:flex; align-items:center; gap:0.6rem; font-size:0.7rem; color:var(--text-3); margin-top:0.15rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:600; flex-wrap:wrap; }
+    .ws-save-state { color:var(--text-3); text-transform:none; letter-spacing:0; font-weight:600; }
+    .ws-save-state.saved { color:var(--success); }
+    .ws-save-state.error { color:var(--danger); }
     .ws-deadline-wrap { display:inline-flex; align-items:center; gap:0.3rem; cursor:pointer; }
     .ws-deadline-wrap.set { color:var(--accent); }
     .ws-deadline-input {
@@ -30545,9 +30548,10 @@ async function showCollectionRecord(collectionId, backTo) {
   const headerHtml = `
     <div class="ws-hdr">
       <div class="ws-hdr-name">
-        <input class="ws-name-input" id="ws-name-input" aria-label="Nombre de la colección" value="${esc(col.name || '')}" placeholder="${esc(col.collection_id)} — sin nombre" onblur="saveCollectionName('${col.id}', this.value)" onkeydown="if(event.key==='Enter') this.blur()" />
+        <input class="ws-name-input" id="ws-name-input" aria-label="Nombre de la colección" value="${escAttr(col.name || '')}" data-original="${escAttr(col.name || '')}" placeholder="${escAttr(col.collection_id)} — sin nombre" oninput="markCollectionNameDirty(this)" onblur="saveCollectionName('${col.id}', this.value, this)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveCollectionName('${col.id}', this.value, this)}" />
         <div class="ws-hdr-meta">
           <span>${esc(col.collection_id)} · ${items.length} muestra${items.length!==1?'s':''} · ${totalQty} unidades</span>
+          <span class="ws-save-state" id="ws-name-save-state"></span>
           <span class="ws-deadline-wrap${col.deadline ? ' set' : ''}" title="Fecha límite">
             <svg width="11" height="11" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 8h14M7 2.5v3M13 2.5v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
             <input type="date" class="ws-deadline-input" aria-label="Fecha requerida de la colección" value="${col.deadline || ''}" onchange="wsSetDeadline('${col.id}', this.value)" />
@@ -31063,10 +31067,68 @@ function categorizedItemsHtml(items, categories, col, editable) {
   }).join('')
 }
 
-async function saveCollectionName(collectionId, value) {
-  const name = value.trim()
-  const { error } = await sb.rpc('rename_collection', { p_id: collectionId, p_name: name })
-  if (error) toast('No se pudo guardar el nombre: ' + error.message)
+function setCollectionNameSaveState(message, state = '') {
+  const el = document.getElementById('ws-name-save-state')
+  if (!el) return
+  el.textContent = message || ''
+  el.classList.toggle('saved', state === 'saved')
+  el.classList.toggle('error', state === 'error')
+}
+
+function markCollectionNameDirty(input) {
+  if (!input) return
+  const current = input.value.trim()
+  const original = (input.dataset.original || '').trim()
+  setCollectionNameSaveState(current === original ? '' : 'Sin guardar')
+}
+
+async function saveCollectionName(collectionId, value, input = null) {
+  const name = String(value || '').trim()
+  const original = (input?.dataset?.original || '').trim()
+  if (name === original) { setCollectionNameSaveState(''); return }
+  if (input?.dataset.saving === '1') return
+  if (input) input.dataset.saving = '1'
+  setCollectionNameSaveState('Guardando…')
+
+  let error = null
+  let saved = false
+  try {
+    const rpcRes = await sb.rpc('rename_collection', { p_id: collectionId, p_name: name })
+    error = rpcRes.error
+    saved = !error
+  } catch (e) {
+    error = e
+  }
+
+  // Some environments may not have the helper RPC applied yet. Owners and
+  // CS/admin users can still persist through the table policy, so try that
+  // before surfacing an error.
+  if (!saved) {
+    const upd = await sb.from('sample_collections')
+      .update({ name: name || null, updated_at: new Date().toISOString() })
+      .eq('id', collectionId)
+      .select('name')
+      .single()
+    error = upd.error
+    saved = !error
+  }
+
+  if (input) input.dataset.saving = ''
+  if (!saved) {
+    setCollectionNameSaveState('No guardado', 'error')
+    toast('No se pudo guardar el nombre: ' + (error?.message || 'error desconocido'))
+    return
+  }
+  if (input) {
+    input.dataset.original = name
+    input.value = name
+  }
+  invalidateDraftsCache()
+  setCollectionNameSaveState('Guardado', 'saved')
+  setTimeout(() => {
+    const el = document.getElementById('ws-name-save-state')
+    if (el?.classList.contains('saved')) setCollectionNameSaveState('')
+  }, 1800)
 }
 
 async function wsSetDeadline(collectionId, value) {
