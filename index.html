@@ -4723,6 +4723,19 @@
       display:flex; align-items:center; gap:0.55rem; flex-wrap:wrap; background:var(--accent-light); border:1px solid var(--border);
       border-radius:10px; padding:0.55rem 0.75rem; margin-bottom:0.7rem; font-size:0.78rem; font-weight:600; color:var(--text);
     }
+    .ws-costing-bar {
+      display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:0.75rem;
+      border:1px solid var(--border); border-radius:10px; padding:0.75rem 0.85rem; margin-bottom:0.85rem;
+      background:var(--surface-subtle);
+    }
+    .ws-costing-icon {
+      width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center;
+      background:var(--module-samples-tile-bg); color:var(--module-samples-tile-fg); flex-shrink:0;
+    }
+    .ws-costing-title { font-size:0.82rem; font-weight:700; color:var(--text); }
+    .ws-costing-sub { margin-top:0.12rem; font-size:0.7rem; color:var(--text-3); line-height:1.35; }
+    .ws-costing-actions { display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap; justify-content:flex-end; }
+    @media (max-width:720px) { .ws-costing-bar { grid-template-columns:auto minmax(0,1fr); } .ws-costing-actions { grid-column:1/-1; justify-content:flex-start; } }
     .ws-add-inline { display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.35rem; border-bottom:1px solid var(--border); margin-bottom:0.3rem; }
     .ws-add-inline input { flex:1; border:none; background:none; font-family:inherit; font-size:0.85rem; color:var(--text); outline:none; }
     .ws-add-row { display:flex; align-items:center; gap:0.5rem; padding:0.45rem 0.3rem; border-radius:8px; cursor:pointer; font-size:0.8rem; }
@@ -8064,12 +8077,12 @@
     <div class="modal-ftr"></div>
   </div>
 </div>
-<!-- ══ SAMPLE CART ══ -->
+<!-- ══ QUICK COLLECTION BOARD ══ -->
 <div class="cart-backdrop" id="cart-backdrop" onclick="closeCart()"></div>
 <div class="cart-panel" id="cart-panel">
   <div class="cart-hdr">
     <div>
-      <div class="cart-title">Collection</div>
+      <div class="cart-title">Board de colección</div>
       <div class="cart-sub" id="cart-hdr-sub"></div>
     </div>
     <button class="btn-icon" onclick="closeCart()">✕</button>
@@ -8078,18 +8091,18 @@
   <div class="cart-checkout" id="cart-checkout" style="display:none">
     <div class="cart-together">
       <svg width="14" height="14" style="flex-shrink:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12" /><path d="M16 3v4" /><path d="M8 3v4" /><path d="M4 11h16" /><path d="M11 15h1" /><path d="M12 15v3" /></svg>
-      Every sample in this collection is packed and delivered together, as one package.
+      Este board agrupa las muestras que se prepararán juntas. Ábrelo para editarlo con tu equipo.
     </div>
     <div id="cart-collab-fg"></div>
-    <div class="cart-fg"><label>Collection name (optional)</label><input type="text" id="cart-name" placeholder="e.g. Nike Fall '26 Swatches" /></div>
-    <div class="cart-fg"><label>Customer</label><input type="text" id="cart-customer" placeholder="e.g. Nike, Adidas" /></div>
-    <div class="cart-fg"><label>Priority</label>
+    <div class="cart-fg"><label>Nombre del board (opcional)</label><input type="text" id="cart-name" placeholder="ej. Nike Fall 26 · Swatches" /></div>
+    <div class="cart-fg"><label>Cliente</label><input type="text" id="cart-customer" placeholder="ej. Nike, Adidas" /></div>
+    <div class="cart-fg"><label>Prioridad</label>
       <div class="cart-seg" id="cart-priority">
         <button class="on" data-v="normal" onclick="cartSeg(this)">Normal</button>
-        <button data-v="urgent" onclick="cartSeg(this)">Urgent</button>
+        <button data-v="urgent" onclick="cartSeg(this)">Urgente</button>
       </div>
     </div>
-    <div class="cart-fg"><label>Delivery</label>
+    <div class="cart-fg"><label>Entrega</label>
       <div class="cart-seg" id="cart-delivery">
         <button class="on" data-v="Pickup" onclick="cartSeg(this);cartDeliveryChanged()">Pickup</button>
         <button data-v="DHL" onclick="cartSeg(this);cartDeliveryChanged()">DHL</button>
@@ -8097,10 +8110,10 @@
         <button data-v="Courier" onclick="cartSeg(this);cartDeliveryChanged()">Courier</button>
       </div>
     </div>
-    <div class="cart-fg"><label id="cart-dest-label">Deliver to (person)</label><input type="text" id="cart-recipient" placeholder="Who receives this collection?" /></div>
-    <div class="cart-fg" id="cart-address-fg" style="display:none"><label>Shipping address</label><input type="text" id="cart-address" placeholder="Full address / city / country" /></div>
-    <div class="cart-fg"><label>Notes</label><textarea id="cart-notes" placeholder="Special instructions… (optional)"></textarea></div>
-    <button class="cart-submit" id="cart-submit" onclick="submitCart()">Create collection</button>
+    <div class="cart-fg"><label id="cart-dest-label">Entregar a</label><input type="text" id="cart-recipient" placeholder="¿Quién recibe esta colección?" /></div>
+    <div class="cart-fg" id="cart-address-fg" style="display:none"><label>Dirección de envío</label><input type="text" id="cart-address" placeholder="Dirección completa / ciudad / país" /></div>
+    <div class="cart-fg"><label>Notas</label><textarea id="cart-notes" placeholder="Instrucciones especiales… (opcional)"></textarea></div>
+    <button class="cart-submit" id="cart-submit" onclick="submitCart()">Enviar board a PD</button>
   </div>
 </div>
 
@@ -29693,23 +29706,23 @@ function cartCollabHtml() {
     ? `<div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.6rem">
         ${draftCollaborators.map(c => `<span style="display:inline-flex;align-items:center;gap:0.35rem;background:var(--surface2);border-radius:999px;padding:0.3rem 0.65rem;font-size:0.72rem;font-weight:500">${esc(c.profiles?.full_name || c.profiles?.email || '—')}</span>`).join('')}
       </div>`
-    : `<div style="font-size:0.76rem;color:var(--text-3);margin-bottom:0.6rem">Building this alone — invite a teammate to co-edit before you submit.</div>`
+    : `<div style="font-size:0.76rem;color:var(--text-3);margin-bottom:0.6rem">Estás armando este board sin colaboradores. Invita a alguien para editarlo contigo.</div>`
   return `<div class="cart-fg">
-    <label>Collaborators${draftCollectionRef ? ` · ${esc(draftCollectionRef)}` : ''}</label>
+    <label>Colaboradores${draftCollectionRef ? ` · ${esc(draftCollectionRef)}` : ''}</label>
     ${chips}
     <div style="display:flex;gap:0.5rem">
-      <input type="text" id="cart-collab-input" placeholder="Name or email…"
+      <input type="text" id="cart-collab-input" placeholder="Nombre o correo…"
         style="flex:1;border:1px solid var(--border);border-radius:8px;padding:0.45rem 0.6rem;font-size:0.8rem;font-family:inherit;background:var(--surface2);color:var(--text)"
         onkeydown="if(event.key==='Enter'){event.preventDefault();inviteCartCollaborator()}" />
-      <button class="btn btn-secondary btn-sm" onclick="inviteCartCollaborator()">Invite</button>
+      <button class="btn btn-secondary btn-sm" onclick="inviteCartCollaborator()">Invitar</button>
     </div>
-    <button type="button" onclick="discardDraftCart()" style="margin-top:0.6rem;background:none;border:none;padding:0;font-family:inherit;font-size:0.72rem;color:var(--text-3);cursor:pointer;text-decoration:underline">Discard this draft</button>
+    <button type="button" onclick="discardDraftCart()" style="margin-top:0.6rem;background:none;border:none;padding:0;font-family:inherit;font-size:0.72rem;color:var(--text-3);cursor:pointer;text-decoration:underline">Descartar este board</button>
   </div>`
 }
 
 async function discardDraftCart() {
   if (!draftCollectionId) return
-  if (!confirm('Discard this draft collection and every item in it? This can\'t be undone.')) return
+  if (!confirm('¿Descartar este board y todas sus muestras? No se puede deshacer.')) return
   const id = draftCollectionId
   draftCollectionId = null; draftCollectionRef = null
   try { localStorage.removeItem('sierra_draft_collection_id') } catch {}
@@ -29719,33 +29732,33 @@ async function discardDraftCart() {
   const { error } = await sb.rpc('discard_draft_collection', { p_id: id })
   invalidateDraftsCache()
   if (error) console.error('discard_draft_collection error:', error)
-  else toast('Draft discarded')
+  else toast('Board descartado')
 }
 
 async function inviteCartCollaborator() {
-  if (!draftCollectionId) { toast('Add a product first'); return }
+  if (!draftCollectionId) { toast('Agrega una muestra primero'); return }
   const input = document.getElementById('cart-collab-input')
   const query = input?.value.trim()
-  if (!query) { toast('Type a name or email to invite'); return }
+  if (!query) { toast('Escribe un nombre o correo para invitar'); return }
   const { data: matches } = await sb.from('profiles').select('id, full_name, email')
     .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`).limit(1)
   const match = matches?.[0]
-  if (!match) { toast('No teammate found with that name or email'); return }
+  if (!match) { toast('No encontré a nadie con ese nombre o correo'); return }
   const { error } = await sb.from('collection_collaborators').insert({
     collection_id: draftCollectionId, user_id: match.id, added_by: me.id,
   })
   if (error) {
-    toast(error.code === '23505' ? `${match.full_name || match.email} is already a collaborator` : 'Could not invite collaborator')
+    toast(error.code === '23505' ? `${match.full_name || match.email} ya colabora en este board` : 'No se pudo invitar')
     return
   }
   await sb.from('notifications').insert({
     user_id: match.id, type: 'collection_invite',
-    title: `You were added to collection ${draftCollectionRef || ''}`,
-    body: `${profile?.full_name || 'A teammate'} invited you to help build this collection together — it's still a draft, add or change items freely.`,
+    title: `Te agregaron a la colección ${draftCollectionRef || ''}`,
+    body: `${profile?.full_name || 'Un compañero'} te invitó a construir este board de colección. Aún está en borrador, puedes agregar o ajustar muestras.`,
     resource_type: 'collection', resource_id: draftCollectionId,
   })
   Audit.log('collection', draftCollectionId, null, 'user_invited', `Invited ${match.full_name || match.email} as collaborator`)
-  toast(`${match.full_name || match.email} added — they can now co-edit this collection`)
+  toast(`${match.full_name || match.email} agregado al board`)
   await loadDraftCart()
   renderCart()
 }
@@ -29755,11 +29768,11 @@ function renderCart() {
   const checkout = document.getElementById('cart-checkout')
   const sub = document.getElementById('cart-hdr-sub')
   const n = sampleCart.reduce((s, i) => s + i.qty, 0)
-  if (sub) sub.textContent = sampleCart.length ? `${sampleCart.length} product${sampleCart.length>1?'s':''} · ${n} sample${n>1?'s':''}` : ''
+  if (sub) sub.textContent = sampleCart.length ? `${sampleCart.length} referencia${sampleCart.length>1?'s':''} · ${n} muestra${n>1?'s':''}` : ''
   const collabFg = document.getElementById('cart-collab-fg')
   if (collabFg) collabFg.innerHTML = cartCollabHtml()
   if (!sampleCart.length) {
-    body.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">◻</div>Your request is empty.<br>Add samples from any product card, or start from an existing collection.</div>`
+    body.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">◻</div>Este board está vacío.<br>Agrega muestras desde el catálogo o entra a una colección existente.</div>`
     checkout.style.display = 'none'
     return
   }
@@ -29771,7 +29784,7 @@ function renderCart() {
       <div class="cart-item-top">
         <span class="cart-item-dot" style="background:${c}"></span>
         <div class="cart-item-name">${esc(item.name)}${item.code ? `<div class="cart-item-code">${esc(item.code)}</div>` : ''}</div>
-        <button class="cart-item-remove" onclick="cartRemove(${idx})" title="Remove">
+        <button class="cart-item-remove" onclick="cartRemove(${idx})" title="Quitar">
           <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         </button>
       </div>
@@ -29853,7 +29866,7 @@ function cartSegVal(id) { return document.querySelector(`#${id} button.on`)?.dat
 function cartDeliveryChanged() {
   const ship = cartSegVal('cart-delivery') !== 'Pickup'
   document.getElementById('cart-address-fg').style.display = ship ? 'block' : 'none'
-  document.getElementById('cart-dest-label').textContent = ship ? 'Recipient (person)' : 'Deliver to (person)'
+  document.getElementById('cart-dest-label').textContent = ship ? 'Destinatario' : 'Entregar a'
 }
 
 async function submitCart() {
@@ -29879,7 +29892,7 @@ async function submitCart() {
     p_recipient: recipient, p_address: address, p_notes: notes, p_name: name || null,
   })
 
-  btn.disabled = false; btn.innerHTML = 'Create collection'
+  btn.disabled = false; btn.innerHTML = 'Enviar board a PD'
   if (error || !data) {
     console.error('submit_draft_collection error:', error)
     toast(`Collection failed: ${error?.message || 'unknown error'}`)
@@ -30614,6 +30627,20 @@ async function showCollectionRecord(collectionId, backTo) {
 
   const itemsHtml = categorizedItemsHtml(items, categories, col, isDraft && myCap.manage_samples)
   _wsStatItems = items
+  const canCostCollection = items.length && (canEditPricing() || myCap.edit_pricing)
+  const costingBarHtml = canCostCollection ? `
+    <div class="ws-costing-bar">
+      <div class="ws-costing-icon">${siIcon('table',18)}</div>
+      <div>
+        <div class="ws-costing-title">Costing externo</div>
+        <div class="ws-costing-sub">Descarga la hoja, completa precios fuera de Sierra y súbela para actualizar la colección en bloque.</div>
+      </div>
+      <div class="ws-costing-actions">
+        <button class="btn btn-secondary btn-sm" type="button" onclick="wsExportCostingExcel('${col.id}')">${siIcon('download',16)} Descargar Excel</button>
+        <button class="btn btn-primary btn-sm" type="button" onclick="document.getElementById('ws-costing-file-${col.id}')?.click()">${siIcon('upload',16)} Subir precios</button>
+        <input id="ws-costing-file-${col.id}" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="wsImportCostingExcel('${col.id}', this)" />
+      </div>
+    </div>` : ''
 
   // Comments render inside the side Drawer (§Drawer), not permanently on
   // the work surface — §17/§23 of the ERP brief: secondary context belongs
@@ -30664,6 +30691,7 @@ async function showCollectionRecord(collectionId, backTo) {
       <span>Muestras</span>
       ${isDraft && myCap.manage_samples ? `<button class="ws-add-cat-btn" onclick="wsAddCategory('${col.id}')">${siIcon('plus',16)} Categoría</button>` : ''}
     </div>
+    ${costingBarHtml}
     ${isDraft && myCap.manage_samples && items.length ? `
     <div class="ws-bulk-bar" id="ws-bulk-bar" style="display:none">
       <span id="ws-bulk-count">0 seleccionadas</span>
@@ -31260,28 +31288,151 @@ function fmtPrice(i) {
   return `${i.price_currency || 'USD'} ${Number(i.price).toFixed(2)}`
 }
 
-/* Price lives inline as a column on each row now (Sierra only prices in
-   USD, so the currency selector that used to live in a whole separate
-   "Pricing" card is gone — one field, click to edit, click away to see
-   it as a column value like everything else in the table). */
+function wsCostingCell(v) {
+  return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+}
+
+function wsCostingFileName(col) {
+  return `costing-${String(col.collection_id || col.id || 'coleccion').replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase()}`
+}
+
+async function wsLoadCostingRows(collectionId) {
+  const [colRes, itemsRes, catRes] = await Promise.all([
+    sb.from('sample_collections').select('id,collection_id,name,customer').eq('id', collectionId).single(),
+    sb.from('samples').select('id,sample_id,sample_type,quantity,category_id,price,price_unit,moq,price_valid_until,products(name,code,division)').eq('collection_id', collectionId).order('created_at', { ascending: true }),
+    sb.from('collection_categories').select('id,name').eq('collection_id', collectionId),
+  ])
+  if (colRes.error || !colRes.data) throw new Error('No se pudo cargar la colección')
+  if (itemsRes.error) throw new Error(itemsRes.error.message || 'No se pudieron cargar las muestras')
+  const catName = id => (catRes.data || []).find(c => c.id === id)?.name || ''
+  const rows = (itemsRes.data || []).map(it => ({
+    sample_id: it.sample_id || it.id,
+    item_id: it.id,
+    product_code: it.products?.code || '',
+    product_name: it.products?.name || '',
+    division: DIV_LBL[it.products?.division] || it.products?.division || '',
+    category: catName(it.category_id),
+    sample_type: it.sample_type || '',
+    quantity: it.quantity || 1,
+    price_usd: it.price ?? '',
+    price_unit: it.price_unit || '',
+    moq: it.moq || '',
+    valid_until: it.price_valid_until || '',
+  }))
+  return { col: colRes.data, rows }
+}
+
+async function wsExportCostingExcel(collectionId) {
+  try {
+    const { col, rows } = await wsLoadCostingRows(collectionId)
+    if (!rows.length) { toast('La colección no tiene muestras para exportar'); return }
+    const headers = ['sample_id','item_id','product_code','product_name','division','category','sample_type','quantity','price_usd','price_unit','moq','valid_until']
+    const trs = [
+      `<tr>${headers.map(h => `<th>${wsCostingCell(h)}</th>`).join('')}</tr>`,
+      ...rows.map(r => `<tr>${headers.map(h => `<td>${wsCostingCell(r[h])}</td>`).join('')}</tr>`),
+    ].join('')
+    const html = `<!doctype html><html><head><meta charset="utf-8"></head><body>
+      <table>${trs}</table>
+    </body></html>`
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8' }))
+    a.download = `${wsCostingFileName(col)}.xls`
+    a.click()
+    URL.revokeObjectURL(a.href)
+    Audit.log('collection', collectionId, null, 'costing_exported', `Costing Excel exportado (${rows.length} muestras)`)
+  } catch (e) {
+    toast(e.message || 'No se pudo descargar el Excel')
+  }
+}
+
+async function ensureSheetJs() {
+  if (window.XLSX) return
+  await new Promise((res, rej) => {
+    const s = document.createElement('script')
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
+    s.onload = res
+    s.onerror = () => rej(new Error('No se pudo cargar el lector de Excel. Intenta con CSV.'))
+    document.head.appendChild(s)
+  })
+}
+
+async function wsReadCostingGrid(file) {
+  if (/\.xlsx?$/i.test(file.name)) {
+    await ensureSheetJs()
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' })
+    return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: '' })
+  }
+  return parseCSV(await file.text())
+}
+
+function wsHeaderIndex(headers, names) {
+  const norm = s => String(s || '').trim().toLowerCase().replace(/\s+/g, '_')
+  const set = new Set(names.map(norm))
+  return headers.findIndex(h => set.has(norm(h)))
+}
+
+async function wsImportCostingExcel(collectionId, input) {
+  const file = input.files?.[0]
+  if (!file) return
+  if (!(canEditPricing() || _wsMyCap.edit_pricing)) { toast('No tienes permiso para subir precios'); input.value = ''; return }
+  try {
+    const grid = await wsReadCostingGrid(file)
+    if (!grid || grid.length < 2) throw new Error('El archivo no tiene filas para importar')
+    const headers = grid[0].map(h => String(h || '').trim())
+    const idxSample = wsHeaderIndex(headers, ['sample_id','sample id','muestra','sample'])
+    const idxItem = wsHeaderIndex(headers, ['item_id','item id','id'])
+    const idxCode = wsHeaderIndex(headers, ['product_code','product code','code','codigo','código'])
+    const idxPrice = wsHeaderIndex(headers, ['price_usd','price usd','precio_usd','precio usd','price','precio'])
+    const idxUnit = wsHeaderIndex(headers, ['price_unit','price unit','unit','unidad'])
+    const idxMoq = wsHeaderIndex(headers, ['moq','minimum','mínimo','minimo'])
+    const idxValid = wsHeaderIndex(headers, ['valid_until','valid until','vigente_hasta','vigente hasta','valid'])
+    if (idxPrice < 0) throw new Error('No encontré la columna price_usd/precio_usd')
+
+    const { rows: current } = await wsLoadCostingRows(collectionId)
+    const bySample = new Map(current.map(r => [String(r.sample_id), r]))
+    const byItem = new Map(current.map(r => [String(r.item_id), r]))
+    const byCode = new Map(current.filter(r => r.product_code).map(r => [String(r.product_code), r]))
+    const workflow = await getSampleWorkflow(collectionId).catch(() => null)
+    let updated = 0, skipped = 0
+
+    for (const row of grid.slice(1)) {
+      const keySample = idxSample >= 0 ? String(row[idxSample] || '').trim() : ''
+      const keyItem = idxItem >= 0 ? String(row[idxItem] || '').trim() : ''
+      const keyCode = idxCode >= 0 ? String(row[idxCode] || '').trim() : ''
+      const match = byItem.get(keyItem) || bySample.get(keySample) || byCode.get(keyCode)
+      if (!match) { skipped++; continue }
+      const rawPrice = String(row[idxPrice] ?? '').replace(/[$,]/g, '').trim()
+      if (!rawPrice) { skipped++; continue }
+      const price = Number(rawPrice)
+      if (!Number.isFinite(price) || price < 0) { skipped++; continue }
+      const unitRaw = idxUnit >= 0 ? String(row[idxUnit] || '').trim().toLowerCase() : ''
+      const unitMap = { pieza:'piece', piece:'piece', unidad:'piece', unit:'piece', metro:'m', metros:'m', m:'m', yarda:'yd', yard:'yd', yards:'yd', yd:'yd' }
+      const price_unit = unitMap[unitRaw] || unitRaw || null
+      const moq = idxMoq >= 0 ? String(row[idxMoq] || '').trim() || null : null
+      const valid = idxValid >= 0 ? String(row[idxValid] || '').trim() || null : null
+      const { error } = workflow
+        ? await sb.rpc('save_sample_costing', { p_sample: match.item_id, p_revision: workflow.revision, p_price: price, p_unit: price_unit, p_moq: moq, p_valid_until: valid })
+        : await sb.from('samples').update({ price, price_currency: 'USD', price_unit, moq, price_valid_until: valid }).eq('id', match.item_id)
+      if (error) { skipped++; console.error('costing import row error', error); continue }
+      updated++
+    }
+
+    Audit.log('collection', collectionId, null, 'costing_imported', `Costing importado desde Excel`, [], { updated, skipped, file: file.name })
+    toast(`Costing actualizado: ${updated} muestra${updated !== 1 ? 's' : ''}${skipped ? ` · ${skipped} omitida${skipped !== 1 ? 's' : ''}` : ''}`)
+    showCollectionRecord(collectionId, _colWorkspaceBack)
+  } catch (e) {
+    toast(e.message || 'No se pudo importar el costing')
+  } finally {
+    input.value = ''
+  }
+}
+
+/* Price is displayed on the board, but costing is completed outside Sierra
+   and imported in bulk from Excel so confidential formulas stay off-platform. */
 function wsPriceCellHtml(it) {
-  const editable = canEditPricing() || _wsMyCap.edit_pricing
-  if (!editable && it.price == null) return '<span class="ws-price-empty">—</span>'
-  const label = it.price != null ? `${esc(it.price_currency||'USD')} ${Number(it.price).toFixed(2)}${it.price_unit?' / '+esc(({piece:'pieza',m:'m',yd:'yd'})[it.price_unit]||it.price_unit):''}` : (editable ? 'Precio' : '—')
-  if (!editable) return `<span class="ws-price-empty" style="color:var(--text)">${label}</span>`
-  return `
-    <button type="button" class="ws-price-btn" aria-label="Editar precio de ${esc(it.products?.name||it.sample_id)}" onclick="wsTogglePricePop(event,'${it.id}')">${siIcon(it.price==null?'plus':'pencil',16)} ${label}</button>
-    <div class="ws-pop ws-price-pop" id="price-pop-${it.id}">
-      <label>Precio (USD)</label>
-      <input type="number" min="0" step="0.01" id="pr-${it.id}" class="tl-search" value="${it.price ?? ''}" placeholder="0.00" />
-      <label>Precio por</label>
-      <div class="sf-options">${[['piece','Pieza'],['m','Metro'],['yd','Yarda']].map(([unit,label])=>`<label><input type="radio" name="price-unit-${it.id}" value="${unit}" ${it.price_unit===unit?'checked':''}>${label}</label>`).join('')}</div>
-      <label>MOQ</label>
-      <input type="text" id="moq-${it.id}" class="tl-search" value="${esc(it.moq || '')}" placeholder="Cantidad mínima" />
-      <label>Válido hasta</label>
-      <input type="date" id="val-${it.id}" class="tl-search" value="${it.price_valid_until || ''}" />
-      <button class="btn btn-primary btn-sm" style="width:100%;margin-top:0.5rem" onclick="wsSavePrice('${it.id}')">Guardar</button>
-    </div>`
+  if (it.price == null || it.price === '') return '<span class="ws-price-empty">Sin precio</span>'
+  const unit = it.price_unit ? ` / ${esc(({piece:'pieza',m:'m',yd:'yd'})[it.price_unit]||it.price_unit)}` : ''
+  return `<span class="ws-price-empty" style="color:var(--text);font-weight:700">${esc(it.price_currency||'USD')} ${Number(it.price).toFixed(2)}${unit}</span>`
 }
 function wsTogglePricePop(e, itemId) {
   e.stopPropagation()
