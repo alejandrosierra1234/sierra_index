@@ -58,7 +58,9 @@
 .lbl-masthead .lbl-title.len-2{font-size:4.3mm}
 .lbl-masthead .lbl-title.len-3{font-size:3.8mm}
 .lbl-footer-group{flex-shrink:0}
-.lbl-fixed.lbl-airy>.lbl-block{flex:1 0 auto;display:flex;flex-direction:column;justify-content:center}
+.lbl-fixed.lbl-airy>.lbl-block{flex:0 0 auto}
+.lbl-fixed:not(.lbl-yarn-tpl)>.lbl-footer-group{margin-top:auto}
+.lbl-zebra.lbl-airy>.lbl-block{margin-top:1.6mm;padding-top:1.6mm}
 .lbl-airy .lbl-kv{flex-direction:column;align-items:stretch;gap:.7mm}
 .lbl-airy .lbl-kv-k{width:auto}
 .lbl-airy .lbl-kv-v{font-size:3.2mm;line-height:1.22}

@@ -28,4 +28,6 @@ Color, método de teñido, ancho, GSM, DIA y Gauge están ocultos por defecto, i
 
 ## Composición adaptable
 
-Las etiquetas de tela agrupan logo, nombre, origen y QR en un encabezado compacto. Los grupos vacíos no dejan separadores. Cuando hay pocos datos, composición y valores ganan presencia; Zebra distribuye el espacio disponible entre los grupos y conserva juntos los códigos al pie. Brother mantiene la longitud según contenido. El QR desactivado no reserva una columna vacía. Las etiquetas extensas conservan el formato denso y el control de desbordamiento.
+Las etiquetas de tela agrupan logo, nombre, origen y QR en un encabezado compacto. Los grupos vacíos no dejan separadores. Cuando hay pocos datos, composición y valores ganan presencia; Zebra mantiene separaciones fijas entre los grupos y concentra el espacio restante antes de los códigos al pie. Brother mantiene la longitud según contenido. El QR desactivado no reserva una columna vacía. Las etiquetas extensas conservan el formato denso y el control de desbordamiento.
+
+Regresión de espaciado: `node tests/samples/label-spacing-preview.cjs` reproduce Bubble Jersey (plantilla compacta), una etiqueta completa y una sin QR en ambos equipos. Revisión DOM: 6/6 sin desbordamiento; en Zebra la composición empieza a 3,3 mm del final del encabezado, sin centrar ni estirar su bloque.
