@@ -7317,7 +7317,7 @@
   </style>
 <link rel="stylesheet" href="css/sample-workflow.css?v=20260911-9">
 <link rel="stylesheet" href="css/catalog-experience.css?v=20260911-9">
-<link rel="stylesheet" href="css/label-printers.css?v=20260911-13">
+<link rel="stylesheet" href="css/label-printers.css?v=20260911-14">
 <script src="js/label-printers.js?v=20260911-13"></script>
 <script src="js/catalog-experience.js?v=20260911-9"></script>
 </head>
@@ -12554,6 +12554,8 @@ function renderLabel(p, cfg, opts = {}) {
   }
   const show = key => labelFieldAllowed(cfg,key) && V(key).trim() !== ''
 
+  const visibleKeys = (cfg.template==='yarn-label'?[]:cfg.order.flatMap(k=>LABEL_SECTIONS[k]?.fields||[])).filter(show)
+  const airy = cfg.template!=='yarn-label' && visibleKeys.length <= 11 && visibleKeys.reduce((n,k)=>n+V(k).length,0) < 330
   const out = []
 
   /* ── HEADER: logo left, QR right ── */
@@ -12690,10 +12692,13 @@ function renderLabel(p, cfg, opts = {}) {
     if (!fn) return
     const inner = fn()
     if (!inner) return
-    out.push(secKey === 'footer' ? inner : `<div class="lbl-block" data-section="${secKey}">${inner}</div>`)
+    out.push(secKey === 'footer' ? `<div class="lbl-footer-group">${inner}</div>` : `<div class="lbl-block" data-section="${secKey}">${inner}</div>`)
   })
 
-  return `<div class="lbl ${t.variant}${cfg.tight ? ' is-tight' : ''}" data-product="${escAttr(p.id)}" data-template="${escAttr(cfg.template)}" style="width:${t.widthMm}mm">${out.join('')}</div>`
+  if (cfg.template !== 'yarn-label' && cfg.order[0] === 'identity' && out[1]?.includes('data-section="identity"')) {
+    out.splice(0,2,`<div class="lbl-masthead ${qrOn?'has-qr':''}">${out[0]}${out[1]}</div>`)
+  }
+  return `<div class="lbl ${t.variant}${airy?' lbl-airy':''}${t.fixedHeightMm?' lbl-fixed':''}${qrOn?'':' lbl-no-qr'}${cfg.tight ? ' is-tight' : ''}" data-product="${escAttr(p.id)}" data-template="${escAttr(cfg.template)}" style="width:${t.widthMm}mm">${out.join('')}</div>`
 }
 
 /* ══ Live preview ══ every edit re-renders here; there is no preview

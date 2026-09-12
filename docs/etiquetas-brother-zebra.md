@@ -25,3 +25,7 @@ La barra muestra la impresora y el papel actuales, por ejemplo **Zebra · 2 × 3
 ## Campos confidenciales
 
 Color, método de teñido, ancho, GSM, DIA y Gauge están ocultos por defecto, incluidas las configuraciones anteriores sin confirmación explícita. Al habilitar uno o una sección, el diálogo informa que son datos confidenciales que no deben mostrarse a clientes ni externos. Cancelar o pulsar Escape los mantiene ocultos. Ocultarlos revoca la confirmación; al volver a habilitarlos se pregunta nuevamente. La autorización se guarda con la configuración de la etiqueta. Las etiquetas de PD respetan la configuración de la ficha liberada. Esta opción controla las etiquetas, no los permisos del catálogo público.
+
+## Composición adaptable
+
+Las etiquetas de tela agrupan logo, nombre, origen y QR en un encabezado compacto. Los grupos vacíos no dejan separadores. Cuando hay pocos datos, composición y valores ganan presencia; Zebra distribuye el espacio disponible entre los grupos y conserva juntos los códigos al pie. Brother mantiene la longitud según contenido. El QR desactivado no reserva una columna vacía. Las etiquetas extensas conservan el formato denso y el control de desbordamiento.
