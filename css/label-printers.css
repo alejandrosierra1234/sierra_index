@@ -47,3 +47,27 @@
 .label-favorite:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .label-confidential-mark{display:inline-flex;vertical-align:middle;color:var(--text-3)}
 .label-confidential-dialog p{font-size:14px;line-height:1.6;margin:16px 0}
+
+/* Compose only visible sections; reserve space for actual codes, never hidden fields. */
+.lbl-masthead{position:relative}
+.lbl-masthead .lbl-hdr{margin-bottom:2mm}
+.lbl-masthead .lbl-block[data-section=identity]{margin:0;padding:0;border:0}
+.lbl-masthead.has-qr{min-height:16mm;padding-right:16mm}
+.lbl-masthead.has-qr .lbl-hdr-qr{position:absolute;top:0;right:0}
+.lbl-masthead .lbl-title{font-size:4.8mm;line-height:1.05}
+.lbl-masthead .lbl-title.len-2{font-size:4.3mm}
+.lbl-masthead .lbl-title.len-3{font-size:3.8mm}
+.lbl-footer-group{flex-shrink:0}
+.lbl-fixed.lbl-airy>.lbl-block{flex:1 0 auto;display:flex;flex-direction:column;justify-content:center}
+.lbl-airy .lbl-kv{flex-direction:column;align-items:stretch;gap:.7mm}
+.lbl-airy .lbl-kv-k{width:auto}
+.lbl-airy .lbl-kv-v{font-size:3.2mm;line-height:1.22}
+.lbl-airy .lbl-yarn-v{line-height:1.25}
+.lbl-zebra .lbl-masthead.has-qr{min-height:19mm;padding-right:20mm}
+.lbl-zebra .lbl-masthead .lbl-hdr{margin:0 0 1.3mm;min-height:4mm}
+.lbl-zebra .lbl-masthead .lbl-block[data-section=identity]{margin:0;min-height:0}
+.lbl-zebra .lbl-masthead .lbl-hdr-qr{top:0;right:0}
+.lbl-zebra .lbl-masthead .lbl-title{font-size:3.3mm;line-height:1.08}
+.lbl-zebra.lbl-airy .lbl-kv-v{font-size:2.9mm}
+.lbl-zebra.lbl-airy .lbl-meta-v,.lbl-zebra.lbl-airy .lbl-yarn-v{font-size:2.6mm}
+.lbl-zebra.lbl-no-qr .lbl-hdr,.lbl-zebra.lbl-no-qr .lbl-block[data-section=identity]{margin-right:0;min-height:0}
