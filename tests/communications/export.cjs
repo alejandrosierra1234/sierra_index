@@ -10,6 +10,11 @@ w.document.body.appendChild=node=>{const result=append(node);if(node.tagName==='
 w.fetch=async()=>({ok:true,arrayBuffer:async()=>Uint8Array.from([0,1,2,3]).buffer});
 w.html2canvas=async(page,options)=>{captured=options;assert.match(page.textContent,/Recursos Humanos/);return{toBlob(callback,type,q){mime=type;quality=q;callback(new w.Blob(['test'],{type}))}}};
 (async()=>{
+ const fitted=new JSDOM('<article class="memo-page"><img style="object-fit:cover;object-position:25% 70%;width:200px;height:400px;transform:scale(1.45);transform-origin:25% 70%"></article>').window.document,img=fitted.querySelector('img');
+ Object.defineProperties(img,{naturalWidth:{value:400},naturalHeight:{value:200},clientWidth:{value:200},clientHeight:{value:400}});img.decode=async()=>{};
+ let draw,canvasSize;const create=fitted.createElement.bind(fitted);fitted.createElement=tag=>{if(tag!=='canvas')return create(tag);const canvas={getContext:()=>({scale(){},drawImage(...args){draw=args}}),toDataURL(){canvasSize=[this.width,this.height];return 'data:image/png;base64,AA=='}};return canvas};
+ await w.memoPrepareFittedImages(fitted,3.125);assert.deepEqual(draw.slice(1),[-150,0,800,400]);assert.deepEqual(canvasSize,[625,1250]);assert.equal(img.style.transform,'scale(1.45)');assert.equal(img.style.transformOrigin,'25% 70%');assert.equal(img.style.objectFit,'fill');
+ img.style.objectFit='contain';await w.memoPrepareFittedImages(fitted,3.125);assert.deepEqual(draw.slice(1),[0,210,200,100]);console.log('PASS: image crop preserves source aspect ratio, position, zoom and resolution');
  const d=w.createCommunicationDraft({sender:'Recursos Humanos',subject:'Reunión / área: 2026',blocks:[{id:'text',type:'text',style:'regular',richHtml:'<b>Importante</b>'}]});
  const fontCss=await w.memoExportFontCss(),html=w.memoImageDocumentHtml(d,fontCss);assert.match(html,/<base href="https:\/\/example.com\/sierra_index\/">/);assert.match(html,/data:font\/otf;base64/);assert.match(html,/font-display:block/);assert.match(html,/<strong>Importante<\/strong>/);assert.ok(!html.includes('memo-preview-sheet'));console.log('PASS: standalone full document, embedded fonts and rich text');
  assert.equal(w.memoImageFileName(d,'jpg'),'COM-2026-001-Reunion-area-2026.jpg');console.log('PASS: safe filename with memo number and correct extension');

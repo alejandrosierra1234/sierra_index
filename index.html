@@ -35048,6 +35048,25 @@ function memoImagePalette(doc){
     doc.head.appendChild(style);
   });
 }
+// Rasterize object-fit before html2canvas, which otherwise stretches replaced images.
+async function memoPrepareFittedImages(doc,scale){
+  const images=Array.from(doc.querySelectorAll('.memo-page img'));
+  for(const img of images){
+    const style=doc.defaultView.getComputedStyle(img),fit=style.objectFit;
+    if(!['cover','contain','scale-down','none'].includes(fit)||!img.naturalWidth||!img.naturalHeight)continue;
+    const width=img.clientWidth-parseFloat(style.paddingLeft||0)-parseFloat(style.paddingRight||0),height=img.clientHeight-parseFloat(style.paddingTop||0)-parseFloat(style.paddingBottom||0);
+    if(width<=0||height<=0)continue;
+    const ratio=fit==='cover'?Math.max(width/img.naturalWidth,height/img.naturalHeight):fit==='none'?1:Math.min(fit==='scale-down'?1:Infinity,width/img.naturalWidth,height/img.naturalHeight);
+    const drawWidth=img.naturalWidth*ratio,drawHeight=img.naturalHeight*ratio,position=style.objectPosition.split(/\s+/);
+    const offset=(value,space)=>value?.endsWith('%')?space*parseFloat(value)/100:value==='left'||value==='top'?0:value==='right'||value==='bottom'?space:value==='center'?space/2:parseFloat(value)||0;
+    const canvas=doc.createElement('canvas');canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
+    const context=canvas.getContext('2d');context.scale(canvas.width/width,canvas.height/height);
+    context.drawImage(img,offset(position[0],width-drawWidth),offset(position[1]||'50%',height-drawHeight),drawWidth,drawHeight);
+    // Freeze the element box; preserve its zoom transform and the parent's clipping.
+    img.style.width=style.width;img.style.height=style.height;img.style.objectFit='fill';img.removeAttribute('srcset');
+    img.src=canvas.toDataURL('image/png');await img.decode();
+  }
+}
 async function memoImageBlob(d,format){
   if(typeof window.html2canvas!=='function')throw new Error('No se pudo cargar el generador de imágenes. Recarga la página e inténtalo de nuevo.');
   const frame=document.createElement('iframe');frame.title='Preparando imagen del comunicado';frame.setAttribute('aria-hidden','true');frame.tabIndex=-1;
@@ -35062,6 +35081,7 @@ async function memoImageBlob(d,format){
     const page=doc.querySelector('.memo-page'),isInvitation=page.classList.contains('invite-page');if(isInvitation){page.style.setProperty('width','8.5in','important');page.style.setProperty('height','11in','important');page.style.setProperty('min-height','11in','important');page.style.setProperty('max-height','11in','important');page.style.setProperty('overflow','hidden','important')}else{page.style.height='auto';page.style.overflow='visible'}const rect=page.getBoundingClientRect(),width=isInvitation?816:Math.ceil(Math.max(page.scrollWidth,rect.width)),height=isInvitation?1056:Math.ceil(Math.max(page.scrollHeight,rect.height));const watermark=page.querySelector('.memo-watermark');if(watermark){watermark.style.top=Math.min(height/2,528)+'px';for(let y=1584;y<height;y+=1056){const copy=watermark.cloneNode(true);copy.style.top=Math.min(y,height-100)+'px';page.appendChild(copy)}}
     // Keep long memos complete while bounding canvas memory on mobile devices.
     const scale=isInvitation?3.125:Math.min(3,16384/Math.max(width,height),Math.sqrt(16000000/(width*height)));
+    await memoPrepareFittedImages(doc,scale);
     const canvas=await window.html2canvas(page,{scale,useCORS:true,allowTaint:false,backgroundColor:'#ffffff',logging:false,width,height,windowWidth:width,windowHeight:height,scrollX:0,scrollY:0});
     const mime=format==='jpg'?'image/jpeg':'image/png';
     return await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('No se pudo generar la imagen. Reduce su tamaño e inténtalo de nuevo.')),mime,.95));
