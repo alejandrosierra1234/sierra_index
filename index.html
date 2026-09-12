@@ -4689,9 +4689,48 @@
     .ws-name-input::placeholder { color:var(--text-3); font-weight:600; }
     .ws-name-input:hover { background:var(--surface2); }
     .ws-name-input:focus { outline:none; background:var(--surface2); border-color:var(--border); }
-    .ws-cat-group { margin-bottom:1.1rem; }
+    .ws-board-hero {
+      border:1px solid var(--border); border-radius:14px; background:linear-gradient(180deg,var(--surface) 0%,var(--surface-subtle) 100%);
+      padding:1rem; margin:0.8rem 0 1rem; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1rem; align-items:start;
+    }
+    .ws-board-hero-title { display:flex; align-items:center; gap:0.45rem; font-size:0.78rem; font-weight:700; color:var(--text); }
+    .ws-board-hero-sub { margin-top:0.25rem; font-size:0.72rem; color:var(--text-3); line-height:1.45; max-width:680px; }
+    .ws-board-kpis { display:grid; grid-template-columns:repeat(4,minmax(96px,1fr)); gap:0.45rem; margin-top:0.85rem; }
+    .ws-board-kpi { border:1px solid var(--border); border-radius:9px; background:var(--surface); padding:0.55rem 0.65rem; min-width:0; }
+    .ws-board-kpi strong { display:block; font-size:1.05rem; line-height:1.1; color:var(--text); }
+    .ws-board-kpi span { display:block; margin-top:0.15rem; font-size:0.64rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-3); font-weight:700; }
+    .ws-hero-actions { display:flex; align-items:center; justify-content:flex-end; gap:0.45rem; flex-wrap:wrap; }
+    .ws-readiness { display:flex; align-items:center; gap:0.35rem; color:var(--text-2); font-size:0.74rem; font-weight:700; white-space:nowrap; }
+    .ws-readiness-ring {
+      --pct:0%; width:34px; height:34px; border-radius:50%; display:grid; place-items:center;
+      background:conic-gradient(var(--accent) var(--pct), var(--surface2) 0); color:var(--text);
+    }
+    .ws-readiness-ring::after { content:''; width:24px; height:24px; border-radius:50%; background:var(--surface); box-shadow:inset 0 0 0 1px var(--border); }
+    .ws-flow-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0.45rem; margin:0.5rem 0 1rem; }
+    .ws-flow-step {
+      display:flex; align-items:center; gap:0.45rem; min-width:0; border:1px solid var(--border); border-radius:10px;
+      padding:0.55rem 0.65rem; background:var(--surface); color:var(--text-3); font-size:0.72rem; font-weight:700;
+    }
+    .ws-flow-step svg { flex-shrink:0; }
+    .ws-flow-step.done { color:var(--accent); border-color:color-mix(in srgb,var(--accent) 28%,var(--border)); background:var(--accent-light); }
+    .ws-flow-step.now { color:var(--text); border-color:var(--text-3); }
+    .ws-board-panel { border:1px solid var(--border); border-radius:14px; background:var(--surface); overflow:hidden; }
+    .ws-board-toolbar {
+      display:grid; grid-template-columns:minmax(260px,1fr) auto; gap:0.75rem; align-items:center;
+      padding:0.75rem; border-bottom:1px solid var(--border); background:var(--surface-subtle);
+    }
+    .ws-board-tools { display:flex; align-items:center; justify-content:flex-end; gap:0.45rem; flex-wrap:wrap; }
+    .ws-category-create {
+      display:flex; align-items:center; gap:0.35rem; min-width:260px; border:1px solid var(--border);
+      border-radius:9px; background:var(--surface); padding:0.25rem 0.3rem 0.25rem 0.55rem;
+    }
+    .ws-category-create svg { color:var(--text-3); flex-shrink:0; }
+    .ws-category-create input { min-width:0; flex:1; border:0; background:transparent; color:var(--text); font:inherit; font-size:0.78rem; outline:none; }
+    .ws-category-create .btn { flex-shrink:0; }
+    .ws-board-body { padding:0.75rem; }
+    .ws-cat-group { margin-bottom:0.75rem; border:1px solid var(--border); border-radius:12px; background:var(--surface); overflow:hidden; }
     .ws-cat-group:last-child { margin-bottom:0; }
-    .ws-cat-hdr { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.6rem; }
+    .ws-cat-hdr { display:flex; align-items:center; gap:0.5rem; padding:0.65rem 0.75rem; background:var(--surface-subtle); border-bottom:1px solid var(--border); margin-bottom:0; }
     .ws-cat-name { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-2); }
     .ws-cat-count { font-size:0.68rem; color:var(--text-3); background:var(--surface2); border-radius:999px; padding:0.05rem 0.5rem; }
     .ws-cat-action { background:none; border:none; color:var(--text-3); cursor:pointer; font-size:0.72rem; padding:0.1rem 0.3rem; margin-left:-0.2rem; }
@@ -4705,20 +4744,38 @@
     .ws-cat-hdr { cursor:pointer; user-select:none; }
     .ws-cat-chevron { color:var(--text-3); flex-shrink:0; transition:transform var(--dur-fast) var(--ease-out); }
     .ws-cat-chevron.collapsed { transform:rotate(-90deg); }
+    .ws-cat-body { padding:0.25rem 0.5rem; }
     .ws-cat-body.collapsed { display:none; }
 
     /* Board rows — one line per sample, all the fields you touch often
        (type, qty, category, price) inline, like a Monday board row. */
-    .ws-row { display:flex; align-items:center; gap:0.55rem; padding:0.5rem 0.35rem; border-bottom:1px solid var(--border); font-size:0.83rem; flex-wrap:wrap; }
+    .ws-row { display:grid; grid-template-columns:auto auto minmax(190px,1fr) 128px auto 140px minmax(92px,auto) auto; align-items:center; gap:0.55rem; padding:0.6rem 0.4rem; border-bottom:1px solid var(--border); font-size:0.83rem; }
     .ws-row:last-child { border-bottom:none; }
+    .ws-row:hover { background:var(--surface-subtle); border-radius:8px; }
+    .ws-row-index { width:24px; height:24px; border-radius:7px; display:grid; place-items:center; font-size:0.68rem; font-weight:800; color:var(--text-2); background:var(--surface2); }
     /* No truncation — product name, governed by SIERRA_DESIGN_SYSTEM.md §7b. */
-    .ws-row-name { flex:1 1 140px; min-width:0; font-weight:600; color:var(--text); white-space:normal; overflow-wrap:break-word; }
+    .ws-row-name { min-width:0; font-weight:650; color:var(--text); white-space:normal; overflow-wrap:break-word; }
     .ws-row-code { display:block; font-size:0.68rem; font-weight:500; color:var(--text-3); }
     .ws-row-type { width:118px; flex-shrink:0; }
     .ws-row-qty { flex-shrink:0; }
     .ws-row-cat { width:126px; flex-shrink:0; }
     .ws-item-checkbox, .ws-select-all { width:15px; height:15px; flex-shrink:0; accent-color:var(--accent); cursor:pointer; }
     .ws-row.selected { background:var(--accent-light); border-radius:8px; }
+    @media (max-width:980px) {
+      .ws-board-hero, .ws-board-toolbar { grid-template-columns:1fr; }
+      .ws-hero-actions, .ws-board-tools { justify-content:flex-start; }
+      .ws-board-kpis, .ws-flow-steps { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .ws-row { grid-template-columns:auto auto minmax(180px,1fr) auto; }
+      .ws-row-type, .ws-row-cat, .ws-price-wrap, .cart-item-remove { grid-column:auto; }
+    }
+    @media (max-width:640px) {
+      .ws-board-kpis, .ws-flow-steps { grid-template-columns:1fr; }
+      .ws-category-create { min-width:0; width:100%; }
+      .ws-row { grid-template-columns:auto minmax(0,1fr); align-items:start; }
+      .ws-row .ws-item-checkbox { margin-top:0.25rem; }
+      .ws-row-index, .ws-row-type, .ws-row-qty, .ws-row-cat, .ws-price-wrap, .cart-item-remove { grid-column:2; justify-self:start; }
+      .ws-row-name { grid-column:2; }
+    }
     .ws-bulk-bar {
       display:flex; align-items:center; gap:0.55rem; flex-wrap:wrap; background:var(--accent-light); border:1px solid var(--border);
       border-radius:10px; padding:0.55rem 0.75rem; margin-bottom:0.7rem; font-size:0.78rem; font-weight:600; color:var(--text);
@@ -4736,7 +4793,7 @@
     .ws-costing-sub { margin-top:0.12rem; font-size:0.7rem; color:var(--text-3); line-height:1.35; }
     .ws-costing-actions { display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap; justify-content:flex-end; }
     @media (max-width:720px) { .ws-costing-bar { grid-template-columns:auto minmax(0,1fr); } .ws-costing-actions { grid-column:1/-1; justify-content:flex-start; } }
-    .ws-add-inline { display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0.35rem; border-bottom:1px solid var(--border); margin-bottom:0.3rem; }
+    .ws-add-inline { display:flex; align-items:center; gap:0.5rem; border:1px solid var(--border); border-radius:10px; padding:0.55rem 0.65rem; background:var(--surface); }
     .ws-add-inline input { flex:1; border:none; background:none; font-family:inherit; font-size:0.85rem; color:var(--text); outline:none; }
     .ws-add-row { display:flex; align-items:center; gap:0.5rem; padding:0.45rem 0.3rem; border-radius:8px; cursor:pointer; font-size:0.8rem; }
     .ws-add-row:hover { background:var(--surface2); }
@@ -7880,7 +7937,7 @@
   <div class="modal" style="width:480px">
     <div class="modal-hdr">
       <div>
-        <div class="modal-eyebrow" style="color:var(--text-3)">Colecciones</div>
+        <div class="modal-eyebrow" style="color:var(--text-3)">Mis colecciones</div>
         <div class="modal-title" id="bulk-title">Agregar productos a una colección</div>
       </div>
       <button class="btn-icon" onclick="closeModal('m-bulk')">✕</button>
@@ -7963,7 +8020,7 @@
   <div class="modal" style="width:420px">
     <div class="modal-hdr">
       <div>
-        <div class="modal-eyebrow" style="color:var(--text-3)">Colecciones</div>
+        <div class="modal-eyebrow" style="color:var(--text-3)">Mis colecciones</div>
         <div class="modal-title" id="pick-col-title">¿A qué colección lo agrego?</div>
         <div class="col-modal-meta" id="pick-col-subtitle">Selecciona un borrador en progreso o crea uno nuevo para esta tanda.</div>
       </div>
@@ -7987,7 +8044,7 @@
   <div class="modal" style="width:500px;max-width:94vw">
     <div class="modal-hdr">
       <div>
-        <div class="modal-eyebrow" style="color:var(--text-3)">Colecciones</div>
+        <div class="modal-eyebrow" style="color:var(--text-3)">Mis colecciones</div>
         <div class="modal-title">Crear colección nueva</div>
       </div>
       <button class="btn-icon" onclick="closeCollectionStartModal()">✕</button>
@@ -8349,7 +8406,7 @@ const I18N = {
   en: {
     'nav.search':'Search…', 'nav.dashboard':'Dashboard', 'nav.styleGuide':'Style Guide', 'nav.divisions':'Divisions',
     'nav.allProducts':'All products', 'nav.myActivity':'My activity', 'nav.sampleCenter':'Sample Center',
-    'nav.insights':'Insights', 'nav.collection':'Collections', 'nav.scan':'Scan',
+    'nav.insights':'Insights', 'nav.collection':'My Collections', 'nav.scan':'Scan',
     'nav.accessLogs':'Access logs', 'nav.team':'Team',
     'nav.notifications':'Notifications', 'nav.appearance':'Appearance', 'nav.profile':'Profile',
     'catalog.subtitle':'Technical product catalog', 'catalog.noProducts':'No products in this division yet.',
@@ -8442,7 +8499,7 @@ const I18N = {
   es: {
     'nav.search':'Buscar…', 'nav.dashboard':'Panel', 'nav.styleGuide':'Guía de estilo', 'nav.divisions':'Divisiones',
     'nav.allProducts':'Todos los productos', 'nav.myActivity':'Mi actividad', 'nav.sampleCenter':'Centro de muestras',
-    'nav.insights':'Insights', 'nav.collection':'Colecciones', 'nav.scan':'Escanear',
+    'nav.insights':'Insights', 'nav.collection':'Mis colecciones', 'nav.scan':'Escanear',
     'nav.accessLogs':'Registros de acceso', 'nav.team':'Equipo',
     'nav.notifications':'Notificaciones', 'nav.appearance':'Apariencia', 'nav.profile':'Perfil',
     'catalog.subtitle':'Catálogo técnico de productos', 'catalog.noProducts':'No hay productos en esta división.',
@@ -30528,6 +30585,25 @@ async function showCollectionRecord(collectionId, backTo) {
   const canDispatch = canDispatchDiv(colDivision)
   const isReadyOrLater = ['ready','picked_up','shipped','delivered'].includes(col.status)
   const totalQty = items.reduce((t, i) => t + (i.quantity || 1), 0)
+  const pricedCount = items.filter(i => i.price != null && i.price !== '').length
+  const categorizedCount = items.filter(i => i.category_id).length
+  const canCostCollection = items.length && (canEditPricing() || myCap.edit_pricing)
+  const deliveryReady = !!(col.recipient && (col.delivery_method === 'Pickup' || col.address || !col.delivery_method))
+  const readyChecks = [
+    items.length > 0,
+    categories.length > 0 || items.length < 2,
+    !canCostCollection || pricedCount === items.length,
+    deliveryReady,
+  ]
+  const readinessPct = Math.round((readyChecks.filter(Boolean).length / readyChecks.length) * 100)
+  const workflowStepKeys = ['draft','requested','preparing','ready']
+  const currentStepIndex = Math.max(0, workflowStepKeys.indexOf(col.status) >= 0 ? workflowStepKeys.indexOf(col.status) : (isReadyOrLater ? 3 : 1))
+  const workflowStepsHtml = [
+    ['draft','grid','Armar board'],
+    ['requested','upload','Enviar a PD'],
+    ['preparing','box','Preparar muestras'],
+    ['ready','truck','Despacho'],
+  ].map(([key, icon, label], idx) => `<div class="ws-flow-step ${idx < currentStepIndex ? 'done' : idx === currentStepIndex ? 'now' : ''}">${siIcon(icon,15)}<span>${label}</span></div>`).join('')
 
   const peopleHtml = [col.profiles, ...collaborators.map(c => c.profiles)]
     .filter(Boolean).map(p => wsAvatarHtml(p)).join('')
@@ -30631,7 +30707,6 @@ async function showCollectionRecord(collectionId, backTo) {
 
   const itemsHtml = categorizedItemsHtml(items, categories, col, isDraft && myCap.manage_samples)
   _wsStatItems = items
-  const canCostCollection = items.length && (canEditPricing() || myCap.edit_pricing)
   const costingBarHtml = canCostCollection ? `
     <div class="ws-costing-bar">
       <div class="ws-costing-icon">${siIcon('table',18)}</div>
@@ -30645,6 +30720,29 @@ async function showCollectionRecord(collectionId, backTo) {
         <input id="ws-costing-file-${col.id}" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="wsImportCostingExcel('${col.id}', this)" />
       </div>
     </div>` : ''
+
+  const boardHeroHtml = `
+    <section class="ws-board-hero">
+      <div>
+        <div class="ws-board-hero-title">${siIcon('grid',16)} Board de colección</div>
+        <div class="ws-board-hero-sub">${esc(col.customer || 'Cliente pendiente')} · ${esc(sampleActiveLabel(_wsCollectionSpace) || 'Muestras')} · ${esc(requesterName)}</div>
+        <div class="ws-board-kpis">
+          <div class="ws-board-kpi"><strong>${items.length}</strong><span>Referencias</span></div>
+          <div class="ws-board-kpi"><strong>${totalQty}</strong><span>Unidades</span></div>
+          <div class="ws-board-kpi"><strong>${categories.length}</strong><span>Categorías</span></div>
+          <div class="ws-board-kpi"><strong>${pricedCount}/${items.length || 0}</strong><span>Costing</span></div>
+        </div>
+      </div>
+      <div class="ws-hero-actions">
+        <div class="ws-readiness" title="Preparación de la colección">
+          <span class="ws-readiness-ring" style="--pct:${readinessPct}%"></span>
+          <span>${readinessPct}% lista</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" type="button" onclick="wsOpenInvitePanel('${col.id}')">${siIcon('user-plus',16)} Invitar</button>
+        ${isDraft && myCap.submit ? `<button class="btn btn-primary btn-sm" type="button" onclick="document.querySelector('.sample-delivery')?.setAttribute('open','open');document.getElementById('ws-recipient')?.focus()">${siIcon('truck',16)} Preparar envío</button>` : ''}
+      </div>
+    </section>
+    <div class="ws-flow-steps">${workflowStepsHtml}</div>`
 
   // Comments render inside the side Drawer (§Drawer), not permanently on
   // the work surface — §17/§23 of the ERP brief: secondary context belongs
@@ -30673,12 +30771,13 @@ async function showCollectionRecord(collectionId, backTo) {
     <div style="margin-bottom:1rem">
       <button class="detail-back-btn" onclick="${_colWorkspaceBack}()">
         ${siIcon('arrow-left',16)}
-        ${_colWorkspaceBack === 'showCollectionsHub' ? 'Colecciones' : 'Centro de muestras'}
+        ${_colWorkspaceBack === 'showCollectionsHub' ? 'Mis colecciones' : 'Centro de muestras'}
       </button>
     </div>
 
     ${headerHtml}
     <div id="sample-workflow-panel"></div>
+    ${boardHeroHtml}
 
     <div class="pd-tabs ws-view-tabs">
       <button class="pd-tab active" data-tab="board" onclick="switchWsTab('board')">${siIcon('columns',16)} Tablero</button>
@@ -30690,11 +30789,6 @@ async function showCollectionRecord(collectionId, backTo) {
     <div id="ws-tab-board">
     <details class="sample-delivery"><summary>${siIcon('truck',16)} ${isDraft?'Datos de entrega':'Resumen de entrega'}<span>${esc(col.recipient||'Completar destinatario')}</span></summary>${submitFormHtml}</details>
 
-    <div class="srd-section-label" style="display:flex;align-items:center;gap:0.5rem">
-      ${isDraft && myCap.manage_samples && items.length ? `<input type="checkbox" class="ws-select-all" onchange="wsToggleSelectAll(this.checked)" title="Seleccionar todo" />` : ''}
-      <span>Muestras</span>
-      ${isDraft && myCap.manage_samples ? `<button class="ws-add-cat-btn" onclick="wsAddCategory('${col.id}')">${siIcon('plus',16)} Categoría</button>` : ''}
-    </div>
     ${costingBarHtml}
     ${isDraft && myCap.manage_samples && items.length ? `
     <div class="ws-bulk-bar" id="ws-bulk-bar" style="display:none">
@@ -30707,15 +30801,31 @@ async function showCollectionRecord(collectionId, backTo) {
       <button class="btn btn-secondary btn-sm" style="color:var(--danger)" onclick="wsBulkRemove('${col.id}')">Quitar</button>
       <button class="btn btn-secondary btn-sm" onclick="wsClearSelection()">Cancelar</button>
     </div>` : ''}
-    <div class="srd-card">
-      ${isDraft && myCap.manage_samples ? `
-      <div class="ws-add-inline">
-        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="color:var(--text-3);flex-shrink:0"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        <input type="text" id="ws-add-input" placeholder="Agregar producto por nombre o código…" oninput="wsSearchProducts('${col.id}', this.value)" />
+    <section class="ws-board-panel">
+      <div class="ws-board-toolbar">
+        ${isDraft && myCap.manage_samples ? `
+        <div>
+          <div class="ws-add-inline">
+            ${siIcon('search',16)}
+            <input type="text" id="ws-add-input" placeholder="Buscar tela, prenda o código para agregar…" oninput="wsSearchProducts('${col.id}', this.value)" />
+          </div>
+          <div id="ws-add-results"></div>
+        </div>
+        <div class="ws-board-tools">
+          ${items.length ? `<label class="ws-readiness" style="font-size:0.7rem"><input type="checkbox" class="ws-select-all" onchange="wsToggleSelectAll(this.checked)" title="Seleccionar todo" /> Seleccionar todo</label>` : ''}
+          <div class="ws-category-create">
+            ${siIcon('plus',15)}
+            <input id="ws-new-category-name" type="text" placeholder="Nueva categoría" onkeydown="if(event.key==='Enter')wsCreateCategoryFromInput('${col.id}')" />
+            <button class="btn btn-secondary btn-sm" type="button" onclick="wsCreateCategoryFromInput('${col.id}')">Crear</button>
+          </div>
+        </div>` : `
+        <div class="ws-board-hero-title">${siIcon('grid',16)} Muestras</div>
+        <div></div>`}
       </div>
-      <div id="ws-add-results"></div>` : ''}
-      ${itemsHtml || '<div style="font-size:0.82rem;color:var(--text-3);padding:0.4rem 0">Aún no hay referencias. Busca un producto para empezar.</div>'}
-    </div>
+      <div class="ws-board-body">
+        ${itemsHtml || '<div style="font-size:0.82rem;color:var(--text-3);padding:1rem 0.25rem">Aún no hay referencias. Busca un producto para empezar.</div>'}
+      </div>
+    </section>
     </div>
 
     <div id="ws-tab-cards" style="display:none">${wsCardsViewHtml(items, categories)}</div>
@@ -31023,12 +31133,12 @@ function categorizedItemsHtml(items, categories, col, editable) {
 
   return groups.map(g => {
     const collapsed = _wsCollapsedCats.has(g.key)
-    const rows = g.items.map(it => {
+    const rows = g.items.map((it, idx) => {
       const c = DIV_CLR[it.products?.division] || '#aaa'
       return editable ? `
         <div class="ws-row" data-item="${it.id}">
           <input type="checkbox" class="ws-item-checkbox" data-item="${it.id}" onchange="wsToggleSelect('${it.id}', this.checked)" />
-          <span class="cart-item-dot" style="background:${c}"></span>
+          <span class="ws-row-index" style="border-bottom:2px solid ${c}">${idx + 1}</span>
           <div class="ws-row-name">${esc(it.products?.name||'—')}${it.products?.code?`<span class="ws-row-code">${esc(it.products.code)}</span>`:''}</div>
           <select class="grant-sel ws-row-type" onchange="wsSetType('${it.id}','${col.id}',this.value)">
             ${(DIV_SAMPLE_TYPES[it.products?.division]||['Sample']).map(t=>`<option ${t===it.sample_type?'selected':''}>${esc(t)}</option>`).join('')}
@@ -31045,7 +31155,7 @@ function categorizedItemsHtml(items, categories, col, editable) {
           </button>
         </div>` : `
         <div class="ws-row" onclick="showSampleRecord('${it.id}')" style="cursor:pointer">
-          <span class="cart-item-dot" style="background:${c}"></span>
+          <span class="ws-row-index" style="border-bottom:2px solid ${c}">${idx + 1}</span>
           <div class="ws-row-name">${esc(it.products?.name||'—')} <span class="ws-row-code" style="display:inline">· ${esc(it.sample_type)} · Qty ${it.quantity||1}</span></div>
           <div class="ws-price-wrap">${wsPriceCellHtml(it)}</div>
           ${smpBadge(it.status)}
@@ -31211,6 +31321,18 @@ async function wsRemoveItem(itemId, collectionId) {
 async function wsSetCategory(itemId, collectionId, categoryId) {
   const { error } = await sb.rpc('set_item_category', { p_sample_id: itemId, p_category_id: categoryId || null })
   if (error) { toast('No se pudo mover el producto: ' + error.message); return }
+  showCollectionRecord(collectionId)
+}
+async function wsCreateCategoryFromInput(collectionId) {
+  const input = document.getElementById('ws-new-category-name')
+  const name = (input?.value || '').trim()
+  if (!name) {
+    input?.focus()
+    return
+  }
+  const { error } = await sb.from('collection_categories').insert({ collection_id: collectionId, name, created_by: me.id })
+  if (error) { toast('No se pudo crear la categoría: ' + error.message); return }
+  if (input) input.value = ''
   showCollectionRecord(collectionId)
 }
 async function wsAddCategory(collectionId) {
