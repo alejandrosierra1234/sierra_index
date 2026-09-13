@@ -16,3 +16,4 @@ Shared renderers live in `index.html`; regression coverage lives in `tests/commu
 
 - Informative circulars use kind `circular`, CIR folios, and an editorial masthead with company, publication date and optional country. Do not render the memo's recipient table, salutation or signature block in circulars.
 - Circulars reuse the existing event, gallery, CTA, contact and icon/text renderers. Their editorial blocks include attributed quotes and groups of collaborators; portraits keep their aspect ratio. Preserve block visibility and ordering in all exports.
+- Circular identity: SIERRA logo and company masthead, brand-accent rule, rounded section plaque, full-width Replica headline, neutral lead copy and left-aligned collaborator captions. Quotes use rounded neutral panels. Keep the editorial hierarchy distinct from memo metadata tables and invitation date tiles.
