@@ -29,11 +29,28 @@ test('all communication icon keys exist and destructive controls are labeled',()
   for(const [,name] of moduleSource.matchAll(/siIcon\('([^']+)'/g))assert.ok(w.siIcon(name),`Missing icon ${name}`);
   w.newCommunicationDraft();
   for(const type of ['image','table','orgchart','process','banner'])w.commsAddBlock(type);
-  assert.equal(w.document.querySelectorAll('.memo-insert-icon svg').length,9);
+  assert.equal(w.document.querySelectorAll('.memo-insert-icon svg').length,10);
   assert.ok(w.document.querySelector('[aria-label="Eliminar etapa"] svg'));
   assert.ok(w.document.querySelector('[aria-label="Eliminar persona"] svg'));
   for(const button of w.document.querySelectorAll('button'))if(button.querySelector('svg')&&!button.textContent.trim())assert.ok(button.getAttribute('aria-label')||button.title,'Icon button needs a name');
   assert.ok(w.document.querySelector('.memo-upload[tabindex="0"][role="button"]'));
+});
+test('memo events reuse SIERRA identity and survive saving and export',()=>{
+  w.newCommunicationDraft();w.commsAddBlock('event');
+  const b=w.eval('_commsCurrent.blocks.at(-1)');
+  assert.equal(b.type,'event');
+  for(const [key,value] of Object.entries({title:'Capacitacion',date:'2026-09-15',department:'Talento Humano',mode:'ambos',location:'Sala 1',virtualUrl:'https://example.com/event',color:'#009fff'}))w.commsSetBlock(b.id,key,value);
+  const html=w.memoBlockHtml(b),box=w.document.createElement('div');box.innerHTML=html;
+  assert.equal(box.querySelector('.sierra-event-date .invite-date-day').textContent,'15');
+  assert.equal(box.querySelector('.sierra-department span').textContent,'Talento Humano');
+  assert.equal(box.querySelector('a').getAttribute('href'),'https://example.com/event');
+  w.commsPersist();assert.equal(w.eval('_commsDrafts[0].blocks.at(-1).type'),'event');
+  assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('sierra-event-date'));
+  w.commsSetBlock(b.id,'virtualUrl','javascript:alert(1)');
+  assert.ok(!w.memoBlockHtml(w.eval('_commsCurrent.blocks.at(-1)')).includes('href="javascript:'));
+  const invite=w.createInvitationDraft();const inviteBox=w.document.createElement('div');inviteBox.innerHTML=w.invitationPageHtml(invite);
+  assert.equal(inviteBox.querySelector('.sierra-department path').getAttribute('d'),box.querySelector('.sierra-department path').getAttribute('d'));
+  assert.ok(inviteBox.querySelector('.sierra-event-date'));
 });
 test('typing keeps the preview frame, focus and scale stable before paint',()=>{
   const raf=w.requestAnimationFrame;let pendingFrames=0;
