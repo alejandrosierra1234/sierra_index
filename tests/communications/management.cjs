@@ -117,6 +117,16 @@ test('block quick actions duplicate independently, reorder and hide from every d
   w.commsHideBlock('source');assert.equal(blocks[1].hidden,false);
   const box=w.document.createElement('div');box.innerHTML=w.commsOutlineBlock(blocks[0],0);assert.equal(box.querySelectorAll('.memo-outline-quick button').length,5);assert.ok(box.querySelector('[aria-label="Subir bloque"]').disabled);
 });
+test('image galleries preserve legacy images and support grid and individual framing',()=>{
+  const b={id:'gallery',type:'image',src:'data:image/png;base64,AA'},box=w.document.createElement('div');
+  box.innerHTML=w.memoBlockHtml(b);assert.equal(box.querySelectorAll('.memo-gallery-image').length,1);
+  b.images=Array.from({length:5},(_,i)=>({uid:'img-'+i,src:b.src,fit:'cover',zoom:150,positionX:25,positionY:70}));
+  box.innerHTML=w.memoBlockHtml(b);assert.equal(box.querySelectorAll('.memo-gallery-row').length,2);assert.equal(box.firstElementChild.style.gridTemplateColumns,'repeat(3,minmax(0,1fr))');
+  Object.assign(b,{galleryColumns:'2',galleryRatio:'square',galleryGap:0,galleryRadius:0});box.innerHTML=w.memoBlockHtml(b);assert.equal(box.querySelectorAll('.memo-gallery-row').length,3);assert.equal(box.firstElementChild.style.gap,'0mm');
+  const img=box.querySelector('img');assert.equal(img.style.objectFit,'cover');assert.equal(img.style.transform,'scale(1.5)');assert.equal(img.style.objectPosition,'25% 70%');
+  box.innerHTML=w.commsBlockEditor(b);assert.ok(box.querySelector('input[type="file"][multiple]'));
+  b.images=[];assert.equal(w.memoBlockHtml(b),'');
+});
 test('memo countries are limited to SIERRA operations and may be omitted',()=>{
   assert.deepEqual(Array.from(w.eval('PRODUCT_COUNTRIES')),['Guatemala','Honduras','Nicaragua']);
   const d=w.createCommunicationDraft(),box=w.document.createElement('div');
