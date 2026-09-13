@@ -43,6 +43,14 @@ test('memo events reuse SIERRA identity and survive saving and export',()=>{
   const html=w.memoBlockHtml(b),box=w.document.createElement('div');box.innerHTML=html;
   assert.equal(box.querySelector('.sierra-event-date .invite-date-day').textContent,'15');
   assert.equal(box.querySelectorAll('.memo-event').length,1);
+  const layout=box.querySelector('.memo-event-layout');
+  assert.equal(layout.children.length,2);
+  assert.ok(layout.firstElementChild.classList.contains('sierra-event-date'));
+  const content=layout.lastElementChild;
+  assert.ok(content.classList.contains('memo-event-content'));
+  assert.ok(content.querySelector('h3'));
+  assert.ok(content.querySelector('.memo-event-logistics'));
+  assert.equal(layout.style.alignItems,'start');
   assert.equal(box.querySelector('h3').style.fontSize,'14pt');
   for(const icon of box.querySelectorAll('.memo-event-detail svg')){
     assert.ok(icon.parentElement.classList.contains('memo-event-icon'));
