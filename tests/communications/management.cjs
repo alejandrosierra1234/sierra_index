@@ -174,7 +174,7 @@ test('notice categories, custom icons and colors survive duplication and export'
     w.noticeSetType(key);
     const d=w.eval('_commsCurrent'),box=w.document.createElement('div');box.innerHTML=w.memoPageHtml(d);
     assert.equal(d.primaryColor,type.color);assert.ok(box.querySelector('.notice-icon svg'));
-    assert.ok(box.querySelector('.notice-identity').textContent.includes(type.label));
+    assert.equal(box.querySelector('.notice-identity'),null);
   }
   w.commsSet('noticeIcon','phone');w.commsSet('primaryColor','#9e00cb');
   w.commsSet('noticeHighlight','Horario actualizado');w.commsSet('noticeHighlightLabel','Reanudación');
@@ -189,14 +189,32 @@ test('notice categories, custom icons and colors survive duplication and export'
 test('centered notices retain custom CTA colors and written destinations',()=>{
   const d=w.createNoticeDraft({subject:'Aviso',noticeMessage:'Mensaje'});
   const box=w.document.createElement('div');box.innerHTML=w.memoPageHtml(d);
-  assert.equal(box.querySelector('.memo-meta').style.textAlign,'center');
-  assert.equal(box.querySelector('.notice-identity').style.flexDirection,'column');
+  assert.equal(box.querySelector('.notice-page').style.width,'215.9mm');
+  assert.equal(box.querySelector('.notice-page').style.height,'139.7mm');
+  assert.ok(box.querySelector('.memo-footer .memo-logo'));
+  assert.equal(box.querySelectorAll('.memo-logo').length,1);
+  assert.equal(box.querySelector('.memo-masthead .memo-logo'),null);
   const b={type:'cta',title:'Confirma tu asistencia',showButton:true,url:'https://example.com',buttonText:'Confirmar',buttonColor:'#007d73',backgroundColor:'#cffffb'};
   box.innerHTML=w.noticeBlockHtml(b);
   assert.equal(box.querySelector('.memo-cta').style.textAlign,'center');
   assert.equal(box.querySelector('.memo-cta').style.background,'rgb(207, 255, 251)');
   assert.ok(box.textContent.includes('https://example.com'));
   assert.equal(box.querySelector('.memo-action-button').getAttribute('href'),'https://example.com/');
+});
+test('half-letter notices prevent clipped exports and have independent controls',()=>{
+  w.newNoticeDraft();w.commsSet('subject','Asunto libre');
+  w.commsSet('noticeIcon','phone');w.commsSet('primaryColor','#ffc529');
+  assert.equal(w.eval('_commsCurrent.subject'),'Asunto libre');
+  assert.equal(w.document.querySelector('[aria-label="Tipo de aviso"]'),null);
+  const page=w.document.querySelector('.notice-page'),body=page.querySelector('.memo-body'),footer=page.querySelector('.memo-footer');
+  Object.defineProperty(page,'scrollHeight',{configurable:true,value:600});
+  Object.defineProperty(page,'clientHeight',{configurable:true,value:528});
+  assert.throws(()=>w.noticeCheckOverflow(w.document),/media carta/);
+  Object.defineProperty(page,'scrollHeight',{configurable:true,value:528});
+  body.getBoundingClientRect=()=>({bottom:200});footer.getBoundingClientRect=()=>({top:400});
+  assert.doesNotThrow(()=>w.noticeCheckOverflow(w.document));
+  assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('@page{size:215.9mm 139.7mm'));
+  w.newCommunicationDraft();
 });
 test('memo countries are limited to SIERRA operations and may be omitted',()=>{
   assert.deepEqual(Array.from(w.eval('PRODUCT_COUNTRIES')),['Guatemala','Honduras','Nicaragua']);
