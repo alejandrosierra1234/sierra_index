@@ -35,4 +35,29 @@ test('all communication icon keys exist and destructive controls are labeled',()
   for(const button of w.document.querySelectorAll('button'))if(button.querySelector('svg')&&!button.textContent.trim())assert.ok(button.getAttribute('aria-label')||button.title,'Icon button needs a name');
   assert.ok(w.document.querySelector('.memo-upload[tabindex="0"][role="button"]'));
 });
+test('typing keeps the preview frame, focus and scale stable before paint',()=>{
+  const raf=w.requestAnimationFrame;let pendingFrames=0;
+  w.requestAnimationFrame=()=>{pendingFrames++};
+  for(const create of [w.newCommunicationDraft,w.newInvitationDraft]){
+    create();
+    const host=w.document.getElementById('memo-live-preview'),stage=w.document.getElementById('memo-preview-stage');
+    const sheet=host.querySelector('.memo-preview-sheet'),input=w.document.querySelector('.memo-customizer input.control-input');
+    Object.defineProperty(stage,'clientWidth',{configurable:true,value:600});
+    Object.defineProperty(stage,'clientHeight',{configurable:true,value:700});
+    Object.defineProperty(w.HTMLElement.prototype,'offsetWidth',{configurable:true,get(){return this.classList.contains('memo-page')?816:0}});
+    Object.defineProperty(w.HTMLElement.prototype,'scrollHeight',{configurable:true,get(){return this.classList.contains('memo-page')?1056:0}});
+    input.focus();stage.scrollTop=120;
+    for(const subject of ['Prueba','Prueba de escritura','Prueba de escritura continua']){
+      w.commsSet('subject',subject);
+      assert.equal(host.querySelector('.memo-preview-sheet'),sheet);
+      assert.equal(w.document.activeElement,input);
+      assert.equal(stage.scrollTop,120);
+      assert.equal(host.style.width,'552px');
+      assert.match(sheet.style.transform,/^scale\(0\.676/);
+      assert.ok(sheet.textContent.includes(subject));
+    }
+  }
+  assert.equal(pendingFrames,0,'preview must not expose an unscaled frame while waiting for RAF');
+  w.requestAnimationFrame=raf;clearTimeout(w.eval('_commsSaveTimer'));
+});
 console.log(checks+' management checks passed');w.close();
