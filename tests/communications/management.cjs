@@ -197,7 +197,7 @@ test('centered notices retain custom CTA colors and written destinations',()=>{
   assert.equal(box.querySelector('.memo-footer .memo-logo'),null);
   const b={type:'cta',title:'Confirma tu asistencia',showButton:true,url:'https://example.com',buttonText:'Confirmar',buttonColor:'#007d73',backgroundColor:'#cffffb'};
   box.innerHTML=w.noticeBlockHtml(b);
-  assert.equal(box.querySelector('.memo-cta').style.textAlign,'center');
+  assert.equal(box.querySelector('.memo-cta').style.textAlign,'left');
   assert.equal(box.querySelector('.memo-cta').style.background,'rgb(207, 255, 251)');
   assert.ok(box.textContent.includes('https://example.com'));
   assert.equal(box.querySelector('.memo-action-button').getAttribute('href'),'https://example.com/');
@@ -313,6 +313,14 @@ test('notice company and country appear beside the label without duplicated meta
   assert.ok(!box.querySelector('.notice-metadata').textContent.includes(d.company));
   d.country='';box.innerHTML=w.noticePageHtml(d);assert.equal(box.querySelector('.notice-country'),null);
   assert.equal(box.querySelectorAll('.notice-label [aria-hidden]').length,1);
+});
+test('notice CTA aligns left and larger logo aligns vertically with the icon',()=>{
+  const box=w.document.createElement('div');box.innerHTML=w.noticeBlockHtml({type:'cta',title:'Registro',text:'Participa',showQr:true,qrImage:'data:image/png;base64,AA',url:'https://example.com',showButton:true});
+  assert.equal(box.querySelector('p').style.textAlign,'left');
+  assert.equal(box.querySelector('.memo-qr-sticker').parentElement.style.justifyItems,'start');
+  box.innerHTML=w.noticePageHtml(w.createNoticeDraft(),true);
+  const row=box.querySelector('.notice-brand-row');assert.equal(row.style.alignItems,'center');
+  assert.equal(row.querySelector('.memo-logo').parentElement.style.width,'38mm');
 });
 test('notice height adapts and contact photos stack only in notices',()=>{
   const contact={type:'contact',name:'Contacto',src:'data:image/png;base64,PHOTO',email:'equipo@example.com'};
