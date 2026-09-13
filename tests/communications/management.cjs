@@ -277,6 +277,13 @@ test('notice rich text preserves headings, lists, inline styles and safe exports
   assert.equal(w.noticeMessageHtml({noticeMessage:'Texto anterior\nSegunda línea'}),'Texto anterior<br>Segunda línea');
   w.newCommunicationDraft();
 });
+test('notice preview shows a Letter sheet without changing adaptive exports',()=>{
+  const d=w.createNoticeDraft({noticeMessage:'Mensaje'}),box=w.document.createElement('div');
+  box.innerHTML=w.noticePageHtml(d,true);let page=box.querySelector('.notice-page');
+  assert.equal(page.style.width,'215.9mm');assert.equal(page.style.minHeight,'279.4mm');assert.equal(page.style.borderRadius,'0px');
+  box.innerHTML=w.noticePageHtml(d);page=box.querySelector('.notice-page');
+  assert.equal(page.style.minHeight,'139.7mm');assert.equal(page.style.height,'auto');
+});
 test('notice height adapts and contact photos stack only in notices',()=>{
   const contact={type:'contact',name:'Contacto',src:'data:image/png;base64,PHOTO',email:'equipo@example.com'};
   const box=w.document.createElement('div');box.innerHTML=w.noticeBlockHtml(contact);
