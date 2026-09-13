@@ -228,8 +228,8 @@ test('notice metadata sits below the title and action cards trigger two columns'
   const box=w.document.createElement('div'),render=()=>{box.innerHTML=w.memoPageHtml(d)};
   render();assert.equal(box.querySelector('.notice-layout').dataset.columns,'1');
   assert.ok(box.querySelector('h1').nextElementSibling.classList.contains('notice-metadata'));
-  assert.equal(box.querySelector('.notice-layout').style.paddingLeft,'18mm');
-  assert.equal(box.querySelector('.memo-masthead').style.gridTemplateColumns,'14mm minmax(0,1fr)');
+  assert.equal(box.querySelector('.notice-layout').style.paddingLeft,'0px');
+  assert.equal(box.querySelector('.notice-heading').firstElementChild.className,'notice-icon');
   assert.ok(box.querySelector('.notice-metadata').textContent.includes(w.memoFolio(d)));
   assert.equal(box.querySelector('.memo-footer').textContent.includes('Honduras'),false);
   d.blocks=[{id:'contact',type:'contact',name:'Ana',email:'ana@example.com'},{id:'cta',type:'cta',title:'Registro',url:'https://example.com',showButton:true}];
@@ -257,6 +257,23 @@ test('notice headings respect columns, contacts use short labels and signatures 
   assert.ok(w.memoPrintDocumentHtml(d).includes('Firma de Ana'));
   assert.equal(w.document.querySelector('[data-news-tab="signature"]').hidden,false);
   w.commsPersist();assert.equal(w.commsNormalize(d).signerName,'Ana');
+  w.newCommunicationDraft();
+});
+test('notice rich text preserves headings, lists, inline styles and safe exports at Letter width',()=>{
+  w.newNoticeDraft();const d=w.eval('_commsCurrent');
+  const editor=w.document.querySelector('[data-notice-text]');assert.ok(editor);
+  editor.innerHTML='<h3>Subtítulo</h3><p><b>Importante</b> <i>hoy</i> <u>leer</u> <span style="color:#007d73">verde</span></p><ul><li>Uno</li><li>Dos</li></ul><ol><li>Primero</li></ol><script>bad()</script><img src=x onerror=bad()>';
+  w.commsRichInput(editor);const stored=d.noticeRichHtml;
+  assert.ok(stored.includes('<h3'));assert.ok(stored.includes('<ul'));assert.ok(stored.includes('<ol'));
+  assert.ok(stored.includes('<strong>'));assert.ok(stored.includes('<em>'));assert.ok(stored.includes('<u>'));assert.ok(stored.includes('color:'));
+  assert.ok(!stored.includes('bad()'));assert.ok(!stored.includes('<img'));
+  const copy=w.createNoticeDraft(JSON.parse(JSON.stringify(d)));assert.equal(copy.noticeRichHtml,stored);
+  const box=w.document.createElement('div');box.innerHTML=w.memoPageHtml(copy);
+  assert.equal(box.querySelector('.notice-page').style.width,'215.9mm');
+  assert.equal(box.querySelectorAll('.notice-message li').length,3);
+  assert.ok(w.memoPrintDocumentHtml(copy).includes('<h3'));
+  w.renderCommunicationEditor();assert.equal(w.document.querySelector('[data-notice-text]').innerHTML,stored);
+  assert.equal(w.noticeMessageHtml({noticeMessage:'Texto anterior\nSegunda línea'}),'Texto anterior<br>Segunda línea');
   w.newCommunicationDraft();
 });
 test('notice height adapts and contact photos stack only in notices',()=>{
