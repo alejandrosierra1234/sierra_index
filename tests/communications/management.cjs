@@ -178,7 +178,7 @@ test('large icon blocks support rich text and optional buttons without spelling 
 test('typing keeps the preview frame, focus and scale stable before paint',()=>{
   const raf=w.requestAnimationFrame;let pendingFrames=0;
   w.requestAnimationFrame=()=>{pendingFrames++};
-  for(const create of [w.newCommunicationDraft,w.newInvitationDraft]){
+  for(const create of [w.newCommunicationDraft,w.newInvitationDraft,w.newNewsDraft]){
     create();
     const host=w.document.getElementById('memo-live-preview'),stage=w.document.getElementById('memo-preview-stage');
     const sheet=host.querySelector('.memo-preview-sheet'),input=w.document.querySelector('.memo-customizer input.control-input');
@@ -186,7 +186,7 @@ test('typing keeps the preview frame, focus and scale stable before paint',()=>{
     Object.defineProperty(stage,'clientHeight',{configurable:true,value:700});
     Object.defineProperty(w.HTMLElement.prototype,'offsetWidth',{configurable:true,get(){return this.classList.contains('memo-page')?816:0}});
     Object.defineProperty(w.HTMLElement.prototype,'scrollHeight',{configurable:true,get(){return this.classList.contains('memo-page')?1056:0}});
-    input.focus();stage.scrollTop=120;
+    w.memoFitPreview();input.focus();stage.scrollTop=120;
     for(const subject of ['Prueba','Prueba de escritura','Prueba de escritura continua']){
       w.commsSet('subject',subject);
       assert.equal(host.querySelector('.memo-preview-sheet'),sheet);
@@ -199,6 +199,26 @@ test('typing keeps the preview frame, focus and scale stable before paint',()=>{
   }
   assert.equal(pendingFrames,0,'preview must not expose an unscaled frame while waiting for RAF');
   w.requestAnimationFrame=raf;clearTimeout(w.eval('_commsSaveTimer'));
+});
+test('editor rebuilds preserve scroll and fit zoom does not jump as circulars grow',()=>{
+  for(const create of [w.newInvitationDraft,w.newNewsDraft]){
+    create();
+    const form=w.document.querySelector('.memo-form');
+    form.scrollTop=480;
+    w.renderCommunicationEditor();
+    assert.equal(w.document.querySelector('.memo-form').scrollTop,480);
+  }
+  const stage=w.document.getElementById('memo-preview-stage');
+  Object.defineProperty(stage,'clientWidth',{configurable:true,value:600});
+  Object.defineProperty(stage,'clientHeight',{configurable:true,value:700});
+  w.memoZoomFit();
+  const scale=w.eval('_memoPreviewScale');
+  Object.defineProperty(w.HTMLElement.prototype,'scrollHeight',{configurable:true,get(){return this.classList.contains('memo-page')?2400:0}});
+  w.commsSet('subject','El texto crece sin mover la vista');
+  assert.equal(w.eval('_memoPreviewScale'),scale);
+  w.memoZoomFit();
+  assert.ok(w.eval('_memoPreviewScale')<scale,'explicit fit still fits the complete document');
+  clearTimeout(w.eval('_commsSaveTimer'));
 });
 async function qrChecks(){
   w.newCommunicationDraft();w.commsAddBlock('cta');const id=w.eval('_commsCurrent.blocks.at(-1).id');
