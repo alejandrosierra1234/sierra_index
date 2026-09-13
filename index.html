@@ -35034,7 +35034,7 @@ async function commsActionCardQr(id){
   const b=_commsCurrent?.blocks.find(b=>b.id===id),draftId=_commsCurrent?.id,url=b?.url;
   if(!memoActionHref(url)){toast('Agrega un enlace válido con https:// o http://.');return}
   try{
-    const image=await new Promise((resolve,reject)=>QRCode.toDataURL(url,{width:420,margin:4,color:{dark:'#0b0b0b',light:'#ffffff'}},(error,data)=>error?reject(error):resolve(data)));
+    const image=await new Promise((resolve,reject)=>QRCode.toDataURL(memoActionHref(url),{width:420,margin:4,color:{dark:'#0b0b0b',light:'#ffffff'}},(error,data)=>error?reject(error):resolve(data)));
     const current=_commsCurrent?.blocks.find(b=>b.id===id);
     if(_commsCurrent?.id!==draftId||!current||current.url!==url)return;
     current.qrUrl=url;commsActionCardSet(id,'qrImage',image,true);
