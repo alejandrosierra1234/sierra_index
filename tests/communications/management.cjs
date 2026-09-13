@@ -90,6 +90,17 @@ test('contact and CTA blocks save, export and preserve safe written links',()=>{
     assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('memo-'+type));
   }
 });
+test('CTA colors preserve a white QR sticker and right-side image',()=>{
+  const b={type:'cta',title:'Registro',text:'Participa',url:'https://example.com',showQr:true,qrImage:'data:image/png;base64,AA',src:'data:image/png;base64,AA'};
+  const box=w.document.createElement('div');box.innerHTML=w.memoActionCardHtml(b);
+  assert.equal(box.firstElementChild.style.background,'rgb(255, 255, 255)');
+  Object.assign(b,{backgroundColor:'#007d73',textColor:'#ffffff'});box.innerHTML=w.memoActionCardHtml(b);
+  assert.equal(box.firstElementChild.style.background,'rgb(0, 125, 115)');
+  assert.equal(box.querySelector('h3').style.color,'rgb(255, 255, 255)');
+  assert.equal(box.firstElementChild.lastElementChild.className,'memo-action-image');
+  const sticker=box.querySelector('.memo-qr-sticker');assert.equal(sticker.style.background,'rgb(255, 255, 255)');assert.equal(sticker.style.padding,'3mm');assert.ok(sticker.querySelector('.memo-action-qr'));
+  b.src='';box.innerHTML=w.memoActionCardHtml(b);assert.equal(box.firstElementChild.style.gridTemplateColumns,'minmax(0,1fr)');
+});
 test('contact buttons default to email with a paper plane and editable text',()=>{
   const b={type:'contact',name:'Ana',email:'ana@example.com',showButton:true,buttonText:'Contactar'};
   const box=w.document.createElement('div');box.innerHTML=w.memoActionCardHtml(b);
