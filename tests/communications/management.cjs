@@ -186,6 +186,18 @@ test('notice categories, custom icons and colors survive duplication and export'
   assert.ok(w.eval('Object.keys(SI_ICON).length')>150);
   w.newCommunicationDraft();
 });
+test('centered notices retain custom CTA colors and written destinations',()=>{
+  const d=w.createNoticeDraft({subject:'Aviso',noticeMessage:'Mensaje'});
+  const box=w.document.createElement('div');box.innerHTML=w.memoPageHtml(d);
+  assert.equal(box.querySelector('.memo-meta').style.textAlign,'center');
+  assert.equal(box.querySelector('.notice-identity').style.flexDirection,'column');
+  const b={type:'cta',title:'Confirma tu asistencia',showButton:true,url:'https://example.com',buttonText:'Confirmar',buttonColor:'#007d73',backgroundColor:'#cffffb'};
+  box.innerHTML=w.noticeBlockHtml(b);
+  assert.equal(box.querySelector('.memo-cta').style.textAlign,'center');
+  assert.equal(box.querySelector('.memo-cta').style.background,'rgb(207, 255, 251)');
+  assert.ok(box.textContent.includes('https://example.com'));
+  assert.equal(box.querySelector('.memo-action-button').getAttribute('href'),'https://example.com/');
+});
 test('memo countries are limited to SIERRA operations and may be omitted',()=>{
   assert.deepEqual(Array.from(w.eval('PRODUCT_COUNTRIES')),['Guatemala','Honduras','Nicaragua']);
   const d=w.createCommunicationDraft(),box=w.document.createElement('div');

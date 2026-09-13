@@ -35091,20 +35091,32 @@ function renderNoticeEditor(){
   form.innerHTML=`<div class="memo-form-section" data-news-tab="info">${noticeIdentityEditor(d)}<div class="memo-form-section-title">Mensaje</div>${newsField('subject','Título','textarea')}${newsField('noticeMessage','Información principal','textarea')}${newsField('noticeHighlightLabel','Etiqueta del destacado')}${newsField('noticeHighlight','Dato destacado (opcional)','textarea')}<div class="memo-add-row"><button class="btn btn-secondary" onclick="commsAddBlock('contact')">${siIcon('user',16)} Agregar contacto</button><button class="btn btn-secondary" onclick="commsAddBlock('cta')">${siIcon('link',16)} Agregar CTA</button></div>${!d.noticeMessage?`<button class="btn btn-ghost" onclick="noticeExample()">${siIcon('file',16)} Usar ejemplo: cierre por fumigación</button>`:''}<div class="memo-form-section-title">Publicación</div>${newsField('company','Empresa')}${newsField('date','Fecha de publicación','date')}<div class="memo-field"><label>País</label>${commsSelect('País del aviso',[{value:'',label:'No incluir país'},{value:'Todos los países',label:'Todos los países'},...PRODUCT_COUNTRIES],d.country||'',v=>commsSet('country',v))}</div>${newsField('sender','Área emisora')}</div><div class="memo-form-section" data-news-tab="content"><div class="memo-add-row">${[['image','photo','Imágenes'],['text','text-size','Texto'],['contact','user','Contacto'],['cta','link','Enlace o QR']].map(([type,icon,label])=>`<button class="btn btn-secondary" onclick="commsAddBlock('${type}')">${siIcon(icon,16)} ${label}</button>`).join('')}</div><div class="memo-blocks">${d.blocks.map(commsOutlineBlock).join('')}</div></div>`;
   form.append(footer);document.querySelector('.memo-preview-shell').setAttribute('aria-label','Vista previa de aviso');document.querySelector('.memo-preview-note').textContent='Aviso · formato carta';commsApplyEditorPanel();
 }
+function noticeBlockHtml(b){
+  const html=memoBlockHtml(b);
+  if(b.type!=='cta'||b.src||(b.showQr&&b.qrImage))return html;
+  const container=document.createElement('div');container.innerHTML=html;
+  const card=container.firstElementChild;
+  card.style.textAlign='center';
+  if(!b.backgroundColor){card.style.background='transparent';card.style.border='0'}
+  card.querySelectorAll('p').forEach(el=>el.style.textAlign='center');
+  const button=card.querySelector('.memo-action-button');
+  if(button){button.style.minWidth='48mm';button.style.padding='3.5mm 7mm';button.style.fontSize='12pt'}
+  return container.innerHTML;
+}
 function noticePageHtml(d,preview=false){
-  const identity=noticeIdentity(d),color=identity.color,ink=commsInk(color),blocks=(d.blocks||[]).filter(b=>!b.hidden).map(b=>preview?`<div class="memo-preview-block" data-memo-preview-block="${escAttr(b.id)}">${memoBlockHtml(b)}</div>`:memoBlockHtml(b)).join('');
+  const identity=noticeIdentity(d),color=identity.color,ink=commsInk(color),blocks=(d.blocks||[]).filter(b=>!b.hidden).map(b=>preview?`<div class="memo-preview-block" data-memo-preview-block="${escAttr(b.id)}">${noticeBlockHtml(b)}</div>`:noticeBlockHtml(b)).join('');
   return `<article class="memo-page notice-page" style="padding:16mm 19mm 14mm">
-    <header class="memo-masthead" style="margin-bottom:12mm;gap:8mm;align-items:start"><div style="order:1">${memoLogoHtml()}</div><div style="order:2;text-align:right;font-size:9pt;line-height:1.5;color:#444;max-width:50%">${esc(d.company||'SIERRA')}${d.country?'<br>'+esc(d.country):''}<div style="margin-top:2mm;font-size:8pt">${esc(commsDateLabel(d.date))}</div></div></header>
-    <div class="memo-meta" style="display:block;border:0;padding:0;margin:0 0 8mm">
-      <div class="notice-identity" style="display:flex;align-items:center;gap:4mm;margin-bottom:7mm"><span class="notice-icon" aria-hidden="true" style="width:18mm;height:18mm;flex:0 0 18mm;display:grid;place-items:center;border-radius:3mm;background:${color};color:${ink}">${siIcon(identity.icon,36)}</span><div style="min-width:0"><div style="font-size:9pt;color:#666;line-height:1.4">Aviso</div><div style="font-size:12pt;line-height:1.4;font-weight:700;color:#0b0b0b">${esc(identity.label)}</div></div></div>
-      <h1 class="memo-meta-subject" style="border:0;margin:0;font-size:34pt;font-weight:700;line-height:1.08;letter-spacing:0;color:#0b0b0b;overflow-wrap:anywhere">${esc(d.subject)}</h1>
+    <header class="memo-masthead" style="display:flex;flex-direction:column;align-items:center;gap:3mm;margin-bottom:10mm"><div>${memoLogoHtml()}</div><div style="font-size:9pt;line-height:1.5;color:#666;text-align:center">${esc(d.company||'SIERRA')}${d.country?' · '+esc(d.country):''}</div></header>
+    <div class="memo-meta" style="display:block;border:0;padding:0;margin:0 auto 6mm;width:100%;max-width:150mm;text-align:center">
+      <div class="notice-identity" style="display:flex;flex-direction:column;align-items:center;gap:4mm;margin-bottom:5mm"><span class="notice-icon" aria-hidden="true" style="width:23mm;height:23mm;flex:0 0 23mm;display:grid;place-items:center;border-radius:4mm;background:${color};color:${ink}">${siIcon(identity.icon,46)}</span><div style="min-width:0"><div style="font-size:9pt;color:#666;line-height:1.4">Aviso · ${esc(identity.label)}</div></div></div>
+      <h1 class="memo-meta-subject" style="border:0;margin:0;font-size:30pt;font-weight:700;line-height:1.15;letter-spacing:0;color:#0b0b0b;overflow-wrap:anywhere">${esc(d.subject)}</h1>
     </div>
-    <div class="memo-body" style="font-size:15pt;line-height:1.6">
-      ${d.noticeMessage?`<p class="memo-keep-together" style="font-size:15pt;line-height:1.6;margin:0 0 9mm;color:#444">${esc(d.noticeMessage).replace(/\n/g,'<br>')}</p>`:''}
-      ${d.noticeHighlight?`<section class="notice-highlight memo-keep-together" style="padding:5mm 0 0;border-top:.5mm solid ${color};margin:0 0 10mm;overflow-wrap:anywhere">${d.noticeHighlightLabel?`<div style="font-size:9pt;color:#666;margin-bottom:2mm;line-height:1.4">${esc(d.noticeHighlightLabel)}</div>`:''}<div style="font-size:17pt;line-height:1.4;font-weight:700;color:#0b0b0b">${esc(d.noticeHighlight).replace(/\n/g,'<br>')}</div></section>`:''}
+    <div class="memo-body" style="font-size:14pt;line-height:1.6;width:100%;max-width:150mm;margin:0 auto">
+      ${d.noticeMessage?`<p class="memo-keep-together" style="font-size:14pt;line-height:1.65;margin:0 0 7mm;color:#444;text-align:center">${esc(d.noticeMessage).replace(/\n/g,'<br>')}</p>`:''}
+      ${d.noticeHighlight?`<section class="notice-highlight memo-keep-together" style="padding:0;margin:0 0 9mm;text-align:center;overflow-wrap:anywhere">${d.noticeHighlightLabel?`<div style="font-size:9pt;color:#666;margin-bottom:2mm;line-height:1.4">${esc(d.noticeHighlightLabel)}</div>`:''}<div style="font-size:16pt;line-height:1.45;font-weight:700;color:#0b0b0b">${esc(d.noticeHighlight).replace(/\n/g,'<br>')}</div></section>`:''}
       ${blocks}
     </div>
-    <footer class="memo-footer" style="text-transform:none;letter-spacing:0;border-top:.25mm solid #e5e5e5"><span>${esc(d.sender||d.company||'SIERRA')}</span><span>${esc(memoFolio(d))}</span></footer>
+    <footer class="memo-footer" style="display:flex;flex-direction:column;gap:2mm;text-align:center;text-transform:none;letter-spacing:0;border-top:0;padding-top:8mm;color:#666"><span>${esc(d.sender||d.company||'SIERRA')}</span><span>${esc(commsDateLabel(d.date))} · ${esc(memoFolio(d))}</span></footer>
   </article>`;
 }
 function createNewsDraft(seed={}){return Object.assign(createCommunicationDraft({...seed,kind:'circular',subject:seed.subject||'Nueva circular informativa'}),{kind:'circular',company:seed.company||'SIERRA',eyebrow:seed.eyebrow||'',summary:seed.summary||'',author:seed.author||'',authorPhoto:seed.authorPhoto||'',heroImage:seed.heroImage||'',heroCaption:seed.heroCaption||'',heroPosition:seed.heroPosition??50,newsLayout:seed.newsLayout||'image-top',primaryColor:seed.primaryColor||'#007d73',blocks:Array.isArray(seed.blocks)?JSON.parse(JSON.stringify(seed.blocks)):[{id:'b-'+crypto.randomUUID(),type:'text',style:'regular',content:''}],salutation:'',closing:''})}
