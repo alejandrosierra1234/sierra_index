@@ -7,5 +7,6 @@ For all new or edited SIERRA materials, preserve these brand components:
 - Keep these components consistent in the editor, preview, PNG/JPG and PDF exports. Do not independently redraw them per template.
 - Memos may contain event invitation blocks using only the shared event date tile, not the department graphic. Retain the memo's formal header, metadata and signatures. An event block does not convert the entire memo into an invitation.
 - Original links must remain visible in CTAs. Do not introduce URL shortening.
+- Event blocks in memos use one compact white card with a subtle gray border and a restrained type scale. Supporting icons sit inside colored, rounded plaques; never use bare decorative icons. Preserve the event date tile's established typography.
 
 Shared renderers live in `index.html`; regression coverage lives in `tests/communications/management.cjs`.

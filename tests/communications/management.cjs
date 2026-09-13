@@ -42,6 +42,13 @@ test('memo events reuse SIERRA identity and survive saving and export',()=>{
   for(const [key,value] of Object.entries({title:'Capacitacion',date:'2026-09-15',department:'Talento Humano',mode:'ambos',location:'Sala 1',virtualUrl:'https://example.com/event',color:'#009fff'}))w.commsSetBlock(b.id,key,value);
   const html=w.memoBlockHtml(b),box=w.document.createElement('div');box.innerHTML=html;
   assert.equal(box.querySelector('.sierra-event-date .invite-date-day').textContent,'15');
+  assert.equal(box.querySelectorAll('.memo-event').length,1);
+  assert.equal(box.querySelector('h3').style.fontSize,'14pt');
+  for(const icon of box.querySelectorAll('.memo-event-detail svg')){
+    assert.ok(icon.parentElement.classList.contains('memo-event-icon'));
+    assert.equal(icon.parentElement.style.borderRadius,'2mm');
+    assert.ok(icon.parentElement.style.background);
+  }
   assert.equal(box.querySelector('.sierra-department'),null,'memos never display the department mark, including older event blocks');
   assert.ok(!w.commsEventEditor(b,'').includes('Departamento organizador'));
   assert.equal(box.querySelector('a').getAttribute('href'),'https://example.com/event');
