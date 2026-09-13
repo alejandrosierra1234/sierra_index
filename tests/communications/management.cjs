@@ -245,7 +245,7 @@ test('notice headings respect columns, contacts use short labels and signatures 
   const d=w.eval('_commsCurrent'),b=d.blocks.at(-1);
   Object.assign(b,{name:'Ana',email:'ana@example.com',showButton:true});
   let box=w.document.createElement('div');box.innerHTML=w.memoPageHtml(d);
-  assert.equal(box.querySelector('.notice-label').textContent,'Notificación');
+  assert.equal(box.querySelector('.notice-label').firstElementChild.textContent,'Notificación');
   assert.ok(box.querySelector('.notice-heading').getAttribute('style').includes('calc((100% - 6mm) * .6)'));
   assert.equal(box.querySelector('.memo-action-button').textContent.trim(),'Enviar correo');
   b.hidden=true;box.innerHTML=w.memoPageHtml(d);
@@ -303,6 +303,16 @@ test('SIERRA orange icons retain their hue and library types and statuses have d
   const styles=[...w.document.querySelectorAll('style')].map(el=>el.textContent).join('');
   assert.ok(styles.includes('[data-kind=aviso] .comms-document-kind'));assert.ok(styles.includes('[data-kind=circular] .comms-document-kind'));
   w.newCommunicationDraft();
+});
+test('notice company and country appear beside the label without duplicated metadata',()=>{
+  const d=w.createNoticeDraft({company:'Honduras Spinning Mills',country:'Honduras'}),box=w.document.createElement('div');
+  box.innerHTML=w.noticePageHtml(d,true);
+  assert.equal(box.querySelector('.notice-label .notice-company').textContent,d.company);
+  assert.equal(box.querySelector('.notice-label .notice-country').textContent,d.country);
+  assert.equal(box.querySelector('.notice-metadata').children.length,2);
+  assert.ok(!box.querySelector('.notice-metadata').textContent.includes(d.company));
+  d.country='';box.innerHTML=w.noticePageHtml(d);assert.equal(box.querySelector('.notice-country'),null);
+  assert.equal(box.querySelectorAll('.notice-label [aria-hidden]').length,1);
 });
 test('notice height adapts and contact photos stack only in notices',()=>{
   const contact={type:'contact',name:'Contacto',src:'data:image/png;base64,PHOTO',email:'equipo@example.com'};
