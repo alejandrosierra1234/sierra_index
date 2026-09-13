@@ -106,6 +106,17 @@ test('CTA colors preserve a white QR sticker and right-side image',()=>{
   assert.equal(box.querySelector('.memo-action-button').style.color,'rgb(11, 11, 11)');
   b.src='';box.innerHTML=w.memoActionCardHtml(b);assert.equal(box.firstElementChild.style.gridTemplateColumns,'minmax(0,1fr)');
 });
+test('memo countries are limited to SIERRA operations and may be omitted',()=>{
+  assert.deepEqual(Array.from(w.eval('PRODUCT_COUNTRIES')),['Guatemala','Honduras','Nicaragua']);
+  const d=w.createCommunicationDraft(),box=w.document.createElement('div');
+  for(const country of ['', 'Todos los países','Guatemala','Honduras','Nicaragua']){
+    d.country=country;box.innerHTML=w.memoPageHtml(d);
+    const row=box.querySelector('.memo-meta-country');
+    if(country)assert.equal(row.querySelector('span').textContent,country);else assert.equal(row,null);
+    assert.ok(box.querySelector('.memo-meta-subject'));
+  }
+  assert.ok(source.includes("label:'No incluir país'"));
+});
 test('CTA uses SIERRA palette triggers instead of native color inputs',()=>{
   const box=w.document.createElement('div');box.innerHTML=w.commsActionCardEditor({id:'palette-test',type:'cta'},'');
   assert.equal(box.querySelectorAll('input[type="color"]').length,0);
