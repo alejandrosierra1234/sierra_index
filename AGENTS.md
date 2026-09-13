@@ -9,5 +9,6 @@ For all new or edited SIERRA materials, preserve these brand components:
 - Original links must remain visible in CTAs. Do not introduce URL shortening.
 - Event blocks in memos use one compact white card with a subtle gray border and a restrained type scale. Supporting icons sit inside colored, rounded plaques; never use bare decorative icons. Preserve the event date tile's established typography.
 - Reserve the left column exclusively for the event calendar, aligned at the top. All copy, schedule, location and links belong to the right column. Do not place information below the calendar or span logistics across both columns.
+- Memo event details use neutral icon plaques: light gray (#f5f5f5) backgrounds and black (#0b0b0b) icons. Detail labels and links are neutral too; keep links underlined. This does not change the SIERRA calendar's red month or other modules' palettes.
 
 Shared renderers live in `index.html`; regression coverage lives in `tests/communications/management.cjs`.

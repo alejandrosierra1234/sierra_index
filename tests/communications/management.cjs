@@ -55,7 +55,8 @@ test('memo events reuse SIERRA identity and survive saving and export',()=>{
   for(const icon of box.querySelectorAll('.memo-event-detail svg')){
     assert.ok(icon.parentElement.classList.contains('memo-event-icon'));
     assert.equal(icon.parentElement.style.borderRadius,'2mm');
-    assert.ok(icon.parentElement.style.background);
+    assert.equal(icon.parentElement.style.background,'rgb(245, 245, 245)');
+    assert.equal(icon.parentElement.style.color,'rgb(11, 11, 11)');
   }
   assert.equal(box.querySelector('.sierra-department'),null,'memos never display the department mark, including older event blocks');
   assert.ok(!w.commsEventEditor(b,'').includes('Departamento organizador'));
