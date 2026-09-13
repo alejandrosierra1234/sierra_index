@@ -216,6 +216,20 @@ test('half-letter notices prevent clipped exports and have independent controls'
   assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('@page{size:215.9mm 139.7mm'));
   w.newCommunicationDraft();
 });
+test('notice metadata sits below the title and action cards trigger two columns',()=>{
+  const d=w.createNoticeDraft({subject:'Cierre temporal',company:'Empresa de prueba',country:'Honduras',noticeMessage:'Mensaje principal'});
+  const box=w.document.createElement('div'),render=()=>{box.innerHTML=w.memoPageHtml(d)};
+  render();assert.equal(box.querySelector('.notice-layout').dataset.columns,'1');
+  assert.ok(box.querySelector('h1').nextElementSibling.classList.contains('notice-metadata'));
+  assert.ok(box.querySelector('.notice-metadata').textContent.includes(w.memoFolio(d)));
+  assert.equal(box.querySelector('.memo-footer').textContent.includes('Honduras'),false);
+  d.blocks=[{id:'contact',type:'contact',name:'Ana',email:'ana@example.com'},{id:'cta',type:'cta',title:'Registro',url:'https://example.com',showButton:true}];
+  render();assert.equal(box.querySelector('.notice-layout').dataset.columns,'2');
+  assert.ok(box.querySelector('.notice-actions .memo-contact'));
+  assert.ok(box.querySelector('.notice-actions .memo-cta'));
+  assert.equal(box.querySelector('.notice-copy .memo-action-card'),null);
+  d.blocks.forEach(b=>b.hidden=true);render();assert.equal(box.querySelector('.notice-layout').dataset.columns,'1');
+});
 test('memo countries are limited to SIERRA operations and may be omitted',()=>{
   assert.deepEqual(Array.from(w.eval('PRODUCT_COUNTRIES')),['Guatemala','Honduras','Nicaragua']);
   const d=w.createCommunicationDraft(),box=w.document.createElement('div');

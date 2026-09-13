@@ -35093,26 +35093,36 @@ function renderNoticeEditor(){
 }
 function noticeBlockHtml(b){
   const html=memoBlockHtml(b);
-  if(b.type!=='cta'||b.src||(b.showQr&&b.qrImage))return html;
+  if(!['cta','contact'].includes(b.type))return html;
   const container=document.createElement('div');container.innerHTML=html;
   const card=container.firstElementChild;
-  card.style.textAlign='center';
-  if(!b.backgroundColor){card.style.background='transparent';card.style.border='0'}
+  card.style.margin='0';card.style.fontSize='9pt';
+  card.style.textAlign=b.type==='cta'?'center':'left';
+  if(b.type==='contact'){card.style.padding='3mm';card.style.gap='3mm';if(b.src){card.style.gridTemplateColumns='16mm minmax(0,1fr)';const photo=card.querySelector('.memo-action-image');photo.style.width='16mm';photo.style.height='16mm'}}
+  const content=card.querySelector('.memo-action-content');
+  if(b.type==='cta'){
+    content.style.padding='3mm';content.style.gap='2mm';
+    const sticker=card.querySelector('.memo-qr-sticker');
+    if(sticker){sticker.parentElement.style.gridTemplateColumns='minmax(0,1fr)';sticker.parentElement.style.justifyItems='center';sticker.parentElement.style.gap='2mm'}
+  }
+  card.querySelectorAll('h3').forEach(el=>el.style.fontSize='12pt');
   card.querySelectorAll('p').forEach(el=>el.style.textAlign='center');
   const button=card.querySelector('.memo-action-button');
-  if(button){button.style.minWidth='48mm';button.style.padding='3.5mm 7mm';button.style.fontSize='12pt'}
+  if(button){button.style.minWidth='0';button.style.padding='2.5mm 4mm';button.style.fontSize='10pt'}
   return container.innerHTML;
 }
 function noticePageHtml(d,preview=false){
-  const identity=noticeIdentity(d),color=identity.color,blocks=(d.blocks||[]).filter(b=>!b.hidden).map(b=>preview?`<div class="memo-preview-block" data-memo-preview-block="${escAttr(b.id)}">${noticeBlockHtml(b)}</div>`:noticeBlockHtml(b)).join('');
+  const identity=noticeIdentity(d),color=identity.color,visible=(d.blocks||[]).filter(b=>!b.hidden),isAction=b=>['contact','cta'].includes(b.type),hasActions=visible.some(isAction);
+  const render=b=>preview?`<div class="memo-preview-block" data-memo-preview-block="${escAttr(b.id)}">${noticeBlockHtml(b)}</div>`:noticeBlockHtml(b);
+  const blocks=visible.filter(b=>!isAction(b)).map(render).join(''),actions=visible.filter(isAction).map(render).join('');
   return `<article class="memo-page notice-page" style="box-sizing:border-box;width:215.9mm;height:139.7mm;min-height:139.7mm;max-height:139.7mm;padding:11mm 13mm;background:#fff;border:.25mm solid #e5e5e5;border-radius:3mm;overflow:hidden;display:flex;flex-direction:column">
-    <header class="memo-masthead" style="margin:0 0 5mm;justify-content:flex-start;gap:4mm"><span class="notice-icon" aria-hidden="true" style="width:14mm;height:14mm;flex:0 0 14mm;display:grid;place-items:center;border-radius:3mm;background:${invitationSoftColor(color)};color:${commsInk(color)==='#0b0b0b'?'#444444':color}">${siIcon(identity.icon,30)}</span><div style="min-width:0"><div style="font-size:8pt;line-height:1.4;color:#666;margin-bottom:1.5mm">Aviso</div><h1 class="memo-meta-subject" style="margin:0;border:0;font-size:24pt;font-weight:700;line-height:1.15;letter-spacing:0;overflow-wrap:anywhere">${esc(d.subject)}</h1></div></header>
-    <div class="memo-body" style="font-size:12pt;line-height:1.5">
+    <header class="memo-masthead" style="margin:0 0 5mm;justify-content:flex-start;gap:4mm"><span class="notice-icon" aria-hidden="true" style="width:14mm;height:14mm;flex:0 0 14mm;display:grid;place-items:center;border-radius:3mm;background:${invitationSoftColor(color)};color:${commsInk(color)==='#0b0b0b'?'#444444':color}">${siIcon(identity.icon,30)}</span><div style="min-width:0"><div style="font-size:13pt;font-weight:700;line-height:1.3;color:#444;margin-bottom:1.5mm">Aviso</div><h1 class="memo-meta-subject" style="margin:0;border:0;font-size:24pt;font-weight:700;line-height:1.15;letter-spacing:0;overflow-wrap:anywhere">${esc(d.subject)}</h1><div class="notice-metadata" style="display:flex;flex-wrap:wrap;gap:1mm 3mm;font-size:8pt;line-height:1.5;color:#666;margin-top:2mm"><span>${esc(commsDateLabel(d.date))}</span><span>${esc(memoFolio(d))}</span><span>${esc(d.company||'SIERRA')}</span>${d.country?`<span>${esc(d.country)}</span>`:''}</div></div></header>
+    <div class="memo-body notice-layout" data-columns="${hasActions?2:1}" style="display:grid;grid-template-columns:${hasActions?'minmax(0,3fr) minmax(0,2fr)':'minmax(0,1fr)'};gap:${hasActions?'6mm':'0'};align-items:start;font-size:12pt;line-height:1.5"><div class="notice-copy" style="min-width:0">
       ${d.noticeMessage?`<p class="memo-keep-together" style="font-size:12pt;line-height:1.55;margin:0 0 4mm;color:#444;text-align:left">${esc(d.noticeMessage).replace(/\n/g,'<br>')}</p>`:''}
       ${d.noticeHighlight?`<div class="notice-highlight memo-keep-together" style="font-size:12pt;line-height:1.5;font-weight:700;margin:0 0 4mm;color:#0b0b0b">${esc(d.noticeHighlight).replace(/\n/g,'<br>')}</div>`:''}
-      ${blocks}
+      ${blocks}</div>${hasActions?`<aside class="notice-actions" style="min-width:0;display:grid;gap:3mm" aria-label="Contactos y acciones">${actions}</aside>`:''}
     </div>
-    <footer class="memo-footer" style="margin-top:auto;padding-top:4mm;border:0;display:flex;align-items:flex-end;justify-content:space-between;gap:5mm;text-transform:none;letter-spacing:0"><div style="font-size:7pt;line-height:1.5;color:#666;min-width:0">${esc(d.company||'SIERRA')}${d.country?' · '+esc(d.country):''}<br>${esc(commsDateLabel(d.date))} · ${esc(memoFolio(d))}</div><div style="width:32mm;flex:0 0 32mm">${memoLogoHtml().replace('class="memo-logo"','class="memo-logo" style="width:100%"')}</div></footer>
+    <footer class="memo-footer" style="margin-top:auto;padding-top:4mm;border:0;display:flex;align-items:flex-end;justify-content:flex-end;gap:5mm;text-transform:none;letter-spacing:0"><div style="width:32mm;flex:0 0 32mm">${memoLogoHtml().replace('class="memo-logo"','class="memo-logo" style="width:100%"')}</div></footer>
   </article>`;
 }
 function noticeCheckOverflow(doc){
