@@ -73,7 +73,7 @@ test('contact and CTA blocks save, export and preserve safe written links',()=>{
   w.newCommunicationDraft();
   for(const type of ['contact','cta']){
     w.commsAddBlock(type);const b=w.eval('_commsCurrent.blocks.at(-1)');
-    Object.assign(b,{name:'Ana <Test>',title:'Inscripcion',role:'Analista',email:'ana@example.com',phone:'+504 1234 5678',src:'data:image/png;base64,AA',url:'https://example.com/registro',showButton:true,showQr:true,qrImage:'data:image/png;base64,AA'});
+    Object.assign(b,{name:'Ana <Test>',title:'Inscripcion',role:'Analista',email:'ana@example.com',phone:'+504 1234 5678',src:'data:image/png;base64,AA',buttonAction:'link',url:'https://example.com/registro',showButton:true,showQr:true,qrImage:'data:image/png;base64,AA'});
     const box=w.document.createElement('div');box.innerHTML=w.memoBlockHtml(b);
     assert.ok(box.querySelector('.memo-action-image'));
     assert.equal(box.querySelector('.memo-action-button').getAttribute('href'),b.url);
@@ -89,6 +89,13 @@ test('contact and CTA blocks save, export and preserve safe written links',()=>{
     assert.equal(w.eval('_commsDrafts[0].blocks.at(-1).type'),type);
     assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('memo-'+type));
   }
+});
+test('contact buttons default to email with a paper plane and editable text',()=>{
+  const b={type:'contact',name:'Ana',email:'ana@example.com',showButton:true,buttonText:'Contactar'};
+  const box=w.document.createElement('div');box.innerHTML=w.memoActionCardHtml(b);
+  const button=box.querySelector('.memo-action-button');assert.equal(button.getAttribute('href'),'mailto:ana%40example.com');assert.ok(button.querySelector('svg'));assert.equal(button.textContent,'Envíale un correo a Ana');
+  b.buttonText='Escríbeme';box.innerHTML=w.memoActionCardHtml(b);assert.equal(box.querySelector('.memo-action-button').textContent,'Escríbeme');
+  b.email='';box.innerHTML=w.memoActionCardHtml(b);assert.equal(box.querySelector('.memo-action-button').getAttribute('aria-disabled'),'true');
 });
 test('typing keeps the preview frame, focus and scale stable before paint',()=>{
   const raf=w.requestAnimationFrame;let pendingFrames=0;
