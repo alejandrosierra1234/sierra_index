@@ -209,10 +209,16 @@ test('half-letter notices prevent clipped exports and have independent controls'
   const page=w.document.querySelector('.notice-page'),body=page.querySelector('.memo-body'),footer=page.querySelector('.memo-footer');
   Object.defineProperty(page,'scrollHeight',{configurable:true,value:600});
   Object.defineProperty(page,'clientHeight',{configurable:true,value:528});
+  Object.defineProperty(page,'offsetHeight',{configurable:true,value:528});
+  page.getBoundingClientRect=()=>({height:528,bottom:528});
+  body.getBoundingClientRect=()=>({bottom:460});
+  footer.getBoundingClientRect=()=>({top:430,bottom:490});
   assert.throws(()=>w.noticeCheckOverflow(w.document),/media carta/);
   Object.defineProperty(page,'scrollHeight',{configurable:true,value:528});
-  body.getBoundingClientRect=()=>({bottom:200});footer.getBoundingClientRect=()=>({top:400});
+  body.getBoundingClientRect=()=>({bottom:200});footer.getBoundingClientRect=()=>({top:400,bottom:490});
   assert.doesNotThrow(()=>w.noticeCheckOverflow(w.document));
+  Object.defineProperty(page,'scrollHeight',{configurable:true,value:600});
+  assert.doesNotThrow(()=>w.noticeCheckOverflow(w.document),'selection outlines must not count as content overflow');
   assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('@page{size:215.9mm 139.7mm'));
   w.newCommunicationDraft();
 });
@@ -221,6 +227,8 @@ test('notice metadata sits below the title and action cards trigger two columns'
   const box=w.document.createElement('div'),render=()=>{box.innerHTML=w.memoPageHtml(d)};
   render();assert.equal(box.querySelector('.notice-layout').dataset.columns,'1');
   assert.ok(box.querySelector('h1').nextElementSibling.classList.contains('notice-metadata'));
+  assert.equal(box.querySelector('.notice-layout').style.paddingLeft,'18mm');
+  assert.equal(box.querySelector('.memo-masthead').style.gridTemplateColumns,'14mm minmax(0,1fr)');
   assert.ok(box.querySelector('.notice-metadata').textContent.includes(w.memoFolio(d)));
   assert.equal(box.querySelector('.memo-footer').textContent.includes('Honduras'),false);
   d.blocks=[{id:'contact',type:'contact',name:'Ana',email:'ana@example.com'},{id:'cta',type:'cta',title:'Registro',url:'https://example.com',showButton:true}];
