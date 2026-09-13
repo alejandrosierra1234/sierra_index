@@ -14,6 +14,8 @@ For all new or edited SIERRA materials, preserve these brand components:
 
 Shared renderers live in `index.html`; regression coverage lives in `tests/communications/management.cjs`.
 
+- Brief notices use kind `aviso` and AVI folios, with their own editor and library filter. Keep the title, main message and optional highlight independent from optional shared gallery, contact and CTA blocks. Do not add memo recipient tables or signatures. The fumigation example is opt-in and must not replace an existing message.
+
 - Informative circulars use kind `circular`, CIR folios, and an editorial masthead with company, publication date and optional country. Do not render the memo's recipient table, salutation or signature block in circulars.
 - Circulars reuse the existing event, gallery, CTA, contact and icon/text renderers. Their editorial blocks include attributed quotes and groups of collaborators; portraits keep their aspect ratio. Preserve block visibility and ordering in all exports.
 - Circular identity: restrained SIERRA logo/company masthead, discreet date and country, plain section label, full-width regular-weight Replica headline and large photography. No colored masthead rule or section plaque. Panoramic covers lead with headline and image, then the introduction. Quotes are unframed with subtle separators; collaborator captions remain left aligned. Keep the editorial hierarchy distinct from memo metadata tables and invitation date tiles.

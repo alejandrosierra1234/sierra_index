@@ -150,6 +150,24 @@ test('editorial circulars preserve their kind, metadata, layouts and shared bloc
   w.commsSet('authorPhoto','');assert.equal(w.document.querySelector('.news-author img'),null);
   w.commsSetKind('circular');assert.ok(w.commsFiltered().every(x=>x.kind==='circular'));w.commsSetKind('');w.newCommunicationDraft();
 });
+test('notices have a dedicated editor, example, folio and shared image blocks',()=>{
+  w.newNoticeDraft();assert.equal(w.eval('_commsCurrent.kind'),'aviso');
+  assert.ok(w.document.getElementById('sec-title').textContent.includes('avisos'));
+  assert.equal(w.document.querySelector('[data-comms-tab="signature"]'),null);
+  w.noticeExample();const d=w.eval('_commsCurrent');
+  assert.equal(d.company,'Honduras Spinning Mills');assert.ok(d.noticeMessage.includes('3:30'));
+  assert.ok(d.noticeHighlight.includes('8:00'));assert.ok(w.memoFolio(d).startsWith('AVI-'));
+  w.commsAddBlock('image');const b=d.blocks.at(-1);b.images=[{uid:'photo',src:'data:image/png;base64,AA',fit:'contain'}];
+  const box=w.document.createElement('div');box.innerHTML=w.memoPageHtml(d);
+  assert.ok(box.querySelector('.notice-page'));assert.ok(box.querySelector('img'));
+  assert.equal(box.querySelector('.memo-signature'),null);assert.ok(box.textContent.includes(d.noticeMessage));
+  b.hidden=true;box.innerHTML=w.memoPageHtml(d);assert.equal(box.querySelector('img'),null);
+  w.commsPersist();w.commsDuplicate(d.id);const copy=w.eval('_commsCurrent');
+  assert.equal(copy.kind,'aviso');assert.equal(copy.noticeHighlight,d.noticeHighlight);assert.notEqual(copy.id,d.id);
+  assert.equal(w.commsNormalize(copy).kind,'aviso');
+  w.commsSetKind('aviso');assert.ok(w.commsFiltered().every(x=>x.kind==='aviso'));
+  w.commsSetKind('');w.newCommunicationDraft();
+});
 test('memo countries are limited to SIERRA operations and may be omitted',()=>{
   assert.deepEqual(Array.from(w.eval('PRODUCT_COUNTRIES')),['Guatemala','Honduras','Nicaragua']);
   const d=w.createCommunicationDraft(),box=w.document.createElement('div');
