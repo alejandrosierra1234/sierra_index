@@ -220,7 +220,7 @@ test('half-letter notices prevent clipped exports and have independent controls'
   assert.doesNotThrow(()=>w.noticeCheckOverflow(w.document));
   Object.defineProperty(page,'scrollHeight',{configurable:true,value:600});
   assert.doesNotThrow(()=>w.noticeCheckOverflow(w.document),'selection outlines must not count as content overflow');
-  assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('@page{size:215.9mm 139.7mm'));
+  assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('@page{size:letter portrait'));
   w.newCommunicationDraft();
 });
 test('notice metadata sits below the title and action cards trigger two columns',()=>{
@@ -283,6 +283,26 @@ test('notice preview shows a Letter sheet without changing adaptive exports',()=
   assert.equal(page.style.width,'215.9mm');assert.equal(page.style.minHeight,'279.4mm');assert.equal(page.style.borderRadius,'0px');
   box.innerHTML=w.noticePageHtml(d);page=box.querySelector('.notice-page');
   assert.equal(page.style.minHeight,'139.7mm');assert.equal(page.style.height,'auto');
+});
+test('notice PDF pagination uses portrait Letter sheets and preserves composition width',()=>{
+  const doc=w.document.implementation.createHTMLDocument('print');doc.body.innerHTML=w.noticePageHtml(w.createNoticeDraft({noticeMessage:'Mensaje de prueba'}));
+  const page=doc.querySelector('.notice-page');page.getBoundingClientRect=()=>({width:816,height:2400,top:0,left:0});
+  const createRange=doc.createRange.bind(doc);doc.createRange=()=>{const range=createRange();range.getClientRects=()=>[{top:990,bottom:1010,height:20}];return range};
+  assert.equal(w.noticePaginatePrint(doc),3);
+  assert.equal(doc.querySelectorAll('.memo-page').length,3);
+  for(const sheet of doc.querySelectorAll('.memo-page')){assert.equal(sheet.style.width,'215.9mm');assert.equal(sheet.style.height,'279.4mm');assert.ok(sheet.querySelector('.notice-print-viewport'));}
+  const html=w.memoPrintDocumentHtml(w.createNoticeDraft());assert.ok(html.includes('noticePaginatePrint(document)'));assert.ok(!html.includes("style.textContent='@page{size:'+size.width"));
+});
+test('SIERRA orange icons retain their hue and library types and statuses have distinct colors',()=>{
+  const tone=w.commsIconTone('#ff7824');assert.equal(tone.ink,'#cd4f00');assert.equal(tone.background,'#ffe3d2');
+  const box=w.document.createElement('div');box.innerHTML=w.noticePageHtml(w.createNoticeDraft({primaryColor:'#ff7824'}));
+  assert.equal(box.querySelector('.notice-icon').style.color,'rgb(205, 79, 0)');
+  w.newNoticeDraft();w.commsSet('status','Aprobado');w.commsPersist();w.eval("_commsView='active';_commsKind='';_commsQuery='';_commsFilters={type:'',department:'',status:'',sort:'updated'}");w.renderCommunicationsHome();
+  const row=w.document.querySelector('.comms-library-row[data-kind="aviso"]');assert.ok(row);
+  assert.ok(w.document.querySelector('.comms-status[data-status="Aprobado"]'));
+  const styles=[...w.document.querySelectorAll('style')].map(el=>el.textContent).join('');
+  assert.ok(styles.includes('[data-kind=aviso] .comms-document-kind'));assert.ok(styles.includes('[data-kind=circular] .comms-document-kind'));
+  w.newCommunicationDraft();
 });
 test('notice height adapts and contact photos stack only in notices',()=>{
   const contact={type:'contact',name:'Contacto',src:'data:image/png;base64,PHOTO',email:'equipo@example.com'};
