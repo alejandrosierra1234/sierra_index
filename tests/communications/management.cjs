@@ -82,7 +82,9 @@ test('contact and CTA blocks save, export and preserve safe written links',()=>{
     else assert.ok(box.querySelector('.memo-action-qr'));
     w.commsActionCardSet(b.id,'url','https://example.com/nuevo');assert.equal(b.qrImage,'');
     b.showButton=false;box.innerHTML=w.memoBlockHtml(b);assert.equal(box.querySelector('.memo-action-button'),null);assert.ok(box.textContent.includes(b.url));
-    b.url='javascript:alert(1)';b.showButton=true;box.innerHTML=w.memoBlockHtml(b);assert.equal(box.querySelector('.memo-action-button'),null);
+    b.url='javascript:alert(1)';b.showButton=true;box.innerHTML=w.memoBlockHtml(b);assert.equal(box.querySelector('.memo-action-button').getAttribute('aria-disabled'),'true');assert.equal(box.querySelector('.memo-action-button').hasAttribute('href'),false);
+    b.url='';box.innerHTML=w.memoBlockHtml(b);assert.ok(box.querySelector('.memo-action-button'));assert.equal(box.querySelector('.memo-action-button').getAttribute('aria-disabled'),'true');
+    b.url='www.example.com/registro';box.innerHTML=w.memoBlockHtml(b);assert.equal(box.querySelector('.memo-action-button').getAttribute('href'),'https://www.example.com/registro');assert.ok(box.textContent.includes(b.url));
     b.url='https://example.com/final';w.commsPersist();
     assert.equal(w.eval('_commsDrafts[0].blocks.at(-1).type'),type);
     assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('memo-'+type));
