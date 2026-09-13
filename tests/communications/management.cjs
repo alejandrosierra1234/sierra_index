@@ -322,6 +322,15 @@ test('notice CTA aligns left and larger logo aligns vertically with the icon',()
   const row=box.querySelector('.notice-brand-row');assert.equal(row.style.alignItems,'center');
   assert.equal(row.querySelector('.memo-logo').parentElement.style.width,'38mm');
 });
+test('circulars support principal and supporting columns separated by full-width blocks',()=>{
+  const d=w.createNewsDraft({blocks:[{id:'a',type:'text',content:'Principal',newsSpan:'left'},{id:'b',type:'contact',name:'Ana',newsSpan:'right'},{id:'c',type:'text',content:'Continúa',newsSpan:'left'},{id:'d',type:'text',content:'Separador',newsSpan:'full'},{id:'e',type:'cta',title:'Registro',newsSpan:'right',hidden:true}]});
+  const box=w.document.createElement('div');box.innerHTML=w.newsPageHtml(d,true);
+  const group=box.querySelector('.news-column-group');assert.equal(group.dataset.columns,'2');
+  assert.equal(group.querySelectorAll('.news-column-left [data-memo-preview-block]').length,2);
+  assert.ok(group.querySelector('.news-column-right .memo-contact'));assert.ok(!group.textContent.includes('Separador'));
+  d.blocks[1].hidden=true;box.innerHTML=w.newsPageHtml(d);assert.equal(box.querySelector('.news-column-group').dataset.columns,'1');
+  assert.ok(w.memoPrintDocumentHtml(d).includes('news-column-group'));
+});
 test('notice height adapts and contact photos stack only in notices',()=>{
   const contact={type:'contact',name:'Contacto',src:'data:image/png;base64,PHOTO',email:'equipo@example.com'};
   const box=w.document.createElement('div');box.innerHTML=w.noticeBlockHtml(contact);
