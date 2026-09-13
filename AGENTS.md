@@ -13,3 +13,6 @@ For all new or edited SIERRA materials, preserve these brand components:
 - Memo CTA cards default to neutral colors but support custom text, background and button colors. Keep the illustration on the right, filling the card height without distortion, and all CTA content on the left. Always enclose the QR in a white rounded sticker with 1.5mm padding, independently of the card palette. Do not recolor the QR background or remove its internal quiet zone.
 
 Shared renderers live in `index.html`; regression coverage lives in `tests/communications/management.cjs`.
+
+- Informative circulars use kind `circular`, CIR folios, and an editorial masthead with company, publication date and optional country. Do not render the memo's recipient table, salutation or signature block in circulars.
+- Circulars reuse the existing event, gallery, CTA, contact and icon/text renderers. Their editorial blocks include attributed quotes and groups of collaborators; portraits keep their aspect ratio. Preserve block visibility and ordering in all exports.

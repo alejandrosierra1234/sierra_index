@@ -127,6 +127,16 @@ test('image galleries preserve legacy images and support grid and individual fra
   box.innerHTML=w.commsBlockEditor(b);assert.ok(box.querySelector('input[type="file"][multiple]'));
   b.images=[];assert.equal(w.memoBlockHtml(b),'');
 });
+test('editorial circulars preserve their kind, metadata, layouts and shared blocks',()=>{
+  w.newNewsDraft();const d=w.eval('_commsCurrent');assert.equal(d.kind,'circular');assert.ok(w.document.getElementById('sec-title').textContent.includes('circulares'));assert.ok(!w.document.querySelector('[data-comms-tab="signature"]'));
+  Object.assign(d,{company:'SIERRA Chemicals',country:'Guatemala',summary:'Una nueva etapa',subject:'Avanzamos juntos',heroImage:'data:image/png;base64,AA',newsLayout:'image-right'});
+  w.commsAddBlock('quote');let quote=d.blocks.at(-1);Object.assign(quote,{content:'El esfuerzo es compartido',author:'Ana',role:'Gerente',newsSpan:'half'});
+  w.commsAddBlock('people');let people=d.blocks.at(-1);people.newsSpan='half';people.people[0].name='Carlos';
+  const box=w.document.createElement('div');box.innerHTML=w.memoPageHtml(d);assert.ok(box.querySelector('.news-page'));assert.ok(!box.textContent.includes('Memorándum'));assert.ok(box.textContent.includes('SIERRA Chemicals'));assert.ok(box.textContent.includes('Guatemala'));assert.ok(box.textContent.includes('Ana'));assert.ok(box.textContent.includes('Carlos'));assert.ok(w.memoFolio(d).startsWith('CIR-'));
+  quote.hidden=true;box.innerHTML=w.memoPageHtml(d,true);assert.ok(!box.textContent.includes('El esfuerzo es compartido'));
+  w.commsPersist();const id=d.id;w.commsDuplicate(id);const copy=w.eval('_commsCurrent');assert.equal(copy.kind,'circular');assert.equal(copy.company,d.company);assert.equal(copy.heroImage,d.heroImage);assert.equal(copy.newsLayout,'image-right');assert.notEqual(copy.id,id);
+  w.commsSetKind('circular');assert.ok(w.commsFiltered().every(x=>x.kind==='circular'));w.commsSetKind('');w.newCommunicationDraft();
+});
 test('memo countries are limited to SIERRA operations and may be omitted',()=>{
   assert.deepEqual(Array.from(w.eval('PRODUCT_COUNTRIES')),['Guatemala','Honduras','Nicaragua']);
   const d=w.createCommunicationDraft(),box=w.document.createElement('div');
