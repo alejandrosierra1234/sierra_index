@@ -29,7 +29,7 @@ test('all communication icon keys exist and destructive controls are labeled',()
   for(const [,name] of moduleSource.matchAll(/siIcon\('([^']+)'/g))assert.ok(w.siIcon(name),`Missing icon ${name}`);
   w.newCommunicationDraft();
   for(const type of ['image','table','orgchart','process','banner'])w.commsAddBlock(type);
-  assert.equal(w.document.querySelectorAll('.memo-insert-icon svg').length,10);
+  assert.equal(w.document.querySelectorAll('.memo-insert-icon svg').length,12);
   assert.ok(w.document.querySelector('[aria-label="Eliminar etapa"] svg'));
   assert.ok(w.document.querySelector('[aria-label="Eliminar persona"] svg'));
   for(const button of w.document.querySelectorAll('button'))if(button.querySelector('svg')&&!button.textContent.trim())assert.ok(button.getAttribute('aria-label')||button.title,'Icon button needs a name');
@@ -69,6 +69,25 @@ test('memo events reuse SIERRA identity and survive saving and export',()=>{
   assert.ok(inviteBox.querySelector('.sierra-department path'),'invitations keep the department mark');
   assert.ok(inviteBox.querySelector('.sierra-event-date'));
 });
+test('contact and CTA blocks save, export and preserve safe written links',()=>{
+  w.newCommunicationDraft();
+  for(const type of ['contact','cta']){
+    w.commsAddBlock(type);const b=w.eval('_commsCurrent.blocks.at(-1)');
+    Object.assign(b,{name:'Ana <Test>',title:'Inscripcion',role:'Analista',email:'ana@example.com',phone:'+504 1234 5678',src:'data:image/png;base64,AA',url:'https://example.com/registro',showButton:true,showQr:true,qrImage:'data:image/png;base64,AA'});
+    const box=w.document.createElement('div');box.innerHTML=w.memoBlockHtml(b);
+    assert.ok(box.querySelector('.memo-action-image'));
+    assert.equal(box.querySelector('.memo-action-button').getAttribute('href'),b.url);
+    assert.ok(box.textContent.includes(b.url));
+    if(type==='contact'){assert.ok(box.textContent.includes(b.name));assert.ok(box.querySelector('a[href^="mailto:"]'));assert.ok(box.querySelector('a[href^="tel:"]'))}
+    else assert.ok(box.querySelector('.memo-action-qr'));
+    w.commsActionCardSet(b.id,'url','https://example.com/nuevo');assert.equal(b.qrImage,'');
+    b.showButton=false;box.innerHTML=w.memoBlockHtml(b);assert.equal(box.querySelector('.memo-action-button'),null);assert.ok(box.textContent.includes(b.url));
+    b.url='javascript:alert(1)';b.showButton=true;box.innerHTML=w.memoBlockHtml(b);assert.equal(box.querySelector('.memo-action-button'),null);
+    b.url='https://example.com/final';w.commsPersist();
+    assert.equal(w.eval('_commsDrafts[0].blocks.at(-1).type'),type);
+    assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('memo-'+type));
+  }
+});
 test('typing keeps the preview frame, focus and scale stable before paint',()=>{
   const raf=w.requestAnimationFrame;let pendingFrames=0;
   w.requestAnimationFrame=()=>{pendingFrames++};
@@ -94,4 +113,16 @@ test('typing keeps the preview frame, focus and scale stable before paint',()=>{
   assert.equal(pendingFrames,0,'preview must not expose an unscaled frame while waiting for RAF');
   w.requestAnimationFrame=raf;clearTimeout(w.eval('_commsSaveTimer'));
 });
-console.log(checks+' management checks passed');w.close();
+async function qrChecks(){
+  w.newCommunicationDraft();w.commsAddBlock('cta');const id=w.eval('_commsCurrent.blocks.at(-1).id');
+  w.commsActionCardSet(id,'url','https://example.com/first');
+  let finish;w.QRCode={toDataURL(url,options,callback){assert.equal(options.margin,4);finish=callback}};
+  const pending=w.commsActionCardQr(id);
+  w.commsActionCardSet(id,'url','https://example.com/second');finish(null,'data:image/png;base64,OLD');await pending;
+  assert.equal(w.eval('_commsCurrent.blocks.at(-1).qrImage'),'');
+  const current=w.commsActionCardQr(id);finish(null,'data:image/png;base64,NEW');await current;
+  assert.equal(w.eval('_commsCurrent.blocks.at(-1).qrImage'),'data:image/png;base64,NEW');
+  const gone=w.commsActionCardQr(id);w.eval('_commsCurrent.blocks.pop()');finish(null,'data:image/png;base64,GONE');await gone;
+  console.log('PASS: QR generation ignores stale URLs and deleted blocks');checks++;
+}
+qrChecks().then(()=>{console.log(checks+' management checks passed');w.close()}).catch(error=>{console.error(error);w.close();process.exitCode=1});
