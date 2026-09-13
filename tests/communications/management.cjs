@@ -190,7 +190,8 @@ test('centered notices retain custom CTA colors and written destinations',()=>{
   const d=w.createNoticeDraft({subject:'Aviso',noticeMessage:'Mensaje'});
   const box=w.document.createElement('div');box.innerHTML=w.memoPageHtml(d);
   assert.equal(box.querySelector('.notice-page').style.width,'215.9mm');
-  assert.equal(box.querySelector('.notice-page').style.height,'139.7mm');
+  assert.equal(box.querySelector('.notice-page').style.height,'auto');
+  assert.equal(box.querySelector('.notice-page').style.minHeight,'139.7mm');
   assert.ok(box.querySelector('.memo-footer .memo-logo'));
   assert.equal(box.querySelectorAll('.memo-logo').length,1);
   assert.equal(box.querySelector('.memo-masthead .memo-logo'),null);
@@ -213,7 +214,7 @@ test('half-letter notices prevent clipped exports and have independent controls'
   page.getBoundingClientRect=()=>({height:528,bottom:528});
   body.getBoundingClientRect=()=>({bottom:460});
   footer.getBoundingClientRect=()=>({top:430,bottom:490});
-  assert.throws(()=>w.noticeCheckOverflow(w.document),/media carta/);
+  assert.throws(()=>w.noticeCheckOverflow(w.document),/se superpone/);
   Object.defineProperty(page,'scrollHeight',{configurable:true,value:528});
   body.getBoundingClientRect=()=>({bottom:200});footer.getBoundingClientRect=()=>({top:400,bottom:490});
   assert.doesNotThrow(()=>w.noticeCheckOverflow(w.document));
@@ -237,6 +238,22 @@ test('notice metadata sits below the title and action cards trigger two columns'
   assert.ok(box.querySelector('.notice-actions .memo-cta'));
   assert.equal(box.querySelector('.notice-copy .memo-action-card'),null);
   d.blocks.forEach(b=>b.hidden=true);render();assert.equal(box.querySelector('.notice-layout').dataset.columns,'1');
+});
+test('notice height adapts and contact photos stack only in notices',()=>{
+  const contact={type:'contact',name:'Contacto',src:'data:image/png;base64,PHOTO',email:'equipo@example.com'};
+  const box=w.document.createElement('div');box.innerHTML=w.noticeBlockHtml(contact);
+  assert.equal(box.querySelector('.memo-contact').style.gridTemplateColumns,'minmax(0,1fr)');
+  assert.equal(box.querySelector('.memo-contact').firstElementChild.tagName,'IMG');
+  assert.equal(box.querySelector('img').style.width,'20mm');
+  box.innerHTML=w.memoBlockHtml(contact);
+  assert.notEqual(box.querySelector('.memo-contact').style.gridTemplateColumns,'minmax(0,1fr)');
+  const d=w.createNoticeDraft();box.innerHTML=w.memoPageHtml(d);
+  const page=box.querySelector('.notice-page');
+  page.getBoundingClientRect=()=>({height:528});
+  assert.equal(w.noticePageSize(box).height,139.7);
+  page.getBoundingClientRect=()=>({height:800});
+  assert.equal(w.noticePageSize(box).height,211.67);
+  assert.equal(w.noticePageSize(box).width,215.9);
 });
 test('memo countries are limited to SIERRA operations and may be omitted',()=>{
   assert.deepEqual(Array.from(w.eval('PRODUCT_COUNTRIES')),['Guatemala','Honduras','Nicaragua']);
