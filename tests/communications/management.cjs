@@ -168,6 +168,24 @@ test('notices have a dedicated editor, example, folio and shared image blocks',(
   w.commsSetKind('aviso');assert.ok(w.commsFiltered().every(x=>x.kind==='aviso'));
   w.commsSetKind('');w.newCommunicationDraft();
 });
+test('notice categories, custom icons and colors survive duplication and export',()=>{
+  w.newNoticeDraft();
+  for(const [key,type] of Object.entries(w.eval('NOTICE_TYPES'))){
+    w.noticeSetType(key);
+    const d=w.eval('_commsCurrent'),box=w.document.createElement('div');box.innerHTML=w.memoPageHtml(d);
+    assert.equal(d.primaryColor,type.color);assert.ok(box.querySelector('.notice-icon svg'));
+    assert.ok(box.querySelector('.notice-identity').textContent.includes(type.label));
+  }
+  w.commsSet('noticeIcon','phone');w.commsSet('primaryColor','#9e00cb');
+  w.commsSet('noticeHighlight','Horario actualizado');w.commsSet('noticeHighlightLabel','Reanudación');
+  w.commsAddBlock('contact');w.commsAddBlock('cta');
+  const d=w.eval('_commsCurrent');w.commsPersist();w.commsDuplicate(d.id);
+  const copy=w.eval('_commsCurrent');assert.equal(copy.noticeIcon,'phone');assert.equal(copy.primaryColor,'#9e00cb');
+  assert.equal(copy.noticeHighlightLabel,'Reanudación');assert.ok(copy.blocks.some(b=>b.type==='contact'));assert.ok(copy.blocks.some(b=>b.type==='cta'));
+  assert.equal(w.noticeIdentity({...copy,noticeIcon:'invalid',noticeType:'invalid'}).icon,'bell');
+  assert.ok(w.eval('Object.keys(SI_ICON).length')>150);
+  w.newCommunicationDraft();
+});
 test('memo countries are limited to SIERRA operations and may be omitted',()=>{
   assert.deepEqual(Array.from(w.eval('PRODUCT_COUNTRIES')),['Guatemala','Honduras','Nicaragua']);
   const d=w.createCommunicationDraft(),box=w.document.createElement('div');
