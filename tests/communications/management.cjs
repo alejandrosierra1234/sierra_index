@@ -153,7 +153,7 @@ test('editorial circulars preserve their kind, metadata, layouts and shared bloc
 test('notices have a dedicated editor, example, folio and shared image blocks',()=>{
   w.newNoticeDraft();assert.equal(w.eval('_commsCurrent.kind'),'aviso');
   assert.ok(w.document.getElementById('sec-title').textContent.includes('avisos'));
-  assert.equal(w.document.querySelector('[data-comms-tab="signature"]'),null);
+  assert.ok(w.document.querySelector('[data-comms-tab="signature"]'));
   w.noticeExample();const d=w.eval('_commsCurrent');
   assert.equal(d.company,'Honduras Spinning Mills');assert.ok(d.noticeMessage.includes('3:30'));
   assert.ok(d.noticeHighlight.includes('8:00'));assert.ok(w.memoFolio(d).startsWith('AVI-'));
@@ -238,6 +238,26 @@ test('notice metadata sits below the title and action cards trigger two columns'
   assert.ok(box.querySelector('.notice-actions .memo-cta'));
   assert.equal(box.querySelector('.notice-copy .memo-action-card'),null);
   d.blocks.forEach(b=>b.hidden=true);render();assert.equal(box.querySelector('.notice-layout').dataset.columns,'1');
+});
+test('notice headings respect columns, contacts use short labels and signatures remain editable',()=>{
+  w.newNoticeDraft();w.commsAddBlock('contact');
+  const d=w.eval('_commsCurrent'),b=d.blocks.at(-1);
+  Object.assign(b,{name:'Ana',email:'ana@example.com',showButton:true});
+  let box=w.document.createElement('div');box.innerHTML=w.memoPageHtml(d);
+  assert.equal(box.querySelector('.notice-label').textContent,'Notificación');
+  assert.ok(box.querySelector('.notice-heading').getAttribute('style').includes('calc((100% - 6mm) * .6)'));
+  assert.equal(box.querySelector('.memo-action-button').textContent.trim(),'Enviar correo');
+  b.hidden=true;box.innerHTML=w.memoPageHtml(d);
+  assert.equal(box.querySelector('.notice-heading').style.width,'100%');
+  w.eval("_commsEditorTab='signature'");w.renderCommunicationEditor();
+  assert.equal(w.document.querySelector('[data-news-tab="signature"]').hidden,false);
+  w.commsSetSigner('signerName','Ana');w.commsSetSigner('signature','data:image/png;base64,AA');
+  w.commsAddSigner();w.commsSetSigner('signerName','Luis');
+  box.innerHTML=w.memoPageHtml(d);assert.equal(box.querySelectorAll('.notice-signatures .memo-signature').length,2);
+  assert.ok(w.memoPrintDocumentHtml(d).includes('Firma de Ana'));
+  assert.equal(w.document.querySelector('[data-news-tab="signature"]').hidden,false);
+  w.commsPersist();assert.equal(w.commsNormalize(d).signerName,'Ana');
+  w.newCommunicationDraft();
 });
 test('notice height adapts and contact photos stack only in notices',()=>{
   const contact={type:'contact',name:'Contacto',src:'data:image/png;base64,PHOTO',email:'equipo@example.com'};
