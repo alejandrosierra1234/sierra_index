@@ -97,8 +97,13 @@ test('CTA colors preserve a white QR sticker and right-side image',()=>{
   Object.assign(b,{backgroundColor:'#007d73',textColor:'#ffffff'});box.innerHTML=w.memoActionCardHtml(b);
   assert.equal(box.firstElementChild.style.background,'rgb(0, 125, 115)');
   assert.equal(box.querySelector('h3').style.color,'rgb(255, 255, 255)');
-  assert.equal(box.firstElementChild.lastElementChild.className,'memo-action-image');
-  const sticker=box.querySelector('.memo-qr-sticker');assert.equal(sticker.style.background,'rgb(255, 255, 255)');assert.equal(sticker.style.padding,'3mm');assert.ok(sticker.querySelector('.memo-action-qr'));
+  assert.equal(box.firstElementChild.lastElementChild.className,'memo-action-media');
+  assert.equal(box.querySelector('.memo-action-image').style.height,'100%');
+  assert.equal(box.querySelector('.memo-action-image').style.objectFit,'cover');
+  const sticker=box.querySelector('.memo-qr-sticker');assert.equal(sticker.style.background,'rgb(255, 255, 255)');assert.equal(sticker.style.padding,'1.5mm');assert.ok(sticker.querySelector('.memo-action-qr'));
+  Object.assign(b,{showButton:true,buttonColor:'#ffc529'});box.innerHTML=w.memoActionCardHtml(b);
+  assert.equal(box.querySelector('.memo-action-button').style.background,'rgb(255, 197, 41)');
+  assert.equal(box.querySelector('.memo-action-button').style.color,'rgb(11, 11, 11)');
   b.src='';box.innerHTML=w.memoActionCardHtml(b);assert.equal(box.firstElementChild.style.gridTemplateColumns,'minmax(0,1fr)');
 });
 test('contact buttons default to email with a paper plane and editable text',()=>{
