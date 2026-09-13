@@ -29,7 +29,7 @@ test('all communication icon keys exist and destructive controls are labeled',()
   for(const [,name] of moduleSource.matchAll(/siIcon\('([^']+)'/g))assert.ok(w.siIcon(name),`Missing icon ${name}`);
   w.newCommunicationDraft();
   for(const type of ['image','table','orgchart','process','banner'])w.commsAddBlock(type);
-  assert.equal(w.document.querySelectorAll('.memo-insert-icon svg').length,12);
+  assert.equal(w.document.querySelectorAll('.memo-insert-icon svg').length,13);
   assert.ok(w.document.querySelector('[aria-label="Eliminar etapa"] svg'));
   assert.ok(w.document.querySelector('[aria-label="Eliminar persona"] svg'));
   for(const button of w.document.querySelectorAll('button'))if(button.querySelector('svg')&&!button.textContent.trim())assert.ok(button.getAttribute('aria-label')||button.title,'Icon button needs a name');
@@ -107,6 +107,17 @@ test('contact buttons default to email with a paper plane and editable text',()=
   const button=box.querySelector('.memo-action-button');assert.equal(button.getAttribute('href'),'mailto:ana%40example.com');assert.ok(button.querySelector('svg'));assert.equal(button.textContent,'Envíale un correo a Ana');
   b.buttonText='Escríbeme';box.innerHTML=w.memoActionCardHtml(b);assert.equal(box.querySelector('.memo-action-button').textContent,'Escríbeme');
   b.email='';box.innerHTML=w.memoActionCardHtml(b);assert.equal(box.querySelector('.memo-action-button').getAttribute('aria-disabled'),'true');
+});
+test('large icon blocks support rich text and optional buttons without spelling review',()=>{
+  w.newCommunicationDraft();w.commsAddBlock('feature');const b=w.eval('_commsCurrent.blocks.at(-1)');
+  Object.assign(b,{title:'Plataforma',richHtml:'<strong>SIERRA</strong> <u>Nexus</u>',showButton:true,url:'https://example.com'});
+  const box=w.document.createElement('div');box.innerHTML=w.memoBlockHtml(b);
+  assert.ok(box.querySelector('.memo-feature-icon svg'));assert.ok(box.querySelector('strong'));assert.ok(box.querySelector('u'));assert.ok(box.querySelector('.memo-feature-button[href]'));
+  assert.ok(!w.commsRichEditorHtml(b).includes('spellcheck="true"'));
+  assert.ok(!w.downloadCommunicationImage.toString().includes('commsReviewExport'));
+  assert.ok(!w.printCommunicationMemo.toString().includes('commsReviewExport'));
+  assert.ok(!w.commsExportPdf.toString().includes('window.open'));
+  assert.ok(!w.commsExportPdf.toString().includes('print('));
 });
 test('typing keeps the preview frame, focus and scale stable before paint',()=>{
   const raf=w.requestAnimationFrame;let pendingFrames=0;
