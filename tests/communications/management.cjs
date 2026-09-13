@@ -106,6 +106,13 @@ test('CTA colors preserve a white QR sticker and right-side image',()=>{
   assert.equal(box.querySelector('.memo-action-button').style.color,'rgb(11, 11, 11)');
   b.src='';box.innerHTML=w.memoActionCardHtml(b);assert.equal(box.firstElementChild.style.gridTemplateColumns,'minmax(0,1fr)');
 });
+test('CTA uses SIERRA palette triggers instead of native color inputs',()=>{
+  const box=w.document.createElement('div');box.innerHTML=w.commsActionCardEditor({id:'palette-test',type:'cta'},'');
+  assert.equal(box.querySelectorAll('input[type="color"]').length,0);
+  assert.equal(box.querySelectorAll('.invite-color-trigger').length,3);
+  assert.equal(box.querySelectorAll('.invite-color-dot').length,3);
+  for(const button of box.querySelectorAll('.invite-color-trigger'))assert.equal(button.getAttribute('aria-haspopup'),'dialog');
+});
 test('contact buttons default to email with a paper plane and editable text',()=>{
   const b={type:'contact',name:'Ana',email:'ana@example.com',showButton:true,buttonText:'Contactar'};
   const box=w.document.createElement('div');box.innerHTML=w.memoActionCardHtml(b);
