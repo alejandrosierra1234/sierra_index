@@ -192,9 +192,9 @@ test('centered notices retain custom CTA colors and written destinations',()=>{
   assert.equal(box.querySelector('.notice-page').style.width,'215.9mm');
   assert.equal(box.querySelector('.notice-page').style.height,'auto');
   assert.equal(box.querySelector('.notice-page').style.minHeight,'139.7mm');
-  assert.ok(box.querySelector('.memo-footer .memo-logo'));
+  assert.ok(box.querySelector('.notice-brand-row .memo-logo'));
   assert.equal(box.querySelectorAll('.memo-logo').length,1);
-  assert.equal(box.querySelector('.memo-masthead .memo-logo'),null);
+  assert.equal(box.querySelector('.memo-footer .memo-logo'),null);
   const b={type:'cta',title:'Confirma tu asistencia',showButton:true,url:'https://example.com',buttonText:'Confirmar',buttonColor:'#007d73',backgroundColor:'#cffffb'};
   box.innerHTML=w.noticeBlockHtml(b);
   assert.equal(box.querySelector('.memo-cta').style.textAlign,'center');
@@ -229,7 +229,8 @@ test('notice metadata sits below the title and action cards trigger two columns'
   render();assert.equal(box.querySelector('.notice-layout').dataset.columns,'1');
   assert.ok(box.querySelector('h1').nextElementSibling.classList.contains('notice-metadata'));
   assert.equal(box.querySelector('.notice-layout').style.paddingLeft,'0px');
-  assert.equal(box.querySelector('.notice-heading').firstElementChild.className,'notice-icon');
+  assert.equal(box.querySelector('.notice-brand-row').firstElementChild.className,'notice-icon');
+  assert.equal(box.querySelector('.notice-brand-row').style.justifyContent,'space-between');
   assert.ok(box.querySelector('.notice-metadata').textContent.includes(w.memoFolio(d)));
   assert.equal(box.querySelector('.memo-footer').textContent.includes('Honduras'),false);
   d.blocks=[{id:'contact',type:'contact',name:'Ana',email:'ana@example.com'},{id:'cta',type:'cta',title:'Registro',url:'https://example.com',showButton:true}];
