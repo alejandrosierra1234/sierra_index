@@ -331,6 +331,14 @@ test('circulars support principal and supporting columns separated by full-width
   d.blocks[1].hidden=true;box.innerHTML=w.newsPageHtml(d);assert.equal(box.querySelector('.news-column-group').dataset.columns,'1');
   assert.ok(w.memoPrintDocumentHtml(d).includes('news-column-group'));
 });
+test('circular portraits preserve individual crop, fit and zoom',()=>{
+  const p={uid:'p',name:'Ana',photo:'data:image/png;base64,AA',photoX:25,photoY:10,photoZoom:125,photoFit:'contain'},b={id:'people',type:'people',people:[p],columns:2};
+  const box=w.document.createElement('div');box.innerHTML=w.newsSpecialBlockHtml(b);const img=box.querySelector('img');
+  assert.equal(img.style.objectPosition,'25% 10%');assert.equal(img.style.objectFit,'contain');assert.equal(img.style.transform,'scale(1.25)');
+  assert.ok(w.newsBlockEditor(b).includes('Posición vertical'));assert.ok(w.newsBlockEditor(b).includes('Mostrar foto completa'));
+  const d=w.createNewsDraft({blocks:[b]});assert.ok(w.memoPrintDocumentHtml(d).includes('object-position:25% 10%'));
+  assert.ok(w.newsPortraitStyle({}).includes('object-position:50% 50%'));assert.ok(w.newsPortraitStyle({photoZoom:999}).includes('scale(2)'));
+});
 test('notice height adapts and contact photos stack only in notices',()=>{
   const contact={type:'contact',name:'Contacto',src:'data:image/png;base64,PHOTO',email:'equipo@example.com'};
   const box=w.document.createElement('div');box.innerHTML=w.noticeBlockHtml(contact);
