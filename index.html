@@ -8231,7 +8231,7 @@
       </div>
 
       <!-- Account group -->
-      <div class="prof-group-label">Account</div>
+      <div class="prof-group-label" id="prof-account-label">Account</div>
       <div class="prof-group">
         <div class="prof-row">
           <div class="prof-row-label">Name</div>
@@ -8256,7 +8256,7 @@
       </div>
 
       <!-- Security group -->
-      <div class="prof-group-label">Security</div>
+      <div class="prof-group-label" id="prof-security-label">Security</div>
       <div class="prof-group">
         <div class="prof-row">
           <div class="prof-row-label">New password</div>
@@ -26791,15 +26791,14 @@ function applyProfileLanguage() {
   const modal = document.getElementById('m-profile')
   if (!modal) return
   setText(modal.querySelector('.prof-av-hint'), tx('profile.photo'))
-  setText(modal.querySelector('.prof-group-label'), tx('profile.account'))
+  setText('#prof-account-label', tx('profile.account'))
   setText(modal.querySelector('.prof-row-label'), tx('profile.name'))
   setText('#prof-pref-label', tx('profile.preferences'))
   setText('#prof-lang-title', tx('profile.language'))
   setText('#prof-lang-note', tx('profile.languageNote'))
   setText('[data-prof-lang="en"]', tx('profile.english'))
   setText('[data-prof-lang="es"]', tx('profile.spanish'))
-  const labels = modal.querySelectorAll('.prof-group-label')
-  if (labels[2]) labels[2].textContent = tx('profile.security')
+  setText('#prof-security-label', tx('profile.security'))
   const rowLabels = modal.querySelectorAll('.prof-row-label')
   if (rowLabels[1]) rowLabels[1].textContent = tx('profile.newPassword')
   if (rowLabels[2]) rowLabels[2].textContent = tx('profile.confirm')
@@ -26837,7 +26836,7 @@ async function openProfile() {
   myGrants.filter(g=>!g.expires_at||Date.parse(g.expires_at)>Date.now()).forEach(g=>{const key=[g.domain,g.resource_id,g.expires_at].join('|');if(!groups.has(key))groups.set(key,{...g,caps:[]});groups.get(key).caps.push(labels[g.capability]||g.capability)});
   const rows=[...groups.values()].map(g=>'<div class="prof-row" style="display:block;overflow-wrap:anywhere"><strong>'+esc(domainLabel(g.domain))+'</strong><div>'+esc(g.caps.join(' · '))+'</div><small>'+esc(g.resource_id?'Recurso '+g.resource_id:'Toda el área')+' · '+esc(g.expires_at?'Hasta '+new Date(g.expires_at).toLocaleString('es'):'Sin vencimiento')+'</small></div>').join('');
   access.innerHTML='<div class="prof-group-label">Mi acceso</div>'+(can('admin','platform')?'<p>Administrador de Index: acceso completo a todas las áreas y gestión de cuentas.</p>':rows||'<p>Sin permisos de área asignados. Solicítalos al administrador de Index.</p>')+'<p style="font-size:0.8rem;color:var(--text-3)">También se aplica el acceso a tus propios registros y a las colecciones donde participas. Los permisos se verifican en el servidor.</p>';
-  document.querySelector('#m-profile .prof-signout').before(access);
+  document.querySelector('#m-profile .prof-hero').after(access);
   const name = profile?.full_name || me?.email?.split('@')[0] || ''
   const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || '–'
   const roleLabel = authRoleLabel()

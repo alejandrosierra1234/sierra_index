@@ -1,0 +1,25 @@
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
+const {JSDOM}=require('../communications/node_modules/jsdom');
+const source=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');
+const html=source.slice(source.indexOf('<div class="overlay" id="m-profile">'),source.indexOf('<!-- Help & Support'));
+const dom=new JSDOM(html,{url:'https://test.local',runScripts:'outside-only'}),w=dom.window;
+w.me={id:'test',email:'test@example.test'};w.profile={full_name:'Test User',account_status:'active'};
+w.myGrants=[{domain:'fabric',capability:'read'},{domain:'fabric',capability:'write'},{domain:'talento_humano',capability:'read',resource_id:'company-one',expires_at:'2099-01-01T00:00:00Z'}];
+w.loadGrants=async()=>true;w.can=()=>false;w.esc=String;w.domainLabel=String;w.authRoleLabel=()=> 'Editor';w.avatarStyle=()=>'';w.roleTagHtml=()=>'';w.appLang='es';
+w.tx=key=>key;w.setText=(target,text)=>{const e=typeof target==='string'?w.document.querySelector(target):target;if(e)e.textContent=text};
+w.chooseProfileLanguage=()=>w.applyProfileLanguage();
+const ctx=dom.getInternalVMContext();
+vm.runInContext(source.slice(source.indexOf('function applyProfileLanguage()'),source.indexOf('function chooseProfileLanguage(')),ctx);
+vm.runInContext(source.slice(source.indexOf('async function openProfile()'),source.indexOf('function previewAvatar(')),ctx);
+(async()=>{
+ await w.openProfile();
+ const access=w.document.getElementById('profile-access');
+ assert.equal(w.document.querySelector('.prof-hero').nextElementSibling,access);
+ assert.match(access.textContent,/Mi acceso/);assert.match(access.textContent,/Consultar · Editar/);
+ assert.match(access.textContent,/company-one/);assert.ok(access.textContent.includes(new Date(w.myGrants[2].expires_at).toLocaleString('es')));
+ w.applyProfileLanguage();assert.match(access.textContent,/Mi acceso/);
+ assert.equal(w.document.getElementById('prof-security-label').textContent,'profile.security');
+ w.can=()=>true;await w.openProfile();assert.match(w.document.getElementById('profile-access').textContent,/acceso completo/);
+ assert.equal(w.document.querySelectorAll('#profile-access').length,1);
+ console.log('PASS: visible access summary groups actions, shows scope/expiry, explains admin access and survives language changes');w.close();
+})().catch(error=>{console.error(error);w.close();process.exitCode=1});
