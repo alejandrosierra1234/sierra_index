@@ -35531,7 +35531,10 @@ function commsSetKind(kind){_commsKind=kind;_commsFilters.type='';renderCommunic
 function commsMondayExisting(itemId){return _commsDrafts.find(d=>d.source==='monday'&&String(d.mondayItemId||'')===String(itemId))}
 async function commsMondayInvoke(body){
   if(!can('read','communications'))throw Error('Necesitas acceso a Comunicaciones.')
-  const {data,error}=await sb.functions.invoke('monday-communications',{body})
+  const {data:{session},error:sessionError}=await sb.auth.getSession()
+  if(sessionError)throw Error('No se pudo verificar tu sesión de SIERRA Index.')
+  if(!session?.access_token)throw Error('Tu sesión de SIERRA Index expiró. Vuelve a iniciar sesión para leer las solicitudes de Monday.')
+  const {data,error}=await sb.functions.invoke('monday-communications',{body,headers:{Authorization:`Bearer ${session.access_token}`}})
   if(error)throw Error(data?.error||error.message||'No se pudo consultar Monday.')
   if(data?.error)throw Error(data.error)
   return data
