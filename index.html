@@ -26406,12 +26406,13 @@ async function showUserManagement() {
 
   const [profRes, grantRes] = await Promise.all([
     sb.from('profiles')
-      .select('id,full_name,email,role,account_status,created_at')
+      .select('id,full_name,email,role,account_status,access_deleted_at,created_at')
       .order('created_at', { ascending: true }),
     sb.from('capability_grants').select('id,user_id,domain,capability,resource_id,expires_at'),
   ])
   if (profRes.error) { pg.innerHTML = emptyStateHtml({ title: 'No se pudo cargar', desc: profRes.error.message }); return }
   const data = profRes.data
+  _teamAccounts = data
   if (!data.length) { pg.innerHTML = emptyStateHtml({ title: 'Sin usuarios todavía' }); return }
   // grants table may not be migrated yet — render legacy-only view in that case
   _teamGrants = grantRes.error ? null : (grantRes.data || []).filter(g => !g.expires_at || Date.parse(g.expires_at)>Date.now())
@@ -26449,17 +26450,20 @@ async function showUserManagement() {
           </div>
         </div>
         <div class="team-row-access">
-          <div style="margin-bottom:0.35rem">${accountStatusChip(u.account_status)}</div>
+          <div style="margin-bottom:0.35rem">${u.access_deleted_at ? '<span class="team-chip">Cuenta eliminada · historial conservado</span>' : accountStatusChip(u.account_status)}</div>
           ${_teamGrants === null
             ? `<span class="team-migration-note">${tx('team.needsMigration')}</span>`
             : `<div class="team-chips" id="grants-${u.id}">${renderGrantChips(u.id, canManagePlatform && !isSelf)}</div>
-               ${canManagePlatform && !isSelf ? `<div class="team-add-access">
+               ${canManagePlatform && !isSelf && !u.access_deleted_at ? `<div class="team-add-access">
                  ${pdSelect(`gd-${u.id}`, domainOpts, domainOpts[0]?.value || '', '', 'teamAccessDomainChanged', '')}
                  ${pdSelect(`gl-${u.id}`, levelOpts, 'viewer', '', '', '')}
                  <button class="btn btn-secondary btn-sm" onclick="addGrant('${u.id}')">${tx('team.addAccess')}</button>
                </div>` : ''}`}
         </div>
-        <div class="team-row-role"><span class="team-row-role-note">Acceso definido por permisos</span></div>
+        <div class="team-row-role">${canManagePlatform && !isSelf && !u.access_deleted_at ? `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+          ${u.account_status==='active' ? `<button class="btn btn-secondary btn-sm" onclick="openTeamAccountAction('${u.id}','resend')" title="Reenviar invitación o enlace para restablecer contraseña">${siIcon('mail',16)} Reenviar acceso</button>` : ''}
+          <button class="icon-btn" onclick="openTeamAccountAction('${u.id}','delete')" title="Eliminar cuenta" aria-label="Eliminar cuenta de ${esc(id.name)}">${siIcon('trash',16)}</button>
+        </div>` : '<span class="team-row-role-note">Acceso definido por permisos</span>'}</div>
       </div>`
     }).join('')}
   </div>`
@@ -26469,6 +26473,55 @@ async function showUserManagement() {
 /* Grants management (Team screen). Levels expand to capability bundles —
    bundles exist only in this UI; enforcement always checks single capabilities. */
 let _teamGrants = null
+let _teamAccounts = []
+let _teamAction = null
+async function openTeamAccountAction(uid, action) {
+  if(_teamAction?.saving)return;
+  if(!await loadGrants() || !can('admin','platform') || uid===me?.id)return;
+  const account=_teamAccounts.find(u=>u.id===uid);
+  if(!account || account.access_deleted_at || !['resend','delete'].includes(action))return;
+  document.getElementById('team-account-dialog')?.remove();
+  const dialog=document.createElement('dialog');dialog.id='team-account-dialog';dialog.className='modal';
+  dialog.style.cssText='width:440px;max-width:calc(100vw - 32px);border:1px solid var(--border);padding:0;color:var(--text);background:var(--bg)';
+  dialog.setAttribute('aria-labelledby','team-action-title');
+  const deleting=action==='delete';
+  dialog.innerHTML=`<form id="team-action-form"><div class="modal-hdr"><div class="modal-title" id="team-action-title">${deleting?'Eliminar cuenta':'Reenviar acceso'}</div><button type="button" class="icon-btn" data-close aria-label="Cerrar">${siIcon('x',16)}</button></div>
+    <div class="modal-body"><p><strong>${esc(account.full_name||account.email)}</strong><br>${esc(account.email)}</p>
+    <p>${deleting?'Se eliminará su acceso de forma irreversible. Los registros y la autoría se conservarán; no se borrarán documentos. Las cuentas administradoras o propietarias de comunicados compartidos están protegidas.':'Si aún no aceptó, recibirá otra invitación. Si ya aceptó, recibirá un enlace para restablecer su contraseña. Sus permisos no cambiarán.'}</p>
+    ${deleting?'<div class="fg"><label for="team-confirm-email">Escribe el correo de la cuenta para confirmar</label><input id="team-confirm-email" class="control-input" type="email" autocomplete="off" required></div>':''}
+    <p id="team-action-error" role="alert" hidden></p></div>
+    <div class="modal-ftr"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button type="submit" class="btn btn-primary" id="team-action-submit">${deleting?'Eliminar cuenta':'Enviar enlace'}</button></div></form>`;
+  const state={uid,action,account:me.id,saving:false,dialog};_teamAction=state;
+  dialog.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{if(!state.saving)dialog.close()});
+  dialog.oncancel=e=>{if(state.saving)e.preventDefault()};
+  dialog.onclose=()=>{dialog.remove();if(_teamAction===state)_teamAction=null};
+  dialog.querySelector('form').onsubmit=e=>{e.preventDefault();submitTeamAccountAction()};
+  document.body.appendChild(dialog);dialog.showModal();
+}
+async function submitTeamAccountAction() {
+  const state=_teamAction;if(!state || state.saving)return;
+  const {dialog}=state,form=dialog.querySelector('form'),errorBox=dialog.querySelector('[role="alert"]');
+  if(!form.reportValidity())return;
+  state.saving=true;errorBox.hidden=true;
+  dialog.querySelectorAll('button').forEach(b=>b.disabled=true);
+  try {
+    if(!await loadGrants() || me?.id!==state.account || !can('admin','platform'))throw Error('No tienes permiso para gestionar cuentas.');
+    const {data,error}=await sb.functions.invoke('create-index-account',{body:{action:state.action,user_id:state.uid,confirm_email:dialog.querySelector('input')?.value.trim()}});
+    if(me?.id!==state.account || _teamAction!==state)return;
+    if(error || !data?.ok){
+      let detail=data?.error;
+      if(!detail && error?.context?.json){try{detail=(await error.context.json()).error}catch{}}
+      throw Error(detail||'No se confirmó la operación. Comprueba el estado antes de volver a intentarlo.');
+    }
+    dialog.close();
+    toast(data.kind==='deleted'?'Cuenta eliminada. Se conservó su historial.':data.kind==='recovery'?'Enlace para restablecer contraseña enviado.':'Invitación reenviada.');
+    await showUserManagement();
+  } catch(error) {
+    if(me?.id===state.account && _teamAction===state){errorBox.hidden=false;errorBox.textContent=error.message;}
+  } finally {
+    state.saving=false;dialog.querySelectorAll('button').forEach(b=>b.disabled=false);
+  }
+}
 function teamAccessDomainChanged(domain, id) {
   const uid=id.slice(3),host=document.getElementById('gl-'+uid+'-dd');
   if(!host)return;

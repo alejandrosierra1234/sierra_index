@@ -364,3 +364,20 @@ The callback validates the email session with Supabase before showing a password
 form, checks account identity again before updating, clears credentials from the
 address bar, and never changes permissions. Passwords and callback tokens are not
 logged. Already consumed links require a new recovery email from the login screen.
+# Account Actions
+
+`update44.sql` and the `create-index-account` Edge Function support explicit
+resend and removal actions from Team. Only a verified active platform admin may
+act on another account. The server resolves the recipient from Auth and profiles;
+unconfirmed accounts receive an invitation, confirmed accounts receive password
+recovery, both pointing to `auth.html`. Neither action assigns permissions.
+
+Removal requires the exact account email. The database rejects self-removal,
+accounts with a current platform admin grant, and owners of cloud communications.
+It disables the profile and revokes grants before the Edge Function irreversibly
+soft-deletes Auth credentials. Historical profiles, authorship and records remain.
+Existing JWTs are denied by the active-account checks. An Auth failure leaves the
+account disabled and allows retry; it never restores access automatically.
+This is account access removal, not erasure of personal data or document transfer.
+
+Regression checks: `node tests/security/account-actions.cjs`.
