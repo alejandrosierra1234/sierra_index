@@ -4,7 +4,7 @@ type ColumnMap = Record<string, string | string[]>
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-user-authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
@@ -75,7 +75,7 @@ async function mondayRequest(token: string, query: string, variables: Record<str
 }
 
 async function authorizeCaller(req: Request, env: Record<string, string>) {
-  const authorization = req.headers.get('Authorization') || ''
+  const authorization = req.headers.get('x-user-authorization') || req.headers.get('Authorization') || ''
   if (!authorization.startsWith('Bearer ')) return { error: json({ error: 'Inicia sesión para continuar.' }, 401) }
   const caller = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authorization } },
