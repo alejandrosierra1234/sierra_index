@@ -60,6 +60,18 @@ function mondayHeaders(token: string) {
   return { Authorization: token, 'Content-Type': 'application/json', 'API-Version': '2025-04' }
 }
 
+function supabaseClientKey() {
+  const publishableKeys = Deno.env.get('SUPABASE_PUBLISHABLE_KEYS') || ''
+  try {
+    const parsed = JSON.parse(publishableKeys)
+    const first = Object.values(parsed).find(value => typeof value === 'string')
+    if (first) return String(first)
+  } catch {
+    // Older projects only expose the legacy anon key.
+  }
+  return Deno.env.get('SUPABASE_ANON_KEY') || ''
+}
+
 async function mondayRequest(token: string, query: string, variables: Record<string, unknown>) {
   const response = await fetch('https://api.monday.com/v2', {
     method: 'POST',
@@ -100,7 +112,7 @@ Deno.serve(async req => {
   try {
     const env = {
       SUPABASE_URL: Deno.env.get('SUPABASE_URL')!,
-      SUPABASE_ANON_KEY: Deno.env.get('SUPABASE_ANON_KEY')!,
+      SUPABASE_ANON_KEY: supabaseClientKey(),
       MONDAY_API_TOKEN: Deno.env.get('MONDAY_API_TOKEN') || '',
       MONDAY_COMMUNICATIONS_BOARD_ID: Deno.env.get('MONDAY_COMMUNICATIONS_BOARD_ID') || '',
       MONDAY_COMMUNICATIONS_GROUP_ID: Deno.env.get('MONDAY_COMMUNICATIONS_GROUP_ID') || '',
