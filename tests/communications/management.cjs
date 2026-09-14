@@ -135,20 +135,25 @@ test('editorial circulars preserve their kind, metadata, layouts and shared bloc
   const box=w.document.createElement('div');box.innerHTML=w.memoPageHtml(d);assert.ok(box.querySelector('.news-page'));assert.ok(!box.textContent.includes('Memorándum'));assert.ok(box.textContent.includes('SIERRA Chemicals'));assert.ok(box.textContent.includes('Guatemala'));assert.ok(box.textContent.includes('Ana'));assert.ok(box.textContent.includes('Carlos'));assert.ok(w.memoFolio(d).startsWith('CIR-'));
   assert.ok(box.querySelector('.news-masthead'));assert.ok(box.querySelector('.news-section-label'));assert.ok(box.querySelector('.news-title h1'));assert.equal(box.querySelector('.news-lead h1'),null);assert.ok(box.querySelector('.news-quote'));assert.ok(!box.querySelector('.sierra-department'));
   d.author='María';d.authorPhoto='data:image/png;base64,AUTHOR';
+  d.newsPlant='Planta Norte';d.newsDepartment='Finanzas';d.eyebrow='Tema anterior';
   for(const layout of ['image-top','image-right','text']){
     d.newsLayout=layout;box.innerHTML=w.memoPageHtml(d);
     assert.ok(box.querySelector('.news-lead > .news-intro'));
     assert.equal(box.querySelector('.memo-body > .news-intro'),null);
     assert.ok(box.querySelector('.news-author img'));
-    assert.ok(box.querySelector('.news-section-label').textContent.startsWith('Circular informativa'));
+    assert.equal(box.querySelector('.news-section-label.memo-doc-type').textContent,'Circular informativa');
+    assert.equal(box.querySelector('.news-scope').textContent,'Guatemala · Planta Norte · Finanzas');
+    assert.ok(!box.textContent.includes('Tema anterior'));
     const lead=box.querySelector('.news-lead');
-    assert.equal(lead.firstElementChild.tagName,layout==='image-top'?'FIGURE':'DIV');
+    assert.equal(lead.firstElementChild.tagName,'DIV');
+    if(layout!=='text')assert.ok(lead.innerHTML.indexOf('news-author')<lead.innerHTML.indexOf('<figure'));
     assert.equal(!!lead.querySelector('figure'),layout!=='text');
   }
   assert.equal(box.querySelector('.news-masthead').style.borderBottom,'');assert.equal(box.querySelector('.news-quote').style.background,'transparent');d.newsLayout='image-right';
   quote.hidden=true;box.innerHTML=w.memoPageHtml(d,true);assert.ok(!box.textContent.includes('El esfuerzo es compartido'));
   w.commsPersist();const id=d.id;w.commsDuplicate(id);const copy=w.eval('_commsCurrent');assert.equal(copy.kind,'circular');assert.equal(copy.company,d.company);assert.equal(copy.heroImage,d.heroImage);assert.equal(copy.newsLayout,'image-right');assert.notEqual(copy.id,id);
   assert.equal(copy.authorPhoto,d.authorPhoto);
+  assert.equal(copy.newsPlant,'Planta Norte');assert.equal(copy.newsDepartment,'Finanzas');
   copy.department='Clasificacion interna';copy.authorPhoto='';
   for(const preview of [false,true]){
     box.innerHTML=w.memoPageHtml(copy,preview);
