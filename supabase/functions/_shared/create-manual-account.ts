@@ -23,7 +23,10 @@ export function createManualAccountHandler(createClient: any, env: Record<string
       const admin=createClient(env.SUPABASE_URL,env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
       const {data:ready,error:setupError}=await admin.from('index_security_migrations').select('version').eq('version',42).maybeSingle();
       if(setupError || !ready)return json({error:'Falta aplicar update42.sql en Index antes de crear cuentas manuales.'},503);
-      const {data,error}=await admin.auth.admin.inviteUserByEmail(email,{data:{full_name,role:'user'}});
+      const {data,error}=await admin.auth.admin.inviteUserByEmail(email,{
+        redirectTo:'https://alejandrosierra1234.github.io/sierra_index/auth.html',
+        data:{full_name,role:'user'}
+      });
       if(error)return json({error:error.message},400);
       if(!data?.user?.id)return json({error:'No se confirmó la creación. Revisa la lista antes de reenviar.'},502);
       return json({user:{id:data.user.id,email:data.user.email}});

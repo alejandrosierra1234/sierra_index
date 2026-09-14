@@ -7,6 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Sierra Index</title>
+  <script src="js/auth-redirect.js?v=20260914-1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3/dist/JsBarcode.all.min.js"></script>
@@ -8324,7 +8325,7 @@
 <script>
 const SB_URL = 'https://vhyddogeemohtqijohry.supabase.co'
 const SB_KEY = 'sb_publishable_9g8UJRbV3NxOlmQgPxjDqg_Xw6hFB0f'
-const sb = supabase.createClient(SB_URL, SB_KEY)
+const sb = supabase.createClient(SB_URL, SB_KEY, {auth:{detectSessionInUrl:!window.INDEX_AUTH_REDIRECT}})
 
 // Used by the Spotlight ⌘K/Ctrl K shortcut (below) and to render a
 // platform-appropriate hint next to the search controls
@@ -9270,6 +9271,7 @@ async function enterMondayBadgeApp() {
 
 // (the Label Builder registers its own resize handler alongside lbFitPreview)
 window.addEventListener('DOMContentLoaded', async () => {
+  if(window.INDEX_AUTH_REDIRECT)return;
   const params = new URLSearchParams(window.location.search)
   if (params.get('monday') === '1') {
     try { await enterMondayBadgeApp() }
@@ -26746,7 +26748,7 @@ async function showForgotPassword() {
   const email = document.getElementById('l-email').value.trim()
   if (!email) { showErr('Enter your email first, then click Forgot password.'); return }
   const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.href
+    redirectTo: 'https://alejandrosierra1234.github.io/sierra_index/auth.html'
   })
   if (error) { showErr('Error: ' + error.message); return }
   const e = document.getElementById('auth-err')

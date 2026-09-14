@@ -22,7 +22,7 @@ new Function('module','exports',transformSync(handlerSource,{loader:'ts',format:
  assert.equal((await send({...account,role:'admin'})).status,400);
  assert.equal((await send({...account,employee_id:'person'})).status,400);
  ready=false;assert.equal((await send(account)).status,503);assert.equal(invites.length,0);ready=true;
- assert.equal((await send(account)).status,200);assert.equal(invites[0].email,'new@example.test');assert.deepEqual(invites[0].options,{data:{full_name:'New User',role:'user'}});
+ assert.equal((await send(account)).status,200);assert.equal(invites[0].email,'new@example.test');assert.deepEqual(invites[0].options,{redirectTo:'https://alejandrosierra1234.github.io/sierra_index/auth.html',data:{full_name:'New User',role:'user'}});
 
  const dom=new JSDOM('<div id="m-create-user"><div id="cu-eyebrow"></div><div id="cu-title"></div><div id="cu-modal-body"></div><div class="modal-ftr"></div></div>',{url:'https://test.local',runScripts:'outside-only'}),w=dom.window;
  w.me={id:'admin'};w.loadGrants=async()=>true;w.can=()=>true;w.tx=(key)=>key;w.toast=()=>{};w.Audit={log:()=>{}};w.closeModal=()=>{};w.showUserManagement=async()=>{};

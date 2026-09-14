@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Activar cuenta | SIERRA Index</title>
+  <style>
+    @font-face{font-family:Replica;src:url('Replica Regular.otf') format('opentype');font-display:swap}
+    *{box-sizing:border-box}body{margin:0;background:#fff;color:#0b0b0b;font:16px Replica,Arial,sans-serif;letter-spacing:0}
+    main{width:min(100% - 40px,440px);margin:64px auto}img{width:164px;height:56px;object-fit:contain;object-position:left}
+    h1{font-size:28px;font-weight:600;line-height:1.2;margin:40px 0 16px}p{line-height:1.5;color:#565656;overflow-wrap:anywhere}
+    label{display:block;font-size:14px;margin:24px 0 8px}input{width:100%;font:inherit;border:1px solid #c9c9c9;border-radius:6px;padding:12px;background:#fff;color:#0b0b0b}
+    button{width:100%;font:inherit;font-weight:600;padding:13px;border:0;border-radius:6px;background:#007d73;color:#fff;margin:28px 0 12px;cursor:pointer}
+    button:disabled{opacity:.5;cursor:wait}input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid #16cdbe;outline-offset:3px}
+    a{color:#007d73;text-underline-offset:3px}#status[data-error]{color:#bd2525}#status:empty{display:none}[hidden]{display:none!important}
+    @media(max-width:520px){main{margin-top:32px}}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="js/auth-callback.js?v=20260914-1" defer></script>
+</head>
+<body>
+  <main>
+    <img src="SIERRA_Primary_Blue02.svg" alt="SIERRA">
+    <h1 id="title">Activar cuenta</h1>
+    <p id="status" role="status" aria-live="polite">Verificando invitación...</p>
+    <form id="password-form" hidden>
+      <p id="account"></p>
+      <label for="password">Nueva contraseña</label>
+      <input id="password" type="password" autocomplete="new-password" minlength="8" required aria-describedby="password-help">
+      <p id="password-help">Mínimo 8 caracteres.</p>
+      <label for="confirm">Confirmar contraseña</label>
+      <input id="confirm" type="password" autocomplete="new-password" minlength="8" required>
+      <button id="submit" type="submit">Guardar contraseña y entrar</button>
+    </form>
+    <p><a href="./">Volver a Index</a></p>
+  </main>
+</body>
+</html>

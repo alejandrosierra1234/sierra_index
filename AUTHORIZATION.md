@@ -353,3 +353,14 @@ RPCs require both module access and document membership. Read-only module access
 document owners/editors at viewer. Revocation, suspension and expiry deny server reads
 and writes. The editor gates routes, local storage, saving, creation and export; local
 drafts already stored on a device are not erased and are not remotely revocable copies.
+# Invitation And Recovery Redirects
+
+Supabase Site URL must be `https://alejandrosierra1234.github.io/sierra_index/`.
+Allow exactly `https://alejandrosierra1234.github.io/sierra_index/auth.html` as an
+additional redirect. Both manual-account endpoints send this fixed callback; no
+request-supplied redirect is accepted. Recovery emails use the same callback.
+The root forwards legacy invitation/recovery fragments before SDK initialization.
+The callback validates the email session with Supabase before showing a password
+form, checks account identity again before updating, clears credentials from the
+address bar, and never changes permissions. Passwords and callback tokens are not
+logged. Already consumed links require a new recovery email from the login screen.
