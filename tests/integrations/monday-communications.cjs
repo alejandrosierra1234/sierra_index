@@ -17,6 +17,8 @@ w.esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll
 w.escAttr=w.esc;w.jsStr=v=>String(v??'').replaceAll("'","\\'");
 w.clearSecCrumbs=w.setSecCrumbs=()=>{};w.toastMessage='';w.toast=message=>{w.toastMessage=message};
 w.can=(cap,domain)=>domain==='communications'&&(cap==='read'||cap==='write');
+w.SB_URL='https://example.supabase.co';
+w.SB_KEY='publishable-key';
 w.sb={auth:{getSession:async()=>({data:{session:{access_token:'test-token'}},error:null})}};
 w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'))};
 w.eval=code=>vm.runInContext(code,dom.getInternalVMContext());
@@ -27,17 +29,19 @@ const start=source.indexOf('const COMMS_STORE_KEY='),end=source.indexOf('\n',sou
 w.eval('const LBL_LOGO_SVG="";\n'+source.slice(start,end));
 
 let claims=0;
-w.sb.functions={invoke:async(name,{body,headers})=>{
-  assert.equal(name,'monday-communications');
+w.fetch=async(url,{body,headers})=>{
+  assert.equal(url,'https://example.supabase.co/functions/v1/monday-communications');
   assert.equal(headers.Authorization,'Bearer test-token');
-  if(body.action==='claim'){claims++;assert.equal(body.item_id,'123');return{data:{ok:true},error:null}}
-  return{data:{ok:true,requests:[{
+  assert.equal(headers.apikey,'publishable-key');
+  body=JSON.parse(body);
+  if(body.action==='claim'){claims++;assert.equal(body.item_id,'123');return{ok:true,json:async()=>({ok:true})}}
+  return{ok:true,json:async()=>({ok:true,requests:[{
     id:'123',name:'Lanzamiento SIERRA Nexus',kind:'circular',status:'Nueva',requester:'Marketing',
     email:'marketing@example.test',country:'Guatemala',company:'SIERRA',plant:'Hilos y Algodón',
     department:'Marketing',audience:'Todos',summary:'Bajada enviada desde el formulario',
     details:'Texto largo enviado por el solicitante',deadline:'2026-09-30',url:'https://monday.test/items/123'
-  }]},error:null}
-}};
+  }]})}
+};
 
 (async()=>{
   w.renderCommunicationsHome();
