@@ -1,6 +1,7 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),{JSDOM}=require('jsdom');
 const source=fs.readFileSync(require('node:path').join(__dirname,'../../index.html'),'utf8');
 const dom=new JSDOM('<div id="memo-image-export-status"></div><button data-memo-image-format="png"></button><button data-memo-image-format="jpg"></button>',{url:'https://example.com/sierra_index/',runScripts:'outside-only'}),w=dom.window;
+w.me={id:'test-user'};
 w.esc=w.escAttr=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');w.siIcon=()=>'';w.requestAnimationFrame=()=>{};
 w.eval(source.match(/const PRODUCT_COUNTRIES = \[[^\n]+/)[0]);
 const start=source.indexOf('const COMMS_STORE_KEY='),end=source.indexOf('\n',source.indexOf('function printCommunicationMemo()',start));

@@ -8692,35 +8692,42 @@ function hasWarehouseAccess(division) {
   return AUTH_WAREHOUSES.some(d => can('read', d) || can('dispatch', d)) || can('read', 'warehouse') || can('dispatch', 'warehouse')
 }
 
+let accessVerifiedAt=0,accessRefreshPending=false;
 async function loadGrants() {
-  myGrants = []
-  if (!me) return
-  try {
-    const { data, error } = await sb.from('capability_grants')
-      .select('domain,capability,resource_id,expires_at')
-      .eq('user_id', me.id)
-    if (!error && Array.isArray(data)) {
-      myGrants = data.filter(g => !g.expires_at || new Date(g.expires_at) > new Date())
+  myGrants=[];accessVerifiedAt=0;
+  if(!me)return false;
+  const userId=me.id;
+  try{
+    const {data,error}=await sb.rpc('get_my_access');
+    if(me?.id!==userId||error||data?.version!==2||data.active!==true)return false;
+    myGrants=Array.isArray(data.grants)?data.grants:[];
+    accessVerifiedAt=Date.now();return true;
+  }catch{return false}
+}
+function can(capability,domain,resourceId=null){
+  if(!me||profile?.account_status!=='active'||!accessVerifiedAt||Date.now()-accessVerifiedAt>60000)return false;
+  return myGrants.some(g=>(!g.expires_at||Date.parse(g.expires_at)>Date.now())&&(
+    (g.domain==='platform'&&g.capability==='admin'&&!g.resource_id)||
+    (g.domain===domain&&g.capability===capability&&(!g.resource_id||g.resource_id===resourceId))));
+}
+async function refreshAccess(){
+  if(!me||accessRefreshPending||document.visibilityState==='hidden')return;
+  accessRefreshPending=true;
+  const previous=JSON.stringify(myGrants);
+  try{
+    if(!await loadGrants()){await logout();showErr('No se pudo verificar el acceso. Inicia sesión nuevamente.');return}
+    if(previous!==JSON.stringify(myGrants)){
+      document.getElementById('app').style.display='none';
+      sessionStorage.removeItem('sierra_route');
+      window.location.reload();return;
     }
-  } catch (_) { /* grants table not migrated yet — legacy fallback applies */ }
+    renderSidebarTree();
+  }finally{accessRefreshPending=false}
 }
+window.addEventListener('focus',refreshAccess);
+document.addEventListener('visibilitychange',refreshAccess);
+setInterval(refreshAccess,45000);
 
-function can(capability, domain, resourceId = null) {
-  if (myGrants.some(g =>
-    g.domain === domain && g.capability === capability &&
-    (!g.resource_id || g.resource_id === resourceId)
-  )) return true
-  // Legacy role fallback — keep in sync with authorize() in samples_schema.sql
-  const role = profile?.role
-  if (role === 'admin') return true
-  if (role === 'editor')
-    return domain !== 'platform' && ['read','write','delete','publish','manage_status'].includes(capability)
-  if (role === 'dispatcher')
-    return (domain === 'warehouse' && ['read','dispatch'].includes(capability))
-        || (domain === 'customer_service' && ['read','manage_status'].includes(capability))
-        || (capability === 'read' && AUTH_DIVISIONS.includes(domain))
-  return false
-}
 
 // Division-aware helpers: pass a specific division when the context knows it
 // (product detail/editor); 'all'/null means "any division".
@@ -9362,7 +9369,11 @@ async function enterApp(user) {
   if (p?.ui_language === 'es' || p?.ui_language === 'en') appLang = p.ui_language
   localStorage.setItem('sierra-lang', appLang)
   applyLanguage({ render:false })
-  await loadGrants()
+  if(p?.account_status!=='active'||!await loadGrants()){
+    await logout();hideLoadingScreen();
+    showErr('Acceso no disponible. La cuenta debe estar activa y sus permisos verificados por el servidor.');
+    return;
+  }
   const name = p?.full_name || user.email.split('@')[0]
   const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
   const roleLabel = authRoleLabel()
@@ -9444,11 +9455,22 @@ async function enterApp(user) {
 }
 
 async function logout() {
+  myGrants=[];accessVerifiedAt=0;
+  clearTimeout(_commsSaveTimer);_commsCurrent=null;_commsDrafts=[];
+  _commsAssetIds.clear();_commsAssetValues.clear();
+  const assetDb=_commsAssetDb;_commsAssetDb=null;
+  if(assetDb)assetDb.then(db=>db.close()).catch(()=>{});
+  _commsUnavailableAssets.clear();_commsStorageBlocked=false;
+  _insCache=null;_insExport={title:'insights',rows:[]};sampleCart=[];
+  allProducts=[];selected=null;sessionStorage.removeItem('sierra_route');
+  document.getElementById('pg').replaceChildren();
   await sb.auth.signOut()
   me = null; profile = null
   document.getElementById('auth-screen').style.display = 'flex'
   document.getElementById('app').style.display = 'none'
   document.getElementById('l-pass').value = ''
+  document.getElementById('l-btn').disabled=false;
+  document.getElementById('l-btn').textContent='Sign in';
 }
 
 function showErr(m) {
@@ -26419,6 +26441,7 @@ function accountStatusChip(status) {
 }
 
 async function showUserManagement() {
+  if(!can('read','platform')&&!can('admin','platform')){toast('No tienes acceso a Equipo y permisos.');return}
   _navLeaf = 'administracion|_|team'
   syncModule('administracion')
   document.getElementById('div-toolbar').style.display = 'none'
@@ -26452,7 +26475,7 @@ async function showUserManagement() {
   const data = profRes.data
   if (!data.length) { pg.innerHTML = emptyStateHtml({ title: 'Sin usuarios todavía' }); return }
   // grants table may not be migrated yet — render legacy-only view in that case
-  _teamGrants = grantRes.error ? null : (grantRes.data || []).filter(g => !g.resource_id)
+  _teamGrants = grantRes.error ? null : (grantRes.data || []).filter(g => !g.expires_at || Date.parse(g.expires_at)>Date.now())
   _teamReview = reviewRes.error ? [] : (reviewRes.data || [])
 
   const domainOpts = AUTH_DOMAINS.map(d => ({ value: d, label: domainLabel(d) }))
@@ -26492,18 +26515,14 @@ async function showUserManagement() {
           <div style="margin-bottom:0.35rem">${accountStatusChip(u.account_status)}</div>
           ${_teamGrants === null
             ? `<span class="team-migration-note">${tx('team.needsMigration')}</span>`
-            : `<div class="team-chips" id="grants-${u.id}">${renderGrantChips(u.id, canManagePlatform)}</div>
-               ${canManagePlatform ? `<div class="team-add-access">
+            : `<div class="team-chips" id="grants-${u.id}">${renderGrantChips(u.id, canManagePlatform && !isSelf)}</div>
+               ${canManagePlatform && !isSelf ? `<div class="team-add-access">
                  ${pdSelect(`gd-${u.id}`, domainOpts, domainOpts[0]?.value || '', '', '', '')}
                  ${pdSelect(`gl-${u.id}`, levelOpts, 'viewer', '', '', '')}
                  <button class="btn btn-secondary btn-sm" onclick="addGrant('${u.id}')">${tx('team.addAccess')}</button>
                </div>` : ''}`}
         </div>
-        <div class="team-row-role">
-          ${u.account_type === 'system_admin' || isSelf || !canManagePlatform
-            ? `<div class="team-row-role-static">${esc(roleLabel(u.role))}</div><div class="team-row-role-note">${tx('team.role')}</div>`
-            : pdSelect(`role-${u.id}`, roleOpts, u.role || 'user', '', 'teamRoleChanged')}
-        </div>
+        <div class="team-row-role"><span class="team-row-role-note">Acceso definido por permisos</span></div>
       </div>`
     }).join('')}
   </div>`
@@ -26589,29 +26608,27 @@ function grantLevelOf(caps) {
 }
 function renderGrantChips(uid, canManage = true) {
   const byDomain = {}
-  _teamGrants.filter(g => g.user_id === uid).forEach(g => {
+  _teamGrants.filter(g => g.user_id === uid && !g.resource_id).forEach(g => {
     (byDomain[g.domain] = byDomain[g.domain] || []).push(g.capability)
   })
   const domains = Object.keys(byDomain)
-  if (!domains.length) return `<span class="team-migration-note">${tx('team.noGrants')}</span>`
+  const scoped=_teamGrants.filter(g=>g.user_id===uid&&g.resource_id).map(g=>`<span class="team-chip" title="${esc(g.expires_at||'Sin vencimiento')}">${esc(domainLabel(g.domain))} · ${esc(g.capability)} · Recurso ${esc(g.resource_id)}</span>`).join('');
+  if (!domains.length && !scoped) return `<span class="team-migration-note">${tx('team.noGrants')}</span>`
   return domains.map(d => {
     const lvl = d === 'platform' && byDomain[d].includes('admin') ? tx('team.level.admin') : grantLevelOf(byDomain[d])
     return `<span class="team-chip" title="${esc(byDomain[d].join(', '))}">
       ${esc(domainLabel(d))} · ${esc(lvl)}
       ${canManage ? `<button class="team-chip-revoke" onclick="revokeDomainGrants('${uid}','${d}')" title="${esc(tx('team.revoke'))}">×</button>` : ''}
     </span>`
-  }).join('')
+  }).join('')+scoped
 }
 async function addGrant(uid) {
   const domain = document.getElementById('gd-' + uid).value
   const level = document.getElementById('gl-' + uid).value
-  const rows = bundleCaps(domain, level).map(capability => ({
-    user_id: uid, domain, capability, granted_by: me.id,
-  }))
-  const { error } = await sb.from('capability_grants').upsert(rows, { onConflict: 'user_id,domain,capability,resource_id', ignoreDuplicates: true })
+  if(!can('admin','platform')||uid===me.id){toast('Otro administrador debe gestionar tu acceso.');return}
+  const { error } = await sb.rpc('set_index_access',{p_user:uid,p_domain:domain,p_caps:bundleCaps(domain,level)})
   if (error) {
-    // upsert onConflict can't target the expression index — fall back to inserts
-    for (const r of rows) await sb.from('capability_grants').insert(r)
+    toast('No se modificaron los permisos: '+error.message);return
   }
   Audit.log('user', uid, null, 'permissions_updated', `Granted ${domain.replace('_',' ')} ${level}`,
     [{ field: domain, from: '', to: level }])
@@ -26619,7 +26636,7 @@ async function addGrant(uid) {
   showUserManagement()
 }
 async function revokeDomainGrants(uid, domain) {
-  const { error } = await sb.from('capability_grants').delete().eq('user_id', uid).eq('domain', domain).is('resource_id', null)
+  const { error } = await sb.rpc('set_index_access',{p_user:uid,p_domain:domain,p_caps:[]})
   if (error) { toast(tx('team.toast.revokeFailed', { msg: error.message })); return }
   Audit.log('user', uid, null, 'permissions_updated', `Revoked ${domain.replace('_',' ')} access`,
     [{ field: domain, from: 'granted', to: 'revoked' }])
@@ -26704,7 +26721,7 @@ function cuRender() {
   footer.innerHTML = `
     <button class="btn btn-secondary btn-sm" onclick="cuBack()">${tx('team.modal.back')}</button>
     <button class="btn btn-primary btn-sm" id="cu-submit-btn" onclick="submitCreateUser()">${tx('team.modal.submit')}</button>`
-  const roleOpts = ['user', 'dispatcher', 'editor', 'admin'].map(r => ({ value: r, label: roleLabel(r) }))
+  const roleOpts = [{value:'user',label:'Sin permisos iniciales'}]
   const emp = _cu.employee
   const preview = emp ? `<div class="team-row" style="padding:0.5rem 0">
       <div class="team-row-id">
@@ -26764,14 +26781,7 @@ async function teamRoleChanged(role, id) {
   await setUserRole(userId, role)
 }
 async function setUserRole(userId, role) {
-  const { error } = await sb.from('profiles').update({ role }).eq('id', userId)
-  if (error) {
-    toast(tx('team.toast.roleFailed', { msg: error.message }))
-    showUserManagement()
-    return
-  }
-  Audit.log('user', userId, null, 'role_changed', `Legacy role changed to ${role}`,
-    [{ field: 'role', from: '', to: role }])
+  toast('Los accesos se administran por área y acciones. El rol anterior ya no concede permisos.');
 }
 
 /* ── PROFILE ── */
@@ -26818,7 +26828,16 @@ function chooseProfileLanguage(lang, opts = {}) {
   applyProfileLanguage()
 }
 
-function openProfile() {
+async function openProfile() {
+  if(!await loadGrants()){await logout();showErr('No se pudo verificar tu acceso.');return}
+  document.getElementById('profile-access')?.remove();
+  const access=document.createElement('section');access.id='profile-access';access.className='prof-group';
+  const labels={read:'Consultar',write:'Editar',delete:'Eliminar',publish:'Publicar',dispatch:'Despachar',manage_status:'Cambiar estados',grant:'Gestión reservada al administrador',admin:'Administrar plataforma'};
+  const groups=new Map();
+  myGrants.filter(g=>!g.expires_at||Date.parse(g.expires_at)>Date.now()).forEach(g=>{const key=[g.domain,g.resource_id,g.expires_at].join('|');if(!groups.has(key))groups.set(key,{...g,caps:[]});groups.get(key).caps.push(labels[g.capability]||g.capability)});
+  const rows=[...groups.values()].map(g=>'<div class="prof-row" style="display:block;overflow-wrap:anywhere"><strong>'+esc(domainLabel(g.domain))+'</strong><div>'+esc(g.caps.join(' · '))+'</div><small>'+esc(g.resource_id?'Recurso '+g.resource_id:'Toda el área')+' · '+esc(g.expires_at?'Hasta '+new Date(g.expires_at).toLocaleString('es'):'Sin vencimiento')+'</small></div>').join('');
+  access.innerHTML='<div class="prof-group-label">Mi acceso</div>'+(can('admin','platform')?'<p>Administrador de Index: acceso completo a todas las áreas y gestión de cuentas.</p>':rows||'<p>Sin permisos de área asignados. Solicítalos al administrador de Index.</p>')+'<p style="font-size:0.8rem;color:var(--text-3)">También se aplica el acceso a tus propios registros y a las colecciones donde participas. Los permisos se verifican en el servidor.</p>';
+  document.querySelector('#m-profile .prof-signout').before(access);
   const name = profile?.full_name || me?.email?.split('@')[0] || ''
   const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || '–'
   const roleLabel = authRoleLabel()
@@ -34714,6 +34733,7 @@ async function loadPendingSamples() {
 })()
 /* ── Communications: structured, Monday-ready memo studio ─────────── */
 const COMMS_STORE_KEY='sierra_communications_v1'
+function commsStorageKey(base){if(typeof me==='undefined'||!me?.id)throw Error('Inicia sesión para acceder a tus documentos');return base+':'+me.id}
 let _commsDrafts=[],_commsCurrent=null,_commsQuery='',_commsSaveTimer=null,_memoPreviewZoom='width',_memoPreviewScale=1
 function commsDateLabel(v){if(!v)return'';try{return new Intl.DateTimeFormat('es-HN',{weekday:'long',year:'numeric',month:'long',day:'numeric',timeZone:'UTC'}).format(new Date(v+'T12:00:00Z')).replace(/^./,c=>c.toUpperCase())}catch{return v}}
 function createCommunicationDraft(seed={}){const now=new Date().toISOString(),date=seed.date||now.slice(0,10);return{kind:seed.kind||'memo',id:seed.id||('memo-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)),source:seed.source||'manual',mondayItemId:seed.mondayItemId||null,status:seed.status||'Borrador',confidential:!!seed.confidential,country:seed.country||'',communicationNumber:seed.communicationNumber||commsNextNumber(date.slice(0,4)),audience:seed.audience||'Colaboradores SIERRA',sender:seed.sender??'Comunicaciones Corporativas',date,subject:seed.subject||'Nuevo comunicado',salutation:seed.salutation||'Estimados, buen día.',closing:seed.closing||'Saludos cordiales,',blocks:Array.isArray(seed.blocks)&&seed.blocks.length?seed.blocks:[{id:'b-'+Date.now(),type:'text',style:'regular',content:'Escribe aquí el contenido principal del memorándum.'}],signerName:seed.signerName||'',signerTitle:seed.signerTitle||'',signerDepartment:seed.signerDepartment||'',signature:seed.signature||'',additionalSigners:JSON.parse(JSON.stringify(seed.additionalSigners||[])),createdAt:seed.createdAt||now,updatedAt:now}}
@@ -35606,22 +35626,67 @@ const commsNormalizeLegacy=commsNormalize
 commsNormalize=function(d){d=commsNormalizeLegacy(d);if(d.kind==='convocatoria')invitationCards(d);return d}
 // Keep large image payloads in IndexedDB; small memo records retain durable asset references.
 const _commsAssetIds=new Map(),_commsAssetValues=new Map(),_commsUnavailableAssets=new Set();let _commsAssetDb=null,_commsStorageBlocked=false;
-function commsAssetDatabase(){if(_commsAssetDb)return _commsAssetDb;_commsAssetDb=new Promise((resolve,reject)=>{const request=indexedDB.open('sierra_communication_assets',1);request.onupgradeneeded=()=>request.result.createObjectStore('images');request.onsuccess=()=>{const db=request.result;db.onversionchange=()=>{db.close();_commsAssetDb=null};resolve(db)};request.onerror=()=>reject(request.error);request.onblocked=()=>reject(Error('La base de imágenes está ocupada.'))}).catch(error=>{_commsAssetDb=null;throw error});return _commsAssetDb}
-async function commsAssetStore(value){if(_commsAssetIds.has(value))return _commsAssetIds.get(value);const bytes=new TextEncoder().encode(value),hash=await crypto.subtle.digest('SHA-256',bytes),key='sierra-memo-asset:'+Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join(''),db=await commsAssetDatabase();await new Promise((resolve,reject)=>{const tx=db.transaction('images','readwrite');tx.objectStore('images').put(value,key);tx.oncomplete=resolve;tx.onerror=tx.onabort=()=>reject(tx.error||Error('No se pudo guardar la imagen.'))});_commsAssetIds.set(value,key);_commsAssetValues.set(key,value);return key}
-async function commsAssetRead(key){if(_commsAssetValues.has(key))return _commsAssetValues.get(key);const db=await commsAssetDatabase(),value=await new Promise((resolve,reject)=>{const tx=db.transaction('images','readonly'),request=tx.objectStore('images').get(key);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});if(typeof value!=='string'||!value.startsWith('data:image/'))throw Error('Falta una imagen guardada.');_commsAssetValues.set(key,value);_commsAssetIds.set(value,key);return value}
+function commsAssetDatabase(){if(_commsAssetDb)return _commsAssetDb;_commsAssetDb=new Promise((resolve,reject)=>{const request=indexedDB.open(commsStorageKey('sierra_communication_assets'),1);request.onupgradeneeded=()=>request.result.createObjectStore('images');request.onsuccess=()=>{const db=request.result;db.onversionchange=()=>{db.close();_commsAssetDb=null};resolve(db)};request.onerror=()=>reject(request.error);request.onblocked=()=>reject(Error('La base de imágenes está ocupada.'))}).catch(error=>{_commsAssetDb=null;throw error});return _commsAssetDb}
+async function commsAssetStore(value){const owner=commsStorageKey('assets');if(_commsAssetIds.has(value))return _commsAssetIds.get(value);const bytes=new TextEncoder().encode(value),hash=await crypto.subtle.digest('SHA-256',bytes),key='sierra-memo-asset:'+Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');if(owner!==commsStorageKey('assets'))throw Error('La sesión cambió.');const db=await commsAssetDatabase();if(owner!==commsStorageKey('assets'))throw Error('La sesión cambió.');await new Promise((resolve,reject)=>{const tx=db.transaction('images','readwrite');tx.objectStore('images').put(value,key);tx.oncomplete=resolve;tx.onerror=tx.onabort=()=>reject(tx.error||Error('No se pudo guardar la imagen.'))});if(owner!==commsStorageKey('assets'))throw Error('La sesión cambió.');_commsAssetIds.set(value,key);_commsAssetValues.set(key,value);return key}
+async function commsAssetRead(key){const owner=commsStorageKey('assets');if(_commsAssetValues.has(key))return _commsAssetValues.get(key);const db=await commsAssetDatabase(),value=await new Promise((resolve,reject)=>{const tx=db.transaction('images','readonly'),request=tx.objectStore('images').get(key);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});if(owner!==commsStorageKey('assets'))throw Error('La sesión cambió.');if(typeof value!=='string'||!value.startsWith('data:image/'))throw Error('Falta una imagen guardada.');_commsAssetValues.set(key,value);_commsAssetIds.set(value,key);return value}
 function commsStorageJson(value){return JSON.stringify(value,(_,v)=>typeof v==='string'&&_commsAssetIds.has(v)?_commsAssetIds.get(v):v)}
 function commsStorageParse(text){return JSON.parse(text,(_,v)=>typeof v==='string'&&v.startsWith('sierra-memo-asset:')?_commsAssetValues.get(v)||v:v)}
-async function commsPrepareStorage(){const keys=[COMMS_STORE_KEY,'sierra_memo_signatures_v1'],originals=keys.map(key=>localStorage.getItem(key)),values=originals.map(text=>JSON.parse(text||'[]')),images=new Set();const collect=value=>{if(typeof value==='string'&&(value.startsWith('data:image/')||value.startsWith('sierra-memo-asset:')))images.add(value);else if(value&&typeof value==='object')Object.values(value).forEach(collect)};values.forEach(collect);if(_commsCurrent)collect(_commsCurrent);_commsUnavailableAssets.clear();for(const image of images){try{if(image.startsWith('sierra-memo-asset:'))await commsAssetRead(image);else await commsAssetStore(image)}catch{_commsUnavailableAssets.add(image)}}// Never replace a record changed by another tab during migration.
+function commsLegacyAvailable(){return typeof can==='function'&&can('admin','platform')&&!localStorage.getItem('sierra_comms_legacy_owner_v1')&&[COMMS_STORE_KEY,'sierra_memo_signatures_v1'].some(k=>localStorage.getItem(k))}
+function commsRenderLegacyRecovery(){
+  if(!commsLegacyAvailable())return;
+  const action=document.createElement('button');action.className='btn btn-secondary';action.type='button';
+  action.textContent='Asignar documentos anteriores a mi cuenta';action.onclick=commsClaimLegacyStorage;
+  document.querySelector('.comms-header-actions')?.append(action);
+}
+async function commsClaimLegacyStorage(){
+  if(!commsLegacyAvailable())return;
+  if(!confirm('¿Todos los comunicados y firmas anteriores de este navegador pertenecen a tu cuenta? Se conservarán sus imágenes y folios.'))return;
+  const owner=me.id,keys=[COMMS_STORE_KEY,'sierra_memo_signatures_v1','sierra_comms_numbers_v1'];
+  const originals=keys.map(k=>localStorage.getItem(k)),destinations=keys.map(commsStorageKey),before=destinations.map(k=>localStorage.getItem(k));
+  let legacyDb;
+  try{
+    const records=JSON.parse(originals[0]||'[]'),signatures=JSON.parse(originals[1]||'[]'),counters=JSON.parse(originals[2]||'{}');
+    if(!Array.isArray(records)||!Array.isArray(signatures)||!counters||typeof counters!=='object'||Array.isArray(counters))throw Error('Formato de documentos no válido.');
+    const images=new Set(),replacements=new Map();
+    const collect=v=>{if(typeof v==='string'&&(v.startsWith('data:image/')||v.startsWith('sierra-memo-asset:')))images.add(v);else if(v&&typeof v==='object')Object.values(v).forEach(collect)};
+    collect(records);collect(signatures);
+    if([...images].some(v=>v.startsWith('sierra-memo-asset:')))legacyDb=await new Promise((resolve,reject)=>{const request=indexedDB.open('sierra_communication_assets',1);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);request.onblocked=()=>reject(Error('Cierra las otras pestañas de Index e inténtalo nuevamente.'))});
+    for(const image of images){
+      if(me?.id!==owner)throw Error('La sesión cambió.');
+      const data=image.startsWith('data:image/')?image:await new Promise((resolve,reject)=>{const request=legacyDb.transaction('images','readonly').objectStore('images').get(image);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});
+      if(typeof data!=='string'||!data.startsWith('data:image/'))throw Error('Falta una imagen original. No se retiraron los documentos anteriores.');
+      replacements.set(image,await commsAssetStore(data));
+    }
+    if(me?.id!==owner||!can('admin','platform'))throw Error('El acceso cambió.');
+    if(keys.some((k,i)=>localStorage.getItem(k)!==originals[i])||destinations.some((k,i)=>localStorage.getItem(k)!==before[i]))throw Error('Los documentos cambiaron en otra pestaña. Inténtalo nuevamente.');
+    const merge=(old,current)=>[...new Map([...old,...current].map(item=>[item.id,item])).values()];
+    const mergedCounters=JSON.parse(before[2]||'{}');
+    for(const [year,n] of Object.entries(counters))mergedCounters[year]=Math.max(Number(mergedCounters[year])||0,Number(n)||0);
+    const values=[merge(records,JSON.parse(before[0]||'[]')),merge(signatures,JSON.parse(before[1]||'[]')),mergedCounters];
+    const encoded=values.map(v=>JSON.stringify(v,(_,value)=>replacements.get(value)||value));
+    try{
+      destinations.forEach((key,i)=>localStorage.setItem(key,encoded[i]));
+      if(destinations.some((key,i)=>localStorage.getItem(key)!==encoded[i]))throw Error('No se pudo verificar el guardado.');
+      localStorage.setItem('sierra_comms_legacy_owner_v1',owner);
+    }catch(error){destinations.forEach((key,i)=>{if(before[i]===null)localStorage.removeItem(key);else localStorage.setItem(key,before[i])});throw error}
+    keys.forEach(key=>localStorage.removeItem(key));
+    legacyDb?.close();legacyDb=null;
+    indexedDB.deleteDatabase('sierra_communication_assets');
+    await commsPrepareStorage();commsLoad();renderCommunicationsHome();
+    toast('Documentos, firmas e imágenes asignados a tu cuenta.');
+  }catch(error){toast('No se completó la asignación: '+error.message)}finally{legacyDb?.close()}
+}
+async function commsPrepareStorage(){const keys=[commsStorageKey(COMMS_STORE_KEY),commsStorageKey('sierra_memo_signatures_v1')],originals=keys.map(key=>localStorage.getItem(key)),values=originals.map(text=>JSON.parse(text||'[]')),images=new Set();const collect=value=>{if(typeof value==='string'&&(value.startsWith('data:image/')||value.startsWith('sierra-memo-asset:')))images.add(value);else if(value&&typeof value==='object')Object.values(value).forEach(collect)};values.forEach(collect);if(_commsCurrent)collect(_commsCurrent);_commsUnavailableAssets.clear();for(const image of images){try{if(image.startsWith('sierra-memo-asset:'))await commsAssetRead(image);else await commsAssetStore(image)}catch{_commsUnavailableAssets.add(image)}}// Never replace a record changed by another tab during migration.
  keys.forEach((key,i)=>{if(originals[i]&&localStorage.getItem(key)===originals[i]){const encoded=commsStorageJson(values[i]);if(encoded!==originals[i])localStorage.setItem(key,encoded)}});_commsStorageBlocked=false}
 function commsSaveFailure(){_commsLastSave='Cambios sin guardar. Mantén esta pestaña abierta.';const state=document.getElementById('memo-save-state');if(state)state.textContent=_commsLastSave;if(!document.getElementById('memo-save-recovery')){toast(_commsLastSave);if(state){const actions=document.createElement('div');actions.id='memo-save-recovery';actions.className='memo-signature-actions';actions.setAttribute('role','alert');actions.innerHTML='<button type="button" class="btn btn-secondary" onclick="commsRetrySave()">Reintentar guardado</button><button type="button" class="btn btn-secondary" onclick="commsBackupDraft()">Descargar respaldo</button>';state.parentElement.append(actions)}}}
 function commsBackupDraft(){if(!_commsCurrent)return;const blob=new Blob([JSON.stringify({format:'sierra-communication-backup',version:1,draft:_commsCurrent},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='respaldo-'+memoFolio(_commsCurrent)+'.json';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
 async function commsRetrySave(){try{await commsPrepareStorage();commsPersist()}catch{commsSaveFailure()}}
-function commsLoad(){try{const raw=commsStorageParse(localStorage.getItem(COMMS_STORE_KEY)||'[]');_commsDrafts=Array.isArray(raw)?raw.filter(d=>d&&typeof d.id==='string').map(commsNormalize):[]}catch{_commsDrafts=[];toast('No se pudieron leer los comunicados guardados.')}}
-function commsWriteAll(drafts){try{if(_commsStorageBlocked)throw Error('Almacenamiento no disponible');localStorage.setItem(COMMS_STORE_KEY,commsStorageJson(drafts));_commsDrafts=drafts;_commsLastSave='Guardado en este navegador';document.getElementById('memo-save-recovery')?.remove();return true}catch{commsSaveFailure();return false}}
+function commsLoad(){try{const raw=commsStorageParse(localStorage.getItem(commsStorageKey(COMMS_STORE_KEY))||'[]');_commsDrafts=Array.isArray(raw)?raw.filter(d=>d&&typeof d.id==='string').map(commsNormalize):[]}catch{_commsDrafts=[];toast('No se pudieron leer los comunicados guardados.')}}
+function commsWriteAll(drafts){try{if(_commsStorageBlocked)throw Error('Almacenamiento no disponible');localStorage.setItem(commsStorageKey(COMMS_STORE_KEY),commsStorageJson(drafts));_commsDrafts=drafts;_commsLastSave='Guardado en este navegador';document.getElementById('memo-save-recovery')?.remove();return true}catch{commsSaveFailure();return false}}
 function commsPersist(){clearTimeout(_commsSaveTimer);if(!_commsCurrent)return true;const d=JSON.parse(JSON.stringify(_commsCurrent));d.updatedAt=new Date().toISOString();const next=_commsDrafts.filter(x=>x.id!==d.id);next.unshift(d);const ok=commsWriteAll(next);if(ok)_commsCurrent=d;const state=document.getElementById('memo-save-state');if(state)state.textContent=_commsLastSave;return ok}
 function commsAutosave(){clearTimeout(_commsSaveTimer);_commsLastSave='Guardando…';const e=document.getElementById('memo-save-state');if(e)e.textContent=_commsLastSave;_commsSaveTimer=setTimeout(commsPersist,450)}
-function commsNextNumber(year){const key='sierra_comms_numbers_v1';let counters;try{counters=JSON.parse(localStorage.getItem(key)||'{}');if(!counters||typeof counters!=='object')counters={};const n=Math.max(Number(counters[year])||0,..._commsDrafts.filter(d=>(d.date||'').startsWith(String(year))).map(d=>Number(d.communicationNumber)||0))+1;counters[year]=n;localStorage.setItem(key,JSON.stringify(counters));return n}catch{throw new Error('No se pudo reservar un folio. Libera espacio en el navegador e inténtalo de nuevo.')}}
-function commsRecordHighWater(){try{const key='sierra_comms_numbers_v1',counters=JSON.parse(localStorage.getItem(key)||'{}');_commsDrafts.forEach(d=>{const y=(d.date||'').slice(0,4);if(y)counters[y]=Math.max(Number(counters[y])||0,Number(d.communicationNumber)||0)});localStorage.setItem(key,JSON.stringify(counters));return true}catch{toast('No se pudo proteger el consecutivo. Inténtalo de nuevo.');return false}}
+function commsNextNumber(year){const key=commsStorageKey('sierra_comms_numbers_v1');let counters;try{counters=JSON.parse(localStorage.getItem(key)||'{}');if(!counters||typeof counters!=='object')counters={};const n=Math.max(Number(counters[year])||0,..._commsDrafts.filter(d=>(d.date||'').startsWith(String(year))).map(d=>Number(d.communicationNumber)||0))+1;counters[year]=n;localStorage.setItem(key,JSON.stringify(counters));return n}catch{throw new Error('No se pudo reservar un folio. Libera espacio en el navegador e inténtalo de nuevo.')}}
+function commsRecordHighWater(){try{const key=commsStorageKey('sierra_comms_numbers_v1'),counters=JSON.parse(localStorage.getItem(key)||'{}');_commsDrafts.forEach(d=>{const y=(d.date||'').slice(0,4);if(y)counters[y]=Math.max(Number(counters[y])||0,Number(d.communicationNumber)||0)});localStorage.setItem(key,JSON.stringify(counters));return true}catch{toast('No se pudo proteger el consecutivo. Inténtalo de nuevo.');return false}}
 function commsSelect(label,options,value,callback,compact=false){const id='comms-select-'+(++_commsSelectSeq);_commsSelects.set(id,callback);const opts=options.map(o=>typeof o==='string'?{value:o,label:o}:o);return pdSelect(id,opts,value,label,'commsSelectChanged',compact?'comms-compact-select':'').replace('aria-haspopup="listbox"',`aria-label="${escAttr(label)}" aria-haspopup="listbox"`)}
 function commsSelectChanged(value,id){_commsSelects.get(id)?.(value);const dd=document.getElementById(id+'-dd');dd?.querySelectorAll('[role="option"]').forEach(el=>el.setAttribute('aria-selected',String(el.classList.contains('is-active'))));dd?.querySelector('.pd-select-btn')?.focus()}
 function commsPrepareRender(){document.getElementById('pg')?.setAttribute('spellcheck','false');commsCloseMenu(false);_commsSelects.clear()}
@@ -35651,7 +35716,7 @@ commsLibraryStyle.textContent=`
 document.head.appendChild(commsLibraryStyle);
 let _commsKind='';
 function commsSetKind(kind){_commsKind=kind;_commsFilters.type='';renderCommunicationsHome()}
-function renderCommunicationsHome(){commsPrepareRender();clearSecCrumbs();const pg=document.getElementById('pg');pg.style.display='block';pg.innerHTML=`<div class="comms-home comms-ui"><div class="comms-toolbar"><div class="comms-kind-tabs" role="group" aria-label="Clase de documento">${[['','Todos','file'],['memo','Memos','file'],['convocatoria','Convocatorias','calendar'],['circular','Circulares','text-size'],['aviso','Avisos','bell']].map(([kind,label,icon])=>`<button type="button" class="comms-kind-tab" data-kind="${kind}" aria-pressed="${_commsKind===kind}" onclick="commsSetKind('${kind}')">${siIcon(icon,18)}<span>${label}</span><span class="comms-kind-count">${_commsDrafts.filter(d=>d.lifecycle===_commsView&&(!kind||(d.kind||'memo')===kind)).length}</span></button>`).join('')}</div><div class="comms-header-actions"><button class="btn btn-secondary" onclick="newNoticeDraft()">${siIcon('file',15)} Nuevo aviso</button><button class="btn btn-secondary" onclick="newNewsDraft()">${siIcon('text-size',15)} Nueva circular</button><button class="btn btn-secondary" onclick="newInvitationDraft()">${siIcon('calendar',15)} Nueva convocatoria</button><button class="btn btn-primary" onclick="newCommunicationDraft()">${siIcon('file',15)} Nuevo memo</button></div></div><div class="pd-tabs comms-lifecycle-tabs" role="group" aria-label="Ubicación de los comunicados">${[['active','Activos'],['archived','Archivados'],['trashed','Papelera']].map(([key,label])=>`<button class="pd-tab ${_commsView===key?'active':''}" aria-pressed="${_commsView===key}" onclick="_commsView='${key}';renderCommunicationsHome()">${siIcon({active:'file',archived:'archive',trashed:'trash'}[key],16)} ${label} <span>${_commsDrafts.filter(d=>d.lifecycle===key).length}</span></button>`).join('')}</div><div class="comms-filterbar"><input class="control-input comms-search" aria-label="Buscar comunicados" placeholder="Buscar por folio, asunto o remitente…" value="${escAttr(_commsQuery)}" oninput="_commsQuery=this.value;renderCommunicationsResults()">${commsSelect('Clasificación',[{value:'',label:'Todas las clasificaciones'},...COMMS_TYPES,{value:'__none',label:'Sin clasificar'}],_commsFilters.type,v=>commsSetFilter('type',v))}${commsSelect('Departamento',[{value:'',label:'Todos los departamentos'},...commsDepartments(),{value:'__none',label:'Sin departamento'}],_commsFilters.department,v=>commsSetFilter('department',v))}${commsSelect('Estado',[{value:'',label:'Todos los estados'},'Borrador','En revisión','Aprobado'],_commsFilters.status,v=>commsSetFilter('status',v))}${commsSelect('Orden',[{value:'updated',label:'Última modificación'},{value:'date',label:'Fecha del comunicado'},{value:'folio',label:'Folio'}],_commsFilters.sort,v=>commsSetFilter('sort',v))}<button class="btn btn-ghost" onclick="_commsQuery='';_commsKind='';_commsFilters={type:'',department:'',status:'',sort:'updated'};renderCommunicationsHome()">${siIcon('x',16)} Limpiar filtros</button></div><div id="comms-results" aria-live="polite"></div></div>`;renderCommunicationsResults()}
+function renderCommunicationsHome(){commsPrepareRender();clearSecCrumbs();const pg=document.getElementById('pg');pg.style.display='block';pg.innerHTML=`<div class="comms-home comms-ui"><div class="comms-toolbar"><div class="comms-kind-tabs" role="group" aria-label="Clase de documento">${[['','Todos','file'],['memo','Memos','file'],['convocatoria','Convocatorias','calendar'],['circular','Circulares','text-size'],['aviso','Avisos','bell']].map(([kind,label,icon])=>`<button type="button" class="comms-kind-tab" data-kind="${kind}" aria-pressed="${_commsKind===kind}" onclick="commsSetKind('${kind}')">${siIcon(icon,18)}<span>${label}</span><span class="comms-kind-count">${_commsDrafts.filter(d=>d.lifecycle===_commsView&&(!kind||(d.kind||'memo')===kind)).length}</span></button>`).join('')}</div><div class="comms-header-actions"><button class="btn btn-secondary" onclick="newNoticeDraft()">${siIcon('file',15)} Nuevo aviso</button><button class="btn btn-secondary" onclick="newNewsDraft()">${siIcon('text-size',15)} Nueva circular</button><button class="btn btn-secondary" onclick="newInvitationDraft()">${siIcon('calendar',15)} Nueva convocatoria</button><button class="btn btn-primary" onclick="newCommunicationDraft()">${siIcon('file',15)} Nuevo memo</button></div></div><div class="pd-tabs comms-lifecycle-tabs" role="group" aria-label="Ubicación de los comunicados">${[['active','Activos'],['archived','Archivados'],['trashed','Papelera']].map(([key,label])=>`<button class="pd-tab ${_commsView===key?'active':''}" aria-pressed="${_commsView===key}" onclick="_commsView='${key}';renderCommunicationsHome()">${siIcon({active:'file',archived:'archive',trashed:'trash'}[key],16)} ${label} <span>${_commsDrafts.filter(d=>d.lifecycle===key).length}</span></button>`).join('')}</div><div class="comms-filterbar"><input class="control-input comms-search" aria-label="Buscar comunicados" placeholder="Buscar por folio, asunto o remitente…" value="${escAttr(_commsQuery)}" oninput="_commsQuery=this.value;renderCommunicationsResults()">${commsSelect('Clasificación',[{value:'',label:'Todas las clasificaciones'},...COMMS_TYPES,{value:'__none',label:'Sin clasificar'}],_commsFilters.type,v=>commsSetFilter('type',v))}${commsSelect('Departamento',[{value:'',label:'Todos los departamentos'},...commsDepartments(),{value:'__none',label:'Sin departamento'}],_commsFilters.department,v=>commsSetFilter('department',v))}${commsSelect('Estado',[{value:'',label:'Todos los estados'},'Borrador','En revisión','Aprobado'],_commsFilters.status,v=>commsSetFilter('status',v))}${commsSelect('Orden',[{value:'updated',label:'Última modificación'},{value:'date',label:'Fecha del comunicado'},{value:'folio',label:'Folio'}],_commsFilters.sort,v=>commsSetFilter('sort',v))}<button class="btn btn-ghost" onclick="_commsQuery='';_commsKind='';_commsFilters={type:'',department:'',status:'',sort:'updated'};renderCommunicationsHome()">${siIcon('x',16)} Limpiar filtros</button></div><div id="comms-results" aria-live="polite"></div></div>`;renderCommunicationsResults();commsRenderLegacyRecovery()}
 function commsFiltered(){const q=_commsQuery.trim().toLocaleLowerCase('es');return _commsDrafts.filter(d=>d.lifecycle===_commsView&&(!_commsKind||(d.kind||'memo')===_commsKind)&&(!q||[memoFolio(d),d.subject,d.company,d.country,d.author,d.sender,d.signerName,d.audience,d.department,d.category,d.eyebrow,d.focus,...d.tags].join(' ').toLocaleLowerCase('es').includes(q))&&(!_commsFilters.type||(_commsFilters.type==='__conv'?d.kind==='convocatoria':_commsFilters.type==='__none'?!d.category&&d.kind!=='convocatoria':d.category===_commsFilters.type))&&(!_commsFilters.department||(_commsFilters.department==='__none'?!d.department:d.department===_commsFilters.department))&&(!_commsFilters.status||d.status===_commsFilters.status)).sort((a,b)=>_commsFilters.sort==='folio'?memoFolio(b).localeCompare(memoFolio(a),undefined,{numeric:true}):String(_commsFilters.sort==='date'?b.date:b.updatedAt||b.createdAt).localeCompare(String(_commsFilters.sort==='date'?a.date:a.updatedAt||a.createdAt)))}
 function renderCommunicationsResults(){
   const el=document.getElementById('comms-results');if(!el)return;const rows=commsFiltered();
@@ -35738,8 +35803,8 @@ function memoFlowHtml(b){const steps=commsFlowNormalize(b);if(!steps.length)retu
 let _commsEditorTab='content';
 function commsEditorPanel(tab){if(!['info','content','signature'].includes(tab))return;_commsEditorTab=tab;commsApplyEditorPanel();document.querySelector('.memo-form').scrollTop=0}
 function commsApplyEditorPanel(){if(['circular','aviso'].includes(_commsCurrent?.kind)&&document.querySelector('[data-news-tab]')){commsApplyBlockFocus();document.querySelectorAll('[data-news-tab]').forEach(el=>el.hidden=el.dataset.newsTab!==_commsEditorTab);document.querySelectorAll('[data-comms-tab]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.commsTab===_commsEditorTab)));return}commsApplyBlockFocus();const sections=[...document.querySelectorAll('.memo-form>.memo-form-section')];sections.forEach((el,i)=>el.hidden=(i<2?'info':i===2?'content':'signature')!==_commsEditorTab);document.querySelectorAll('[data-comms-tab]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.commsTab===_commsEditorTab)));const remove=document.getElementById('memo-remove-signature');if(remove)remove.hidden=_commsEditorTab!=='signature'}
-function commsSignatureRecords(){try{const records=commsStorageParse(localStorage.getItem('sierra_memo_signatures_v1')||'[]');return Array.isArray(records)?records.filter(s=>s&&typeof s.id==='string'&&typeof s.signature==='string'):[]}catch{return[]}}
-function commsWriteSignatures(records){try{if(_commsStorageBlocked)throw Error('Almacenamiento no disponible');localStorage.setItem('sierra_memo_signatures_v1',commsStorageJson(records));return true}catch{toast('No se pudo guardar la firma. Revisa el espacio disponible en este navegador.');return false}}
+function commsSignatureRecords(){try{const records=commsStorageParse(localStorage.getItem(commsStorageKey('sierra_memo_signatures_v1'))||'[]');return Array.isArray(records)?records.filter(s=>s&&typeof s.id==='string'&&typeof s.signature==='string'):[]}catch{return[]}}
+function commsWriteSignatures(records){try{if(_commsStorageBlocked)throw Error('Almacenamiento no disponible');localStorage.setItem(commsStorageKey('sierra_memo_signatures_v1'),commsStorageJson(records));return true}catch{toast('No se pudo guardar la firma. Revisa el espacio disponible en este navegador.');return false}}
 function commsSaveSignature(){if(!commsSigner()?.signature)return;const draft={signature:commsSigner().signature,signerName:commsSigner().signerName||'',signerTitle:commsSigner().signerTitle||'',signerDepartment:commsSigner().signerDepartment||''},dialog=document.createElement('dialog');dialog.className='modal-content comms-confirm';dialog.setAttribute('aria-label','Guardar firma');dialog.innerHTML=`<h2>Guardar firma</h2><label for="memo-signature-label">Nombre para identificarla</label><input class="control-input" id="memo-signature-label" maxlength="80" value="${escAttr(draft.signerName)}" placeholder="Ej. Gerencia de Talento Humano"><p class="memo-rich-help">Se guardarán la imagen, el nombre, el puesto y el departamento en este navegador.</p><div class="modal-footer"><button class="btn btn-secondary">Cancelar</button><button class="btn btn-primary">Guardar firma</button></div>`;const input=dialog.querySelector('input'),buttons=dialog.querySelectorAll('button');buttons[0].onclick=()=>dialog.close();buttons[1].onclick=()=>{const label=input.value.trim();if(!label){input.setCustomValidity('Escribe un nombre para la firma.');input.reportValidity();return}const records=commsSignatureRecords();if(records.some(r=>r.label===label&&r.signature===draft.signature&&r.signerName===draft.signerName&&r.signerTitle===draft.signerTitle&&(r.signerDepartment||'')===draft.signerDepartment)){dialog.close();toast('Esta firma ya está guardada.');return}records.push({id:'sig-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),label,...draft});if(commsWriteSignatures(records)){dialog.close();toast('Firma guardada para reutilizar.')}};input.oninput=()=>input.setCustomValidity('');input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();buttons[1].click()}};dialog.onclose=()=>{dialog.remove();document.querySelector('[data-save-signature]')?.focus()};document.body.appendChild(dialog);dialog.showModal();input.focus()}
 function commsApplySignature(id,index=_commsSignerIndex){const s=commsSignatureRecords().find(s=>s.id===id);if(!s||!_commsCurrent)return;commsRememberUndo();Object.assign(commsSigner(index),{signature:s.signature,signerName:s.signerName,signerTitle:s.signerTitle,signerDepartment:s.signerDepartment||''});_commsEditorTab='signature';renderCommunicationEditor();commsAutosave()}
 function commsSavedSignatures(){const index=_commsSignerIndex,dialog=document.createElement('dialog');dialog.className='modal-content comms-confirm memo-signatures-dialog';dialog.setAttribute('aria-label','Firmas guardadas');const render=()=>{dialog.innerHTML='<h2>Firmas guardadas</h2><p class="memo-rich-help">Disponibles en este navegador.</p><div class="memo-signature-list"></div><div class="modal-footer"><button class="btn btn-secondary">Cerrar</button></div>';dialog.querySelector('.modal-footer button').onclick=()=>dialog.close();const list=dialog.querySelector('.memo-signature-list'),records=commsSignatureRecords();if(!records.length){list.textContent='Aún no tienes firmas guardadas. Sube una firma y pulsa Guardar firma.';return}records.forEach(s=>{const row=document.createElement('div');row.className='memo-signature-record';const use=document.createElement('button');use.className='memo-signature-use';use.innerHTML=`<img src="${escAttr(s.signature)}" alt=""><span><b>${esc(s.label)}</b><small>${esc(s.signerName)}${s.signerTitle?' · '+esc(s.signerTitle):''}</small>${s.signerDepartment?`<small>${esc(s.signerDepartment)}</small>`:''}</span>`;use.setAttribute('aria-label','Usar firma '+s.label);use.onclick=()=>{dialog.close();commsApplySignature(s.id,index)};const remove=document.createElement('button');remove.className='icon-btn';remove.setAttribute('aria-label','Eliminar firma guardada '+s.label);remove.innerHTML=siIcon('trash',16);remove.onclick=()=>commsConfirm('Eliminar firma guardada',`Se retirará «${s.label}» de esta biblioteca. Los comunicados que ya la usan conservarán su firma.`,()=>{if(commsWriteSignatures(commsSignatureRecords().filter(r=>r.id!==s.id))){render();toast('Firma retirada de la biblioteca. Los comunicados conservan su firma.')}});row.append(use,remove);list.appendChild(row)})};render();dialog.onclose=()=>{dialog.remove();document.querySelector('[data-saved-signatures]')?.focus()};document.body.appendChild(dialog);dialog.showModal()}

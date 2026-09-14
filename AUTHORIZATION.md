@@ -1,5 +1,65 @@
 # SIERRA Index — Capability-Based Authorization
 
+## Current Contract: Authorization V2
+
+`update40.sql` supersedes the legacy rules documented below. Apply it after
+update39 and BEFORE deploying the V2 client. Never rerun the old role backfill.
+
+- An active profile and explicit, unexpired grants are required. Legacy
+  `admin`, `editor`, and `dispatcher` roles do not confer runtime permissions.
+  The migration preserves existing active administrators as explicit platform
+  grants once, tracked by `index_security_migrations`.
+- `authorize()` is authoritative. Restrictive RLS checks active accounts on
+  public tables; product, collection, comment, event, link and inventory reads
+  are additionally scoped. Existing self-service/collection membership and HR
+  relationships remain independent sources of access.
+- The Data API pre-request hook checks suspension even for SECURITY DEFINER
+  RPCs. This hook does not protect other Supabase services. Anonymous Data API
+  access is limited to the two intentionally public sample-card RPCs.
+- Obsolete sample-creation RPCs accepting a client-supplied actor are disabled
+  for authenticated callers. Cloning requires access to the source collection.
+- `get_my_access()` returns version 2 and active grants. The client fails
+  closed on missing/failed verification, checks expiration on each action,
+  refreshes every 45 seconds and on focus/visibility, and expires its snapshot
+  after 60 seconds. Changed grants force a fresh page to discard cached data.
+  Data already delivered cannot be recalled from a recipient's device.
+- Only a platform administrator can call `set_index_access()`. Assignment
+  replaces the domain-wide bundle atomically, including downgrades. Empty
+  bundles revoke domain-wide grants; scoped grants and collection membership
+  are separate and are not silently revoked. Direct client grant writes and
+  self-assignment are prohibited. The existing audit trigger records changes.
+- Profile > Mi acceso groups capabilities, scope and expiration. Equipo shows
+  scoped grants separately and excludes expired grants. Old role editing is
+  disabled. Permission mutation errors never report success.
+- Communication records, signatures, counters and IndexedDB assets are keyed
+  by account. Unowned legacy browser records are retained but not automatically
+  attributed to whichever person signs in next.
+
+### Known Remaining Boundaries
+
+This migration is not a claim that every surface has completed a security
+audit. Production `product-images` is still a PUBLIC bucket: known file URLs
+bypass database row policies. A coordinated private-file and URL migration is
+required before treating those files as confidential. Browser communication
+storage is also plaintext; account namespacing is not protection against a
+person with access to that browser profile/devtools. Server-owned document
+storage (including an explicit legacy ownership migration) is still required
+for that threat model. Deployed Edge Function code and every domain RPC need
+separate review; repository account-creation functions call `authorize()`.
+
+### Verification
+
+`node tests/security/access.cjs` covers client fail-closed behavior. For a
+database rehearsal, replace update40's final COMMIT with
+`tests/security/authorization.sql`; its final ROLLBACK restores all test grant
+and suspension changes. Never commit the test transaction.
+
+## Historical V1 Notes
+
+The remainder describes the old model and related module history. Any legacy
+fallback, public catalog access, deployment-order or delegation statements
+below are superseded by the V2 contract above.
+
 Governance model: **Platform Owner + Data Owners**. Enforcement is
 capability-based; legacy roles remain only as a compatibility fallback.
 
