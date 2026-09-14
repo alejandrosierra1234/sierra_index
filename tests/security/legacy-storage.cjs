@@ -12,7 +12,7 @@ w.eval('const LBL_LOGO_SVG="";'+source.slice(start,end));w.renderCommunicationsH
  const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('sierra_communication_assets',1);r.onupgradeneeded=()=>r.result.createObjectStore('images');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
  const payload='data:image/png;base64,bGVnYWN5';
  await new Promise((resolve,reject)=>{const tx=db.transaction('images','readwrite');tx.objectStore('images').put(payload,'sierra-memo-asset:old');tx.oncomplete=resolve;tx.onerror=reject});db.close();
- w.localStorage.setItem('sierra_communications_v1',JSON.stringify([{id:'old',subject:'Private',blocks:[{id:'image',type:'image',src:'sierra-memo-asset:old'}]}]));
+ w.localStorage.setItem('sierra_communications_v1',JSON.stringify([{id:'old',subject:'Private',blocks:[{id:'image',type:'image',src:'sierra-memo-asset:old'},{id:'missing',type:'image',src:'sierra-memo-asset:missing'}]}]));
  w.localStorage.setItem('sierra_memo_signatures_v1',JSON.stringify([{id:'signature',signature:payload}]));
  w.localStorage.setItem('sierra_comms_numbers_v1',JSON.stringify({'2026':42}));
  w.can=()=>false;await w.commsClaimLegacyStorage();assert.equal(w.localStorage.getItem('sierra_communications_v1:owner'),null);
@@ -20,6 +20,7 @@ w.eval('const LBL_LOGO_SVG="";'+source.slice(start,end));w.renderCommunicationsH
  assert.equal(w.localStorage.getItem('sierra_comms_legacy_owner_v1'),'owner');
  assert.equal(w.localStorage.getItem('sierra_communications_v1'),null);
  assert.equal(w.eval('_commsDrafts[0].blocks[0].src'),payload);
+ assert.equal(w.eval('_commsDrafts[0].blocks[1].src'),'sierra-memo-asset:missing');
  assert.equal(w.commsSignatureRecords()[0].signature,payload);
  assert.equal(JSON.parse(w.localStorage.getItem('sierra_comms_numbers_v1:owner'))['2026'],42);
  w.me={id:'other'};w.commsLoad();assert.equal(w.eval('_commsDrafts.length'),0);assert.equal(w.commsSignatureRecords().length,0);

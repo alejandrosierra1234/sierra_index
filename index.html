@@ -35643,7 +35643,7 @@ async function commsClaimLegacyStorage(){
   if(!confirm('¿Todos los comunicados y firmas anteriores de este navegador pertenecen a tu cuenta? Se conservarán sus imágenes y folios.'))return;
   const owner=me.id,keys=[COMMS_STORE_KEY,'sierra_memo_signatures_v1','sierra_comms_numbers_v1'];
   const originals=keys.map(k=>localStorage.getItem(k)),destinations=keys.map(commsStorageKey),before=destinations.map(k=>localStorage.getItem(k));
-  let legacyDb;
+  let legacyDb,missingImages=0;
   try{
     const records=JSON.parse(originals[0]||'[]'),signatures=JSON.parse(originals[1]||'[]'),counters=JSON.parse(originals[2]||'{}');
     if(!Array.isArray(records)||!Array.isArray(signatures)||!counters||typeof counters!=='object'||Array.isArray(counters))throw Error('Formato de documentos no válido.');
@@ -35654,7 +35654,7 @@ async function commsClaimLegacyStorage(){
     for(const image of images){
       if(me?.id!==owner)throw Error('La sesión cambió.');
       const data=image.startsWith('data:image/')?image:await new Promise((resolve,reject)=>{const request=legacyDb.transaction('images','readonly').objectStore('images').get(image);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)});
-      if(typeof data!=='string'||!data.startsWith('data:image/'))throw Error('Falta una imagen original. No se retiraron los documentos anteriores.');
+      if(typeof data!=='string'||!data.startsWith('data:image/')){missingImages++;continue;}
       replacements.set(image,await commsAssetStore(data));
     }
     if(me?.id!==owner||!can('admin','platform'))throw Error('El acceso cambió.');
@@ -35671,9 +35671,9 @@ async function commsClaimLegacyStorage(){
     }catch(error){destinations.forEach((key,i)=>{if(before[i]===null)localStorage.removeItem(key);else localStorage.setItem(key,before[i])});throw error}
     keys.forEach(key=>localStorage.removeItem(key));
     legacyDb?.close();legacyDb=null;
-    indexedDB.deleteDatabase('sierra_communication_assets');
+    if(!missingImages)indexedDB.deleteDatabase('sierra_communication_assets');
     await commsPrepareStorage();commsLoad();renderCommunicationsHome();
-    toast('Documentos, firmas e imágenes asignados a tu cuenta.');
+    toast(missingImages?'Documentos asignados. '+missingImages+' imágenes ya faltaban; se conservaron sus referencias.':'Documentos, firmas e imágenes asignados a tu cuenta.');
   }catch(error){toast('No se completó la asignación: '+error.message)}finally{legacyDb?.close()}
 }
 async function commsPrepareStorage(){const keys=[commsStorageKey(COMMS_STORE_KEY),commsStorageKey('sierra_memo_signatures_v1')],originals=keys.map(key=>localStorage.getItem(key)),values=originals.map(text=>JSON.parse(text||'[]')),images=new Set();const collect=value=>{if(typeof value==='string'&&(value.startsWith('data:image/')||value.startsWith('sierra-memo-asset:')))images.add(value);else if(value&&typeof value==='object')Object.values(value).forEach(collect)};values.forEach(collect);if(_commsCurrent)collect(_commsCurrent);_commsUnavailableAssets.clear();for(const image of images){try{if(image.startsWith('sierra-memo-asset:'))await commsAssetRead(image);else await commsAssetStore(image)}catch{_commsUnavailableAssets.add(image)}}// Never replace a record changed by another tab during migration.
