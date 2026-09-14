@@ -338,3 +338,18 @@ RPC; changes to one's own access remain prohibited.
 
 Verification: `node tests/security/manual-accounts.cjs` covers the manual form,
 server permission checks, role injection, missing migration, and migration safety.
+# Communications Access (Update 43)
+
+Comunicaciones uses the independent `communications` domain, not `talento_humano`.
+Equipo offers read-only (`read`) and editor (`read`, `write`) access. Only a platform
+administrator assigns module access; no existing HR grant is copied automatically.
+Global administrators retain module access but do not gain membership in other
+people's private collaborative documents. Sharing a document does not grant module access.
+
+Apply `update43.sql` after authorization v2. It is safe with or without collaboration
+installed, and preserves grants and documents. Apply it again after an older copy of
+`update41.sql`; the current `update41.sql` also checks module access internally.
+RPCs require both module access and document membership. Read-only module access caps
+document owners/editors at viewer. Revocation, suspension and expiry deny server reads
+and writes. The editor gates routes, local storage, saving, creation and export; local
+drafts already stored on a device are not erased and are not remotely revocable copies.

@@ -60,17 +60,19 @@ revoke all on public.communication_documents,public.communication_members,
 
 create or replace function public.communication_role(p_id uuid)
 returns text language sql stable security definer set search_path = '' as $$
-  select case when d.owner_id=auth.uid() then 'owner' else m.role end
+  select case when not public.authorize('communications','write') then 'viewer'
+    when d.owner_id=auth.uid() then 'owner' else m.role end
   from public.communication_documents d
   left join public.communication_members m on m.document_id=d.id and m.user_id=auth.uid()
-  where d.id=p_id and public.index_account_active()
+  where d.id=p_id and public.authorize('communications','read')
+    and (d.owner_id=auth.uid() or m.user_id is not null)
 $$;
 
 create or replace function public.communication_create(p_source text,p_title text,p_kind text,p_snapshot text)
 returns uuid language plpgsql security definer set search_path = '' as $$
 declare v_id uuid;
 begin
-  if not public.index_account_active() then raise exception 'Access denied' using errcode='42501'; end if;
+  if not public.authorize('communications','read') or not public.authorize('communications','write') then raise exception 'Access denied' using errcode='42501'; end if;
   insert into public.communication_documents(owner_id,source_id,title,kind,snapshot)
     values(auth.uid(),p_source,p_title,p_kind,decode(p_snapshot,'base64'))
     on conflict(owner_id,source_id) do nothing returning id into v_id;
@@ -83,11 +85,11 @@ end $$;
 create or replace function public.communication_list()
 returns jsonb language sql stable security definer set search_path = '' as $$
   select coalesce(jsonb_agg(jsonb_build_object('id',d.id,'title',d.title,'kind',d.kind,
-    'role',case when d.owner_id=auth.uid() then 'owner' else m.role end,
+    'role',public.communication_role(d.id),
     'updated_at',d.updated_at) order by d.updated_at desc),'[]'::jsonb)
   from public.communication_documents d left join public.communication_members m
     on m.document_id=d.id and m.user_id=auth.uid()
-  where public.index_account_active() and (d.owner_id=auth.uid() or m.user_id is not null)
+  where public.authorize('communications','read') and (d.owner_id=auth.uid() or m.user_id is not null)
 $$;
 
 create or replace function public.communication_access(p_id uuid)
@@ -109,13 +111,17 @@ declare v_target uuid; v_owner uuid;
 begin
   -- Sharing and sync lock the same row: revocation takes effect before the next read/write.
   select owner_id into v_owner from public.communication_documents where id=p_id for update;
-  if not public.index_account_active() or v_owner is distinct from auth.uid() then
+  if coalesce(public.communication_role(p_id),'')<>'owner' or v_owner is distinct from auth.uid() then
     raise exception 'Access denied' using errcode='42501'; end if;
   if p_role is not null and p_role not in ('viewer','editor') then raise exception 'Invalid role'; end if;
   select id into v_target from public.profiles where lower(email)=lower(trim(p_email))
     and (p_role is null or account_status='active');
   if v_target is null then raise exception 'No active account with that email'; end if;
   if v_target=v_owner then raise exception 'Owner access cannot be changed'; end if;
+  if p_role is not null and not exists(select 1 from public.capability_grants g where g.user_id=v_target
+    and g.resource_id is null and (g.expires_at is null or g.expires_at>now())
+    and ((g.domain='platform' and g.capability='admin') or (g.domain='communications' and g.capability='read'))) then
+    raise exception 'The recipient needs Communications access from an Index administrator'; end if;
   if p_role is null then
     delete from public.communication_members where document_id=p_id and user_id=v_target;
   else

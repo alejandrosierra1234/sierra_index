@@ -16,6 +16,7 @@ test('real editor sharing keeps cloud writes out of localStorage and survives ba
   try {
     w.structuredClone=structuredClone;w.TextEncoder=TextEncoder;w.TextDecoder=TextDecoder;
     w.me={id:'00000000-0000-4000-8000-000000000001'};w.profile={full_name:'Owner'};
+    w.can=(cap,domain)=>!!w.me&&domain==='communications'&&['read','write'].includes(cap);
     w.esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');w.escAttr=w.esc;
     w.siIcon=()=>'';w.setSecCrumbs=()=>{};w.clearSecCrumbs=()=>{};w.requestAnimationFrame=()=>{};w.document.queryCommandState=()=>false;
     const notices=[];
@@ -38,6 +39,7 @@ test('real editor sharing keeps cloud writes out of localStorage and survives ba
     w.eval('const LBL_LOGO_SVG="";\n'+source.slice(start,end));
     w.eval(readFileSync(new URL('js/communications-collaboration.js',root),'utf8'));
     w.eval(readFileSync(new URL('js/communications-collaboration-integration.js',root),'utf8'));
+    w.eval(readFileSync(new URL('js/communications-access.js',root),'utf8'));
     await w.newCommunicationDraft();
     assert.ok(w.document.querySelector('[data-share-access]'),JSON.stringify(notices));
     w.commsAddBlock('feature');

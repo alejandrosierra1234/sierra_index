@@ -8460,7 +8460,7 @@ const I18N = {
     'team.role.admin':'Admin', 'team.role.editor':'Editor', 'team.role.dispatcher':'Dispatcher', 'team.role.user':'User',
     'team.domain.fiber':'Fiber', 'team.domain.yarn':'Yarn', 'team.domain.fabric':'Fabric', 'team.domain.chemicals':'Chemicals',
     'team.domain.garment':'Apparel', 'team.domain.warehouse':'Warehouse', 'team.domain.customer_service':'Customer Service',
-    'team.domain.talento_humano':'Talento Humano', 'team.domain.platform':'Platform',
+    'team.domain.talento_humano':'Talento Humano', 'team.domain.platform':'Platform', 'team.domain.communications':'Communications',
     'team.domain.warehouse_fiber':'Warehouse · Fiber', 'team.domain.warehouse_yarn':'Warehouse · Yarn',
     'team.domain.warehouse_fabric':'Warehouse · Fabric', 'team.domain.warehouse_chemicals':'Warehouse · Chemicals',
     'team.domain.warehouse_garment':'Warehouse · Apparel',
@@ -8553,7 +8553,7 @@ const I18N = {
     'team.role.admin':'Admin', 'team.role.editor':'Editor', 'team.role.dispatcher':'Despachador', 'team.role.user':'Usuario',
     'team.domain.fiber':'Fibra', 'team.domain.yarn':'Hilo', 'team.domain.fabric':'Tela', 'team.domain.chemicals':'Químicos',
     'team.domain.garment':'Confección', 'team.domain.warehouse':'Almacén', 'team.domain.customer_service':'Servicio al cliente',
-    'team.domain.talento_humano':'Talento Humano', 'team.domain.platform':'Plataforma',
+    'team.domain.talento_humano':'Talento Humano', 'team.domain.platform':'Plataforma', 'team.domain.communications':'Comunicaciones',
     'team.domain.warehouse_fiber':'Almacén de Muestras · Fibra', 'team.domain.warehouse_yarn':'Almacén de Muestras · Hilo',
     'team.domain.warehouse_fabric':'Almacén de Muestras · Tela', 'team.domain.warehouse_chemicals':'Almacén de Muestras · Químicos',
     'team.domain.warehouse_garment':'Almacén de Muestras · Confección',
@@ -8676,7 +8676,7 @@ function applyLanguage(opts = {}) {
    current access until grants exist — mirror of authorize()'s fallback. */
 const AUTH_DIVISIONS = ['fiber','yarn','fabric','chemicals','garment']
 const AUTH_WAREHOUSES = AUTH_DIVISIONS.map(d => 'warehouse_' + d)
-const AUTH_DOMAINS = [...AUTH_DIVISIONS, ...AUTH_WAREHOUSES, 'customer_service', 'talento_humano', 'platform']
+const AUTH_DOMAINS = [...AUTH_DIVISIONS, ...AUTH_WAREHOUSES, 'customer_service', 'talento_humano', 'communications', 'platform']
 let myGrants = []
 
 // Each division has its own warehouse domain (warehouse_<division>) — this
@@ -16027,7 +16027,7 @@ const MODULES = {
   },
   comunicaciones: {
     label: 'Comunicaciones',
-    domains: ['talento_humano'],
+    domains: ['communications'],
     token: 'marketing',
     color: '#ff7824', light: '#ffe1cc', accent: '#a93d00',
     icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M4 3.5h12v13H4z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 7h6M7 10h6M7 13h3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
@@ -26452,7 +26452,7 @@ async function showUserManagement() {
             ? `<span class="team-migration-note">${tx('team.needsMigration')}</span>`
             : `<div class="team-chips" id="grants-${u.id}">${renderGrantChips(u.id, canManagePlatform && !isSelf)}</div>
                ${canManagePlatform && !isSelf ? `<div class="team-add-access">
-                 ${pdSelect(`gd-${u.id}`, domainOpts, domainOpts[0]?.value || '', '', '', '')}
+                 ${pdSelect(`gd-${u.id}`, domainOpts, domainOpts[0]?.value || '', '', 'teamAccessDomainChanged', '')}
                  ${pdSelect(`gl-${u.id}`, levelOpts, 'viewer', '', '', '')}
                  <button class="btn btn-secondary btn-sm" onclick="addGrant('${u.id}')">${tx('team.addAccess')}</button>
                </div>` : ''}`}
@@ -26467,7 +26467,14 @@ async function showUserManagement() {
 /* Grants management (Team screen). Levels expand to capability bundles —
    bundles exist only in this UI; enforcement always checks single capabilities. */
 let _teamGrants = null
+function teamAccessDomainChanged(domain, id) {
+  const uid=id.slice(3),host=document.getElementById('gl-'+uid+'-dd');
+  if(!host)return;
+  const levels=(domain==='communications'?['viewer','editor']:['viewer','editor','owner']).map(value=>({value,label:tx('team.level.'+value)}));
+  host.outerHTML=pdSelect('gl-'+uid,levels,'viewer');
+}
 function bundleCaps(domain, level) {
+  if (domain === 'communications') return level === 'viewer' ? ['read'] : ['read','write']
   if (domain === 'platform')
     return level === 'owner' ? ['read','admin','grant'] : level === 'editor' ? ['read','admin'] : ['read']
   if (domain === 'warehouse' || domain.startsWith('warehouse_'))
@@ -35643,7 +35650,8 @@ function printCommunicationMemo(){return commsPrintDocument()}
 </div>
 <link rel="stylesheet" href="css/communications-collaboration.css?v=20260914-1">
 <script src="js/communications-collaboration.js?v=20260914-1"></script>
-<script src="js/communications-collaboration-integration.js?v=20260914-1"></script>
+<script src="js/communications-collaboration-integration.js?v=20260914-2"></script>
+<script src="js/communications-access.js?v=20260914-1"></script>
 <script src="js/sample-workflow.js?v=20260911-13"></script>
 <script src="js/sample-development.js?v=20260911-8"></script>
 <script src="js/sample-stock.js?v=20260911-8"></script>

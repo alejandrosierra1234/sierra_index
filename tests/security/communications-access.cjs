@@ -1,0 +1,36 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
+const {JSDOM}=require('../communications/node_modules/jsdom');
+const root=path.join(__dirname,'../..'),source=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const dom=new JSDOM('<div id="pg"></div><div id="sec-title"></div><div id="sec-sub"></div>',{url:'https://test.local',runScripts:'outside-only'});
+const w=dom.window,run=code=>vm.runInContext(code,dom.getInternalVMContext());
+w.me={id:'owner'};w.esc=w.escAttr=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('"','&quot;');
+w.siIcon=()=>'';w.setSecCrumbs=w.clearSecCrumbs=w.toast=()=>{};w.requestAnimationFrame=()=>{};w.document.queryCommandState=()=>false;
+w.jsStr=v=>String(v??'').replaceAll("'","\\'");
+run(source.slice(source.indexOf('function pdSelect('),source.indexOf('/* ═',source.indexOf('function pickPdSelect('))));
+run(source.match(/const PRODUCT_COUNTRIES = \[[^\n]+/)[0]);
+const start=source.indexOf('const COMMS_STORE_KEY='),end=source.indexOf('\n',source.indexOf('function printCommunicationMemo()',start));
+run('const LBL_LOGO_SVG="";\n'+source.slice(start,end));
+let level='editor';w.can=(cap,domain)=>domain==='communications'&&(cap==='read'?level!=='none':cap==='write'&&level==='editor');
+try {
+ run(fs.readFileSync(path.join(root,'js/communications-access.js'),'utf8'));
+ w.newCommunicationDraft();const id=run('_commsCurrent.id'),key=w.commsStorageKey('sierra_communications_v1'),saved=w.localStorage.getItem(key);
+ level='viewer';w.renderCommunicationEditor();assert.ok(w.document.querySelector('.comms-readonly-sheet'));assert.equal(w.document.querySelector('.memo-form'),null);
+ assert.equal(w.document.querySelector('[onclick*="commsLifecycle"]'),null);
+ assert.equal(w.newNewsDraft(),false);assert.equal(w.commsLifecycle(id,'trash'),false);assert.equal(w.commsWriteAll([]),false);
+ assert.equal(w.localStorage.getItem(key),saved);w.commsBack();assert.equal(run('_commsCurrent'),null);
+ assert.equal(w.document.querySelector('.comms-header-actions button[onclick^="new"]'),null);
+ assert.equal(w.openCommunicationDraft(id),true);
+ level='none';assert.equal(w.showCommunications(),false);assert.equal(run('_commsCurrent'),null);assert.equal(run('_commsDrafts.length'),0);
+ assert.equal(w.openCommunicationDraft(id),false);assert.throws(()=>w.commsStorageKey('sierra_communications_v1'));
+ assert.equal(w.localStorage.getItem(key),saved,'revocation preserves existing drafts');
+ level='editor';w.commsLoad();assert.equal(w.openCommunicationDraft(id),true);w.commsSet('subject','Allowed');w.commsPersist();
+ assert.equal(JSON.parse(w.localStorage.getItem(key))[0].subject,'Allowed');
+ assert.match(source,/comunicaciones: \{\s*label: 'Comunicaciones',\s*domains: \['communications'\]/);
+ run(source.slice(source.indexOf('function teamAccessDomainChanged('),source.indexOf('function grantLevelOf(')));
+ assert.deepEqual(Array.from(w.bundleCaps('communications','viewer')),['read']);
+ assert.deepEqual(Array.from(w.bundleCaps('communications','editor')),['read','write']);
+ w.tx=x=>x;w.document.getElementById('pg').innerHTML=w.pdSelect('gl-user',[{value:'owner',label:'Owner'}],'owner');
+ w.teamAccessDomainChanged('communications','gd-user');
+ assert.equal(w.document.querySelectorAll('[role="option"]').length,2);assert.equal(w.document.getElementById('gl-user').value,'viewer');
+ console.log('PASS: Communications has independent grants, read-only preview, guarded routes and storage, reversible revocation, and two access levels');
+}finally{w.close();}

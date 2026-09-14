@@ -28,7 +28,13 @@
   }
   const collab=window.SierraCollaboration.install({
     account:()=>me?.id ? {id:me.id,name:profile?.full_name||me.email} : null,
-    rpc:(name,args)=>sb.rpc(name,args),
+    rpc:(name,args)=>{
+      const writes=['communication_create','communication_share','communication_checkpoint'].includes(name)
+        || (name==='communication_sync'&&args?.p_update!=null);
+      if(!can('read','communications')||(writes&&!can('write','communications')))
+        return Promise.resolve({error:{code:'42501',message:'No tienes el permiso requerido en Comunicaciones.'}});
+      return sb.rpc(name,args);
+    },
     current:function(value){if(arguments.length)_commsCurrent=value;return _commsCurrent;},
     persistLocal:()=>originals.commsPersist(),
     render:()=>renderCommunicationEditor(),preview:()=>renderMemoPreview(),
