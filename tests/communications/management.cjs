@@ -142,7 +142,11 @@ test('editorial circulars preserve their kind, metadata, layouts and shared bloc
     assert.equal(box.querySelector('.memo-body > .news-intro'),null);
     assert.ok(box.querySelector('.news-author img'));
     assert.equal(box.querySelector('.news-section-label.memo-doc-type').textContent,'Circular informativa');
-    assert.equal(box.querySelector('.news-scope').textContent,'Guatemala · Planta Norte · Finanzas');
+    assert.deepEqual(Array.from(box.querySelectorAll('.news-context-item'),el=>el.textContent),['Guatemala','SIERRA Chemicals · Planta Norte','Finanzas']);
+    assert.ok(box.querySelector('.news-byline > .news-author'));
+    assert.ok(box.querySelector('.news-byline > .news-scope'));
+    assert.equal(box.querySelector('.news-title .news-scope'),null);
+    assert.equal(box.querySelectorAll('.news-context-item svg').length,3);
     assert.ok(!box.textContent.includes('Tema anterior'));
     const lead=box.querySelector('.news-lead');
     assert.equal(lead.firstElementChild.tagName,'DIV');
@@ -163,7 +167,9 @@ test('editorial circulars preserve their kind, metadata, layouts and shared bloc
     assert.equal(box.querySelector('.news-title h1').style.fontWeight,'400');
   }
   w.renderNewsEditor();
-  assert.ok(w.document.querySelector('.memo-form').textContent.includes('Departamento interno'));
+  assert.ok(!w.document.querySelector('.memo-form').textContent.includes('Departamento interno'));
+  assert.ok(!w.document.querySelector('.memo-form').textContent.includes('Área emisora'));
+  assert.ok(w.document.querySelector('.memo-form').textContent.includes('Departamento (opcional)'));
   w.commsSet('authorPhoto','');assert.equal(w.document.querySelector('.news-author img'),null);
   w.commsSetKind('circular');assert.ok(w.commsFiltered().every(x=>x.kind==='circular'));w.commsSetKind('');w.newCommunicationDraft();
 });
