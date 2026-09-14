@@ -60,3 +60,13 @@ needed before high-volume rollout. Missing local assets prevent initial sharing.
 (PGlite), with owner/editor/viewer/stranger identities and anonymous direct-table checks.
 Other tests cover CRDT convergence, retries, account switches, rich cursors, formatting,
 the actual Index editor bridge, and absence of cloud writes to localStorage.
+# Automatic Sharing Preparation
+
+Large local drafts are prepared on a detached copy before sharing. Raster photos
+are converted to WebP at up to 2400 px (with bounded 1920/1600 px retries), repeated
+photos are processed once per pass, and the smaller result is used. Original local
+images, signatures, logos, QR codes and small graphics are retained unchanged.
+The dialog reports progress and cancellation/account changes stop preparation.
+Photos added while collaborating are prepared before entering the shared model.
+The server's 16 MiB payload safety limit still applies after preparation; no public
+storage bucket or anonymous media link is introduced by this workflow.

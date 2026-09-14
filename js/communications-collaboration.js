@@ -23970,6 +23970,56 @@ ${err.toString()}`);
     view.focus();
   }
 
+  // images.js
+  var photoKeys = /* @__PURE__ */ new Set(["src", "photo", "heroImage", "authorPhoto"]);
+  async function optimizeSharingImages(draft, { maxDimension = 2400, quality = 0.9, convert = resizeImage, progress = () => {
+  }, valid = () => true } = {}) {
+    const copy4 = structuredClone(draft), images = /* @__PURE__ */ new Map();
+    function collect(value, path = []) {
+      if (!value || typeof value !== "object") return;
+      for (const [key, item] of Object.entries(value)) {
+        if (typeof item === "string" && photoKeys.has(key) && /^data:image\/(png|jpeg|webp);base64,/i.test(item) && item.length > 35e4 && !path.some((part) => /signature|qr|logo/i.test(part))) {
+          if (!images.has(item)) images.set(item, []);
+          images.get(item).push({ value, key });
+        } else if (item && typeof item === "object") collect(item, [...path, key]);
+      }
+    }
+    collect(copy4);
+    let completed = 0;
+    for (const [image, fields] of images) {
+      if (!valid()) throw Error("Se cancel\xF3 la preparaci\xF3n del comunicado.");
+      const optimized = await convert(image, { maxDimension, quality });
+      if (!valid()) throw Error("Se cancel\xF3 la preparaci\xF3n del comunicado.");
+      if (typeof optimized === "string" && optimized.startsWith("data:image/") && optimized.length < image.length)
+        fields.forEach(({ value, key }) => {
+          value[key] = optimized;
+        });
+      progress(++completed, images.size);
+    }
+    return copy4;
+  }
+  async function resizeImage(source, { maxDimension, quality }) {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = source;
+    await image.decode();
+    const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+    try {
+      const context = canvas.getContext("2d");
+      if (!context) throw Error("No se pudo preparar una imagen. Tu original se conserva.");
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = "high";
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL("image/webp", quality);
+    } finally {
+      canvas.width = canvas.height = 1;
+      image.src = "";
+    }
+  }
+
   // browser.js
   var copy3 = (value) => JSON.parse(JSON.stringify(value));
   var colors = ["#007d73", "#004a86", "#670084", "#cd4f00", "#2a9200"];
@@ -24017,7 +24067,7 @@ ${err.toString()}`);
     el.append(node);
   }
   function install(api) {
-    let session = null, rendering = false, deferred = false;
+    let session = null, rendering = false, deferred = false, sharing = false;
     const views = /* @__PURE__ */ new Map(), inputCleanups = [], lockedElements = /* @__PURE__ */ new Map();
     const getAccount = () => api.account()?.id;
     const rpc = async (name, args2 = {}) => {
@@ -24209,20 +24259,48 @@ ${err.toString()}`);
       }
     }
     async function share() {
+      if (sharing) return;
+      sharing = true;
       api.clearSelectors();
       const el = dialog("Compartir acceso");
       message(el, "Verificando acceso...");
       try {
         if (!active()) {
           if (!api.current() || !api.persistLocal()) throw Error("Guarda el comunicado antes de compartirlo.");
-          const draft = copy3(api.current()), model = new CommunicationModel();
+          const original = copy3(api.current()), account = getAccount();
+          let draft = original, snapshot2;
+          const valid = () => el.isConnected && getAccount() === account && api.current()?.id === original.id;
+          const encode3 = (d) => {
+            const model = new CommunicationModel();
+            try {
+              model.seed(stripped(d));
+              prepareRich(model, d);
+              return yjs_exports.encodeStateAsUpdate(model.doc);
+            } finally {
+              model.doc.destroy();
+            }
+          };
           if (JSON.stringify(draft).includes("sierra-memo-asset:")) throw Error("Faltan im\xE1genes locales. Recup\xE9ralas antes de compartir.");
-          model.seed(stripped(draft));
-          prepareRich(model, draft);
-          const snapshot2 = yjs_exports.encodeStateAsUpdate(model.doc);
-          model.doc.destroy();
-          if (snapshot2.length > 16777216) throw Error("El comunicado supera 16 MB. Reduce sus im\xE1genes antes de compartir.");
+          snapshot2 = encode3(draft);
+          if (snapshot2.length > 8 * 1024 * 1024) {
+            message(el, "Preparando im\xE1genes para compartir. El original se conserva...");
+            for (const [maxDimension, quality] of [[2400, 0.9], [1920, 0.88], [1600, 0.85]]) {
+              draft = await optimizeSharingImages(original, {
+                maxDimension,
+                quality,
+                valid,
+                progress: (done, total) => message(el, "Preparando im\xE1genes: " + done + " de " + total + "...")
+              });
+              snapshot2 = encode3(draft);
+              if (snapshot2.length <= 15 * 1024 * 1024) break;
+            }
+          }
+          if (!valid()) return;
+          if (JSON.stringify(api.current()) !== JSON.stringify(original)) throw Error("El comunicado cambi\xF3 durante la preparaci\xF3n. Vuelve a compartir la versi\xF3n actual.");
+          if (snapshot2.length > 16777216) throw Error("No se pudo preparar la copia compartida autom\xE1ticamente. Tu comunicado original se conserva intacto.");
+          message(el, "Guardando la copia privada en Index...");
           const id3 = await rpc("communication_create", { p_source: draft.id, p_title: (draft.subject || "Comunicado").slice(0, 500), p_kind: draft.kind || "memo", p_snapshot: toBase642(snapshot2) });
+          if (!valid()) return;
           await open(id3);
         }
         const id2 = session.id, access = await rpc("communication_access", { p_id: id2 });
@@ -24285,7 +24363,9 @@ ${err.toString()}`);
           el.append(form);
         }
       } catch (error) {
-        message(el, error.message || "No se pudo abrir el acceso compartido.", true);
+        if (el.isConnected) message(el, error.message || "No se pudo abrir el acceso compartido.", true);
+      } finally {
+        sharing = false;
       }
     }
     async function library() {
@@ -24420,6 +24500,12 @@ ${err.toString()}`);
       homeRendered,
       share,
       library,
+      prepareImage: async (source) => {
+        const current = session;
+        if (!editable()) throw Error("No tienes permiso para editar este comunicado.");
+        const draft = await optimizeSharingImages({ src: source }, { valid: () => session === current && editable() });
+        return draft.src;
+      },
       accountChanged: (id2) => {
         if (session && session.account !== id2) {
           stop();

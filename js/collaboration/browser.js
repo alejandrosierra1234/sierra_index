@@ -2,6 +2,7 @@ import {CommunicationModel,Y,toBase64} from './model.js';
 import {CommunicationTransport} from './transport.js';
 import {Awareness} from 'y-protocols/awareness';
 import {bindRich,readRich,seedRich,richCommand} from './rich-text.js';
+import {optimizeSharingImages} from './images.js';
 
 const copy = value => JSON.parse(JSON.stringify(value));
 const colors=['#007d73','#004a86','#670084','#cd4f00','#2a9200'];
@@ -29,7 +30,7 @@ function message(el,value,error=false) {
 }
 
 function install(api) {
-  let session=null, rendering=false, deferred=false;
+  let session=null, rendering=false, deferred=false, sharing=false;
   const views=new Map(),inputCleanups=[],lockedElements=new Map();
   const getAccount=() => api.account()?.id;
   const rpc=async(name,args={}) => {
@@ -137,17 +138,38 @@ function install(api) {
     } catch(error){stop();throw error;}
   }
   async function share() {
+    if(sharing)return;
+    sharing=true;
     api.clearSelectors();
     const el=dialog('Compartir acceso');message(el,'Verificando acceso...');
     try {
       if(!active()) {
         if(!api.current() || !api.persistLocal()) throw Error('Guarda el comunicado antes de compartirlo.');
-        const draft=copy(api.current()),model=new CommunicationModel();
+        const original=copy(api.current()),account=getAccount();
+        let draft=original,snapshot;
+        const valid=()=>el.isConnected&&getAccount()===account&&api.current()?.id===original.id;
+        const encode=d=>{
+          const model=new CommunicationModel();
+          try{model.seed(stripped(d));prepareRich(model,d);return Y.encodeStateAsUpdate(model.doc);}
+          finally{model.doc.destroy();}
+        };
         if(JSON.stringify(draft).includes('sierra-memo-asset:'))throw Error('Faltan imágenes locales. Recupéralas antes de compartir.');
-        model.seed(stripped(draft));prepareRich(model,draft);
-        const snapshot=Y.encodeStateAsUpdate(model.doc);model.doc.destroy();
-        if(snapshot.length>16777216)throw Error('El comunicado supera 16 MB. Reduce sus imágenes antes de compartir.');
+        snapshot=encode(draft);
+        if(snapshot.length>8*1024*1024) {
+          message(el,'Preparando imágenes para compartir. El original se conserva...');
+          for(const [maxDimension,quality] of [[2400,.9],[1920,.88],[1600,.85]]) {
+            draft=await optimizeSharingImages(original,{maxDimension,quality,valid,
+              progress:(done,total)=>message(el,'Preparando imágenes: '+done+' de '+total+'...')});
+            snapshot=encode(draft);
+            if(snapshot.length<=15*1024*1024)break;
+          }
+        }
+        if(!valid())return;
+        if(JSON.stringify(api.current())!==JSON.stringify(original))throw Error('El comunicado cambió durante la preparación. Vuelve a compartir la versión actual.');
+        if(snapshot.length>16777216)throw Error('No se pudo preparar la copia compartida automáticamente. Tu comunicado original se conserva intacto.');
+        message(el,'Guardando la copia privada en Index...');
         const id=await rpc('communication_create',{p_source:draft.id,p_title:(draft.subject||'Comunicado').slice(0,500),p_kind:draft.kind||'memo',p_snapshot:toBase64(snapshot)});
+        if(!valid())return;
         await open(id);
       }
       const id=session.id,access=await rpc('communication_access',{p_id:id});
@@ -177,7 +199,8 @@ function install(api) {
           catch(error){button.disabled=false;message(el,error.code==='42501'?'No tienes permiso para compartir.':'No se pudo dar acceso. Verifica que el correo tenga una cuenta activa en Index.',true);}
         };el.append(form);
       }
-    }catch(error){message(el,error.message||'No se pudo abrir el acceso compartido.',true);}
+    }catch(error){if(el.isConnected)message(el,error.message||'No se pudo abrir el acceso compartido.',true);}
+    finally{sharing=false;}
   }
   async function library() {
     const el=dialog('Comunicados compartidos');message(el,'Cargando...');
@@ -249,6 +272,12 @@ function install(api) {
   },0));
   window.addEventListener('beforeunload',event=>{if(active()&&session.transport.dirty){event.preventDefault();event.returnValue='';}});
   return {active,editable,stop,capture,rendered,homeRendered,share,library,
+    prepareImage:async source=>{
+      const current=session;
+      if(!editable())throw Error('No tienes permiso para editar este comunicado.');
+      const draft=await optimizeSharingImages({src:source},{valid:()=>session===current&&editable()});
+      return draft.src;
+    },
     accountChanged:id=>{if(session&&session.account!==id){stop();api.current(null);api.clearPage('La sesión cambió.');}},
     beforeRender:()=>{if(active()&&!rendering)capture();destroyViews();},
     persist:()=>{if(!active())return null;capture();session.transport.sync().catch(()=>{});return !session.blocked;},

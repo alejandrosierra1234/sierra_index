@@ -42,6 +42,16 @@
     clearPage:message=>{const pg=document.getElementById('pg');pg.replaceChildren();const p=document.createElement('p');p.textContent=message;pg.append(p);}
   });
   sb.auth.onAuthStateChange((_event,authSession)=>collab.accountChanged(authSession?.user?.id));
+  const readImage=commsReadImage;
+  commsReadImage=function(input,callback){
+    const owner=me?.id,documentId=_commsCurrent?.id,shared=collab.active();
+    return readImage(input,async source=>{
+      try{
+        const image=shared?await collab.prepareImage(source):source;
+        if(me?.id===owner&&_commsCurrent?.id===documentId)callback(image);
+      }catch(error){toast(error.message||'No se pudo preparar la imagen. El original se conserva.');}
+    });
+  };
   let depth=0;
   renderCommunicationEditor=function(...args){
     const outer=depth++===0;
