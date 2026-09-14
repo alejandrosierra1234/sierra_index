@@ -29,7 +29,7 @@ test('all communication icon keys exist and destructive controls are labeled',()
   for(const [,name] of moduleSource.matchAll(/siIcon\('([^']+)'/g))assert.ok(w.siIcon(name),`Missing icon ${name}`);
   w.newCommunicationDraft();
   for(const type of ['image','table','orgchart','process','banner'])w.commsAddBlock(type);
-  assert.equal(w.document.querySelectorAll('.memo-insert-icon svg').length,13);
+  assert.equal(w.document.querySelectorAll('.memo-insert .memo-insert-icon svg').length,15);
   assert.ok(w.document.querySelector('[aria-label="Eliminar etapa"] svg'));
   assert.ok(w.document.querySelector('[aria-label="Eliminar persona"] svg'));
   for(const button of w.document.querySelectorAll('button'))if(button.querySelector('svg')&&!button.textContent.trim())assert.ok(button.getAttribute('aria-label')||button.title,'Icon button needs a name');
@@ -438,6 +438,52 @@ test('typing keeps the preview frame, focus and scale stable before paint',()=>{
   }
   assert.equal(pendingFrames,0,'preview must not expose an unscaled frame while waiting for RAF');
   w.requestAnimationFrame=raf;clearTimeout(w.eval('_commsSaveTimer'));
+});
+test('media blocks preserve URLs, QR validity, colors and order',()=>{
+  w.newNewsDraft();w.commsAddBlock('video');const d=w.eval('_commsCurrent'),video=d.blocks.at(-1);
+  Object.assign(video,{title:'Video de planta',url:'https://example.com/watch?v=1',qrUrl:'https://example.com/watch?v=1',qrImage:'data:image/png;base64,AA'});
+  w.commsAddBlock('separator');const separator=d.blocks.at(-1);Object.assign(separator,{color:'#9e00cb',lineStyle:'dotted',spacing:8});
+  const box=w.document.createElement('div');box.innerHTML=w.memoPageHtml(d);
+  assert.equal(box.querySelector('.memo-video a').getAttribute('href'),video.url);
+  assert.equal(box.querySelector('.memo-video a').target,'_blank');
+  assert.ok(box.querySelector('.memo-video img[alt*="QR"]'));
+  assert.equal(box.querySelector('hr').style.borderTopStyle,'dotted');
+  w.commsReorderBlock(separator.id,video.id,false);
+  assert.ok(d.blocks.indexOf(separator)<d.blocks.indexOf(video));
+  w.commsActionCardSet(video.id,'url','https://example.com/new');
+  assert.equal(video.qrImage,'');assert.equal(video.qrUrl,undefined);
+  box.innerHTML=w.memoMediaHtml({...video,url:'javascript:alert(1)'});assert.equal(box.querySelector('a').hasAttribute('href'),false);
+  video.hidden=true;assert.ok(!w.memoPageHtml(d).includes('memo-video'));video.hidden=false;
+  w.commsPersist();w.commsDuplicate(d.id);const copy=w.eval('_commsCurrent');
+  assert.equal(copy.blocks.find(b=>b.type==='video').url,video.url);
+  assert.equal(copy.blocks.find(b=>b.type==='separator').lineStyle,'dotted');
+  assert.equal(w.document.querySelectorAll('.memo-insert-group').length,5);
+  assert.equal(w.document.querySelectorAll('.memo-drag-handle').length,copy.blocks.length);
+  const previous=w.commsActiveBlock();w.commsAddBlock('feature');const feature=copy.blocks.find(b=>b.id===w.commsActiveBlock());
+  assert.equal(copy.blocks.indexOf(feature),copy.blocks.findIndex(b=>b.id===previous)+1);
+  const form=w.document.querySelector('.memo-form');form.scrollTop=430;
+  w.commsSetBulletOption(feature.id,'bulletColor','#9e00cb');
+  assert.equal(w.document.querySelector('.memo-form').scrollTop,430);
+  assert.ok(w.document.querySelector('[data-comms-outline="'+feature.id+'"] .memo-insert-icon').getAttribute('style').includes('#9e00cb'));
+  w.commsMoveBlock(feature.id,-1);assert.equal(w.document.querySelector('.memo-form').scrollTop,430);
+  const trigger=w.document.createElement('button');w.document.body.append(trigger);let options;
+  trigger.focus=o=>{options=o};w.eval('_commsMenuTrigger=null');w._testTrigger=trigger;w.eval('_commsMenuTrigger=window._testTrigger');
+  w.commsCloseMenu();assert.equal(options.preventScroll,true);trigger.remove();
+});
+test('drag handle reorders blocks and cancellation preserves their order',()=>{
+  w.newNewsDraft();w.commsAddBlock('feature');w.commsAddBlock('video');
+  const d=w.eval('_commsCurrent'),ids=d.blocks.map(b=>b.id),raf=w.requestAnimationFrame,cancel=w.cancelAnimationFrame;
+  let tick;w.requestAnimationFrame=fn=>{tick=fn;return 1};w.cancelAnimationFrame=()=>{};
+  const handle=w.document.querySelector('.memo-drag-handle');handle.setPointerCapture=()=>{};handle.hasPointerCapture=()=>false;
+  w.commsDragBlock({button:0,preventDefault(){},currentTarget:handle,clientY:0,pointerId:1},ids[0]);
+  handle.dispatchEvent(new w.MouseEvent('pointermove',{clientY:100}));tick();
+  handle.dispatchEvent(new w.MouseEvent('pointerup'));
+  assert.equal(d.blocks.at(-1).id,ids[0]);
+  const next=w.document.querySelector('.memo-drag-handle'),order=d.blocks.map(b=>b.id);next.setPointerCapture=()=>{};next.hasPointerCapture=()=>false;
+  w.commsDragBlock({button:0,preventDefault(){},currentTarget:next,clientY:0,pointerId:2},order[0]);
+  next.dispatchEvent(new w.MouseEvent('pointermove',{clientY:100}));tick();next.dispatchEvent(new w.MouseEvent('pointercancel'));
+  assert.deepEqual(d.blocks.map(b=>b.id),order);
+  w.requestAnimationFrame=raf;w.cancelAnimationFrame=cancel;
 });
 test('editor rebuilds preserve scroll and fit zoom does not jump as circulars grow',()=>{
   for(const create of [w.newInvitationDraft,w.newNewsDraft]){

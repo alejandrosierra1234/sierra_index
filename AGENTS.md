@@ -14,6 +14,9 @@ For all new or edited SIERRA materials, preserve these brand components:
 
 Shared renderers live in `index.html`; regression coverage lives in `tests/communications/management.cjs`.
 
+- Communication block tools are grouped into Texto (teal), Multimedia (blue), Personas y eventos (green), Acciones y destacados (orange), and Estructura (purple), using SIERRA palette colors and SI_ICON. Outline icons use the same category color; feature blocks show their chosen icon/color. Insert after the active block. Pointer dragging uses a dedicated handle, destination indicator, edge scrolling and cancellation; retain keyboard-accessible move actions. Preserve form, preview and outer scroll positions and restore popover focus with preventScroll.
+- Separators support line style, SIERRA color and vertical spacing. Video blocks use an optional uploaded poster, a play link opening the original URL in a new tab, the visible original URL, and a QR with white padding. Regenerate the QR when the URL changes; discard stale async results. Use the shared renderer in preview and exports.
+
 - Brief notices use kind `aviso` and AVI folios, with their own editor and library filter. Keep the title, main message and optional highlight independent from optional shared gallery, contact and CTA blocks. Do not add memo recipient tables or signatures. The fumigation example is opt-in and must not replace an existing message.
 
 - Informative circulars use kind `circular`, CIR folios, and an editorial masthead with company, publication date and optional country. Do not render the memo's recipient table, salutation or signature block in circulars.
