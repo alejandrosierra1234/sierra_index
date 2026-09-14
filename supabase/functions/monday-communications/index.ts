@@ -111,7 +111,7 @@ Deno.serve(async req => {
     try { body = await req.json() } catch { return json({ error: 'Solicitud no válida.' }, 400) }
     const action = body?.action || 'list'
     if (!env.MONDAY_API_TOKEN || !/^\d+$/.test(env.MONDAY_COMMUNICATIONS_BOARD_ID)) {
-      return json({ error: 'Falta configurar MONDAY_API_TOKEN y MONDAY_COMMUNICATIONS_BOARD_ID en Supabase.' }, 503)
+      return json({ error: 'Falta configurar MONDAY_API_TOKEN y MONDAY_COMMUNICATIONS_BOARD_ID en Supabase.' })
     }
 
     if (action === 'claim') {
@@ -183,6 +183,6 @@ Deno.serve(async req => {
     })
     return json({ ok: true, board: { id: String(board?.id || ''), name: board?.name || 'Monday' }, requests })
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : 'No se pudo consultar Monday.' }, 502)
+    return json({ error: error instanceof Error ? error.message : 'No se pudo consultar Monday.' })
   }
 })
