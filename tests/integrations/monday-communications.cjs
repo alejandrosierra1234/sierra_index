@@ -9,6 +9,10 @@ assert.ok(fnSource.includes('MONDAY_API_TOKEN'));
 assert.ok(fnSource.includes("caller.rpc('authorize'"));
 assert.ok(!fnSource.includes('SUPABASE_SERVICE_ROLE_KEY'));
 assert.ok(fnSource.includes("action === 'claim'"));
+assert.ok(source.includes('async function enterMondayCommunicationsApp()'));
+assert.ok(source.includes("params.get('monday') === 'comms'"));
+assert.ok(source.includes('mondayCommsRequestFromItem(item)'));
+assert.ok(source.includes("mondayCommsUpdateStatus('En diseño')"));
 
 const dom=new JSDOM('<div id="pg"></div><div id="sec-title"></div><div id="sec-sub"></div>',{url:'https://test.local',runScripts:'outside-only'});
 const w=dom.window;

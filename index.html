@@ -9004,6 +9004,7 @@ function hideLoadingScreen() {
    engine. Column lookup is by exact title because monday column IDs differ
    among the three regional photo boards. */
 let _mondayBridge = null
+let _mondayCommsBridge = null
 
 function mondayColumnByTitle(item, title) {
   return (item?.column_values || []).find(value => value?.column?.title === title) || null
@@ -9025,10 +9026,81 @@ const MONDAY_BADGE_CONTROL_COLUMNS = Object.freeze({
   responsibilityLetter: ['Carta responsiva', 'Carta de responsabilidad', 'PDF carta responsiva'],
 })
 
+const MONDAY_COMMS_COLUMNS = Object.freeze({
+  status: ['Estado de solicitud', 'Estado', 'Status'],
+  kind: ['Tipo de comunicado', 'Tipo de comunicación', 'Tipo', 'Formato'],
+  requester: ['Nombre del solicitante', 'Solicitante', 'Nombre'],
+  email: ['Correo del solicitante', 'Correo', 'Email'],
+  country: ['País', 'Pais', 'Country'],
+  company: ['Empresa', 'Compañía', 'Compania'],
+  plant: ['Planta', 'Empresa / planta', 'Empresa/planta'],
+  department: ['Departamento', 'Área que envía el memo', 'Area que envia el memo', 'Área', 'Area'],
+  audience: ['Audiencia', 'Dirigido a', 'Destinatario', 'Público', 'Publico'],
+  summary: ['Bajada', 'Resumen', 'Mensaje corto', 'Descripción breve', 'Descripcion breve'],
+  details: ['Información', 'Informacion', 'Descripción', 'Descripcion', 'Detalle', 'Contenido solicitado'],
+  deadline: ['Fecha requerida', 'Fecha límite', 'Fecha limite', 'Entrega'],
+  priority: ['Prioridad'],
+  channel: ['Canal', 'Publicación', 'Publicacion'],
+})
+
 function mondayColumnJSON(item, title) {
   const raw = mondayColumnByTitle(item, title)?.value
   if (!raw) return null
   try { return typeof raw === 'string' ? JSON.parse(raw) : raw } catch (_) { return null }
+}
+
+function mondayCommsColumn(item, key, type = null) {
+  return mondayColumnByApprovedTitles(item, MONDAY_COMMS_COLUMNS[key] || [], type) ||
+    mondayColumnByApprovedTitles(item, MONDAY_COMMS_COLUMNS[key] || [], null)
+}
+
+function mondayCommsColumnText(item, key) {
+  return String(mondayCommsColumn(item, key)?.text || '').trim()
+}
+
+function mondayCommsKind(value) {
+  const normalized = normalizeBadgeOrgIdentity(value)
+  if (normalized.includes('memo') || normalized.includes('memorandum')) return 'memo'
+  if (normalized.includes('aviso')) return 'aviso'
+  if (normalized.includes('convocatoria') || normalized.includes('evento')) return 'convocatoria'
+  return 'circular'
+}
+
+function mondayCommsRequestFromItem(item) {
+  const boardId = String(item?.board?.id || '')
+  const id = String(item?.id || '')
+  const company = mondayCommsColumnText(item, 'company')
+  const plant = mondayCommsColumnText(item, 'plant')
+  return {
+    id,
+    name: String(item?.name || 'Solicitud de comunicado').trim(),
+    kind: mondayCommsKind(mondayCommsColumnText(item, 'kind')),
+    status: mondayCommsColumnText(item, 'status') || 'Nueva',
+    requester: mondayCommsColumnText(item, 'requester'),
+    email: mondayCommsColumnText(item, 'email'),
+    country: mondayCommsColumnText(item, 'country'),
+    company: company || plant || 'SIERRA',
+    plant: plant && plant !== company ? plant : '',
+    department: mondayCommsColumnText(item, 'department'),
+    audience: mondayCommsColumnText(item, 'audience'),
+    summary: mondayCommsColumnText(item, 'summary'),
+    details: mondayCommsColumnText(item, 'details'),
+    deadline: mondayCommsColumnText(item, 'deadline'),
+    priority: mondayCommsColumnText(item, 'priority'),
+    channel: mondayCommsColumnText(item, 'channel'),
+    url: boardId && id ? `https://sierratextiles.monday.com/boards/${boardId}/pulses/${id}` : '',
+  }
+}
+
+function mondayShowCommsBridgeError(message) {
+  hideLoadingScreen()
+  document.documentElement.classList.add('monday-embedded')
+  document.getElementById('auth-screen').style.display = 'none'
+  document.getElementById('app').style.display = 'flex'
+  leaveView(true)
+  document.getElementById('sec-title').textContent = 'Solicitud de comunicado'
+  document.getElementById('sec-sub').textContent = ''
+  document.getElementById('pg').innerHTML = `<div class="empty-state" style="max-width:620px;margin:64px auto"><h3>No se pudo abrir esta solicitud</h3><p>${esc(message)}</p><p>Abre esta vista desde un elemento del tablero Solicitud de Comunicados.</p></div>`
 }
 
 function mondayLinkedItemIds(item, title) {
@@ -9269,10 +9341,92 @@ async function enterMondayBadgeApp() {
   await mondaySyncBadgeReadinessStatus(employee)
 }
 
+async function mondayCommsUpdateStatus(value) {
+  const bridge = _mondayCommsBridge
+  if (!bridge?.monday || !bridge?.boardId || !bridge?.itemId || !bridge?.statusColumnId) return false
+  const query = `mutation ($board: ID!, $item: ID!, $column: String!, $value: String!) {
+    change_simple_column_value(board_id: $board, item_id: $item, column_id: $column, value: $value) { id }
+  }`
+  const response = await bridge.monday.api(query, {
+    variables: { board: bridge.boardId, item: bridge.itemId, column: bridge.statusColumnId, value },
+  })
+  if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+  if (bridge.request) bridge.request.status = value
+  return true
+}
+
+async function openMondayCommunicationRequest(row) {
+  await commsPrepareStorage()
+  commsLoad()
+  _commsMondayRows = [row]
+  const existing = commsMondayExisting(row.id)
+  if (existing) {
+    openCommunicationDraft(existing.id)
+    toast('Borrador abierto desde Monday.')
+    return existing
+  }
+  if (_commsCurrent && !commsPersist()) return null
+  _commsEditorTab = row.kind === 'circular' || row.kind === 'aviso' ? 'info' : 'content'
+  _commsCurrent = commsNormalize(commsMondaySeed(row))
+  _memoPreviewZoom = 'width'
+  _commsUndo = null
+  if (!commsPersist()) return null
+  renderCommunicationEditor()
+  toast('Solicitud abierta desde Monday.')
+  return _commsCurrent
+}
+
+async function enterMondayCommunicationsApp() {
+  if (typeof window.mondaySdk !== 'function') throw new Error('No se pudo cargar la conexión segura con monday.com.')
+  const monday = window.mondaySdk()
+  if (!monday || typeof monday.get !== 'function' || typeof monday.api !== 'function') {
+    throw new Error('La conexión con monday.com no es compatible. Recarga el elemento e inténtalo de nuevo.')
+  }
+  const contextResult = await monday.get('context')
+  const context = contextResult?.data || {}
+  const itemId = String(context.itemId || context.pulseId || '')
+  if (!/^\d+$/.test(itemId)) throw new Error('Abre esta vista desde un elemento del tablero Solicitud de Comunicados.')
+
+  const [item] = await mondayFetchItems(monday, [itemId])
+  if (!item) throw new Error('No se encontró la solicitud en Monday.')
+  const request = mondayCommsRequestFromItem(item)
+  const statusColumn = mondayCommsColumn(item, 'status', 'status') || mondayCommsColumn(item, 'status')
+  _mondayCommsBridge = {
+    monday,
+    context,
+    itemId,
+    boardId: String(item.board?.id || context.boardId || ''),
+    statusColumnId: statusColumn?.id || null,
+    request,
+    operatorName: context.user?.name || 'Usuario de monday',
+  }
+
+  me = { id: `monday-${context.user?.id || 'user'}`, email: 'monday@app.local' }
+  profile = { role: 'admin', full_name: context.user?.name || 'Comunicaciones' }
+  myGrants = []
+  hideLoadingScreen()
+  document.documentElement.classList.add('monday-embedded')
+  document.getElementById('auth-screen').style.display = 'none'
+  document.getElementById('app').style.display = 'flex'
+  leaveView(true)
+
+  await openMondayCommunicationRequest(request)
+  try { await mondayCommsUpdateStatus('En diseño') }
+  catch (error) { console.warn('monday communications status:', error) }
+}
+
 // (the Label Builder registers its own resize handler alongside lbFitPreview)
 window.addEventListener('DOMContentLoaded', async () => {
   if(window.INDEX_AUTH_REDIRECT)return;
   const params = new URLSearchParams(window.location.search)
+  if (params.get('monday') === 'comms' || params.get('mondayComms') === '1' || params.get('monday_communications') === '1') {
+    try { await enterMondayCommunicationsApp() }
+    catch (error) {
+      console.error('monday communications bridge:', error)
+      mondayShowCommsBridgeError(error?.message || 'Error desconocido al leer monday.com.')
+    }
+    return
+  }
   if (params.get('monday') === '1') {
     try { await enterMondayBadgeApp() }
     catch (error) {
