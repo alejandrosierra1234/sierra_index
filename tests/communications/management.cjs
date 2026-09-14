@@ -141,12 +141,24 @@ test('editorial circulars preserve their kind, metadata, layouts and shared bloc
     assert.equal(box.querySelector('.memo-body > .news-intro'),null);
     assert.ok(box.querySelector('.news-author img'));
     assert.ok(box.querySelector('.news-section-label').textContent.startsWith('Circular informativa'));
-    assert.ok(box.innerHTML.indexOf('Una nueva etapa')<box.innerHTML.indexOf('data:image/png;base64,AA')||layout==='text');
+    const lead=box.querySelector('.news-lead');
+    assert.equal(lead.firstElementChild.tagName,layout==='image-top'?'FIGURE':'DIV');
+    assert.equal(!!lead.querySelector('figure'),layout!=='text');
   }
   assert.equal(box.querySelector('.news-masthead').style.borderBottom,'');assert.equal(box.querySelector('.news-quote').style.background,'transparent');d.newsLayout='image-right';
   quote.hidden=true;box.innerHTML=w.memoPageHtml(d,true);assert.ok(!box.textContent.includes('El esfuerzo es compartido'));
   w.commsPersist();const id=d.id;w.commsDuplicate(id);const copy=w.eval('_commsCurrent');assert.equal(copy.kind,'circular');assert.equal(copy.company,d.company);assert.equal(copy.heroImage,d.heroImage);assert.equal(copy.newsLayout,'image-right');assert.notEqual(copy.id,id);
   assert.equal(copy.authorPhoto,d.authorPhoto);
+  copy.department='Clasificacion interna';copy.authorPhoto='';
+  for(const preview of [false,true]){
+    box.innerHTML=w.memoPageHtml(copy,preview);
+    assert.ok(!box.textContent.includes('Clasificacion interna'));
+    assert.equal(box.querySelector('.news-author').textContent,'María');
+    assert.equal(box.querySelector('.news-author img'),null);
+    assert.equal(box.querySelector('.news-title h1').style.fontWeight,'400');
+  }
+  w.renderNewsEditor();
+  assert.ok(w.document.querySelector('.memo-form').textContent.includes('Departamento interno'));
   w.commsSet('authorPhoto','');assert.equal(w.document.querySelector('.news-author img'),null);
   w.commsSetKind('circular');assert.ok(w.commsFiltered().every(x=>x.kind==='circular'));w.commsSetKind('');w.newCommunicationDraft();
 });
