@@ -316,3 +316,25 @@ item).
   sticker ✓/needed chips with print buttons; finalize blocks while labels
   or required stickers are missing unless the dispatcher records an
   override reason, which is logged with the affected sample ids.
+# Manual Accounts (Update 42)
+
+This section supersedes the account-to-collaborator architecture below. Index
+accounts are created manually with `full_name` and `email`, independently of HR.
+The Team roster reads profiles and capability grants only. HR onboarding,
+termination and employee profiles no longer create or manage Index accounts.
+
+Apply `update42.sql` after update40 (update41 is not required). It retains account
+IDs, names, emails, statuses and grants; archives former employee links in an
+RPC-inaccessible administrative table; and requires `employee_id` to remain null.
+The auth insert trigger always creates a manual `user` profile without capability
+grants, ignoring any client-supplied role. Previously granted access is preserved.
+
+Deploy both `create-index-account` and its legacy alias `create-user` from
+`supabase/functions`. They share the same handler, verify the caller's JWT and
+active platform-admin capability, and send a password-setup invitation. The
+service role stays server-side. Invitations are blocked until migration 42 exists.
+Permissions are assigned separately using the existing atomic `set_index_access`
+RPC; changes to one's own access remain prohibited.
+
+Verification: `node tests/security/manual-accounts.cjs` covers the manual form,
+server permission checks, role injection, missing migration, and migration safety.
