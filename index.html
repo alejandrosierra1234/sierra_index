@@ -35534,7 +35534,7 @@ async function commsMondayInvoke(body){
   const {data:{session},error:sessionError}=await sb.auth.getSession()
   if(sessionError)throw Error('No se pudo verificar tu sesión de SIERRA Index.')
   if(!session?.access_token)throw Error('Tu sesión de SIERRA Index expiró. Vuelve a iniciar sesión para leer las solicitudes de Monday.')
-  const response=await fetch(`${SB_URL}/functions/v1/monday-communications`,{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`,'x-user-authorization':`Bearer ${session.access_token}`},body:JSON.stringify(body)})
+  const response=await fetch(`${SB_URL}/functions/v1/monday-communications`,{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:`Bearer ${SB_KEY}`},body:JSON.stringify({...body,_auth_token:session.access_token})})
   const data=await response.json().catch(()=>null)
   if(!response.ok)throw Error(data?.error||'No se pudo consultar Monday.')
   if(data?.error)throw Error(data.error)

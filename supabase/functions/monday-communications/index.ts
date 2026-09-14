@@ -76,6 +76,10 @@ async function mondayRequest(token: string, query: string, variables: Record<str
 
 async function authorizeCaller(req: Request, env: Record<string, string>) {
   const authorization = req.headers.get('x-user-authorization') || req.headers.get('Authorization') || ''
+  return authorizeToken(authorization, env)
+}
+
+async function authorizeToken(authorization: string, env: Record<string, string>) {
   if (!authorization.startsWith('Bearer ')) return { error: json({ error: 'Inicia sesión para continuar.' }, 401) }
   const caller = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authorization } },
@@ -104,11 +108,12 @@ Deno.serve(async req => {
       MONDAY_COMMUNICATIONS_CLAIM_STATUS: Deno.env.get('MONDAY_COMMUNICATIONS_CLAIM_STATUS') || 'En diseño',
       MONDAY_COMMUNICATIONS_COLUMN_MAP: Deno.env.get('MONDAY_COMMUNICATIONS_COLUMN_MAP') || '',
     }
-    const auth = await authorizeCaller(req, env)
-    if (auth.error) return auth.error
-
     let body: any
     try { body = await req.json() } catch { return json({ error: 'Solicitud no válida.' }, 400) }
+    const bodyToken = typeof body?._auth_token === 'string' ? body._auth_token : ''
+    delete body?._auth_token
+    const auth = await authorizeToken(bodyToken ? `Bearer ${bodyToken}` : (req.headers.get('x-user-authorization') || req.headers.get('Authorization') || ''), env)
+    if (auth.error) return auth.error
     const action = body?.action || 'list'
     if (!env.MONDAY_API_TOKEN || !/^\d+$/.test(env.MONDAY_COMMUNICATIONS_BOARD_ID)) {
       return json({ error: 'Falta configurar MONDAY_API_TOKEN y MONDAY_COMMUNICATIONS_BOARD_ID en Supabase.' })

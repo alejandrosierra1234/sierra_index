@@ -32,9 +32,10 @@ let claims=0;
 w.fetch=async(url,{body,headers})=>{
   assert.equal(url,'https://example.supabase.co/functions/v1/monday-communications');
   assert.equal(headers.Authorization,'Bearer publishable-key');
-  assert.equal(headers['x-user-authorization'],'Bearer test-token');
   assert.equal(headers.apikey,'publishable-key');
   body=JSON.parse(body);
+  assert.equal(body._auth_token,'test-token');
+  delete body._auth_token;
   if(body.action==='claim'){claims++;assert.equal(body.item_id,'123');return{ok:true,json:async()=>({ok:true})}}
   return{ok:true,json:async()=>({ok:true,requests:[{
     id:'123',name:'Lanzamiento SIERRA Nexus',kind:'circular',status:'Nueva',requester:'Marketing',
