@@ -8706,12 +8706,16 @@ async function loadGrants() {
   }catch{return false}
 }
 function can(capability,domain,resourceId=null){
-  if(!me||profile?.account_status!=='active'||!accessVerifiedAt||Date.now()-accessVerifiedAt>60000)return false;
+  const mondayEmbedded = String(me?.id || '').startsWith('monday-') &&
+    ((typeof _mondayBridge !== 'undefined' && _mondayBridge) || (typeof _mondayCommsBridge !== 'undefined' && _mondayCommsBridge))
+  if(!me||profile?.account_status!=='active'||!accessVerifiedAt||(!mondayEmbedded&&Date.now()-accessVerifiedAt>60000))return false;
   return myGrants.some(g=>(!g.expires_at||Date.parse(g.expires_at)>Date.now())&&(
     (g.domain==='platform'&&g.capability==='admin'&&!g.resource_id)||
     (g.domain===domain&&g.capability===capability&&(!g.resource_id||g.resource_id===resourceId))));
 }
 async function refreshAccess(){
+  if(String(me?.id || '').startsWith('monday-') &&
+    ((typeof _mondayBridge !== 'undefined' && _mondayBridge) || (typeof _mondayCommsBridge !== 'undefined' && _mondayCommsBridge)))return;
   if(!me||accessRefreshPending||document.visibilityState==='hidden')return;
   accessRefreshPending=true;
   const previous=JSON.stringify(myGrants);
@@ -9402,8 +9406,12 @@ async function enterMondayCommunicationsApp() {
   }
 
   me = { id: `monday-${context.user?.id || 'user'}`, email: 'monday@app.local' }
-  profile = { role: 'admin', full_name: context.user?.name || 'Comunicaciones' }
-  myGrants = []
+  profile = { role: 'monday', account_status: 'active', full_name: context.user?.name || 'Comunicaciones' }
+  accessVerifiedAt = Date.now()
+  myGrants = [
+    { domain: 'communications', capability: 'read' },
+    { domain: 'communications', capability: 'write' },
+  ]
   hideLoadingScreen()
   document.documentElement.classList.add('monday-embedded')
   document.getElementById('auth-screen').style.display = 'none'
