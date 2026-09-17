@@ -34806,12 +34806,15 @@ function commsMoveBlock(id,dir){const a=_commsCurrent.blocks,i=a.findIndex(b=>b.
 function commsDeleteBlock(id){const index=_commsCurrent.blocks.findIndex(b=>b.id===id);if(index<0)return;const memoId=_commsCurrent.id,info=commsBlockInfo(_commsCurrent.blocks[index],index);commsConfirm('Eliminar bloque completo',`Se eliminará «${info.type} · ${info.title}» (${info.detail}) y todo su contenido. Puedes recuperarlo con Deshacer.`,()=>{if(_commsCurrent?.id!==memoId)return;commsRememberUndo();_commsCurrent.blocks=_commsCurrent.blocks.filter(b=>b.id!==id);renderCommunicationEditor();commsAutosave()},'Eliminar bloque completo')}
 function commsBlobDataUrl(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(reader.error||Error('No se pudo leer la imagen.'));reader.readAsDataURL(blob)})}
 async function commsPrepareImageFile(file,{maxDimension=2400,quality=.88}={}){
-  if(!file?.type?.startsWith('image/'))throw Error('El archivo seleccionado no es una imagen compatible.');
-  let image,url;
+  const name=String(file?.name||'imagen'),kind=String(file?.type||''),extension=name.split('.').pop()?.toLowerCase();
+  if(!file||(!kind.startsWith('image/')&&!['jpg','jpeg','png','webp','gif','avif','svg','heic','heif'].includes(extension)))throw Error(`${name} no es una imagen compatible.`);
+  if(kind==='image/svg+xml'||extension==='svg'||kind==='image/gif'||extension==='gif')return commsBlobDataUrl(file);
+  let image,url,decoded=false;
   try{
     url=URL.createObjectURL(file);
     if(typeof createImageBitmap==='function'){try{image=await createImageBitmap(file,{imageOrientation:'from-image'})}catch{}}
     if(!image){image=new Image();image.decoding='async';image.src=url;await image.decode()}
+    decoded=true;
     const width=image.width||image.naturalWidth,height=image.height||image.naturalHeight;
     if(!width||!height)throw Error('No se pudieron leer las dimensiones de la imagen.');
     const scale=Math.min(1,maxDimension/Math.max(width,height)),canvas=document.createElement('canvas');
@@ -34822,10 +34825,14 @@ async function commsPrepareImageFile(file,{maxDimension=2400,quality=.88}={}){
       const blob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(Error('No se pudo comprimir la imagen.')),'image/webp',quality));
       return await commsBlobDataUrl(blob);
     }finally{canvas.width=canvas.height=1}
-  }catch(error){throw Error(error?.message||'No se pudo procesar esta imagen. Prueba con JPG, PNG, WebP, GIF o AVIF.')}
+  }catch(error){
+    if(decoded){try{return await commsBlobDataUrl(file)}catch{}}
+    if(/heic|heif/i.test(kind+' '+extension))throw Error(`${name} está en formato HEIC/HEIF. Expórtala como JPG desde Fotos y vuelve a intentarlo.`);
+    throw Error(`No se pudo abrir ${name}. ${error?.message||'El formato o el archivo no es compatible con este navegador.'}`)
+  }
   finally{image?.close?.();if(url)URL.revokeObjectURL(url)}
 }
-async function commsReadImage(input,cb){const file=input.files?.[0];if(!file)return;input.disabled=true;try{const value=await commsPrepareImageFile(file);await commsAssetStore(value);cb(value)}catch(error){toast(error.message||'No se pudo guardar esta imagen. El comunicado conserva su contenido anterior.')}finally{input.value='';input.disabled=false}}
+async function commsReadImage(input,cb){const file=input.files?.[0];if(!file)return;input.disabled=true;try{const value=await commsPrepareImageFile(file);await commsAssetStore(value);cb(value)}catch(error){toast(error.message||`No se pudo guardar ${file.name||'la imagen'}. El comunicado conserva su contenido anterior.`)}finally{input.value='';input.disabled=false}}
 function commsBlockImage(id,input){commsReadImage(input,src=>{commsSetBlock(id,'src',src);renderCommunicationEditor()})}
 let _commsSignerIndex=0;
 function commsSigners(d){return[d,...(d.additionalSigners||[])]}
@@ -35334,16 +35341,16 @@ function commsGalleryNumber(value,fallback,min,max){const n=Number(value);return
 function commsGalleryEdit(id,uid,key,value){const b=_commsCurrent?.blocks.find(b=>b.id===id);if(!b)return;b.images=commsGalleryItems(b);const item=b.images.find(x=>x.uid===uid);if(!item)return;item[key]=value;commsSetBlock(id,'images',b.images)}
 function commsGalleryAction(id,uid,action){const b=_commsCurrent?.blocks.find(b=>b.id===id);if(!b)return;const items=commsGalleryItems(b),i=items.findIndex(x=>x.uid===uid);if(i<0)return;commsRememberUndo();if(action==='remove')items.splice(i,1);else{const j=i+(action==='up'?-1:1);if(j<0||j>=items.length)return;[items[i],items[j]]=[items[j],items[i]]}b.images=items;delete b.src;renderCommunicationEditor();commsAutosave()}
 async function commsGalleryUpload(id,input,uid=''){
-  const files=Array.from(input.files||[]),draftId=_commsCurrent?.id;input.value='';let failed=0;
+  const files=Array.from(input.files||[]),draftId=_commsCurrent?.id;input.value='';let failed=0,firstError='';
   for(const file of (uid?files.slice(0,1):files)){
     if(!file.type.startsWith('image/')){failed++;continue}
     try{const src=await commsPrepareImageFile(file);await commsAssetStore(src);
       const b=_commsCurrent?.blocks.find(b=>b.id===id);if(_commsCurrent?.id!==draftId||!b)return;
       const items=commsGalleryItems(b),existing=uid?items.find(x=>x.uid===uid):null;if(uid&&!existing)return;commsRememberUndo();
       if(existing)existing.src=src;else items.push({uid:'image-'+crypto.randomUUID(),src,alt:file.name,fit:'cover',positionX:50,positionY:50,zoom:100});b.images=items;delete b.src;commsAutosave();
-    }catch{failed++}
+    }catch(error){failed++;if(!firstError)firstError=error?.message||''}
   }
-  if(_commsCurrent?.id===draftId)renderCommunicationEditor();if(failed)toast(`${failed} imagen(es) no se pudieron procesar. Prueba con JPG, PNG, WebP, GIF o AVIF.`);
+  if(_commsCurrent?.id===draftId)renderCommunicationEditor();if(failed)toast(failed===1&&firstError?firstError:`${failed} imagen(es) no se pudieron procesar.${firstError?' '+firstError:''}`);
 }
 function commsGalleryEditor(b,tools){
   const items=commsGalleryItems(b),upload=(uid='')=>`<label class="memo-upload" tabindex="0" role="button" aria-label="${uid?'Reemplazar imagen':'Agregar imágenes'}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.querySelector('input').click()}">${siIcon('upload',16)}<span>${uid?'Reemplazar':'Agregar imágenes'}</span><input type="file" accept="image/*" ${uid?'':'multiple'} onchange="commsGalleryUpload('${b.id}',this,'${uid}')"></label>`;
