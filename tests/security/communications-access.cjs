@@ -15,6 +15,8 @@ try {
  run(fs.readFileSync(path.join(root,'js/communications-access.js'),'utf8'));
  w.newCommunicationDraft();const id=run('_commsCurrent.id'),key=w.commsStorageKey('sierra_communications_v1'),saved=w.localStorage.getItem(key);
  level='viewer';w.renderCommunicationEditor();assert.ok(w.document.querySelector('.comms-readonly-sheet'));assert.equal(w.document.querySelector('.memo-form'),null);
+ assert.equal(w.document.getElementById('sec-sub').textContent,'Solo lectura');
+ assert.ok(w.document.querySelector('[onclick="commsDownloadMenu(event)"]'),'active read-only documents expose PDF preview and downloads');
  assert.equal(w.document.querySelector('[onclick*="commsLifecycle"]'),null);
  assert.equal(w.newNewsDraft(),false);assert.equal(w.commsLifecycle(id,'trash'),false);assert.equal(w.commsWriteAll([]),false);
  assert.equal(w.localStorage.getItem(key),saved);w.commsBack();assert.equal(run('_commsCurrent'),null);
