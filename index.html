@@ -8695,8 +8695,7 @@ function hasWarehouseAccess(division) {
 
 let accessVerifiedAt=0,accessRefreshPending=false;
 async function loadGrants() {
-  myGrants=[];accessVerifiedAt=0;
-  if(!me)return false;
+  if(!me){myGrants=[];accessVerifiedAt=0;return false;}
   const userId=me.id;
   try{
     const {data,error}=await sb.rpc('get_my_access');
@@ -34808,6 +34807,7 @@ function commsAddBlock(type){_commsEditorTab='content';const id='b-'+crypto.rand
 function commsMoveBlock(id,dir){const a=_commsCurrent.blocks,i=a.findIndex(b=>b.id===id),j=i+dir;if(i<0||j<0||j>=a.length)return;commsRememberUndo();[a[i],a[j]]=[a[j],a[i]];renderCommunicationEditor();commsAutosave()}
 function commsDeleteBlock(id){const index=_commsCurrent.blocks.findIndex(b=>b.id===id);if(index<0)return;const memoId=_commsCurrent.id,info=commsBlockInfo(_commsCurrent.blocks[index],index);commsConfirm('Eliminar bloque completo',`Se eliminará «${info.type} · ${info.title}» (${info.detail}) y todo su contenido. Puedes recuperarlo con Deshacer.`,()=>{if(_commsCurrent?.id!==memoId)return;commsRememberUndo();_commsCurrent.blocks=_commsCurrent.blocks.filter(b=>b.id!==id);renderCommunicationEditor();commsAutosave()},'Eliminar bloque completo')}
 function commsBlobDataUrl(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(reader.error||Error('No se pudo leer la imagen.'));reader.readAsDataURL(blob)})}
+async function commsEnsureImageWriteAccess(){if(typeof can!=='function'||can('write','communications'))return true;if(typeof loadGrants==='function'&&await loadGrants()&&can('write','communications'))return true;throw Error('Tu sesión no tiene permiso para editar Comunicaciones. Recarga la página o solicita acceso de Editor.')}
 async function commsPrepareImageFile(file,{maxDimension=2400,quality=.88}={}){
   const name=String(file?.name||'imagen'),kind=String(file?.type||''),extension=name.split('.').pop()?.toLowerCase();
   if(!file||(!kind.startsWith('image/')&&!['jpg','jpeg','png','webp','gif','avif','svg','heic','heif'].includes(extension)))throw Error(`${name} no es una imagen compatible.`);
@@ -34835,7 +34835,7 @@ async function commsPrepareImageFile(file,{maxDimension=2400,quality=.88}={}){
   }
   finally{image?.close?.();if(url)URL.revokeObjectURL(url)}
 }
-async function commsReadImage(input,cb){const file=input.files?.[0];if(!file)return;input.disabled=true;try{const value=await commsPrepareImageFile(file);await commsAssetStore(value);cb(value)}catch(error){toast(error.message||`No se pudo guardar ${file.name||'la imagen'}. El comunicado conserva su contenido anterior.`)}finally{input.value='';input.disabled=false}}
+async function commsReadImage(input,cb){const file=input.files?.[0];if(!file)return;input.disabled=true;try{await commsEnsureImageWriteAccess();const value=await commsPrepareImageFile(file);await commsEnsureImageWriteAccess();await commsAssetStore(value);cb(value)}catch(error){toast(error.message||`No se pudo guardar ${file.name||'la imagen'}. El comunicado conserva su contenido anterior.`)}finally{input.value='';input.disabled=false}}
 function commsBlockImage(id,input){commsReadImage(input,src=>{commsSetBlock(id,'src',src);renderCommunicationEditor()})}
 let _commsSignerIndex=0;
 function commsSigners(d){return[d,...(d.additionalSigners||[])]}
@@ -35351,7 +35351,7 @@ async function commsGalleryUpload(id,input,uid=''){
   const files=Array.from(input.files||[]),draftId=_commsCurrent?.id;input.value='';let failed=0,firstError='';
   for(const file of (uid?files.slice(0,1):files)){
     if(!file.type.startsWith('image/')){failed++;continue}
-    try{const src=await commsPrepareImageFile(file);await commsAssetStore(src);
+    try{await commsEnsureImageWriteAccess();const src=await commsPrepareImageFile(file);await commsEnsureImageWriteAccess();await commsAssetStore(src);
       const b=_commsCurrent?.blocks.find(b=>b.id===id);if(_commsCurrent?.id!==draftId||!b)return;
       const items=commsGalleryItems(b),existing=uid?items.find(x=>x.uid===uid):null;if(uid&&!existing)return;commsRememberUndo();
       if(existing)existing.src=src;else items.push({uid:'image-'+crypto.randomUUID(),src,alt:file.name,fit:'cover',positionX:50,positionY:50,zoom:100});b.images=items;delete b.src;commsAutosave();
