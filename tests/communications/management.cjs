@@ -68,6 +68,20 @@ test('memo events reuse SIERRA identity and survive saving and export',()=>{
   const invite=w.createInvitationDraft();const inviteBox=w.document.createElement('div');inviteBox.innerHTML=w.invitationPageHtml(invite);
   assert.ok(inviteBox.querySelector('.sierra-department path'),'invitations keep the department mark');
   assert.ok(inviteBox.querySelector('.sierra-event-date'));
+  Object.assign(invite,{mode:'virtual',virtualUrl:'https://meet.example.com/sala',virtualButtonText:'Entrar ahora',virtualShowButton:true,virtualShowQr:true,virtualQrImage:'data:image/png;base64,QR'});
+  inviteBox.innerHTML=w.invitationPageHtml(invite);
+  assert.equal(inviteBox.querySelector('.invite-event-access a').textContent.trim(),'Entrar ahora');
+  assert.equal(inviteBox.querySelector('.invite-event-access a').getAttribute('href'),'https://meet.example.com/sala');
+  assert.ok(inviteBox.querySelector('.invite-event-access img[alt="Código QR para acceso virtual"]'));
+  invite.virtualUrl='javascript:alert(1)';inviteBox.innerHTML=w.invitationPageHtml(invite);
+  assert.equal(inviteBox.querySelector('.invite-event-access a'),null,'virtual invitation buttons reject unsafe links');
+  w.eval('_commsCurrent=commsNormalize(createInvitationDraft({mode:"virtual",virtualUrl:"https://meet.example.com/sala"}));invitationCards(_commsCurrent)');
+  w.renderCommunicationEditor();
+  assert.ok(w.document.querySelector('[data-invitation-card] input[value="Unirme a la reunión"]'));
+  assert.ok([...w.document.querySelectorAll('[data-invitation-card] label')].some(label=>label.textContent.includes('Mostrar código QR')));
+  w.eval('_commsCurrent.virtualQrImage="data:image/png;base64,OLD"');w.invitationSet('virtualUrl','https://meet.example.com/nueva');
+  assert.equal(w.eval('_commsCurrent.virtualQrImage'),'','changing the meeting link invalidates its previous QR');
+  w.newCommunicationDraft();
 });
 test('contact and CTA blocks save, export and preserve safe written links',()=>{
   w.newCommunicationDraft();
