@@ -2,21 +2,26 @@
 (async () => {
   const status=document.getElementById('status'),form=document.getElementById('password-form');
   const message=(text,error=false)=>{status.textContent=text;status.toggleAttribute('data-error',error);};
-  const hash=new URLSearchParams(location.hash.slice(1));
-  const flow=hash.get('type'),callback=['invite','recovery'].includes(flow)&&hash.has('access_token')&&hash.has('refresh_token');
-  const invalid=hash.has('error')||hash.has('error_code');
+  const hash=new URLSearchParams(location.hash.slice(1)),query=new URLSearchParams(location.search);
+  const allowedFlows=['invite','recovery'],flow=hash.get('type')||query.get('type');
+  const implicit=allowedFlows.includes(flow)&&hash.has('access_token')&&hash.has('refresh_token');
+  const code=query.get('code'),tokenHash=query.get('token_hash');
+  const verifiedToken=allowedFlows.includes(flow)&&Boolean(tokenHash);
+  const callback=implicit||Boolean(code)||verifiedToken;
+  const invalid=hash.has('error')||hash.has('error_code')||query.has('error')||query.has('error_code');
   const clean=()=>history.replaceState(null,'',location.pathname);
   if(flow==='recovery')document.getElementById('title').textContent='Restablecer contraseña';
   const expired=()=>{form.hidden=true;message('El enlace no es válido, ya fue utilizado o venció. Vuelve a Index e ingresa tu correo en “Olvidé mi contraseña” para recibir uno nuevo.',true);};
   if(invalid||!callback){clean();expired();return;}
   let client,userId;
   try {
-    client=supabase.createClient('https://vhyddogeemohtqijohry.supabase.co','sb_publishable_9g8UJRbV3NxOlmQgPxjDqg_Xw6hFB0f');
-    const initialized=await client.auth.initialize();
-    if(initialized.error){clean();expired();return;}
-    const {data,error}=await client.auth.getSession();
+    client=supabase.createClient('https://vhyddogeemohtqijohry.supabase.co','sb_publishable_9g8UJRbV3NxOlmQgPxjDqg_Xw6hFB0f',{auth:{detectSessionInUrl:false}});
+    let result;
+    if(implicit) result=await client.auth.setSession({access_token:hash.get('access_token'),refresh_token:hash.get('refresh_token')});
+    else if(code) result=await client.auth.exchangeCodeForSession(code);
+    else result=await client.auth.verifyOtp({type:flow,token_hash:tokenHash});
     clean();
-    if(error||!data?.session){expired();return;}
+    if(result.error||!result.data?.session){expired();return;}
     const identity=await client.auth.getUser();
     if(identity.error||!identity.data?.user){expired();return;}
     userId=identity.data.user.id;
