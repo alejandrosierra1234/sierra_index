@@ -21,8 +21,8 @@ try {
  assert.equal(w.newNewsDraft(),false);assert.equal(w.commsLifecycle(id,'trash'),false);assert.equal(w.commsWriteAll([]),false);
  assert.equal(w.localStorage.getItem(key),saved);w.commsBack();assert.equal(run('_commsCurrent'),null);
  assert.equal(w.document.querySelector('.comms-header-actions button[onclick^="new"]'),null);
- assert.equal(w.openCommunicationDraft(id),true);
- level='none';assert.equal(w.showCommunications(),false);assert.equal(run('_commsCurrent'),null);assert.equal(run('_commsDrafts.length'),0);
+ assert.equal(w.openCommunicationDraft(id),true);w.commsRememberActive();run('_commsCurrent=null');assert.equal(w.commsRestoreActive(),true);assert.equal(run('_commsCurrent.id'),id);
+ level='none';assert.equal(w.commsRestoreActive(),false);assert.equal(w.showCommunications(),false);assert.equal(run('_commsCurrent'),null);assert.equal(run('_commsDrafts.length'),0);
  assert.equal(w.openCommunicationDraft(id),false);assert.throws(()=>w.commsStorageKey('sierra_communications_v1'));
  assert.equal(w.localStorage.getItem(key),saved,'revocation preserves existing drafts');
  level='editor';w.commsLoad();assert.equal(w.openCommunicationDraft(id),true);w.commsSet('subject','Allowed');w.commsPersist();
