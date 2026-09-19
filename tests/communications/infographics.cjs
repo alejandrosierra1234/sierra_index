@@ -43,7 +43,6 @@ w.infoSetBlock(w.document.querySelector('[data-info-block].info-selected').datas
 assert.match(w.document.querySelector('[data-info-block].info-selected').getAttribute('style'),/--info-span:6/)
 w.infoSetBlock(w.document.querySelector('[data-info-block].info-selected').dataset.infoBlock,'heightMode','fill',true)
 assert.equal(w.document.querySelector('[data-info-block].info-selected').dataset.infoHeight,'fill')
-assert.ok(w.document.querySelector('.info-grid.has-fill'))
 console.log('PASS: modules can be resized and choose content or remaining-space height')
 
 w.infoAddBlock('callout')

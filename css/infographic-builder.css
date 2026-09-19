@@ -31,7 +31,7 @@
 .info-eyebrow{margin:0 0 1.2%;font:700 clamp(11px,1.8cqw,19px)/1.2 "Replica",Arial,sans-serif;text-transform:uppercase;letter-spacing:.015em;color:var(--info-muted,#67675f)}
 .info-title{margin:0;font:700 clamp(30px,5.2cqw,60px)/.98 "Replica",Arial,sans-serif;letter-spacing:-.02em;overflow-wrap:anywhere;color:var(--info-title,#0b0b0b)}
 .info-subtitle{max-width:80%;margin:2.1% 0 0;font:400 clamp(14px,2.2cqw,25px)/1.35 "Replica",Arial,sans-serif;color:var(--info-muted,#67675f);overflow-wrap:anywhere}
-.info-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-flow:row dense;grid-auto-rows:auto;gap:var(--info-gap,14px);align-content:start;flex:1 1 auto;min-height:0}.info-grid.has-fill{align-content:stretch}
+.info-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-flow:row dense;grid-auto-rows:auto;gap:var(--info-gap,14px);align-content:start;flex:1 1 auto;min-height:0;margin-top:8px}
 .info-block-shell{position:relative;min-width:0;grid-column:span var(--info-span,12);border-radius:18px;outline:0 solid transparent;transition:outline-color .12s,transform .12s}
 .info-block-shell[data-info-height=content]{align-self:start}.info-block-shell[data-info-height=fill]{align-self:stretch;min-height:180px}
 .info-block-shell.info-selected{outline:3px solid #16cdbe;outline-offset:3px}
