@@ -26949,7 +26949,7 @@ async function saveProfile() {
   if (droppedProfileColumns.has('avatar_url')) avatar_url = profile?.avatar_url || null
   profile = { ...profile, full_name: name, avatar_url, ui_language: appLang }
   const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
-  const imgHtml = avatar_url ? `<img src="${avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : null
+  const imgHtml = avatar_url ? `<img src="${escAttr(avatar_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : null
   const uav = document.getElementById('u-av')
   if (uav) { uav.innerHTML = imgHtml || ''; if (!imgHtml) { uav.textContent = initials; uav.setAttribute('style', avatarStyle(me.id)) } }
   const sbAv = document.getElementById('sb-av')
