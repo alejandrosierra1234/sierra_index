@@ -8327,10 +8327,19 @@ dialog[open]{position:fixed;inset:0;margin:auto}dialog::backdrop{background:rgba
 
 <div id="toast" role="status" aria-live="polite"></div>
 
+<script src="js/private-assets.js"></script>
 <script>
 const SB_URL = 'https://vhyddogeemohtqijohry.supabase.co'
 const SB_KEY = 'sb_publishable_9g8UJRbV3NxOlmQgPxjDqg_Xw6hFB0f'
-const sb = supabase.createClient(SB_URL, SB_KEY, {auth:{detectSessionInUrl:!window.INDEX_AUTH_REDIRECT}})
+const indexAssets = IndexPrivateAssets.create({origin:SB_URL,key:SB_KEY,fetch:window.fetch.bind(window)})
+const sb = supabase.createClient(SB_URL, SB_KEY, {auth:{detectSessionInUrl:!window.INDEX_AUTH_REDIRECT},global:{fetch:indexAssets.fetch}})
+sb.auth.onAuthStateChange((_event,session)=>indexAssets.scope(session?.access_token?'Bearer '+session.access_token:''))
+document.addEventListener('error',event=>{
+  const img=event.target;
+  if(img.tagName!=='IMG'||!indexAssets.path(img.src)||img.dataset.assetRetry===img.src)return;
+  img.dataset.assetRetry=img.src;
+  indexAssets.resolve(img.src).then(url=>{img.dataset.assetRetry=url;img.crossOrigin='anonymous';img.src=url}).catch(()=>{img.removeAttribute('src')});
+},true)
 
 // Used by the Spotlight ⌘K/Ctrl K shortcut (below) and to render a
 // platform-appropriate hint next to the search controls
@@ -9551,7 +9560,7 @@ async function enterApp(user) {
   ;[sbAv, tbAv].forEach(av => {
     if (!av) return
     if (p?.avatar_url) {
-      av.innerHTML = `<img src="${p.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+      av.innerHTML = `<img src="${escAttr(p.avatar_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
     } else {
       av.textContent = initials
       av.setAttribute('style', av.getAttribute('style') + ';' + avatarStyle(user.id))
@@ -21848,7 +21857,7 @@ function cgLoadImageEl(url) {
     img.crossOrigin = 'anonymous'
     img.onload = () => resolve(img)
     img.onerror = () => reject(new Error('no se pudo cargar la imagen'))
-    img.src = url
+    indexAssets.resolve(url).then(src=>{img.src=src}).catch(reject)
   })
 }
 async function cgCheckPhotoQuality(url) {
@@ -22372,6 +22381,7 @@ async function badgeResponsivaPdfBlob(emp, site, language = _badgeResponsivaLang
       frame.srcdoc = badgeResponsivaHtml(emp, site, language)
     })
     const doc = frame.contentDocument
+    if(typeof indexAssets!=='undefined')await indexAssets.images(doc)
     await doc.fonts?.ready
     const images = [...doc.images]
     await Promise.all(images.map(img => img.complete ? Promise.resolve() : new Promise(resolve => {
@@ -24438,7 +24448,7 @@ function badgeCropInitLivePreview(emp) {
     })
   }
   img.onerror = () => { badgeCropUpdateStatus(emp, 'No fue posible cargar la fotografía original para editar el encuadre.') }
-  img.src = emp.photo_url
+  indexAssets.resolve(emp.photo_url).then(src=>{img.src=src}).catch(()=>{})
 }
 function badgeCropZoomFromCrop(crop, containerAspect, natural) {
   const base = badgeCropBaseRectForContainer(containerAspect, natural.w / natural.h)
@@ -25134,6 +25144,7 @@ function _badgeBuildPrintHtml({ emp, site, pieces, barcodeMarkup, sides, calibra
 // actions, and the calibration card — none of them get their own,
 // potentially-diverging copy of this wait/verify sequence.
 async function _badgePrintFromEditor(html, { waitForPhoto = true } = {}) {
+  if(typeof indexAssets!=='undefined')html=await indexAssets.html(html)
   const frame = document.createElement('iframe')
   frame.setAttribute('aria-hidden', 'true')
   frame.setAttribute('title', 'Documento temporal de impresión de gafete')
@@ -28823,7 +28834,7 @@ async function orgExportPng(forest, layout, _retryNoPhoto) {
           const im = new Image()
           im.crossOrigin = 'anonymous'
           im.onload = () => resolve(im); im.onerror = reject
-          im.src = emp.photo_url
+          indexAssets.resolve(emp.photo_url).then(src=>{im.src=src}).catch(()=>{})
         })
         photoCache.set(id, img)
       } catch {}
@@ -35643,6 +35654,7 @@ async function memoImageBlob(d,format){
     const ready=new Promise((resolve,reject)=>{frame.onload=resolve;timer=setTimeout(()=>reject(new Error('La imagen tardó demasiado en prepararse. Inténtalo de nuevo.')),20000)});
     const fontCss=await memoExportFontCss();frame.srcdoc=memoImageDocumentHtml(d,fontCss);document.body.appendChild(frame);await ready;clearTimeout(timer);
     const doc=frame.contentDocument;
+    if(typeof indexAssets!=='undefined')await indexAssets.images(doc);
     await Promise.race([Promise.all([doc.fonts?.ready,...Array.from(doc.images,img=>img.decode())]),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('No se terminaron de cargar las fuentes o imágenes. Inténtalo de nuevo.')),20000)})]);
     clearTimeout(timer);memoImagePalette(doc);memoFitExportContent(doc);
     const page=doc.querySelector('.memo-page'),isInvitation=page.classList.contains('invite-page');if(isInvitation){page.style.setProperty('width','8.5in','important');page.style.setProperty('height','11in','important');page.style.setProperty('min-height','11in','important');page.style.setProperty('max-height','11in','important');page.style.setProperty('overflow','hidden','important')}else if(d.kind==='aviso'){noticeCheckOverflow(doc)}else{page.style.height='auto';page.style.overflow='visible'}const rect=page.getBoundingClientRect(),width=d.kind==='aviso'?816:isInvitation?816:Math.ceil(Math.max(page.scrollWidth,rect.width)),height=isInvitation?1056:Math.ceil(Math.max(page.scrollHeight,rect.height));const watermark=page.querySelector('.memo-watermark');if(watermark){watermark.style.top=Math.min(height/2,528)+'px';for(let y=1584;y<height;y+=1056){const copy=watermark.cloneNode(true);copy.style.top=Math.min(y,height-100)+'px';page.appendChild(copy)}}
@@ -35933,7 +35945,7 @@ async function memoPdfBlob(d){
   try{
     const html=memoImageDocumentHtml(d,await memoExportFontCss());
     const ready=new Promise(resolve=>frame.onload=resolve);frame.srcdoc=html;document.body.append(frame);await Promise.race([ready,timeout()]);clearTimeout(timer);
-    const doc=frame.contentDocument;await Promise.race([Promise.all([doc.fonts.ready,...Array.from(doc.images,img=>img.decode())]),timeout()]);clearTimeout(timer);
+    const doc=frame.contentDocument;if(typeof indexAssets!=='undefined')await indexAssets.images(doc);await Promise.race([Promise.all([doc.fonts.ready,...Array.from(doc.images,img=>img.decode())]),timeout()]);clearTimeout(timer);
     memoImagePalette(doc);memoFitExportContent(doc);
     noticeCheckOverflow(doc);if(d.kind==='aviso')noticePaginatePrint(doc);else if(d.kind!=='convocatoria')memoPaginatePrint(doc);
     const pages=[...doc.querySelectorAll('.memo-page')];pages.forEach(page=>{page.style.margin='0';page.style.boxShadow='none'});
@@ -35963,7 +35975,7 @@ async function commsExportPdf(mode='download'){
 }
 async function commsPrintDocument(){
   if(!_commsCurrent||_memoImageExporting||!commsPersist())return;const draft=JSON.parse(JSON.stringify(_commsCurrent));_memoImageExporting=true;let frame;
-  try{const html=memoPrintDocumentHtml(draft,await memoExportFontCss());frame=document.createElement('iframe');frame.title='Imprimir comunicado';frame.style.cssText='position:fixed;left:-10000px;width:816px;height:1056px;border:0';frame.onload=()=>{frame.contentWindow.addEventListener('afterprint',()=>frame.remove(),{once:true})};frame.srcdoc=html;document.body.append(frame);setTimeout(()=>frame.remove(),300000)}catch(error){frame?.remove();alert(error.message)}finally{_memoImageExporting=false}
+  try{let html=memoPrintDocumentHtml(draft,await memoExportFontCss());if(typeof indexAssets!=='undefined')html=await indexAssets.html(html);frame=document.createElement('iframe');frame.title='Imprimir comunicado';frame.style.cssText='position:fixed;left:-10000px;width:816px;height:1056px;border:0';frame.onload=()=>{frame.contentWindow.addEventListener('afterprint',()=>frame.remove(),{once:true})};frame.srcdoc=html;document.body.append(frame);setTimeout(()=>frame.remove(),300000)}catch(error){frame?.remove();alert(error.message)}finally{_memoImageExporting=false}
 }
 let _memoSpellEngine=null,_memoProofDialog=null;
 async function memoSpellEngine(){if(_memoSpellEngine)return _memoSpellEngine;try{if(!window.MemoNspell)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=new URL('assets/spelling/nspell.js',document.baseURI).href;script.onload=resolve;script.onerror=()=>{script.remove();reject(Error('No se pudo cargar el corrector.'))};document.head.append(script)});const texts=await Promise.all(['es.aff','es.dic'].map(async file=>{const response=await fetch(new URL('assets/spelling/'+file,document.baseURI),{signal:AbortSignal.timeout(15000)});if(!response.ok)throw Error('No se pudo cargar el diccionario.');return response.text()}));_memoSpellEngine=new window.MemoNspell({aff:texts[0],dic:texts[1]});_memoSpellEngine.add('SIERRA');return _memoSpellEngine}catch(error){_memoSpellEngine=null;throw error}}
