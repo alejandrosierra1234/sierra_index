@@ -1,5 +1,6 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict')
 const {JSDOM}=require('jsdom')
+const iconCatalog=JSON.parse(fs.readFileSync(path.join(__dirname,'../../data/infographic-icons.json'),'utf8'))
 const dom=new JSDOM(`<!doctype html><div id="tb-section"></div><div id="product-controls"></div><div id="sec-title"></div><div id="sec-sub"></div><div id="pg"></div>`,{url:'https://test.local',runScripts:'outside-only'})
 const w=dom.window
 Object.assign(w,{
@@ -10,6 +11,7 @@ Object.assign(w,{
   siIcon:name=>`<svg data-icon="${name}"></svg>`,memoLogoHtml:()=>'<div class="memo-logo">SIERRA</div>',
   sierraDepartmentHtml:(name,color)=>`<div class="sierra-department" style="color:${color}">${name}</div>`,
   toast(){},requestAnimationFrame:fn=>fn(),confirm:()=>true,
+  fetch:async()=>({ok:true,json:async()=>iconCatalog}),
   commsConfirm:(title,body,fn)=>fn(),
 })
 w.eval=code=>vm.runInContext(code,dom.getInternalVMContext())
@@ -38,8 +40,16 @@ console.log('PASS: modules can be added and resized in the 12-column layout')
 
 w.infoAddBlock('callout')
 const iconBlock=w.document.querySelector('[data-info-block].info-selected').dataset.infoBlock
-assert.ok(w.document.querySelectorAll('.info-icon-choice').length>=16)
+assert.ok(w.document.querySelector('.info-icon-trigger'))
 assert.doesNotMatch(w.document.getElementById('info-inspector').textContent,/Esquinas|Espacio interior/)
+w.infoOpenIconPicker(iconBlock);await new Promise(resolve=>setTimeout(resolve,0))
+assert.ok(Object.keys(iconCatalog).length>1000)
+assert.match(w.document.querySelector('[data-info-icon-status]').textContent,/5,130 iconos disponibles/)
+assert.ok(w.document.querySelectorAll('.info-catalog-icon').length>=10)
+const iconSearch=w.document.querySelector('.info-icon-dialog input[type="search"]');iconSearch.value='ambulance';iconSearch.dispatchEvent(new w.Event('input',{bubbles:true}))
+assert.ok(w.document.querySelector('[data-info-icon="ambulance"]'))
+w.document.querySelector('[data-info-icon="ambulance"]').click()
+assert.ok(w.document.querySelector(`[data-info-block="${iconBlock}"] .info-icon-plaque svg`))
 w.infoSetBlock(iconBlock,'iconColor','#ff0000');w.infoSetBlock(iconBlock,'iconBackground','#00ff00')
 const plaque=w.document.querySelector(`[data-info-block="${iconBlock}"] .info-icon-plaque`)
 assert.match(plaque.getAttribute('style'),/--info-icon-color:#ff0000/)
