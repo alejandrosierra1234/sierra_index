@@ -12,14 +12,32 @@ const INFO_PRESETS={
   story:{label:'Historia · 1080 × 1920',width:1080,height:1920},
   custom:{label:'Medida personalizada'}
 }
-const INFO_COLORS=['#f5f5f5','#e8f8f6','#dff4ff','#fff3c4','#f7e2ff','#ffe7d5','#e7f8d9','#0b0b0b']
-const INFO_COLOR_PALETTE=['#0b0b0b','#ffffff','#6b6b63','#007d73','#16cdbe','#006da8','#75009a','#34710c','#827e00','#ff7824','#b40b0b','#f5f5f5']
+const INFO_SIERRA_COLOR_NAMES={
+  '#cffffb':'Turquesa claro','#16cdbe':'Turquesa SIERRA','#007d73':'Turquesa oscuro',
+  '#efefaf':'Oliva claro','#c4c412':'Oliva','#827e00':'Oliva oscuro',
+  '#d1ffbe':'Verde claro','#3ed600':'Verde','#2a9200':'Verde oscuro',
+  '#c5e9ff':'Azul claro','#009fff':'Azul','#004a86':'Azul oscuro',
+  '#f6d8ff':'Morado claro','#9e00cb':'Morado','#670084':'Morado oscuro',
+  '#fff0af':'Amarillo claro','#ffc529':'Amarillo','#bb9800':'Amarillo oscuro',
+  '#ffe3d2':'Naranja claro','#ff7824':'Naranja','#cd4f00':'Naranja oscuro',
+  '#ffc7c7':'Rojo claro','#e80000':'Rojo','#b40b0b':'Rojo oscuro',
+  '#0b0b0b':'Negro','#2b2b2b':'Carbón','#444444':'Gris oscuro','#6b6b73':'Gris SIERRA',
+  '#a4a4a4':'Gris medio','#e5e5e5':'Gris claro','#f5f5f5':'Blanco humo','#ffffff':'Blanco'
+}
+const INFO_COLORS=['#ffffff','#f5f5f5','#cffffb','#efefaf','#d1ffbe','#c5e9ff','#f6d8ff','#fff0af','#ffe3d2','#ffc7c7','#0b0b0b']
+const INFO_COLOR_PALETTE=['#0b0b0b','#444444','#6b6b73','#ffffff','#16cdbe','#007d73','#c4c412','#827e00','#3ed600','#2a9200','#009fff','#004a86','#9e00cb','#670084','#ffc529','#bb9800','#ff7824','#cd4f00','#e80000','#b40b0b']
 const INFO_ICON_COLORS=[
-  {background:'#d9f7f3',color:'#007d73'},
-  {background:'#fff0b8',color:'#827e00'},
-  {background:'#dff4ff',color:'#006da8'},
-  {background:'#f3dcff',color:'#75009a'}
+  {background:'#cffffb',color:'#007d73'},
+  {background:'#efefaf',color:'#827e00'},
+  {background:'#c5e9ff',color:'#004a86'},
+  {background:'#f6d8ff',color:'#670084'}
 ]
+const INFO_LEGACY_COLOR_MAP={
+  '#e8f8f6':'#cffffb','#d9f7f3':'#cffffb','#dff4ff':'#c5e9ff','#fff3c4':'#efefaf',
+  '#fff0b8':'#efefaf','#f7e2ff':'#f6d8ff','#f3dcff':'#f6d8ff','#ffe7d5':'#ffe3d2',
+  '#e7f8d9':'#d1ffbe','#006da8':'#004a86','#75009a':'#670084','#34710c':'#2a9200',
+  '#a93d00':'#cd4f00','#6b6b63':'#6b6b73','#171717':'#0b0b0b'
+}
 const INFO_ICONS=[
   ['info','Información'],['bulb','Idea'],['shield','Seguridad'],['heart','Bienestar'],
   ['leaf','Sostenibilidad'],['check','Correcto'],['calendar','Calendario'],['users','Personas'],
@@ -57,7 +75,8 @@ function infoEnsureIconCatalog(){
   if(!infoIconCatalogPromise)infoIconCatalogPromise=fetch('data/infographic-icons.json').then(response=>{if(!response.ok)throw Error('No se pudo cargar la biblioteca de iconos.');return response.json()}).then(catalog=>{infoIconCatalog=catalog;document.querySelectorAll('[data-info-icon-count]').forEach(el=>el.textContent=`${Object.keys(catalog).length.toLocaleString('es-GT')} iconos`);document.querySelectorAll('[data-info-icon-preview]').forEach(el=>el.innerHTML=infoIcon(el.dataset.infoIconPreview,23)||infoIcon('sparkle',23));if(document.getElementById('info-page-host'))infoRenderCanvas();return catalog}).catch(error=>{infoIconCatalogPromise=null;throw error})
   return infoIconCatalogPromise
 }
-function infoInk(color){const v=String(color||'').replace('#','');if(!/^[0-9a-f]{6}$/i.test(v))return'#171717';const [r,g,b]=[0,2,4].map(i=>parseInt(v.slice(i,i+2),16)/255),lum=.2126*r+.7152*g+.0722*b;return lum>.59?'#171717':'#ffffff'}
+function infoInk(color){const v=String(color||'').replace('#','');if(!/^[0-9a-f]{6}$/i.test(v))return'#0b0b0b';const [r,g,b]=[0,2,4].map(i=>parseInt(v.slice(i,i+2),16)/255),lum=.2126*r+.7152*g+.0722*b;return lum>.59?'#0b0b0b':'#ffffff'}
+function infoSierraColor(value){const color=String(value||'').toLowerCase();return INFO_LEGACY_COLOR_MAP[color]||value}
 function infoSafeUrl(value){try{const u=new URL(String(value||''));return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password?u.href:''}catch{return''}}
 function infoSanitize(html){
   const doc=new DOMParser().parseFromString('<div>'+String(html||'')+'</div>','text/html'),root=doc.body.firstElementChild
@@ -66,13 +85,13 @@ function infoSanitize(html){
   return root.innerHTML
 }
 function infoBlock(type,seed={}){
-  const base={id:infoId('art'),type,span:12,background:'#f5f5f5',color:'#171717',minHeight:0,hidden:false}
+  const base={id:infoId('art'),type,span:12,background:'#f5f5f5',color:'#0b0b0b',minHeight:0,hidden:false}
   const byType={
     text:{heading:'Un mensaje claro',html:'<p>Escribe aquí la información que quieres comunicar. Puedes usar <strong>negritas</strong>, <u>subrayado</u> y listas.</p>',span:6},
     image:{src:'',alt:'',fit:'cover',position:50,span:6,minHeight:250},
-    callout:{heading:'Información importante',html:'<p>Resume aquí una idea que deba destacar.</p>',icon:'info',iconBackground:'#d9f7f3',iconColor:'#007d73',span:12},
+    callout:{heading:'Información importante',html:'<p>Resume aquí una idea que deba destacar.</p>',icon:'info',iconBackground:'#cffffb',iconColor:'#007d73',span:12},
     features:{heading:'Puntos clave',items:[['shield','Primer punto','Explica la idea en una frase breve.'],['bulb','Segundo punto','Usa palabras sencillas y accionables.'],['leaf','Tercer punto','Mantén una jerarquía visual clara.'],['check','Cuarto punto','Cierra con una acción concreta.']].map(([icon,title,text],index)=>({id:infoId('item'),icon,title,text,...INFO_ICON_COLORS[index]})),span:12},
-    stat:{value:'85%',heading:'Indicador principal',html:'<p>Agrega contexto para que el dato sea fácil de entender.</p>',icon:'chart-pie',iconBackground:'#dff4ff',iconColor:'#006da8',span:6},
+    stat:{value:'85%',heading:'Indicador principal',html:'<p>Agrega contexto para que el dato sea fácil de entender.</p>',icon:'chart-pie',iconBackground:'#c5e9ff',iconColor:'#004a86',span:6},
     cta:{heading:'¿Listo para actuar?',html:'<p>Explica brevemente el siguiente paso.</p>',label:'Abrir enlace',url:'https://',buttonBackground:'#0b0b0b',buttonColor:'#ffffff',span:12}
   }
   return Object.assign(base,byType[type]||byType.text,seed)
@@ -81,7 +100,7 @@ function infoCreateDraft(seed={}){
   const now=infoNow()
   return Object.assign({
     id:infoId('infographic'),title:'Título de la infografía',subtitle:'Agrega una breve introducción que prepare al lector.',showSubtitle:true,eyebrow:'Comunicaciones SIERRA',
-    preset:'letter',width:816,height:1056,background:'#ffffff',titleColor:'#0b0b0b',mutedColor:'#6b6b63',accent:'#16cdbe',gap:14,
+    preset:'letter',width:816,height:1056,background:'#ffffff',titleColor:'#0b0b0b',mutedColor:'#6b6b73',accent:'#16cdbe',gap:14,
     department:'Comunicaciones Corporativas',departmentColor:'#ff7824',createdAt:now,updatedAt:now,
     blocks:[
       infoBlock('text',{heading:'¿Qué necesitas comunicar?',html:'<p>Presenta el tema con una explicación breve, directa y fácil de recordar.</p>'}),
@@ -95,6 +114,8 @@ function infoNormalizeDraft(raw){
   const d=Object.assign(infoCreateDraft({blocks:[]}),raw||{})
   d.width=Math.min(2400,Math.max(320,Number(d.width)||816));d.height=Math.min(4000,Math.max(480,Number(d.height)||1056));d.gap=Math.min(36,Math.max(4,Number(d.gap)||14))
   d.blocks=Array.isArray(raw?.blocks)?raw.blocks.map(b=>Object.assign(infoBlock(b.type||'text',{id:b.id||infoId('art')}),b)):[]
+  ;['background','titleColor','mutedColor','accent','departmentColor'].forEach(key=>d[key]=infoSierraColor(d[key]))
+  d.blocks.forEach(block=>{['background','color','iconBackground','iconColor','buttonBackground','buttonColor'].forEach(key=>{if(block[key])block[key]=infoSierraColor(block[key])});block.items?.forEach(item=>{['background','color','iconBackground','iconColor'].forEach(key=>{if(item[key])item[key]=infoSierraColor(item[key])})})})
   return d
 }
 function infoLoad(){
@@ -131,7 +152,7 @@ window.showInfographics=function(){
   infoRenderAll();infoEnsureIconCatalog().catch(()=>infoNotify('No se pudo cargar el catálogo completo de iconos.'));requestAnimationFrame(()=>{infoFitCanvas();if(typeof ResizeObserver!=='undefined'){infoResizeObserver?.disconnect();infoResizeObserver=new ResizeObserver(infoFitCanvas);infoResizeObserver.observe(document.getElementById('info-stage'))}})
 }
 function infoLibraryHtml(){
-  const items=[['text','text-size','Texto','Título y texto enriquecido','#e8f8f6','#007d73'],['image','photo','Imagen','Fotografía o ilustración','#dff4ff','#006da8'],['callout','info','Destacado','Ícono y mensaje clave','#fff3c4','#827e00'],['features','columns','Tarjetas con íconos','De dos a cuatro ideas','#f7e2ff','#75009a'],['stat','chart-pie','Dato destacado','Cifra, etiqueta y contexto','#e7f8d9','#34710c'],['cta','link','Llamado a la acción','Botón, texto y enlace','#ffe7d5','#a93d00']]
+  const items=[['text','text-size','Texto','Título y texto enriquecido','#cffffb','#007d73'],['image','photo','Imagen','Fotografía o ilustración','#c5e9ff','#004a86'],['callout','info','Destacado','Ícono y mensaje clave','#efefaf','#827e00'],['features','columns','Tarjetas con íconos','De dos a cuatro ideas','#f6d8ff','#670084'],['stat','chart-pie','Dato destacado','Cifra, etiqueta y contexto','#d1ffbe','#2a9200'],['cta','link','Llamado a la acción','Botón, texto y enlace','#ffe3d2','#cd4f00']]
   return`<div class="info-library-group"><span class="info-library-label">Módulos</span>${items.map(([type,icon,label,desc,soft,ink])=>`<button class="info-add-button" onclick="infoAddBlock('${type}')" style="--info-soft:${soft};--info-ink:${ink}"><span class="info-add-icon">${infoIcon(icon,18)}</span><span><b>${label}</b><small>${desc}</small></span></button>`).join('')}</div><div class="info-tip"><b>Layout sin complicaciones</b><br>Selecciona un bloque para cambiar su ancho. Combina ½ + ½, ⅓ + ⅔ o módulos de ancho completo.</div>`
 }
 function infoLogoHtml(){return typeof memoLogoHtml==='function'?memoLogoHtml():'<strong>SIERRA</strong>'}
@@ -155,8 +176,8 @@ function infoBlockHtml(b,interactive){
   let body=''
   if(b.type==='image')body=`<div class="info-block info-image-block" style="${style};--info-image-fit:${b.fit==='contain'?'contain':'cover'};--info-image-position:${Math.min(100,Math.max(0,Number(b.position)||50))}% 50%">${b.src?`<img src="${infoAttr(b.src)}" alt="${infoAttr(b.alt||'Imagen de la infografía')}">`:`<div class="info-image-placeholder"><span>${infoIcon('photo',34)}<b>Agrega una imagen</b></span></div>`}</div>`
   else if(b.type==='features'){const cols=Math.min(4,Math.max(2,b.items?.length||2));body=`<section class="info-block" style="${style}"><h2>${infoEscape(b.heading)}</h2><div class="info-feature-grid" style="--info-feature-cols:${cols}">${(b.items||[]).map((item,index)=>{const palette=INFO_ICON_COLORS[index%INFO_ICON_COLORS.length];return`<article class="info-feature-item"><span class="info-icon-plaque" style="--info-icon-bg:${infoAttr(item.iconBackground||palette.background)};--info-icon-color:${infoAttr(item.iconColor||palette.color)}">${infoIcon(item.icon||'check',21)}</span><h3>${infoEscape(item.title)}</h3><p>${infoEscape(item.text)}</p></article>`}).join('')}</div></section>`}
-  else if(b.type==='callout')body=`<section class="info-block info-callout-layout" style="${style}"><span class="info-icon-plaque" style="--info-icon-bg:${infoAttr(b.iconBackground||'#d9f7f3')};--info-icon-color:${infoAttr(b.iconColor||'#007d73')}">${infoIcon(b.icon||'info',24)}</span><div><h2>${infoEscape(b.heading)}</h2><div class="info-rich-output" data-info-output="${infoAttr(b.id)}">${infoSanitize(b.html)}</div></div></section>`
-  else if(b.type==='stat')body=`<section class="info-block info-stat-block" style="${style}"><span class="info-icon-plaque" style="--info-icon-bg:${infoAttr(b.iconBackground||'#dff4ff')};--info-icon-color:${infoAttr(b.iconColor||'#006da8')}">${infoIcon(b.icon||'chart-pie',25)}</span><div><div class="info-stat-value">${infoEscape(b.value)}</div><h3 class="info-stat-label">${infoEscape(b.heading)}</h3><div class="info-rich-output" data-info-output="${infoAttr(b.id)}">${infoSanitize(b.html)}</div></div></section>`
+  else if(b.type==='callout')body=`<section class="info-block info-callout-layout" style="${style}"><span class="info-icon-plaque" style="--info-icon-bg:${infoAttr(b.iconBackground||'#cffffb')};--info-icon-color:${infoAttr(b.iconColor||'#007d73')}">${infoIcon(b.icon||'info',24)}</span><div><h2>${infoEscape(b.heading)}</h2><div class="info-rich-output" data-info-output="${infoAttr(b.id)}">${infoSanitize(b.html)}</div></div></section>`
+  else if(b.type==='stat')body=`<section class="info-block info-stat-block" style="${style}"><span class="info-icon-plaque" style="--info-icon-bg:${infoAttr(b.iconBackground||'#c5e9ff')};--info-icon-color:${infoAttr(b.iconColor||'#004a86')}">${infoIcon(b.icon||'chart-pie',25)}</span><div><div class="info-stat-value">${infoEscape(b.value)}</div><h3 class="info-stat-label">${infoEscape(b.heading)}</h3><div class="info-rich-output" data-info-output="${infoAttr(b.id)}">${infoSanitize(b.html)}</div></div></section>`
   else if(b.type==='cta'){const href=infoSafeUrl(b.url);body=`<section class="info-block info-cta-block" style="${style};--info-button-bg:${infoAttr(b.buttonBackground||'#0b0b0b')};--info-button-ink:${infoAttr(b.buttonColor||'#ffffff')}"><div class="info-cta-copy"><h2>${infoEscape(b.heading)}</h2><div class="info-rich-output" data-info-output="${infoAttr(b.id)}">${infoSanitize(b.html)}</div>${b.url?`<span class="info-cta-url">${infoEscape(b.url)}</span>`:''}</div><a class="info-cta-link" href="${infoAttr(href||'#')}" ${interactive?'onclick="event.preventDefault()"':'target="_blank" rel="noopener noreferrer"'}>${infoEscape(b.label||'Abrir enlace')}</a></section>`}
   else body=`<section class="info-block" style="${style}"><h2>${infoEscape(b.heading)}</h2><div class="info-rich-output" data-info-output="${infoAttr(b.id)}">${infoSanitize(b.html)}</div></section>`
   return`<div ${common}>${body}</div>`
@@ -174,7 +195,7 @@ function infoIconLabel(key){const known=INFO_ICONS.find(([name])=>name===key)?.[
 function infoIconTrigger(value,blockId,itemId=''){const count=infoIconCatalog?Object.keys(infoIconCatalog).length.toLocaleString('es-GT'):'5,130';return`<button type="button" class="info-icon-trigger" onclick="infoOpenIconPicker('${blockId}','${itemId}')"><span class="info-icon-trigger-preview" data-info-icon-preview="${infoAttr(value)}">${infoIcon(value,23)||infoIcon('sparkle',23)}</span><span><b>${infoEscape(infoIconLabel(value))}</b><small>Buscar entre <span data-info-icon-count>${count} iconos</span></small></span>${infoIcon('chevron-right',17)}</button>`}
 function infoColorControl(label,value,scope,id,key,itemId='',palette=INFO_COLOR_PALETTE){
   const color=/^#[0-9a-f]{6}$/i.test(value||'')?String(value).toLowerCase():'#000000',prefix=`infoSetColor('${infoAttr(scope)}','${infoAttr(id||'')}','${infoAttr(itemId||'')}','${infoAttr(key)}',`
-  return`<div class="info-color-field" role="group" aria-label="${infoAttr(label)}"><span class="info-color-label">${infoEscape(label)}</span><div class="info-color-swatches">${palette.map(c=>`<button type="button" class="info-color-swatch" style="--info-swatch:${c}" aria-label="Usar ${c}" aria-pressed="${color===c.toLowerCase()}" onclick="${prefix}'${c}',true)"></button>`).join('')}</div><div class="info-color-custom"><input type="color" value="${color}" aria-label="Elegir color personalizado" oninput="${prefix}this.value,false)"><span class="info-color-preview" style="--info-preview:${color}"></span><input class="control-input" value="${color.toUpperCase()}" maxlength="7" aria-label="Código hexadecimal" spellcheck="false" onchange="${prefix}this.value,true)"></div></div>`
+  return`<div class="info-color-field" role="group" aria-label="${infoAttr(label)}"><span class="info-color-label">${infoEscape(label)} <small>Paleta SIERRA</small></span><div class="info-color-swatches">${palette.map(c=>{const name=INFO_SIERRA_COLOR_NAMES[c.toLowerCase()]||'Color SIERRA';return`<button type="button" class="info-color-swatch" style="--info-swatch:${c}" title="${infoAttr(name)} · ${c.toUpperCase()}" aria-label="Usar ${infoAttr(name)} ${c}" aria-pressed="${color===c.toLowerCase()}" onclick="${prefix}'${c}',true)"></button>`}).join('')}</div><div class="info-color-custom"><input type="color" value="${color}" aria-label="Elegir color personalizado" oninput="${prefix}this.value,false)"><span class="info-color-preview" style="--info-preview:${color}"></span><input class="control-input" value="${color.toUpperCase()}" maxlength="7" aria-label="Código hexadecimal" spellcheck="false" onchange="${prefix}this.value,true)"></div></div>`
 }
 window.infoSetColor=function(scope,id,itemId,key,value,rerenderInspector=false){const color=String(value||'').trim();if(!/^#[0-9a-f]{6}$/i.test(color)){infoNotify('Escribe un color hexadecimal válido, por ejemplo #16CDBE.');if(rerenderInspector)infoRenderInspector();return}if(scope==='meta')infoDraft[key]=color;else if(scope==='block'){const b=infoDraft.blocks.find(x=>x.id===id);if(b)b[key]=color}else if(scope==='item'){const item=infoDraft.blocks.find(x=>x.id===id)?.items?.find(x=>x.id===itemId);if(item)item[key]=color}infoRenderCanvas();if(rerenderInspector)infoRenderInspector();infoScheduleSave()}
 function infoPickerKeys(){
@@ -213,7 +234,7 @@ function infoContentInspector(b){
   let fields=`<section class="info-inspector-section"><span class="info-section-title">Contenido</span>`
   if(b.type==='stat')fields+=infoInput('Dato o cifra','value',b.value)
   fields+=infoInput('Título','heading',b.heading)
-  if(['callout','stat'].includes(b.type))fields+=infoIconTrigger(b.icon,b.id)+`<div class="info-color-pair">${infoColorControl('Color del ícono',b.iconColor||'#007d73','block',b.id,'iconColor')}${infoColorControl('Fondo del ícono',b.iconBackground||'#d9f7f3','block',b.id,'iconBackground','',INFO_COLORS)}</div>`
+  if(['callout','stat'].includes(b.type))fields+=infoIconTrigger(b.icon,b.id)+`<div class="info-color-pair">${infoColorControl('Color del ícono',b.iconColor||'#007d73','block',b.id,'iconColor')}${infoColorControl('Fondo del ícono',b.iconBackground||'#cffffb','block',b.id,'iconBackground','',INFO_COLORS)}</div>`
   fields+=infoField('Texto',infoRichEditor(b))
   if(b.type==='cta')fields+=infoInput('Texto del botón','label',b.label)+infoInput('Enlace visible','url',b.url,'url')+`<div class="info-color-pair">${infoColorControl('Color del botón',b.buttonBackground,'block',b.id,'buttonBackground')}${infoColorControl('Texto del botón',b.buttonColor,'block',b.id,'buttonColor')}</div>`
   return fields+'</section>'

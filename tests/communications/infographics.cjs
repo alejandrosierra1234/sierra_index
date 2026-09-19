@@ -21,6 +21,7 @@ w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEven
 w.eval(fs.readFileSync(path.join(__dirname,'../../js/infographic-builder.js'),'utf8'))
 
 ;(async()=>{
+w.localStorage.setItem('sierra_infographics_v1:info-test',JSON.stringify({activeId:'legacy-info',designs:[{id:'legacy-info',title:'Título de la infografía',department:'Comunicaciones Corporativas',mutedColor:'#6b6b63',blocks:[{id:'legacy-callout',type:'callout',background:'#fff3c4',color:'#171717',iconBackground:'#d9f7f3',iconColor:'#006da8'},{id:'legacy-text',type:'text'},{id:'legacy-image',type:'image'},{id:'legacy-features',type:'features'}]}]}))
 w.showInfographics()
 assert.equal(w.document.getElementById('sec-title').textContent,'Creador de infografías')
 assert.equal(w.document.querySelector('.info-page').style.width,'816px')
@@ -29,6 +30,9 @@ assert.match(w.document.querySelector('.info-title').textContent,/Título de la 
 assert.match(w.document.querySelector('.info-footer').textContent,/Comunicaciones Corporativas/)
 assert.match(w.document.querySelector('.info-footer').textContent,/SIERRA/)
 assert.equal(w.document.querySelectorAll('[data-info-block]').length,4)
+assert.equal(w.document.querySelector('.info-callout-layout').style.getPropertyValue('--info-card-bg'),'#efefaf')
+assert.equal(w.document.querySelector('.info-icon-plaque').style.getPropertyValue('--info-icon-bg'),'#cffffb')
+assert.equal(w.document.querySelector('.info-icon-plaque').style.getPropertyValue('--info-icon-color'),'#004a86')
 console.log('PASS: infographic workspace opens with Letter art, title, modules and branded footer')
 
 w.infoAddBlock('cta')
@@ -50,7 +54,9 @@ const iconSearch=w.document.querySelector('.info-icon-dialog input[type="search"
 assert.ok(w.document.querySelector('[data-info-icon="ambulance"]'))
 w.document.querySelector('[data-info-icon="ambulance"]').click()
 assert.ok(w.document.querySelector(`[data-info-block="${iconBlock}"] .info-icon-plaque svg`))
-assert.ok(w.document.querySelector('.info-color-field[aria-label="Color del ícono"] .info-color-swatch[aria-label="Usar #ff7824"]'))
+assert.ok(w.document.querySelector('.info-color-field[aria-label="Color del ícono"] .info-color-swatch[aria-label="Usar Naranja #ff7824"]'))
+assert.ok(w.document.querySelector('.info-color-field[aria-label="Color del ícono"] .info-color-swatch[aria-label="Usar Turquesa SIERRA #16cdbe"]'))
+assert.ok(w.document.querySelector('.info-color-field[aria-label="Fondo del ícono"] .info-color-swatch[aria-label="Usar Azul claro #c5e9ff"]'))
 assert.ok(w.document.querySelector('.info-color-field[aria-label="Fondo del ícono"] input[aria-label="Código hexadecimal"]'))
 w.infoSetColor('block',iconBlock,'','iconColor','#ff7824',true);w.infoSetColor('block',iconBlock,'','iconBackground','#00ff00',true)
 const plaque=w.document.querySelector(`[data-info-block="${iconBlock}"] .info-icon-plaque`)
