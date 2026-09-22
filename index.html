@@ -9331,8 +9331,15 @@ async function enterMondayBadgeApp() {
     responsibilityLetterUploaded: false,
   }
   me = { id: `monday-${context.user?.id || 'user'}`, email: 'monday@app.local' }
-  profile = { role: 'admin', full_name: context.user?.name || 'Talento Humano' }
-  myGrants = []
+  // The monday Item View has its own validated context and does not use an
+  // SIERRA Index login. Give this bridge only the HR capabilities required
+  // to preview and issue its connected employee's badge.
+  profile = { role: 'monday', account_status: 'active', full_name: context.user?.name || 'Talento Humano' }
+  accessVerifiedAt = Date.now()
+  myGrants = [
+    { domain: 'talento_humano', capability: 'read' },
+    { domain: 'talento_humano', capability: 'write' },
+  ]
   _badge.activeSite = 'monday-site'
   _badge.sites = [{ id: 'monday-site', company_id: 'monday-company', internal_code: orgCode, name: organization, badge_color: null }]
   _badge.companies = { monday: [{ id: 'monday-company', country_id: 'monday-country', name: organization, legal_name: organization, code: orgCode, logo_url: null }] }
