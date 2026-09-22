@@ -314,10 +314,23 @@ test('notice rich text preserves headings, lists, inline styles and safe exports
   assert.equal(w.noticeMessageHtml({noticeMessage:'Texto anterior\nSegunda línea'}),'Texto anterior<br>Segunda línea');
   w.newCommunicationDraft();
 });
+test('memo text toolbar exposes lists, indentation, alignment and extra inline formatting',()=>{
+  w.newCommunicationDraft();const d=w.eval('_commsCurrent'),block=d.blocks.find(b=>b.type==='text');
+  const editor=w.document.querySelector(`[data-block-id="${block.id}"]`),toolbar=editor.parentElement.querySelector('.memo-rich-toolbar');
+  for(const label of ['Negrita','Cursiva','Subrayado','Tachado','Lista con viñetas','Lista numerada','Reducir sangría','Aumentar sangría','Alinear a la izquierda','Centrar','Alinear a la derecha','Justificar'])assert.ok(toolbar.querySelector(`[aria-label="${label}"]`),label);
+  const bullets=toolbar.querySelector('[data-block-style="bullets"]');w.commsRichBlockAction(bullets,'style','bullets');assert.equal(block.style,'bullets');assert.equal(bullets.getAttribute('aria-pressed'),'true');
+  const increase=toolbar.querySelector('[data-indent="increase"]');w.commsRichBlockAction(increase,'indent',1);assert.equal(block.indent,1);assert.equal(editor.style.getPropertyValue('--memo-rich-indent'),'18px');
+  w.commsRichKeydown({key:'Tab',shiftKey:false,preventDefault(){}},editor);assert.equal(block.indent,2);
+  w.commsRichKeydown({key:'Tab',shiftKey:true,preventDefault(){}},editor);assert.equal(block.indent,1);
+  const justify=toolbar.querySelector('[data-block-align="justify"]');w.commsRichBlockAction(justify,'align','justify');assert.equal(block.align,'justify');assert.equal(editor.style.textAlign,'justify');
+  block.richHtml=w.commsSanitizeRich('<s>Anterior</s><span style="text-decoration:line-through">Reemplazado</span>');assert.equal(block.richHtml,'<s>Anterior</s><s>Reemplazado</s>');
+  const box=w.document.createElement('div');box.innerHTML=w.memoBlockHtml(block);assert.ok(box.querySelector('ul'));assert.equal(box.querySelector('ul').style.marginLeft,'7mm');assert.equal(box.querySelector('ul').style.textAlign,'justify');
+  w.newCommunicationDraft();
+});
 test('notice preview shows a Letter sheet without changing adaptive exports',()=>{
   const d=w.createNoticeDraft({noticeMessage:'Mensaje'}),box=w.document.createElement('div');
   box.innerHTML=w.noticePageHtml(d,true);let page=box.querySelector('.notice-page');
-  assert.equal(page.style.width,'215.9mm');assert.equal(page.style.minHeight,'279.4mm');assert.equal(page.style.borderRadius,'0px');
+  assert.equal(page.style.width,'215.9mm');assert.equal(page.style.minHeight,'279.4mm');assert.ok(['0','0px'].includes(page.style.borderRadius));
   box.innerHTML=w.noticePageHtml(d);page=box.querySelector('.notice-page');
   assert.equal(page.style.minHeight,'139.7mm');assert.equal(page.style.height,'auto');
 });
