@@ -36412,6 +36412,17 @@ async function policyRasterizeSvgLogo(p){
     return {...p,companyLogo:canvas.toDataURL('image/png')};
   }catch(error){throw Error('No se pudo convertir el logo SVG para el PDF. Comprueba el archivo o súbelo como PNG. '+(error?.message||''))}
 }
+function policyFitExportLogos(doc){
+  doc.querySelectorAll('.policy-record-logo img').forEach(img=>{
+    const width=img.naturalWidth,height=img.naturalHeight;
+    if(!width||!height)throw Error('No se pudo cargar el logo para el PDF. Vuelve a intentarlo.');
+    const compact=Boolean(img.closest('.policy-header-compact')),maxWidth=compact?28:37,maxHeight=compact?12:37;
+    const scale=Math.min(maxWidth/width,maxHeight/height);
+    img.style.width=`${(width*scale).toFixed(3)}mm`;
+    img.style.height=`${(height*scale).toFixed(3)}mm`;
+    img.style.maxWidth='none';img.style.maxHeight='none';
+  });
+}
 async function policyPdfBlob(p){
   if(!window.jspdf?.jsPDF||typeof window.html2canvas!=='function')throw Error('No se pudo cargar el generador de PDF. Recarga la aplicación e inténtalo de nuevo.');
   const exportPolicy=await policyRasterizeSvgLogo(p);
@@ -36424,6 +36435,7 @@ async function policyPdfBlob(p){
     const ready=new Promise(resolve=>frame.onload=resolve);frame.srcdoc=html;document.body.append(frame);await Promise.race([ready,timeout()]);clearTimeout(timer);
     const doc=frame.contentDocument;if(typeof indexAssets!=='undefined')await indexAssets.images(doc);
     await Promise.race([Promise.all([doc.fonts?.ready||Promise.resolve(),...Array.from(doc.images,img=>img.decode().catch(()=>{}))]),timeout()]);clearTimeout(timer);
+    policyFitExportLogos(doc);
     const pages=policyPaginateDom(doc,doc.body);if(!pages.length)throw Error('No se encontró el documento para exportar.');
     await new Promise(resolve=>frame.contentWindow.requestAnimationFrame(()=>frame.contentWindow.requestAnimationFrame(resolve)));
     const pageWidth=215.9,pageHeight=279.4,orientation='portrait',format='letter',captureScale=4,pdf=new window.jspdf.jsPDF({orientation,unit:'mm',format,compress:true});
