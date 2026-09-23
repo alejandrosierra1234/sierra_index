@@ -345,7 +345,7 @@ test('notice PDF pagination uses portrait Letter sheets and preserves compositio
 });
 test('memo PDF pagination does not leave the last word of a paragraph alone',()=>{
   const doc=w.document.implementation.createHTMLDocument('print');
-  doc.body.innerHTML='<article class="memo-page"><header class="memo-masthead"></header><div class="memo-meta"></div><div class="memo-body"><div>Contenido anterior ocupa espacio.</div><p>Las operaciones se mantendrán activas durante la Semana Morazánica.</p></div><footer class="memo-footer"><span class="memo-footer-right">COM-2026-007</span></footer></article>';
+  doc.body.innerHTML='<article class="memo-page"><header class="memo-masthead"></header><div class="memo-meta"></div><div class="memo-body"><div>Contenido anterior ocupa espacio.</div><p class="memo-keep-together"><strong>Personal operativo</strong><br>Las operaciones se mantendrán activas durante la Semana Morazánica.</p></div><footer class="memo-footer"><span class="memo-footer-right">COM-2026-007</span></footer></article>';
   const scrollHeight=Object.getOwnPropertyDescriptor(w.HTMLElement.prototype,'scrollHeight'),getBoundingClientRect=w.HTMLElement.prototype.getBoundingClientRect;
   try{
     Object.defineProperty(w.HTMLElement.prototype,'scrollHeight',{configurable:true,get(){return this.classList.contains('memo-body')?this.textContent.length:0}});
@@ -353,7 +353,7 @@ test('memo PDF pagination does not leave the last word of a paragraph alone',()=
     assert.equal(w.memoPaginatePrint(doc),2);
     const pages=[...doc.querySelectorAll('.memo-print-page')];
     assert.equal(pages[0].querySelector('.memo-body p'),null);
-    assert.equal(pages[1].querySelector('.memo-body p').textContent,'Las operaciones se mantendrán activas durante la Semana Morazánica.');
+    assert.equal(pages[1].querySelector('.memo-body p').textContent,'Personal operativoLas operaciones se mantendrán activas durante la Semana Morazánica.');
   }finally{if(scrollHeight)Object.defineProperty(w.HTMLElement.prototype,'scrollHeight',scrollHeight);else delete w.HTMLElement.prototype.scrollHeight;w.HTMLElement.prototype.getBoundingClientRect=getBoundingClientRect}
 });
 test('SIERRA orange icons retain their hue and library types and statuses have distinct colors',()=>{
