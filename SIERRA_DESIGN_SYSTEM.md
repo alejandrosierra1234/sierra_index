@@ -3071,9 +3071,9 @@ Las firmas guardadas almacenan imagen, nombre y cargo localmente en este navegad
 
 ### Políticas: control documental y firmas
 
-El encabezado de control, las plecas de sección, el índice, las tablas y las firmas deben sentirse como partes de un mismo documento. Las plecas usan un fondo claro de la paleta SIERRA y texto oscuro; los separadores se reservan para divisiones funcionales de datos, no como remates decorativos. No aplicar bordes superiores gruesos a tarjetas, plecas o cuadros de firma. El espacio horizontal dentro de cada firma se distribuye en dos columnas por fila y la línea para firmar conserva su función, sin convertirse en un acento gráfico.
+El encabezado de control, los títulos de sección, el índice, las tablas y las firmas deben sentirse como partes de un mismo documento. Los títulos usan texto oscuro sobre blanco y un acento teal lateral muy estrecho; no llenar toda la anchura con teal. Los separadores sutiles ayudan a leer las filas, pero no son remates decorativos. No aplicar bordes superiores gruesos a tarjetas o cuadros de firma. El espacio horizontal dentro de cada firma se distribuye en dos columnas por fila y la línea para firmar conserva su función, sin convertirse en un acento gráfico. El código, la revisión, la página y la clasificación se agrupan en una fila propia dentro del encabezado de control.
 
-Los logos de empresa mantienen sus proporciones en vista previa y exportación. Antes de capturar un PDF, convertir los SVG a una imagen de alta resolución con el renderizador nativo del navegador; si la conversión falla, avisar en lugar de entregar un logo incompleto. La clasificación CONFIDENCIAL debe leerse claramente en cada página y no depender solo del color.
+Los logos de empresa mantienen sus proporciones en vista previa y exportación. Antes de capturar un PDF, convertir los SVG desde la imagen ya cargada en la vista previa a una imagen de alta resolución; si no está disponible, cargar el SVG explícitamente y avisar si la conversión falla, en lugar de entregar un logo incompleto. La clasificación CONFIDENCIAL debe leerse claramente en cada página y no depender solo del color.
 
 ### Tarjetas en columnas para comunicados
 

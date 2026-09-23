@@ -36198,7 +36198,7 @@ function printCommunicationMemo(){return commsPrintDocument()}
   .policy-page.is-continuation .policy-header-compact-control:before{width:6mm;height:.45mm;background:#007d73}
   .policy-page.is-continuation .policy-header-compact-control b,.policy-page.is-continuation .policy-header-compact-control span{color:#202124}
   .policy-page.is-continuation .policy-header-compact-control .policy-confidential-label{color:#202124;border-color:#9fa4a8}
-  .policy-index h2,.policy-document-section h2{gap:2.5mm;min-height:10mm;box-sizing:border-box;margin-bottom:3.5mm;padding:2mm 3mm;border:0;border-radius:1mm;background:#cffffb;font:400 13.5pt/1.16 "Replica",Arial,sans-serif;color:#0b0b0b;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .policy-index h2,.policy-document-section h2{gap:2.5mm;min-height:9mm;box-sizing:border-box;margin-bottom:3.5mm;padding:1.5mm 0 1.5mm 3mm;border:0;border-left:.8mm solid #16cdbe;border-bottom:.25mm solid #e5e5e5;border-radius:0;background:#fff;font:700 11.5pt/1.2 "Aeonik",Arial,sans-serif;color:#0b0b0b;text-transform:uppercase;letter-spacing:0;print-color-adjust:exact;-webkit-print-color-adjust:exact}
   .policy-heading-number{width:8mm;height:7mm;flex-basis:8mm;color:#4e5459;font:600 8.5pt/1 "Aeonik Mono",monospace}
   .policy-index h2:after,.policy-document-section h2:after{display:none}
   .policy-index-row{grid-template-columns:7mm minmax(0,1fr) 9mm;padding:1.15mm 2mm;font-size:9pt;border-bottom:0}
@@ -36207,10 +36207,10 @@ function printCommunicationMemo(){return commsPrintDocument()}
   .policy-section-body{font-family:"Aeonik",Arial,sans-serif;font-size:var(--policy-type-body);line-height:1.43;color:#2f3336}
   .policy-section-body strong,.policy-section-body b{font-weight:700}
   .policy-responsibility-table{border-color:#cfd2d5;border-radius:1.5mm;font-family:"Aeonik",Arial,sans-serif;font-size:8.8pt}
-  .policy-responsibility-table th{background:#cffffb;color:#0b0b0b;font-size:7.5pt}
+  .policy-responsibility-table th{background:#f5f5f5;color:#0b0b0b;font-size:7.5pt}
   .policy-responsibility-table th,.policy-responsibility-table td{border-color:#d8dadd}
   .policy-org{display:block;margin-top:4mm;border:.25mm solid #cfd2d5;border-radius:1.5mm;overflow:hidden}
-  .policy-org-caption{padding:2mm 2.5mm;background:#cffffb;color:#0b0b0b;font:650 7.5pt/1.2 "Aeonik",Arial,sans-serif;text-transform:uppercase;letter-spacing:.05em}
+  .policy-org-caption{padding:2mm 2.5mm;background:#f5f5f5;color:#0b0b0b;font:650 7.5pt/1.2 "Aeonik",Arial,sans-serif;text-transform:uppercase;letter-spacing:.05em}
   .policy-org-person{width:auto;margin:0;padding:2mm 2.5mm;border:0;border-top:.25mm solid #e4e5e6;border-radius:0;display:grid;grid-template-columns:7mm minmax(0,1fr) minmax(0,1fr);gap:2mm;align-items:center;text-align:left;font-family:"Aeonik",Arial,sans-serif}
   .policy-org-person:first-of-type{border-top:.25mm solid #d8dadd}
   .policy-org-person b{font-size:8.8pt;font-weight:650;overflow-wrap:anywhere}.policy-org-person span{margin:0;font-size:8pt;color:#4e5459;overflow-wrap:anywhere}.policy-org-person .policy-org-depth{color:#4e5459;font:600 7.5pt/1 "Aeonik Mono",monospace}
@@ -36225,10 +36225,15 @@ function printCommunicationMemo(){return commsPrintDocument()}
   .policy-record-logo{min-width:0;min-height:41mm;box-sizing:border-box;display:grid;place-items:center;padding:2mm;border-right:.25mm solid #d8dadd}
   .policy-record-logo img{display:block;width:37mm;height:37mm;max-width:100%;max-height:100%;object-fit:contain}
   .policy-record-logo-placeholder{max-width:35mm;color:#5d6368;font:400 7.5pt/1.25 "Aeonik",Arial,sans-serif;text-align:center}
-  .policy-record-content{min-width:0;display:grid;grid-template-rows:auto auto}
-  .policy-record-main{min-width:0;display:grid;align-content:center;gap:1mm;padding:2.5mm 4mm}
-  .policy-record-controls,.policy-record-compact-pills{display:flex;align-items:center;flex-wrap:wrap;column-gap:3mm;row-gap:1.5mm}
-  .policy-record-kind{margin-right:auto;color:#4e5459;font:650 8pt/1.2 "Aeonik",Arial,sans-serif;text-transform:uppercase;letter-spacing:.04em}
+  .policy-record-content{min-width:0;display:grid;grid-template-rows:auto auto auto}
+  .policy-record-main{min-width:0;display:grid;align-content:center;gap:1.2mm;padding:2.5mm 4mm}
+  .policy-record-compact-pills{display:flex;align-items:center;flex-wrap:wrap;column-gap:3mm;row-gap:1.5mm}
+  .policy-record-kind{color:#4e5459;font:650 8pt/1.2 "Aeonik",Arial,sans-serif;text-transform:uppercase;letter-spacing:.04em}
+  .policy-record-control-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:.25mm solid #d8dadd}
+  .policy-record-control-cell{min-width:0;min-height:7mm;box-sizing:border-box;display:flex;align-items:center;flex-wrap:wrap;column-gap:3mm;row-gap:.7mm;padding:1mm 3mm}
+  .policy-record-control-cell+.policy-record-control-cell{border-left:.25mm solid #d8dadd}
+  .policy-record-control-cell .policy-record-classification{margin-left:auto}
+  .policy-record-version,.policy-record-page{color:#4e5459;font:400 7.8pt/1.2 "Aeonik Mono",monospace;white-space:nowrap}
   .policy-record-folio{color:#4e5459;font:400 7.8pt/1.2 "Aeonik Mono",monospace;white-space:nowrap}
   .policy-record-reference{display:inline-flex;align-items:baseline;gap:1.5mm;color:#5d6368;font:400 7.8pt/1.2 "Aeonik",Arial,sans-serif;white-space:nowrap}
   .policy-record-reference b{color:#202124;font:600 7.8pt/1.2 "Aeonik Mono",monospace}
@@ -36332,7 +36337,7 @@ function policyHeaderHtml(p,page=1,total=1){
   const field=(label,value)=>`<div class="policy-record-field"><span>${label}</span><b>${esc(value)}</b></div>`;
   const folio=()=>`<span class="policy-record-folio">Rev. ${esc(p.version)} · Página <span data-policy-page-count>${page} / ${total}</span></span>`;
   const confidential=p.confidential?'<span class="policy-record-classification">CONFIDENCIAL</span>':'';
-  return`<header class="policy-document-header"><div class="policy-control-table"><div class="policy-record-logo">${logo}</div><div class="policy-record-content"><div class="policy-record-main"><div class="policy-record-controls"><span class="policy-record-kind">Política</span>${reference()}${folio()}${confidential}</div><h1 class="policy-record-title">${esc(p.title)}</h1></div><div class="policy-record-metadata">${field('Proceso',process)}${field('Empresa',company)}${field('Planta',site)}${field('Departamento',p.department)}${field('Aprobación',policyDateLabel(p.date))}</div></div></div><div class="policy-header-compact"><div class="policy-record-logo">${logo}</div><div class="policy-record-compact-content"><div class="policy-record-compact-head"><strong class="policy-record-compact-title">${esc(p.title)}</strong>${confidential}</div><div class="policy-record-compact-pills"><span class="policy-record-compact-site">${esc(site)}</span>${reference()}${folio()}</div></div></div></header>`
+  return`<header class="policy-document-header"><div class="policy-control-table"><div class="policy-record-logo">${logo}</div><div class="policy-record-content"><div class="policy-record-main"><span class="policy-record-kind">Política</span><h1 class="policy-record-title">${esc(p.title)}</h1></div><div class="policy-record-control-row"><div class="policy-record-control-cell">${reference()}<span class="policy-record-version">Rev. ${esc(p.version)}</span></div><div class="policy-record-control-cell"><span class="policy-record-page">Página <span data-policy-page-count>${page} / ${total}</span></span>${confidential}</div></div><div class="policy-record-metadata">${field('Proceso',process)}${field('Empresa',company)}${field('Planta',site)}${field('Departamento',p.department)}${field('Aprobación',policyDateLabel(p.date))}</div></div></div><div class="policy-header-compact"><div class="policy-record-logo">${logo}</div><div class="policy-record-compact-content"><div class="policy-record-compact-head"><strong class="policy-record-compact-title">${esc(p.title)}</strong>${confidential}</div><div class="policy-record-compact-pills"><span class="policy-record-compact-site">${esc(site)}</span>${reference()}${folio()}</div></div></div></header>`
 }
 function policyIndexRowHtml(number,title){return`<div class="policy-index-row"><b>${number}</b><span class="policy-index-title">${esc(title)}</span><span class="policy-index-dots" aria-hidden="true"></span><span class="policy-index-page" data-policy-index-page="${number}">—</span></div>`}
 function policyDocumentHeading(number,title){return`<h2><span class="policy-heading-number">${String(number).padStart(2,'0')}</span><span class="policy-heading-title">${esc(title)}</span></h2>`}
@@ -36379,37 +36384,33 @@ function policyZoom(delta){_policyPreviewZoom='manual';_policyPreviewScale=Math.
 function policyZoomFit(){_policyPreviewZoom='fit';policyFitPreview()}
 function policyTogglePreview(show){document.getElementById('policy-studio')?.classList.toggle('is-preview',show);if(show)requestAnimationFrame(policyFitPreview)}
 function policyFileName(p){const base=String(p.code||p.title||'politica').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9_-]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase();return`${base||'politica'}-rev-${String(p.version||'1').replace(/[^a-z0-9_-]+/gi,'-')}.pdf`}
-async function policyRasterizeSvgLogos(doc){
-  const logos=[...doc.querySelectorAll('.policy-record-logo img')].filter(img=>/\.svg(?:[?#]|$)|^data:image\/svg\+xml/i.test(img.src));
-  const converted=new Map();
-  for(const img of logos){
-    const source=img.src;
-    if(!converted.has(source))converted.set(source,(async()=>{
-      try{
-        await img.decode();
-        const width=img.naturalWidth,height=img.naturalHeight;
-        if(!width||!height)throw Error('El SVG no tiene dimensiones válidas.');
-        const scale=Math.min(8,1200/Math.max(width,height)),canvas=doc.createElement('canvas');
-        canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
-        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-        return canvas.toDataURL('image/png');
-      }catch(error){throw Error('No se pudo preparar el logo SVG para el PDF. Revisa que el archivo no dependa de fuentes o imágenes externas. '+(error?.message||''))}
-    })());
-    img.removeAttribute('crossorigin');img.src=await converted.get(source);await img.decode();
-  }
+async function policyRasterizeSvgLogo(p){
+  const source=p.companyLogo||'';
+  if(!/\.svg(?:[?#]|$)|^data:image\/svg\+xml/i.test(source))return p;
+  const url=new URL(source,document.baseURI),sameAsset=img=>{try{return new URL(img.src,document.baseURI).pathname===url.pathname}catch{return false}};
+  let image=[...document.querySelectorAll('#policy-preview-sheet .policy-record-logo img')].find(img=>sameAsset(img)&&img.naturalWidth>0);
+  if(!image){image=new Image();image.crossOrigin='anonymous';image.src=source;try{await image.decode()}catch{try{const response=await fetch(source,{mode:'cors'});if(!response.ok)throw Error(String(response.status));const blobUrl=URL.createObjectURL(await response.blob());try{image=new Image();image.src=blobUrl;await image.decode()}finally{URL.revokeObjectURL(blobUrl)}}catch(error){throw Error('No se pudo cargar el logo SVG para el PDF. Comprueba el archivo o súbelo como PNG. '+(error?.message||''))}}}
+  try{
+    const width=image.naturalWidth,height=image.naturalHeight;
+    if(!width||!height)throw Error('El SVG no tiene dimensiones válidas.');
+    const scale=Math.min(8,1200/Math.max(width,height)),canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
+    canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
+    return {...p,companyLogo:canvas.toDataURL('image/png')};
+  }catch(error){throw Error('No se pudo convertir el logo SVG para el PDF. Comprueba el archivo o súbelo como PNG. '+(error?.message||''))}
 }
 async function policyPdfBlob(p){
   if(!window.jspdf?.jsPDF||typeof window.html2canvas!=='function')throw Error('No se pudo cargar el generador de PDF. Recarga la aplicación e inténtalo de nuevo.');
+  const exportPolicy=await policyRasterizeSvgLogo(p);
   const frame=document.createElement('iframe');frame.title='Preparando PDF de la política';frame.setAttribute('aria-hidden','true');frame.style.cssText='position:fixed;left:-10000px;top:0;width:816px;height:1056px;border:0;pointer-events:none';
   let timer;const timeout=()=>new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('El PDF tardó demasiado en prepararse.')),30000)});
   try{
     const css=[...document.querySelectorAll('style')].map(s=>s.textContent).join('\n'),fontCss=typeof memoExportFontCss==='function'?await memoExportFontCss():'';
-    let html=`<!doctype html><html><head><meta charset="utf-8"><base href="${escAttr(document.baseURI)}"><title>${esc(p.title)}</title><style>${fontCss}${css}html,body{margin:0;background:#fff}.policy-page-set{gap:0}.policy-page{box-shadow:none;margin:0}</style></head><body>${policyPageHtml(p)}</body></html>`;
+    let html=`<!doctype html><html><head><meta charset="utf-8"><base href="${escAttr(document.baseURI)}"><title>${esc(p.title)}</title><style>${fontCss}${css}html,body{margin:0;background:#fff}.policy-page-set{gap:0}.policy-page{box-shadow:none;margin:0}</style></head><body>${policyPageHtml(exportPolicy)}</body></html>`;
     if(typeof indexAssets!=='undefined')html=await indexAssets.html(html);
     const ready=new Promise(resolve=>frame.onload=resolve);frame.srcdoc=html;document.body.append(frame);await Promise.race([ready,timeout()]);clearTimeout(timer);
     const doc=frame.contentDocument;if(typeof indexAssets!=='undefined')await indexAssets.images(doc);
     await Promise.race([Promise.all([doc.fonts?.ready||Promise.resolve(),...Array.from(doc.images,img=>img.decode().catch(()=>{}))]),timeout()]);clearTimeout(timer);
-    await policyRasterizeSvgLogos(doc);
     const pages=policyPaginateDom(doc,doc.body);if(!pages.length)throw Error('No se encontró el documento para exportar.');
     await new Promise(resolve=>frame.contentWindow.requestAnimationFrame(()=>frame.contentWindow.requestAnimationFrame(resolve)));
     const pageWidth=215.9,pageHeight=279.4,orientation='portrait',format='letter',captureScale=4,pdf=new window.jspdf.jsPDF({orientation,unit:'mm',format,compress:true});
