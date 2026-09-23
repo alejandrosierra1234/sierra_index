@@ -38,4 +38,7 @@ assert.match(content, /<thead><tr><th scope="col">No\.<\/th><th scope="col">Secc
 assert.match(content, /<tbody class="policy-index-list"><tr class="policy-index-row">/)
 assert.match(content, /data-policy-index-page="2"/)
 assert.match(html, /const table=originalContainer\.closest\('table'\)/)
+assert.match(html, /\.policy-heading-number\{[^}]*font:700 11\.5pt\/1\.2 "Aeonik",Arial,sans-serif/)
+assert.match(html, /\.policy-page\.is-continuation \.policy-header-compact\{[^}]*grid-template-columns:30mm minmax\(0,1fr\)/)
+assert.match(html, /\.policy-page\.is-continuation \.policy-record-logo img\{width:28mm;height:12mm;max-height:12mm\}/)
 console.log('PASS: policy index table, compact header and implementation-area footer')
