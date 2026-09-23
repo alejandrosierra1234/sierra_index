@@ -34782,6 +34782,23 @@ async function loadPendingSamples() {
   }
 })()
 /* ── Marketing: company stamp creator ─────────────────────────────── */
+async function getStampCompanyCatalog(){
+  let result=await sb.from('companies').select('id, name, legal_name, code, logo_url, status').eq('status','active').order('name')
+  if(result.error&&/status|logo_url|schema cache/i.test(result.error.message||'')){
+    result=await sb.from('companies').select('id, name, legal_name, code, logo_url').order('name')
+    if(result.error&&/logo_url|schema cache/i.test(result.error.message||'')){
+      result=await sb.from('companies').select('id, name, legal_name, code').order('name')
+    }
+  }
+  if(result.error)throw result.error
+  return(result.data||[]).map(company=>({
+    id:company.id,
+    name:company.name,
+    legalName:company.legal_name||company.name,
+    code:company.code||'',
+    logoUrl:company.logo_url||null
+  }))
+}
 function showStampCreator(){
   syncModule('comunicaciones')
   _navLeaf='comunicaciones|_|stamps'
