@@ -3069,6 +3069,12 @@ Las firmas guardadas almacenan imagen, nombre y cargo localmente en este navegad
 
 - Cada firmante tiene nombre, puesto y departamento independientes. Nombre en negrita, puesto debajo y departamento en una tercera línea de menor tamaño. El departamento del firmante no se deriva del remitente ni de la clasificación; se conserva en la biblioteca de firmas y se revisa ortográficamente.
 
+### Políticas: control documental y firmas
+
+El encabezado de control, las plecas de sección, el índice, las tablas y las firmas deben sentirse como partes de un mismo documento. Las plecas usan un fondo claro de la paleta SIERRA y texto oscuro; los separadores se reservan para divisiones funcionales de datos, no como remates decorativos. No aplicar bordes superiores gruesos a tarjetas, plecas o cuadros de firma. El espacio horizontal dentro de cada firma se distribuye en dos columnas por fila y la línea para firmar conserva su función, sin convertirse en un acento gráfico.
+
+Los logos de empresa mantienen sus proporciones en vista previa y exportación. Antes de capturar un PDF, convertir los SVG a una imagen de alta resolución con el renderizador nativo del navegador; si la conversión falla, avisar en lugar de entregar un logo incompleto. La clasificación CONFIDENCIAL debe leerse claramente en cada página y no depender solo del color.
+
 ### Tarjetas en columnas para comunicados
 
 Bloque con 2, 3 o 4 columnas y cualquier cantidad de tarjetas. Cambiar columnas conserva el contenido. Cada tarjeta incluye imagen opcional, título con la paleta SIERRA y texto enriquecido. Fondo gris suave, esquinas redondeadas, espacios uniformes e imágenes alineadas por fila. Mostrar imágenes completas de forma predeterminada; recortar solo por elección explícita. El editor presenta una tarjeta a la vez, con duplicar, reordenar y eliminar con Deshacer. Los títulos y textos participan en la revisión ortográfica. PNG/JPG conservan todo el bloque; el PDF mantiene cada fila completa y ajusta proporcionalmente una fila que exceda una página.

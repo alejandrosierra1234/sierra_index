@@ -36198,7 +36198,7 @@ function printCommunicationMemo(){return commsPrintDocument()}
   .policy-page.is-continuation .policy-header-compact-control:before{width:6mm;height:.45mm;background:#007d73}
   .policy-page.is-continuation .policy-header-compact-control b,.policy-page.is-continuation .policy-header-compact-control span{color:#202124}
   .policy-page.is-continuation .policy-header-compact-control .policy-confidential-label{color:#202124;border-color:#9fa4a8}
-  .policy-index h2,.policy-document-section h2{gap:2.5mm;min-height:10mm;box-sizing:border-box;margin-bottom:3.5mm;padding:2mm 3mm;border:0;border-radius:1mm;background:#f1f2f2;font:400 13.5pt/1.16 "Replica",Arial,sans-serif;color:#202124;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .policy-index h2,.policy-document-section h2{gap:2.5mm;min-height:10mm;box-sizing:border-box;margin-bottom:3.5mm;padding:2mm 3mm;border:0;border-radius:1mm;background:#cffffb;font:400 13.5pt/1.16 "Replica",Arial,sans-serif;color:#0b0b0b;print-color-adjust:exact;-webkit-print-color-adjust:exact}
   .policy-heading-number{width:8mm;height:7mm;flex-basis:8mm;color:#4e5459;font:600 8.5pt/1 "Aeonik Mono",monospace}
   .policy-index h2:after,.policy-document-section h2:after{display:none}
   .policy-index-row{grid-template-columns:7mm minmax(0,1fr) 9mm;padding:1.15mm 2mm;font-size:9pt;border-bottom:0}
@@ -36207,15 +36207,16 @@ function printCommunicationMemo(){return commsPrintDocument()}
   .policy-section-body{font-family:"Aeonik",Arial,sans-serif;font-size:var(--policy-type-body);line-height:1.43;color:#2f3336}
   .policy-section-body strong,.policy-section-body b{font-weight:700}
   .policy-responsibility-table{border-color:#cfd2d5;border-radius:1.5mm;font-family:"Aeonik",Arial,sans-serif;font-size:8.8pt}
-  .policy-responsibility-table th{background:#f6f7f7;color:#4e5459;font-size:7.5pt}
+  .policy-responsibility-table th{background:#cffffb;color:#0b0b0b;font-size:7.5pt}
   .policy-responsibility-table th,.policy-responsibility-table td{border-color:#d8dadd}
   .policy-org{display:block;margin-top:4mm;border:.25mm solid #cfd2d5;border-radius:1.5mm;overflow:hidden}
-  .policy-org-caption{padding:2mm 2.5mm;background:#f6f7f7;color:#4e5459;font:650 7.5pt/1.2 "Aeonik",Arial,sans-serif;text-transform:uppercase;letter-spacing:.05em}
+  .policy-org-caption{padding:2mm 2.5mm;background:#cffffb;color:#0b0b0b;font:650 7.5pt/1.2 "Aeonik",Arial,sans-serif;text-transform:uppercase;letter-spacing:.05em}
   .policy-org-person{width:auto;margin:0;padding:2mm 2.5mm;border:0;border-top:.25mm solid #e4e5e6;border-radius:0;display:grid;grid-template-columns:7mm minmax(0,1fr) minmax(0,1fr);gap:2mm;align-items:center;text-align:left;font-family:"Aeonik",Arial,sans-serif}
   .policy-org-person:first-of-type{border-top:.25mm solid #d8dadd}
   .policy-org-person b{font-size:8.8pt;font-weight:650;overflow-wrap:anywhere}.policy-org-person span{margin:0;font-size:8pt;color:#4e5459;overflow-wrap:anywhere}.policy-org-person .policy-org-depth{color:#4e5459;font:600 7.5pt/1 "Aeonik Mono",monospace}
   .policy-org-person[data-depth="1"]{padding-left:5mm}.policy-org-person[data-depth="2"]{padding-left:8mm}.policy-org-person[data-depth="3"]{padding-left:11mm}.policy-org-person[data-depth="4"]{padding-left:14mm}
-  .policy-approval{min-height:30mm;border:.25mm solid #bfc3c6;border-top:.55mm solid #4e5459;border-radius:1.5mm}
+  .policy-approvals{grid-template-columns:repeat(2,minmax(0,1fr));gap:4mm}
+  .policy-approval{min-height:30mm;border:.25mm solid #cfd2d5;border-radius:1.5mm}
   .policy-approval-role,.policy-approval-name-label{color:#4e5459;font-family:"Aeonik",Arial,sans-serif}
   .policy-approval b,.policy-approval span{font-family:"Aeonik",Arial,sans-serif}
   .policy-footer{color:#5d6368;border-top:0;font-family:"Aeonik",Arial,sans-serif}
@@ -36251,6 +36252,10 @@ function printCommunicationMemo(){return commsPrintDocument()}
   .policy-page.is-continuation .policy-record-logo{min-height:19mm;padding:.7mm}
   .policy-page.is-continuation .policy-record-logo img{width:17mm;height:17mm;max-height:17mm}
   .policy-page.is-continuation .policy-record-logo-placeholder{max-width:16mm;font-size:6.5pt}
+  .policy-card-icon{background:#cffffb;color:#007d73}
+  .policy-panel-kicker{color:var(--text-secondary)}
+  .policy-section-number{color:#007d73}
+  .policy-preview-state:before{display:none}
   .policy-studio button:focus-visible,.policy-library button:focus-visible,.policy-library input:focus-visible,.policy-library select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   @media(max-width:1180px){.policy-studio{height:auto;min-height:0;grid-template-columns:minmax(0,1fr);overflow:visible}.policy-customizer{height:min(760px,calc(100dvh - 150px))}.policy-preview-shell{height:min(820px,calc(100dvh - 110px))}.policy-preview-stage{padding:16px}}
   @media(max-width:860px){.policy-studio{display:flex;height:auto;min-height:0}.policy-customizer{width:100%;min-height:calc(100dvh - 190px)}.policy-preview-shell{position:fixed;inset:64px 0 0;z-index:120;border-radius:0;display:flex;visibility:hidden;pointer-events:none}.policy-studio.is-preview .policy-preview-shell{visibility:visible;pointer-events:auto}.policy-person-row,.policy-person-row.is-org,.policy-person-row.is-signer{grid-template-columns:1fr}.policy-person-row.is-signer .policy-person-field:last-of-type{grid-column:auto}.policy-person-row .policy-mini-btn{justify-self:end}.policy-mobile-bar{display:flex}.policy-preview-toolbar .policy-mobile-bar{margin-left:auto}.policy-field-grid{grid-template-columns:1fr}}
@@ -36374,7 +36379,52 @@ function policyZoom(delta){_policyPreviewZoom='manual';_policyPreviewScale=Math.
 function policyZoomFit(){_policyPreviewZoom='fit';policyFitPreview()}
 function policyTogglePreview(show){document.getElementById('policy-studio')?.classList.toggle('is-preview',show);if(show)requestAnimationFrame(policyFitPreview)}
 function policyFileName(p){const base=String(p.code||p.title||'politica').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9_-]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase();return`${base||'politica'}-rev-${String(p.version||'1').replace(/[^a-z0-9_-]+/gi,'-')}.pdf`}
-async function policyPdfBlob(p){if(!window.jspdf?.jsPDF||typeof window.html2canvas!=='function')throw Error('No se pudo cargar el generador de PDF. Recarga la aplicación e inténtalo de nuevo.');const frame=document.createElement('iframe');frame.title='Preparando PDF de la política';frame.setAttribute('aria-hidden','true');frame.style.cssText='position:fixed;left:-10000px;top:0;width:816px;height:1056px;border:0;pointer-events:none';let timer;const timeout=()=>new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('El PDF tardó demasiado en prepararse.')),30000)});try{const css=[...document.querySelectorAll('style')].map(s=>s.textContent).join('\n'),fontCss=typeof memoExportFontCss==='function'?await memoExportFontCss():'';let html=`<!doctype html><html><head><meta charset="utf-8"><base href="${escAttr(document.baseURI)}"><title>${esc(p.title)}</title><style>${fontCss}${css}html,body{margin:0;background:#fff}.policy-page-set{gap:0}.policy-page{box-shadow:none;margin:0}</style></head><body>${policyPageHtml(p)}</body></html>`;if(typeof indexAssets!=='undefined')html=await indexAssets.html(html);const ready=new Promise(resolve=>frame.onload=resolve);frame.srcdoc=html;document.body.append(frame);await Promise.race([ready,timeout()]);clearTimeout(timer);const doc=frame.contentDocument;if(typeof indexAssets!=='undefined')await indexAssets.images(doc);await Promise.race([Promise.all([doc.fonts?.ready||Promise.resolve(),...Array.from(doc.images,img=>img.decode().catch(()=>{}))]),timeout()]);clearTimeout(timer);const pages=policyPaginateDom(doc,doc.body);if(!pages.length)throw Error('No se encontró el documento para exportar.');await new Promise(resolve=>frame.contentWindow.requestAnimationFrame(()=>frame.contentWindow.requestAnimationFrame(resolve)));const pageWidth=215.9,pageHeight=279.4,orientation='portrait',format='letter',captureScale=4,pdf=new window.jspdf.jsPDF({orientation,unit:'mm',format,compress:true});pdf.setProperties({title:p.title||'Política',subject:p.code||'',creator:p.companyName||p.companyLegalName||'Creador de políticas'});for(let i=0;i<pages.length;i++){const page=pages[i],rect=page.getBoundingClientRect(),canvas=await window.html2canvas(page,{scale:captureScale,useCORS:true,allowTaint:false,backgroundColor:'#ffffff',logging:false,width:Math.ceil(rect.width),height:Math.ceil(rect.height),windowWidth:816,windowHeight:1056,scrollX:0,scrollY:0});if(i)pdf.addPage(format,orientation);pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,pageWidth,pageHeight,undefined,'SLOW');const scaleX=pageWidth/rect.width,scaleY=pageHeight/rect.height;page.querySelectorAll('.policy-index-row').forEach(row=>{const target=Number(row.querySelector('[data-policy-index-page]')?.textContent),box=row.getBoundingClientRect();if(target>=1&&target<=pages.length)pdf.link((box.left-rect.left)*scaleX,(box.top-rect.top)*scaleY,box.width*scaleX,box.height*scaleY,{pageNumber:target})});canvas.width=canvas.height=0}return pdf.output('blob')}finally{clearTimeout(timer);frame.remove()}}
+async function policyRasterizeSvgLogos(doc){
+  const logos=[...doc.querySelectorAll('.policy-record-logo img')].filter(img=>/\.svg(?:[?#]|$)|^data:image\/svg\+xml/i.test(img.src));
+  const converted=new Map();
+  for(const img of logos){
+    const source=img.src;
+    if(!converted.has(source))converted.set(source,(async()=>{
+      try{
+        await img.decode();
+        const width=img.naturalWidth,height=img.naturalHeight;
+        if(!width||!height)throw Error('El SVG no tiene dimensiones válidas.');
+        const scale=Math.min(8,1200/Math.max(width,height)),canvas=doc.createElement('canvas');
+        canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        return canvas.toDataURL('image/png');
+      }catch(error){throw Error('No se pudo preparar el logo SVG para el PDF. Revisa que el archivo no dependa de fuentes o imágenes externas. '+(error?.message||''))}
+    })());
+    img.removeAttribute('crossorigin');img.src=await converted.get(source);await img.decode();
+  }
+}
+async function policyPdfBlob(p){
+  if(!window.jspdf?.jsPDF||typeof window.html2canvas!=='function')throw Error('No se pudo cargar el generador de PDF. Recarga la aplicación e inténtalo de nuevo.');
+  const frame=document.createElement('iframe');frame.title='Preparando PDF de la política';frame.setAttribute('aria-hidden','true');frame.style.cssText='position:fixed;left:-10000px;top:0;width:816px;height:1056px;border:0;pointer-events:none';
+  let timer;const timeout=()=>new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('El PDF tardó demasiado en prepararse.')),30000)});
+  try{
+    const css=[...document.querySelectorAll('style')].map(s=>s.textContent).join('\n'),fontCss=typeof memoExportFontCss==='function'?await memoExportFontCss():'';
+    let html=`<!doctype html><html><head><meta charset="utf-8"><base href="${escAttr(document.baseURI)}"><title>${esc(p.title)}</title><style>${fontCss}${css}html,body{margin:0;background:#fff}.policy-page-set{gap:0}.policy-page{box-shadow:none;margin:0}</style></head><body>${policyPageHtml(p)}</body></html>`;
+    if(typeof indexAssets!=='undefined')html=await indexAssets.html(html);
+    const ready=new Promise(resolve=>frame.onload=resolve);frame.srcdoc=html;document.body.append(frame);await Promise.race([ready,timeout()]);clearTimeout(timer);
+    const doc=frame.contentDocument;if(typeof indexAssets!=='undefined')await indexAssets.images(doc);
+    await Promise.race([Promise.all([doc.fonts?.ready||Promise.resolve(),...Array.from(doc.images,img=>img.decode().catch(()=>{}))]),timeout()]);clearTimeout(timer);
+    await policyRasterizeSvgLogos(doc);
+    const pages=policyPaginateDom(doc,doc.body);if(!pages.length)throw Error('No se encontró el documento para exportar.');
+    await new Promise(resolve=>frame.contentWindow.requestAnimationFrame(()=>frame.contentWindow.requestAnimationFrame(resolve)));
+    const pageWidth=215.9,pageHeight=279.4,orientation='portrait',format='letter',captureScale=4,pdf=new window.jspdf.jsPDF({orientation,unit:'mm',format,compress:true});
+    pdf.setProperties({title:p.title||'Política',subject:p.code||'',creator:p.companyName||p.companyLegalName||'Creador de políticas'});
+    for(let i=0;i<pages.length;i++){
+      const page=pages[i],rect=page.getBoundingClientRect(),canvas=await window.html2canvas(page,{scale:captureScale,useCORS:true,allowTaint:false,backgroundColor:'#ffffff',logging:false,width:Math.ceil(rect.width),height:Math.ceil(rect.height),windowWidth:816,windowHeight:1056,scrollX:0,scrollY:0});
+      if(i)pdf.addPage(format,orientation);
+      pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,pageWidth,pageHeight,undefined,'SLOW');
+      const scaleX=pageWidth/rect.width,scaleY=pageHeight/rect.height;
+      page.querySelectorAll('.policy-index-row').forEach(row=>{const target=Number(row.querySelector('[data-policy-index-page]')?.textContent),box=row.getBoundingClientRect();if(target>=1&&target<=pages.length)pdf.link((box.left-rect.left)*scaleX,(box.top-rect.top)*scaleY,box.width*scaleX,box.height*scaleY,{pageNumber:target})});
+      canvas.width=canvas.height=0;
+    }
+    return pdf.output('blob');
+  }finally{clearTimeout(timer);frame.remove()}
+}
 async function policyDownloadPdf(){if(!_policyCurrent)return;policyCommit();const button=document.querySelector('[data-policy-pdf]'),original=button?.innerHTML;if(button){button.disabled=true;button.textContent='Preparando PDF…'}try{const draft=JSON.parse(JSON.stringify(_policyCurrent)),blob=await policyPdfBlob(draft),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=policyFileName(draft);document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);toast('Descarga PDF iniciada.')}catch(error){console.error(error);alert(error.message||'No se pudo generar el PDF.')}finally{if(button){button.disabled=false;button.innerHTML=original}}}
 function policyPrint(){return policyDownloadPdf()}
 window.addEventListener('resize',()=>{if(_policyCurrent)policyFitPreview()});
