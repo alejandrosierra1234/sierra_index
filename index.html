@@ -6105,9 +6105,12 @@
     .company-logo-field { display: flex; align-items: center; gap: 0.9rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface-subtle); }
     .company-logo-preview { width: 72px; height: 48px; object-fit: contain; background: #fff; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 5px; box-sizing: border-box; }
     .company-logo-placeholder { width: 72px; height: 48px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--border-strong); border-radius: var(--r-sm); color: var(--text-muted); font-size: .65rem; text-align: center; }
-    .company-logo-native-input { display: block; width: 100%; color: var(--text-secondary); font: inherit; font-size: .72rem; }
-    .company-logo-native-input::file-selector-button { height: var(--control-h-sm); margin-right: .6rem; padding: 0 .75rem; border: 1px solid var(--border-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--text-primary); font: inherit; font-weight: 600; cursor: pointer; }
-    .company-logo-native-input::file-selector-button:hover { background: var(--surface-hover); }
+    .company-logo-field.is-dragover { border-color: var(--accent); background: var(--interactive-selected-bg); }
+    .company-logo-file-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+    .company-logo-controls { min-width: 0; flex: 1; display: grid; justify-items: start; gap: .4rem; }
+    .company-logo-controls .btn { min-height: var(--control-h-sm); }
+    .company-logo-status { font-size: .68rem; line-height: 1.35; color: var(--text-muted); overflow-wrap: anywhere; }
+    .company-logo-status[data-state="error"] { color: var(--error, #b42318); }
     @media (max-width: 1050px) {
       .issuance-header { grid-template-columns: auto minmax(0, 1fr); }
       .issuance-header-actions { grid-column: 1 / -1; justify-content: flex-end; }
@@ -19489,15 +19492,15 @@ function openCompanyEditor(id) {
         </div>
         <div class="import-map-row">
           <label>Logo legal de la empresa</label>
-          <div class="company-logo-field">
+          <div class="company-logo-field" ondragover="event.preventDefault();this.classList.add('is-dragover')" ondragleave="this.classList.remove('is-dragover')" ondrop="companyLogoDrop(event)">
             ${company?.logo_url ? `<img class="company-logo-preview" src="${escAttr(company.logo_url)}" alt="Logo actual de ${escAttr(company.name)}">` : `<div class="company-logo-placeholder">Sin logo</div>`}
-            <div style="min-width:0;flex:1"><input id="company-logo-file" class="company-logo-native-input" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onchange="handleCompanyLogoSelection('${company?.id || ''}',this)"><div id="company-logo-file-name" style="margin-top:.4rem;font-size:.68rem;color:var(--text-muted)">PNG, JPG, WebP o SVG · máximo ${IMG_MAX_MB} MB${company ? ' · se guarda al seleccionar' : ' · se guardará con la empresa'}</div></div>
+            <div class="company-logo-controls"><button type="button" class="btn btn-secondary btn-sm" aria-describedby="company-logo-file-name" onclick="chooseCompanyLogo()">Seleccionar logo</button><input id="company-logo-file" class="company-logo-file-input" type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" tabindex="-1" aria-hidden="true" onchange="handleCompanyLogoSelection(this)"><div id="company-logo-file-name" class="company-logo-status" role="status" aria-live="polite">PNG, JPG, WebP o SVG · máximo ${IMG_MAX_MB} MB · se sube al pulsar Guardar. También puedes arrastrarlo aquí.</div></div>
           </div>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeCompanyEditor()">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveCompany('${company?.id || ''}')">Guardar</button>
+        <button id="company-save-btn" class="btn btn-primary" onclick="saveCompany('${company?.id || ''}')">Guardar</button>
       </div>
     </div>
   `
@@ -19515,6 +19518,10 @@ async function saveCompany(id) {
   const legal_name = document.getElementById('company-legal-name').value.trim()
   const country_id = document.getElementById('company-country').value
   if (!name || !country_id) { toast('Nombre y país son obligatorios'); return }
+  const saveButton = document.getElementById('company-save-btn')
+  if (saveButton?.disabled) return
+  if (saveButton) { saveButton.disabled = true; saveButton.textContent = 'Guardando…' }
+  try {
   // Renaming an existing company only ever touches `name`/`legal_name` —
   // `id` (and `code`, once set) stay stable, so every screen reading this
   // company by id/code (Colaboradores, badges, Organización, filters,
@@ -19524,12 +19531,17 @@ async function saveCompany(id) {
   let logo_url = company?.logo_url || null
   const logoFile = document.getElementById('company-logo-file')?.files?.[0]
   if (logoFile) {
-    if (!IMG_TYPES.includes(logoFile.type) && logoFile.type !== 'image/svg+xml') { toast('Tipo de logo no soportado'); return }
-    if (logoFile.size > IMG_MAX_MB * 1024 * 1024) { toast(`El logo supera ${IMG_MAX_MB} MB`); return }
+    const contentType = companyLogoContentType(logoFile)
+    if (!contentType) { companyLogoStatus('Tipo de logo no soportado.', true); return }
+    if (logoFile.size > IMG_MAX_MB * 1024 * 1024) { companyLogoStatus(`El logo supera ${IMG_MAX_MB} MB.`, true); return }
+    companyLogoStatus('Comprobando permisos y configuración…')
+    const { error: schemaError } = await sb.from('companies').select('logo_url').limit(1)
+    if (schemaError) { companyLogoStatus('No se pudo verificar el campo de logo: ' + schemaError.message, true); return }
+    companyLogoStatus('Subiendo logo…')
     const ext = (logoFile.name.split('.').pop() || 'png').toLowerCase()
-    const path = `company-logos/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-    const { error: uploadError } = await sb.storage.from('product-images').upload(path, logoFile, { contentType: logoFile.type, upsert: false })
-    if (uploadError) { toast('Error al subir el logo: ' + uploadError.message); return }
+    const path = `company-logos/${id || 'new'}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const { error: uploadError } = await sb.storage.from('product-images').upload(path, logoFile, { contentType, upsert: false })
+    if (uploadError) { companyLogoStatus('No se pudo subir el logo: ' + uploadError.message, true); return }
     logo_url = sb.storage.from('product-images').getPublicUrl(path).data.publicUrl
   }
   const payload = { name, code: code || null, legal_name: legal_name || null, country_id, logo_url }
@@ -19537,21 +19549,34 @@ async function saveCompany(id) {
     ? await sb.from('companies').update(payload).eq('id', id)
     : await sb.from('companies').insert(payload)
   if (error) {
-    if (/logo_url|schema cache/i.test(error.message || '')) toast('Falta aplicar update33.sql en Supabase para guardar logos de empresa.', 6000)
-    else toast('Error: ' + error.message)
+    if (/logo_url|schema cache/i.test(error.message || '')) companyLogoStatus('Falta aplicar update33.sql en Supabase para guardar logos de empresa.', true)
+    else companyLogoStatus('No se pudo guardar la empresa: ' + error.message, true)
     return
   }
   closeCompanyEditor()
   await loadBadgeData()
   renderBadgeModule()
   toast(id ? 'Empresa actualizada' : 'Empresa creada')
+  } catch (error) {
+    companyLogoStatus('No se pudo completar el guardado: ' + (error?.message || error), true)
+  } finally {
+    if (saveButton?.isConnected) { saveButton.disabled = false; saveButton.textContent = 'Guardar' }
+  }
 }
 
+function companyLogoStatus(message, isError = false) {
+  const status = document.getElementById('company-logo-file-name')
+  if (status) { status.textContent = message; status.dataset.state = isError ? 'error' : '' }
+}
+function companyLogoContentType(file) {
+  const types = { png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg', webp:'image/webp', svg:'image/svg+xml' }
+  const ext = file.name.split('.').pop().toLowerCase(), expected = types[ext]
+  return expected && (!file.type || file.type === expected) ? expected : null
+}
 function previewCompanyLogoFile(input) {
   const file = input.files?.[0]
   if (!file) return
-  const name = document.getElementById('company-logo-file-name')
-  if (name) name.innerHTML = `<strong style="color:var(--text-primary)">${esc(file.name)}</strong><br>Se cargará al pulsar Guardar.`
+  companyLogoStatus(`${file.name} · listo para subir al pulsar Guardar.`)
   const preview = document.querySelector('#company-editor-modal .company-logo-preview, #company-editor-modal .company-logo-placeholder')
   if (!preview) return
   const url = URL.createObjectURL(file)
@@ -19562,49 +19587,38 @@ function previewCompanyLogoFile(input) {
   img.onload = () => URL.revokeObjectURL(url)
   preview.replaceWith(img)
 }
-async function handleCompanyLogoSelection(companyId, input) {
+async function chooseCompanyLogo() {
+  const input = document.getElementById('company-logo-file')
+  if (!input) return
+  if (typeof window.showOpenFilePicker !== 'function') { input.click(); return }
+  try {
+    const [handle] = await window.showOpenFilePicker({ multiple:false, types:[{description:'Logos de empresa',accept:{'image/png':['.png'],'image/jpeg':['.jpg','.jpeg'],'image/webp':['.webp'],'image/svg+xml':['.svg']}}] })
+    if (!handle) return
+    const file = await handle.getFile(), transfer = new DataTransfer()
+    transfer.items.add(file)
+    input.files = transfer.files
+    handleCompanyLogoSelection(input)
+  } catch (error) {
+    if (error?.name === 'AbortError') return
+    companyLogoStatus('No se pudo abrir el selector: ' + (error?.message || error) + '. También puedes arrastrar el archivo aquí.', true)
+  }
+}
+function companyLogoDrop(event) {
+  event.preventDefault()
+  event.currentTarget.classList.remove('is-dragover')
+  const file = event.dataTransfer?.files?.[0], input = document.getElementById('company-logo-file')
+  if (!file || !input) return
+  const transfer = new DataTransfer()
+  transfer.items.add(file)
+  input.files = transfer.files
+  handleCompanyLogoSelection(input)
+}
+function handleCompanyLogoSelection(input) {
   const file = input.files?.[0]
   if (!file) return
-  if (!IMG_TYPES.includes(file.type) && file.type !== 'image/svg+xml') { toast('Tipo de logo no soportado'); input.value = ''; return }
-  if (file.size > IMG_MAX_MB * 1024 * 1024) { toast(`El logo supera ${IMG_MAX_MB} MB`); input.value = ''; return }
+  if (!companyLogoContentType(file)) { companyLogoStatus('Tipo de logo no soportado. Usa PNG, JPG, WebP o SVG.', true); input.value = ''; return }
+  if (file.size > IMG_MAX_MB * 1024 * 1024) { companyLogoStatus(`El logo supera ${IMG_MAX_MB} MB.`, true); input.value = ''; return }
   previewCompanyLogoFile(input)
-  if (!companyId) return
-  const status = document.getElementById('company-logo-file-name')
-  if (status) status.textContent = 'Comprobando configuración…'
-  input.disabled = true
-  const { error: schemaError } = await sb.from('companies').select('logo_url').eq('id', companyId).maybeSingle()
-  if (schemaError) {
-    input.disabled = false
-    if (status) status.textContent = 'La base de datos aún no admite logos.'
-    if (/logo_url|schema cache/i.test(schemaError.message || '')) toast('Falta aplicar update33.sql en Supabase para guardar logos de empresa.', 6000)
-    else toast('No se pudo verificar la configuración: ' + schemaError.message, 6000)
-    return
-  }
-  if (status) status.textContent = 'Subiendo y guardando logo…'
-  const ext = (file.name.split('.').pop() || 'png').toLowerCase()
-  const path = `company-logos/${companyId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-  const { error: uploadError } = await sb.storage.from('product-images').upload(path, file, { contentType: file.type, upsert: false })
-  if (uploadError) {
-    if (status) status.textContent = 'No se pudo subir el archivo.'
-    input.disabled = false
-    toast('Error al subir el logo: ' + uploadError.message, 6000)
-    return
-  }
-  const logoUrl = sb.storage.from('product-images').getPublicUrl(path).data.publicUrl
-  const { error } = await sb.from('companies').update({ logo_url: logoUrl }).eq('id', companyId)
-  if (error) {
-    if (status) status.textContent = 'El archivo subió, pero no pudo vincularse a la empresa.'
-    input.disabled = false
-    if (/logo_url|schema cache/i.test(error.message || '')) toast('Falta aplicar update33.sql en Supabase para guardar logos de empresa.', 6000)
-    else toast('Error al guardar el logo: ' + error.message, 6000)
-    return
-  }
-  const company = Object.values(_badge.companies).flat().find(c => c.id === companyId)
-  if (company) company.logo_url = logoUrl
-  if (status) status.innerHTML = `<strong style="color:var(--success)">Logo guardado</strong><br>${esc(file.name)}`
-  input.value = ''
-  input.disabled = false
-  toast('Logo de empresa actualizado')
 }
 
 async function deleteCompany(id) {
