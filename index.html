@@ -36158,6 +36158,52 @@ function printCommunicationMemo(){return commsPrintDocument()}
   .policy-heading-number{width:8mm;height:8mm;flex:0 0 8mm;display:grid;place-items:center;border:0;background:transparent;color:#007d73;font:700 10pt/1 "Aeonik Mono",monospace;letter-spacing:-.03em}
   .policy-heading-title{min-width:0;overflow-wrap:anywhere}
   .policy-approval{min-height:33mm;padding:3mm 3mm 2.8mm;border-top:.6mm solid #2b2b2b}.policy-approval-role{margin-bottom:auto}.policy-signature-rule{height:.25mm;margin:3mm 0 1.5mm;background:#c9c9ce}
+  /* Policy document components follow the SIERRA Index type and control system. */
+  .policy-page{--policy-type-meta:7.5pt;--policy-type-label:9pt;--policy-type-body:10.3pt;--policy-type-title:15pt;font-family:"Aeonik",Arial,sans-serif;color:#202124}
+  .policy-control-table{border:.3mm solid #aeb2b7;border-radius:2mm}
+  .policy-control-main{grid-template-columns:29mm minmax(0,1fr) 42mm;min-height:29mm}
+  .policy-control-logo{padding:2.5mm;border-right:.25mm solid #d8dadd}
+  .policy-control-logo img{max-width:25mm;max-height:16mm}
+  .policy-control-identity{gap:1.3mm;padding:3.5mm 4.5mm}
+  .policy-control-kind{font:400 15pt/1 "Replica",Arial,sans-serif;letter-spacing:-.01em}
+  .policy-control-title{font:700 12pt/1.2 "Aeonik",Arial,sans-serif;letter-spacing:0}
+  .policy-control-reference{gap:1.4mm;padding:3mm;border-left:.25mm solid #d8dadd;background:#f6f7f7;color:#202124}
+  .policy-control-reference:before{left:3mm;width:7mm;height:.45mm;background:#007d73}
+  .policy-control-reference-label{color:#5d6368}
+  .policy-control-reference b{color:#202124;font-size:8.6pt}
+  .policy-control-reference-line{color:#4e5459}
+  .policy-control-reference .policy-confidential-label{color:#202124;border-color:#9fa4a8}
+  .policy-control-meta{grid-template-columns:1.22fr 1.05fr 1.05fr 1fr .88fr;border-top-color:#d8dadd}
+  .policy-control-datum{min-height:13.5mm;gap:.8mm;padding:1.8mm 2mm}
+  .policy-control-datum:first-child{border-left:.45mm solid #007d73;padding-left:1.6mm;background:#fafafa}
+  .policy-control-datum+.policy-control-datum{border-left-color:#d8dadd}
+  .policy-control-datum-value{font:600 8.6pt/1.25 "Aeonik",Arial,sans-serif}
+  .policy-page.is-continuation .policy-header-compact{border-color:#aeb2b7;border-radius:2mm}
+  .policy-header-compact-title{font:650 9pt/1.2 "Aeonik",Arial,sans-serif}
+  .policy-page.is-continuation .policy-header-compact-control{background:#f6f7f7;color:#202124;border-left:.25mm solid #d8dadd}
+  .policy-page.is-continuation .policy-header-compact-control:before{width:6mm;height:.45mm;background:#007d73}
+  .policy-page.is-continuation .policy-header-compact-control b,.policy-page.is-continuation .policy-header-compact-control span{color:#202124}
+  .policy-page.is-continuation .policy-header-compact-control .policy-confidential-label{color:#202124;border-color:#9fa4a8}
+  .policy-index h2,.policy-document-section h2{gap:2mm;min-height:7.5mm;margin-bottom:2.5mm;font:400 11.5pt/1.2 "Replica",Arial,sans-serif;color:#202124}
+  .policy-heading-number{width:7mm;height:7mm;flex-basis:7mm;color:#4e5459;font:600 8pt/1 "Aeonik Mono",monospace}
+  .policy-index h2:after,.policy-document-section h2:after{background:#cfd2d5}
+  .policy-index-row{grid-template-columns:7mm minmax(0,1fr) 9mm;padding:1.1mm 0;font-size:9pt;border-bottom-color:#e4e5e6}
+  .policy-index-row b,.policy-index-page{color:#4e5459;font-size:7.7pt}
+  .policy-section-body{font-family:"Aeonik",Arial,sans-serif;font-size:var(--policy-type-body);line-height:1.43;color:#2f3336}
+  .policy-section-body strong,.policy-section-body b{font-weight:700}
+  .policy-responsibility-table{border-color:#cfd2d5;border-radius:1.5mm;font-family:"Aeonik",Arial,sans-serif;font-size:8.8pt}
+  .policy-responsibility-table th{background:#f6f7f7;color:#4e5459;font-size:7.5pt}
+  .policy-responsibility-table th,.policy-responsibility-table td{border-color:#d8dadd}
+  .policy-org{display:block;margin-top:4mm;border:.25mm solid #cfd2d5;border-radius:1.5mm;overflow:hidden}
+  .policy-org-caption{padding:2mm 2.5mm;background:#f6f7f7;color:#4e5459;font:650 7.5pt/1.2 "Aeonik",Arial,sans-serif;text-transform:uppercase;letter-spacing:.05em}
+  .policy-org-person{width:auto;margin:0;padding:2mm 2.5mm;border:0;border-top:.25mm solid #e4e5e6;border-radius:0;display:grid;grid-template-columns:7mm minmax(0,1fr) minmax(0,1fr);gap:2mm;align-items:center;text-align:left;font-family:"Aeonik",Arial,sans-serif}
+  .policy-org-person:first-of-type{border-top:.25mm solid #d8dadd}
+  .policy-org-person b{font-size:8.8pt;font-weight:650;overflow-wrap:anywhere}.policy-org-person span{margin:0;font-size:8pt;color:#4e5459;overflow-wrap:anywhere}.policy-org-person .policy-org-depth{color:#4e5459;font:600 7.5pt/1 "Aeonik Mono",monospace}
+  .policy-org-person[data-depth="1"]{padding-left:5mm}.policy-org-person[data-depth="2"]{padding-left:8mm}.policy-org-person[data-depth="3"]{padding-left:11mm}.policy-org-person[data-depth="4"]{padding-left:14mm}
+  .policy-approval{min-height:30mm;border:.25mm solid #bfc3c6;border-top:.55mm solid #4e5459;border-radius:1.5mm}
+  .policy-approval-role,.policy-approval-name-label{color:#4e5459;font-family:"Aeonik",Arial,sans-serif}
+  .policy-approval b,.policy-approval span{font-family:"Aeonik",Arial,sans-serif}
+  .policy-footer{color:#5d6368;border-top-color:#cfd2d5;font-family:"Aeonik",Arial,sans-serif}
   .policy-studio button:focus-visible,.policy-library button:focus-visible,.policy-library input:focus-visible,.policy-library select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   @media(max-width:1180px){.policy-studio{height:auto;min-height:0;grid-template-columns:minmax(0,1fr);overflow:visible}.policy-customizer{height:min(760px,calc(100dvh - 150px))}.policy-preview-shell{height:min(820px,calc(100dvh - 110px))}.policy-preview-stage{padding:16px}}
   @media(max-width:860px){.policy-studio{display:flex;height:auto;min-height:0}.policy-customizer{width:100%;min-height:calc(100dvh - 190px)}.policy-preview-shell{position:fixed;inset:64px 0 0;z-index:120;border-radius:0;display:flex;visibility:hidden;pointer-events:none}.policy-studio.is-preview .policy-preview-shell{visibility:visible;pointer-events:auto}.policy-person-row,.policy-person-row.is-org,.policy-person-row.is-signer{grid-template-columns:1fr}.policy-person-row.is-signer .policy-person-field:last-of-type{grid-column:auto}.policy-person-row .policy-mini-btn{justify-self:end}.policy-mobile-bar{display:flex}.policy-preview-toolbar .policy-mobile-bar{margin-left:auto}.policy-field-grid{grid-template-columns:1fr}}
@@ -36177,12 +36223,12 @@ function policyDefaultSections(){return[
   ['Roles y responsabilidades','Asigna la responsabilidad de implementar, comunicar y supervisar esta política.'],
   ['Incumplimiento','Establece cómo se gestionarán las desviaciones o incumplimientos.'],
   ['Documentos relacionados','Relaciona procedimientos, formatos, normas o documentos de apoyo.'],
-].map(([title,text])=>({id:policyUid('section'),title,html:`<p>${text}</p>`}))}
+].map(([title,text],i)=>({id:policyUid('section'),title,kind:i===5?'responsibilities':'',html:`<p>${text}</p>`}))}
 function createPolicyDraft(seed={}){const now=new Date(),date=policyLocalDate(now);return{
   id:seed.id||policyUid(),title:seed.title||'Política sin título',department:seed.department||'Procesos',code:seed.code||`POL-${now.getFullYear()}-001`,version:seed.version||'1.0',date:seed.date||date,status:seed.status||'Borrador',owner:seed.owner||'Coordinación de Procesos',reviewDate:seed.reviewDate||`${now.getFullYear()+1}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`,
   companyId:seed.companyId||'',companyName:seed.companyName||'',companyLegalName:seed.companyLegalName||'',companyLogo:seed.companyLogo||'',siteId:seed.siteId||'',siteName:seed.siteName||'',processName:seed.processName||'Proceso por definir',confidential:seed.confidential===true,
   sections:seed.sections||policyDefaultSections(),responsibles:seed.responsibles||[{name:'Coordinación de Procesos',role:'Custodio de la política'}],org:seed.org||[],signers:seed.signers||[{role:'Elaborado por',name:'Coordinación de Procesos',title:''},{role:'Revisado por',name:'',title:''},{role:'Aprobado por',name:'',title:''}],changeControl:seed.changeControl||'La presente política será revisada anualmente para garantizar que permanezca vigente, actualizada y alineada con las necesidades de la organización y la normativa aplicable.',updatedAt:seed.updatedAt||new Date().toISOString(),createdAt:seed.createdAt||new Date().toISOString()}}
-function policyNormalize(p){return createPolicyDraft({...p,sections:Array.isArray(p?.sections)?p.sections:undefined,responsibles:Array.isArray(p?.responsibles)?p.responsibles:undefined,org:Array.isArray(p?.org)?p.org:undefined,signers:Array.isArray(p?.signers)?p.signers:undefined})}
+function policyNormalize(p){const sections=Array.isArray(p?.sections)?p.sections.map(s=>({...s,kind:s.kind||(/roles y responsabilidades/i.test(s.title||'')?'responsibilities':'')})):undefined;return createPolicyDraft({...p,sections,responsibles:Array.isArray(p?.responsibles)?p.responsibles:undefined,org:Array.isArray(p?.org)?p.org:undefined,signers:Array.isArray(p?.signers)?p.signers:undefined})}
 function policyLoad(){try{_policies=JSON.parse(localStorage.getItem(POLICY_STORE_KEY)||'[]').map(policyNormalize)}catch{_policies=[]}if(!_policies.length){_policies=[createPolicyDraft()];policyPersistAll()}}
 function policyPersistAll(){localStorage.setItem(POLICY_STORE_KEY,JSON.stringify(_policies))}
 function policyCommit(){if(!_policyCurrent)return;_policyCurrent.updatedAt=new Date().toISOString();const i=_policies.findIndex(p=>p.id===_policyCurrent.id);if(i>=0)_policies[i]=JSON.parse(JSON.stringify(_policyCurrent));else _policies.unshift(JSON.parse(JSON.stringify(_policyCurrent)));policyPersistAll()}
@@ -36224,9 +36270,9 @@ function policyAddSection(){_policyCurrent.sections.push({id:policyUid('section'
 function policyMoveSection(id,delta){const i=_policyCurrent.sections.findIndex(x=>x.id===id),j=i+delta;if(i<0||j<0||j>=_policyCurrent.sections.length)return;[_policyCurrent.sections[i],_policyCurrent.sections[j]]=[_policyCurrent.sections[j],_policyCurrent.sections[i]];policyCommit();policySelectTab('content');policyRenderPreview()}
 function policyRemoveSection(id){if(_policyCurrent.sections.length===1){toast('La política debe conservar al menos una sección.');return}_policyCurrent.sections=_policyCurrent.sections.filter(x=>x.id!==id);policyCommit();policySelectTab('content');policyRenderPreview()}
 function policyAddPerson(type){const item=type==='signers'?{role:'Aprobado por',name:'',title:''}:type==='org'?{name:'',role:'',parent:''}:{name:'',role:''};_policyCurrent[type].push(item);policyCommit();policySelectTab('people');policyRenderPreview()}
-function policySetPerson(type,i,key,value){_policyCurrent[type][i][key]=value;policyAutosave()}
+function policySetPerson(type,i,key,value){if(type==='org'&&key==='parent'&&value!==''){let cursor=Number(value),seen=new Set([i]);while(Number.isInteger(cursor)&&cursor>=0&&cursor<_policyCurrent.org.length){if(seen.has(cursor)){toast('Esta relación crearía un ciclo en el organigrama.');const select=document.querySelectorAll('.policy-person-row.is-org select')[i];if(select)select.value=_policyCurrent.org[i].parent;return}seen.add(cursor);const parent=_policyCurrent.org[cursor].parent;if(parent==='')break;cursor=Number(parent)}}_policyCurrent[type][i][key]=value;policyAutosave()}
 function policyRemovePerson(type,i){_policyCurrent[type].splice(i,1);if(type==='org')_policyCurrent.org.forEach(p=>{if(String(p.parent)===String(i))p.parent='';else if(p.parent!==''&&Number(p.parent)>i)p.parent=String(Number(p.parent)-1)});policyCommit();policySelectTab('people');policyRenderPreview()}
-function policyOrgHtml(p=_policyCurrent){if(!p.org.length)return'';const roots=p.org.map((person,i)=>({...person,i})).filter(person=>person.parent===''),children=p.org.map((person,i)=>({...person,i})).filter(person=>person.parent!=='');const card=person=>`<div class="policy-org-person"><b>${esc(person.name||'Nombre por definir')}</b><span>${esc(person.role||'Puesto')}</span></div>`;return`<div class="policy-org"><div class="policy-org-level">${roots.map(card).join('')}</div>${children.length?`<div class="policy-org-level">${children.map(card).join('')}</div>`:''}</div>`}
+function policyOrgHtml(p=_policyCurrent){if(!p.org.length)return'';const nodes=p.org.map((person,i)=>({...person,i})),visited=new Set(),rows=[];const render=(person,depth)=>{if(visited.has(person.i))return;visited.add(person.i);const parent=person.parent===''?null:nodes[Number(person.parent)],report=parent?`Reporta a ${parent.name||parent.role||'nivel superior'}`:'Nivel principal';rows.push(`<div class="policy-org-person" data-depth="${Math.min(depth,4)}"><span class="policy-org-depth">${String(rows.length+1).padStart(2,'0')}</span><b>${esc(person.name||'Nombre por definir')}</b><span>${esc(person.role||'Puesto')} · ${esc(report)}</span></div>`);nodes.filter(child=>String(child.parent)===String(person.i)&&child.i!==person.i).forEach(child=>render(child,depth+1))};nodes.filter(person=>person.parent===''||!nodes[Number(person.parent)]).forEach(person=>render(person,0));nodes.forEach(person=>render(person,0));return`<div class="policy-org"><div class="policy-org-caption">Estructura de reporte</div>${rows.join('')}</div>`}
 function policyHeaderHtml(p,page=1,total=1){
   const company=p.companyName||p.companyLegalName||'Empresa por seleccionar',site=p.siteName||'Planta por seleccionar',process=p.processName||'Proceso por definir';
   const logo=p.companyLogo?`<img src="${escAttr(p.companyLogo)}" alt="Logo de ${escAttr(company)}" crossorigin="anonymous">`:'<span class="policy-header-logo-placeholder">Logo de la planta</span>';
@@ -36236,7 +36282,14 @@ function policyHeaderHtml(p,page=1,total=1){
 }
 function policyIndexRowHtml(number,title){return`<div class="policy-index-row"><b>${number}</b><span class="policy-index-title">${esc(title)}</span><span class="policy-index-dots" aria-hidden="true"></span><span class="policy-index-page" data-policy-index-page="${number}">—</span></div>`}
 function policyDocumentHeading(number,title){return`<h2><span class="policy-heading-number">${String(number).padStart(2,'0')}</span><span class="policy-heading-title">${esc(title)}</span></h2>`}
-function policyContentHtml(p){const sections=p.sections.map((s,i)=>`<section class="policy-document-section" data-policy-section="${i+2}">${policyDocumentHeading(i+2,s.title)}<div class="policy-section-body">${policySanitize(s.html)}${/roles y responsabilidades/i.test(s.title)&&p.responsibles.length?`<table class="policy-responsibility-table"><thead><tr><th>Responsable</th><th>Responsabilidad</th></tr></thead><tbody>${p.responsibles.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.role)}</td></tr>`).join('')}</tbody></table>${policyOrgHtml(p)}`:''}</div></section>`).join(''),changes=p.sections.length+2,approvals=p.sections.length+3;return`<section class="policy-index">${policyDocumentHeading(1,'Índice')}<div class="policy-index-list">${p.sections.map((s,i)=>policyIndexRowHtml(i+2,s.title)).join('')}${policyIndexRowHtml(changes,'Control de cambios')}${policyIndexRowHtml(approvals,'Aprobaciones')}</div></section>${sections}<section class="policy-document-section" data-policy-section="${changes}">${policyDocumentHeading(changes,'Control de cambios')}<div class="policy-section-body policy-changes">${esc(p.changeControl)}</div></section><section class="policy-document-section" data-policy-section="${approvals}">${policyDocumentHeading(approvals,'Aprobaciones')}<div class="policy-approvals">${p.signers.map(s=>`<div class="policy-approval"><div class="policy-approval-role">${esc(s.role)}</div><div class="policy-signature-rule" aria-hidden="true"></div><span class="policy-approval-name-label">Nombre</span><b>${esc(s.name||'Pendiente')}</b><span>${esc(s.title||'')}</span></div>`).join('')}</div></section>`}
+function policyContentHtml(p){
+  const hasPeople=Boolean(p.responsibles.length||p.org.length),sections=p.sections.map(s=>({...s}));
+  if(hasPeople&&!sections.some(s=>s.kind==='responsibilities'||/roles y responsabilidades/i.test(s.title||'')))sections.push({id:'policy-responsibilities',title:'Roles y responsabilidades',kind:'responsibilities',html:''});
+  const peopleHtml=()=>`${p.responsibles.length?`<table class="policy-responsibility-table"><thead><tr><th>Responsable</th><th>Responsabilidad</th></tr></thead><tbody>${p.responsibles.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.role)}</td></tr>`).join('')}</tbody></table>`:''}${policyOrgHtml(p)}`;
+  const content=sections.map((s,i)=>`<section class="policy-document-section" data-policy-section="${i+2}">${policyDocumentHeading(i+2,s.title)}<div class="policy-section-body">${policySanitize(s.html)}${hasPeople&&(s.kind==='responsibilities'||/roles y responsabilidades/i.test(s.title||''))?peopleHtml():''}</div></section>`).join('');
+  const changes=sections.length+2,approvals=sections.length+3;
+  return`<section class="policy-index">${policyDocumentHeading(1,'Índice')}<div class="policy-index-list">${sections.map((s,i)=>policyIndexRowHtml(i+2,s.title)).join('')}${policyIndexRowHtml(changes,'Control de cambios')}${policyIndexRowHtml(approvals,'Aprobaciones')}</div></section>${content}<section class="policy-document-section" data-policy-section="${changes}">${policyDocumentHeading(changes,'Control de cambios')}<div class="policy-section-body policy-changes">${esc(p.changeControl)}</div></section><section class="policy-document-section" data-policy-section="${approvals}">${policyDocumentHeading(approvals,'Aprobaciones')}<div class="policy-approvals">${p.signers.map(s=>`<div class="policy-approval"><div class="policy-approval-role">${esc(s.role)}</div><div class="policy-signature-rule" aria-hidden="true"></div><span class="policy-approval-name-label">Nombre</span><b>${esc(s.name||'Pendiente')}</b><span>${esc(s.title||'')}</span></div>`).join('')}</div></section>`
+}
 function policyFooterHtml(p,page=1,total=1){return`<footer class="policy-footer"><span class="policy-footer-title">${esc(p.title)}</span><span class="policy-footer-page" data-policy-footer-page>Página ${page} de ${total}</span></footer>`}
 function policyPageHtml(p=_policyCurrent,page=1,total=1,content=policyContentHtml(p)){const watermark=p.confidential?'<div class="policy-watermark" aria-hidden="true">Confidencial</div>':'';return`<article class="policy-page">${watermark}${policyHeaderHtml(p,page,total)}<main class="policy-page-content">${content}</main>${policyFooterHtml(p,page,total)}</article>`}
 function policyPaginateDom(doc,root=doc){
@@ -36256,8 +36309,14 @@ function policyPaginateDom(doc,root=doc){
     if(plain){body.textContent=plain;if(!fits()){sectionNode.remove();if(content.children.length)newPage();begin(false);body.textContent=plain;if(!fits())scaleToFit(sectionNode)}return}
     for(const child of children){body.append(child);if(fits())continue;child.remove();if(body.children.length){newPage();begin(true)}if(/^(P|H[1-6])$/.test(child.tagName)&&child.textContent.length){splitParagraph(child);continue}body.append(child);if(!fits()){child.remove();if(sectionNode.isConnected)sectionNode.remove();if(content.children.length)newPage();begin(true);body.append(child);if(!fits())scaleToFit(sectionNode)}}
   };
+  const splitCollection=(block,selector,containerSelector)=>{
+    const entries=[...block.querySelectorAll(selector)].map(node=>node.cloneNode(true)),heading=block.querySelector('h2'),originalContainer=block.querySelector(containerSelector);let part,container;
+    const begin=continuation=>{part=block.cloneNode(false);const title=heading?.cloneNode(true);if(title&&continuation){const label=title.querySelector('.policy-heading-title');if(label)label.textContent+=' · continuación'}container=originalContainer.cloneNode(false);if(title)part.append(title);part.append(container);content.append(part)};
+    begin(false);
+    entries.forEach(entry=>{container.append(entry);if(fits())return;entry.remove();if(container.children.length){newPage();begin(true)}container.append(entry);if(!fits())scaleToFit(part)});
+  };
   newPage();
-  for(const block of blocks){content.append(block);if(fits())continue;block.remove();if(content.children.length)newPage();content.append(block);if(fits())continue;block.remove();if(block.classList.contains('policy-document-section'))splitSection(block);else scaleToFit(block)}
+  for(const block of blocks){content.append(block);if(fits())continue;block.remove();if(content.children.length)newPage();content.append(block);if(fits())continue;block.remove();if(block.classList.contains('policy-index'))splitCollection(block,'.policy-index-row','.policy-index-list');else if(block.querySelector('.policy-approvals'))splitCollection(block,'.policy-approval','.policy-approvals');else if(block.classList.contains('policy-document-section'))splitSection(block);else scaleToFit(block)}
   const total=pages.length,pageMap={};pages.forEach((item,i)=>item.querySelectorAll('[data-policy-section]').forEach(section=>{const key=section.dataset.policySection;if(!pageMap[key])pageMap[key]=i+1}));pages.forEach((item,i)=>{item.querySelectorAll('[data-policy-page-count]').forEach(value=>value.textContent=`${i+1} / ${total}`);item.querySelector('[data-policy-footer-page]').textContent=`Página ${i+1} de ${total}`;item.querySelectorAll('[data-policy-index-page]').forEach(value=>value.textContent=pageMap[value.dataset.policyIndexPage]||'—')});return pages
 }
 function policyRenderPreview(){const sheet=document.getElementById('policy-preview-sheet');if(!sheet||!_policyCurrent)return;sheet.innerHTML=policyPageHtml();requestAnimationFrame(()=>{if(!sheet.querySelector('.policy-page-set'))policyPaginateDom(document,sheet);const count=sheet.querySelectorAll('.policy-page').length,label=document.getElementById('policy-preview-pages');if(label)label.textContent=`${count} ${count===1?'página':'páginas'} · ${_policyCurrent.code}`;policyFitPreview()})}
