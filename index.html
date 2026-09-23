@@ -36204,24 +36204,35 @@ function printCommunicationMemo(){return commsPrintDocument()}
   .policy-approval-role,.policy-approval-name-label{color:#4e5459;font-family:"Aeonik",Arial,sans-serif}
   .policy-approval b,.policy-approval span{font-family:"Aeonik",Arial,sans-serif}
   .policy-footer{color:#5d6368;border-top-color:#cfd2d5;font-family:"Aeonik",Arial,sans-serif}
-  /* One fixed logo column; document fields wrap as content, not false table columns. */
+  /* One fixed logo column and a two-column document register below the title. */
   .policy-control-table{display:grid;grid-template-columns:28mm minmax(0,1fr);border:.3mm solid #aeb2b7;border-radius:2mm;background:#fff;overflow:hidden}
   .policy-record-logo{min-width:0;display:grid;place-items:center;padding:3mm;border-right:.25mm solid #d8dadd}
   .policy-record-logo img{display:block;max-width:22mm;max-height:16mm;object-fit:contain}
   .policy-record-logo-placeholder{max-width:19mm;color:#5d6368;font:400 7.5pt/1.25 "Aeonik",Arial,sans-serif;text-align:center}
   .policy-record-content{min-width:0;display:grid;grid-template-rows:auto auto}
   .policy-record-main{min-width:0;display:grid;align-content:center;gap:2mm;padding:3.5mm 4mm}
-  .policy-record-controls,.policy-record-metadata,.policy-record-compact-pills{display:flex;align-items:center;flex-wrap:wrap;gap:1.5mm}
+  .policy-record-controls,.policy-record-compact-pills{display:flex;align-items:center;flex-wrap:wrap;gap:1.5mm}
+  .policy-record-kind{margin-right:auto;color:#4e5459;font:650 8pt/1.2 "Aeonik",Arial,sans-serif;text-transform:uppercase;letter-spacing:.04em}
+  .policy-record-folio{color:#4e5459;font:400 7.8pt/1.2 "Aeonik Mono",monospace;white-space:nowrap}
   .policy-record-title{min-width:0;margin:0;color:#202124;font:400 15pt/1.17 "Replica",Arial,sans-serif;overflow-wrap:anywhere}
-  .policy-record-metadata{padding:2.5mm 4mm;border-top:.25mm solid #d8dadd}
+  .policy-record-metadata{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:.25mm solid #d8dadd}
+  .policy-record-field{min-width:0;min-height:8.5mm;box-sizing:border-box;display:grid;grid-template-columns:19mm minmax(0,1fr);align-items:center;gap:1.5mm;padding:1.5mm 3mm;border-top:.25mm solid #e4e5e6}
+  .policy-record-field:first-child{grid-column:1/-1;border-top:0}
+  .policy-record-field:nth-child(3),.policy-record-field:nth-child(5){border-left:.25mm solid #d8dadd}
+  .policy-record-field>span{color:#5d6368;font:400 7.8pt/1.2 "Aeonik",Arial,sans-serif}
+  .policy-record-field>b{min-width:0;color:#202124;font:650 8.8pt/1.22 "Aeonik",Arial,sans-serif;overflow-wrap:anywhere}
   .policy-record-pill{max-width:100%;min-height:6.5mm;box-sizing:border-box;display:inline-flex;align-items:center;flex-wrap:wrap;gap:1.2mm;padding:1mm 2mm;border:.25mm solid #cfd2d5;border-radius:99mm;background:#fff;color:#202124;font:400 7.8pt/1.2 "Aeonik",Arial,sans-serif;overflow-wrap:anywhere}
   .policy-record-pill>span{color:#5d6368}.policy-record-pill>b{font-weight:650;color:#202124}
   .policy-record-pill.is-technical>b{font-family:"Aeonik Mono",monospace;font-weight:600}
-  .policy-record-pill.is-kind{font-weight:650}.policy-record-pill.is-confidential{border-color:#8d9398;font-weight:650}
+  .policy-record-pill.is-confidential{border-color:#8d9398;font-weight:650}
   .policy-page.is-continuation .policy-header-compact{display:grid;grid-template-columns:28mm minmax(0,1fr);min-height:15mm;border:.3mm solid #aeb2b7;border-radius:2mm;background:#fff;overflow:hidden}
   .policy-record-compact-content{min-width:0;display:grid;align-content:center;gap:1.3mm;padding:2mm 3mm}
-  .policy-record-compact-title{color:#202124;font:650 9pt/1.2 "Aeonik",Arial,sans-serif;overflow-wrap:anywhere}
+  .policy-record-compact-head{min-width:0;display:flex;align-items:flex-start;gap:2mm}
+  .policy-record-compact-head .policy-record-pill{flex:0 0 auto;min-height:5.3mm;padding:.6mm 1.6mm;font-size:7.2pt}
+  .policy-record-compact-title{min-width:0;flex:1;color:#202124;font:650 9pt/1.2 "Aeonik",Arial,sans-serif;overflow-wrap:anywhere}
   .policy-record-compact-pills .policy-record-pill{min-height:5.3mm;padding:.6mm 1.6mm;font-size:7.2pt}
+  .policy-record-compact-site{min-width:0;color:#4e5459;font:400 7.5pt/1.2 "Aeonik",Arial,sans-serif;overflow-wrap:anywhere}
+  .policy-record-compact-pills .policy-record-folio{font-size:7.2pt}
   .policy-page.is-continuation .policy-record-logo img{max-height:11mm}
   .policy-studio button:focus-visible,.policy-library button:focus-visible,.policy-library input:focus-visible,.policy-library select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   @media(max-width:1180px){.policy-studio{height:auto;min-height:0;grid-template-columns:minmax(0,1fr);overflow:visible}.policy-customizer{height:min(760px,calc(100dvh - 150px))}.policy-preview-shell{height:min(820px,calc(100dvh - 110px))}.policy-preview-stage{padding:16px}}
@@ -36296,10 +36307,10 @@ function policyHeaderHtml(p,page=1,total=1){
   const company=p.companyName||p.companyLegalName||'Empresa por seleccionar',site=p.siteName||'Planta por seleccionar',process=p.processName||'Proceso por definir';
   const logo=p.companyLogo?`<img src="${escAttr(p.companyLogo)}" alt="Logo de ${escAttr(company)}" crossorigin="anonymous">`:'<span class="policy-record-logo-placeholder">Logotipo pendiente</span>';
   const pill=(label,value,kind='')=>`<span class="policy-record-pill ${kind}"><span>${label}</span><b>${esc(value)}</b></span>`;
-  const pagePill=()=>`<span class="policy-record-pill is-technical"><span>Página</span><b data-policy-page-count>${page} / ${total}</b></span>`;
+  const field=(label,value)=>`<div class="policy-record-field"><span>${label}</span><b>${esc(value)}</b></div>`;
+  const folio=()=>`<span class="policy-record-folio">Rev. ${esc(p.version)} · Página <span data-policy-page-count>${page} / ${total}</span></span>`;
   const confidential=p.confidential?'<span class="policy-record-pill is-confidential">Confidencial</span>':'';
-  const controls=`${pill('Código',p.code,'is-technical')}${pill('Revisión',p.version,'is-technical')}${pagePill()}${confidential}`;
-  return`<header class="policy-document-header"><div class="policy-control-table"><div class="policy-record-logo">${logo}</div><div class="policy-record-content"><div class="policy-record-main"><div class="policy-record-controls"><span class="policy-record-pill is-kind">Política</span>${controls}</div><h1 class="policy-record-title">${esc(p.title)}</h1></div><div class="policy-record-metadata">${pill('Proceso',process)}${pill('Empresa',company)}${pill('Planta',site)}${pill('Departamento',p.department)}${pill('Aprobación',policyDateLabel(p.date))}</div></div></div><div class="policy-header-compact"><div class="policy-record-logo">${logo}</div><div class="policy-record-compact-content"><strong class="policy-record-compact-title">${esc(p.title)}</strong><div class="policy-record-compact-pills">${pill('Planta',site)}${pill('Código',p.code,'is-technical')}${pagePill()}${confidential}</div></div></div></header>`
+  return`<header class="policy-document-header"><div class="policy-control-table"><div class="policy-record-logo">${logo}</div><div class="policy-record-content"><div class="policy-record-main"><div class="policy-record-controls"><span class="policy-record-kind">Política</span>${pill('Código',p.code,'is-technical')}${folio()}${confidential}</div><h1 class="policy-record-title">${esc(p.title)}</h1></div><div class="policy-record-metadata">${field('Proceso',process)}${field('Empresa',company)}${field('Planta',site)}${field('Departamento',p.department)}${field('Aprobación',policyDateLabel(p.date))}</div></div></div><div class="policy-header-compact"><div class="policy-record-logo">${logo}</div><div class="policy-record-compact-content"><div class="policy-record-compact-head"><strong class="policy-record-compact-title">${esc(p.title)}</strong>${confidential}</div><div class="policy-record-compact-pills"><span class="policy-record-compact-site">${esc(site)}</span>${pill('Código',p.code,'is-technical')}${folio()}</div></div></div></header>`
 }
 function policyIndexRowHtml(number,title){return`<div class="policy-index-row"><b>${number}</b><span class="policy-index-title">${esc(title)}</span><span class="policy-index-dots" aria-hidden="true"></span><span class="policy-index-page" data-policy-index-page="${number}">—</span></div>`}
 function policyDocumentHeading(number,title){return`<h2><span class="policy-heading-number">${String(number).padStart(2,'0')}</span><span class="policy-heading-title">${esc(title)}</span></h2>`}
