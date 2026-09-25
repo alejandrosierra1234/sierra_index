@@ -9235,6 +9235,24 @@ async function mondayFetchItems(monday, ids) {
   return response?.data?.items || []
 }
 
+// Communications only needs the item and its plain column values. Keep this
+// query deliberately separate from the richer badge query above: monday's
+// typed FileValue/BoardRelationValue fragments vary by API version and can
+// make an otherwise simple communication Item View fail validation.
+async function mondayFetchCommunicationItem(monday, id) {
+  const itemId = String(id || '')
+  if (!/^\d+$/.test(itemId)) return null
+  const query = `query ($ids: [ID!]!) {
+    items(ids: $ids) {
+      id name board { id }
+      column_values { id type text value column { title } }
+    }
+  }`
+  const response = await monday.api(query, { variables: { ids: [itemId] } })
+  if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+  return response?.data?.items?.[0] || null
+}
+
 function mondayPhotoUrl(item) {
   const column = mondayColumnByTitle(item, 'FOTO EDITADA')
   if (!column) return ''
@@ -9424,7 +9442,7 @@ async function enterMondayCommunicationsApp() {
   const itemId = String(context.itemId || context.pulseId || '')
   if (!/^\d+$/.test(itemId)) throw new Error('Abre esta vista desde un elemento del tablero Solicitud de Comunicados.')
 
-  const [item] = await mondayFetchItems(monday, [itemId])
+  const item = await mondayFetchCommunicationItem(monday, itemId)
   if (!item) throw new Error('No se encontró la solicitud en Monday.')
   const request = mondayCommsRequestFromItem(item)
   const statusColumn = mondayCommsColumn(item, 'status', 'status') || mondayCommsColumn(item, 'status')
