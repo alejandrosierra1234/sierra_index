@@ -36,6 +36,11 @@ assert.ok(source.includes("BORRADOR · VERSIÓN ${commsReviewVersionLabel(review
 assert.ok(source.includes('Documento en revisión · No válido para distribución'));
 assert.ok(source.includes('async function commsPublishFinalPdf()'));
 assert.ok(source.includes("mondayCommsWriteColumn('syncStatus','Cambios pendientes')"));
+assert.ok(source.includes('onclick="commsRequestReview()"'));
+assert.ok(source.includes("'Un clic crea el PDF con sello y su subitem de comentarios.'"));
+assert.ok(!source.includes('onclick="commsRefreshReviewState()"'));
+assert.ok(source.includes("monday no respondió a tiempo"));
+assert.ok(source.includes("document.addEventListener('visibilitychange'"));
 assert.ok(source.includes('Las autoridades, cargos y firmas provienen de ÁREAS Y AUTORIDADES'));
 assert.ok(source.includes("[['info','Datos'],['content','Contenido'],['signature','Firmantes']]"));
 assert.ok(source.includes("if(commsInMonday()){toast('Esta vista está limitada al memo de la solicitud seleccionada.');return}"));

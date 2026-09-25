@@ -9641,7 +9641,16 @@ async function mondayCommsUploadFinalPdf(blob, draft) {
 async function mondayCommsApi(query, variables = {}) {
   const bridge = _mondayCommsBridge
   if (!bridge?.monday) throw new Error('Abre el memo desde monday para gestionar la revisión.')
-  const response = await bridge.monday.api(query, { apiVersion: '2025-04', variables })
+  let timeoutId
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('monday no respondió a tiempo. Si ves un aviso de permisos, un administrador debe aprobar los permisos nuevos de SIERRA Comunicados.')), 15000)
+  })
+  let response
+  try {
+    response = await Promise.race([bridge.monday.api(query, { apiVersion: '2025-04', variables }), timeout])
+  } finally {
+    clearTimeout(timeoutId)
+  }
   if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
   return response?.data || {}
 }
@@ -9955,9 +9964,18 @@ async function enterMondayCommunicationsApp() {
 
   const draft = await openMondayCommunicationRequest(request)
   if (draft) await mondayCommsSyncDraft(draft)
+  if (draft?.reviewParentItemId) {
+    commsRefreshReviewState(false).catch(error => console.warn('monday memo automatic review refresh:', error))
+  }
   try { await mondayCommsUpdateStatus('En proceso') }
   catch (error) { console.warn('monday communications status:', error) }
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && _mondayCommsBridge && _commsCurrent?.reviewParentItemId && !_commsReviewBusy) {
+    commsRefreshReviewState(false).catch(error => console.warn('monday memo visibility review refresh:', error))
+  }
+})
 
 // (the Label Builder registers its own resize handler alongside lbFitPreview)
 window.addEventListener('DOMContentLoaded', async () => {
@@ -35332,7 +35350,9 @@ function commsReviewActionsHtml(draft) {
   if (!commsInMonday()) return ''
   const latest = Math.max(0, ...(draft.reviewVersions || []).map(version => Number(version.version) || 0)), approved = draft.status === 'Aprobado' && draft.approvedVersion === latest && !draft.reviewNeedsNewVersion
   const boardUrl = draft.reviewBoardId && draft.reviewParentItemId ? `https://sierratextiles.monday.com/boards/${draft.reviewBoardId}/pulses/${draft.reviewParentItemId}` : ''
-  return `<div class="memo-review-workflow"><div><b>${latest ? `Versión ${commsReviewVersionLabel(latest)}` : 'Sin versión enviada'}</b><small>${draft.reviewNeedsNewVersion ? 'Hay cambios pendientes de una nueva revisión.' : approved ? 'Aprobada y sin cambios posteriores.' : latest ? 'Revisión registrada en monday.' : 'Crea una versión cuando el borrador esté listo.'}</small></div>${boardUrl ? `<a class="btn btn-ghost btn-sm" href="${escAttr(boardUrl)}" target="_blank" rel="noopener noreferrer">Abrir revisiones</a>` : ''}<button type="button" class="btn btn-secondary btn-sm" onclick="commsRefreshReviewState()">${siIcon('refresh', 15)} Actualizar estado</button><button type="button" class="btn btn-primary btn-sm" onclick="commsOpenReviewRequest()">${siIcon('message', 15)} Solicitar revisión</button>${approved ? `<button type="button" class="btn btn-primary btn-sm" onclick="commsPublishFinalPdf()">${siIcon('check-circle', 15)} Publicar PDF final</button>` : ''}</div>`
+  const canSend = !latest || draft.reviewNeedsNewVersion
+  const sendLabel = latest ? `Enviar versión ${commsReviewVersionLabel(latest + 1)}` : 'Enviar a revisión'
+  return `<div class="memo-review-workflow"><div><b>${latest ? `Versión ${commsReviewVersionLabel(latest)}` : 'Sin versión enviada'}</b><small>${draft.reviewNeedsNewVersion ? 'Cambios listos para una nueva versión.' : approved ? 'Aprobada y sin cambios posteriores.' : latest ? 'En revisión; el estado se actualiza automáticamente.' : 'Un clic crea el PDF con sello y su subitem de comentarios.'}</small></div>${boardUrl ? `<a class="btn btn-ghost btn-sm" href="${escAttr(boardUrl)}" target="_blank" rel="noopener noreferrer">Ver revisiones</a>` : ''}${canSend ? `<button type="button" class="btn btn-primary btn-sm" onclick="commsRequestReview()">${siIcon('message', 15)} ${sendLabel}</button>` : ''}${approved ? `<button type="button" class="btn btn-primary btn-sm" onclick="commsPublishFinalPdf()">${siIcon('check-circle', 15)} Publicar PDF final</button>` : ''}</div>`
 }
 function commsDateLabel(v){if(!v)return'';try{return new Intl.DateTimeFormat('es-HN',{weekday:'long',year:'numeric',month:'long',day:'numeric',timeZone:'UTC'}).format(new Date(v+'T12:00:00Z')).replace(/^./,c=>c.toUpperCase())}catch{return v}}
 function createCommunicationDraft(seed={}){const now=new Date().toISOString(),date=seed.date||now.slice(0,10);return{kind:seed.kind||'memo',id:seed.id||('memo-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)),source:seed.source||'manual',mondayItemId:seed.mondayItemId||null,mondaySeedVersion:Number(seed.mondaySeedVersion)||0,status:seed.status||'Borrador',reviewParentItemId:seed.reviewParentItemId||null,reviewBoardId:seed.reviewBoardId||null,reviewVersions:Array.isArray(seed.reviewVersions)?JSON.parse(JSON.stringify(seed.reviewVersions)):[],submittedSnapshot:seed.submittedSnapshot||'',approvedHash:seed.approvedHash||'',approvedVersion:Number(seed.approvedVersion)||0,finalPublishedVersion:Number(seed.finalPublishedVersion)||0,reviewNeedsNewVersion:!!seed.reviewNeedsNewVersion,confidential:!!seed.confidential,country:seed.country||'',company:seed.company||'',plant:seed.plant||'',externalFolio:seed.externalFolio||'',communicationNumber:seed.communicationNumber||commsNextNumber(date.slice(0,4)),audience:seed.audience||'Colaboradores SIERRA',audienceCategory:seed.audienceCategory||'',specificRecipients:seed.specificRecipients||'',sender:seed.sender??'Comunicaciones Corporativas',issuingAreas:Array.isArray(seed.issuingAreas)?[...seed.issuingAreas]:[],objective:seed.objective||'',requiredInfo:seed.requiredInfo||'',actionRequired:seed.actionRequired||'',action:seed.action||'',effectiveDate:seed.effectiveDate||'',requestedSendDate:seed.requestedSendDate||'',mondayAttachments:JSON.parse(JSON.stringify(seed.mondayAttachments||[])),date,subject:seed.subject||'Nuevo comunicado',salutation:seed.salutation||'Estimados, buen día.',closing:seed.closing||'Saludos cordiales,',blocks:Array.isArray(seed.blocks)&&seed.blocks.length?seed.blocks:[{id:'b-'+Date.now(),type:'text',style:'regular',content:'Escribe aquí el contenido principal del memorándum.'}],signerName:seed.signerName||'',signerTitle:seed.signerTitle||'',signerDepartment:seed.signerDepartment||'',signature:seed.signature||'',additionalSigners:JSON.parse(JSON.stringify(seed.additionalSigners||[])),createdAt:seed.createdAt||now,updatedAt:now}}
