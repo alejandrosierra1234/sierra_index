@@ -3054,7 +3054,7 @@ Separar Datos, Contenido y Firma en vistas dentro del editor; la vista previa si
 
 Estilos de texto: Párrafo, Título (22 px), Encabezado (17 px), Subtítulo (15 px) y Nota pequeña (11 px en documento), además de listas y énfasis existentes. Títulos y notas tienen campos de edición más compactos; conservar formato enriquecido y la misma jerarquía en impresión/exportación.
 
-Las firmas guardadas almacenan imagen, nombre y cargo localmente en este navegador. Guardar es explícito; usar una firma no modifica el remitente del comunicado. Retirar una firma de la biblioteca no modifica documentos anteriores. Permitir deshacer la aplicación de una firma, incluidos los datos de quien firma.
+Las firmas guardadas almacenan imagen, nombre y cargo localmente en este navegador. Guardar es explícito; usar una firma no modifica el remitente del comunicado. Retirar una firma de la biblioteca no modifica documentos anteriores. Permitir deshacer la aplicación de una firma, incluidos los datos de quien firma. Cuando una persona tiene nombre pero no imagen, generar automáticamente una firma tipográfica manuscrita con ese nombre; una imagen cargada siempre tiene prioridad. La firma generada debe conservar el mismo trazo en vista previa, PDF, PNG y JPG mediante la fuente local autorizada.
 
 ### Exportación de comunicados
 
