@@ -9276,7 +9276,7 @@ async function mondayFetchItems(monday, ids) {
   if (!cleanIds.length) return []
   const query = `query ($ids: [ID!]!) {
     items(ids: $ids) {
-      id name board { id }
+      id name board { id workspace_id }
       subitems { id name }
       column_values {
         id type text value column { title }
@@ -9709,7 +9709,9 @@ async function mondayCommsEnsureReviewBoard(create = false) {
   const data = await mondayCommsApi(`query { boards(limit: 100) { id name } }`)
   let board = (data.boards || []).find(candidate => normalizeBadgeOrgIdentity(candidate.name) === normalizeBadgeOrgIdentity(MONDAY_MEMO_REVIEWS_BOARD_NAME))
   if (!board && create) {
-    const created = await mondayCommsApi(`mutation ($name: String!) { create_board(board_name: $name, board_kind: private) { id name } }`, { name: MONDAY_MEMO_REVIEWS_BOARD_NAME })
+    const created = await mondayCommsApi(`mutation ($name: String!, $workspace: ID) {
+      create_board(board_name: $name, board_kind: private, workspace_id: $workspace) { id name }
+    }`, { name: MONDAY_MEMO_REVIEWS_BOARD_NAME, workspace: bridge?.sourceWorkspaceId || null })
     board = created.create_board
   }
   if (!board) throw new Error(`No se encontró el tablero privado ${MONDAY_MEMO_REVIEWS_BOARD_NAME}.`)
@@ -9999,6 +10001,7 @@ async function enterMondayCommunicationsApp() {
     context,
     itemId,
     boardId: String(item.board?.id || context.boardId || ''),
+    sourceWorkspaceId: item.board?.workspace_id ? String(item.board.workspace_id) : null,
     statusColumnId: statusColumn?.id || null,
     columnIds: Object.fromEntries(Object.keys(MONDAY_COMMS_COLUMNS).map(key => [key, mondayCommsColumn(item, key)?.id]).filter(([, id]) => id)),
     request,
