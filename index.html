@@ -9412,7 +9412,7 @@ async function mondayFetchAuthorityRecords(monday, requestedAreas, sourceItem = 
     const selectAuthorityRows = rows => (rows || []).filter(row => {
       const area = normalizeBadgeOrgIdentity(row?.name)
       const active = normalizeBadgeOrgIdentity(mondayColumnText(row, 'Activo'))
-      return wanted.has(area) && (!active || ['si', 'yes', 'activo', 'active'].includes(active))
+      return wanted.has(area) && (!active || ['SI', 'SÍ', 'YES', 'ACTIVO', 'ACTIVE'].includes(active))
     })
     let rows = await mondayFetchLinkedAuthorityRows(monday, sourceItem)
     let selected = selectAuthorityRows(rows)
