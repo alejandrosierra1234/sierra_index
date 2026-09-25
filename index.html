@@ -9441,13 +9441,15 @@ async function mondayFetchAuthorityRecords(monday, requestedAreas, sourceItem = 
         .map(file => file?.asset).find(Boolean)
       const fileMap = embeddedSignature ? new Map() : await mondayFetchMemoFileValues(monday, row.id, signatureColumnIds)
       const explicitName = ['Nombre de la autoridad', 'Autoridad', 'Nombre completo'].map(title => mondayColumnText(row, title)).find(Boolean) || ''
-      const emailLocal = mondayColumnText(row, 'Correo institucional').split('@')[0].replace(/[._-]+/g, ' ').trim()
+      const email = mondayColumnText(row, 'Correo institucional').trim().toLowerCase()
+      const emailLocal = email.split('@')[0].replace(/[._-]+/g, ' ').trim()
       const derivedName = emailLocal.replace(/(^|\s)(\p{L})/gu, (_, space, letter) => space + letter.toLocaleUpperCase('es'))
       records.push({
         area: String(row.name || '').trim(),
         name: explicitName || derivedName,
         department: mondayColumnText(row, 'Department') || String(row.name || '').trim(),
         title: mondayColumnText(row, 'Cargo de la autoridad') || mondayColumnText(row, 'Cargo'),
+        email,
         signature: embeddedSignature?.public_url || embeddedSignature?.url || embeddedSignature?.url_thumbnail || fileMap.get(signatureId)?.[0]?.url || '',
       })
     }
@@ -9469,6 +9471,9 @@ async function mondayHydrateMemoRequest(monday, item, request) {
   if (attached.length) request.attachments = attached
   if (mirroredSignatures.length) request.signatures = mirroredSignatures.map(file => file.url).filter(Boolean)
   request.authorityRecords = await mondayFetchAuthorityRecords(monday, request.issuingAreas, item)
+  if (!request.authorityEmails?.length) {
+    request.authorityEmails = [...new Set(request.authorityRecords.map(record => record.email).filter(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))]
+  }
   return request
 }
 
