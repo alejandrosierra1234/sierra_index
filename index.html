@@ -9086,6 +9086,11 @@ const MONDAY_COMMS_COLUMNS = Object.freeze({
   approvalStatus: ['Estado de aprobación'],
   authorityEmails: ['Correo(s) de autoridad', 'Correos de autoridad', 'Correo de autoridad'],
   reviewUrl: ['Versión en revisión'],
+  reviewVersion: ['Versión actual'],
+  reviewProgress: ['Aprobaciones'],
+  pendingApprovers: ['Pendientes de aprobación'],
+  latestDecision: ['Última decisión'],
+  latestComment: ['Último comentario de revisión'],
   priority: ['Prioridad'],
   channel: ['Canal', 'Publicación', 'Publicacion'],
 })
@@ -9653,6 +9658,26 @@ async function mondayCommsWriteColumn(key, value, complex = false) {
   return true
 }
 
+async function mondayCommsWriteColumns(entries) {
+  const bridge = _mondayCommsBridge
+  if (!bridge?.monday || !bridge.boardId || !bridge.itemId) return false
+  const values = {}
+  for (const [key, entry] of Object.entries(entries || {})) {
+    const column = mondayCommsBridgeColumn(key)
+    if (!column) continue
+    const complex = !!entry?.complex
+    const value = entry && typeof entry === 'object' && 'value' in entry ? entry.value : entry
+    values[column] = complex ? value : String(value ?? '')
+  }
+  if (!Object.keys(values).length) return false
+  const response = await bridge.monday.api(`mutation ($board: ID!, $item: ID!, $values: JSON!) {
+    change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id }
+  }`, { variables: { board: bridge.boardId, item: bridge.itemId, values: JSON.stringify(values) } })
+  if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+  if (bridge.request && entries.approvalStatus != null) bridge.request.approvalStatus = String(entries.approvalStatus?.value ?? entries.approvalStatus)
+  return true
+}
+
 async function mondayCommsWriteApprovalStatus(value) {
   if (!_mondayCommsBridge?.request || _mondayCommsBridge.request.approvalStatus === value) return false
   return mondayCommsWriteColumn('approvalStatus', value)
@@ -9860,6 +9885,11 @@ async function mondayCommsCreateReviewVersion(draft, blob, summary, hash, expect
   const existingVersions = currentParent.subitems || []
   const duplicate = existingVersions.find(item => mondayCommsReviewValue(item, 'Hash de contenido') === hash)
   if (duplicate) {
+    const requiredApprovers = mondayCommsList(mondayCommsReviewValue(duplicate, 'Autorizadores requeridos'), true)
+    const pendingApprovers = mondayCommsList(mondayCommsReviewValue(duplicate, 'Pendientes de aprobación'), true)
+    let decisions = []
+    try { const value = JSON.parse(mondayCommsReviewValue(duplicate, 'Decisiones individuales') || '[]');decisions = Array.isArray(value) ? value : [] } catch {}
+    const latestDecision = decisions.slice().sort((a, b) => String(b?.decidedAt || '').localeCompare(String(a?.decidedAt || '')))[0]
     return {
       boardId,
       parentId: String(parent.id),
@@ -9869,6 +9899,12 @@ async function mondayCommsCreateReviewVersion(draft, blob, summary, hash, expect
       hash,
       status: mondayCommsReviewValue(duplicate, 'Estado de revisión') || 'En revisión',
       summary: mondayCommsReviewValue(duplicate, 'Resumen de cambios') || summary || '',
+      reviewUrl: `${location.origin}${location.pathname}?memoReview=${encodeURIComponent(duplicate.id)}`,
+      requiredApprovers,
+      pendingApprovers,
+      approvedCount: Math.max(0, requiredApprovers.length - pendingApprovers.length),
+      latestDecision: latestDecision ? `${latestDecision.name || latestDecision.email || 'Autoridad'} — ${latestDecision.decision || ''}` : '',
+      latestComment: latestDecision?.comment || '',
       existing: true,
     }
   }
@@ -9917,10 +9953,9 @@ async function mondayCommsCreateReviewVersion(draft, blob, summary, hash, expect
     [col('sourceItemId'), _mondayCommsBridge.itemId],
     [col('requesterEmail'), draft.requesterEmail ? { email: draft.requesterEmail, text: draft.requesterEmail } : '', true],
   ])
-  await mondayCommsWriteColumn('reviewUrl', { url: reviewUrl, text: `Revisar versión ${versionLabel}` }, true)
   const proofDraft = { ...draft, reviewProofVersion: version }
   await mondayCommsUploadPdfToItem(blob, subitem.id, col('reviewPdf'), memoImageFileName(proofDraft, 'pdf'))
-  return { boardId, parentId: String(parent.id), subitemId: String(subitem.id), subitemBoardId, version, hash, status: 'En revisión', summary: summary || '', reviewUrl, requiredApprovers }
+  return { boardId, parentId: String(parent.id), subitemId: String(subitem.id), subitemBoardId, version, hash, status: 'En revisión', summary: summary || '', reviewUrl, requiredApprovers, pendingApprovers: requiredApprovers, approvedCount: 0, latestDecision: '', latestComment: '' }
 }
 
 async function mondayCommsReadReviewState(draft = _commsCurrent) {
@@ -9929,6 +9964,10 @@ async function mondayCommsReadReviewState(draft = _commsCurrent) {
   if (!parent) return { board, parent: null, versions: [], latest: null }
   const versions = (parent.subitems || []).map(item => ({
     item, version: commsReviewVersionNumber(item), status: mondayCommsReviewValue(item, 'Estado de revisión'), hash: mondayCommsReviewValue(item, 'Hash de contenido'), summary: mondayCommsReviewValue(item, 'Resumen de cambios'),
+    requiredApprovers: mondayCommsList(mondayCommsReviewValue(item, 'Autorizadores requeridos'), true),
+    pendingApprovers: mondayCommsList(mondayCommsReviewValue(item, 'Pendientes de aprobación'), true),
+    decisions: (() => { try { const value = JSON.parse(mondayCommsReviewValue(item, 'Decisiones individuales') || '[]');return Array.isArray(value) ? value : [] } catch { return [] } })(),
+    reviewUrl: mondayCommsReviewValue(item, 'Enlace de revisión'),
   })).sort((a, b) => a.version - b.version)
   return { board, parent, versions, latest: versions.at(-1) || null }
 }
@@ -9954,7 +9993,17 @@ async function commsRefreshReviewState(showToast = true) {
     approvalStatus = currentVersion ? 'En revisión' : 'Pendiente'
     _commsCurrent.status = currentVersion ? 'En revisión' : 'Borrador';_commsCurrent.reviewNeedsNewVersion = !currentVersion
   }
-  await mondayCommsWriteApprovalStatus(approvalStatus)
+  const required = state.latest.requiredApprovers || [], decisions = state.latest.decisions || []
+  const approvedCount = new Set(decisions.filter(decision => decision?.decision === 'Aprobado').map(decision => String(decision.email || '').trim().toLowerCase())).size
+  const latestDecision = decisions.slice().sort((a, b) => String(b?.decidedAt || '').localeCompare(String(a?.decidedAt || '')))[0]
+  await mondayCommsWriteColumns({
+    approvalStatus,
+    reviewVersion: commsReviewVersionLabel(state.latest.version),
+    reviewProgress: `${approvedCount} de ${required.length}`,
+    pendingApprovers: (state.latest.pendingApprovers || []).join('\n'),
+    latestDecision: latestDecision ? `${latestDecision.name || latestDecision.email || 'Autoridad'} — ${latestDecision.decision || ''}` : '',
+    latestComment: latestDecision?.comment || '',
+  })
   commsPersist();renderCommunicationEditor()
   if (showToast) toast(approved ? `Versión ${commsReviewVersionLabel(state.latest.version)} aprobada. Ya puedes publicar el PDF final.` : `Estado de la versión ${commsReviewVersionLabel(state.latest.version)}: ${state.latest.status || 'En revisión'}.`, 6000)
   return state
@@ -9986,10 +10035,21 @@ async function commsRequestReview(summary = '') {
     const blob = await memoPdfBlob(proofDraft)
     commsReviewProgress(true, `Guardando la versión ${commsReviewVersionLabel(version)} en monday…`, 'Guardando…')
     const record = await mondayCommsCreateReviewVersion(draft, blob, summary, hash, version)
-    Object.assign(_commsCurrent, { status: 'En revisión', reviewBoardId: record.boardId, reviewParentItemId: record.parentId, submittedSnapshot: commsReviewSnapshot(draft), reviewNeedsNewVersion: false })
+    const recordApprovalStatus = normalizeBadgeOrgIdentity(record.status).startsWith('aprobad') ? 'Aprobado' : normalizeBadgeOrgIdentity(record.status).includes('cambios') ? 'Requiere ajustes' : 'En revisión'
+    await mondayCommsWriteColumns({
+      reviewUrl: { value: { url: record.reviewUrl, text: `Revisar versión ${commsReviewVersionLabel(record.version)}` }, complex: true },
+      reviewVersion: commsReviewVersionLabel(record.version),
+      reviewProgress: `${record.approvedCount || 0} de ${(record.requiredApprovers || []).length}`,
+      pendingApprovers: (record.pendingApprovers || []).join('\n'),
+      latestDecision: record.latestDecision || '',
+      latestComment: record.latestComment || '',
+      approvalStatus: recordApprovalStatus,
+      syncStatus: 'Sincronizado',
+    })
+    Object.assign(_commsCurrent, { status: recordApprovalStatus === 'Aprobado' ? 'Aprobado' : recordApprovalStatus === 'Requiere ajustes' ? 'Borrador' : 'En revisión', reviewBoardId: record.boardId, reviewParentItemId: record.parentId, submittedSnapshot: commsReviewSnapshot(draft), reviewNeedsNewVersion: recordApprovalStatus === 'Requiere ajustes' })
     _commsCurrent.reviewVersions = [...(_commsCurrent.reviewVersions || []).filter(item => String(item.subitemId) !== String(record.subitemId)), record]
     _commsReviewSuccess = { draftId: _commsCurrent.id, version: record.version, reviewUrl: record.reviewUrl || '', existing: !!record.existing }
-    await mondayCommsWriteApprovalStatus('En revisión')
+    await mondayCommsWriteApprovalStatus(recordApprovalStatus)
     commsPersist();renderCommunicationEditor()
     requestAnimationFrame(() => document.querySelector('.memo-review-workflow.is-success')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
     mondayCommsWriteColumn('syncStatus', 'Sincronizado').catch(error => console.warn('monday memo review status sync:', error))

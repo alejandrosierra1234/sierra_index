@@ -188,6 +188,19 @@ async function setSimple(token: string, boardId: string, itemId: string, columnI
   }`, { board: boardId, item: itemId, column: columnId, value })
 }
 
+async function setColumnsByTitle(token: string, boardId: string, itemId: string, columns: any[], entries: Record<string, unknown>) {
+  const values: Record<string, unknown> = {}
+  for (const [title, value] of Object.entries(entries)) {
+    if (value === undefined || value === null) continue
+    const column = schemaColumn(columns, title)
+    if (column?.id) values[column.id] = value
+  }
+  if (!Object.keys(values).length) return
+  await mondayRequest(token, `mutation ($board: ID!, $item: ID!, $values: JSON!) {
+    change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id }
+  }`, { board: boardId, item: itemId, values: JSON.stringify(values) })
+}
+
 async function addUpdate(token: string, itemId: string, body: string) {
   await mondayRequest(token, `mutation ($item: ID!, $body: String!) { create_update(item_id: $item, body: $body) { id } }`, { item: itemId, body })
 }
@@ -244,9 +257,20 @@ Deno.serve(async req => {
 
       const comment = String(body?.comment || '').trim().slice(0, 5000)
       const actorName = String(auth.user?.user_metadata?.full_name || auth.user?.user_metadata?.name || auth.user?.email || 'Usuario')
+      const versionLabel = columnValueText(context.item, 'Versión')
+      const sourceItemId = columnValueText(context.item, 'Item original ID')
+      const hasSource = /^\d+$/.test(sourceItemId)
+      const sourceColumns = hasSource ? await boardColumns(env.MONDAY_API_TOKEN, env.MONDAY_COMMUNICATIONS_BOARD_ID) : []
       if (action === 'review_comment') {
         if (!comment) return json({ error: 'Escribe un comentario antes de enviarlo.' }, 400)
         await addUpdate(env.MONDAY_API_TOKEN, versionId, `<b>Comentario desde SIERRA Index</b><br>${escapeHtml(actorName)} · ${escapeHtml(auth.user?.email)}<br><br>${escapeHtml(comment).replace(/\n/g, '<br>')}`)
+        if (hasSource) {
+          await setColumnsByTitle(env.MONDAY_API_TOKEN, env.MONDAY_COMMUNICATIONS_BOARD_ID, sourceItemId, sourceColumns, {
+            'Versión actual': versionLabel,
+            'Último comentario de revisión': `${actorName}: ${comment}`,
+          })
+          await addUpdate(env.MONDAY_API_TOKEN, sourceItemId, `<b>Comentario en revisión ${escapeHtml(versionLabel)}</b><br>${escapeHtml(actorName)} · ${escapeHtml(auth.user?.email)}<br><br>${escapeHtml(comment).replace(/\n/g, '<br>')}`)
+        }
         context = await reviewContext(env.MONDAY_API_TOKEN, versionId, auth)
         return json({ ok: true, review: reviewPayload(context) })
       }
@@ -280,15 +304,20 @@ Deno.serve(async req => {
         await setSimple(env.MONDAY_API_TOKEN, parentBoardId, parentId, schemaColumn(parentColumns, 'Estado general')?.id, versionStatus === 'Aprobada' ? 'Aprobado' : versionStatus)
       }
 
-      const sourceItemId = columnValueText(context.item, 'Item original ID')
-      if (/^\d+$/.test(sourceItemId)) {
-        const sourceColumns = await boardColumns(env.MONDAY_API_TOKEN, env.MONDAY_COMMUNICATIONS_BOARD_ID)
-        await setSimple(env.MONDAY_API_TOKEN, env.MONDAY_COMMUNICATIONS_BOARD_ID, sourceItemId, schemaColumn(sourceColumns, 'Estado de aprobación')?.id, sourceStatus)
+      if (hasSource) {
+        await setColumnsByTitle(env.MONDAY_API_TOKEN, env.MONDAY_COMMUNICATIONS_BOARD_ID, sourceItemId, sourceColumns, {
+          'Estado de aprobación': sourceStatus,
+          'Versión actual': versionLabel,
+          'Aprobaciones': `${context.required.length - pending.length} de ${context.required.length}`,
+          'Pendientes de aprobación': pending.join('\n'),
+          'Última decisión': `${actorName} — ${decision}`,
+          'Último comentario de revisión': comment || undefined,
+        })
       }
 
       const decisionUpdate = `<b>${escapeHtml(decision)} · decisión individual</b><br>${escapeHtml(actorName)} · ${escapeHtml(context.caller)}<br>${escapeHtml(new Date().toLocaleString('es-GT', { timeZone: 'America/Guatemala' }))}${comment ? `<br><br>${escapeHtml(comment).replace(/\n/g, '<br>')}` : ''}<br><br>${pending.length ? `Pendientes: ${escapeHtml(pending.join(', '))}` : 'Todas las autoridades requeridas aprobaron esta versión.'}`
       await addUpdate(env.MONDAY_API_TOKEN, versionId, decisionUpdate)
-      if (/^\d+$/.test(sourceItemId)) await addUpdate(env.MONDAY_API_TOKEN, sourceItemId, `<b>Revisión ${escapeHtml(columnValueText(context.item, 'Versión'))}</b><br>${decisionUpdate}`)
+      if (hasSource) await addUpdate(env.MONDAY_API_TOKEN, sourceItemId, `<b>Revisión ${escapeHtml(versionLabel)}</b><br>${decisionUpdate}`)
       context = await reviewContext(env.MONDAY_API_TOKEN, versionId, auth)
       return json({ ok: true, review: reviewPayload(context) })
     }
