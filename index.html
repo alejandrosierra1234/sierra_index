@@ -9104,10 +9104,10 @@ function mondayCommsColumnText(item, key) {
   return String(mondayCommsColumn(item, key)?.text || '').trim()
 }
 
-function mondayCommsList(value) {
+function mondayCommsList(value, splitCommas = false) {
   const text = String(value || '').replace(/\r/g, '').trim()
   if (!text) return []
-  const separated = text.split(/\n+|\s*[;|]\s*|\s+·\s+/).map(part => part.replace(/^[-•]\s*/, '').trim()).filter(Boolean)
+  const separated = text.split(splitCommas ? /\n+|\s*[,;|]\s*|\s+·\s+/ : /\n+|\s*[;|]\s*|\s+·\s+/).map(part => part.replace(/^[-•]\s*/, '').trim()).filter(Boolean)
   if (separated.length > 1) return [...new Set(separated)]
   return [text]
 }
@@ -9142,9 +9142,9 @@ function mondayCommsRequestFromItem(item) {
     company: company || plant || 'SIERRA',
     plant: plant && plant !== company ? plant : '',
     department: mondayCommsColumnText(item, 'department'),
-    issuingAreas: mondayCommsList(mondayCommsColumnText(item, 'department')),
-    authorities: mondayCommsList(mondayCommsColumnText(item, 'authorities')),
-    authorityTitles: mondayCommsList(mondayCommsColumnText(item, 'authorityTitles')),
+    issuingAreas: mondayCommsList(mondayCommsColumnText(item, 'department'), true),
+    authorities: mondayCommsList(mondayCommsColumnText(item, 'authorities'), true),
+    authorityTitles: mondayCommsList(mondayCommsColumnText(item, 'authorityTitles'), true),
     signatures: mondayCommsUrls(mondayCommsColumnText(item, 'signatures')),
     audience: mondayCommsColumnText(item, 'audience'),
     specificRecipients: mondayCommsColumnText(item, 'specificRecipients'),
