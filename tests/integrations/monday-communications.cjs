@@ -54,6 +54,7 @@ assert.ok(source.includes("reviewUrl: ['Versión en revisión']"));
 assert.ok(source.includes(".get('memoReview')"));
 assert.ok(source.includes('async function showMemoReviewPortal(versionId)'));
 assert.ok(source.includes('await sb.auth.refreshSession()'));
+assert.ok(source.includes('Inicia sesión para abrir directamente esta versión del memorándum.'));
 assert.ok(source.includes("action: 'review_decide'"));
 assert.ok(source.includes("'Decisiones individuales'"));
 assert.ok(source.includes("'Pendientes de aprobación'"));

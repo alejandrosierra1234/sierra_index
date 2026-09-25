@@ -10125,7 +10125,15 @@ async function showMemoReviewPortal(versionId) {
   document.getElementById('sec-title').textContent = 'Revisión de memorándum';document.getElementById('sec-sub').textContent = ''
   document.getElementById('pg').innerHTML = '<div class="memo-empty" role="status">Abriendo la versión exacta…</div>'
   try { const data = await memoReviewInvoke({ action: 'review_get', version_id: versionId });renderMemoReviewPortal(data.review) }
-  catch (error) { document.getElementById('pg').innerHTML = `<div class="empty-state" style="max-width:620px;margin:64px auto"><h3>No se pudo abrir esta versión</h3><p>${esc(error.message)}</p></div>` }
+  catch (error) {
+    if (/not authenticated|jwt|sesión|session/i.test(String(error.message || ''))) {
+      document.getElementById('app').style.display = 'none'
+      document.getElementById('auth-screen').style.display = 'flex'
+      showErr('Inicia sesión para abrir directamente esta versión del memorándum.')
+      return
+    }
+    document.getElementById('pg').innerHTML = `<div class="empty-state" style="max-width:620px;margin:64px auto"><h3>No se pudo abrir esta versión</h3><p>${esc(error.message)}</p></div>`
+  }
 }
 
 async function memoReviewComment() {
