@@ -9869,7 +9869,8 @@ async function commsRequestReview(summary = '') {
     const record = await mondayCommsCreateReviewVersion(draft, blob, summary, hash, version)
     Object.assign(_commsCurrent, { status: 'En revisión', reviewBoardId: record.boardId, reviewParentItemId: record.parentId, submittedSnapshot: commsReviewSnapshot(draft), reviewNeedsNewVersion: false })
     _commsCurrent.reviewVersions = [...(_commsCurrent.reviewVersions || []).filter(item => String(item.subitemId) !== String(record.subitemId)), record]
-    commsPersist();await mondayCommsWriteColumn('syncStatus', 'En revisión');renderCommunicationEditor()
+    commsPersist();renderCommunicationEditor()
+    mondayCommsWriteColumn('syncStatus', 'En revisión').catch(error => console.warn('monday memo review status sync:', error))
     toast(record.existing ? `Versión ${commsReviewVersionLabel(record.version)} recuperada. Los comentarios quedan en su subitem.` : `Versión ${commsReviewVersionLabel(record.version)} enviada. Los comentarios quedarán en su subitem.`, 6500)
   } catch (error) {
     console.error('monday memo review:', error);toast('No se pudo solicitar la revisión: ' + (error?.message || 'Error desconocido'), 8000)
