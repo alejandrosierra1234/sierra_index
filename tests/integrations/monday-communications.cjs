@@ -13,10 +13,15 @@ assert.ok(source.includes('async function enterMondayCommunicationsApp()'));
 assert.ok(source.includes("params.get('monday') === 'comms'"));
 assert.ok(source.includes('mondayCommsRequestFromItem(item)'));
 assert.ok(source.includes("mondayCommsUpdateStatus('En diseño')"));
+assert.ok(source.includes("const MONDAY_MEMO_ONLY_BOARD_IDS = new Set(['18430793016'])"));
+assert.ok(source.includes("if(_mondayCommsBridge){toast('Esta vista está limitada al memo de la solicitud seleccionada.');return}"));
+assert.ok(source.includes('function renderCommunicationsHome(){if(_mondayCommsBridge){openMondayCommunicationRequest(_mondayCommsBridge.request);return}'));
+assert.ok(fnSource.includes('MONDAY_COMMUNICATIONS_MEMO_ONLY'));
+assert.ok(fnSource.includes('parseKind(type, memoOnly)'));
 
 const dom=new JSDOM('<div id="pg"></div><div id="sec-title"></div><div id="sec-sub"></div>',{url:'https://test.local',runScripts:'outside-only'});
 const w=dom.window;
-w.me={id:'creator'};w.profile={full_name:'Creator'};w.requestAnimationFrame=fn=>fn();w.document.queryCommandState=()=>false;
+w.me={id:'creator'};w.profile={full_name:'Creator'};w._mondayCommsBridge=null;w.requestAnimationFrame=fn=>fn();w.document.queryCommandState=()=>false;
 w.esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 w.escAttr=w.esc;w.jsStr=v=>String(v??'').replaceAll("'","\\'");
 w.clearSecCrumbs=w.setSecCrumbs=()=>{};w.toastMessage='';w.toast=message=>{w.toastMessage=message};

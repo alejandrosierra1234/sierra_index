@@ -48,7 +48,8 @@ function columnText(item: any, names: string[]) {
   return String(column?.text || '').trim()
 }
 
-function parseKind(value: string) {
+function parseKind(value: string, memoOnly = false) {
+  if (memoOnly) return 'memo'
   const n = normalize(value)
   if (n.includes('convoc')) return 'convocatoria'
   if (n.includes('aviso')) return 'aviso'
@@ -119,6 +120,7 @@ Deno.serve(async req => {
       MONDAY_COMMUNICATIONS_STATUS_COLUMN_ID: Deno.env.get('MONDAY_COMMUNICATIONS_STATUS_COLUMN_ID') || '',
       MONDAY_COMMUNICATIONS_CLAIM_STATUS: Deno.env.get('MONDAY_COMMUNICATIONS_CLAIM_STATUS') || 'En diseño',
       MONDAY_COMMUNICATIONS_COLUMN_MAP: Deno.env.get('MONDAY_COMMUNICATIONS_COLUMN_MAP') || '',
+      MONDAY_COMMUNICATIONS_MEMO_ONLY: Deno.env.get('MONDAY_COMMUNICATIONS_MEMO_ONLY') || '',
     }
     let body: any
     try { body = await req.json() } catch { return json({ error: 'Solicitud no válida.' }, 400) }
@@ -174,6 +176,7 @@ Deno.serve(async req => {
     const requests = items.map((item: any) => {
       const get = (key: string) => columnText(item, asArray(map[key]))
       const type = get('type')
+      const memoOnly = ['1', 'true', 'yes', 'si', 'sí'].includes(normalize(env.MONDAY_COMMUNICATIONS_MEMO_ONLY))
       const details = get('details')
       const summary = get('summary') || details.split(/\n+/).find(Boolean)?.slice(0, 220) || ''
       return {
@@ -182,7 +185,7 @@ Deno.serve(async req => {
         url: item.url || '',
         updated_at: item.updated_at || '',
         status: get('status'),
-        kind: parseKind(type),
+        kind: parseKind(type, memoOnly),
         type,
         requester: get('requester'),
         email: get('email'),
