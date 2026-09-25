@@ -35,6 +35,7 @@ assert.ok(source.includes("'Resumen de cambios'"));
 assert.ok(source.includes("'Guía de comentarios'"));
 assert.ok(source.includes("existing: true"));
 assert.ok(source.includes("monday memo review status sync:"));
+assert.ok(source.includes("monday communications initial draft sync:"));
 assert.ok(source.includes("BORRADOR · VERSIÓN ${commsReviewVersionLabel(reviewVersion)}"));
 assert.ok(source.includes('Documento en revisión · No válido para distribución'));
 assert.ok(source.includes('async function commsPublishFinalPdf()'));

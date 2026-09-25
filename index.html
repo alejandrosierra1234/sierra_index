@@ -9977,7 +9977,10 @@ async function enterMondayCommunicationsApp() {
   leaveView(true)
 
   const draft = await openMondayCommunicationRequest(request)
-  if (draft) await mondayCommsSyncDraft(draft)
+  if (draft) {
+    try { await mondayCommsSyncDraft(draft) }
+    catch (error) { console.warn('monday communications initial draft sync:', error) }
+  }
   if (draft?.reviewParentItemId) {
     commsRefreshReviewState(false).catch(error => console.warn('monday memo automatic review refresh:', error))
   }
