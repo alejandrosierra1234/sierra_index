@@ -9091,6 +9091,7 @@ const MONDAY_COMMS_COLUMNS = Object.freeze({
   pendingApprovers: ['Pendientes de aprobación'],
   latestDecision: ['Última decisión'],
   latestComment: ['Último comentario de revisión'],
+  reviewReminderDate: ['Próximo recordatorio de revisión'],
   priority: ['Prioridad'],
   channel: ['Canal', 'Publicación', 'Publicacion'],
 })
@@ -10036,6 +10037,7 @@ async function commsRequestReview(summary = '') {
     commsReviewProgress(true, `Guardando la versión ${commsReviewVersionLabel(version)} en monday…`, 'Guardando…')
     const record = await mondayCommsCreateReviewVersion(draft, blob, summary, hash, version)
     const recordApprovalStatus = normalizeBadgeOrgIdentity(record.status).startsWith('aprobad') ? 'Aprobado' : normalizeBadgeOrgIdentity(record.status).includes('cambios') ? 'Requiere ajustes' : 'En revisión'
+    const reminderDate = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10)
     await mondayCommsWriteColumns({
       reviewUrl: { value: { url: record.reviewUrl, text: `Revisar versión ${commsReviewVersionLabel(record.version)}` }, complex: true },
       reviewVersion: commsReviewVersionLabel(record.version),
@@ -10045,6 +10047,9 @@ async function commsRequestReview(summary = '') {
       latestComment: record.latestComment || '',
       approvalStatus: recordApprovalStatus,
       syncStatus: 'Sincronizado',
+      reviewReminderDate: !record.existing && recordApprovalStatus === 'En revisión' && (record.pendingApprovers || []).length
+        ? { value: { date: reminderDate }, complex: true }
+        : undefined,
     })
     Object.assign(_commsCurrent, { status: recordApprovalStatus === 'Aprobado' ? 'Aprobado' : recordApprovalStatus === 'Requiere ajustes' ? 'Borrador' : 'En revisión', reviewBoardId: record.boardId, reviewParentItemId: record.parentId, submittedSnapshot: commsReviewSnapshot(draft), reviewNeedsNewVersion: recordApprovalStatus === 'Requiere ajustes' })
     _commsCurrent.reviewVersions = [...(_commsCurrent.reviewVersions || []).filter(item => String(item.subitemId) !== String(record.subitemId)), record]

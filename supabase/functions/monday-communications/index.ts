@@ -312,6 +312,7 @@ Deno.serve(async req => {
           'Pendientes de aprobación': pending.join('\n'),
           'Última decisión': `${actorName} — ${decision}`,
           'Último comentario de revisión': comment || undefined,
+          'Próximo recordatorio de revisión': anyChanges || allApproved ? '' : undefined,
         })
       }
 
