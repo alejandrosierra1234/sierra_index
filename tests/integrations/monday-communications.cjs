@@ -21,6 +21,7 @@ assert.ok(source.includes("mondayCommsWriteColumn('editorUrl'"));
 assert.ok(source.includes("mondayCommsWriteColumn('syncStatus', 'Sincronizado')"));
 assert.ok(source.includes('mondayCommsUploadFinalPdf(blob,draft)'));
 assert.ok(source.includes('Las autoridades, cargos y firmas provienen de ÁREAS Y AUTORIDADES'));
+assert.ok(source.includes("[['info','Datos'],['content','Contenido'],['signature','Firmantes']]"));
 assert.ok(source.includes("if(commsInMonday()){toast('Esta vista está limitada al memo de la solicitud seleccionada.');return}"));
 assert.ok(source.includes('function renderCommunicationsHome(){if(commsInMonday()){openMondayCommunicationRequest(_mondayCommsBridge.request);return}'));
 assert.ok(fnSource.includes('MONDAY_COMMUNICATIONS_MEMO_ONLY'));
