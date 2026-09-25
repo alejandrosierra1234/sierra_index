@@ -9360,7 +9360,45 @@ async function mondayFetchMemoFileValues(monday, itemId, columnIds) {
   }
 }
 
-async function mondayFetchAuthorityRecords(monday, requestedAreas) {
+async function mondayFetchLinkedAuthorityRows(monday, sourceItem) {
+  const approvedTitles = new Set([
+    ...(MONDAY_COMMS_COLUMNS.department || []),
+    ...(MONDAY_COMMS_COLUMNS.authorities || []),
+  ].map(normalizeBadgeOrgIdentity))
+  const relationColumns = (sourceItem?.column_values || []).filter(value =>
+    value?.type === 'board_relation' && approvedTitles.has(normalizeBadgeOrgIdentity(value?.column?.title))
+  )
+  if (!relationColumns.length || !/^\d+$/.test(String(sourceItem?.id || ''))) return []
+  const query = `query ($ids: [ID!]!, $columns: [String!]) {
+    items(ids: $ids) {
+      column_values(ids: $columns) {
+        id
+        ... on BoardRelationValue {
+          linked_item_ids
+          linked_items { id name }
+        }
+      }
+    }
+  }`
+  try {
+    const response = await monday.api(query, {
+      apiVersion: '2025-04',
+      variables: { ids: [String(sourceItem.id)], columns: relationColumns.map(value => value.id) },
+    })
+    if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+    const linkedIds = []
+    for (const value of response?.data?.items?.[0]?.column_values || []) {
+      ;(value?.linked_item_ids || []).forEach(id => linkedIds.push(String(id)))
+      ;(value?.linked_items || []).forEach(item => linkedIds.push(String(item?.id || '')))
+    }
+    return mondayFetchItems(monday, linkedIds)
+  } catch (error) {
+    console.warn('monday linked authorities lookup:', error)
+    return []
+  }
+}
+
+async function mondayFetchAuthorityRecords(monday, requestedAreas, sourceItem = null) {
   const wanted = new Set((requestedAreas || []).map(normalizeBadgeOrgIdentity).filter(Boolean))
   if (!wanted.size) return []
   const query = `query ($board: [ID!], $limit: Int!) {
@@ -9374,9 +9412,12 @@ async function mondayFetchAuthorityRecords(monday, requestedAreas) {
     }
   }`
   try {
-    const response = await monday.api(query, { variables: { board: [MONDAY_AUTHORITIES_BOARD_ID], limit: 100 } })
-    if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
-    const rows = response?.data?.boards?.[0]?.items_page?.items || []
+    let rows = await mondayFetchLinkedAuthorityRows(monday, sourceItem)
+    if (!rows.length) {
+      const response = await monday.api(query, { variables: { board: [MONDAY_AUTHORITIES_BOARD_ID], limit: 100 } })
+      if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+      rows = response?.data?.boards?.[0]?.items_page?.items || []
+    }
     const selected = rows.filter(row => {
       const area = normalizeBadgeOrgIdentity(row?.name)
       const active = normalizeBadgeOrgIdentity(mondayColumnText(row, 'Activo'))
@@ -9385,8 +9426,10 @@ async function mondayFetchAuthorityRecords(monday, requestedAreas) {
     const signatureColumnIds = selected.map(row => mondayColumnByTitle(row, 'Firma PNG')?.id).filter(Boolean)
     const records = []
     for (const row of selected) {
-      const fileMap = await mondayFetchMemoFileValues(monday, row.id, signatureColumnIds)
       const signatureId = mondayColumnByTitle(row, 'Firma PNG')?.id
+      const embeddedSignature = (mondayColumnByTitle(row, 'Firma PNG')?.files || [])
+        .map(file => file?.asset).find(Boolean)
+      const fileMap = embeddedSignature ? new Map() : await mondayFetchMemoFileValues(monday, row.id, signatureColumnIds)
       const explicitName = ['Nombre de la autoridad', 'Autoridad', 'Nombre completo'].map(title => mondayColumnText(row, title)).find(Boolean) || ''
       const emailLocal = mondayColumnText(row, 'Correo institucional').split('@')[0].replace(/[._-]+/g, ' ').trim()
       const derivedName = emailLocal.replace(/(^|\s)(\p{L})/gu, (_, space, letter) => space + letter.toLocaleUpperCase('es'))
@@ -9395,7 +9438,7 @@ async function mondayFetchAuthorityRecords(monday, requestedAreas) {
         name: explicitName || derivedName,
         department: mondayColumnText(row, 'Department') || String(row.name || '').trim(),
         title: mondayColumnText(row, 'Cargo de la autoridad'),
-        signature: fileMap.get(signatureId)?.[0]?.url || '',
+        signature: embeddedSignature?.public_url || embeddedSignature?.url || embeddedSignature?.url_thumbnail || fileMap.get(signatureId)?.[0]?.url || '',
       })
     }
     return records
@@ -9415,7 +9458,7 @@ async function mondayHydrateMemoRequest(monday, item, request) {
   const mirroredSignatures = files.get(signatureColumn?.id) || []
   if (attached.length) request.attachments = attached
   if (mirroredSignatures.length) request.signatures = mirroredSignatures.map(file => file.url).filter(Boolean)
-  request.authorityRecords = await mondayFetchAuthorityRecords(monday, request.issuingAreas)
+  request.authorityRecords = await mondayFetchAuthorityRecords(monday, request.issuingAreas, item)
   return request
 }
 

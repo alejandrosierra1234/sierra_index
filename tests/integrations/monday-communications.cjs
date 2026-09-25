@@ -21,6 +21,10 @@ assert.ok(source.includes("issuingAreas: mondayCommsList(mondayCommsColumnText(i
 assert.ok(source.includes('... on MirrorValue { display_value }'));
 assert.ok(source.includes('column?.display_value || column?.text'));
 assert.ok(source.includes("mondayColumnText(row, 'Correo institucional').split('@')[0]"));
+assert.ok(source.includes('async function mondayFetchLinkedAuthorityRows(monday, sourceItem)'));
+assert.ok(source.includes('linked_item_ids'));
+assert.ok(source.includes('return mondayFetchItems(monday, linkedIds)'));
+assert.ok(source.includes('mondayFetchAuthorityRecords(monday, request.issuingAreas, item)'));
 assert.ok(source.includes("signerName:names[index]||record.name||''"));
 assert.ok(source.includes("mondayCommsWriteColumn('sierraId', draft.id)"));
 assert.ok(source.includes("mondayCommsWriteColumn('editorUrl'"));
