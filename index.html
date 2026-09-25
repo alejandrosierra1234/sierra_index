@@ -9102,6 +9102,7 @@ const MONDAY_REVIEW_VERSION_COLUMNS = Object.freeze({
   reviewPdf: ['PDF para revisión'],
   contentHash: ['Hash de contenido'],
   changeSummary: ['Resumen de cambios'],
+  reviewGuide: ['Guía de comentarios'],
   requestedAt: ['Fecha de solicitud'],
   requestedBy: ['Solicitado por'],
   approvedPdf: ['PDF aprobado'],
@@ -9775,7 +9776,19 @@ async function mondayCommsCreateReviewVersion(draft, blob, summary, hash, expect
   const currentParent = (refreshed.items_page?.items || []).find(item => String(item.id) === String(parent.id)) || parent
   const existingVersions = currentParent.subitems || []
   const duplicate = existingVersions.find(item => mondayCommsReviewValue(item, 'Hash de contenido') === hash)
-  if (duplicate) throw new Error(`Este contenido ya fue enviado como versión ${commsReviewVersionLabel(commsReviewVersionNumber(duplicate))}.`)
+  if (duplicate) {
+    return {
+      boardId,
+      parentId: String(parent.id),
+      subitemId: String(duplicate.id),
+      subitemBoardId: String(duplicate.board?.id || ''),
+      version: commsReviewVersionNumber(duplicate),
+      hash,
+      status: mondayCommsReviewValue(duplicate, 'Estado de revisión') || 'En revisión',
+      summary: mondayCommsReviewValue(duplicate, 'Resumen de cambios') || summary || '',
+      existing: true,
+    }
+  }
   const version = Math.max(0, ...existingVersions.map(commsReviewVersionNumber), ...(draft.reviewVersions || []).map(item => Number(item.version) || 0)) + 1
   if (expectedVersion && version !== expectedVersion) throw new Error('Se creó otra versión mientras preparabas el PDF. Actualiza el estado e inténtalo nuevamente.')
   const versionLabel = commsReviewVersionLabel(version)
@@ -9791,6 +9804,7 @@ async function mondayCommsCreateReviewVersion(draft, blob, summary, hash, expect
     { title: 'PDF para revisión', type: 'file' },
     { title: 'Hash de contenido', type: 'text' },
     { title: 'Resumen de cambios', type: 'long_text' },
+    { title: 'Guía de comentarios', type: 'long_text' },
     { title: 'Fecha de solicitud', type: 'date' },
     { title: 'Solicitado por', type: 'text' },
     { title: 'PDF aprobado', type: 'file' },
@@ -9801,12 +9815,11 @@ async function mondayCommsCreateReviewVersion(draft, blob, summary, hash, expect
   await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('reviewStatus'), 'En revisión')
   await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('contentHash'), hash)
   await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('changeSummary'), summary || (version === 1 ? 'Primera versión para revisión.' : 'Nueva versión para revisión.'))
+  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('reviewGuide'), 'Comenta en Updates de este subitem para conservar la trazabilidad de esta versión. Puedes iniciar con [Cambio obligatorio], [Sugerencia], [Pregunta] o [Aprobación].')
   await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('requestedAt'), { date: new Date().toISOString().slice(0, 10) }, true)
   await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('requestedBy'), _mondayCommsBridge.operatorName || 'SIERRA Index')
   const proofDraft = { ...draft, reviewProofVersion: version }
   await mondayCommsUploadPdfToItem(blob, subitem.id, col('reviewPdf'), memoImageFileName(proofDraft, 'pdf'))
-  const update = `Versión ${versionLabel} enviada para revisión desde SIERRA Index.\n\nComenta en este subitem para que la observación quede ligada a esta versión. Puedes iniciar el comentario con [Cambio obligatorio], [Sugerencia], [Pregunta] o [Aprobación].\n\nEl PDF adjunto es un borrador con marca de agua y no es válido para distribución.`
-  await mondayCommsApi(`mutation ($item: ID!, $body: String!) { create_update(item_id: $item, body: $body) { id } }`, { item: String(subitem.id), body: update })
   return { boardId, parentId: String(parent.id), subitemId: String(subitem.id), subitemBoardId, version, hash, status: 'En revisión', summary: summary || '' }
 }
 
@@ -9855,9 +9868,9 @@ async function commsRequestReview(summary = '') {
     const blob = await memoPdfBlob(proofDraft)
     const record = await mondayCommsCreateReviewVersion(draft, blob, summary, hash, version)
     Object.assign(_commsCurrent, { status: 'En revisión', reviewBoardId: record.boardId, reviewParentItemId: record.parentId, submittedSnapshot: commsReviewSnapshot(draft), reviewNeedsNewVersion: false })
-    _commsCurrent.reviewVersions = [...(_commsCurrent.reviewVersions || []), record]
+    _commsCurrent.reviewVersions = [...(_commsCurrent.reviewVersions || []).filter(item => String(item.subitemId) !== String(record.subitemId)), record]
     commsPersist();await mondayCommsWriteColumn('syncStatus', 'En revisión');renderCommunicationEditor()
-    toast(`Versión ${commsReviewVersionLabel(record.version)} enviada. Los comentarios quedarán en su subitem.`, 6500)
+    toast(record.existing ? `Versión ${commsReviewVersionLabel(record.version)} recuperada. Los comentarios quedan en su subitem.` : `Versión ${commsReviewVersionLabel(record.version)} enviada. Los comentarios quedarán en su subitem.`, 6500)
   } catch (error) {
     console.error('monday memo review:', error);toast('No se pudo solicitar la revisión: ' + (error?.message || 'Error desconocido'), 8000)
   } finally { _commsReviewBusy = false;memoImageExportState(false, '') }

@@ -28,10 +28,12 @@ assert.ok(source.includes("mondayCommsWriteColumn('syncStatus', 'Sincronizado')"
 assert.ok(source.includes('mondayCommsUploadFinalPdf(blob, draft)'));
 assert.ok(source.includes('create_subitem(parent_item_id: $parent'));
 assert.ok(source.includes("create_board(board_name: $name, board_kind: private)"));
-assert.ok(source.includes("create_update(item_id: $item"));
+assert.ok(!source.includes("create_update(item_id: $item"));
 assert.ok(source.includes("'PDF para revisión'"));
 assert.ok(source.includes("'Hash de contenido'"));
 assert.ok(source.includes("'Resumen de cambios'"));
+assert.ok(source.includes("'Guía de comentarios'"));
+assert.ok(source.includes("existing: true"));
 assert.ok(source.includes("BORRADOR · VERSIÓN ${commsReviewVersionLabel(reviewVersion)}"));
 assert.ok(source.includes('Documento en revisión · No válido para distribución'));
 assert.ok(source.includes('async function commsPublishFinalPdf()'));
