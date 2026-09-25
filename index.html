@@ -9069,6 +9069,7 @@ const MONDAY_COMMS_COLUMNS = Object.freeze({
   signatures: ['Firma(s) PNG'],
   audience: ['¿A quién va dirigido?', 'Audiencia', 'Dirigido a', 'Destinatario', 'Público', 'Publico'],
   specificRecipients: ['¿A quiénes específicamente?'],
+  aiDraft: ['Borrador IA del memorándum', 'ELIMINAR — Borrador IA del memorándum'],
   objective: ['Objetivo del comunicado'],
   requiredInfo: ['Puntos clave obligatorios'],
   actionRequired: ['¿Los destinatarios deben realizar alguna acción?'],
@@ -9185,6 +9186,7 @@ function mondayCommsRequestFromItem(item) {
     signatures: mondayCommsUrls(mondayCommsColumnText(item, 'signatures')),
     audience: mondayCommsColumnText(item, 'audience'),
     specificRecipients: mondayCommsColumnText(item, 'specificRecipients'),
+    aiDraft: mondayCommsColumnText(item, 'aiDraft'),
     objective: mondayCommsColumnText(item, 'objective'),
     requiredInfo: mondayCommsColumnText(item, 'requiredInfo'),
     actionRequired: mondayCommsColumnText(item, 'actionRequired'),
@@ -36630,17 +36632,27 @@ function mondayCommsSignerSeeds(r){
   const count=Math.max(names.length,titles.length,signatures.length,records.length)
   return Array.from({length:count},(_,index)=>{const record=records.find(candidate=>normalizeBadgeOrgIdentity(candidate.area)===normalizeBadgeOrgIdentity(areas[index]))||records[index]||{};return{signerName:names[index]||record.name||'',signerTitle:titles[index]||record.title||'',signerDepartment:areas[index]||record.area||record.department||'',signature:signatures[index]||record.signature||''}}).filter(s=>s.signerName||s.signerTitle||s.signerDepartment||s.signature)
 }
+function commsMondayAiContent(value){
+  const raw=String(value||'').replace(/\r/g,'').trim();if(!raw)return{subject:'',blocks:[]}
+  const subject=(raw.match(/^\s*ASUNTO\s*:\s*(.+)$/im)?.[1]||'').trim()
+  const body=raw.replace(/^\s*ASUNTO\s*:\s*.*(?:\n|$)/im,'').replace(/^\s*CUERPO\s*:\s*(?:\n|$)/im,'').trim()
+  const blocks=[]
+  body.split(/\n{2,}/).map(part=>part.trim()).filter(Boolean).forEach(part=>{
+    const lines=part.split('\n').map(line=>line.trim()).filter(Boolean)
+    const bullets=lines.length>0&&lines.every(line=>/^[-•*]\s+/.test(line))
+    blocks.push({id:'b-'+crypto.randomUUID(),type:'text',style:bullets?'bullets':'regular',content:bullets?lines.map(line=>line.replace(/^[-•*]\s+/, '')).join('\n'):lines.join('\n')})
+  })
+  return{subject,blocks}
+}
+function commsMondayBlockSignature(blocks){return JSON.stringify((Array.isArray(blocks)?blocks:[]).map(block=>({type:block?.type||'text',style:block?.style||'regular',content:String(block?.content||'').trim()})))}
 function commsMondaySeed(r){
   const detail=[r.details,r.channel?`Canal solicitado: ${r.channel}`:'',r.deadline?`Fecha requerida: ${r.deadline}`:'',r.priority?`Prioridad: ${r.priority}`:'',r.email?`Contacto: ${r.email}`:''].filter(Boolean).join('\n\n')||r.summary||'Completa el contenido con la información enviada en la solicitud.'
-  const blocks=[]
+  const aiContent=commsMondayAiContent(r.aiDraft),blocks=aiContent.blocks.slice()
   const addBlock=(style,content)=>{if(String(content||'').trim())blocks.push({id:'b-'+crypto.randomUUID(),type:'text',style,content:String(content).trim()})}
-  addBlock('regular',r.objective||r.summary||r.details)
-  addBlock('bullets',r.requiredInfo)
-  if(normalizeBadgeOrgIdentity(r.actionRequired)==='si'||String(r.action||'').trim())addBlock('emphasis',r.action?`Acción requerida: ${r.action}`:'Los destinatarios deben realizar una acción.')
-  if(r.effectiveDate)addBlock('regular',`Vigencia: ${r.effectiveDate}`)
+  if(!blocks.length){addBlock('regular',r.objective||r.summary||r.details);addBlock('bullets',r.requiredInfo);if(normalizeBadgeOrgIdentity(r.actionRequired)==='si'||String(r.action||'').trim())addBlock('emphasis',r.action?`Acción requerida: ${r.action}`:'Los destinatarios deben realizar una acción.');if(r.effectiveDate)addBlock('regular',`Vigencia: ${r.effectiveDate}`)}
   if(!blocks.length)addBlock('regular','Completa el contenido con la información enviada en la solicitud.')
   const signers=mondayCommsSignerSeeds(r),first=signers[0]||{},audience=r.specificRecipients||r.audience||'Colaboradores SIERRA'
-  const common={source:'monday',mondayItemId:r.id,mondaySeedVersion:2,status:'Borrador',subject:r.name||'Solicitud de comunicado',date:new Date().toISOString().slice(0,10),country:r.country||'',company:r.company||'',plant:r.plant||'',externalFolio:r.correlativo||'',department:r.department||'',issuingAreas:r.issuingAreas||[],requesterEmail:r.email||'',authorityEmails:Array.isArray(r.authorityEmails)?r.authorityEmails:[],audience,audienceCategory:r.audience||'',specificRecipients:r.specificRecipients||'',objective:r.objective||'',requiredInfo:r.requiredInfo||'',actionRequired:r.actionRequired||'',action:r.action||'',effectiveDate:r.effectiveDate||'',requestedSendDate:r.deadline||'',mondayAttachments:r.attachments||[],blocks}
+  const common={source:'monday',mondayItemId:r.id,mondaySeedVersion:3,mondayAiDraft:r.aiDraft||'',status:'Borrador',subject:aiContent.subject||r.name||'Solicitud de comunicado',date:new Date().toISOString().slice(0,10),country:r.country||'',company:r.company||'',plant:r.plant||'',externalFolio:r.correlativo||'',department:r.department||'',issuingAreas:r.issuingAreas||[],requesterEmail:r.email||'',authorityEmails:Array.isArray(r.authorityEmails)?r.authorityEmails:[],audience,audienceCategory:r.audience||'',specificRecipients:r.specificRecipients||'',objective:r.objective||'',requiredInfo:r.requiredInfo||'',actionRequired:r.actionRequired||'',action:r.action||'',effectiveDate:r.effectiveDate||'',requestedSendDate:r.deadline||'',mondayAttachments:r.attachments||[],blocks}
   if(r.kind==='memo')return createCommunicationDraft({...common,sender:(r.issuingAreas||[]).join(', ')||r.department||'Comunicaciones Corporativas',...first,additionalSigners:signers.slice(1)})
   if(r.kind==='aviso')return createNoticeDraft({...common,company:r.company||'SIERRA',noticeMessage:r.summary||detail})
   if(r.kind==='convocatoria')return createInvitationDraft({...common,department:r.department||'',sender:r.department||'Comunicaciones',eyebrow:(r.department||'Comunicaciones')+' informa',focus:r.country||r.company||'',intro:r.summary||detail,location:''})
@@ -36648,8 +36660,9 @@ function commsMondaySeed(r){
 }
 function commsMergeMondayDraft(existing,r){
   const incoming=commsMondaySeed(r),next=JSON.parse(JSON.stringify(existing||{})),has=value=>String(value??'').trim()!==''
-  next.source='monday';next.mondayItemId=String(r.id||next.mondayItemId||'');next.mondaySeedVersion=2
-  if(has(r.name))next.subject=incoming.subject
+  const previousAi=commsMondayAiContent(existing?.mondayAiDraft),placeholderBlocks=Array.isArray(existing?.blocks)&&existing.blocks.length&&existing.blocks.every(block=>{const content=String(block?.content||'').trim();return /^Completa el contenido con/i.test(content)||/^(?:Canal solicitado|Fecha requerida|Prioridad|Contacto):/i.test(content)}),safeToReplaceAi=has(r.aiDraft)&&((previousAi.blocks.length&&commsMondayBlockSignature(existing?.blocks)===commsMondayBlockSignature(previousAi.blocks))||(!previousAi.blocks.length&&placeholderBlocks))
+  next.source='monday';next.mondayItemId=String(r.id||next.mondayItemId||'');next.mondaySeedVersion=3
+  if(has(r.aiDraft)&&safeToReplaceAi){next.blocks=JSON.parse(JSON.stringify(incoming.blocks));next.subject=incoming.subject;next.mondayAiDraft=r.aiDraft}else if(has(r.name))next.subject=incoming.subject
   if(has(r.correlativo))next.externalFolio=incoming.externalFolio
   ;[['country','country'],['company','company'],['plant','plant'],['department','department'],['specificRecipients','specificRecipients'],['objective','objective'],['requiredInfo','requiredInfo'],['actionRequired','actionRequired'],['action','action'],['effectiveDate','effectiveDate'],['deadline','requestedSendDate']].forEach(([sourceKey,targetKey])=>{if(has(r[sourceKey]))next[targetKey]=incoming[targetKey]})
   if(Array.isArray(r.issuingAreas)&&r.issuingAreas.length){next.issuingAreas=[...incoming.issuingAreas];next.sender=incoming.sender}
@@ -36662,7 +36675,7 @@ function commsMergeMondayDraft(existing,r){
   if(signers.length){next.signerName=incoming.signerName;next.signerTitle=incoming.signerTitle;next.signerDepartment=incoming.signerDepartment;next.signature=incoming.signature;next.additionalSigners=JSON.parse(JSON.stringify(incoming.additionalSigners||[]))}
   const legacyBlocks=Array.isArray(next.blocks)&&next.blocks.length&&next.blocks.every(block=>{const content=String(block?.content||'').trim();return /^Completa el contenido con/i.test(content)||/^(?:Canal solicitado|Fecha requerida|Prioridad|Contacto):/i.test(content)})
   const missingStructured=!has(existing?.objective)&&!has(existing?.requiredInfo)&&!has(existing?.action)&&!has(existing?.effectiveDate)
-  if(Number(existing?.mondaySeedVersion||0)<2&&legacyBlocks&&missingStructured)next.blocks=JSON.parse(JSON.stringify(incoming.blocks))
+  if(!has(r.aiDraft)&&Number(existing?.mondaySeedVersion||0)<2&&legacyBlocks&&missingStructured)next.blocks=JSON.parse(JSON.stringify(incoming.blocks))
   return commsNormalize(next)
 }
 async function commsImportMondayRequest(itemId){

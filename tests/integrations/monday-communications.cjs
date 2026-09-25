@@ -50,6 +50,10 @@ assert.ok(fnSource.includes("decision === 'Aprobado'"));
 assert.ok(fnSource.includes("decision === 'Cambios solicitados'"));
 assert.ok(fnSource.includes("schemaColumn(sourceColumns, 'Estado de aprobación')"));
 assert.ok(source.includes("authorityEmails: ['Correo(s) de autoridad'"));
+assert.ok(source.includes("aiDraft: ['Borrador IA del memorándum', 'ELIMINAR — Borrador IA del memorándum']"));
+assert.ok(fnSource.includes("aiDraft: ['Borrador IA del memorándum', 'ELIMINAR — Borrador IA del memorándum']"));
+assert.ok(source.includes('const aiContent=commsMondayAiContent(r.aiDraft),blocks=aiContent.blocks.slice()'));
+assert.ok(source.includes("mondaySeedVersion:3,mondayAiDraft:r.aiDraft||''"));
 assert.ok(source.includes("reviewUrl: ['Versión en revisión']"));
 assert.ok(source.includes(".get('memoReview')"));
 assert.ok(source.includes('async function showMemoReviewPortal(versionId)'));
@@ -119,6 +123,7 @@ w.fetch=async(url,{body,headers})=>{
     department:'Marketing y Comunicaciones; Marca y Manufactura',issuingAreas:['Marketing y Comunicaciones','Marca y Manufactura'],
     authorities:['Alejandro Torres','Pablo Hernández'],authorityTitles:['Gerente Jr.','VP'],signatures:['https://files.test/a.png','https://files.test/b.png'],
     audience:'Gerencias',specificRecipients:'Gerencias y jefaturas',objective:'Informar el lanzamiento',requiredInfo:'Fecha de lanzamiento\nCanal de soporte',
+    aiDraft:'ASUNTO: Lanzamiento oficial de SIERRA Nexus\n\nCUERPO:\n\nSe informa el lanzamiento de SIERRA Nexus.\n\n- Confirmar lectura\n- Consultar el canal de soporte',
     actionRequired:'Sí',action:'Confirmar lectura',effectiveDate:'2026-10-01',summary:'Bajada enviada desde el formulario',
     details:'Texto largo enviado por el solicitante',deadline:'2026-09-30',attachments:[{name:'brief.pdf',url:'https://files.test/brief.pdf'}],url:'https://monday.test/items/123'
   }]})}
@@ -137,7 +142,7 @@ w.fetch=async(url,{body,headers})=>{
   assert.equal(d.kind,'memo');
   assert.equal(d.source,'monday');
   assert.equal(d.mondayItemId,'123');
-  assert.equal(d.subject,'Lanzamiento SIERRA Nexus');
+  assert.equal(d.subject,'Lanzamiento oficial de SIERRA Nexus');
   assert.equal(d.externalFolio,'MEMO-0042');
   assert.equal(d.company,'SIERRA');
   assert.equal(d.plant,'Hilos y Algodón');
@@ -149,15 +154,16 @@ w.fetch=async(url,{body,headers})=>{
   assert.equal(d.signerTitle,'Gerente Jr.');
   assert.equal(d.signature,'https://files.test/a.png');
   assert.equal(d.additionalSigners[0].signerName,'Pablo Hernández');
-  assert.equal(d.blocks.some(block=>block.content.includes('Confirmar lectura')),true);
+  assert.equal(d.blocks.some(block=>block.content.includes('Se informa el lanzamiento de SIERRA Nexus.')),true);
+  assert.equal(d.blocks.some(block=>block.style==='bullets'&&block.content.includes('Confirmar lectura')),true);
   assert.equal(d.mondayAttachments[0].name,'brief.pdf');
-  assert.equal(d.mondaySeedVersion,2);
+  assert.equal(d.mondaySeedVersion,3);
   const legacy={...d,mondaySeedVersion:0,externalFolio:'',objective:'',requiredInfo:'',action:'',effectiveDate:'',blocks:[{id:'legacy',type:'text',style:'regular',content:'Contacto: old@example.test'}]};
   const migrated=w.commsMergeMondayDraft(legacy,{...w.eval('_commsMondayRows[0]'),correlativo:'MEMO-0043',objective:'Objetivo actualizado',requiredInfo:'Punto actualizado',action:'Confirmar recepción'});
   assert.equal(migrated.id,d.id);
   assert.equal(migrated.externalFolio,'MEMO-0043');
   assert.equal(migrated.objective,'Objetivo actualizado');
-  assert.equal(migrated.blocks.some(block=>block.content.includes('Objetivo actualizado')),true);
+  assert.equal(migrated.blocks.some(block=>block.content.includes('Se informa el lanzamiento de SIERRA Nexus.')),true);
   const edited=w.commsMergeMondayDraft({...legacy,blocks:[{id:'manual',type:'text',style:'regular',content:'Texto redactado manualmente'}]},{...w.eval('_commsMondayRows[0]'),objective:'Objetivo nuevo'});
   assert.equal(edited.blocks[0].content,'Texto redactado manualmente');
   w.commsDuplicate(d.id);
