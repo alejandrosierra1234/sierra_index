@@ -9367,8 +9367,12 @@ async function mondayFetchAuthorityRecords(monday, requestedAreas) {
     for (const row of selected) {
       const fileMap = await mondayFetchMemoFileValues(monday, row.id, signatureColumnIds)
       const signatureId = mondayColumnByTitle(row, 'Firma PNG')?.id
+      const explicitName = ['Nombre de la autoridad', 'Autoridad', 'Nombre completo'].map(title => mondayColumnText(row, title)).find(Boolean) || ''
+      const emailLocal = mondayColumnText(row, 'Correo institucional').split('@')[0].replace(/[._-]+/g, ' ').trim()
+      const derivedName = emailLocal.replace(/(^|\s)(\p{L})/gu, (_, space, letter) => space + letter.toLocaleUpperCase('es'))
       records.push({
         area: String(row.name || '').trim(),
+        name: explicitName || derivedName,
         department: mondayColumnText(row, 'Department') || String(row.name || '').trim(),
         title: mondayColumnText(row, 'Cargo de la autoridad'),
         signature: fileMap.get(signatureId)?.[0]?.url || '',
@@ -36138,7 +36142,7 @@ async function commsMondayInvoke(body){
 function mondayCommsSignerSeeds(r){
   const names=Array.isArray(r.authorities)?r.authorities:[],titles=Array.isArray(r.authorityTitles)?r.authorityTitles:[],signatures=Array.isArray(r.signatures)?r.signatures:[],areas=Array.isArray(r.issuingAreas)?r.issuingAreas:[],records=Array.isArray(r.authorityRecords)?r.authorityRecords:[]
   const count=Math.max(names.length,titles.length,signatures.length,records.length)
-  return Array.from({length:count},(_,index)=>{const record=records.find(candidate=>normalizeBadgeOrgIdentity(candidate.area)===normalizeBadgeOrgIdentity(areas[index]))||records[index]||{};return{signerName:names[index]||'',signerTitle:titles[index]||record.title||'',signerDepartment:areas[index]||record.area||record.department||'',signature:signatures[index]||record.signature||''}}).filter(s=>s.signerName||s.signerTitle||s.signerDepartment||s.signature)
+  return Array.from({length:count},(_,index)=>{const record=records.find(candidate=>normalizeBadgeOrgIdentity(candidate.area)===normalizeBadgeOrgIdentity(areas[index]))||records[index]||{};return{signerName:names[index]||record.name||'',signerTitle:titles[index]||record.title||'',signerDepartment:areas[index]||record.area||record.department||'',signature:signatures[index]||record.signature||''}}).filter(s=>s.signerName||s.signerTitle||s.signerDepartment||s.signature)
 }
 function commsMondaySeed(r){
   const detail=[r.details,r.channel?`Canal solicitado: ${r.channel}`:'',r.deadline?`Fecha requerida: ${r.deadline}`:'',r.priority?`Prioridad: ${r.priority}`:'',r.email?`Contacto: ${r.email}`:''].filter(Boolean).join('\n\n')||r.summary||'Completa el contenido con la información enviada en la solicitud.'

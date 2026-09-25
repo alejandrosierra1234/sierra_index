@@ -19,6 +19,8 @@ assert.ok(source.includes('mondayHydrateMemoRequest(monday, item, mondayCommsReq
 assert.ok(source.includes("issuingAreas: mondayCommsList(mondayCommsColumnText(item, 'department'), true)"));
 assert.ok(source.includes('... on MirrorValue { display_value }'));
 assert.ok(source.includes('column?.display_value || column?.text'));
+assert.ok(source.includes("mondayColumnText(row, 'Correo institucional').split('@')[0]"));
+assert.ok(source.includes("signerName:names[index]||record.name||''"));
 assert.ok(source.includes("mondayCommsWriteColumn('sierraId', draft.id)"));
 assert.ok(source.includes("mondayCommsWriteColumn('editorUrl'"));
 assert.ok(source.includes("mondayCommsWriteColumn('syncStatus', 'Sincronizado')"));
