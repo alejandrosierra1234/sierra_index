@@ -53,6 +53,13 @@ assert.ok(fnSource.includes("['review_get', 'review_comment', 'review_decide']")
 assert.ok(fnSource.includes("decision === 'Aprobado'"));
 assert.ok(fnSource.includes("decision === 'Cambios solicitados'"));
 assert.ok(fnSource.includes('async function setColumnsByTitle('));
+assert.ok(fnSource.includes('const attempts = isRead || options.safeToRetry ? 3 : 1'));
+assert.ok(fnSource.includes('signal: AbortSignal.timeout(15000)'));
+assert.ok(fnSource.includes('operationMarker(operationId)'));
+assert.ok(fnSource.includes('hasOperation(context.item, operationId)'));
+assert.ok(fnSource.includes("entry?.operationId === operationId"));
+assert.ok(fnSource.includes('duplicate: true'));
+assert.ok(fnSource.includes('operationId }'));
 assert.ok(fnSource.includes("'Versión actual': versionLabel"));
 assert.ok(fnSource.includes("'Aprobaciones': `${context.required.length - pending.length} de ${context.required.length}`"));
 assert.ok(fnSource.includes("'Último comentario de revisión': `${actorName}: ${comment}`"));
@@ -72,6 +79,13 @@ assert.ok(source.includes("latestComment: ['Último comentario de revisión']"))
 assert.ok(source.includes("reviewReminderDate: ['Próximo recordatorio de revisión']"));
 assert.ok(source.includes('const reminderDate = new Date(Date.now() + 2 * 86400000)'));
 assert.ok(source.includes('async function mondayCommsWriteColumns(entries)'));
+assert.ok(source.includes('if (value === undefined || value === null) continue'));
+assert.ok(source.includes("...(!record.existing ? { approvalStatus: recordApprovalStatus } : {})"));
+assert.ok(source.includes("if (!record.existing) await mondayCommsWriteApprovalStatus(recordApprovalStatus)"));
+assert.ok(source.includes("mondayCommsWriteColumn('syncStatus', 'Error')"));
+assert.ok(source.includes("const attempts = body?.action === 'review_get' || body?.operation_id ? 3 : 1"));
+assert.ok(source.includes('operation_id: crypto.randomUUID()'));
+assert.ok(source.includes('let _memoReviewSubmitting = false'));
 assert.ok(source.includes(".get('memoReview')"));
 assert.ok(source.includes('async function showMemoReviewPortal(versionId)'));
 assert.ok(source.includes('await sb.auth.refreshSession()'));

@@ -9668,6 +9668,7 @@ async function mondayCommsWriteColumns(entries) {
     if (!column) continue
     const complex = !!entry?.complex
     const value = entry && typeof entry === 'object' && 'value' in entry ? entry.value : entry
+    if (value === undefined || value === null) continue
     values[column] = complex ? value : String(value ?? '')
   }
   if (!Object.keys(values).length) return false
@@ -9731,21 +9732,34 @@ async function mondayCommsUploadFinalPdf(blob, draft) {
   return { ok: true, fileName: file.name }
 }
 
-async function mondayCommsApi(query, variables = {}) {
+const commsWait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds))
+async function mondayCommsApi(query, variables = {}, options = {}) {
   const bridge = _mondayCommsBridge
   if (!bridge?.monday) throw new Error('Abre el memo desde monday para gestionar la revisión.')
-  let timeoutId
-  const timeout = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error('monday no respondió a tiempo. Si ves un aviso de permisos, un administrador debe aprobar los permisos nuevos de SIERRA Comunicados.')), 15000)
-  })
-  let response
-  try {
-    response = await Promise.race([bridge.monday.api(query, { apiVersion: '2025-04', variables }), timeout])
-  } finally {
-    clearTimeout(timeoutId)
+  const attempts = /^\s*query\b/i.test(query) || options.safeToRetry ? 3 : 1
+  let lastError
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    let timeoutId
+    const timeout = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('monday no respondió a tiempo. Si ves un aviso de permisos, un administrador debe aprobar los permisos nuevos de SIERRA Comunicados.')), 15000)
+    })
+    try {
+      const response = await Promise.race([bridge.monday.api(query, { apiVersion: '2025-04', variables }), timeout])
+      if (response?.errors?.length) {
+        const error = new Error(response.errors.map(item => item.message).join(' · '))
+        error.retryable = response.errors.some(item => /rate|timeout|temporar|internal|unavailable/i.test(String(item?.message || '')))
+        throw error
+      }
+      return response?.data || {}
+    } catch (error) {
+      lastError = error
+      if (attempt === attempts || (!error?.retryable && !/tiempo|network|fetch|temporar/i.test(String(error?.message || '')))) break
+      await commsWait(250 * (2 ** (attempt - 1)))
+    } finally {
+      clearTimeout(timeoutId)
+    }
   }
-  if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
-  return response?.data || {}
+  throw lastError
 }
 
 function mondayReviewColumn(columns, names) {
@@ -9788,7 +9802,7 @@ async function mondayCommsSetReviewColumn(boardId, itemId, column, value, comple
   const query = complex
     ? `mutation ($board: ID!, $item: ID!, $column: String!, $value: JSON!) { change_column_value(board_id: $board, item_id: $item, column_id: $column, value: $value) { id } }`
     : `mutation ($board: ID!, $item: ID!, $column: String!, $value: String!) { change_simple_column_value(board_id: $board, item_id: $item, column_id: $column, value: $value) { id } }`
-  await mondayCommsApi(query, { board: String(boardId), item: String(itemId), column: column.id || column, value: complex ? JSON.stringify(value) : String(value) })
+  await mondayCommsApi(query, { board: String(boardId), item: String(itemId), column: column.id || column, value: complex ? JSON.stringify(value) : String(value) }, { safeToRetry: true })
   return true
 }
 
@@ -9801,7 +9815,7 @@ async function mondayCommsSetReviewColumns(boardId, itemId, entries) {
   if (!Object.keys(values).length) return false
   await mondayCommsApi(`mutation ($board: ID!, $item: ID!, $values: JSON!) {
     change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id }
-  }`, { board: String(boardId), item: String(itemId), values: JSON.stringify(values) })
+  }`, { board: String(boardId), item: String(itemId), values: JSON.stringify(values) }, { safeToRetry: true })
   return true
 }
 
@@ -10045,7 +10059,7 @@ async function commsRequestReview(summary = '') {
       pendingApprovers: (record.pendingApprovers || []).join('\n'),
       latestDecision: record.latestDecision || '',
       latestComment: record.latestComment || '',
-      approvalStatus: recordApprovalStatus,
+      ...(!record.existing ? { approvalStatus: recordApprovalStatus } : {}),
       syncStatus: 'Sincronizado',
       reviewReminderDate: !record.existing && recordApprovalStatus === 'En revisión' && (record.pendingApprovers || []).length
         ? { value: { date: reminderDate }, complex: true }
@@ -10054,13 +10068,15 @@ async function commsRequestReview(summary = '') {
     Object.assign(_commsCurrent, { status: recordApprovalStatus === 'Aprobado' ? 'Aprobado' : recordApprovalStatus === 'Requiere ajustes' ? 'Borrador' : 'En revisión', reviewBoardId: record.boardId, reviewParentItemId: record.parentId, submittedSnapshot: commsReviewSnapshot(draft), reviewNeedsNewVersion: recordApprovalStatus === 'Requiere ajustes' })
     _commsCurrent.reviewVersions = [...(_commsCurrent.reviewVersions || []).filter(item => String(item.subitemId) !== String(record.subitemId)), record]
     _commsReviewSuccess = { draftId: _commsCurrent.id, version: record.version, reviewUrl: record.reviewUrl || '', existing: !!record.existing }
-    await mondayCommsWriteApprovalStatus(recordApprovalStatus)
+    if (!record.existing) await mondayCommsWriteApprovalStatus(recordApprovalStatus)
     commsPersist();renderCommunicationEditor()
     requestAnimationFrame(() => document.querySelector('.memo-review-workflow.is-success')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
     mondayCommsWriteColumn('syncStatus', 'Sincronizado').catch(error => console.warn('monday memo review status sync:', error))
     toast(record.existing ? `Versión ${commsReviewVersionLabel(record.version)} recuperada. Los comentarios quedan en su subitem.` : `Versión ${commsReviewVersionLabel(record.version)} enviada. Los comentarios quedarán en su subitem.`, 6500)
   } catch (error) {
-    console.error('monday memo review:', error);toast('No se pudo solicitar la revisión: ' + (error?.message || 'Error desconocido'), 8000)
+    console.error('monday memo review:', error)
+    mondayCommsWriteColumn('syncStatus', 'Error').catch(syncError => console.warn('monday memo review error status:', syncError))
+    toast('No se pudo completar la revisión. No se enviará una versión duplicada: vuelve a intentarlo para recuperar o continuar la misma operación. ' + (error?.message || 'Error desconocido'), 9000)
   } finally { commsReviewProgress(false, '') }
 }
 
@@ -10184,25 +10200,39 @@ document.addEventListener('visibilitychange', () => {
 })
 
 let _memoReviewPortal = null
+let _memoReviewSubmitting = false
 async function memoReviewInvoke(body) {
   const invoke = accessToken => fetch(`${SB_URL}/functions/v1/monday-communications`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
-    body: JSON.stringify({ ...body, _auth_token: accessToken }),
+    body: JSON.stringify({ ...body, _auth_token: accessToken }), signal: AbortSignal.timeout(20000),
   })
   let { data: { session }, error } = await sb.auth.getSession()
   if (error || !session?.access_token) throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.')
-  let response = await invoke(session.access_token)
-  let data = await response.json().catch(() => null)
-  if (response.status === 401 || /not authenticated|jwt|sesión/i.test(String(data?.error || ''))) {
-    const refreshed = await sb.auth.refreshSession()
-    session = refreshed.data?.session || null
-    if (!refreshed.error && session?.access_token) {
+  let response, data, lastError
+  const attempts = body?.action === 'review_get' || body?.operation_id ? 3 : 1
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
       response = await invoke(session.access_token)
       data = await response.json().catch(() => null)
+      if (response.status === 401 || /not authenticated|jwt|sesión/i.test(String(data?.error || ''))) {
+        const refreshed = await sb.auth.refreshSession()
+        session = refreshed.data?.session || null
+        if (refreshed.error || !session?.access_token) throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.')
+        response = await invoke(session.access_token)
+        data = await response.json().catch(() => null)
+      }
+      if (response.ok && !data?.error) return data
+      const requestError = new Error(data?.error || 'No se pudo actualizar la revisión.')
+      requestError.retryable = response.status === 429 || response.status >= 500
+      throw requestError
+    } catch (requestError) {
+      lastError = requestError
+      const retryable = requestError?.retryable || requestError?.name === 'TimeoutError' || requestError?.name === 'AbortError' || requestError instanceof TypeError
+      if (!retryable || attempt === attempts) break
+      await commsWait(300 * (2 ** (attempt - 1)))
     }
   }
-  if (!response.ok || data?.error) throw new Error(data?.error || 'No se pudo actualizar la revisión.')
-  return data
+  throw lastError || new Error('No se pudo actualizar la revisión.')
 }
 
 function memoReviewPlainText(value) {
@@ -10237,17 +10267,29 @@ async function showMemoReviewPortal(versionId) {
 }
 
 async function memoReviewComment() {
+  if (_memoReviewSubmitting) return
   const comment = document.getElementById('memo-review-comment')?.value.trim() || ''
   if (!comment) { toast('Escribe un comentario antes de enviarlo.');return }
-  try { const data = await memoReviewInvoke({ action: 'review_comment', version_id: _memoReviewPortal.id, comment });renderMemoReviewPortal(data.review, 'Comentario registrado en esta versión.') }
-  catch (error) { toast(error.message, 7000) }
+  _memoReviewSubmitting = true
+  document.querySelectorAll('[onclick^="memoReview"]').forEach(button => { button.disabled = true;button.setAttribute('aria-busy', 'true') })
+  try {
+    const data = await memoReviewInvoke({ action: 'review_comment', version_id: _memoReviewPortal.id, comment, operation_id: crypto.randomUUID() })
+    renderMemoReviewPortal(data.review, data.duplicate ? 'Este comentario ya estaba registrado; recuperamos el resultado sin duplicarlo.' : 'Comentario registrado en esta versión.')
+  } catch (error) { toast(error.message, 7000) }
+  finally { _memoReviewSubmitting = false;document.querySelectorAll('[onclick^="memoReview"]').forEach(button => { button.disabled = false;button.removeAttribute('aria-busy') }) }
 }
 
 async function memoReviewDecide(decision) {
+  if (_memoReviewSubmitting) return
   const comment = document.getElementById('memo-review-comment')?.value.trim() || ''
   if (decision === 'Cambios solicitados' && !comment) { toast('Describe el cambio solicitado para que quede trazabilidad.');return }
-  try { const data = await memoReviewInvoke({ action: 'review_decide', version_id: _memoReviewPortal.id, decision, comment });renderMemoReviewPortal(data.review, decision === 'Aprobado' ? 'Tu aprobación quedó registrada.' : 'Los cambios quedaron solicitados y el estado ya fue actualizado.') }
-  catch (error) { toast(error.message, 7000) }
+  _memoReviewSubmitting = true
+  document.querySelectorAll('[onclick^="memoReview"]').forEach(button => { button.disabled = true;button.setAttribute('aria-busy', 'true') })
+  try {
+    const data = await memoReviewInvoke({ action: 'review_decide', version_id: _memoReviewPortal.id, decision, comment, operation_id: crypto.randomUUID() })
+    renderMemoReviewPortal(data.review, data.duplicate ? 'Esta decisión ya estaba registrada; recuperamos el resultado sin duplicarlo.' : decision === 'Aprobado' ? 'Tu aprobación quedó registrada.' : 'Los cambios quedaron solicitados y el estado ya fue actualizado.')
+  } catch (error) { toast(error.message, 7000) }
+  finally { _memoReviewSubmitting = false;document.querySelectorAll('[onclick^="memoReview"]').forEach(button => { button.disabled = false;button.removeAttribute('aria-busy') }) }
 }
 
 // (the Label Builder registers its own resize handler alongside lbFitPreview)

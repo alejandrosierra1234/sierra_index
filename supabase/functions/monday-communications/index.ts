@@ -112,18 +112,36 @@ function supabaseClientKey() {
   return Deno.env.get('SUPABASE_ANON_KEY') || ''
 }
 
-async function mondayRequest(token: string, query: string, variables: Record<string, unknown>) {
-  const response = await fetch('https://api.monday.com/v2', {
-    method: 'POST',
-    headers: mondayHeaders(token),
-    body: JSON.stringify({ query, variables }),
-  })
-  const payload = await response.json().catch(() => null)
-  if (!response.ok || payload?.errors?.length) {
-    const message = payload?.errors?.map((error: any) => error?.message).filter(Boolean).join(' · ') || 'Monday no respondió correctamente.'
-    throw new Error(message)
+const wait = (milliseconds: number) => new Promise(resolve => setTimeout(resolve, milliseconds))
+
+async function mondayRequest(token: string, query: string, variables: Record<string, unknown>, options: { safeToRetry?: boolean } = {}) {
+  const isRead = /^\s*query\b/i.test(query)
+  const attempts = isRead || options.safeToRetry ? 3 : 1
+  let lastError: any
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch('https://api.monday.com/v2', {
+        method: 'POST',
+        headers: mondayHeaders(token),
+        body: JSON.stringify({ query, variables }),
+        signal: AbortSignal.timeout(15000),
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || payload?.errors?.length) {
+        const message = payload?.errors?.map((error: any) => error?.message).filter(Boolean).join(' · ') || 'Monday no respondió correctamente.'
+        const error: any = new Error(message)
+        error.retryable = response.status === 429 || response.status >= 500
+        throw error
+      }
+      return payload?.data
+    } catch (error: any) {
+      lastError = error
+      const retryable = error?.retryable || error?.name === 'TimeoutError' || error?.name === 'AbortError' || error instanceof TypeError
+      if (!retryable || attempt === attempts) break
+      await wait(250 * (2 ** (attempt - 1)))
+    }
   }
-  return payload?.data
+  throw lastError || new Error('Monday no respondió correctamente.')
 }
 
 async function authorizeCaller(req: Request, env: Record<string, string>) {
@@ -185,7 +203,7 @@ async function setSimple(token: string, boardId: string, itemId: string, columnI
   if (!columnId) return
   await mondayRequest(token, `mutation ($board: ID!, $item: ID!, $column: String!, $value: String!) {
     change_simple_column_value(board_id: $board, item_id: $item, column_id: $column, value: $value) { id }
-  }`, { board: boardId, item: itemId, column: columnId, value })
+  }`, { board: boardId, item: itemId, column: columnId, value }, { safeToRetry: true })
 }
 
 async function setColumnsByTitle(token: string, boardId: string, itemId: string, columns: any[], entries: Record<string, unknown>) {
@@ -198,12 +216,15 @@ async function setColumnsByTitle(token: string, boardId: string, itemId: string,
   if (!Object.keys(values).length) return
   await mondayRequest(token, `mutation ($board: ID!, $item: ID!, $values: JSON!) {
     change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id }
-  }`, { board: boardId, item: itemId, values: JSON.stringify(values) })
+  }`, { board: boardId, item: itemId, values: JSON.stringify(values) }, { safeToRetry: true })
 }
 
 async function addUpdate(token: string, itemId: string, body: string) {
   await mondayRequest(token, `mutation ($item: ID!, $body: String!) { create_update(item_id: $item, body: $body) { id } }`, { item: itemId, body })
 }
+
+const operationMarker = (operationId: string) => operationId ? `<!--sierra-operation:${escapeHtml(operationId)}-->` : ''
+const hasOperation = (item: any, operationId: string) => Boolean(operationId && (item?.updates || []).some((update: any) => String(update?.body || '').includes(operationMarker(operationId))))
 
 function reviewPayload(context: any) {
   const item = context.item
@@ -256,6 +277,14 @@ Deno.serve(async req => {
       if (action === 'review_get') return json({ ok: true, review: reviewPayload(context) })
 
       const comment = String(body?.comment || '').trim().slice(0, 5000)
+      const operationId = String(body?.operation_id || '').trim().slice(0, 100)
+      if ((action === 'review_comment' || action === 'review_decide') && !/^[a-zA-Z0-9-]{16,100}$/.test(operationId)) {
+        return json({ error: 'La operación no tiene un identificador seguro. Recarga la versión e inténtalo nuevamente.' }, 400)
+      }
+      const repeatedDecision = action === 'review_decide' && parseDecisions(columnValueText(context.item, 'Decisiones individuales')).some((entry: any) => entry?.operationId === operationId)
+      if (hasOperation(context.item, operationId) || repeatedDecision) {
+        return json({ ok: true, duplicate: true, review: reviewPayload(context) })
+      }
       const actorName = String(auth.user?.user_metadata?.full_name || auth.user?.user_metadata?.name || auth.user?.email || 'Usuario')
       const versionLabel = columnValueText(context.item, 'Versión')
       const sourceItemId = columnValueText(context.item, 'Item original ID')
@@ -263,7 +292,7 @@ Deno.serve(async req => {
       const sourceColumns = hasSource ? await boardColumns(env.MONDAY_API_TOKEN, env.MONDAY_COMMUNICATIONS_BOARD_ID) : []
       if (action === 'review_comment') {
         if (!comment) return json({ error: 'Escribe un comentario antes de enviarlo.' }, 400)
-        await addUpdate(env.MONDAY_API_TOKEN, versionId, `<b>Comentario desde SIERRA Index</b><br>${escapeHtml(actorName)} · ${escapeHtml(auth.user?.email)}<br><br>${escapeHtml(comment).replace(/\n/g, '<br>')}`)
+        await addUpdate(env.MONDAY_API_TOKEN, versionId, `<b>Comentario desde SIERRA Index</b><br>${escapeHtml(actorName)} · ${escapeHtml(auth.user?.email)}<br><br>${escapeHtml(comment).replace(/\n/g, '<br>')}${operationMarker(operationId)}`)
         if (hasSource) {
           await setColumnsByTitle(env.MONDAY_API_TOKEN, env.MONDAY_COMMUNICATIONS_BOARD_ID, sourceItemId, sourceColumns, {
             'Versión actual': versionLabel,
@@ -281,7 +310,7 @@ Deno.serve(async req => {
       if (decision === 'Cambios solicitados' && !comment) return json({ error: 'Describe el cambio solicitado.' }, 400)
 
       const current = parseDecisions(columnValueText(context.item, 'Decisiones individuales'))
-      const nextDecision = { email: context.caller, name: actorName, decision, comment, decidedAt: new Date().toISOString() }
+      const nextDecision = { email: context.caller, name: actorName, decision, comment, decidedAt: new Date().toISOString(), operationId }
       const decisions = [...current.filter((entry: any) => emailKey(entry?.email) !== context.caller), nextDecision]
       const latest = new Map(decisions.map((entry: any) => [emailKey(entry.email), entry]))
       const pending = context.required.filter((email: string) => latest.get(email)?.decision !== 'Aprobado')
@@ -316,7 +345,7 @@ Deno.serve(async req => {
         })
       }
 
-      const decisionUpdate = `<b>${escapeHtml(decision)} · decisión individual</b><br>${escapeHtml(actorName)} · ${escapeHtml(context.caller)}<br>${escapeHtml(new Date().toLocaleString('es-GT', { timeZone: 'America/Guatemala' }))}${comment ? `<br><br>${escapeHtml(comment).replace(/\n/g, '<br>')}` : ''}<br><br>${pending.length ? `Pendientes: ${escapeHtml(pending.join(', '))}` : 'Todas las autoridades requeridas aprobaron esta versión.'}`
+      const decisionUpdate = `<b>${escapeHtml(decision)} · decisión individual</b><br>${escapeHtml(actorName)} · ${escapeHtml(context.caller)}<br>${escapeHtml(new Date().toLocaleString('es-GT', { timeZone: 'America/Guatemala' }))}${comment ? `<br><br>${escapeHtml(comment).replace(/\n/g, '<br>')}` : ''}<br><br>${pending.length ? `Pendientes: ${escapeHtml(pending.join(', '))}` : 'Todas las autoridades requeridas aprobaron esta versión.'}${operationMarker(operationId)}`
       await addUpdate(env.MONDAY_API_TOKEN, versionId, decisionUpdate)
       if (hasSource) await addUpdate(env.MONDAY_API_TOKEN, sourceItemId, `<b>Revisión ${escapeHtml(versionLabel)}</b><br>${decisionUpdate}`)
       context = await reviewContext(env.MONDAY_API_TOKEN, versionId, auth)
