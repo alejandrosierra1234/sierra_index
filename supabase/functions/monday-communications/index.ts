@@ -31,6 +31,7 @@ const DEFAULT_COLUMNS: ColumnMap = {
   department: ['¿Qué área(s) emiten el memorándum?', 'Departamento', 'Área', 'Area'],
   authorities: ['Autoridad(es) requerida(s)'],
   authorityTitles: ['Cargo(s) de autoridad'],
+  authorityEmails: ['Correo(s) de autoridad', 'Correos de autoridad', 'Correo de autoridad'],
   signatures: ['Firma(s) PNG'],
   audience: ['¿A quién va dirigido?', 'Audiencia', 'Dirigido a', 'Destinatario'],
   specificRecipients: ['¿A quiénes específicamente?'],
@@ -65,6 +66,24 @@ function columnText(item: any, names: string[]) {
 
 function splitList(value: string) {
   return [...new Set(String(value || '').split(/\n+|\s*[;|]\s*|\s+·\s+/).map(part => part.replace(/^[-•]\s*/, '').trim()).filter(Boolean))]
+}
+
+const emailKey = (value: unknown) => String(value || '').trim().toLowerCase()
+const escapeHtml = (value: unknown) => String(value || '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character] || character))
+
+function columnValue(item: any, title: string) {
+  return (item?.column_values || []).find((value: any) => normalize(value?.column?.title) === normalize(title))
+}
+
+function columnValueText(item: any, title: string) {
+  return String(columnValue(item, title)?.text || '').trim()
+}
+
+function parseDecisions(value: string) {
+  try {
+    const parsed = JSON.parse(value || '[]')
+    return Array.isArray(parsed) ? parsed : []
+  } catch { return [] }
 }
 
 function parseKind(value: string, memoOnly = false) {
@@ -121,8 +140,73 @@ async function authorizeToken(authorization: string, env: Record<string, string>
   if (identityError || !identity?.user) return { error: json({ error: 'Sesión no válida.' }, 401) }
   const { data: canRead, error: readError } = await caller.rpc('authorize', { p_domain: 'communications', p_capability: 'read' })
   const { data: canWrite, error: writeError } = await caller.rpc('authorize', { p_domain: 'communications', p_capability: 'write' })
-  if (readError || writeError || canRead !== true) return { error: json({ error: 'Necesitas acceso a Comunicaciones.' }, 403) }
-  return { user: identity.user, canWrite: canWrite === true }
+  if (readError || writeError) return { error: json({ error: 'No se pudieron verificar tus permisos.' }, 403) }
+  return { user: identity.user, canRead: canRead === true, canWrite: canWrite === true }
+}
+
+async function reviewContext(token: string, versionId: string, auth: any) {
+  if (!/^\d+$/.test(versionId)) throw new Error('La versión solicitada no es válida.')
+  const data = await mondayRequest(token, `query ($ids: [ID!]!) {
+    items(ids: $ids) {
+      id name board { id } parent_item { id }
+      column_values {
+        id type text value column { title }
+        ... on FileValue { files { ... on FileAssetValue { asset { id name public_url url } } } }
+      }
+      updates(limit: 50) { id body created_at creator { name } }
+    }
+  }`, { ids: [versionId] })
+  const item = data?.items?.[0]
+  if (!item) throw new Error('No se encontró esta versión.')
+  const required = splitList(columnValueText(item, 'Autorizadores requeridos')).map(emailKey).filter(Boolean)
+  const requester = emailKey(columnValueText(item, 'Correo del solicitante'))
+  const caller = emailKey(auth.user?.email)
+  const isApprover = required.includes(caller)
+  const isRequester = Boolean(requester && requester === caller)
+  if (!isApprover && !isRequester && !auth.canRead) {
+    const denied: any = new Error('Esta versión no está asignada a tu correo.')
+    denied.status = 403
+    throw denied
+  }
+  return { item, required, requester, caller, isApprover, isRequester }
+}
+
+async function boardColumns(token: string, boardId: string) {
+  const data = await mondayRequest(token, `query ($ids: [ID!]) { boards(ids: $ids) { columns { id title type } } }`, { ids: [boardId] })
+  return data?.boards?.[0]?.columns || []
+}
+
+function schemaColumn(columns: any[], title: string) {
+  return columns.find(column => normalize(column?.title) === normalize(title))
+}
+
+async function setSimple(token: string, boardId: string, itemId: string, columnId: string | undefined, value: string) {
+  if (!columnId) return
+  await mondayRequest(token, `mutation ($board: ID!, $item: ID!, $column: String!, $value: String!) {
+    change_simple_column_value(board_id: $board, item_id: $item, column_id: $column, value: $value) { id }
+  }`, { board: boardId, item: itemId, column: columnId, value })
+}
+
+async function addUpdate(token: string, itemId: string, body: string) {
+  await mondayRequest(token, `mutation ($item: ID!, $body: String!) { create_update(item_id: $item, body: $body) { id } }`, { item: itemId, body })
+}
+
+function reviewPayload(context: any) {
+  const item = context.item
+  const decisions = parseDecisions(columnValueText(item, 'Decisiones individuales'))
+  const pdfColumn: any = columnValue(item, 'PDF para revisión')
+  const pdf = (pdfColumn?.files || []).map((file: any) => file?.asset).find(Boolean)
+  const byEmail = new Map(decisions.map((decision: any) => [emailKey(decision.email), decision]))
+  const pending = context.required.filter((email: string) => byEmail.get(email)?.decision !== 'Aprobado')
+  return {
+    id: String(item.id), name: item.name || 'Versión para revisión',
+    version: columnValueText(item, 'Versión'), status: columnValueText(item, 'Estado de revisión') || 'En revisión',
+    summary: columnValueText(item, 'Resumen de cambios'),
+    pdf: pdf ? { name: pdf.name || 'PDF para revisión', url: pdf.public_url || pdf.url || '' } : null,
+    requiredApprovers: context.required, decisions, pendingApprovers: pending,
+    canDecide: context.isApprover, callerEmail: context.caller,
+    comments: (item.updates || []).map((update: any) => ({ id: String(update.id), body: String(update.body || ''), createdAt: update.created_at, author: update.creator?.name || 'Usuario' })),
+  }
 }
 
 Deno.serve(async req => {
@@ -150,6 +234,62 @@ Deno.serve(async req => {
     const action = body?.action || 'list'
     if (!env.MONDAY_API_TOKEN || !/^\d+$/.test(env.MONDAY_COMMUNICATIONS_BOARD_ID)) {
       return json({ error: 'Falta configurar MONDAY_API_TOKEN y MONDAY_COMMUNICATIONS_BOARD_ID en Supabase.' })
+    }
+
+    if (['review_get', 'review_comment', 'review_decide'].includes(action)) {
+      const versionId = String(body?.version_id || '')
+      let context = await reviewContext(env.MONDAY_API_TOKEN, versionId, auth)
+      if (action === 'review_get') return json({ ok: true, review: reviewPayload(context) })
+
+      const comment = String(body?.comment || '').trim().slice(0, 5000)
+      const actorName = String(auth.user?.user_metadata?.full_name || auth.user?.user_metadata?.name || auth.user?.email || 'Usuario')
+      if (action === 'review_comment') {
+        if (!comment) return json({ error: 'Escribe un comentario antes de enviarlo.' }, 400)
+        await addUpdate(env.MONDAY_API_TOKEN, versionId, `<b>Comentario desde SIERRA Index</b><br>${escapeHtml(actorName)} · ${escapeHtml(auth.user?.email)}<br><br>${escapeHtml(comment).replace(/\n/g, '<br>')}`)
+        context = await reviewContext(env.MONDAY_API_TOKEN, versionId, auth)
+        return json({ ok: true, review: reviewPayload(context) })
+      }
+
+      if (!context.isApprover) return json({ error: 'Solo una autoridad asignada puede registrar una decisión.' }, 403)
+      const decision = body?.decision === 'Aprobado' ? 'Aprobado' : body?.decision === 'Cambios solicitados' ? 'Cambios solicitados' : ''
+      if (!decision) return json({ error: 'Selecciona una decisión válida.' }, 400)
+      if (decision === 'Cambios solicitados' && !comment) return json({ error: 'Describe el cambio solicitado.' }, 400)
+
+      const current = parseDecisions(columnValueText(context.item, 'Decisiones individuales'))
+      const nextDecision = { email: context.caller, name: actorName, decision, comment, decidedAt: new Date().toISOString() }
+      const decisions = [...current.filter((entry: any) => emailKey(entry?.email) !== context.caller), nextDecision]
+      const latest = new Map(decisions.map((entry: any) => [emailKey(entry.email), entry]))
+      const pending = context.required.filter((email: string) => latest.get(email)?.decision !== 'Aprobado')
+      const anyChanges = [...latest.values()].some((entry: any) => entry?.decision === 'Cambios solicitados')
+      const allApproved = context.required.length > 0 && pending.length === 0 && !anyChanges
+      const versionStatus = anyChanges ? 'Cambios solicitados' : allApproved ? 'Aprobada' : 'En revisión'
+      const sourceStatus = anyChanges ? 'Requiere ajustes' : allApproved ? 'Aprobado' : 'En revisión'
+
+      const versionBoardId = String(context.item.board?.id || '')
+      const versionColumns = await boardColumns(env.MONDAY_API_TOKEN, versionBoardId)
+      await setSimple(env.MONDAY_API_TOKEN, versionBoardId, versionId, schemaColumn(versionColumns, 'Decisiones individuales')?.id, JSON.stringify(decisions))
+      await setSimple(env.MONDAY_API_TOKEN, versionBoardId, versionId, schemaColumn(versionColumns, 'Pendientes de aprobación')?.id, pending.join('\n'))
+      await setSimple(env.MONDAY_API_TOKEN, versionBoardId, versionId, schemaColumn(versionColumns, 'Estado de revisión')?.id, versionStatus)
+
+      const parentId = String(context.item.parent_item?.id || '')
+      if (/^\d+$/.test(parentId)) {
+        const parentData = await mondayRequest(env.MONDAY_API_TOKEN, `query ($ids: [ID!]!) { items(ids: $ids) { id board { id } } }`, { ids: [parentId] })
+        const parentBoardId = String(parentData?.items?.[0]?.board?.id || '')
+        const parentColumns = parentBoardId ? await boardColumns(env.MONDAY_API_TOKEN, parentBoardId) : []
+        await setSimple(env.MONDAY_API_TOKEN, parentBoardId, parentId, schemaColumn(parentColumns, 'Estado general')?.id, versionStatus === 'Aprobada' ? 'Aprobado' : versionStatus)
+      }
+
+      const sourceItemId = columnValueText(context.item, 'Item original ID')
+      if (/^\d+$/.test(sourceItemId)) {
+        const sourceColumns = await boardColumns(env.MONDAY_API_TOKEN, env.MONDAY_COMMUNICATIONS_BOARD_ID)
+        await setSimple(env.MONDAY_API_TOKEN, env.MONDAY_COMMUNICATIONS_BOARD_ID, sourceItemId, schemaColumn(sourceColumns, 'Estado de aprobación')?.id, sourceStatus)
+      }
+
+      const decisionUpdate = `<b>${escapeHtml(decision)} · decisión individual</b><br>${escapeHtml(actorName)} · ${escapeHtml(context.caller)}<br>${escapeHtml(new Date().toLocaleString('es-GT', { timeZone: 'America/Guatemala' }))}${comment ? `<br><br>${escapeHtml(comment).replace(/\n/g, '<br>')}` : ''}<br><br>${pending.length ? `Pendientes: ${escapeHtml(pending.join(', '))}` : 'Todas las autoridades requeridas aprobaron esta versión.'}`
+      await addUpdate(env.MONDAY_API_TOKEN, versionId, decisionUpdate)
+      if (/^\d+$/.test(sourceItemId)) await addUpdate(env.MONDAY_API_TOKEN, sourceItemId, `<b>Revisión ${escapeHtml(columnValueText(context.item, 'Versión'))}</b><br>${decisionUpdate}`)
+      context = await reviewContext(env.MONDAY_API_TOKEN, versionId, auth)
+      return json({ ok: true, review: reviewPayload(context) })
     }
 
     if (action === 'claim' || action === 'sync_draft') {
@@ -184,6 +324,7 @@ Deno.serve(async req => {
     }
 
     if (action !== 'list') return json({ error: 'Acción no válida.' }, 400)
+    if (!auth.canRead) return json({ error: 'Necesitas acceso a Comunicaciones.' }, 403)
     const limit = Math.max(1, Math.min(Number(body?.limit) || 50, 100))
     const data = await mondayRequest(env.MONDAY_API_TOKEN, `query ($board: [ID!], $limit: Int!) {
       boards(ids: $board) {
@@ -232,6 +373,7 @@ Deno.serve(async req => {
         issuingAreas: splitList(get('department')),
         authorities: splitList(get('authorities')),
         authorityTitles: splitList(get('authorityTitles')),
+        authorityEmails: splitList(get('authorityEmails')),
         signatures: splitList(get('signatures')),
         audience: get('audience'),
         specificRecipients: get('specificRecipients'),
@@ -248,6 +390,6 @@ Deno.serve(async req => {
     })
     return json({ ok: true, board: { id: String(board?.id || ''), name: board?.name || 'Monday' }, requests })
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : 'No se pudo consultar Monday.' })
+    return json({ error: error instanceof Error ? error.message : 'No se pudo consultar Monday.' }, Number((error as any)?.status) || 200)
   }
 })

@@ -9083,6 +9083,8 @@ const MONDAY_COMMS_COLUMNS = Object.freeze({
   finalPdf: ['PDF final'],
   syncStatus: ['Estado de sincronización'],
   approvalStatus: ['Estado de aprobación'],
+  authorityEmails: ['Correo(s) de autoridad', 'Correos de autoridad', 'Correo de autoridad'],
+  reviewUrl: ['Versión en revisión'],
   priority: ['Prioridad'],
   channel: ['Canal', 'Publicación', 'Publicacion'],
 })
@@ -9108,6 +9110,12 @@ const MONDAY_REVIEW_VERSION_COLUMNS = Object.freeze({
   requestedBy: ['Solicitado por'],
   approvedPdf: ['PDF aprobado'],
   approvedAt: ['Fecha de aprobación'],
+  requiredApprovers: ['Autorizadores requeridos'],
+  decisions: ['Decisiones individuales'],
+  pendingApprovers: ['Pendientes de aprobación'],
+  reviewUrl: ['Enlace de revisión'],
+  sourceItemId: ['Item original ID'],
+  requesterEmail: ['Correo del solicitante'],
 })
 
 function mondayColumnJSON(item, title) {
@@ -9173,6 +9181,7 @@ function mondayCommsRequestFromItem(item) {
     issuingAreas: mondayCommsList(mondayCommsColumnText(item, 'department'), true),
     authorities: mondayCommsList(mondayCommsColumnText(item, 'authorities'), true),
     authorityTitles: mondayCommsList(mondayCommsColumnText(item, 'authorityTitles'), true),
+    authorityEmails: mondayCommsList(mondayCommsColumnText(item, 'authorityEmails'), true),
     signatures: mondayCommsUrls(mondayCommsColumnText(item, 'signatures')),
     audience: mondayCommsColumnText(item, 'audience'),
     specificRecipients: mondayCommsColumnText(item, 'specificRecipients'),
@@ -9861,6 +9870,12 @@ async function mondayCommsCreateReviewVersion(draft, blob, summary, hash, expect
     { title: 'Solicitado por', type: 'text' },
     { title: 'PDF aprobado', type: 'file' },
     { title: 'Fecha de aprobación', type: 'date' },
+    { title: 'Autorizadores requeridos', type: 'long_text' },
+    { title: 'Decisiones individuales', type: 'long_text' },
+    { title: 'Pendientes de aprobación', type: 'long_text' },
+    { title: 'Enlace de revisión', type: 'link' },
+    { title: 'Item original ID', type: 'text' },
+    { title: 'Correo del solicitante', type: 'email' },
   ])
   const col = key => mondayReviewColumn(columns, MONDAY_REVIEW_VERSION_COLUMNS[key])
   await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('version'), versionLabel)
@@ -9870,9 +9885,18 @@ async function mondayCommsCreateReviewVersion(draft, blob, summary, hash, expect
   await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('reviewGuide'), 'Comenta en Updates de este subitem para conservar la trazabilidad de esta versión. Puedes iniciar con [Cambio obligatorio], [Sugerencia], [Pregunta] o [Aprobación].')
   await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('requestedAt'), { date: new Date().toISOString().slice(0, 10) }, true)
   await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('requestedBy'), _mondayCommsBridge.operatorName || 'SIERRA Index')
+  const requiredApprovers = [...new Set((draft.authorityEmails || []).map(email => String(email || '').trim().toLowerCase()).filter(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))]
+  const reviewUrl = `${location.origin}${location.pathname}?memoReview=${encodeURIComponent(subitem.id)}`
+  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('requiredApprovers'), requiredApprovers.join('\n'))
+  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('decisions'), '[]')
+  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('pendingApprovers'), requiredApprovers.join('\n'))
+  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('reviewUrl'), { url: reviewUrl, text: `Revisar versión ${versionLabel}` }, true)
+  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('sourceItemId'), _mondayCommsBridge.itemId)
+  if (draft.requesterEmail) await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('requesterEmail'), { email: draft.requesterEmail, text: draft.requesterEmail }, true)
+  await mondayCommsWriteColumn('reviewUrl', { url: reviewUrl, text: `Revisar versión ${versionLabel}` }, true)
   const proofDraft = { ...draft, reviewProofVersion: version }
   await mondayCommsUploadPdfToItem(blob, subitem.id, col('reviewPdf'), memoImageFileName(proofDraft, 'pdf'))
-  return { boardId, parentId: String(parent.id), subitemId: String(subitem.id), subitemBoardId, version, hash, status: 'En revisión', summary: summary || '' }
+  return { boardId, parentId: String(parent.id), subitemId: String(subitem.id), subitemBoardId, version, hash, status: 'En revisión', summary: summary || '', reviewUrl, requiredApprovers }
 }
 
 async function mondayCommsReadReviewState(draft = _commsCurrent) {
@@ -10054,6 +10078,56 @@ document.addEventListener('visibilitychange', () => {
   }
 })
 
+let _memoReviewPortal = null
+async function memoReviewInvoke(body) {
+  const { data: { session }, error } = await sb.auth.getSession()
+  if (error || !session?.access_token) throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.')
+  const response = await fetch(`${SB_URL}/functions/v1/monday-communications`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
+    body: JSON.stringify({ ...body, _auth_token: session.access_token }),
+  })
+  const data = await response.json().catch(() => null)
+  if (!response.ok || data?.error) throw new Error(data?.error || 'No se pudo actualizar la revisión.')
+  return data
+}
+
+function memoReviewPlainText(value) {
+  const node = document.createElement('div');node.innerHTML = String(value || '')
+  return node.textContent || ''
+}
+
+function renderMemoReviewPortal(review, message = '') {
+  _memoReviewPortal = review;leaveView(true)
+  document.getElementById('sec-title').textContent = 'Revisión de memorándum'
+  document.getElementById('sec-sub').textContent = review.version ? `Versión ${review.version}` : 'Versión para revisión'
+  const decisions = new Map((review.decisions || []).map(item => [String(item.email || '').toLowerCase(), item]))
+  const progress = (review.requiredApprovers || []).map(email => { const state = decisions.get(String(email).toLowerCase())?.decision || 'Pendiente';return `<li style="display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--border)"><span>${esc(email)}</span><b style="color:${state === 'Aprobado' ? '#007d73' : state === 'Cambios solicitados' ? '#b74318' : 'var(--text-muted)'}">${esc(state)}</b></li>` }).join('') || '<li style="padding:10px 0;color:var(--text-muted)">No hay autoridades configuradas para esta versión.</li>'
+  const comments = (review.comments || []).slice().reverse().map(comment => `<article style="padding:12px 0;border-bottom:1px solid var(--border)"><b>${esc(comment.author)}</b><small style="display:block;color:var(--text-muted);margin:3px 0 7px">${esc(comment.createdAt ? new Date(comment.createdAt).toLocaleString('es-GT') : '')}</small><p style="white-space:pre-wrap;margin:0">${esc(memoReviewPlainText(comment.body))}</p></article>`).join('') || '<p style="color:var(--text-muted)">Aún no hay comentarios en esta versión.</p>'
+  document.getElementById('pg').innerHTML = `<div class="comms-ui" style="max-width:1040px;margin:24px auto;padding:0 16px"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px"><div><span class="comms-status" data-status="${escAttr(review.status)}">${esc(review.status)}</span><h1 style="font-size:26px;margin:10px 0 5px">${esc(review.name)}</h1><p style="margin:0;color:var(--text-secondary)">${esc(review.summary || 'Versión enviada para revisión.')}</p></div>${review.pdf?.url ? `<a class="btn btn-primary" href="${escAttr(review.pdf.url)}" target="_blank" rel="noopener noreferrer">${siIcon('file',16)} Abrir PDF de esta versión</a>` : ''}</div>${message ? `<div role="status" style="padding:12px 14px;border-radius:8px;background:#cffffb;color:#005c55;margin-bottom:16px">${esc(message)}</div>` : ''}<div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,.8fr);gap:18px"><section style="border:1px solid var(--border);border-radius:10px;padding:18px;background:var(--surface)"><h2 style="font-size:18px;margin:0 0 8px">Comentarios de esta versión</h2><div style="max-height:360px;overflow:auto;margin-bottom:14px">${comments}</div><label for="memo-review-comment" style="font-weight:650">Agregar comentario</label><textarea id="memo-review-comment" class="control-input" rows="4" placeholder="Indica el cambio con precisión. Este comentario quedará en la versión."></textarea><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"><button class="btn btn-secondary" type="button" onclick="memoReviewComment()">Enviar comentario</button>${review.canDecide ? `<button class="btn btn-danger" type="button" onclick="memoReviewDecide('Cambios solicitados')">Solicitar cambios</button><button class="btn btn-primary" type="button" onclick="memoReviewDecide('Aprobado')">Aprobar versión</button>` : ''}</div></section><aside style="border:1px solid var(--border);border-radius:10px;padding:18px;background:var(--surface)"><h2 style="font-size:18px;margin:0">Aprobaciones individuales</h2><p style="font-size:13px;color:var(--text-secondary);margin:6px 0 8px">Cada autoridad registra su propia decisión. El estado se actualiza al instante.</p><ul style="list-style:none;padding:0;margin:0">${progress}</ul></aside></div></div>`
+}
+
+async function showMemoReviewPortal(versionId) {
+  hideLoadingScreen();document.getElementById('auth-screen').style.display = 'none';document.getElementById('app').style.display = 'flex';leaveView(true)
+  document.getElementById('sec-title').textContent = 'Revisión de memorándum';document.getElementById('sec-sub').textContent = ''
+  document.getElementById('pg').innerHTML = '<div class="memo-empty" role="status">Abriendo la versión exacta…</div>'
+  try { const data = await memoReviewInvoke({ action: 'review_get', version_id: versionId });renderMemoReviewPortal(data.review) }
+  catch (error) { document.getElementById('pg').innerHTML = `<div class="empty-state" style="max-width:620px;margin:64px auto"><h3>No se pudo abrir esta versión</h3><p>${esc(error.message)}</p></div>` }
+}
+
+async function memoReviewComment() {
+  const comment = document.getElementById('memo-review-comment')?.value.trim() || ''
+  if (!comment) { toast('Escribe un comentario antes de enviarlo.');return }
+  try { const data = await memoReviewInvoke({ action: 'review_comment', version_id: _memoReviewPortal.id, comment });renderMemoReviewPortal(data.review, 'Comentario registrado en esta versión.') }
+  catch (error) { toast(error.message, 7000) }
+}
+
+async function memoReviewDecide(decision) {
+  const comment = document.getElementById('memo-review-comment')?.value.trim() || ''
+  if (decision === 'Cambios solicitados' && !comment) { toast('Describe el cambio solicitado para que quede trazabilidad.');return }
+  try { const data = await memoReviewInvoke({ action: 'review_decide', version_id: _memoReviewPortal.id, decision, comment });renderMemoReviewPortal(data.review, decision === 'Aprobado' ? 'Tu aprobación quedó registrada.' : 'Los cambios quedaron solicitados y el estado ya fue actualizado.') }
+  catch (error) { toast(error.message, 7000) }
+}
+
 // (the Label Builder registers its own resize handler alongside lbFitPreview)
 window.addEventListener('DOMContentLoaded', async () => {
   if(window.INDEX_AUTH_REDIRECT)return;
@@ -10205,6 +10279,9 @@ async function enterApp(user) {
   loadNotifications()
 
   updateCartFab()
+
+  const memoReviewId = new URLSearchParams(location.search).get('memoReview')
+  if (/^\d+$/.test(memoReviewId || '')) { await showMemoReviewPortal(memoReviewId); return }
 
   // Deep link takes precedence: #/product/{id} or #/division/{key}
   if (await applyRoute(location.hash)) return
@@ -36541,7 +36618,7 @@ function commsMondaySeed(r){
   if(r.effectiveDate)addBlock('regular',`Vigencia: ${r.effectiveDate}`)
   if(!blocks.length)addBlock('regular','Completa el contenido con la información enviada en la solicitud.')
   const signers=mondayCommsSignerSeeds(r),first=signers[0]||{},audience=r.specificRecipients||r.audience||'Colaboradores SIERRA'
-  const common={source:'monday',mondayItemId:r.id,mondaySeedVersion:2,status:'Borrador',subject:r.name||'Solicitud de comunicado',date:new Date().toISOString().slice(0,10),country:r.country||'',company:r.company||'',plant:r.plant||'',externalFolio:r.correlativo||'',department:r.department||'',issuingAreas:r.issuingAreas||[],audience,audienceCategory:r.audience||'',specificRecipients:r.specificRecipients||'',objective:r.objective||'',requiredInfo:r.requiredInfo||'',actionRequired:r.actionRequired||'',action:r.action||'',effectiveDate:r.effectiveDate||'',requestedSendDate:r.deadline||'',mondayAttachments:r.attachments||[],blocks}
+  const common={source:'monday',mondayItemId:r.id,mondaySeedVersion:2,status:'Borrador',subject:r.name||'Solicitud de comunicado',date:new Date().toISOString().slice(0,10),country:r.country||'',company:r.company||'',plant:r.plant||'',externalFolio:r.correlativo||'',department:r.department||'',issuingAreas:r.issuingAreas||[],requesterEmail:r.email||'',authorityEmails:Array.isArray(r.authorityEmails)?r.authorityEmails:[],audience,audienceCategory:r.audience||'',specificRecipients:r.specificRecipients||'',objective:r.objective||'',requiredInfo:r.requiredInfo||'',actionRequired:r.actionRequired||'',action:r.action||'',effectiveDate:r.effectiveDate||'',requestedSendDate:r.deadline||'',mondayAttachments:r.attachments||[],blocks}
   if(r.kind==='memo')return createCommunicationDraft({...common,sender:(r.issuingAreas||[]).join(', ')||r.department||'Comunicaciones Corporativas',...first,additionalSigners:signers.slice(1)})
   if(r.kind==='aviso')return createNoticeDraft({...common,company:r.company||'SIERRA',noticeMessage:r.summary||detail})
   if(r.kind==='convocatoria')return createInvitationDraft({...common,department:r.department||'',sender:r.department||'Comunicaciones',eyebrow:(r.department||'Comunicaciones')+' informa',focus:r.country||r.company||'',intro:r.summary||detail,location:''})
@@ -36554,6 +36631,8 @@ function commsMergeMondayDraft(existing,r){
   if(has(r.correlativo))next.externalFolio=incoming.externalFolio
   ;[['country','country'],['company','company'],['plant','plant'],['department','department'],['specificRecipients','specificRecipients'],['objective','objective'],['requiredInfo','requiredInfo'],['actionRequired','actionRequired'],['action','action'],['effectiveDate','effectiveDate'],['deadline','requestedSendDate']].forEach(([sourceKey,targetKey])=>{if(has(r[sourceKey]))next[targetKey]=incoming[targetKey]})
   if(Array.isArray(r.issuingAreas)&&r.issuingAreas.length){next.issuingAreas=[...incoming.issuingAreas];next.sender=incoming.sender}
+  if(has(r.email))next.requesterEmail=incoming.requesterEmail
+  if(Array.isArray(r.authorityEmails)&&r.authorityEmails.length)next.authorityEmails=[...incoming.authorityEmails]
   if(has(r.audience))next.audienceCategory=incoming.audienceCategory
   if(has(r.specificRecipients)||has(r.audience))next.audience=incoming.audience
   if(Array.isArray(r.attachments)&&r.attachments.length)next.mondayAttachments=JSON.parse(JSON.stringify(incoming.mondayAttachments))
