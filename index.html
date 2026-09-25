@@ -9409,17 +9409,19 @@ async function mondayFetchAuthorityRecords(monday, requestedAreas, sourceItem = 
     }
   }`
   try {
-    let rows = await mondayFetchLinkedAuthorityRows(monday, sourceItem)
-    if (!rows.length) {
-      const response = await monday.api(query, { variables: { board: [MONDAY_AUTHORITIES_BOARD_ID], limit: 100 } })
-      if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
-      rows = response?.data?.boards?.[0]?.items_page?.items || []
-    }
-    const selected = rows.filter(row => {
+    const selectAuthorityRows = rows => (rows || []).filter(row => {
       const area = normalizeBadgeOrgIdentity(row?.name)
       const active = normalizeBadgeOrgIdentity(mondayColumnText(row, 'Activo'))
       return wanted.has(area) && (!active || ['si', 'yes', 'activo', 'active'].includes(active))
     })
+    let rows = await mondayFetchLinkedAuthorityRows(monday, sourceItem)
+    let selected = selectAuthorityRows(rows)
+    if (!selected.length) {
+      const response = await monday.api(query, { variables: { board: [MONDAY_AUTHORITIES_BOARD_ID], limit: 100 } })
+      if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+      rows = response?.data?.boards?.[0]?.items_page?.items || []
+      selected = selectAuthorityRows(rows)
+    }
     const signatureColumnIds = selected.map(row => mondayColumnByTitle(row, 'Firma PNG')?.id).filter(Boolean)
     const records = []
     for (const row of selected) {
@@ -9434,7 +9436,7 @@ async function mondayFetchAuthorityRecords(monday, requestedAreas, sourceItem = 
         area: String(row.name || '').trim(),
         name: explicitName || derivedName,
         department: mondayColumnText(row, 'Department') || String(row.name || '').trim(),
-        title: mondayColumnText(row, 'Cargo de la autoridad'),
+        title: mondayColumnText(row, 'Cargo de la autoridad') || mondayColumnText(row, 'Cargo'),
         signature: embeddedSignature?.public_url || embeddedSignature?.url || embeddedSignature?.url_thumbnail || fileMap.get(signatureId)?.[0]?.url || '',
       })
     }

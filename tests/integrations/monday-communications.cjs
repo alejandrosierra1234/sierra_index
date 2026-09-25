@@ -25,7 +25,9 @@ assert.ok(source.includes('async function mondayFetchLinkedAuthorityRows(monday,
 assert.ok(source.includes("filter(value => value?.type === 'board_relation')"));
 assert.ok(source.includes('linked_item_ids'));
 assert.ok(source.includes('return mondayFetchItems(monday, linkedIds)'));
+assert.ok(source.includes('if (!selected.length)'));
 assert.ok(source.includes('mondayFetchAuthorityRecords(monday, request.issuingAreas, item)'));
+assert.ok(source.includes("mondayColumnText(row, 'Cargo')"));
 assert.ok(source.includes("signerName:names[index]||record.name||''"));
 assert.ok(source.includes("mondayCommsWriteColumn('sierraId', draft.id)"));
 assert.ok(source.includes("mondayCommsWriteColumn('editorUrl'"));
