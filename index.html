@@ -9082,6 +9082,7 @@ const MONDAY_COMMS_COLUMNS = Object.freeze({
   editorUrl: ['Editor SIERRA Index'],
   finalPdf: ['PDF final'],
   syncStatus: ['Estado de sincronización'],
+  approvalStatus: ['Estado de aprobación'],
   priority: ['Prioridad'],
   channel: ['Canal', 'Publicación', 'Publicacion'],
 })
@@ -9161,6 +9162,7 @@ function mondayCommsRequestFromItem(item) {
     name: String(item?.name || 'Solicitud de comunicado').trim(),
     kind: mondayCommsKind(mondayCommsColumnText(item, 'kind'), MONDAY_MEMO_ONLY_BOARD_IDS.has(boardId)),
     status: mondayCommsColumnText(item, 'status') || 'Nueva',
+    approvalStatus: mondayCommsColumnText(item, 'approvalStatus') || 'Pendiente',
     requester: mondayCommsColumnText(item, 'requester'),
     email: mondayCommsColumnText(item, 'email'),
     correlativo: mondayCommsColumnText(item, 'correlativo'),
@@ -9631,7 +9633,13 @@ async function mondayCommsWriteColumn(key, value, complex = false) {
   const variables = { board: bridge.boardId, item: bridge.itemId, column, value: complex ? JSON.stringify(value) : String(value) }
   const response = await bridge.monday.api(query, { variables })
   if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+  if (bridge.request && key === 'approvalStatus') bridge.request.approvalStatus = String(value)
   return true
+}
+
+async function mondayCommsWriteApprovalStatus(value) {
+  if (!_mondayCommsBridge?.request || _mondayCommsBridge.request.approvalStatus === value) return false
+  return mondayCommsWriteColumn('approvalStatus', value)
 }
 
 async function mondayCommsSyncDraft(draft) {
@@ -9886,13 +9894,19 @@ async function commsRefreshReviewState(showToast = true) {
   _commsCurrent.reviewParentItemId = String(state.parent.id)
   _commsCurrent.reviewVersions = state.versions.map(version => ({ version: version.version, itemId: String(version.item.id), status: version.status, hash: version.hash, summary: version.summary }))
   const approved = normalizeBadgeOrgIdentity(state.latest.status).startsWith('aprobad') && state.latest.hash === hash
+  let approvalStatus = 'En revisión'
   if (approved) {
+    approvalStatus = 'Aprobado'
     _commsCurrent.status = 'Aprobado';_commsCurrent.approvedHash = hash;_commsCurrent.approvedVersion = state.latest.version;_commsCurrent.reviewNeedsNewVersion = false;_commsCurrent.submittedSnapshot = commsReviewSnapshot(_commsCurrent)
   } else if (normalizeBadgeOrgIdentity(state.latest.status).includes('cambios')) {
+    approvalStatus = 'Requiere ajustes'
     _commsCurrent.status = 'Borrador';_commsCurrent.reviewNeedsNewVersion = true
   } else {
-    _commsCurrent.status = state.latest.hash === hash ? 'En revisión' : 'Borrador';_commsCurrent.reviewNeedsNewVersion = state.latest.hash !== hash
+    const currentVersion = state.latest.hash === hash
+    approvalStatus = currentVersion ? 'En revisión' : 'Pendiente'
+    _commsCurrent.status = currentVersion ? 'En revisión' : 'Borrador';_commsCurrent.reviewNeedsNewVersion = !currentVersion
   }
+  await mondayCommsWriteApprovalStatus(approvalStatus)
   commsPersist();renderCommunicationEditor()
   if (showToast) toast(approved ? `Versión ${commsReviewVersionLabel(state.latest.version)} aprobada. Ya puedes publicar el PDF final.` : `Estado de la versión ${commsReviewVersionLabel(state.latest.version)}: ${state.latest.status || 'En revisión'}.`, 6000)
   return state
@@ -9913,6 +9927,7 @@ async function commsRequestReview(summary = '') {
     const record = await mondayCommsCreateReviewVersion(draft, blob, summary, hash, version)
     Object.assign(_commsCurrent, { status: 'En revisión', reviewBoardId: record.boardId, reviewParentItemId: record.parentId, submittedSnapshot: commsReviewSnapshot(draft), reviewNeedsNewVersion: false })
     _commsCurrent.reviewVersions = [...(_commsCurrent.reviewVersions || []).filter(item => String(item.subitemId) !== String(record.subitemId)), record]
+    await mondayCommsWriteApprovalStatus('En revisión')
     commsPersist();renderCommunicationEditor()
     mondayCommsWriteColumn('syncStatus', 'Sincronizado').catch(error => console.warn('monday memo review status sync:', error))
     toast(record.existing ? `Versión ${commsReviewVersionLabel(record.version)} recuperada. Los comentarios quedan en su subitem.` : `Versión ${commsReviewVersionLabel(record.version)} enviada. Los comentarios quedarán en su subitem.`, 6500)
@@ -36461,7 +36476,7 @@ function commsForgetActive(){try{sessionStorage.removeItem(commsActiveStateKey()
 function commsRestoreActive(){if(!me?.id||!can('read','communications'))return false;let state;try{state=JSON.parse(sessionStorage.getItem(commsActiveStateKey())||'null')}catch{state=null}const draft=state&&typeof state.id==='string'?_commsDrafts.find(item=>item.id===state.id):null;if(!draft){commsForgetActive();return false}_commsCurrent=JSON.parse(JSON.stringify(draft));_commsEditorTab=['info','content','signature'].includes(state.tab)?state.tab:'content';if(_commsCurrent.kind==='aviso'&&_commsEditorTab==='content')_commsEditorTab='info';_commsUndo=null;_memoPreviewZoom='width';renderCommunicationEditor();return true}
 function commsLoad(){try{const raw=commsStorageParse(localStorage.getItem(commsStorageKey(COMMS_STORE_KEY))||'[]');_commsDrafts=Array.isArray(raw)?raw.filter(d=>d&&typeof d.id==='string').map(commsNormalize):[]}catch{_commsDrafts=[];toast('No se pudieron leer los comunicados guardados.')}}
 function commsWriteAll(drafts){try{if(_commsStorageBlocked)throw Error('Almacenamiento no disponible');localStorage.setItem(commsStorageKey(COMMS_STORE_KEY),commsStorageJson(drafts));_commsDrafts=drafts;_commsLastSave='Guardado en este navegador';document.getElementById('memo-save-recovery')?.remove();return true}catch{commsSaveFailure();return false}}
-function commsInvalidateReviewIfChanged(draft){if(!draft?.submittedSnapshot)return false;const changed=commsReviewSnapshot(draft)!==draft.submittedSnapshot;if(!changed)return false;const wasProtected=draft.status==='En revisión'||draft.status==='Aprobado'||draft.finalPublishedVersion;if(!wasProtected&&draft.reviewNeedsNewVersion)return false;draft.status='Borrador';draft.reviewNeedsNewVersion=true;if(commsInMonday()&&_mondayCommsBridge.lastPendingSnapshot!==commsReviewSnapshot(draft)){_mondayCommsBridge.lastPendingSnapshot=commsReviewSnapshot(draft);mondayCommsWriteColumn('syncStatus','Pendiente').catch(error=>console.warn('monday memo pending changes:',error))}return true}
+function commsInvalidateReviewIfChanged(draft){if(!draft?.submittedSnapshot)return false;const changed=commsReviewSnapshot(draft)!==draft.submittedSnapshot;if(!changed)return false;const wasProtected=draft.status==='En revisión'||draft.status==='Aprobado'||draft.finalPublishedVersion;if(!wasProtected&&draft.reviewNeedsNewVersion)return false;draft.status='Borrador';draft.reviewNeedsNewVersion=true;if(commsInMonday()&&_mondayCommsBridge.lastPendingSnapshot!==commsReviewSnapshot(draft)){_mondayCommsBridge.lastPendingSnapshot=commsReviewSnapshot(draft);Promise.allSettled([mondayCommsWriteColumn('syncStatus','Pendiente'),mondayCommsWriteApprovalStatus('Pendiente')]).then(results=>{const failed=results.find(result=>result.status==='rejected');if(failed)console.warn('monday memo pending changes:',failed.reason)})}return true}
 function commsPersist(){clearTimeout(_commsSaveTimer);if(!_commsCurrent)return true;const d=JSON.parse(JSON.stringify(_commsCurrent));commsInvalidateReviewIfChanged(d);d.updatedAt=new Date().toISOString();const next=_commsDrafts.filter(x=>x.id!==d.id);next.unshift(d);const ok=commsWriteAll(next);if(ok){_commsCurrent=d;commsRememberActive();if(typeof mondayCommsScheduleDraftSync==='function')mondayCommsScheduleDraftSync(d)}const state=document.getElementById('memo-save-state');if(state)state.textContent=_commsLastSave;return ok}
 function commsAutosave(){clearTimeout(_commsSaveTimer);_commsLastSave='Guardando…';const e=document.getElementById('memo-save-state');if(e)e.textContent=_commsLastSave;_commsSaveTimer=setTimeout(commsPersist,450)}
 function commsNextNumber(year){const key=commsStorageKey('sierra_comms_numbers_v1');let counters;try{counters=JSON.parse(localStorage.getItem(key)||'{}');if(!counters||typeof counters!=='object')counters={};const n=Math.max(Number(counters[year])||0,..._commsDrafts.filter(d=>(d.date||'').startsWith(String(year))).map(d=>Number(d.communicationNumber)||0))+1;counters[year]=n;localStorage.setItem(key,JSON.stringify(counters));return n}catch{throw new Error('No se pudo reservar un folio. Libera espacio en el navegador e inténtalo de nuevo.')}}
