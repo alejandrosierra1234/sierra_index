@@ -94,6 +94,15 @@ w.fetch=async(url,{body,headers})=>{
   assert.equal(d.additionalSigners[0].signerName,'Pablo Hernández');
   assert.equal(d.blocks.some(block=>block.content.includes('Confirmar lectura')),true);
   assert.equal(d.mondayAttachments[0].name,'brief.pdf');
+  assert.equal(d.mondaySeedVersion,2);
+  const legacy={...d,mondaySeedVersion:0,externalFolio:'',objective:'',requiredInfo:'',action:'',effectiveDate:'',blocks:[{id:'legacy',type:'text',style:'regular',content:'Contacto: old@example.test'}]};
+  const migrated=w.commsMergeMondayDraft(legacy,{...w.eval('_commsMondayRows[0]'),correlativo:'MEMO-0043',objective:'Objetivo actualizado',requiredInfo:'Punto actualizado',action:'Confirmar recepción'});
+  assert.equal(migrated.id,d.id);
+  assert.equal(migrated.externalFolio,'MEMO-0043');
+  assert.equal(migrated.objective,'Objetivo actualizado');
+  assert.equal(migrated.blocks.some(block=>block.content.includes('Objetivo actualizado')),true);
+  const edited=w.commsMergeMondayDraft({...legacy,blocks:[{id:'manual',type:'text',style:'regular',content:'Texto redactado manualmente'}]},{...w.eval('_commsMondayRows[0]'),objective:'Objetivo nuevo'});
+  assert.equal(edited.blocks[0].content,'Texto redactado manualmente');
   w.commsDuplicate(d.id);
   const copy=w.eval('_commsCurrent');
   assert.equal(copy.source,'manual');
