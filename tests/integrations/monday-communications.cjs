@@ -122,6 +122,8 @@ w.fetch=async(url,{body,headers})=>{
   assert.equal(d.externalFolio,'MEMO-0042');
   assert.equal(d.company,'SIERRA');
   assert.equal(d.plant,'Hilos y Algodón');
+  const memo=w.document.createElement('div');memo.innerHTML=w.memoPageHtml(d);
+  assert.equal(memo.querySelector('.memo-meta-company span').textContent,'SIERRA · Hilos y Algodón');
   assert.equal(d.audience,'Gerencias y jefaturas');
   assert.equal(d.sender,'Marketing y Comunicaciones, Marca y Manufactura');
   assert.equal(d.signerName,'Alejandro Torres');

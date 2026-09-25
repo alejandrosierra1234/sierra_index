@@ -429,6 +429,20 @@ test('memo countries are limited to SIERRA operations and may be omitted',()=>{
   }
   assert.ok(source.includes("label:'No incluir país'"));
 });
+test('memo header keeps company and plant in a structured scope field',()=>{
+  const d=w.createCommunicationDraft({country:'Guatemala',company:'Hilos y Algodón',plant:'Planta Amatitlán'}),box=w.document.createElement('div');
+  box.innerHTML=w.memoPageHtml(d);
+  const country=box.querySelector('.memo-meta-country'),company=box.querySelector('.memo-meta-company');
+  assert.equal(country.querySelector('b').textContent,'País');
+  assert.equal(country.querySelector('span').textContent,'Guatemala');
+  assert.equal(company.querySelector('b').textContent,'Empresa / planta');
+  assert.equal(company.querySelector('span').textContent,'Hilos y Algodón · Planta Amatitlán');
+  assert.ok(company.classList.contains('memo-meta-right'));
+  d.country='';box.innerHTML=w.memoPageHtml(d);assert.ok(box.querySelector('.memo-meta-company').classList.contains('memo-meta-full'));
+  d.company='Hilos y Algodón';d.plant='Hilos y Algodón';assert.equal(w.memoCompanyPlantLabel(d),'Hilos y Algodón');
+  d.company='';d.plant='';box.innerHTML=w.memoPageHtml(d);assert.equal(box.querySelector('.memo-meta-company'),null);
+  assert.ok(w.communicationPrintCss().includes('.memo-meta-right'));
+});
 test('CTA uses SIERRA palette triggers instead of native color inputs',()=>{
   const box=w.document.createElement('div');box.innerHTML=w.commsActionCardEditor({id:'palette-test',type:'cta'},'');
   assert.equal(box.querySelectorAll('input[type="color"]').length,0);
