@@ -10011,6 +10011,7 @@ async function openMondayCommunicationRequest(row) {
   const existing = commsMondayExisting(row.id)
   if (existing) {
     _commsCurrent = commsMergeMondayDraft(existing, row)
+    _commsEditorTab = _commsCurrent.kind === 'memo' ? 'content' : (_commsCurrent.kind === 'circular' || _commsCurrent.kind === 'aviso' ? 'info' : 'content')
     if (!commsPersist()) return null
     openCommunicationDraft(existing.id)
     toast('Borrador actualizado desde Monday.')
@@ -36661,7 +36662,7 @@ function commsMondaySeed(r){
 function commsMergeMondayDraft(existing,r){
   const incoming=commsMondaySeed(r),next=JSON.parse(JSON.stringify(existing||{})),has=value=>String(value??'').trim()!==''
   const previousAi=commsMondayAiContent(existing?.mondayAiDraft),placeholderBlocks=Array.isArray(existing?.blocks)&&existing.blocks.length&&existing.blocks.every(block=>{const content=String(block?.content||'').trim();return /^Completa el contenido con/i.test(content)||/^(?:Canal solicitado|Fecha requerida|Prioridad|Contacto):/i.test(content)}),safeToReplaceAi=has(r.aiDraft)&&((previousAi.blocks.length&&commsMondayBlockSignature(existing?.blocks)===commsMondayBlockSignature(previousAi.blocks))||(!previousAi.blocks.length&&placeholderBlocks))
-  next.source='monday';next.mondayItemId=String(r.id||next.mondayItemId||'');next.mondaySeedVersion=3
+  next.source='monday';next.kind=incoming.kind;next.mondayItemId=String(r.id||next.mondayItemId||'');next.mondaySeedVersion=3
   if(has(r.aiDraft)&&safeToReplaceAi){next.blocks=JSON.parse(JSON.stringify(incoming.blocks));next.subject=incoming.subject;next.mondayAiDraft=r.aiDraft}else if(has(r.name))next.subject=incoming.subject
   if(has(r.correlativo))next.externalFolio=incoming.externalFolio
   ;[['country','country'],['company','company'],['plant','plant'],['department','department'],['specificRecipients','specificRecipients'],['objective','objective'],['requiredInfo','requiredInfo'],['actionRequired','actionRequired'],['action','action'],['effectiveDate','effectiveDate'],['deadline','requestedSendDate']].forEach(([sourceKey,targetKey])=>{if(has(r[sourceKey]))next[targetKey]=incoming[targetKey]})

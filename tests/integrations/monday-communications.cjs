@@ -166,6 +166,8 @@ w.fetch=async(url,{body,headers})=>{
   assert.equal(migrated.blocks.some(block=>block.content.includes('Se informa el lanzamiento de SIERRA Nexus.')),true);
   const edited=w.commsMergeMondayDraft({...legacy,blocks:[{id:'manual',type:'text',style:'regular',content:'Texto redactado manualmente'}]},{...w.eval('_commsMondayRows[0]'),objective:'Objetivo nuevo'});
   assert.equal(edited.blocks[0].content,'Texto redactado manualmente');
+  const migratedCircular=w.commsMergeMondayDraft({...d,kind:'circular'},w.eval('_commsMondayRows[0]'));
+  assert.equal(migratedCircular.kind,'memo');
   w.commsDuplicate(d.id);
   const copy=w.eval('_commsCurrent');
   assert.equal(copy.source,'manual');
