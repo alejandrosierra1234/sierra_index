@@ -10085,13 +10085,22 @@ document.addEventListener('visibilitychange', () => {
 
 let _memoReviewPortal = null
 async function memoReviewInvoke(body) {
-  const { data: { session }, error } = await sb.auth.getSession()
-  if (error || !session?.access_token) throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.')
-  const response = await fetch(`${SB_URL}/functions/v1/monday-communications`, {
+  const invoke = accessToken => fetch(`${SB_URL}/functions/v1/monday-communications`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
-    body: JSON.stringify({ ...body, _auth_token: session.access_token }),
+    body: JSON.stringify({ ...body, _auth_token: accessToken }),
   })
-  const data = await response.json().catch(() => null)
+  let { data: { session }, error } = await sb.auth.getSession()
+  if (error || !session?.access_token) throw new Error('Tu sesión expiró. Vuelve a iniciar sesión.')
+  let response = await invoke(session.access_token)
+  let data = await response.json().catch(() => null)
+  if (response.status === 401 || /not authenticated|jwt|sesión/i.test(String(data?.error || ''))) {
+    const refreshed = await sb.auth.refreshSession()
+    session = refreshed.data?.session || null
+    if (!refreshed.error && session?.access_token) {
+      response = await invoke(session.access_token)
+      data = await response.json().catch(() => null)
+    }
+  }
   if (!response.ok || data?.error) throw new Error(data?.error || 'No se pudo actualizar la revisión.')
   return data
 }
