@@ -22,13 +22,28 @@ const DEFAULT_COLUMNS: ColumnMap = {
   type: ['Tipo de comunicado', 'Tipo', 'Formato'],
   requester: ['Solicitante', 'Nombre', 'Nombre del solicitante'],
   email: ['Correo', 'Email', 'Correo del solicitante'],
+  correlativo: ['Correlativo'],
   priority: ['Prioridad'],
-  deadline: ['Fecha requerida', 'Entrega', 'Fecha límite'],
-  country: ['País', 'Country'],
-  company: ['Empresa', 'Empresa / planta', 'Empresa/planta'],
-  plant: ['Planta', 'Empresa / planta', 'Empresa/planta'],
-  department: ['Departamento', 'Área', 'Area'],
-  audience: ['Audiencia', 'Dirigido a', 'Destinatario'],
+  deadline: ['Fecha requerida de envío', 'Fecha requerida', 'Entrega', 'Fecha límite'],
+  country: ['¿A qué país aplica?', 'País', 'Country'],
+  company: ['¿A qué empresas o plantas aplica?', 'Empresa', 'Empresa / planta', 'Empresa/planta'],
+  plant: ['¿A qué empresas o plantas aplica?', 'Planta', 'Empresa / planta', 'Empresa/planta'],
+  department: ['¿Qué área(s) emiten el memorándum?', 'Departamento', 'Área', 'Area'],
+  authorities: ['Autoridad(es) requerida(s)'],
+  authorityTitles: ['Cargo(s) de autoridad'],
+  signatures: ['Firma(s) PNG'],
+  audience: ['¿A quién va dirigido?', 'Audiencia', 'Dirigido a', 'Destinatario'],
+  specificRecipients: ['¿A quiénes específicamente?'],
+  objective: ['Objetivo del comunicado'],
+  requiredInfo: ['Puntos clave obligatorios'],
+  actionRequired: ['¿Los destinatarios deben realizar alguna acción?'],
+  action: ['¿Qué deben hacer?'],
+  effectiveDate: ['¿Cuándo entra en vigencia?'],
+  attachments: ['Archivos de referencia'],
+  sierraId: ['SIERRA Index ID'],
+  editorUrl: ['Editor SIERRA Index'],
+  finalPdf: ['PDF final'],
+  syncStatus: ['Estado de sincronización'],
   summary: ['Bajada', 'Resumen', 'Mensaje corto'],
   details: ['Información', 'Descripción', 'Detalle', 'Contenido solicitado'],
   channel: ['Canal', 'Publicación'],
@@ -46,6 +61,10 @@ function columnText(item: any, names: string[]) {
   const wanted = new Set(names.map(normalize))
   const column = (item?.column_values || []).find((value: any) => wanted.has(normalize(value?.column?.title)) || wanted.has(normalize(value?.id)))
   return String(column?.text || '').trim()
+}
+
+function splitList(value: string) {
+  return [...new Set(String(value || '').split(/\n+|\s*[;|]\s*|\s+·\s+/).map(part => part.replace(/^[-•]\s*/, '').trim()).filter(Boolean))]
 }
 
 function parseKind(value: string, memoOnly = false) {
@@ -133,11 +152,11 @@ Deno.serve(async req => {
       return json({ error: 'Falta configurar MONDAY_API_TOKEN y MONDAY_COMMUNICATIONS_BOARD_ID en Supabase.' })
     }
 
-    if (action === 'claim') {
+    if (action === 'claim' || action === 'sync_draft') {
       if (!auth.canWrite) return json({ error: 'Necesitas permiso de edición en Comunicaciones.' }, 403)
       const itemId = String(body?.item_id || '')
       if (!/^\d+$/.test(itemId)) return json({ error: 'Solicitud de Monday no válida.' }, 400)
-      if (env.MONDAY_COMMUNICATIONS_STATUS_COLUMN_ID) {
+      if (action === 'claim' && env.MONDAY_COMMUNICATIONS_STATUS_COLUMN_ID) {
         await mondayRequest(env.MONDAY_API_TOKEN, `mutation ($board: ID!, $item: ID!, $column: String!, $value: String!) {
           change_simple_column_value(board_id: $board, item_id: $item, column_id: $column, value: $value) { id }
         }`, {
@@ -146,6 +165,20 @@ Deno.serve(async req => {
           column: env.MONDAY_COMMUNICATIONS_STATUS_COLUMN_ID,
           value: env.MONDAY_COMMUNICATIONS_CLAIM_STATUS,
         })
+      }
+      if (action === 'sync_draft') {
+        const schema = await mondayRequest(env.MONDAY_API_TOKEN, `query ($board: [ID!]) { boards(ids: $board) { columns { id title type } } }`, { board: [env.MONDAY_COMMUNICATIONS_BOARD_ID] })
+        const columns = schema?.boards?.[0]?.columns || []
+        const byTitle = (title: string) => columns.find((column: any) => normalize(column?.title) === normalize(title))
+        const writes: any[] = [
+          { column: byTitle('SIERRA Index ID'), value: String(body?.sierra_id || ''), complex: false },
+          { column: byTitle('Editor SIERRA Index'), value: { url: String(body?.editor_url || ''), text: 'Abrir editor SIERRA Index' }, complex: true },
+          { column: byTitle('Estado de sincronización'), value: 'Sincronizado', complex: false },
+        ].filter(write => write.column && (write.complex ? write.value.url : write.value))
+        for (const write of writes) {
+          if (write.complex) await mondayRequest(env.MONDAY_API_TOKEN, `mutation ($board: ID!, $item: ID!, $column: String!, $value: JSON!) { change_column_value(board_id: $board, item_id: $item, column_id: $column, value: $value) { id } }`, { board: env.MONDAY_COMMUNICATIONS_BOARD_ID, item: itemId, column: write.column.id, value: JSON.stringify(write.value) })
+          else await mondayRequest(env.MONDAY_API_TOKEN, `mutation ($board: ID!, $item: ID!, $column: String!, $value: String!) { change_simple_column_value(board_id: $board, item_id: $item, column_id: $column, value: $value) { id } }`, { board: env.MONDAY_COMMUNICATIONS_BOARD_ID, item: itemId, column: write.column.id, value: write.value })
+        }
       }
       return json({ ok: true })
     }
@@ -189,13 +222,25 @@ Deno.serve(async req => {
         type,
         requester: get('requester'),
         email: get('email'),
+        correlativo: get('correlativo'),
         priority: get('priority'),
         deadline: get('deadline'),
         country: get('country'),
         company: get('company'),
         plant: get('plant'),
         department: get('department'),
+        issuingAreas: splitList(get('department')),
+        authorities: splitList(get('authorities')),
+        authorityTitles: splitList(get('authorityTitles')),
+        signatures: splitList(get('signatures')),
         audience: get('audience'),
+        specificRecipients: get('specificRecipients'),
+        objective: get('objective'),
+        requiredInfo: get('requiredInfo'),
+        actionRequired: get('actionRequired'),
+        action: get('action'),
+        effectiveDate: get('effectiveDate'),
+        attachments: splitList(get('attachments')).map(name => ({ name, url: '' })),
         summary,
         details,
         channel: get('channel'),

@@ -12,16 +12,28 @@ assert.ok(fnSource.includes("action === 'claim'"));
 assert.ok(source.includes('async function enterMondayCommunicationsApp()'));
 assert.ok(source.includes("params.get('monday') === 'comms'"));
 assert.ok(source.includes('mondayCommsRequestFromItem(item)'));
-assert.ok(source.includes("mondayCommsUpdateStatus('En diseño')"));
+assert.ok(source.includes("mondayCommsUpdateStatus('En proceso')"));
 assert.ok(source.includes("const MONDAY_MEMO_ONLY_BOARD_IDS = new Set(['18430793016'])"));
-assert.ok(source.includes("if(_mondayCommsBridge){toast('Esta vista está limitada al memo de la solicitud seleccionada.');return}"));
-assert.ok(source.includes('function renderCommunicationsHome(){if(_mondayCommsBridge){openMondayCommunicationRequest(_mondayCommsBridge.request);return}'));
+assert.ok(source.includes("const MONDAY_AUTHORITIES_BOARD_ID = '18432680039'"));
+assert.ok(source.includes('mondayHydrateMemoRequest(monday, item, mondayCommsRequestFromItem(item))'));
+assert.ok(source.includes("mondayCommsWriteColumn('sierraId', draft.id)"));
+assert.ok(source.includes("mondayCommsWriteColumn('editorUrl'"));
+assert.ok(source.includes("mondayCommsWriteColumn('syncStatus', 'Sincronizado')"));
+assert.ok(source.includes('mondayCommsUploadFinalPdf(blob,draft)'));
+assert.ok(source.includes('Las autoridades, cargos y firmas provienen de ÁREAS Y AUTORIDADES'));
+assert.ok(source.includes("if(commsInMonday()){toast('Esta vista está limitada al memo de la solicitud seleccionada.');return}"));
+assert.ok(source.includes('function renderCommunicationsHome(){if(commsInMonday()){openMondayCommunicationRequest(_mondayCommsBridge.request);return}'));
 assert.ok(fnSource.includes('MONDAY_COMMUNICATIONS_MEMO_ONLY'));
 assert.ok(fnSource.includes('parseKind(type, memoOnly)'));
+assert.ok(fnSource.includes("action === 'sync_draft'"));
+assert.ok(fnSource.includes('SIERRA Index ID'));
+assert.ok(fnSource.includes('Editor SIERRA Index'));
 
 const dom=new JSDOM('<div id="pg"></div><div id="sec-title"></div><div id="sec-sub"></div>',{url:'https://test.local',runScripts:'outside-only'});
 const w=dom.window;
 w.me={id:'creator'};w.profile={full_name:'Creator'};w._mondayCommsBridge=null;w.requestAnimationFrame=fn=>fn();w.document.queryCommandState=()=>false;
+w.normalizeBadgeOrgIdentity=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+w.mondayCommsScheduleDraftSync=()=>{};
 w.esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 w.escAttr=w.esc;w.jsStr=v=>String(v??'').replaceAll("'","\\'");
 w.clearSecCrumbs=w.setSecCrumbs=()=>{};w.toastMessage='';w.toast=message=>{w.toastMessage=message};
@@ -47,10 +59,13 @@ w.fetch=async(url,{body,headers})=>{
   delete body._auth_token;
   if(body.action==='claim'){claims++;assert.equal(body.item_id,'123');return{ok:true,json:async()=>({ok:true})}}
   return{ok:true,json:async()=>({ok:true,requests:[{
-    id:'123',name:'Lanzamiento SIERRA Nexus',kind:'circular',status:'Nueva',requester:'Marketing',
+    id:'123',name:'Lanzamiento SIERRA Nexus',kind:'memo',status:'Nueva',requester:'Marketing',correlativo:'MEMO-0042',
     email:'marketing@example.test',country:'Guatemala',company:'SIERRA',plant:'Hilos y Algodón',
-    department:'Marketing',audience:'Todos',summary:'Bajada enviada desde el formulario',
-    details:'Texto largo enviado por el solicitante',deadline:'2026-09-30',url:'https://monday.test/items/123'
+    department:'Marketing y Comunicaciones; Marca y Manufactura',issuingAreas:['Marketing y Comunicaciones','Marca y Manufactura'],
+    authorities:['Alejandro Torres','Pablo Hernández'],authorityTitles:['Gerente Jr.','VP'],signatures:['https://files.test/a.png','https://files.test/b.png'],
+    audience:'Gerencias',specificRecipients:'Gerencias y jefaturas',objective:'Informar el lanzamiento',requiredInfo:'Fecha de lanzamiento\nCanal de soporte',
+    actionRequired:'Sí',action:'Confirmar lectura',effectiveDate:'2026-10-01',summary:'Bajada enviada desde el formulario',
+    details:'Texto largo enviado por el solicitante',deadline:'2026-09-30',attachments:[{name:'brief.pdf',url:'https://files.test/brief.pdf'}],url:'https://monday.test/items/123'
   }]})}
 };
 
@@ -64,16 +79,21 @@ w.fetch=async(url,{body,headers})=>{
   await w.commsImportMondayRequest('123');
   const d=w.eval('_commsCurrent');
   assert.equal(claims,1);
-  assert.equal(d.kind,'circular');
+  assert.equal(d.kind,'memo');
   assert.equal(d.source,'monday');
   assert.equal(d.mondayItemId,'123');
   assert.equal(d.subject,'Lanzamiento SIERRA Nexus');
-  assert.equal(d.summary,'Bajada enviada desde el formulario');
+  assert.equal(d.externalFolio,'MEMO-0042');
   assert.equal(d.company,'SIERRA');
-  assert.equal(d.newsPlant,'Hilos y Algodón');
-  assert.equal(d.newsDepartment,'Marketing');
-  assert.equal(d.author,'Marketing');
-  assert.equal(d.blocks[0].content.includes('Texto largo'),true);
+  assert.equal(d.plant,'Hilos y Algodón');
+  assert.equal(d.audience,'Gerencias y jefaturas');
+  assert.equal(d.sender,'Marketing y Comunicaciones, Marca y Manufactura');
+  assert.equal(d.signerName,'Alejandro Torres');
+  assert.equal(d.signerTitle,'Gerente Jr.');
+  assert.equal(d.signature,'https://files.test/a.png');
+  assert.equal(d.additionalSigners[0].signerName,'Pablo Hernández');
+  assert.equal(d.blocks.some(block=>block.content.includes('Confirmar lectura')),true);
+  assert.equal(d.mondayAttachments[0].name,'brief.pdf');
   w.commsDuplicate(d.id);
   const copy=w.eval('_commsCurrent');
   assert.equal(copy.source,'manual');

@@ -9058,19 +9058,36 @@ const MONDAY_COMMS_COLUMNS = Object.freeze({
   kind: ['Tipo de comunicado', 'Tipo de comunicación', 'Tipo', 'Formato'],
   requester: ['Nombre del solicitante', 'Solicitante', 'Nombre'],
   email: ['Correo del solicitante', 'Correo', 'Email'],
-  country: ['País', 'Pais', 'Country'],
-  company: ['Empresa', 'Compañía', 'Compania'],
-  plant: ['Planta', 'Empresa / planta', 'Empresa/planta'],
-  department: ['Departamento', 'Área que envía el memo', 'Area que envia el memo', 'Área', 'Area'],
-  audience: ['Audiencia', 'Dirigido a', 'Destinatario', 'Público', 'Publico'],
+  correlativo: ['Correlativo'],
+  country: ['¿A qué país aplica?', 'País', 'Pais', 'Country'],
+  company: ['¿A qué empresas o plantas aplica?', 'Empresa', 'Compañía', 'Compania'],
+  plant: ['¿A qué empresas o plantas aplica?', 'Planta', 'Empresa / planta', 'Empresa/planta'],
+  department: ['¿Qué área(s) emiten el memorándum?', 'Departamento', 'Área que envía el memo', 'Area que envia el memo', 'Área', 'Area'],
+  authorities: ['Autoridad(es) requerida(s)'],
+  authorityTitles: ['Cargo(s) de autoridad'],
+  signatures: ['Firma(s) PNG'],
+  audience: ['¿A quién va dirigido?', 'Audiencia', 'Dirigido a', 'Destinatario', 'Público', 'Publico'],
+  specificRecipients: ['¿A quiénes específicamente?'],
+  objective: ['Objetivo del comunicado'],
+  requiredInfo: ['Puntos clave obligatorios'],
+  actionRequired: ['¿Los destinatarios deben realizar alguna acción?'],
+  action: ['¿Qué deben hacer?'],
+  effectiveDate: ['¿Cuándo entra en vigencia?'],
   summary: ['Bajada', 'Resumen', 'Mensaje corto', 'Descripción breve', 'Descripcion breve'],
   details: ['Información', 'Informacion', 'Descripción', 'Descripcion', 'Detalle', 'Contenido solicitado'],
-  deadline: ['Fecha requerida', 'Fecha límite', 'Fecha limite', 'Entrega'],
+  deadline: ['Fecha requerida de envío', 'Fecha requerida', 'Fecha límite', 'Fecha limite', 'Entrega'],
+  attachments: ['Archivos de referencia'],
+  sierraId: ['SIERRA Index ID'],
+  editorUrl: ['Editor SIERRA Index'],
+  finalPdf: ['PDF final'],
+  syncStatus: ['Estado de sincronización'],
   priority: ['Prioridad'],
   channel: ['Canal', 'Publicación', 'Publicacion'],
 })
 
 const MONDAY_MEMO_ONLY_BOARD_IDS = new Set(['18430793016'])
+const MONDAY_MEMO_BOARD_ID = '18430793016'
+const MONDAY_AUTHORITIES_BOARD_ID = '18432680039'
 
 function mondayColumnJSON(item, title) {
   const raw = mondayColumnByTitle(item, title)?.value
@@ -9085,6 +9102,18 @@ function mondayCommsColumn(item, key, type = null) {
 
 function mondayCommsColumnText(item, key) {
   return String(mondayCommsColumn(item, key)?.text || '').trim()
+}
+
+function mondayCommsList(value) {
+  const text = String(value || '').replace(/\r/g, '').trim()
+  if (!text) return []
+  const separated = text.split(/\n+|\s*[;|]\s*|\s+·\s+/).map(part => part.replace(/^[-•]\s*/, '').trim()).filter(Boolean)
+  if (separated.length > 1) return [...new Set(separated)]
+  return [text]
+}
+
+function mondayCommsUrls(value) {
+  return [...String(value || '').matchAll(/https?:\/\/[^\s,;]+/gi)].map(match => match[0])
 }
 
 function mondayCommsKind(value, memoOnly = false) {
@@ -9108,14 +9137,26 @@ function mondayCommsRequestFromItem(item) {
     status: mondayCommsColumnText(item, 'status') || 'Nueva',
     requester: mondayCommsColumnText(item, 'requester'),
     email: mondayCommsColumnText(item, 'email'),
+    correlativo: mondayCommsColumnText(item, 'correlativo'),
     country: mondayCommsColumnText(item, 'country'),
     company: company || plant || 'SIERRA',
     plant: plant && plant !== company ? plant : '',
     department: mondayCommsColumnText(item, 'department'),
+    issuingAreas: mondayCommsList(mondayCommsColumnText(item, 'department')),
+    authorities: mondayCommsList(mondayCommsColumnText(item, 'authorities')),
+    authorityTitles: mondayCommsList(mondayCommsColumnText(item, 'authorityTitles')),
+    signatures: mondayCommsUrls(mondayCommsColumnText(item, 'signatures')),
     audience: mondayCommsColumnText(item, 'audience'),
+    specificRecipients: mondayCommsColumnText(item, 'specificRecipients'),
+    objective: mondayCommsColumnText(item, 'objective'),
+    requiredInfo: mondayCommsColumnText(item, 'requiredInfo'),
+    actionRequired: mondayCommsColumnText(item, 'actionRequired'),
+    action: mondayCommsColumnText(item, 'action'),
+    effectiveDate: mondayCommsColumnText(item, 'effectiveDate'),
     summary: mondayCommsColumnText(item, 'summary'),
     details: mondayCommsColumnText(item, 'details'),
     deadline: mondayCommsColumnText(item, 'deadline'),
+    attachments: mondayCommsList(mondayCommsColumnText(item, 'attachments')).map(name => ({ name, url: '' })),
     priority: mondayCommsColumnText(item, 'priority'),
     channel: mondayCommsColumnText(item, 'channel'),
     url: boardId && id ? `https://sierratextiles.monday.com/boards/${boardId}/pulses/${id}` : '',
@@ -9251,6 +9292,97 @@ async function mondayFetchCommunicationItem(monday, id) {
   const response = await monday.api(query, { variables: { ids: [itemId] } })
   if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
   return response?.data?.items?.[0] || null
+}
+
+async function mondayFetchMemoFileValues(monday, itemId, columnIds) {
+  const ids = [...new Set((columnIds || []).filter(Boolean))]
+  if (!/^\d+$/.test(String(itemId || '')) || !ids.length) return new Map()
+  const query = `query ($ids: [ID!]!, $columns: [String!]) {
+    items(ids: $ids) {
+      column_values(ids: $columns) {
+        id text
+        ... on FileValue {
+          files {
+            ... on FileAssetValue {
+              asset { id name public_url url url_thumbnail file_extension }
+            }
+          }
+        }
+      }
+    }
+  }`
+  try {
+    const response = await monday.api(query, { apiVersion: '2025-04', variables: { ids: [String(itemId)], columns: ids } })
+    if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+    const result = new Map()
+    for (const value of response?.data?.items?.[0]?.column_values || []) {
+      const files = (value?.files || []).map(file => file?.asset).filter(Boolean).map(asset => ({
+        id: String(asset.id || ''), name: asset.name || 'Archivo',
+        url: asset.public_url || asset.url || asset.url_thumbnail || '',
+        extension: asset.file_extension || '',
+      }))
+      result.set(value.id, files)
+    }
+    return result
+  } catch (error) {
+    console.warn('monday memo file values:', error)
+    return new Map()
+  }
+}
+
+async function mondayFetchAuthorityRecords(monday, requestedAreas) {
+  const wanted = new Set((requestedAreas || []).map(normalizeBadgeOrgIdentity).filter(Boolean))
+  if (!wanted.size) return []
+  const query = `query ($board: [ID!], $limit: Int!) {
+    boards(ids: $board) {
+      items_page(limit: $limit) {
+        items {
+          id name
+          column_values { id type text column { title } }
+        }
+      }
+    }
+  }`
+  try {
+    const response = await monday.api(query, { variables: { board: [MONDAY_AUTHORITIES_BOARD_ID], limit: 100 } })
+    if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+    const rows = response?.data?.boards?.[0]?.items_page?.items || []
+    const selected = rows.filter(row => {
+      const area = normalizeBadgeOrgIdentity(row?.name)
+      const active = normalizeBadgeOrgIdentity(mondayColumnText(row, 'Activo'))
+      return wanted.has(area) && (!active || ['si', 'yes', 'activo', 'active'].includes(active))
+    })
+    const signatureColumnIds = selected.map(row => mondayColumnByTitle(row, 'Firma PNG')?.id).filter(Boolean)
+    const records = []
+    for (const row of selected) {
+      const fileMap = await mondayFetchMemoFileValues(monday, row.id, signatureColumnIds)
+      const signatureId = mondayColumnByTitle(row, 'Firma PNG')?.id
+      records.push({
+        area: String(row.name || '').trim(),
+        department: mondayColumnText(row, 'Department') || String(row.name || '').trim(),
+        title: mondayColumnText(row, 'Cargo de la autoridad'),
+        signature: fileMap.get(signatureId)?.[0]?.url || '',
+      })
+    }
+    return records
+  } catch (error) {
+    // The private master board requires an explicit monday app permission.
+    // Derived mirror columns on CREADOR DE MEMOS remain a safe fallback.
+    console.warn('monday authorities lookup:', error)
+    return []
+  }
+}
+
+async function mondayHydrateMemoRequest(monday, item, request) {
+  const attachmentColumn = mondayCommsColumn(item, 'attachments')
+  const signatureColumn = mondayCommsColumn(item, 'signatures')
+  const files = await mondayFetchMemoFileValues(monday, item.id, [attachmentColumn?.id, signatureColumn?.id])
+  const attached = files.get(attachmentColumn?.id) || []
+  const mirroredSignatures = files.get(signatureColumn?.id) || []
+  if (attached.length) request.attachments = attached
+  if (mirroredSignatures.length) request.signatures = mirroredSignatures.map(file => file.url).filter(Boolean)
+  request.authorityRecords = await mondayFetchAuthorityRecords(monday, request.issuingAreas)
+  return request
 }
 
 function mondayPhotoUrl(item) {
@@ -9410,6 +9542,67 @@ async function mondayCommsUpdateStatus(value) {
   return true
 }
 
+function mondayCommsBridgeColumn(key) {
+  return _mondayCommsBridge?.columnIds?.[key] || null
+}
+
+async function mondayCommsWriteColumn(key, value, complex = false) {
+  const bridge = _mondayCommsBridge, column = mondayCommsBridgeColumn(key)
+  if (!bridge?.monday || !bridge.boardId || !bridge.itemId || !column || value == null) return false
+  const query = complex
+    ? `mutation ($board: ID!, $item: ID!, $column: String!, $value: JSON!) { change_column_value(board_id: $board, item_id: $item, column_id: $column, value: $value) { id } }`
+    : `mutation ($board: ID!, $item: ID!, $column: String!, $value: String!) { change_simple_column_value(board_id: $board, item_id: $item, column_id: $column, value: $value) { id } }`
+  const variables = { board: bridge.boardId, item: bridge.itemId, column, value: complex ? JSON.stringify(value) : String(value) }
+  const response = await bridge.monday.api(query, { variables })
+  if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+  return true
+}
+
+async function mondayCommsSyncDraft(draft) {
+  const bridge = _mondayCommsBridge
+  if (!bridge || !draft?.id || bridge.syncingDraft) return false
+  if (bridge.lastDraftSyncId === draft.id) return true
+  bridge.syncingDraft = true
+  try {
+    const editorUrl = bridge.request?.url || `https://sierratextiles.monday.com/boards/${bridge.boardId}/pulses/${bridge.itemId}`
+    const results = await Promise.allSettled([
+      mondayCommsWriteColumn('sierraId', draft.id),
+      mondayCommsWriteColumn('editorUrl', { url: editorUrl, text: 'Abrir editor SIERRA Index' }, true),
+      mondayCommsWriteColumn('syncStatus', 'Sincronizado'),
+    ])
+    const failed = results.filter(result => result.status === 'rejected')
+    if (failed.length) throw failed[0].reason
+    bridge.lastDraftSyncId = draft.id
+    return true
+  } finally {
+    bridge.syncingDraft = false
+  }
+}
+
+function mondayCommsScheduleDraftSync(draft) {
+  if (!_mondayCommsBridge || !draft?.id) return
+  clearTimeout(_mondayCommsBridge.syncTimer)
+  _mondayCommsBridge.syncTimer = setTimeout(() => {
+    mondayCommsSyncDraft(draft).catch(error => {
+      console.error('monday memo draft sync:', error)
+      toast('El borrador se guardó, pero monday no pudo registrar el enlace de SIERRA Index.', 7000)
+    })
+  }, 120)
+}
+
+async function mondayCommsUploadFinalPdf(blob, draft) {
+  const bridge = _mondayCommsBridge, columnId = mondayCommsBridgeColumn('finalPdf')
+  if (!bridge || !columnId) return { ok: false, skipped: true }
+  const file = new File([blob], memoImageFileName(draft, 'pdf'), { type: 'application/pdf' })
+  const query = `mutation ($file: File!, $itemId: ID!, $columnId: String!) {
+    add_file_to_column(file: $file, item_id: $itemId, column_id: $columnId) { id name }
+  }`
+  const response = await bridge.monday.api(query, { variables: { file, itemId: bridge.itemId, columnId } })
+  if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
+  await mondayCommsWriteColumn('syncStatus', 'Sincronizado')
+  return { ok: true, fileName: file.name }
+}
+
 async function openMondayCommunicationRequest(row) {
   await commsPrepareStorage()
   commsLoad()
@@ -9444,7 +9637,7 @@ async function enterMondayCommunicationsApp() {
 
   const item = await mondayFetchCommunicationItem(monday, itemId)
   if (!item) throw new Error('No se encontró la solicitud en Monday.')
-  const request = mondayCommsRequestFromItem(item)
+  const request = await mondayHydrateMemoRequest(monday, item, mondayCommsRequestFromItem(item))
   const statusColumn = mondayCommsColumn(item, 'status', 'status') || mondayCommsColumn(item, 'status')
   _mondayCommsBridge = {
     monday,
@@ -9452,6 +9645,7 @@ async function enterMondayCommunicationsApp() {
     itemId,
     boardId: String(item.board?.id || context.boardId || ''),
     statusColumnId: statusColumn?.id || null,
+    columnIds: Object.fromEntries(Object.keys(MONDAY_COMMS_COLUMNS).map(key => [key, mondayCommsColumn(item, key)?.id]).filter(([, id]) => id)),
     request,
     operatorName: context.user?.name || 'Usuario de monday',
   }
@@ -9469,8 +9663,9 @@ async function enterMondayCommunicationsApp() {
   document.getElementById('app').style.display = 'flex'
   leaveView(true)
 
-  await openMondayCommunicationRequest(request)
-  try { await mondayCommsUpdateStatus('En diseño') }
+  const draft = await openMondayCommunicationRequest(request)
+  if (draft) await mondayCommsSyncDraft(draft)
+  try { await mondayCommsUpdateStatus('En proceso') }
   catch (error) { console.warn('monday communications status:', error) }
 }
 
@@ -34837,9 +35032,10 @@ function showStampCreator(){
 const COMMS_STORE_KEY='sierra_communications_v1'
 const COMMS_ACTIVE_KEY='sierra_communications_active_v1'
 function commsStorageKey(base){if(typeof me==='undefined'||!me?.id)throw Error('Inicia sesión para acceder a tus documentos');return base+':'+me.id}
+function commsInMonday(){return typeof _mondayCommsBridge!=='undefined'&&!!_mondayCommsBridge}
 let _commsDrafts=[],_commsCurrent=null,_commsQuery='',_commsSaveTimer=null,_memoPreviewZoom='width',_memoPreviewScale=1
 function commsDateLabel(v){if(!v)return'';try{return new Intl.DateTimeFormat('es-HN',{weekday:'long',year:'numeric',month:'long',day:'numeric',timeZone:'UTC'}).format(new Date(v+'T12:00:00Z')).replace(/^./,c=>c.toUpperCase())}catch{return v}}
-function createCommunicationDraft(seed={}){const now=new Date().toISOString(),date=seed.date||now.slice(0,10);return{kind:seed.kind||'memo',id:seed.id||('memo-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)),source:seed.source||'manual',mondayItemId:seed.mondayItemId||null,status:seed.status||'Borrador',confidential:!!seed.confidential,country:seed.country||'',communicationNumber:seed.communicationNumber||commsNextNumber(date.slice(0,4)),audience:seed.audience||'Colaboradores SIERRA',sender:seed.sender??'Comunicaciones Corporativas',date,subject:seed.subject||'Nuevo comunicado',salutation:seed.salutation||'Estimados, buen día.',closing:seed.closing||'Saludos cordiales,',blocks:Array.isArray(seed.blocks)&&seed.blocks.length?seed.blocks:[{id:'b-'+Date.now(),type:'text',style:'regular',content:'Escribe aquí el contenido principal del memorándum.'}],signerName:seed.signerName||'',signerTitle:seed.signerTitle||'',signerDepartment:seed.signerDepartment||'',signature:seed.signature||'',additionalSigners:JSON.parse(JSON.stringify(seed.additionalSigners||[])),createdAt:seed.createdAt||now,updatedAt:now}}
+function createCommunicationDraft(seed={}){const now=new Date().toISOString(),date=seed.date||now.slice(0,10);return{kind:seed.kind||'memo',id:seed.id||('memo-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)),source:seed.source||'manual',mondayItemId:seed.mondayItemId||null,status:seed.status||'Borrador',confidential:!!seed.confidential,country:seed.country||'',company:seed.company||'',plant:seed.plant||'',externalFolio:seed.externalFolio||'',communicationNumber:seed.communicationNumber||commsNextNumber(date.slice(0,4)),audience:seed.audience||'Colaboradores SIERRA',audienceCategory:seed.audienceCategory||'',specificRecipients:seed.specificRecipients||'',sender:seed.sender??'Comunicaciones Corporativas',issuingAreas:Array.isArray(seed.issuingAreas)?[...seed.issuingAreas]:[],objective:seed.objective||'',requiredInfo:seed.requiredInfo||'',actionRequired:seed.actionRequired||'',action:seed.action||'',effectiveDate:seed.effectiveDate||'',requestedSendDate:seed.requestedSendDate||'',mondayAttachments:JSON.parse(JSON.stringify(seed.mondayAttachments||[])),date,subject:seed.subject||'Nuevo comunicado',salutation:seed.salutation||'Estimados, buen día.',closing:seed.closing||'Saludos cordiales,',blocks:Array.isArray(seed.blocks)&&seed.blocks.length?seed.blocks:[{id:'b-'+Date.now(),type:'text',style:'regular',content:'Escribe aquí el contenido principal del memorándum.'}],signerName:seed.signerName||'',signerTitle:seed.signerTitle||'',signerDepartment:seed.signerDepartment||'',signature:seed.signature||'',additionalSigners:JSON.parse(JSON.stringify(seed.additionalSigners||[])),createdAt:seed.createdAt||now,updatedAt:now}}
 function createInvitationDraft(seed={}){const now=new Date().toISOString(),date=seed.date||now.slice(0,10),start=seed.startTime||'10:00',end=seed.endTime||'11:00';return{kind:'convocatoria',id:seed.id||('conv-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)),source:seed.source||'manual',mondayItemId:seed.mondayItemId||null,status:seed.status||'Borrador',communicationNumber:seed.communicationNumber||commsNextNumber(date.slice(0,4)),department:seed.department||'',tags:Array.isArray(seed.tags)?seed.tags:[],sender:seed.sender??'Talento Humano',eyebrow:seed.eyebrow||'Talento Humano informa',subject:seed.subject||'Súmate a la capacitación',focus:seed.focus||'Zona 9',date,startTime:start,endTime:end,dates:Array.isArray(seed.dates)&&seed.dates.length?seed.dates:[{uid:'date-'+Date.now(),date,startTime:start,endTime:end,label:''}],mode:seed.mode||'presencial',location:seed.location||'Nivel 14, Comedor',locationUrl:seed.locationUrl||'',locationButtonText:seed.locationButtonText||'Cómo llegar',locationShowButton:seed.locationShowButton!==false,locationShowQr:!!seed.locationShowQr,locationQrImage:seed.locationQrImage||'',virtualUrl:seed.virtualUrl||'',virtualButtonText:seed.virtualButtonText||'Unirme a la reunión',virtualShowButton:seed.virtualShowButton!==false,virtualShowQr:!!seed.virtualShowQr,virtualQrImage:seed.virtualQrImage||'',intro:seed.intro||'Acompáñanos en esta actividad dirigida por nuestro equipo responsable.',contactNote:seed.contactNote||'Quienes nos compartirán información de interés y herramientas para seguir aprendiendo juntos.',contacts:Array.isArray(seed.contacts)&&seed.contacts.length?JSON.parse(JSON.stringify(seed.contacts)):[{uid:'contact-'+Date.now(),name:'Nombre',role:'Responsable',phone:'',email:'',photo:''}],qrs:Array.isArray(seed.qrs)?JSON.parse(JSON.stringify(seed.qrs)):[],accent:seed.accent||'#16cdbe',primaryColor:seed.primaryColor||seed.accent||'#16cdbe',secondaryColor:seed.secondaryColor||'#cffffb',tertiaryColor:seed.tertiaryColor||'#007d73',plecaPlacements:{date:seed.plecaPlacements?.date||'hero-left',focus:seed.plecaPlacements?.focus||'title',mode:seed.plecaPlacements?.mode||'details'},senderLogoText:seed.senderLogoText||'',heroImage:seed.heroImage||'',createdAt:seed.createdAt||now,updatedAt:now}}
 async function showCommunications(){syncModule('comunicaciones');_navLeaf='comunicaciones|_|memos';sessionStorage.setItem('sierra_route','module:comunicaciones');leaveView();renderSidebarTree();document.getElementById('tb-section').textContent='Comunicaciones';document.getElementById('product-controls').style.display='none';document.getElementById('sec-title').textContent='Comunicaciones';document.getElementById('sec-sub').textContent='Memorándums claros, consistentes y listos para aprobación';document.getElementById('pg').innerHTML='<div class="memo-empty" role="status">Cargando comunicados…</div>';try{await commsPrepareStorage();if(_navLeaf!=='comunicaciones|_|memos')return;commsLoad();if(!commsRestoreActive())renderCommunicationsHome()}catch{_commsStorageBlocked=true;if(_navLeaf!=='comunicaciones|_|memos')return;document.getElementById('pg').innerHTML='<div class="memo-empty"><p>No se pudieron cargar los comunicados. Los datos guardados se conservaron.</p><button class="btn btn-secondary" onclick="showCommunications()">Reintentar</button></div>'}}
 function commsSet(k,v){if(!_commsCurrent)return;_commsCurrent[k]=v;renderMemoPreview();commsAutosave()}
@@ -35112,13 +35308,14 @@ function renderCommunicationEditor(newsShell=false){
   document.getElementById('pg').innerHTML=`<div class="memo-studio comms-ui">
     <section class="memo-panel memo-customizer">
       <div class="memo-panel-head"><div><div class="memo-panel-title">Personalizar memo</div><div class="memo-library-sub">Completa la información y compón el contenido.</div></div><div class="comms-header-actions">${commsSelect('Estado',['Borrador','En revisión','Aprobado'],_commsCurrent.status,v=>commsSet('status',v))}<button class="icon-btn" aria-label="Acciones del comunicado" aria-haspopup="menu" onclick="commsOpenActions(event,_commsCurrent.id)">${siIcon('dots',16)}</button></div></div>
-      <div class="memo-editor-tabs" role="group" aria-label="Secciones del comunicado">${[['info','Datos'],['content','Contenido'],['signature','Firmantes']].map(([key,label])=>`<button type="button" data-comms-tab="${key}" aria-pressed="${_commsEditorTab===key}" onclick="commsEditorPanel('${key}')">${label}</button>`).join('')}</div>
+      <div class="memo-editor-tabs" role="group" aria-label="Secciones del comunicado">${[['info','Datos'],['content','Contenido'],...(commsInMonday()?[]:[['signature','Firmantes']])].map(([key,label])=>`<button type="button" data-comms-tab="${key}" aria-pressed="${_commsEditorTab===key}" onclick="commsEditorPanel('${key}')">${label}</button>`).join('')}</div>
       <div class="memo-form">
         <div class="memo-form-section"><div class="memo-form-section-title">Información</div><label class="memo-confidential-toggle"><input type="checkbox" role="switch" aria-label="Marca de agua confidencial" ${_commsCurrent.confidential?'checked':''} onchange="commsSet('confidential',this.checked)"><span>Marcar como confidencial<small>Agrega una marca de agua al documento y sus descargas.</small></span></label>
           <div class="memo-field"><label>Destinatario</label><input class="control-input" value="${escAttr(_commsCurrent.audience)}" oninput="commsSet('audience',this.value)"></div>
           <div class="memo-field"><label for="memo-sender">De / departamento remitente</label><input id="memo-sender" class="control-input" placeholder="Ej. Departamento de Recursos Humanos" aria-describedby="memo-sender-help" value="${escAttr(_commsCurrent.sender??'')}" oninput="commsSet('sender',this.value)"><div id="memo-sender-help" class="memo-block-help">Área o departamento que envía el memo. La persona que firma se indica abajo.</div></div>
           <div class="memo-field"><label>País</label>${commsSelect('País del comunicado',[{value:'',label:'No incluir país'},{value:'Todos los países',label:'Todos los países'},...PRODUCT_COUNTRIES],_commsCurrent.country||'',v=>commsSet('country',v))}</div>
           <div class="memo-field"><label>Asunto</label><input class="control-input" value="${escAttr(_commsCurrent.subject)}" oninput="commsSet('subject',this.value)"></div>
+          ${commsInMonday()?`<div class="memo-field"><label>Empresa / planta</label><input class="control-input" value="${escAttr([_commsCurrent.company,_commsCurrent.plant].filter(Boolean).join(' · '))}" readonly></div><div class="memo-field-row"><div class="memo-field"><label>Vigencia</label><input class="control-input" value="${escAttr(_commsCurrent.effectiveDate||'No indicada')}" readonly></div><div class="memo-field"><label>Fecha requerida</label><input class="control-input" value="${escAttr(_commsCurrent.requestedSendDate||'No indicada')}" readonly></div></div>${(_commsCurrent.mondayAttachments||[]).length?`<div class="memo-field"><label>Archivos de referencia</label><div class="memo-block-help">${(_commsCurrent.mondayAttachments||[]).map(file=>file.url?`<a href="${escAttr(file.url)}" target="_blank" rel="noopener noreferrer">${esc(file.name)}</a>`:esc(file.name)).join(' · ')}</div></div>`:''}`:''}
           <div class="memo-field-row"><div class="memo-field"><label>Fecha</label><input class="control-input" type="date" value="${escAttr(_commsCurrent.date)}" oninput="commsSet('date',this.value)"></div><div class="memo-field"><label>Tipo de comunicado</label>${commsSelect('Tipo de comunicado',[{value:'',label:'Sin clasificar'},...COMMS_TYPES],_commsCurrent.category||'',v=>commsSet('category',v))}</div></div>
         </div>
         <div class="memo-form-section"><div class="memo-form-section-title">Clasificación interna</div><div class="memo-field"><label>Departamento</label>${commsSelect('Departamento',[{value:'',label:'Sin departamento'},...commsDepartments(),{value:'__new',label:'+ Agregar departamento'}],_commsCurrent.department||'',v=>v==='__new'?commsAddDepartment():commsSet('department',v))}</div><div class="memo-field"><label for="comms-tags">Etiquetas</label><input id="comms-tags" class="control-input" value="${escAttr((_commsCurrent.tags||[]).join(', '))}" placeholder="Ej. Capacitación, Horarios" oninput="commsSet('tags',[...new Set(this.value.split(',').map(t=>t.trim()).filter(Boolean))])"><span class="memo-rich-help">Separa las etiquetas con comas. La clasificación no se imprime.</span></div></div>
@@ -35128,11 +35325,10 @@ function renderCommunicationEditor(newsShell=false){
           <div class="memo-blocks">${_commsCurrent.blocks.map(commsOutlineBlock).join('')}</div>
           <div class="memo-field"><label>Despedida</label><input class="control-input" value="${escAttr(_commsCurrent.closing)}" oninput="commsSet('closing',this.value)"></div>
         </div>
-        <div class="memo-form-section"><div class="memo-form-section-title">Firmantes</div>${commsSignerPicker()}<button type="button" class="btn btn-secondary" data-saved-signatures onclick="commsSavedSignatures()">${siIcon('archive',16)} Usar firma guardada</button>
+        ${commsInMonday()?`<div class="memo-form-section"><div class="memo-form-section-title">Firmantes derivados de monday</div><p class="memo-rich-help">Las autoridades, cargos y firmas provienen de ÁREAS Y AUTORIDADES y no se editan manualmente aquí.</p>${commsSigners(_commsCurrent).filter(s=>s.signerName||s.signerTitle||s.signerDepartment||s.signature).map(s=>`<div class="memo-signature-record">${s.signature?`<img src="${escAttr(s.signature)}" alt="">`:''}<span><b>${esc(s.signerName||'Autoridad asignada')}</b><small>${esc(s.signerTitle||'Cargo no indicado')}${s.signerDepartment?' · '+esc(s.signerDepartment):''}</small></span></div>`).join('')||'<p class="memo-rich-help">La solicitud no tiene autoridades derivadas todavía.</p>'}</div>`:`<div class="memo-form-section"><div class="memo-form-section-title">Firmantes</div>${commsSignerPicker()}<button type="button" class="btn btn-secondary" data-saved-signatures onclick="commsSavedSignatures()">${siIcon('archive',16)} Usar firma guardada</button>
           <div class="memo-field-row"><div class="memo-field"><label>Nombre</label><input class="control-input" placeholder="Nombre de quien firma" value="${escAttr(commsSigner().signerName)}" oninput="commsSetSigner('signerName',this.value)"></div><div class="memo-field"><label for="memo-signer-title">Puesto</label><input id="memo-signer-title" class="control-input" placeholder="Ej. Gerente" value="${escAttr(commsSigner().signerTitle)}" oninput="commsSetSigner('signerTitle',this.value)"></div></div><div class="memo-field"><label for="memo-signer-department">Departamento</label><input id="memo-signer-department" class="control-input" placeholder="Ej. Talento Humano" value="${escAttr(commsSigner().signerDepartment||'')}" oninput="commsSetSigner('signerDepartment',this.value)"></div>
           <label class="memo-upload" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.querySelector('input[type=file]').click()}">${commsSigner().signature?`<img class="memo-thumb" src="${escAttr(commsSigner().signature)}" alt="Firma">`:siIcon('upload',18)}<span><b>${commsSigner().signature?'Cambiar firma':'Agregar firma'}</b><br><small>PNG transparente recomendado</small></span><input type="file" accept="image/*" onchange="commsSignature(this)"></label>
-        </div>
-        ${commsSigner().signature?`<div id="memo-remove-signature" class="memo-signature-actions"><button type="button" class="btn btn-secondary" data-save-signature onclick="commsSaveSignature()">${siIcon('save',16)} Guardar firma</button><button class="btn btn-ghost" onclick="commsRemoveSignature()">${siIcon('trash',16)} Quitar firma</button></div>`:''}
+        </div>${commsSigner().signature?`<div id="memo-remove-signature" class="memo-signature-actions"><button type="button" class="btn btn-secondary" data-save-signature onclick="commsSaveSignature()">${siIcon('save',16)} Guardar firma</button><button class="btn btn-ghost" onclick="commsRemoveSignature()">${siIcon('trash',16)} Quitar firma</button></div>`:''}`}
         <div class="memo-studio-actions"><span class="memo-save-state" id="memo-save-state" role="status">${esc(_commsLastSave)}</span><button class="btn btn-ghost" onclick="commsBack()">${siIcon('arrow-left',16)} Volver</button><button class="btn btn-secondary" data-memo-image-format="menu" ${_memoImageExporting?'disabled':''} aria-haspopup="menu" onclick="commsDownloadMenu(event)">${siIcon('download',16)} Descargar ${siIcon('chevron-down',14)}</button>${_commsUndo?`<button class="btn btn-ghost" onclick="commsUndoEdit()">${siIcon('rotate-ccw',16)} Deshacer</button>`:''}<span id="memo-image-export-status" class="memo-save-state" style="flex-basis:100%" role="status" aria-live="polite"></span></div>
       </div>
     </section>
@@ -35635,7 +35831,7 @@ function memoFeatureHtml(b){
   return`<section class="memo-feature memo-keep-together" style="display:grid;grid-template-columns:16mm minmax(0,1fr);gap:5mm;padding:5mm;margin:4mm 0 5mm;border-radius:2mm;background:#f5f5f5;break-inside:avoid;overflow-wrap:anywhere;-webkit-print-color-adjust:exact;print-color-adjust:exact"><span class="memo-feature-icon" style="display:grid;place-items:center;width:16mm;height:16mm;border-radius:3mm;background:${invitationSoftColor(color)};color:${color}">${siIcon(commsBulletIcon(b),34)}</span><div style="min-width:0">${b.title?`<h3 style="margin:0 0 2mm;font-size:14pt;line-height:1.25;font-weight:700;color:#0b0b0b">${esc(b.title)}</h3>`:''}<div class="memo-feature-copy" style="font-size:11pt;line-height:1.45;color:#444">${commsRichHtml(b)}</div>${b.showButton?`<${href?'a':'span'} class="memo-feature-button" ${href?`href="${escAttr(href)}" target="_blank" rel="noopener noreferrer"`:'aria-disabled="true"'} style="display:inline-block;margin-top:3mm;padding:2mm 4mm;border-radius:2mm;background:#0b0b0b;color:#fff;font-size:10pt;text-decoration:none">${esc(b.buttonText||'Más información')}</${href?'a':'span'}>${b.url?`<div style="font-size:9pt;margin-top:2mm">${esc(b.url)}</div>`:''}`:''}</div></section>`;
 }
 function memoLogoHtml(){return`<div class="memo-logo">${LBL_LOGO_SVG}</div>`}
-function memoFolio(d){const year=(d.date||new Date().toISOString()).slice(0,4),number=String(Number(d.communicationNumber)||1).padStart(3,'0');return`${d.kind==='aviso'?'AVI':d.kind==='circular'?'CIR':'COM'}-${year}-${number}`}
+function memoFolio(d){if(String(d.externalFolio||'').trim())return String(d.externalFolio).trim();const year=(d.date||new Date().toISOString()).slice(0,4),number=String(Number(d.communicationNumber)||1).padStart(3,'0');return`${d.kind==='aviso'?'AVI':d.kind==='circular'?'CIR':'COM'}-${year}-${number}`}
 function commsInk(color){const h=String(color||'#16cdbe').replace('#',''),rgb=h.length===6?[0,2,4].map(i=>parseInt(h.slice(i,i+2),16)):[22,205,190];return(rgb[0]*299+rgb[1]*587+rgb[2]*114)/1000>150?'#0b0b0b':'#ffffff'}
 function memoOrgPersonCard(p,depth){return`<div class="memo-person-card memo-person-card-level-${Math.min(depth,4)}">${p.photo?`<img src="${escAttr(p.photo)}" alt="${escAttr(p.name)}">`:`<div class="memo-person-card-placeholder">Foto</div>`}<div class="memo-person-name">${esc(p.name||'Persona sin nombre')}</div><div class="memo-person-role">${esc(p.role||'Puesto')}</div><div class="memo-person-dept">${esc(p.department||'Departamento')}</div></div>`}
 function memoOrgBranch(people,person,path=new Set(),depth=0){if(path.has(person.uid))return'';const next=new Set(path);next.add(person.uid);const children=people.filter(p=>p.parent===person.uid);return`<li>${memoOrgPersonCard(person,depth)}${children.length?`<ul>${children.map(child=>memoOrgBranch(people,child,next,depth+1)).join('')}</ul>`:''}</li>`}
@@ -35878,7 +36074,7 @@ function commsForgetActive(){try{sessionStorage.removeItem(commsActiveStateKey()
 function commsRestoreActive(){if(!me?.id||!can('read','communications'))return false;let state;try{state=JSON.parse(sessionStorage.getItem(commsActiveStateKey())||'null')}catch{state=null}const draft=state&&typeof state.id==='string'?_commsDrafts.find(item=>item.id===state.id):null;if(!draft){commsForgetActive();return false}_commsCurrent=JSON.parse(JSON.stringify(draft));_commsEditorTab=['info','content','signature'].includes(state.tab)?state.tab:'content';if(_commsCurrent.kind==='aviso'&&_commsEditorTab==='content')_commsEditorTab='info';_commsUndo=null;_memoPreviewZoom='width';renderCommunicationEditor();return true}
 function commsLoad(){try{const raw=commsStorageParse(localStorage.getItem(commsStorageKey(COMMS_STORE_KEY))||'[]');_commsDrafts=Array.isArray(raw)?raw.filter(d=>d&&typeof d.id==='string').map(commsNormalize):[]}catch{_commsDrafts=[];toast('No se pudieron leer los comunicados guardados.')}}
 function commsWriteAll(drafts){try{if(_commsStorageBlocked)throw Error('Almacenamiento no disponible');localStorage.setItem(commsStorageKey(COMMS_STORE_KEY),commsStorageJson(drafts));_commsDrafts=drafts;_commsLastSave='Guardado en este navegador';document.getElementById('memo-save-recovery')?.remove();return true}catch{commsSaveFailure();return false}}
-function commsPersist(){clearTimeout(_commsSaveTimer);if(!_commsCurrent)return true;const d=JSON.parse(JSON.stringify(_commsCurrent));d.updatedAt=new Date().toISOString();const next=_commsDrafts.filter(x=>x.id!==d.id);next.unshift(d);const ok=commsWriteAll(next);if(ok){_commsCurrent=d;commsRememberActive()}const state=document.getElementById('memo-save-state');if(state)state.textContent=_commsLastSave;return ok}
+function commsPersist(){clearTimeout(_commsSaveTimer);if(!_commsCurrent)return true;const d=JSON.parse(JSON.stringify(_commsCurrent));d.updatedAt=new Date().toISOString();const next=_commsDrafts.filter(x=>x.id!==d.id);next.unshift(d);const ok=commsWriteAll(next);if(ok){_commsCurrent=d;commsRememberActive();if(typeof mondayCommsScheduleDraftSync==='function')mondayCommsScheduleDraftSync(d)}const state=document.getElementById('memo-save-state');if(state)state.textContent=_commsLastSave;return ok}
 function commsAutosave(){clearTimeout(_commsSaveTimer);_commsLastSave='Guardando…';const e=document.getElementById('memo-save-state');if(e)e.textContent=_commsLastSave;_commsSaveTimer=setTimeout(commsPersist,450)}
 function commsNextNumber(year){const key=commsStorageKey('sierra_comms_numbers_v1');let counters;try{counters=JSON.parse(localStorage.getItem(key)||'{}');if(!counters||typeof counters!=='object')counters={};const n=Math.max(Number(counters[year])||0,..._commsDrafts.filter(d=>(d.date||'').startsWith(String(year))).map(d=>Number(d.communicationNumber)||0))+1;counters[year]=n;localStorage.setItem(key,JSON.stringify(counters));return n}catch{throw new Error('No se pudo reservar un folio. Libera espacio en el navegador e inténtalo de nuevo.')}}
 function commsRecordHighWater(){try{const key=commsStorageKey('sierra_comms_numbers_v1'),counters=JSON.parse(localStorage.getItem(key)||'{}');_commsDrafts.forEach(d=>{const y=(d.date||'').slice(0,4);if(y)counters[y]=Math.max(Number(counters[y])||0,Number(d.communicationNumber)||0)});localStorage.setItem(key,JSON.stringify(counters));return true}catch{toast('No se pudo proteger el consecutivo. Inténtalo de nuevo.');return false}}
@@ -35927,10 +36123,23 @@ async function commsMondayInvoke(body){
   if(data?.error)throw Error(data.error)
   return data
 }
+function mondayCommsSignerSeeds(r){
+  const names=Array.isArray(r.authorities)?r.authorities:[],titles=Array.isArray(r.authorityTitles)?r.authorityTitles:[],signatures=Array.isArray(r.signatures)?r.signatures:[],areas=Array.isArray(r.issuingAreas)?r.issuingAreas:[],records=Array.isArray(r.authorityRecords)?r.authorityRecords:[]
+  const count=Math.max(names.length,titles.length,signatures.length,records.length)
+  return Array.from({length:count},(_,index)=>{const record=records.find(candidate=>normalizeBadgeOrgIdentity(candidate.area)===normalizeBadgeOrgIdentity(areas[index]))||records[index]||{};return{signerName:names[index]||'',signerTitle:titles[index]||record.title||'',signerDepartment:areas[index]||record.area||record.department||'',signature:signatures[index]||record.signature||''}}).filter(s=>s.signerName||s.signerTitle||s.signerDepartment||s.signature)
+}
 function commsMondaySeed(r){
   const detail=[r.details,r.channel?`Canal solicitado: ${r.channel}`:'',r.deadline?`Fecha requerida: ${r.deadline}`:'',r.priority?`Prioridad: ${r.priority}`:'',r.email?`Contacto: ${r.email}`:''].filter(Boolean).join('\n\n')||r.summary||'Completa el contenido con la información enviada en la solicitud.'
-  const common={source:'monday',mondayItemId:r.id,status:'Borrador',subject:r.name||'Solicitud de comunicado',date:new Date().toISOString().slice(0,10),country:r.country||'',department:r.department||'',audience:r.audience||'Colaboradores SIERRA',blocks:[{id:'b-'+crypto.randomUUID(),type:'text',style:'regular',content:detail}]}
-  if(r.kind==='memo')return createCommunicationDraft({...common,sender:r.department||'Comunicaciones Corporativas'})
+  const blocks=[]
+  const addBlock=(style,content)=>{if(String(content||'').trim())blocks.push({id:'b-'+crypto.randomUUID(),type:'text',style,content:String(content).trim()})}
+  addBlock('regular',r.objective||r.summary||r.details)
+  addBlock('bullets',r.requiredInfo)
+  if(normalizeBadgeOrgIdentity(r.actionRequired)==='si'||String(r.action||'').trim())addBlock('emphasis',r.action?`Acción requerida: ${r.action}`:'Los destinatarios deben realizar una acción.')
+  if(r.effectiveDate)addBlock('regular',`Vigencia: ${r.effectiveDate}`)
+  if(!blocks.length)addBlock('regular','Completa el contenido con la información enviada en la solicitud.')
+  const signers=mondayCommsSignerSeeds(r),first=signers[0]||{},audience=r.specificRecipients||r.audience||'Colaboradores SIERRA'
+  const common={source:'monday',mondayItemId:r.id,status:'Borrador',subject:r.name||'Solicitud de comunicado',date:new Date().toISOString().slice(0,10),country:r.country||'',company:r.company||'',plant:r.plant||'',externalFolio:r.correlativo||'',department:r.department||'',issuingAreas:r.issuingAreas||[],audience,audienceCategory:r.audience||'',specificRecipients:r.specificRecipients||'',objective:r.objective||'',requiredInfo:r.requiredInfo||'',actionRequired:r.actionRequired||'',action:r.action||'',effectiveDate:r.effectiveDate||'',requestedSendDate:r.deadline||'',mondayAttachments:r.attachments||[],blocks}
+  if(r.kind==='memo')return createCommunicationDraft({...common,sender:(r.issuingAreas||[]).join(', ')||r.department||'Comunicaciones Corporativas',...first,additionalSigners:signers.slice(1)})
   if(r.kind==='aviso')return createNoticeDraft({...common,company:r.company||'SIERRA',noticeMessage:r.summary||detail})
   if(r.kind==='convocatoria')return createInvitationDraft({...common,department:r.department||'',sender:r.department||'Comunicaciones',eyebrow:(r.department||'Comunicaciones')+' informa',focus:r.country||r.company||'',intro:r.summary||detail,location:''})
   return createNewsDraft({...common,company:r.company||'SIERRA',newsPlant:r.plant&&r.plant!==r.company?r.plant:'',newsDepartment:r.department||'',summary:r.summary||'',author:r.requester||''})
@@ -35944,7 +36153,7 @@ async function commsImportMondayRequest(itemId){
     if(can('write','communications'))await commsMondayInvoke({action:'claim',item_id:row.id})
   }catch(error){toast('Se creó el borrador, pero no se pudo actualizar Monday: '+error.message,7000)}
   try{
-    _commsEditorTab=row.kind==='circular'||row.kind==='aviso'?'info':'content';_commsCurrent=commsNormalize(commsMondaySeed(row));_memoPreviewZoom='width';_commsUndo=null;if(!commsPersist())return;document.querySelector('.comms-monday-dialog')?.close();renderCommunicationEditor();toast('Solicitud importada desde Monday.')
+    _commsEditorTab=row.kind==='circular'||row.kind==='aviso'?'info':'content';_commsCurrent=commsNormalize(commsMondaySeed(row));_memoPreviewZoom='width';_commsUndo=null;if(!commsPersist())return;try{if(can('write','communications'))await commsMondayInvoke({action:'sync_draft',item_id:row.id,sierra_id:_commsCurrent.id,editor_url:row.url})}catch(error){toast('El borrador se guardó, pero no se pudo devolver el enlace a monday: '+error.message,7000)}document.querySelector('.comms-monday-dialog')?.close();renderCommunicationEditor();toast('Solicitud importada desde Monday.')
   }catch(error){toast(error.message||'No se pudo crear el borrador.')}
 }
 let _commsMondayRows=[]
@@ -35956,7 +36165,7 @@ function commsMondayRender(dialog,state='loading',message=''){
 }
 async function commsOpenMondayRequests(){
   const previous=document.activeElement,dialog=document.createElement('dialog');dialog.className='modal-content comms-confirm comms-monday-dialog';dialog.setAttribute('aria-label','Solicitudes de comunicados en Monday');dialog.innerHTML=`<div class="modal-header"><h2>Solicitudes Monday</h2><button type="button" class="icon-btn" aria-label="Cerrar">${siIcon('x',16)}</button></div><p class="memo-rich-help">Importa la información enviada por el formulario y úsala como punto de partida para crear el comunicado.</p><div data-monday-body></div><div class="modal-footer"><button type="button" class="btn btn-secondary">Cerrar</button><button type="button" class="btn btn-secondary" data-refresh>${siIcon('refresh',16)} Actualizar</button></div>`;const load=async()=>{commsMondayRender(dialog);try{const data=await commsMondayInvoke({action:'list',limit:80});_commsMondayRows=data.requests||[];commsMondayRender(dialog,'ready')}catch(error){commsMondayRender(dialog,'error',error.message)}};dialog.querySelector('.modal-header button').onclick=()=>dialog.close();dialog.querySelector('.modal-footer button').onclick=()=>dialog.close();dialog.querySelector('[data-refresh]').onclick=load;dialog.addEventListener('close',()=>{dialog.remove();if(previous?.isConnected)previous.focus()},{once:true});document.body.append(dialog);dialog.showModal();load()}
-function renderCommunicationsHome(){if(_mondayCommsBridge){openMondayCommunicationRequest(_mondayCommsBridge.request);return}commsPrepareRender();clearSecCrumbs();const pg=document.getElementById('pg');pg.style.display='block';pg.innerHTML=`<div class="comms-home comms-ui"><div class="comms-toolbar"><div class="comms-kind-tabs" role="group" aria-label="Clase de documento">${[['','Todos','file'],['memo','Memos','file'],['convocatoria','Convocatorias','calendar'],['circular','Circulares','text-size'],['aviso','Avisos','bell']].map(([kind,label,icon])=>`<button type="button" class="comms-kind-tab" data-kind="${kind}" aria-pressed="${_commsKind===kind}" onclick="commsSetKind('${kind}')">${siIcon(icon,18)}<span>${label}</span><span class="comms-kind-count">${_commsDrafts.filter(d=>d.lifecycle===_commsView&&(!kind||(d.kind||'memo')===kind)).length}</span></button>`).join('')}</div><div class="comms-header-actions"><button class="btn btn-secondary" onclick="commsOpenMondayRequests()">${siIcon('columns',15)} Solicitudes Monday</button><button class="btn btn-secondary" onclick="newNoticeDraft()">${siIcon('file',15)} Nuevo aviso</button><button class="btn btn-secondary" onclick="newNewsDraft()">${siIcon('text-size',15)} Nueva circular</button><button class="btn btn-secondary" onclick="newInvitationDraft()">${siIcon('calendar',15)} Nueva convocatoria</button><button class="btn btn-primary" onclick="newCommunicationDraft()">${siIcon('file',15)} Nuevo memo</button></div></div><div class="pd-tabs comms-lifecycle-tabs" role="group" aria-label="Ubicación de los comunicados">${[['active','Activos'],['archived','Archivados'],['trashed','Papelera']].map(([key,label])=>`<button class="pd-tab ${_commsView===key?'active':''}" aria-pressed="${_commsView===key}" onclick="_commsView='${key}';renderCommunicationsHome()">${siIcon({active:'file',archived:'archive',trashed:'trash'}[key],16)} ${label} <span>${_commsDrafts.filter(d=>d.lifecycle===key).length}</span></button>`).join('')}</div><div class="comms-filterbar"><input class="control-input comms-search" aria-label="Buscar comunicados" placeholder="Buscar por folio, asunto o remitente…" value="${escAttr(_commsQuery)}" oninput="_commsQuery=this.value;renderCommunicationsResults()">${commsSelect('Clasificación',[{value:'',label:'Todas las clasificaciones'},...COMMS_TYPES,{value:'__none',label:'Sin clasificar'}],_commsFilters.type,v=>commsSetFilter('type',v))}${commsSelect('Departamento',[{value:'',label:'Todos los departamentos'},...commsDepartments(),{value:'__none',label:'Sin departamento'}],_commsFilters.department,v=>commsSetFilter('department',v))}${commsSelect('Estado',[{value:'',label:'Todos los estados'},'Borrador','En revisión','Aprobado'],_commsFilters.status,v=>commsSetFilter('status',v))}${commsSelect('Orden',[{value:'updated',label:'Última modificación'},{value:'date',label:'Fecha del comunicado'},{value:'folio',label:'Folio'}],_commsFilters.sort,v=>commsSetFilter('sort',v))}<button class="btn btn-ghost" onclick="_commsQuery='';_commsKind='';_commsFilters={type:'',department:'',status:'',sort:'updated'};renderCommunicationsHome()">${siIcon('x',16)} Limpiar filtros</button></div><div id="comms-results" aria-live="polite"></div></div>`;renderCommunicationsResults();commsRenderLegacyRecovery()}
+function renderCommunicationsHome(){if(commsInMonday()){openMondayCommunicationRequest(_mondayCommsBridge.request);return}commsPrepareRender();clearSecCrumbs();const pg=document.getElementById('pg');pg.style.display='block';pg.innerHTML=`<div class="comms-home comms-ui"><div class="comms-toolbar"><div class="comms-kind-tabs" role="group" aria-label="Clase de documento">${[['','Todos','file'],['memo','Memos','file'],['convocatoria','Convocatorias','calendar'],['circular','Circulares','text-size'],['aviso','Avisos','bell']].map(([kind,label,icon])=>`<button type="button" class="comms-kind-tab" data-kind="${kind}" aria-pressed="${_commsKind===kind}" onclick="commsSetKind('${kind}')">${siIcon(icon,18)}<span>${label}</span><span class="comms-kind-count">${_commsDrafts.filter(d=>d.lifecycle===_commsView&&(!kind||(d.kind||'memo')===kind)).length}</span></button>`).join('')}</div><div class="comms-header-actions"><button class="btn btn-secondary" onclick="commsOpenMondayRequests()">${siIcon('columns',15)} Solicitudes Monday</button><button class="btn btn-secondary" onclick="newNoticeDraft()">${siIcon('file',15)} Nuevo aviso</button><button class="btn btn-secondary" onclick="newNewsDraft()">${siIcon('text-size',15)} Nueva circular</button><button class="btn btn-secondary" onclick="newInvitationDraft()">${siIcon('calendar',15)} Nueva convocatoria</button><button class="btn btn-primary" onclick="newCommunicationDraft()">${siIcon('file',15)} Nuevo memo</button></div></div><div class="pd-tabs comms-lifecycle-tabs" role="group" aria-label="Ubicación de los comunicados">${[['active','Activos'],['archived','Archivados'],['trashed','Papelera']].map(([key,label])=>`<button class="pd-tab ${_commsView===key?'active':''}" aria-pressed="${_commsView===key}" onclick="_commsView='${key}';renderCommunicationsHome()">${siIcon({active:'file',archived:'archive',trashed:'trash'}[key],16)} ${label} <span>${_commsDrafts.filter(d=>d.lifecycle===key).length}</span></button>`).join('')}</div><div class="comms-filterbar"><input class="control-input comms-search" aria-label="Buscar comunicados" placeholder="Buscar por folio, asunto o remitente…" value="${escAttr(_commsQuery)}" oninput="_commsQuery=this.value;renderCommunicationsResults()">${commsSelect('Clasificación',[{value:'',label:'Todas las clasificaciones'},...COMMS_TYPES,{value:'__none',label:'Sin clasificar'}],_commsFilters.type,v=>commsSetFilter('type',v))}${commsSelect('Departamento',[{value:'',label:'Todos los departamentos'},...commsDepartments(),{value:'__none',label:'Sin departamento'}],_commsFilters.department,v=>commsSetFilter('department',v))}${commsSelect('Estado',[{value:'',label:'Todos los estados'},'Borrador','En revisión','Aprobado'],_commsFilters.status,v=>commsSetFilter('status',v))}${commsSelect('Orden',[{value:'updated',label:'Última modificación'},{value:'date',label:'Fecha del comunicado'},{value:'folio',label:'Folio'}],_commsFilters.sort,v=>commsSetFilter('sort',v))}<button class="btn btn-ghost" onclick="_commsQuery='';_commsKind='';_commsFilters={type:'',department:'',status:'',sort:'updated'};renderCommunicationsHome()">${siIcon('x',16)} Limpiar filtros</button></div><div id="comms-results" aria-live="polite"></div></div>`;renderCommunicationsResults();commsRenderLegacyRecovery()}
 function commsFiltered(){const q=_commsQuery.trim().toLocaleLowerCase('es');return _commsDrafts.filter(d=>d.lifecycle===_commsView&&(!_commsKind||(d.kind||'memo')===_commsKind)&&(!q||[memoFolio(d),d.subject,d.company,d.country,d.author,d.sender,d.signerName,d.audience,d.department,d.category,d.eyebrow,d.focus,...d.tags].join(' ').toLocaleLowerCase('es').includes(q))&&(!_commsFilters.type||(_commsFilters.type==='__conv'?d.kind==='convocatoria':_commsFilters.type==='__none'?!d.category&&d.kind!=='convocatoria':d.category===_commsFilters.type))&&(!_commsFilters.department||(_commsFilters.department==='__none'?!d.department:d.department===_commsFilters.department))&&(!_commsFilters.status||d.status===_commsFilters.status)).sort((a,b)=>_commsFilters.sort==='folio'?memoFolio(b).localeCompare(memoFolio(a),undefined,{numeric:true}):String(_commsFilters.sort==='date'?b.date:b.updatedAt||b.createdAt).localeCompare(String(_commsFilters.sort==='date'?a.date:a.updatedAt||a.createdAt)))}
 function renderCommunicationsResults(){
   const el=document.getElementById('comms-results');if(!el)return;const rows=commsFiltered();
@@ -35969,7 +36178,7 @@ function renderCommunicationsResults(){
 function newCommunicationDraft(){_commsEditorTab='info';if(_commsCurrent&&!commsPersist())return;try{_commsCurrent=commsNormalize(createCommunicationDraft());_memoPreviewZoom='width';_commsUndo=null;if(!commsPersist())return;renderCommunicationEditor()}catch(e){toast(e.message)}}
 function newInvitationDraft(){_commsEditorTab='info';if(_commsCurrent&&!commsPersist())return;try{_commsCurrent=commsNormalize(createInvitationDraft());_memoPreviewZoom='width';_commsUndo=null;if(!commsPersist())return;renderCommunicationEditor()}catch(e){toast(e.message)}}
 function openCommunicationDraft(id){_commsEditorTab='content';if(_commsCurrent&&!commsPersist())return;const d=_commsDrafts.find(d=>d.id===id);if(!d)return;_commsCurrent=JSON.parse(JSON.stringify(d));if(d.kind==='aviso')_commsEditorTab='info';_commsUndo=null;_memoPreviewZoom='width';commsRememberActive();renderCommunicationEditor();return true}
-function commsBack(){if(!commsPersist())return;if(_mondayCommsBridge){toast('Esta vista está limitada al memo de la solicitud seleccionada.');return}commsForgetActive();_commsCurrent=null;document.getElementById('sec-title').textContent='Comunicaciones';document.getElementById('sec-sub').textContent='Biblioteca de comunicados';renderCommunicationsHome()}
+function commsBack(){if(!commsPersist())return;if(commsInMonday()){toast('Esta vista está limitada al memo de la solicitud seleccionada.');return}commsForgetActive();_commsCurrent=null;document.getElementById('sec-title').textContent='Comunicaciones';document.getElementById('sec-sub').textContent='Biblioteca de comunicados';renderCommunicationsHome()}
 function commsLifecycle(id,action){commsCloseMenu();if(_commsCurrent&&!commsPersist())return;const next=JSON.parse(JSON.stringify(_commsDrafts)),d=next.find(d=>d.id===id);if(!d)return;if(action==='trash'){d.previousLifecycle=d.lifecycle;d.lifecycle='trashed';d.deletedAt=new Date().toISOString()}else if(action==='restore'){d.lifecycle=d.previousLifecycle==='archived'?'archived':'active';delete d.deletedAt;delete d.previousLifecycle}else{d.lifecycle=action==='archive'?'archived':'active';d.archivedAt=action==='archive'?new Date().toISOString():null}d.updatedAt=new Date().toISOString();if(!commsWriteAll(next))return;if(_commsCurrent?.id===id)commsForgetActive();_commsCurrent=null;renderCommunicationsHome();toast(action==='trash'?'Comunicado movido a papelera. Puedes restaurarlo desde esa vista.':action==='restore'?'Comunicado restaurado.':action==='archive'?'Comunicado archivado.':'Comunicado desarchivado.')}
 function commsDuplicate(id){commsCloseMenu();if(_commsCurrent&&!commsPersist())return;const d=_commsDrafts.find(d=>d.id===id);if(!d||d.lifecycle==='trashed')return;try{const seed=JSON.parse(JSON.stringify(d));delete seed.id;delete seed.communicationNumber;delete seed.createdAt;delete seed.mondayItemId;seed.source='manual';seed.subject=(d.subject||'Comunicado')+' — copia';seed.date=new Date().toISOString().slice(0,10);seed.status='Borrador';_commsCurrent=commsNormalize(d.kind==='convocatoria'?createInvitationDraft(seed):d.kind==='circular'?createNewsDraft(seed):d.kind==='aviso'?createNoticeDraft(seed):createCommunicationDraft(seed));_commsCurrent.category=d.category||'';_commsCurrent.department=d.department||'';_commsCurrent.tags=[...(d.tags||[])];if(_commsCurrent.kind!=='convocatoria'){_commsCurrent.signature='';(_commsCurrent.additionalSigners||[]).forEach(s=>s.signature='')} _commsView='active';_commsUndo=null;if(commsPersist())renderCommunicationEditor()}catch(e){toast(e.message)}}
 function commsDeletePermanently(id){commsCloseMenu();const d=_commsDrafts.find(d=>d.id===id);if(!d||d.lifecycle!=='trashed')return;commsConfirm(`Eliminar definitivamente ${memoFolio(d)}`,`Se eliminará «${d.subject}». Esta acción no se puede deshacer.`,()=>{clearTimeout(_commsSaveTimer);if(!commsRecordHighWater())return;const next=_commsDrafts.filter(x=>x.id!==id);if(!commsWriteAll(next))return;_commsCurrent=null;renderCommunicationsHome();toast('Comunicado eliminado definitivamente.')})}
@@ -36100,7 +36309,7 @@ function commsShowPdfBlob(blob,d){
 }
 async function commsExportPdf(mode='download'){
   if(!_commsCurrent||_memoImageExporting)return;if(!commsPersist())return;const draft=JSON.parse(JSON.stringify(_commsCurrent));_memoImageExporting=true;memoImageExportState(true,'Preparando PDF…');
-  try{const blob=await memoPdfBlob(draft);if(mode==='preview')commsShowPdfBlob(blob,draft);else commsSavePdfBlob(blob,draft);memoImageExportState(false,mode==='preview'?'PDF listo.':'Descarga PDF iniciada.')}
+  try{const blob=await memoPdfBlob(draft);if(mode==='preview')commsShowPdfBlob(blob,draft);else{commsSavePdfBlob(blob,draft);if(commsInMonday()){memoImageExportState(true,'Guardando PDF final en monday…');try{await mondayCommsUploadFinalPdf(blob,draft);toast('PDF final guardado en monday.',4500)}catch(error){console.error('monday final PDF:',error);toast('El PDF se descargó, pero no se pudo guardar en monday: '+(error?.message||'Error desconocido'),7000)}}}memoImageExportState(false,mode==='preview'?'PDF listo.':'Descarga PDF iniciada.')}
   catch(error){memoImageExportState(false,'No se pudo generar el PDF.');alert(error.message)}finally{_memoImageExporting=false;memoImageExportState(false,document.getElementById('memo-image-export-status')?.textContent||'')}
 }
 async function commsPrintDocument(){
