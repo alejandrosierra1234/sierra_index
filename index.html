@@ -9101,7 +9101,13 @@ function mondayCommsColumn(item, key, type = null) {
 }
 
 function mondayCommsColumnText(item, key) {
-  return String(mondayCommsColumn(item, key)?.text || '').trim()
+  const titles = MONDAY_COMMS_COLUMNS[key] || []
+  for (const title of titles) {
+    const column = mondayColumnByApprovedTitles(item, [title])
+    const text = String(column?.display_value || column?.text || '').trim()
+    if (text) return text
+  }
+  return ''
 }
 
 function mondayCommsList(value, splitCommas = false) {
@@ -9286,10 +9292,14 @@ async function mondayFetchCommunicationItem(monday, id) {
   const query = `query ($ids: [ID!]!) {
     items(ids: $ids) {
       id name board { id }
-      column_values { id type text value column { title } }
+      column_values {
+        id type text value column { title }
+        ... on BoardRelationValue { display_value }
+        ... on MirrorValue { display_value }
+      }
     }
   }`
-  const response = await monday.api(query, { variables: { ids: [itemId] } })
+  const response = await monday.api(query, { apiVersion: '2025-04', variables: { ids: [itemId] } })
   if (response?.errors?.length) throw new Error(response.errors.map(error => error.message).join(' · '))
   return response?.data?.items?.[0] || null
 }

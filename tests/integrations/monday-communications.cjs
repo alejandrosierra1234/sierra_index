@@ -17,6 +17,8 @@ assert.ok(source.includes("const MONDAY_MEMO_ONLY_BOARD_IDS = new Set(['18430793
 assert.ok(source.includes("const MONDAY_AUTHORITIES_BOARD_ID = '18432680039'"));
 assert.ok(source.includes('mondayHydrateMemoRequest(monday, item, mondayCommsRequestFromItem(item))'));
 assert.ok(source.includes("issuingAreas: mondayCommsList(mondayCommsColumnText(item, 'department'), true)"));
+assert.ok(source.includes('... on MirrorValue { display_value }'));
+assert.ok(source.includes('column?.display_value || column?.text'));
 assert.ok(source.includes("mondayCommsWriteColumn('sierraId', draft.id)"));
 assert.ok(source.includes("mondayCommsWriteColumn('editorUrl'"));
 assert.ok(source.includes("mondayCommsWriteColumn('syncStatus', 'Sincronizado')"));
