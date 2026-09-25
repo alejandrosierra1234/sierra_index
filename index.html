@@ -7394,7 +7394,7 @@
 .invite-palette-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.invite-palette-option{display:grid;grid-template-columns:54px minmax(0,1fr) 18px;gap:10px;align-items:center;min-height:58px;padding:9px 10px;border:1px solid var(--border);border-radius:var(--control-radius);background:var(--surface);color:var(--text-primary);font:inherit;text-align:left;cursor:pointer}.invite-palette-option:hover{background:var(--surface-hover)}.invite-palette-option[aria-checked="true"]{border-color:#007d73;box-shadow:inset 0 0 0 1px #007d73}.invite-palette-swatches{display:grid;grid-template-columns:repeat(3,1fr);width:54px;height:30px;overflow:hidden;border:1px solid rgba(0,0,0,.12);border-radius:6px}.invite-palette-copy{min-width:0}.invite-palette-copy b,.invite-palette-copy small{display:block}.invite-palette-copy b{font-size:13px}.invite-palette-copy small{margin-top:2px;color:var(--text-muted);font-size:11px;line-height:1.25}.invite-palette-check{display:grid;place-items:center;color:#007d73}.invite-palette-note{margin:7px 0 0;color:var(--text-muted);font-size:12px;line-height:1.35}@media(max-width:520px){.invite-palette-options{grid-template-columns:1fr}}
 .invite-virtual-editor{display:grid;gap:12px;padding:14px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface)}.invite-virtual-editor-head{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:center}.invite-virtual-editor-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:8px;background:var(--accent-light);color:#007d73}.invite-virtual-editor-head b,.invite-virtual-editor-head small{display:block}.invite-virtual-editor-head small{margin-top:2px;color:var(--text-muted);font-size:11px}.invite-virtual-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.invite-event-access{display:grid;gap:4mm;margin-top:5mm;padding:4mm;border-radius:3mm;background:var(--invite-primary-soft);border:.25mm solid var(--invite-primary)}.invite-event-access-head{display:flex;align-items:center;gap:2mm;color:var(--invite-primary)}.invite-event-access-head b{font-size:9pt}.invite-event-access-body{display:grid;grid-template-columns:22mm minmax(0,1fr);gap:4mm;align-items:center}.invite-event-access-body.no-qr{grid-template-columns:minmax(0,1fr)}.invite-event-access img{width:22mm;height:22mm;object-fit:contain;background:#fff;border-radius:1.5mm}.invite-event-access-copy{display:grid;justify-items:start;gap:1.5mm}.invite-event-access-copy small{color:#555;font-size:7.5pt;line-height:1.3}.invite-event-access .invite-cta-button{margin-top:0}@media(max-width:520px){.invite-virtual-options{grid-template-columns:1fr}}
 .memo-form-section[hidden],#memo-remove-signature[hidden]{display:none!important}.memo-editor-tabs{display:flex;gap:4px;padding:8px 16px;border-bottom:1px solid var(--border);flex-shrink:0}.memo-editor-tabs button{flex:1;border:0;border-radius:var(--control-radius);background:none;color:var(--text-muted);min-height:36px;font:inherit;font-size:14px;cursor:pointer}.memo-editor-tabs button[aria-pressed=true]{background:var(--surface-hover);color:var(--text-primary);font-weight:600}.memo-editor-tabs button:focus-visible{outline:2px solid #007d73}.memo-add-tools{border:1px solid var(--border);border-radius:var(--control-radius)}.memo-add-tools summary{display:flex;align-items:center;gap:8px;padding:10px 12px;font-size:14px;cursor:pointer;list-style:none}.memo-add-tools summary::-webkit-details-marker{display:none}.memo-add-tools summary svg:last-child{margin-left:auto}.memo-add-tools .memo-insert{border:0}.memo-add-tools .memo-insert-heading{display:none}.memo-signature-actions{display:flex;flex-wrap:wrap;gap:8px}.memo-signature-list{display:grid;gap:10px;max-height:50vh;overflow:auto;margin:16px 0}.memo-signature-record{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:var(--control-radius);padding:8px}.memo-signature-use{display:flex;align-items:center;gap:12px;flex:1;text-align:left;background:none;border:0;color:var(--text-primary);font:inherit;cursor:pointer}.memo-signature-use img{width:84px;height:48px;object-fit:contain;background:white;border-radius:4px}.memo-signature-use small{display:block;color:var(--text-muted);margin-top:4px}.memo-signatures-dialog{width:min(520px,90vw)}.memo-proof-dialog{position:fixed;inset:0;margin:auto;width:min(620px,94vw);max-height:90vh;overflow:auto}.memo-proof-content{display:grid;gap:12px;margin:20px 0}.memo-proof-content p{margin:0;overflow-wrap:anywhere}.memo-proof-content strong{font-size:22px;overflow-wrap:anywhere}
-.memo-review-workflow{display:flex;flex:1 1 100%;align-items:center;gap:8px;flex-wrap:wrap;padding:10px;border:1px solid var(--border);border-radius:var(--control-radius);background:var(--surface-subtle)}.memo-review-workflow>div{display:grid;gap:2px;min-width:180px;margin-right:auto}.memo-review-workflow small{color:var(--text-muted);font-size:12px;line-height:1.35}
+.memo-review-workflow{display:flex;flex:1 1 100%;align-items:center;gap:8px;flex-wrap:wrap;padding:10px;border:1px solid var(--border);border-radius:var(--control-radius);background:var(--surface-subtle);transition:border-color .2s ease,background .2s ease,box-shadow .2s ease}.memo-review-workflow>div{display:grid;gap:2px;min-width:180px;margin-right:auto}.memo-review-workflow small{color:var(--text-muted);font-size:12px;line-height:1.35}.memo-review-workflow.is-success{border-color:var(--success-border);background:var(--success-bg);box-shadow:0 0 0 1px var(--success-border)}.memo-review-workflow.is-success b{display:flex;align-items:center;gap:6px;color:var(--success)}.memo-review-workflow.is-success b svg{flex:none}
 .memo-rich-editor[data-text-style=title]{min-height:60px;font-size:22px;font-weight:700}.memo-rich-editor[data-text-style=heading]{min-height:56px;font-size:17px;font-weight:700}.memo-rich-editor[data-text-style=subtitle]{min-height:56px;font-size:15px;font-weight:500}.memo-rich-editor[data-text-style=caption]{min-height:48px;font-size:12px}.memo-block>.memo-rich-help{display:none}
 .invite-hero{gap:7mm!important;margin-bottom:7mm!important}.invite-title-zone{gap:3mm!important}.invite-slot-title{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:2.5mm}.invite-slot-details{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2.5mm;margin:0!important}.invite-chip{grid-template-columns:7mm minmax(0,1fr);gap:2.5mm;min-height:12mm;padding:2.5mm 3mm;border-radius:3mm;font-size:8.5pt}.invite-chip b{margin-bottom:.5mm;font-size:6.5pt}.invite-chip-date .invite-chip-value{font-size:9.5pt}.invite-date-caption{margin-top:2mm;font-size:7pt;line-height:1.2;color:#77766f;text-align:center;overflow-wrap:anywhere}.invite-layout{gap:6mm!important}.invite-stack{gap:6mm!important}.invite-details{gap:3.5mm!important}.invite-main-image,.invite-empty-media{height:116mm!important}.invite-slot-footer{margin:0 0 3mm!important;max-width:92mm}.invite-footer{padding-top:5mm!important}
 .invite-composition-control{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:12px;align-items:center;padding:12px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface-subtle)}.invite-composition-control b,.invite-composition-control span{display:block}.invite-composition-control b{font-size:13px}.invite-composition-control span{margin-top:3px;font-size:12px;color:var(--text-muted)}.invite-add-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.invite-add-card-grid .btn{justify-content:flex-start;min-width:0;text-align:left}.invite-card-editor-list{display:grid;gap:8px}.invite-card-outline{border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);overflow:hidden}.invite-card-outline.is-open{border-color:#007d73}.invite-card-editor-head{display:flex;align-items:center;gap:4px;padding:5px 7px}.invite-card-toggle{display:grid;grid-template-columns:34px minmax(0,1fr) 18px;gap:9px;align-items:center;flex:1;min-width:0;padding:5px;border:0;background:none;color:var(--text-primary);font:inherit;text-align:left;cursor:pointer}.invite-card-toggle b,.invite-card-toggle small{display:block}.invite-card-toggle b{font-size:13px}.invite-card-toggle small{margin-top:2px;font-size:11px;color:var(--text-muted)}.invite-card-type-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:#cffffb;color:#007d73}.invite-card-outline.is-open .invite-card-toggle>svg{transform:rotate(180deg)}.invite-card-editor-body{display:grid;gap:12px;padding:12px;border-top:1px solid var(--border);background:var(--surface-subtle)}.invite-card-editor-body[hidden]{display:none}.invite-contact-upload{padding:0!important;border:0!important;background:none!important}.invite-card-page{padding:17mm 18mm 13mm!important}.invite-card-header{display:grid;grid-template-columns:26mm minmax(0,1fr);gap:8mm;align-items:start;margin-bottom:8mm}.invite-card-header .invite-eyebrow{margin:0 0 3mm}.invite-card-header .invite-title{font-size:25pt}.invite-card-columns{display:grid;gap:6mm;align-items:start;flex:1}.invite-card-columns-1{grid-template-columns:1fr}.invite-card-columns-2{grid-template-columns:repeat(2,minmax(0,1fr))}.invite-card-columns-3{grid-template-columns:repeat(3,minmax(0,1fr))}.invite-card-column{display:grid;gap:6mm;align-content:start;min-width:0}.invite-compose-card{min-width:0;padding:6mm;border-radius:4mm;background:#fff;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}.invite-compose-card h2{margin:0 0 3mm;font-size:14pt;line-height:1.15}.invite-compose-card p{margin:0;color:#77766f;font-size:10.5pt;line-height:1.4}.invite-event-focus{display:inline-flex;max-width:100%;margin-bottom:5mm;padding:2.5mm 5mm;border-radius:2.5mm;background:var(--invite-secondary);color:var(--invite-secondary-ink,#0b0b0b);font-size:11pt;font-weight:700;text-transform:uppercase;overflow-wrap:anywhere}.invite-event-list{display:grid;gap:4mm}.invite-event-row{display:grid;grid-template-columns:10mm minmax(0,1fr);gap:3mm;align-items:start}.invite-event-row>span{width:9mm;height:9mm;display:grid;place-items:center;border-radius:2mm;background:var(--invite-primary-soft);color:var(--invite-primary)}.invite-event-row b,.invite-event-row strong,.invite-event-row small{display:block}.invite-event-row b{color:var(--invite-primary);font-size:7pt;text-transform:uppercase}.invite-event-row strong{margin-top:1mm;font-size:9.5pt;line-height:1.25}.invite-event-row small{margin-top:.7mm;color:#77766f;font-size:8pt;line-height:1.3;overflow-wrap:anywhere}.invite-compose-image{padding:0;min-height:62mm}.invite-compose-image img{display:block;width:100%;height:100%;min-height:62mm;max-height:128mm;background:#fff}.invite-compose-cta{display:grid;grid-template-columns:24mm minmax(0,1fr);gap:4mm;align-items:center}.invite-compose-cta>img{width:24mm;height:24mm;object-fit:contain}.invite-compose-cta b{display:block;font-size:11pt}.invite-cta-button{display:inline-flex;align-items:center;gap:2mm;margin-top:2.5mm;padding:2.4mm 3.5mm;border-radius:2.2mm;background:var(--invite-primary);color:#fff;font-size:8.5pt;font-weight:700}.invite-compose-contact>p{margin-bottom:4mm}.invite-card-contacts{display:grid;gap:4mm}.invite-card-person{display:grid;grid-template-columns:16mm minmax(0,1fr);gap:3mm;align-items:center}.invite-card-person img,.invite-card-person-placeholder{width:16mm;height:16mm;border-radius:3mm;object-fit:cover;background:#eceeef;display:grid;place-items:center;color:#777}.invite-card-person b,.invite-card-person span,.invite-card-person small{display:block;overflow-wrap:anywhere}.invite-card-person b{font-size:10pt}.invite-card-person span{margin-top:.7mm;color:#77766f;font-size:8pt}.invite-card-person small{margin-top:.7mm;color:#77766f;font-size:6.8pt}.invite-card-footer{display:flex;align-items:flex-end;justify-content:space-between;gap:10mm;margin-top:10mm;padding-top:6mm;border-top:.3mm solid #e5e5e5}.invite-card-footer .memo-logo{width:43mm}.invite-card-department{display:flex;align-items:center;gap:4mm;font-size:12pt;font-weight:700;text-transform:uppercase}.invite-department-mark{width:13mm;height:13mm;flex:0 0 auto}@media(max-width:520px){.invite-composition-control,.invite-add-card-grid{grid-template-columns:1fr}}
@@ -9766,6 +9766,19 @@ async function mondayCommsSetReviewColumn(boardId, itemId, column, value, comple
   return true
 }
 
+async function mondayCommsSetReviewColumns(boardId, itemId, entries) {
+  const values = {}
+  for (const [column, value, complex = false] of entries) {
+    if (!column || value == null || value === '') continue
+    values[column.id || column] = complex ? value : String(value)
+  }
+  if (!Object.keys(values).length) return false
+  await mondayCommsApi(`mutation ($board: ID!, $item: ID!, $values: JSON!) {
+    change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id }
+  }`, { board: String(boardId), item: String(itemId), values: JSON.stringify(values) })
+  return true
+}
+
 async function mondayCommsUploadPdfToItem(blob, itemId, column, fileName) {
   if (!column) throw new Error('Falta la columna de archivo para esta versión.')
   const file = new File([blob], fileName, { type: 'application/pdf' })
@@ -9831,10 +9844,12 @@ async function mondayCommsEnsureReviewParent(draft) {
     parent = { ...created.create_item, subitems: [] }
   }
   const originalUrl = _mondayCommsBridge.request?.url || `https://sierratextiles.monday.com/boards/${_mondayCommsBridge.boardId}/pulses/${_mondayCommsBridge.itemId}`
-  await mondayCommsSetReviewColumn(boardId, parent.id, mondayReviewColumn(columns, MONDAY_REVIEW_PARENT_COLUMNS.sierraId), draft.id)
-  await mondayCommsSetReviewColumn(boardId, parent.id, mondayReviewColumn(columns, MONDAY_REVIEW_PARENT_COLUMNS.correlativo), memoFolio(draft))
-  await mondayCommsSetReviewColumn(boardId, parent.id, mondayReviewColumn(columns, MONDAY_REVIEW_PARENT_COLUMNS.originalItem), { url: originalUrl, text: 'Abrir solicitud original' }, true)
-  await mondayCommsSetReviewColumn(boardId, parent.id, mondayReviewColumn(columns, MONDAY_REVIEW_PARENT_COLUMNS.generalStatus), 'En revisión')
+  await mondayCommsSetReviewColumns(boardId, parent.id, [
+    [mondayReviewColumn(columns, MONDAY_REVIEW_PARENT_COLUMNS.sierraId), draft.id],
+    [mondayReviewColumn(columns, MONDAY_REVIEW_PARENT_COLUMNS.correlativo), memoFolio(draft)],
+    [mondayReviewColumn(columns, MONDAY_REVIEW_PARENT_COLUMNS.originalItem), { url: originalUrl, text: 'Abrir solicitud original' }, true],
+    [mondayReviewColumn(columns, MONDAY_REVIEW_PARENT_COLUMNS.generalStatus), 'En revisión'],
+  ])
   return { boardId, board, columns, parent }
 }
 
@@ -9885,21 +9900,23 @@ async function mondayCommsCreateReviewVersion(draft, blob, summary, hash, expect
     { title: 'Correo del solicitante', type: 'email' },
   ])
   const col = key => mondayReviewColumn(columns, MONDAY_REVIEW_VERSION_COLUMNS[key])
-  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('version'), versionLabel)
-  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('reviewStatus'), 'En revisión')
-  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('contentHash'), hash)
-  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('changeSummary'), summary || (version === 1 ? 'Primera versión para revisión.' : 'Nueva versión para revisión.'))
-  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('reviewGuide'), 'Comenta en Updates de este subitem para conservar la trazabilidad de esta versión. Puedes iniciar con [Cambio obligatorio], [Sugerencia], [Pregunta] o [Aprobación].')
-  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('requestedAt'), { date: new Date().toISOString().slice(0, 10) }, true)
-  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('requestedBy'), _mondayCommsBridge.operatorName || 'SIERRA Index')
   const requiredApprovers = [...new Set((draft.authorityEmails || []).map(email => String(email || '').trim().toLowerCase()).filter(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))]
   const reviewUrl = `${location.origin}${location.pathname}?memoReview=${encodeURIComponent(subitem.id)}`
-  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('requiredApprovers'), requiredApprovers.join('\n'))
-  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('decisions'), '[]')
-  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('pendingApprovers'), requiredApprovers.join('\n'))
-  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('reviewUrl'), { url: reviewUrl, text: `Revisar versión ${versionLabel}` }, true)
-  await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('sourceItemId'), _mondayCommsBridge.itemId)
-  if (draft.requesterEmail) await mondayCommsSetReviewColumn(subitemBoardId, subitem.id, col('requesterEmail'), { email: draft.requesterEmail, text: draft.requesterEmail }, true)
+  await mondayCommsSetReviewColumns(subitemBoardId, subitem.id, [
+    [col('version'), versionLabel],
+    [col('reviewStatus'), 'En revisión'],
+    [col('contentHash'), hash],
+    [col('changeSummary'), summary || (version === 1 ? 'Primera versión para revisión.' : 'Nueva versión para revisión.')],
+    [col('reviewGuide'), 'Comenta en Updates de este subitem para conservar la trazabilidad de esta versión. Puedes iniciar con [Cambio obligatorio], [Sugerencia], [Pregunta] o [Aprobación].'],
+    [col('requestedAt'), { date: new Date().toISOString().slice(0, 10) }, true],
+    [col('requestedBy'), _mondayCommsBridge.operatorName || 'SIERRA Index'],
+    [col('requiredApprovers'), requiredApprovers.join('\n')],
+    [col('decisions'), '[]'],
+    [col('pendingApprovers'), requiredApprovers.join('\n')],
+    [col('reviewUrl'), { url: reviewUrl, text: `Revisar versión ${versionLabel}` }, true],
+    [col('sourceItemId'), _mondayCommsBridge.itemId],
+    [col('requesterEmail'), draft.requesterEmail ? { email: draft.requesterEmail, text: draft.requesterEmail } : '', true],
+  ])
   await mondayCommsWriteColumn('reviewUrl', { url: reviewUrl, text: `Revisar versión ${versionLabel}` }, true)
   const proofDraft = { ...draft, reviewProofVersion: version }
   await mondayCommsUploadPdfToItem(blob, subitem.id, col('reviewPdf'), memoImageFileName(proofDraft, 'pdf'))
@@ -9944,27 +9961,42 @@ async function commsRefreshReviewState(showToast = true) {
 }
 
 let _commsReviewBusy = false
+function commsReviewProgress(busy, message = '', buttonLabel = 'Procesando…') {
+  _commsReviewBusy = busy
+  document.querySelectorAll('[data-comms-review-action]').forEach(button => {
+    if (busy && !button.dataset.idleHtml) button.dataset.idleHtml = button.innerHTML
+    button.disabled = busy
+    button.setAttribute('aria-busy', String(busy))
+    if (busy) button.textContent = buttonLabel
+    else if (button.dataset.idleHtml) { button.innerHTML = button.dataset.idleHtml; delete button.dataset.idleHtml }
+  })
+  memoImageExportState(busy, message)
+}
 async function commsRequestReview(summary = '') {
   if (!_commsCurrent || !commsInMonday() || _commsReviewBusy) return
   if (!commsPersist()) return
-  _commsReviewBusy = true;memoImageExportState(true, 'Creando versión para revisión…')
+  commsReviewProgress(true, 'Preparando la versión para revisión…', 'Preparando…')
   try {
     await mondayCommsEnsureReviewBoard(true)
     let remoteVersions = []
     try { remoteVersions = (await mondayCommsReadReviewState(_commsCurrent)).versions || [] } catch {}
     const draft = JSON.parse(JSON.stringify(_commsCurrent)), hash = await commsReviewHash(draft), version = Math.max(0, ...remoteVersions.map(item => Number(item.version) || 0), ...(draft.reviewVersions || []).map(item => Number(item.version) || 0)) + 1
     const proofDraft = { ...draft, reviewProofVersion: version }
+    commsReviewProgress(true, `Generando el PDF marcado de la versión ${commsReviewVersionLabel(version)}…`, 'Generando PDF…')
     const blob = await memoPdfBlob(proofDraft)
+    commsReviewProgress(true, `Guardando la versión ${commsReviewVersionLabel(version)} en monday…`, 'Guardando…')
     const record = await mondayCommsCreateReviewVersion(draft, blob, summary, hash, version)
     Object.assign(_commsCurrent, { status: 'En revisión', reviewBoardId: record.boardId, reviewParentItemId: record.parentId, submittedSnapshot: commsReviewSnapshot(draft), reviewNeedsNewVersion: false })
     _commsCurrent.reviewVersions = [...(_commsCurrent.reviewVersions || []).filter(item => String(item.subitemId) !== String(record.subitemId)), record]
+    _commsReviewSuccess = { draftId: _commsCurrent.id, version: record.version, reviewUrl: record.reviewUrl || '', existing: !!record.existing }
     await mondayCommsWriteApprovalStatus('En revisión')
     commsPersist();renderCommunicationEditor()
+    requestAnimationFrame(() => document.querySelector('.memo-review-workflow.is-success')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
     mondayCommsWriteColumn('syncStatus', 'Sincronizado').catch(error => console.warn('monday memo review status sync:', error))
     toast(record.existing ? `Versión ${commsReviewVersionLabel(record.version)} recuperada. Los comentarios quedan en su subitem.` : `Versión ${commsReviewVersionLabel(record.version)} enviada. Los comentarios quedarán en su subitem.`, 6500)
   } catch (error) {
     console.error('monday memo review:', error);toast('No se pudo solicitar la revisión: ' + (error?.message || 'Error desconocido'), 8000)
-  } finally { _commsReviewBusy = false;memoImageExportState(false, '') }
+  } finally { commsReviewProgress(false, '') }
 }
 
 function commsOpenReviewRequest() {
@@ -9981,7 +10013,7 @@ function commsReviewMissingSignatures(draft) {
 
 async function commsPublishFinalPdf() {
   if (!_commsCurrent || !commsInMonday() || _commsReviewBusy) return
-  _commsReviewBusy = true;memoImageExportState(true, 'Validando aprobación…')
+  commsReviewProgress(true, 'Validando aprobación…', 'Validando…')
   try {
     const state = await mondayCommsReadReviewState(_commsCurrent), latest = state.latest
     if (!latest || !normalizeBadgeOrgIdentity(latest.status).startsWith('aprobad')) throw new Error('La versión más reciente todavía no está aprobada.')
@@ -9990,7 +10022,7 @@ async function commsPublishFinalPdf() {
     const missing = commsReviewMissingSignatures(_commsCurrent)
     if (missing.length) throw new Error('Completa todas las autoridades, cargos y firmas antes de publicar el PDF final.')
     const draft = { ...JSON.parse(JSON.stringify(_commsCurrent)), finalVersion: latest.version }
-    memoImageExportState(true, 'Generando PDF final aprobado…');const blob = await memoPdfBlob(draft)
+    commsReviewProgress(true, 'Generando PDF final aprobado…', 'Generando PDF…');const blob = await memoPdfBlob(draft)
     await mondayCommsUploadFinalPdf(blob, draft)
     const subitemBoardId = String(latest.item.board?.id || _commsCurrent.reviewVersions?.find(version => version.version === latest.version)?.subitemBoardId || '')
     if (subitemBoardId) {
@@ -10001,7 +10033,7 @@ async function commsPublishFinalPdf() {
     _commsCurrent.status = 'Aprobado';_commsCurrent.approvedHash = hash;_commsCurrent.approvedVersion = latest.version;_commsCurrent.finalPublishedVersion = latest.version;_commsCurrent.reviewNeedsNewVersion = false;_commsCurrent.submittedSnapshot = commsReviewSnapshot(_commsCurrent)
     commsPersist();commsSavePdfBlob(blob, draft);renderCommunicationEditor();toast(`PDF final de la versión ${commsReviewVersionLabel(latest.version)} publicado en monday.`, 6500)
   } catch (error) { console.error('monday final PDF:', error);toast('No se pudo publicar el PDF final: ' + (error?.message || 'Error desconocido'), 8000) }
-  finally { _commsReviewBusy = false;memoImageExportState(false, '') }
+  finally { commsReviewProgress(false, '') }
 }
 
 async function openMondayCommunicationRequest(row) {
@@ -35520,7 +35552,7 @@ const COMMS_STORE_KEY='sierra_communications_v1'
 const COMMS_ACTIVE_KEY='sierra_communications_active_v1'
 function commsStorageKey(base){if(typeof me==='undefined'||!me?.id)throw Error('Inicia sesión para acceder a tus documentos');return base+':'+me.id}
 function commsInMonday(){return typeof _mondayCommsBridge!=='undefined'&&!!_mondayCommsBridge}
-let _commsDrafts=[],_commsCurrent=null,_commsQuery='',_commsSaveTimer=null,_memoPreviewZoom='width',_memoPreviewScale=1
+let _commsDrafts=[],_commsCurrent=null,_commsQuery='',_commsSaveTimer=null,_memoPreviewZoom='width',_memoPreviewScale=1,_commsReviewSuccess=null
 function commsReviewVersionLabel(version){return String(Math.max(1,Number(version)||1)).padStart(3,'0')}
 function commsReviewSuggestedVersion(draft=_commsCurrent){const versions=Array.isArray(draft?.reviewVersions)?draft.reviewVersions:[],latest=Math.max(0,...versions.map(version=>Number(version.version)||0));return draft?.reviewNeedsNewVersion||!latest?latest+1:latest}
 // Kept in the communications module as well as the monday bridge so the
@@ -35528,10 +35560,14 @@ function commsReviewSuggestedVersion(draft=_commsCurrent){const versions=Array.i
 function commsReviewActionsHtml(draft) {
   if (!commsInMonday()) return ''
   const latest = Math.max(0, ...(draft.reviewVersions || []).map(version => Number(version.version) || 0)), approved = draft.status === 'Aprobado' && draft.approvedVersion === latest && !draft.reviewNeedsNewVersion
+  const success = _commsReviewSuccess?.draftId === draft.id && Number(_commsReviewSuccess.version) === latest && !draft.reviewNeedsNewVersion ? _commsReviewSuccess : null
   const boardUrl = draft.reviewBoardId && draft.reviewParentItemId ? `https://sierratextiles.monday.com/boards/${draft.reviewBoardId}/pulses/${draft.reviewParentItemId}` : ''
   const canSend = !latest || draft.reviewNeedsNewVersion
   const sendLabel = latest ? `Enviar versión ${commsReviewVersionLabel(latest + 1)}` : 'Enviar a revisión'
-  return `<div class="memo-review-workflow"><div><b>${latest ? `Versión ${commsReviewVersionLabel(latest)}` : 'Sin versión enviada'}</b><small>${draft.reviewNeedsNewVersion ? 'Cambios listos para una nueva versión.' : approved ? 'Aprobada y sin cambios posteriores.' : latest ? 'En revisión; el estado se actualiza automáticamente.' : 'Un clic crea el PDF con sello y su subitem de comentarios.'}</small></div>${boardUrl ? `<a class="btn btn-ghost btn-sm" href="${escAttr(boardUrl)}" target="_blank" rel="noopener noreferrer">Ver revisiones</a>` : ''}${canSend ? `<button type="button" class="btn btn-primary btn-sm" onclick="commsRequestReview()">${siIcon('message', 15)} ${sendLabel}</button>` : ''}${approved ? `<button type="button" class="btn btn-primary btn-sm" onclick="commsPublishFinalPdf()">${siIcon('check-circle', 15)} Publicar PDF final</button>` : ''}</div>`
+  const title = success ? `${siIcon('check-circle', 17)} ${success.existing ? 'Versión recuperada' : 'Versión enviada'} · ${commsReviewVersionLabel(latest)}` : latest ? `Versión ${commsReviewVersionLabel(latest)}` : 'Sin versión enviada'
+  const detail = success ? (success.existing ? 'La versión ya existía en monday; no se creó un duplicado.' : 'PDF con sello y registro de revisión creados correctamente.') : draft.reviewNeedsNewVersion ? 'Cambios listos para una nueva versión.' : approved ? 'Aprobada y sin cambios posteriores.' : latest ? 'En revisión; el estado se actualiza automáticamente.' : 'Un clic crea el PDF con sello y su subitem de comentarios.'
+  const destination = success?.reviewUrl || boardUrl
+  return `<div class="memo-review-workflow${success ? ' is-success' : ''}" role="status" aria-live="polite"><div><b>${title}</b><small>${detail}</small></div>${destination ? `<a class="btn btn-ghost btn-sm" href="${escAttr(destination)}" target="_blank" rel="noopener noreferrer">${success ? `Abrir versión ${commsReviewVersionLabel(latest)}` : 'Ver revisiones'}</a>` : ''}${canSend ? `<button type="button" class="btn btn-primary btn-sm" data-comms-review-action="send" onclick="commsRequestReview()">${siIcon('message', 15)} ${sendLabel}</button>` : ''}${approved ? `<button type="button" class="btn btn-primary btn-sm" data-comms-review-action="publish" onclick="commsPublishFinalPdf()">${siIcon('check-circle', 15)} Publicar PDF final</button>` : ''}</div>`
 }
 function commsDateLabel(v){if(!v)return'';try{return new Intl.DateTimeFormat('es-HN',{weekday:'long',year:'numeric',month:'long',day:'numeric',timeZone:'UTC'}).format(new Date(v+'T12:00:00Z')).replace(/^./,c=>c.toUpperCase())}catch{return v}}
 function createCommunicationDraft(seed={}){const now=new Date().toISOString(),date=seed.date||now.slice(0,10);return{kind:seed.kind||'memo',id:seed.id||('memo-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)),source:seed.source||'manual',mondayItemId:seed.mondayItemId||null,mondaySeedVersion:Number(seed.mondaySeedVersion)||0,status:seed.status||'Borrador',reviewParentItemId:seed.reviewParentItemId||null,reviewBoardId:seed.reviewBoardId||null,reviewVersions:Array.isArray(seed.reviewVersions)?JSON.parse(JSON.stringify(seed.reviewVersions)):[],submittedSnapshot:seed.submittedSnapshot||'',approvedHash:seed.approvedHash||'',approvedVersion:Number(seed.approvedVersion)||0,finalPublishedVersion:Number(seed.finalPublishedVersion)||0,reviewNeedsNewVersion:!!seed.reviewNeedsNewVersion,confidential:!!seed.confidential,country:seed.country||'',company:seed.company||'',plant:seed.plant||'',externalFolio:seed.externalFolio||'',communicationNumber:seed.communicationNumber||commsNextNumber(date.slice(0,4)),audience:seed.audience||'Colaboradores SIERRA',audienceCategory:seed.audienceCategory||'',specificRecipients:seed.specificRecipients||'',sender:seed.sender??'Comunicaciones Corporativas',issuingAreas:Array.isArray(seed.issuingAreas)?[...seed.issuingAreas]:[],objective:seed.objective||'',requiredInfo:seed.requiredInfo||'',actionRequired:seed.actionRequired||'',action:seed.action||'',effectiveDate:seed.effectiveDate||'',requestedSendDate:seed.requestedSendDate||'',mondayAttachments:JSON.parse(JSON.stringify(seed.mondayAttachments||[])),date,subject:seed.subject||'Nuevo comunicado',salutation:seed.salutation||'Estimados, buen día.',closing:seed.closing||'Saludos cordiales,',blocks:Array.isArray(seed.blocks)&&seed.blocks.length?seed.blocks:[{id:'b-'+Date.now(),type:'text',style:'regular',content:'Escribe aquí el contenido principal del memorándum.'}],signerName:seed.signerName||'',signerTitle:seed.signerTitle||'',signerDepartment:seed.signerDepartment||'',signature:seed.signature||'',additionalSigners:JSON.parse(JSON.stringify(seed.additionalSigners||[])),createdAt:seed.createdAt||now,updatedAt:now}}
@@ -36578,7 +36614,7 @@ function commsForgetActive(){try{sessionStorage.removeItem(commsActiveStateKey()
 function commsRestoreActive(){if(!me?.id||!can('read','communications'))return false;let state;try{state=JSON.parse(sessionStorage.getItem(commsActiveStateKey())||'null')}catch{state=null}const draft=state&&typeof state.id==='string'?_commsDrafts.find(item=>item.id===state.id):null;if(!draft){commsForgetActive();return false}_commsCurrent=JSON.parse(JSON.stringify(draft));_commsEditorTab=['info','content','signature'].includes(state.tab)?state.tab:'content';if(_commsCurrent.kind==='aviso'&&_commsEditorTab==='content')_commsEditorTab='info';_commsUndo=null;_memoPreviewZoom='width';renderCommunicationEditor();return true}
 function commsLoad(){try{const raw=commsStorageParse(localStorage.getItem(commsStorageKey(COMMS_STORE_KEY))||'[]');_commsDrafts=Array.isArray(raw)?raw.filter(d=>d&&typeof d.id==='string').map(commsNormalize):[]}catch{_commsDrafts=[];toast('No se pudieron leer los comunicados guardados.')}}
 function commsWriteAll(drafts){try{if(_commsStorageBlocked)throw Error('Almacenamiento no disponible');localStorage.setItem(commsStorageKey(COMMS_STORE_KEY),commsStorageJson(drafts));_commsDrafts=drafts;_commsLastSave='Guardado en este navegador';document.getElementById('memo-save-recovery')?.remove();return true}catch{commsSaveFailure();return false}}
-function commsInvalidateReviewIfChanged(draft){if(!draft?.submittedSnapshot)return false;const changed=commsReviewSnapshot(draft)!==draft.submittedSnapshot;if(!changed)return false;const wasProtected=draft.status==='En revisión'||draft.status==='Aprobado'||draft.finalPublishedVersion;if(!wasProtected&&draft.reviewNeedsNewVersion)return false;draft.status='Borrador';draft.reviewNeedsNewVersion=true;if(commsInMonday()&&_mondayCommsBridge.lastPendingSnapshot!==commsReviewSnapshot(draft)){_mondayCommsBridge.lastPendingSnapshot=commsReviewSnapshot(draft);Promise.allSettled([mondayCommsWriteColumn('syncStatus','Pendiente'),mondayCommsWriteApprovalStatus('Pendiente')]).then(results=>{const failed=results.find(result=>result.status==='rejected');if(failed)console.warn('monday memo pending changes:',failed.reason)})}return true}
+function commsInvalidateReviewIfChanged(draft){if(!draft?.submittedSnapshot)return false;const changed=commsReviewSnapshot(draft)!==draft.submittedSnapshot;if(!changed)return false;if(_commsReviewSuccess?.draftId===draft.id)_commsReviewSuccess=null;const wasProtected=draft.status==='En revisión'||draft.status==='Aprobado'||draft.finalPublishedVersion;if(!wasProtected&&draft.reviewNeedsNewVersion)return false;draft.status='Borrador';draft.reviewNeedsNewVersion=true;if(commsInMonday()&&_mondayCommsBridge.lastPendingSnapshot!==commsReviewSnapshot(draft)){_mondayCommsBridge.lastPendingSnapshot=commsReviewSnapshot(draft);Promise.allSettled([mondayCommsWriteColumn('syncStatus','Pendiente'),mondayCommsWriteApprovalStatus('Pendiente')]).then(results=>{const failed=results.find(result=>result.status==='rejected');if(failed)console.warn('monday memo pending changes:',failed.reason)})}return true}
 function commsPersist(){clearTimeout(_commsSaveTimer);if(!_commsCurrent)return true;const d=JSON.parse(JSON.stringify(_commsCurrent));commsInvalidateReviewIfChanged(d);d.updatedAt=new Date().toISOString();const next=_commsDrafts.filter(x=>x.id!==d.id);next.unshift(d);const ok=commsWriteAll(next);if(ok){_commsCurrent=d;commsRememberActive();if(typeof mondayCommsScheduleDraftSync==='function')mondayCommsScheduleDraftSync(d)}const state=document.getElementById('memo-save-state');if(state)state.textContent=_commsLastSave;return ok}
 function commsAutosave(){clearTimeout(_commsSaveTimer);_commsLastSave='Guardando…';const e=document.getElementById('memo-save-state');if(e)e.textContent=_commsLastSave;_commsSaveTimer=setTimeout(commsPersist,450)}
 function commsNextNumber(year){const key=commsStorageKey('sierra_comms_numbers_v1');let counters;try{counters=JSON.parse(localStorage.getItem(key)||'{}');if(!counters||typeof counters!=='object')counters={};const n=Math.max(Number(counters[year])||0,..._commsDrafts.filter(d=>(d.date||'').startsWith(String(year))).map(d=>Number(d.communicationNumber)||0))+1;counters[year]=n;localStorage.setItem(key,JSON.stringify(counters));return n}catch{throw new Error('No se pudo reservar un folio. Libera espacio en el navegador e inténtalo de nuevo.')}}
