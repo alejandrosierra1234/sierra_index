@@ -10038,6 +10038,28 @@ function commsReviewProgress(busy, message = '', buttonLabel = 'Procesando…') 
   })
   memoImageExportState(busy, message)
 }
+async function mondayCommsCreateUpdate(itemId, body) {
+  if (!itemId || !body) return false
+  await mondayCommsApi(`mutation ($item: ID!, $body: String!) { create_update(item_id: $item, body: $body) { id } }`, { item: String(itemId), body })
+  return true
+}
+function mondayCommsReviewNoticeBody(draft, record, summary = '') {
+  const version = commsReviewVersionLabel(record.version)
+  const pending = (record.pendingApprovers || []).filter(Boolean)
+  const required = (record.requiredApprovers || []).filter(Boolean)
+  const pendingText = pending.length ? pending.join(', ') : required.length ? 'Sin pendientes registrados.' : 'No hay correos de aprobadores registrados.'
+  const requester = draft.requesterEmail ? `<br>Solicitante: ${esc(draft.requesterEmail)}` : ''
+  const reviewLink = record.reviewUrl ? `<br><a href="${escAttr(record.reviewUrl)}">Abrir portal de revisión</a>` : ''
+  const summaryText = summary ? `<br><br>Resumen de cambios:<br>${esc(summary).replace(/\n/g, '<br>')}` : ''
+  return `<b>Versión ${version} lista para revisión</b><br>Correlativo: ${esc(memoFolio(draft))}<br>Tema: ${esc(draft.subject || 'Memo')}<br>Aprobadores pendientes: ${esc(pendingText)}${requester}${reviewLink}${summaryText}`
+}
+async function mondayCommsNotifyReviewVersion(draft, record, summary = '') {
+  if (record.existing) return false
+  const body = mondayCommsReviewNoticeBody(draft, record, summary)
+  const itemIds = [...new Set([_mondayCommsBridge?.itemId, record.subitemId].filter(Boolean).map(String))]
+  for (const itemId of itemIds) await mondayCommsCreateUpdate(itemId, body)
+  return itemIds.length > 0
+}
 async function commsRequestReview(summary = '') {
   if (!_commsCurrent || !commsInMonday() || _commsReviewBusy) return
   if (!commsPersist()) return
@@ -10067,6 +10089,16 @@ async function commsRequestReview(summary = '') {
         ? { value: { date: reminderDate }, complex: true }
         : undefined,
     })
+    let noticeWarning = ''
+    if (!record.existing) {
+      try {
+        commsReviewProgress(true, `Publicando aviso de revisión ${commsReviewVersionLabel(record.version)} en monday…`, 'Avisando…')
+        await mondayCommsNotifyReviewVersion(draft, record, summary)
+      } catch (error) {
+        console.warn('monday memo review notice:', error)
+        noticeWarning = ' La versión quedó registrada, pero no se pudo publicar el aviso automático en Monday.'
+      }
+    }
     Object.assign(_commsCurrent, { status: recordApprovalStatus === 'Aprobado' ? 'Aprobado' : recordApprovalStatus === 'Requiere ajustes' ? 'Borrador' : 'En revisión', reviewBoardId: record.boardId, reviewParentItemId: record.parentId, submittedSnapshot: commsReviewSnapshot(draft), reviewNeedsNewVersion: recordApprovalStatus === 'Requiere ajustes' })
     _commsCurrent.reviewVersions = [...(_commsCurrent.reviewVersions || []).filter(item => String(item.subitemId) !== String(record.subitemId)), record]
     _commsReviewSuccess = { draftId: _commsCurrent.id, version: record.version, reviewUrl: record.reviewUrl || '', existing: !!record.existing }
@@ -10074,7 +10106,7 @@ async function commsRequestReview(summary = '') {
     commsPersist();renderCommunicationEditor()
     requestAnimationFrame(() => document.querySelector('.memo-review-workflow.is-success')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
     mondayCommsWriteColumn('syncStatus', 'Sincronizado').catch(error => console.warn('monday memo review status sync:', error))
-    toast(record.existing ? `Versión ${commsReviewVersionLabel(record.version)} recuperada. Los comentarios quedan en su subitem.` : `Versión ${commsReviewVersionLabel(record.version)} enviada. Los comentarios quedarán en su subitem.`, 6500)
+    toast(record.existing ? `Versión ${commsReviewVersionLabel(record.version)} recuperada. Los comentarios quedan en su subitem.` : `Versión ${commsReviewVersionLabel(record.version)} registrada y aviso publicado en Monday.${noticeWarning}`, noticeWarning ? 9000 : 6500)
   } catch (error) {
     console.error('monday memo review:', error)
     mondayCommsWriteColumn('syncStatus', 'Error').catch(syncError => console.warn('monday memo review error status:', syncError))
@@ -10086,7 +10118,7 @@ function commsOpenReviewRequest() {
   if (!_commsCurrent || !commsInMonday()) return
   const version = commsReviewSuggestedVersion(_commsCurrent), dialog = document.createElement('dialog')
   dialog.className = 'modal-content comms-confirm';dialog.setAttribute('aria-label', 'Solicitar revisión')
-  dialog.innerHTML = `<div class="modal-header"><h2>Enviar versión ${commsReviewVersionLabel(version)} a revisión</h2></div><p>Se creará un subitem inmutable con un PDF marcado <b>BORRADOR · VERSIÓN ${commsReviewVersionLabel(version)}</b>. Los comentarios quedarán en esa versión.</p><label for="memo-review-summary">Resumen de cambios</label><textarea id="memo-review-summary" class="control-input" rows="4" placeholder="${version === 1 ? 'Primera versión para revisión.' : 'Explica qué cambió desde la versión anterior.'}"></textarea><div class="modal-footer"><button class="btn btn-secondary" type="button">Cancelar</button><button class="btn btn-primary" type="button">Crear versión y solicitar revisión</button></div>`
+  dialog.innerHTML = `<div class="modal-header"><h2>Registrar versión ${commsReviewVersionLabel(version)} en Monday</h2></div><p>Se creará un subitem inmutable con un PDF marcado <b>BORRADOR · VERSIÓN ${commsReviewVersionLabel(version)}</b>. También se publicará un update en Monday con el enlace de revisión y los aprobadores pendientes.</p><label for="memo-review-summary">Resumen de cambios</label><textarea id="memo-review-summary" class="control-input" rows="4" placeholder="${version === 1 ? 'Primera versión para revisión.' : 'Explica qué cambió desde la versión anterior.'}"></textarea><div class="modal-footer"><button class="btn btn-secondary" type="button">Cancelar</button><button class="btn btn-primary" type="button">Registrar versión y publicar aviso</button></div>`
   const buttons = dialog.querySelectorAll('button'), input = dialog.querySelector('textarea');buttons[0].onclick = () => dialog.close();buttons[1].onclick = () => { const summary = input.value.trim() || (version === 1 ? 'Primera versión para revisión.' : 'Nueva versión para revisión.');dialog.close();commsRequestReview(summary) };dialog.onclose = () => dialog.remove();document.body.append(dialog);dialog.showModal();input.focus()
 }
 
@@ -10249,7 +10281,7 @@ function renderMemoReviewPortal(review, message = '') {
   const decisions = new Map((review.decisions || []).map(item => [String(item.email || '').toLowerCase(), item]))
   const progress = (review.requiredApprovers || []).map(email => { const state = decisions.get(String(email).toLowerCase())?.decision || 'Pendiente';return `<li style="display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--border)"><span>${esc(email)}</span><b style="color:${state === 'Aprobado' ? '#007d73' : state === 'Cambios solicitados' ? '#b74318' : 'var(--text-muted)'}">${esc(state)}</b></li>` }).join('') || '<li style="padding:10px 0;color:var(--text-muted)">No hay autoridades configuradas para esta versión.</li>'
   const comments = (review.comments || []).slice().reverse().map(comment => `<article style="padding:12px 0;border-bottom:1px solid var(--border)"><b>${esc(comment.author)}</b><small style="display:block;color:var(--text-muted);margin:3px 0 7px">${esc(comment.createdAt ? new Date(comment.createdAt).toLocaleString('es-GT') : '')}</small><p style="white-space:pre-wrap;margin:0">${esc(memoReviewPlainText(comment.body))}</p></article>`).join('') || '<p style="color:var(--text-muted)">Aún no hay comentarios en esta versión.</p>'
-  document.getElementById('pg').innerHTML = `<div class="comms-ui" style="max-width:1040px;margin:24px auto;padding:0 16px"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px"><div><span class="comms-status" data-status="${escAttr(review.status)}">${esc(review.status)}</span><h1 style="font-size:26px;margin:10px 0 5px">${esc(review.name)}</h1><p style="margin:0;color:var(--text-secondary)">${esc(review.summary || 'Versión enviada para revisión.')}</p></div>${review.pdf?.url ? `<a class="btn btn-primary" href="${escAttr(review.pdf.url)}" target="_blank" rel="noopener noreferrer">${siIcon('file',16)} Abrir PDF de esta versión</a>` : ''}</div>${message ? `<div role="status" style="padding:12px 14px;border-radius:8px;background:#cffffb;color:#005c55;margin-bottom:16px">${esc(message)}</div>` : ''}<div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,.8fr);gap:18px"><section style="border:1px solid var(--border);border-radius:10px;padding:18px;background:var(--surface)"><h2 style="font-size:18px;margin:0 0 8px">Comentarios de esta versión</h2><div style="max-height:360px;overflow:auto;margin-bottom:14px">${comments}</div><label for="memo-review-comment" style="font-weight:650">Agregar comentario</label><textarea id="memo-review-comment" class="control-input" rows="4" placeholder="Indica el cambio con precisión. Este comentario quedará en la versión."></textarea><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"><button class="btn btn-secondary" type="button" onclick="memoReviewComment()">Enviar comentario</button>${review.canDecide ? `<button class="btn btn-danger" type="button" onclick="memoReviewDecide('Cambios solicitados')">Solicitar cambios</button><button class="btn btn-primary" type="button" onclick="memoReviewDecide('Aprobado')">Aprobar versión</button>` : ''}</div></section><aside style="border:1px solid var(--border);border-radius:10px;padding:18px;background:var(--surface)"><h2 style="font-size:18px;margin:0">Aprobaciones individuales</h2><p style="font-size:13px;color:var(--text-secondary);margin:6px 0 8px">Cada autoridad registra su propia decisión. El estado se actualiza al instante.</p><ul style="list-style:none;padding:0;margin:0">${progress}</ul></aside></div></div>`
+  document.getElementById('pg').innerHTML = `<div class="comms-ui" style="max-width:1040px;margin:24px auto;padding:0 16px"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px"><div><span class="comms-status" data-status="${escAttr(review.status)}">${esc(review.status)}</span><h1 style="font-size:26px;margin:10px 0 5px">${esc(review.name)}</h1><p style="margin:0;color:var(--text-secondary)">${esc(review.summary || 'Versión registrada para revisión.')}</p></div>${review.pdf?.url ? `<a class="btn btn-primary" href="${escAttr(review.pdf.url)}" target="_blank" rel="noopener noreferrer">${siIcon('file',16)} Abrir PDF de esta versión</a>` : ''}</div>${message ? `<div role="status" style="padding:12px 14px;border-radius:8px;background:#cffffb;color:#005c55;margin-bottom:16px">${esc(message)}</div>` : ''}<div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,.8fr);gap:18px"><section style="border:1px solid var(--border);border-radius:10px;padding:18px;background:var(--surface)"><h2 style="font-size:18px;margin:0 0 8px">Comentarios de esta versión</h2><div style="max-height:360px;overflow:auto;margin-bottom:14px">${comments}</div><label for="memo-review-comment" style="font-weight:650">Agregar comentario</label><textarea id="memo-review-comment" class="control-input" rows="4" placeholder="Indica el cambio con precisión. Este comentario quedará en la versión."></textarea><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"><button class="btn btn-secondary" type="button" onclick="memoReviewComment()">Enviar comentario</button>${review.canDecide ? `<button class="btn btn-danger" type="button" onclick="memoReviewDecide('Cambios solicitados')">Solicitar cambios</button><button class="btn btn-primary" type="button" onclick="memoReviewDecide('Aprobado')">Aprobar versión</button>` : ''}</div></section><aside style="border:1px solid var(--border);border-radius:10px;padding:18px;background:var(--surface)"><h2 style="font-size:18px;margin:0">Aprobaciones individuales</h2><p style="font-size:13px;color:var(--text-secondary);margin:6px 0 8px">Cada autoridad registra su propia decisión. El estado se actualiza al instante.</p><ul style="list-style:none;padding:0;margin:0">${progress}</ul></aside></div></div>`
 }
 
 async function showMemoReviewPortal(versionId) {
@@ -35676,9 +35708,9 @@ function commsReviewActionsHtml(draft) {
   const success = _commsReviewSuccess?.draftId === draft.id && Number(_commsReviewSuccess.version) === latest && !draft.reviewNeedsNewVersion ? _commsReviewSuccess : null
   const boardUrl = draft.reviewBoardId && draft.reviewParentItemId ? `https://sierratextiles.monday.com/boards/${draft.reviewBoardId}/pulses/${draft.reviewParentItemId}` : ''
   const canSend = !latest || draft.reviewNeedsNewVersion
-  const sendLabel = latest ? `Enviar versión ${commsReviewVersionLabel(latest + 1)}` : 'Enviar a revisión'
-  const title = success ? `${siIcon('check-circle', 17)} ${success.existing ? 'Versión recuperada' : 'Versión enviada'} · ${commsReviewVersionLabel(latest)}` : latest ? `Versión ${commsReviewVersionLabel(latest)}` : 'Sin versión enviada'
-  const detail = success ? (success.existing ? 'La versión ya existía en monday; no se creó un duplicado.' : 'PDF con sello y registro de revisión creados correctamente.') : draft.reviewNeedsNewVersion ? 'Cambios listos para una nueva versión.' : approved ? 'Aprobada y sin cambios posteriores.' : latest ? 'En revisión; el estado se actualiza automáticamente.' : 'Un clic crea el PDF con sello y su subitem de comentarios.'
+  const sendLabel = latest ? `Registrar versión ${commsReviewVersionLabel(latest + 1)}` : 'Registrar para revisión'
+  const title = success ? `${siIcon('check-circle', 17)} ${success.existing ? 'Versión recuperada' : 'Versión registrada'} · ${commsReviewVersionLabel(latest)}` : latest ? `Versión ${commsReviewVersionLabel(latest)}` : 'Sin versión registrada'
+  const detail = success ? (success.existing ? 'La versión ya existía en monday; no se creó un duplicado.' : 'PDF con sello, subitem y aviso en Monday creados correctamente.') : draft.reviewNeedsNewVersion ? 'Cambios listos para una nueva versión.' : approved ? 'Aprobada y sin cambios posteriores.' : latest ? 'En revisión; el estado se actualiza automáticamente.' : 'Un clic crea el PDF con sello, su subitem de comentarios y un aviso en Monday.'
   const destination = success?.reviewUrl || boardUrl
   return `<div class="memo-review-workflow${success ? ' is-success' : ''}" role="status" aria-live="polite"><div><b>${title}</b><small>${detail}</small></div>${destination ? `<a class="btn btn-ghost btn-sm" href="${escAttr(destination)}" target="_blank" rel="noopener noreferrer">${success ? `Abrir versión ${commsReviewVersionLabel(latest)}` : 'Ver revisiones'}</a>` : ''}${canSend ? `<button type="button" class="btn btn-primary btn-sm" data-comms-review-action="send" onclick="commsRequestReview()">${siIcon('message', 15)} ${sendLabel}</button>` : ''}${approved ? `<button type="button" class="btn btn-primary btn-sm" data-comms-review-action="publish" onclick="commsPublishFinalPdf()">${siIcon('check-circle', 15)} Publicar PDF final</button>` : ''}</div>`
 }

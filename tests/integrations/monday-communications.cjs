@@ -105,7 +105,9 @@ assert.ok(source.includes('Documento en revisión · No válido para distribuci�
 assert.ok(source.includes('async function commsPublishFinalPdf()'));
 assert.ok(source.includes("mondayCommsWriteColumn('syncStatus','Pendiente')"));
 assert.ok(source.includes('onclick="commsRequestReview()"'));
-assert.ok(source.includes("'Un clic crea el PDF con sello y su subitem de comentarios.'"));
+assert.ok(source.includes('async function mondayCommsNotifyReviewVersion('));
+assert.ok(source.includes('create_update(item_id: $item'));
+assert.ok(source.includes("'Un clic crea el PDF con sello, su subitem de comentarios y un aviso en Monday.'"));
 assert.ok(!source.includes('onclick="commsRefreshReviewState()"'));
 assert.ok(source.includes("monday no respondió a tiempo"));
 assert.ok(source.includes('function mondayCommsCleanToken('));
@@ -207,8 +209,8 @@ w.fetch=async(url,{body,headers})=>{
   w.eval('_mondayCommsBridge={itemId:"123",boardId:"18430793016"};_commsReviewSuccess={draftId:"'+d.id+'",version:2,reviewUrl:"https://index.test/?memoReview=456",existing:false}');
   const success=w.document.createElement('div');success.innerHTML=w.commsReviewActionsHtml({...d,reviewNeedsNewVersion:false,reviewVersions:[{version:2}]});
   assert.ok(success.querySelector('.memo-review-workflow.is-success'));
-  assert.match(success.textContent,/Versión enviada · 002/);
-  assert.match(success.textContent,/PDF con sello y registro de revisión creados correctamente/);
+  assert.match(success.textContent,/Versión registrada · 002/);
+  assert.match(success.textContent,/PDF con sello, subitem y aviso en Monday creados correctamente/);
   assert.equal(success.querySelector('a').href,'https://index.test/?memoReview=456');
   w.commsDuplicate(d.id);
   const copy=w.eval('_commsCurrent');
