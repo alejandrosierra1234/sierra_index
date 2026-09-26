@@ -9953,7 +9953,7 @@ async function mondayCommsCreateReviewVersion(draft, blob, summary, hash, expect
     { title: 'Correo del solicitante', type: 'email' },
   ])
   const col = key => mondayReviewColumn(columns, MONDAY_REVIEW_VERSION_COLUMNS[key])
-  const requiredApprovers = [...new Set((draft.authorityEmails || []).map(email => String(email || '').trim().toLowerCase()).filter(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))]
+  const requiredApprovers = commsEmailList(draft.authorityEmails)
   const reviewUrl = `${location.origin}${location.pathname}?memoReview=${encodeURIComponent(subitem.id)}`
   await mondayCommsSetReviewColumns(subitemBoardId, subitem.id, [
     [col('version'), versionLabel],
@@ -10062,7 +10062,7 @@ async function mondayCommsNotifyReviewVersion(draft, record, summary = '') {
 }
 async function mondayCommsEmailReviewVersion(draft, record, summary = '') {
   if (record.existing) return { sent: 0, skipped: true }
-  const recipients = [...new Set([...(record.pendingApprovers || []), draft.requesterEmail].map(value => String(value || '').trim().toLowerCase()).filter(value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)))]
+  const recipients = commsEmailList([...(Array.isArray(record.pendingApprovers) ? record.pendingApprovers : []), draft.requesterEmail])
   if (!recipients.length) return { sent: 0, skipped: true, reason: 'No hay destinatarios de correo válidos.' }
   const result = await commsMondayInvoke({
     action: 'review_notify',
@@ -35717,6 +35717,10 @@ function mondayCommsCleanToken(value, fallback = '') {
   const text = String(value || '').trim()
   return /^\[(?:correlativo|tema|asunto)\]$/i.test(normalizeBadgeOrgIdentity(text)) ? fallback : text || fallback
 }
+function commsEmailList(value) {
+  const raw = Array.isArray(value) ? value : String(value || '').split(/\n+|\s*[,;|]\s*|\s+·\s+/)
+  return [...new Set(raw.map(email => String(email || '').trim().toLowerCase()).filter(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))]
+}
 let _commsDrafts=[],_commsCurrent=null,_commsQuery='',_commsSaveTimer=null,_memoPreviewZoom='width',_memoPreviewScale=1,_commsReviewSuccess=null
 function commsReviewVersionLabel(version){return String(Math.max(1,Number(version)||1)).padStart(3,'0')}
 function commsReviewSuggestedVersion(draft=_commsCurrent){const versions=Array.isArray(draft?.reviewVersions)?draft.reviewVersions:[],latest=Math.max(0,...versions.map(version=>Number(version.version)||0));return draft?.reviewNeedsNewVersion||!latest?latest+1:latest}
@@ -36856,7 +36860,7 @@ function commsMondaySeed(r){
   if(!blocks.length){addBlock('regular',r.objective||r.summary||r.details);addBlock('bullets',r.requiredInfo);if(normalizeBadgeOrgIdentity(r.actionRequired)==='si'||String(r.action||'').trim())addBlock('emphasis',r.action?`Acción requerida: ${r.action}`:'Los destinatarios deben realizar una acción.');if(r.effectiveDate)addBlock('regular',`Vigencia: ${r.effectiveDate}`)}
   if(!blocks.length)addBlock('regular','Completa el contenido con la información enviada en la solicitud.')
   const signers=mondayCommsSignerSeeds(r),first=signers[0]||{},audience=r.specificRecipients||r.audience||'Colaboradores SIERRA'
-  const common={source:'monday',mondayItemId:r.id,mondaySeedVersion:3,mondayAiDraft:r.aiDraft||'',status:'Borrador',subject:mondayCommsCleanToken(aiContent.subject||r.name,'Solicitud de comunicado'),date:new Date().toISOString().slice(0,10),country:r.country||'',company:r.company||'',plant:r.plant||'',externalFolio:mondayCommsCleanToken(r.correlativo,r.id),department:r.department||'',issuingAreas:r.issuingAreas||[],requesterEmail:r.email||'',authorityEmails:Array.isArray(r.authorityEmails)?r.authorityEmails:[],audience,audienceCategory:r.audience||'',specificRecipients:r.specificRecipients||'',objective:r.objective||'',requiredInfo:r.requiredInfo||'',actionRequired:r.actionRequired||'',action:r.action||'',effectiveDate:r.effectiveDate||'',requestedSendDate:r.deadline||'',mondayAttachments:r.attachments||[],blocks}
+  const common={source:'monday',mondayItemId:r.id,mondaySeedVersion:3,mondayAiDraft:r.aiDraft||'',status:'Borrador',subject:mondayCommsCleanToken(aiContent.subject||r.name,'Solicitud de comunicado'),date:new Date().toISOString().slice(0,10),country:r.country||'',company:r.company||'',plant:r.plant||'',externalFolio:mondayCommsCleanToken(r.correlativo,r.id),department:r.department||'',issuingAreas:r.issuingAreas||[],requesterEmail:r.email||'',authorityEmails:commsEmailList(r.authorityEmails),audience,audienceCategory:r.audience||'',specificRecipients:r.specificRecipients||'',objective:r.objective||'',requiredInfo:r.requiredInfo||'',actionRequired:r.actionRequired||'',action:r.action||'',effectiveDate:r.effectiveDate||'',requestedSendDate:r.deadline||'',mondayAttachments:r.attachments||[],blocks}
   if(r.kind==='memo')return createCommunicationDraft({...common,sender:(r.issuingAreas||[]).join(', ')||r.department||'Comunicaciones Corporativas',...first,additionalSigners:signers.slice(1)})
   if(r.kind==='aviso')return createNoticeDraft({...common,company:r.company||'SIERRA',noticeMessage:r.summary||detail})
   if(r.kind==='convocatoria')return createInvitationDraft({...common,department:r.department||'',sender:r.department||'Comunicaciones',eyebrow:(r.department||'Comunicaciones')+' informa',focus:r.country||r.company||'',intro:r.summary||detail,location:''})
@@ -36871,7 +36875,8 @@ function commsMergeMondayDraft(existing,r){
   ;[['country','country'],['company','company'],['plant','plant'],['department','department'],['specificRecipients','specificRecipients'],['objective','objective'],['requiredInfo','requiredInfo'],['actionRequired','actionRequired'],['action','action'],['effectiveDate','effectiveDate'],['deadline','requestedSendDate']].forEach(([sourceKey,targetKey])=>{if(has(r[sourceKey]))next[targetKey]=incoming[targetKey]})
   if(Array.isArray(r.issuingAreas)&&r.issuingAreas.length){next.issuingAreas=[...incoming.issuingAreas];next.sender=incoming.sender}
   if(has(r.email))next.requesterEmail=incoming.requesterEmail
-  if(Array.isArray(r.authorityEmails)&&r.authorityEmails.length)next.authorityEmails=[...incoming.authorityEmails]
+  const authorityEmails=commsEmailList(r.authorityEmails)
+  if(authorityEmails.length)next.authorityEmails=authorityEmails
   if(has(r.audience))next.audienceCategory=incoming.audienceCategory
   if(has(r.specificRecipients)||has(r.audience))next.audience=incoming.audience
   if(Array.isArray(r.attachments)&&r.attachments.length)next.mondayAttachments=JSON.parse(JSON.stringify(incoming.mondayAttachments))

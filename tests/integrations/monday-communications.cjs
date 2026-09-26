@@ -107,6 +107,7 @@ assert.ok(source.includes("mondayCommsWriteColumn('syncStatus','Pendiente')"));
 assert.ok(source.includes('onclick="commsRequestReview()"'));
 assert.ok(source.includes('async function mondayCommsNotifyReviewVersion('));
 assert.ok(source.includes('async function mondayCommsEmailReviewVersion('));
+assert.ok(source.includes('function commsEmailList('));
 assert.ok(fnSource.includes("action === 'review_notify'"));
 assert.ok(fnSource.includes('https://api.resend.com/emails'));
 assert.ok(source.includes('create_update(item_id: $item'));
@@ -205,6 +206,8 @@ w.fetch=async(url,{body,headers})=>{
   const placeholderSafe=w.commsMondaySeed({...w.eval('_commsMondayRows[0]'),name:'[Tema]',correlativo:'[Correlativo]',aiDraft:''});
   assert.equal(placeholderSafe.subject,'Solicitud de comunicado');
   assert.equal(placeholderSafe.externalFolio,'123');
+  const textEmails=w.commsMergeMondayDraft(legacy,{...w.eval('_commsMondayRows[0]'),authorityEmails:'uno@example.test; dos@example.test'});
+  assert.equal(JSON.stringify(textEmails.authorityEmails),JSON.stringify(['uno@example.test','dos@example.test']));
   const edited=w.commsMergeMondayDraft({...legacy,blocks:[{id:'manual',type:'text',style:'regular',content:'Texto redactado manualmente'}]},{...w.eval('_commsMondayRows[0]'),objective:'Objetivo nuevo'});
   assert.equal(edited.blocks[0].content,'Texto redactado manualmente');
   const migratedCircular=w.commsMergeMondayDraft({...d,kind:'circular'},w.eval('_commsMondayRows[0]'));
