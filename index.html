@@ -9168,21 +9168,21 @@ function mondayCommsKind(value, memoOnly = false) {
   if (normalized.includes('convocatoria') || normalized.includes('evento')) return 'convocatoria'
   return 'circular'
 }
-
 function mondayCommsRequestFromItem(item) {
   const boardId = String(item?.board?.id || '')
   const id = String(item?.id || '')
   const company = mondayCommsColumnText(item, 'company')
   const plant = mondayCommsColumnText(item, 'plant')
+  const name = mondayCommsCleanToken(item?.name, 'Solicitud de comunicado')
   return {
     id,
-    name: String(item?.name || 'Solicitud de comunicado').trim(),
+    name,
     kind: mondayCommsKind(mondayCommsColumnText(item, 'kind'), MONDAY_MEMO_ONLY_BOARD_IDS.has(boardId)),
     status: mondayCommsColumnText(item, 'status') || 'Nueva',
     approvalStatus: mondayCommsColumnText(item, 'approvalStatus') || 'Pendiente',
     requester: mondayCommsColumnText(item, 'requester'),
     email: mondayCommsColumnText(item, 'email'),
-    correlativo: mondayCommsColumnText(item, 'correlativo'),
+    correlativo: mondayCommsCleanToken(mondayCommsColumnText(item, 'correlativo'), id),
     country: mondayCommsColumnText(item, 'country'),
     company: company || plant || 'SIERRA',
     plant: plant && plant !== company ? plant : '',
@@ -35661,6 +35661,10 @@ const COMMS_STORE_KEY='sierra_communications_v1'
 const COMMS_ACTIVE_KEY='sierra_communications_active_v1'
 function commsStorageKey(base){if(typeof me==='undefined'||!me?.id)throw Error('Inicia sesión para acceder a tus documentos');return base+':'+me.id}
 function commsInMonday(){return typeof _mondayCommsBridge!=='undefined'&&!!_mondayCommsBridge}
+function mondayCommsCleanToken(value, fallback = '') {
+  const text = String(value || '').trim()
+  return /^\[(?:correlativo|tema|asunto)\]$/i.test(normalizeBadgeOrgIdentity(text)) ? fallback : text || fallback
+}
 let _commsDrafts=[],_commsCurrent=null,_commsQuery='',_commsSaveTimer=null,_memoPreviewZoom='width',_memoPreviewScale=1,_commsReviewSuccess=null
 function commsReviewVersionLabel(version){return String(Math.max(1,Number(version)||1)).padStart(3,'0')}
 function commsReviewSuggestedVersion(draft=_commsCurrent){const versions=Array.isArray(draft?.reviewVersions)?draft.reviewVersions:[],latest=Math.max(0,...versions.map(version=>Number(version.version)||0));return draft?.reviewNeedsNewVersion||!latest?latest+1:latest}
@@ -36800,7 +36804,7 @@ function commsMondaySeed(r){
   if(!blocks.length){addBlock('regular',r.objective||r.summary||r.details);addBlock('bullets',r.requiredInfo);if(normalizeBadgeOrgIdentity(r.actionRequired)==='si'||String(r.action||'').trim())addBlock('emphasis',r.action?`Acción requerida: ${r.action}`:'Los destinatarios deben realizar una acción.');if(r.effectiveDate)addBlock('regular',`Vigencia: ${r.effectiveDate}`)}
   if(!blocks.length)addBlock('regular','Completa el contenido con la información enviada en la solicitud.')
   const signers=mondayCommsSignerSeeds(r),first=signers[0]||{},audience=r.specificRecipients||r.audience||'Colaboradores SIERRA'
-  const common={source:'monday',mondayItemId:r.id,mondaySeedVersion:3,mondayAiDraft:r.aiDraft||'',status:'Borrador',subject:aiContent.subject||r.name||'Solicitud de comunicado',date:new Date().toISOString().slice(0,10),country:r.country||'',company:r.company||'',plant:r.plant||'',externalFolio:r.correlativo||'',department:r.department||'',issuingAreas:r.issuingAreas||[],requesterEmail:r.email||'',authorityEmails:Array.isArray(r.authorityEmails)?r.authorityEmails:[],audience,audienceCategory:r.audience||'',specificRecipients:r.specificRecipients||'',objective:r.objective||'',requiredInfo:r.requiredInfo||'',actionRequired:r.actionRequired||'',action:r.action||'',effectiveDate:r.effectiveDate||'',requestedSendDate:r.deadline||'',mondayAttachments:r.attachments||[],blocks}
+  const common={source:'monday',mondayItemId:r.id,mondaySeedVersion:3,mondayAiDraft:r.aiDraft||'',status:'Borrador',subject:mondayCommsCleanToken(aiContent.subject||r.name,'Solicitud de comunicado'),date:new Date().toISOString().slice(0,10),country:r.country||'',company:r.company||'',plant:r.plant||'',externalFolio:mondayCommsCleanToken(r.correlativo,r.id),department:r.department||'',issuingAreas:r.issuingAreas||[],requesterEmail:r.email||'',authorityEmails:Array.isArray(r.authorityEmails)?r.authorityEmails:[],audience,audienceCategory:r.audience||'',specificRecipients:r.specificRecipients||'',objective:r.objective||'',requiredInfo:r.requiredInfo||'',actionRequired:r.actionRequired||'',action:r.action||'',effectiveDate:r.effectiveDate||'',requestedSendDate:r.deadline||'',mondayAttachments:r.attachments||[],blocks}
   if(r.kind==='memo')return createCommunicationDraft({...common,sender:(r.issuingAreas||[]).join(', ')||r.department||'Comunicaciones Corporativas',...first,additionalSigners:signers.slice(1)})
   if(r.kind==='aviso')return createNoticeDraft({...common,company:r.company||'SIERRA',noticeMessage:r.summary||detail})
   if(r.kind==='convocatoria')return createInvitationDraft({...common,department:r.department||'',sender:r.department||'Comunicaciones',eyebrow:(r.department||'Comunicaciones')+' informa',focus:r.country||r.company||'',intro:r.summary||detail,location:''})

@@ -108,6 +108,8 @@ assert.ok(source.includes('onclick="commsRequestReview()"'));
 assert.ok(source.includes("'Un clic crea el PDF con sello y su subitem de comentarios.'"));
 assert.ok(!source.includes('onclick="commsRefreshReviewState()"'));
 assert.ok(source.includes("monday no respondió a tiempo"));
+assert.ok(source.includes('function mondayCommsCleanToken('));
+assert.ok(fnSource.includes('const cleanMemoToken ='));
 assert.ok(source.includes("document.addEventListener('visibilitychange'"));
 assert.ok(source.includes('Las autoridades, cargos y firmas provienen de ÁREAS Y AUTORIDADES'));
 assert.ok(source.includes("[['info','Datos'],['content','Contenido'],['signature','Firmantes']]"));
@@ -195,6 +197,9 @@ w.fetch=async(url,{body,headers})=>{
   assert.equal(migrated.externalFolio,'MEMO-0043');
   assert.equal(migrated.objective,'Objetivo actualizado');
   assert.equal(migrated.blocks.some(block=>block.content.includes('Se informa el lanzamiento de SIERRA Nexus.')),true);
+  const placeholderSafe=w.commsMondaySeed({...w.eval('_commsMondayRows[0]'),name:'[Tema]',correlativo:'[Correlativo]',aiDraft:''});
+  assert.equal(placeholderSafe.subject,'Solicitud de comunicado');
+  assert.equal(placeholderSafe.externalFolio,'123');
   const edited=w.commsMergeMondayDraft({...legacy,blocks:[{id:'manual',type:'text',style:'regular',content:'Texto redactado manualmente'}]},{...w.eval('_commsMondayRows[0]'),objective:'Objetivo nuevo'});
   assert.equal(edited.blocks[0].content,'Texto redactado manualmente');
   const migratedCircular=w.commsMergeMondayDraft({...d,kind:'circular'},w.eval('_commsMondayRows[0]'));

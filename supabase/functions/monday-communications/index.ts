@@ -71,6 +71,10 @@ function splitList(value: string) {
 
 const emailKey = (value: unknown) => String(value || '').trim().toLowerCase()
 const escapeHtml = (value: unknown) => String(value || '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character] || character))
+const cleanMemoToken = (value: unknown, fallback = '') => {
+  const text = String(value || '').trim()
+  return /^\[(?:correlativo|tema|asunto)\]$/i.test(normalize(text)) ? fallback : text || fallback
+}
 
 function columnValue(item: any, title: string) {
   return (item?.column_values || []).find((value: any) => normalize(value?.column?.title) === normalize(title))
@@ -413,9 +417,10 @@ Deno.serve(async req => {
       const memoOnly = ['1', 'true', 'yes', 'si', 'sí'].includes(normalize(env.MONDAY_COMMUNICATIONS_MEMO_ONLY))
       const details = get('details')
       const summary = get('summary') || details.split(/\n+/).find(Boolean)?.slice(0, 220) || ''
+      const itemName = cleanMemoToken(item.name, 'Solicitud sin título')
       return {
         id: String(item.id),
-        name: String(item.name || 'Solicitud sin título'),
+        name: itemName,
         url: item.url || '',
         updated_at: item.updated_at || '',
         status: get('status'),
@@ -423,7 +428,7 @@ Deno.serve(async req => {
         type,
         requester: get('requester'),
         email: get('email'),
-        correlativo: get('correlativo'),
+        correlativo: cleanMemoToken(get('correlativo'), String(item.id)),
         priority: get('priority'),
         deadline: get('deadline'),
         country: get('country'),
