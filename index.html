@@ -10060,6 +10060,23 @@ async function mondayCommsNotifyReviewVersion(draft, record, summary = '') {
   for (const itemId of itemIds) await mondayCommsCreateUpdate(itemId, body)
   return itemIds.length > 0
 }
+async function mondayCommsEmailReviewVersion(draft, record, summary = '') {
+  if (record.existing) return { sent: 0, skipped: true }
+  const recipients = [...new Set([...(record.pendingApprovers || []), draft.requesterEmail].map(value => String(value || '').trim().toLowerCase()).filter(value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)))]
+  if (!recipients.length) return { sent: 0, skipped: true, reason: 'No hay destinatarios de correo válidos.' }
+  const result = await commsMondayInvoke({
+    action: 'review_notify',
+    recipients,
+    requester_email: draft.requesterEmail || '',
+    pending_approvers: record.pendingApprovers || [],
+    review_url: record.reviewUrl || '',
+    version_label: commsReviewVersionLabel(record.version),
+    folio: memoFolio(draft),
+    memo_subject: draft.subject || 'Memo',
+    summary,
+  })
+  return result.email || { sent: 0, skipped: true }
+}
 async function commsRequestReview(summary = '') {
   if (!_commsCurrent || !commsInMonday() || _commsReviewBusy) return
   if (!commsPersist()) return
@@ -10094,9 +10111,12 @@ async function commsRequestReview(summary = '') {
       try {
         commsReviewProgress(true, `Publicando aviso de revisión ${commsReviewVersionLabel(record.version)} en monday…`, 'Avisando…')
         await mondayCommsNotifyReviewVersion(draft, record, summary)
+        commsReviewProgress(true, `Enviando correo de revisión ${commsReviewVersionLabel(record.version)}…`, 'Enviando email…')
+        const emailResult = await mondayCommsEmailReviewVersion(draft, record, summary)
+        if (emailResult?.skipped) noticeWarning += ` Email no enviado: ${emailResult.reason || 'faltan destinatarios o configuración.'}`
       } catch (error) {
         console.warn('monday memo review notice:', error)
-        noticeWarning = ' La versión quedó registrada, pero no se pudo publicar el aviso automático en Monday.'
+        noticeWarning += ' La versión quedó registrada, pero no se pudo completar el aviso por Monday/email.'
       }
     }
     Object.assign(_commsCurrent, { status: recordApprovalStatus === 'Aprobado' ? 'Aprobado' : recordApprovalStatus === 'Requiere ajustes' ? 'Borrador' : 'En revisión', reviewBoardId: record.boardId, reviewParentItemId: record.parentId, submittedSnapshot: commsReviewSnapshot(draft), reviewNeedsNewVersion: recordApprovalStatus === 'Requiere ajustes' })
@@ -10106,7 +10126,7 @@ async function commsRequestReview(summary = '') {
     commsPersist();renderCommunicationEditor()
     requestAnimationFrame(() => document.querySelector('.memo-review-workflow.is-success')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
     mondayCommsWriteColumn('syncStatus', 'Sincronizado').catch(error => console.warn('monday memo review status sync:', error))
-    toast(record.existing ? `Versión ${commsReviewVersionLabel(record.version)} recuperada. Los comentarios quedan en su subitem.` : `Versión ${commsReviewVersionLabel(record.version)} registrada y aviso publicado en Monday.${noticeWarning}`, noticeWarning ? 9000 : 6500)
+    toast(record.existing ? `Versión ${commsReviewVersionLabel(record.version)} recuperada. Los comentarios quedan en su subitem.` : `Versión ${commsReviewVersionLabel(record.version)} registrada; aviso publicado en Monday y correo procesado.${noticeWarning}`, noticeWarning ? 9000 : 6500)
   } catch (error) {
     console.error('monday memo review:', error)
     mondayCommsWriteColumn('syncStatus', 'Error').catch(syncError => console.warn('monday memo review error status:', syncError))
@@ -10118,7 +10138,7 @@ function commsOpenReviewRequest() {
   if (!_commsCurrent || !commsInMonday()) return
   const version = commsReviewSuggestedVersion(_commsCurrent), dialog = document.createElement('dialog')
   dialog.className = 'modal-content comms-confirm';dialog.setAttribute('aria-label', 'Solicitar revisión')
-  dialog.innerHTML = `<div class="modal-header"><h2>Registrar versión ${commsReviewVersionLabel(version)} en Monday</h2></div><p>Se creará un subitem inmutable con un PDF marcado <b>BORRADOR · VERSIÓN ${commsReviewVersionLabel(version)}</b>. También se publicará un update en Monday con el enlace de revisión y los aprobadores pendientes.</p><label for="memo-review-summary">Resumen de cambios</label><textarea id="memo-review-summary" class="control-input" rows="4" placeholder="${version === 1 ? 'Primera versión para revisión.' : 'Explica qué cambió desde la versión anterior.'}"></textarea><div class="modal-footer"><button class="btn btn-secondary" type="button">Cancelar</button><button class="btn btn-primary" type="button">Registrar versión y publicar aviso</button></div>`
+  dialog.innerHTML = `<div class="modal-header"><h2>Registrar versión ${commsReviewVersionLabel(version)} en Monday</h2></div><p>Se creará un subitem inmutable con un PDF marcado <b>BORRADOR · VERSIÓN ${commsReviewVersionLabel(version)}</b>. También se publicará un update en Monday y se enviará email con el enlace de revisión a aprobadores pendientes y solicitante.</p><label for="memo-review-summary">Resumen de cambios</label><textarea id="memo-review-summary" class="control-input" rows="4" placeholder="${version === 1 ? 'Primera versión para revisión.' : 'Explica qué cambió desde la versión anterior.'}"></textarea><div class="modal-footer"><button class="btn btn-secondary" type="button">Cancelar</button><button class="btn btn-primary" type="button">Registrar versión y avisar por email</button></div>`
   const buttons = dialog.querySelectorAll('button'), input = dialog.querySelector('textarea');buttons[0].onclick = () => dialog.close();buttons[1].onclick = () => { const summary = input.value.trim() || (version === 1 ? 'Primera versión para revisión.' : 'Nueva versión para revisión.');dialog.close();commsRequestReview(summary) };dialog.onclose = () => dialog.remove();document.body.append(dialog);dialog.showModal();input.focus()
 }
 
@@ -35710,7 +35730,7 @@ function commsReviewActionsHtml(draft) {
   const canSend = !latest || draft.reviewNeedsNewVersion
   const sendLabel = latest ? `Registrar versión ${commsReviewVersionLabel(latest + 1)}` : 'Registrar para revisión'
   const title = success ? `${siIcon('check-circle', 17)} ${success.existing ? 'Versión recuperada' : 'Versión registrada'} · ${commsReviewVersionLabel(latest)}` : latest ? `Versión ${commsReviewVersionLabel(latest)}` : 'Sin versión registrada'
-  const detail = success ? (success.existing ? 'La versión ya existía en monday; no se creó un duplicado.' : 'PDF con sello, subitem y aviso en Monday creados correctamente.') : draft.reviewNeedsNewVersion ? 'Cambios listos para una nueva versión.' : approved ? 'Aprobada y sin cambios posteriores.' : latest ? 'En revisión; el estado se actualiza automáticamente.' : 'Un clic crea el PDF con sello, su subitem de comentarios y un aviso en Monday.'
+  const detail = success ? (success.existing ? 'La versión ya existía en monday; no se creó un duplicado.' : 'PDF con sello, subitem, aviso en Monday y email procesados correctamente.') : draft.reviewNeedsNewVersion ? 'Cambios listos para una nueva versión.' : approved ? 'Aprobada y sin cambios posteriores.' : latest ? 'En revisión; el estado se actualiza automáticamente.' : 'Un clic crea el PDF con sello, su subitem de comentarios, aviso en Monday y email.'
   const destination = success?.reviewUrl || boardUrl
   return `<div class="memo-review-workflow${success ? ' is-success' : ''}" role="status" aria-live="polite"><div><b>${title}</b><small>${detail}</small></div>${destination ? `<a class="btn btn-ghost btn-sm" href="${escAttr(destination)}" target="_blank" rel="noopener noreferrer">${success ? `Abrir versión ${commsReviewVersionLabel(latest)}` : 'Ver revisiones'}</a>` : ''}${canSend ? `<button type="button" class="btn btn-primary btn-sm" data-comms-review-action="send" onclick="commsRequestReview()">${siIcon('message', 15)} ${sendLabel}</button>` : ''}${approved ? `<button type="button" class="btn btn-primary btn-sm" data-comms-review-action="publish" onclick="commsPublishFinalPdf()">${siIcon('check-circle', 15)} Publicar PDF final</button>` : ''}</div>`
 }

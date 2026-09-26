@@ -75,6 +75,8 @@ const cleanMemoToken = (value: unknown, fallback = '') => {
   const text = String(value || '').trim()
   return /^\[(?:correlativo|tema|asunto)\]$/i.test(normalize(text)) ? fallback : text || fallback
 }
+const validEmail = (value: unknown) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim())
+const uniqueEmails = (values: unknown[]) => [...new Set(values.map(emailKey).filter(validEmail))]
 
 function columnValue(item: any, title: string) {
   return (item?.column_values || []).find((value: any) => normalize(value?.column?.title) === normalize(title))
@@ -227,6 +229,50 @@ async function addUpdate(token: string, itemId: string, body: string) {
   await mondayRequest(token, `mutation ($item: ID!, $body: String!) { create_update(item_id: $item, body: $body) { id } }`, { item: itemId, body })
 }
 
+function reviewEmailHtml(payload: any) {
+  const pendingApprovers = Array.isArray(payload?.pending_approvers) ? payload.pending_approvers : []
+  const rows = [
+    ['Correlativo', payload.folio],
+    ['Tema', payload.memo_subject],
+    ['Versión', payload.version_label],
+    ['Aprobadores pendientes', pendingApprovers.join(', ') || 'No registrados'],
+  ].map(([label, value]) => `<tr><td style="padding:6px 10px;color:#555;border-bottom:1px solid #eee">${escapeHtml(label)}</td><td style="padding:6px 10px;border-bottom:1px solid #eee">${escapeHtml(value)}</td></tr>`).join('')
+  const summary = String(payload.summary || '').trim()
+  return `<div style="font-family:Arial,sans-serif;color:#171717;line-height:1.45"><h2 style="margin:0 0 12px">Versión lista para revisión</h2><p>Se registró una nueva versión de memorándum en SIERRA Index.</p><table style="border-collapse:collapse;margin:14px 0">${rows}</table>${summary ? `<p><b>Resumen de cambios</b><br>${escapeHtml(summary).replace(/\n/g, '<br>')}</p>` : ''}${payload.review_url ? `<p><a href="${escapeHtml(payload.review_url)}" style="display:inline-block;background:#007d73;color:#fff;text-decoration:none;padding:10px 14px;border-radius:6px">Abrir revisión</a></p><p style="font-size:12px;color:#666">Enlace directo: ${escapeHtml(payload.review_url)}</p>` : ''}</div>`
+}
+
+async function sendReviewEmail(env: Record<string, string>, body: any) {
+  const apiKey = env.RESEND_API_KEY
+  if (!apiKey) return { sent: 0, skipped: true, reason: 'Falta configurar RESEND_API_KEY.' }
+  const recipients = uniqueEmails(Array.isArray(body?.recipients) ? body.recipients : [])
+  if (!recipients.length) return { sent: 0, skipped: true, reason: 'No hay destinatarios de correo válidos.' }
+  const from = env.MEMO_REVIEW_EMAIL_FROM || 'SIERRA Index <noreply@sierratextiles.com>'
+  const replyTo = validEmail(body?.requester_email) ? emailKey(body.requester_email) : undefined
+  const subject = `Revisión de memo ${cleanMemoToken(body?.folio, 'sin correlativo')} · ${cleanMemoToken(body?.memo_subject, 'sin tema')}`
+  const html = reviewEmailHtml(body)
+  const text = [
+    'Versión lista para revisión',
+    `Correlativo: ${cleanMemoToken(body?.folio, 'sin correlativo')}`,
+    `Tema: ${cleanMemoToken(body?.memo_subject, 'sin tema')}`,
+    `Versión: ${cleanMemoToken(body?.version_label, '')}`,
+    `Aprobadores pendientes: ${uniqueEmails(Array.isArray(body?.pending_approvers) ? body.pending_approvers : []).join(', ') || 'No registrados'}`,
+    body?.summary ? `Resumen de cambios:\n${String(body.summary).trim()}` : '',
+    body?.review_url ? `Abrir revisión: ${body.review_url}` : '',
+  ].filter(Boolean).join('\n\n')
+  let sent = 0
+  for (const to of recipients) {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to: [to], subject, html, text, ...(replyTo ? { reply_to: replyTo } : {}) }),
+    })
+    const payload = await response.json().catch(() => null)
+    if (!response.ok) throw new Error(payload?.message || payload?.error || 'No se pudo enviar el correo de revisión.')
+    sent += 1
+  }
+  return { sent, skipped: false }
+}
+
 const operationMarker = (operationId: string) => operationId ? `<!--sierra-operation:${escapeHtml(operationId)}-->` : ''
 const hasOperation = (item: any, operationId: string) => Boolean(operationId && (item?.updates || []).some((update: any) => String(update?.body || '').includes(operationMarker(operationId))))
 
@@ -263,6 +309,8 @@ Deno.serve(async req => {
       MONDAY_COMMUNICATIONS_CLAIM_STATUS: Deno.env.get('MONDAY_COMMUNICATIONS_CLAIM_STATUS') || 'En diseño',
       MONDAY_COMMUNICATIONS_COLUMN_MAP: Deno.env.get('MONDAY_COMMUNICATIONS_COLUMN_MAP') || '',
       MONDAY_COMMUNICATIONS_MEMO_ONLY: Deno.env.get('MONDAY_COMMUNICATIONS_MEMO_ONLY') || '',
+      RESEND_API_KEY: Deno.env.get('RESEND_API_KEY') || '',
+      MEMO_REVIEW_EMAIL_FROM: Deno.env.get('MEMO_REVIEW_EMAIL_FROM') || '',
     }
     let body: any
     try { body = await req.json() } catch { return json({ error: 'Solicitud no válida.' }, 400) }
@@ -273,6 +321,11 @@ Deno.serve(async req => {
     const action = body?.action || 'list'
     if (!env.MONDAY_API_TOKEN || !/^\d+$/.test(env.MONDAY_COMMUNICATIONS_BOARD_ID)) {
       return json({ error: 'Falta configurar MONDAY_API_TOKEN y MONDAY_COMMUNICATIONS_BOARD_ID en Supabase.' })
+    }
+
+    if (action === 'review_notify') {
+      if (!auth.canWrite) return json({ error: 'Necesitas permiso de edición en Comunicaciones.' }, 403)
+      return json({ ok: true, email: await sendReviewEmail(env, body) })
     }
 
     if (['review_get', 'review_comment', 'review_decide'].includes(action)) {
