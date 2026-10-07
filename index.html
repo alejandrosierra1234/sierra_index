@@ -20,6 +20,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1/dist/jsQR.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js" defer></script>
   <link rel="stylesheet" href="css/infographic-builder.css?v=20260920-1">
+  <link rel="stylesheet" href="css/new-hire-builder.css?v=20261006-1">
   <style>
     /* ── FONTS ──
        Per SIERRA_DESIGN_SYSTEM.md §19: Aeonik is the interface typeface
@@ -10527,6 +10528,7 @@ async function enterApp(user) {
     const key = savedRoute.slice(7)
     if (key === 'samples') { showSamplesHome(); return }
     if (key === 'comunicaciones:infographics') { showInfographics(); return }
+    if (key === 'comunicaciones:new-hires') { showNewHireCreator(); return }
     if (key === 'comunicaciones:stamps') { showStampCreator(); return }
     if (key === 'comunicaciones') { showCommunications(); return }
     if (key === 'procesos') { showPolicies(); return }
@@ -17142,6 +17144,11 @@ const MODULES = {
       desc: 'Compone artes modulares, ajusta el formato y exporta piezas listas para compartir',
       icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M6 7h8M6 10h3M11 10h3M6 13h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
       run: 'showInfographics',
+    },{
+      id: 'new-hires', label: 'Altas de colaborador',
+      desc: 'Crea y exporta bienvenidas para nuevos integrantes del equipo',
+      icon: '<svg viewBox="0 0 20 20" fill="none"><circle cx="8" cy="6" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 17v-1.5A4.5 4.5 0 0 1 8 11h1.5M15 11v6M12 14h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+      run: 'showNewHireCreator',
     },{
       id: 'stamps', label: 'Creador de sellos',
       desc: 'Diseña sellos de una empresa y exporta el arte con su ficha técnica',
@@ -37491,6 +37498,7 @@ window.addEventListener('resize',()=>{if(_policyCurrent)policyFitPreview()});
 <script src="js/communications-collaboration-integration.js?v=20260914-3"></script>
 <script src="js/communications-access.js?v=20260914-1"></script>
 <script src="js/infographic-builder.js?v=20260920-1"></script>
+<script src="js/new-hire-builder.js?v=20261006-1"></script>
 <script src="js/sample-workflow.js?v=20260911-13"></script>
 <script src="js/sample-development.js?v=20260911-8"></script>
 <script src="js/sample-stock.js?v=20260911-8"></script>
