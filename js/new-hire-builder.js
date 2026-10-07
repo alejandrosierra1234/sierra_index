@@ -135,14 +135,10 @@ function newHireReset(){
   if(!confirm('¿Restablecer todos los campos y quitar la fotografía?'))return;_newHire={...NEW_HIRE_DEFAULTS};newHireSave();renderNewHireCreator();toast('Plantilla restablecida.')
 }
 function newHireFileName(format){const name=String(_newHire.name||'nuevo-colaborador').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase();return`bienvenida-${name||'nuevo-colaborador'}.${format}`}
-function newHireLockExportLayout(art){
-  const main=art?.querySelector('.new-hire-art-main'),card=art?.querySelector('.new-hire-message-card');if(!main||!card)return
-  card.style.alignSelf='stretch';card.style.height='';const mainBox=main.getBoundingClientRect(),cardBox=card.getBoundingClientRect(),paddingBottom=parseFloat(getComputedStyle(main).paddingBottom)||0,targetHeight=mainBox.bottom-paddingBottom-cardBox.top;if(targetHeight>0)card.style.height=`${targetHeight}px`
-}
 async function newHireCapture(){
   if(typeof window.html2canvas!=='function')throw Error('No se pudo preparar la imagen. Recarga e inténtalo de nuevo.')
   const host=document.createElement('div');host.className='new-hire-export-host';host.innerHTML=newHireArtHtml();document.body.append(host);const art=host.querySelector('.new-hire-art')
-  try{await document.fonts?.ready;newHireFitSingleLines(art);await Promise.all([...art.querySelectorAll('img')].map(image=>typeof image.decode==='function'?image.decode().catch(()=>{}):Promise.resolve()));await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));newHireFitSingleLines(art);newHireLockExportLayout(art);return await window.html2canvas(art,{scale:1.5,useCORS:true,allowTaint:false,backgroundColor:'#ffffff',logging:false,width:720,height:900,windowWidth:720,windowHeight:900,scrollX:0,scrollY:0})}finally{host.remove()}
+  try{await document.fonts?.ready;newHireFitSingleLines(art);await Promise.all([...art.querySelectorAll('img')].map(image=>typeof image.decode==='function'?image.decode().catch(()=>{}):Promise.resolve()));await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));newHireFitSingleLines(art);return await window.html2canvas(art,{scale:1.5,useCORS:true,allowTaint:false,backgroundColor:'#ffffff',logging:false,width:720,height:900,windowWidth:720,windowHeight:900,scrollX:0,scrollY:0})}finally{host.remove()}
 }
 async function newHireExport(format='png'){
   format=String(format).toLowerCase();if(!['png','jpg','pdf'].includes(format)||_newHireExporting)return;if(!_newHire.name.trim()||_newHire.name===NEW_HIRE_DEFAULTS.name){toast('Escribe el nombre del colaborador antes de exportar.');return}if(!_newHire.photo){toast('Carga la fotografía del colaborador antes de exportar.');return}
