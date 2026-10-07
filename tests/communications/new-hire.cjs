@@ -31,8 +31,8 @@ assert.ok(w.document.querySelector('.new-hire-message-card'))
 assert.equal(w.document.querySelector('.new-hire-message-card').style.alignSelf,'stretch')
 assert.equal(w.document.querySelector('.new-hire-message-label').textContent,'Nos alegra que estés aquí')
 assert.equal(w.document.querySelectorAll('.new-hire-heading-note').length,0)
-assert.equal(w.document.querySelectorAll('.new-hire-art-title > span').length,2)
-assert.equal(w.document.querySelector('.new-hire-art-title > span:last-child').textContent,'al equipo SIERRA')
+assert.equal(w.document.querySelectorAll('.new-hire-art-title > br').length,1)
+assert.equal(w.document.querySelector('.new-hire-art-title').textContent,'Te damos la bienvenidaal equipo SIERRA')
 assert.match(w.document.querySelector('.new-hire-message').textContent,/Nos alegra que formes parte/)
 assert.equal(w.document.querySelectorAll('[data-nh-field="phone"]').length,0)
 assert.equal(w.document.querySelector('.new-hire-name').textContent,'Nombre del colaborador')
@@ -64,6 +64,6 @@ w.newHireReset()
 assert.equal(w.document.querySelector('.new-hire-name').textContent,'Nombre del colaborador')
 let pdfSaved='',pdfFormat='',captureParent='',captureOptions
 w.jspdf={jsPDF:function(options){pdfFormat=Array.from(options.format).join(',');return{internal:{pageSize:{getWidth:()=>216,getHeight:()=>270}},setProperties(){},addImage(){},save(name){pdfSaved=name}}}}
-w.html2canvas=async(element,options)=>{captureParent=element.parentElement.className;captureOptions=options;assert.equal(element.querySelector('.new-hire-message-card').style.height,'');return{width:1080,height:1350,toDataURL:()=>'data:image/jpeg;base64,test'}}
+w.html2canvas=async(element,options)=>{captureParent=element.parentElement.className;captureOptions=options;assert.equal(element.dataset.exportFrozen,'true');return{width:1080,height:1350,toDataURL:()=>'data:image/jpeg;base64,test'}}
 w.newHireSet('name','Ana Martínez');w.newHireSet('photo','data:image/png;base64,test');[...w.document.querySelectorAll('#new-hire-art img')].forEach(image=>image.decode=()=>Promise.resolve())
 w.newHireExport('pdf').then(()=>{assert.equal(pdfFormat,'216,270');assert.equal(pdfSaved,'bienvenida-ana-martinez.pdf');assert.equal(captureParent,'new-hire-export-host');assert.equal(captureOptions.windowWidth,720);assert.equal(w.document.querySelectorAll('.new-hire-export-host').length,0);console.log('PASS: new-hire creator renders, updates, stores, resets and exports the SIERRA welcome art')}).catch(error=>{console.error(error);process.exitCode=1})

@@ -110,7 +110,7 @@ function newHireArtHtml(){
   return`<article class="new-hire-art" id="new-hire-art" style="--nh-primary:${p.primary};--nh-accent:${p.accent};--nh-deep:${p.deep};--nh-soft:${p.soft};--nh-photo-x:${Number(_newHire.photoX)}%;--nh-photo-y:${Number(_newHire.photoY)}%;--nh-photo-zoom:${(Number(_newHire.photoZoom)||100)/100}">
     <header class="new-hire-art-header">${logo}<span class="new-hire-art-kicker">Nuevo colaborador</span></header>
     <main class="new-hire-art-main">
-      <div class="new-hire-heading"><h1 class="new-hire-art-title"><span>Te damos la bienvenida</span><span>al equipo <strong>SIERRA</strong></span></h1></div>
+      <div class="new-hire-heading"><h1 class="new-hire-art-title">Te damos la bienvenida<br>al equipo <strong>SIERRA</strong></h1></div>
       <div class="new-hire-card-grid"><div class="new-hire-photo" data-nh-field="photo" onclick="newHireFocusField('photo')">${photo}</div><section class="new-hire-info">
         <h2 class="new-hire-name new-hire-single-line" data-min-font="15" data-nh-field="name" onclick="newHireFocusField('name')">${esc(_newHire.name||'Nombre del colaborador')}</h2><p class="new-hire-role" data-nh-field="role" onclick="newHireFocusField('role')">${esc(_newHire.role||'Puesto del colaborador')}</p>
         <dl class="new-hire-facts">${contact?`<div class="new-hire-fact new-hire-fact-contact"><dt>Contacto</dt><dd class="new-hire-contact-lines">${contact}</dd></div>`:''}${fact('department','Gerencia',_newHire.department,'new-hire-department','new-hire-fact-department')}${fact('country','País',_newHire.country)}${fact('company','Empresa',_newHire.company)}${fact('startDate','Fecha de ingreso',newHireDateLabel(_newHire.startDate),'','new-hire-fact-date')}</dl>
@@ -135,10 +135,15 @@ function newHireReset(){
   if(!confirm('¿Restablecer todos los campos y quitar la fotografía?'))return;_newHire={...NEW_HIRE_DEFAULTS};newHireSave();renderNewHireCreator();toast('Plantilla restablecida.')
 }
 function newHireFileName(format){const name=String(_newHire.name||'nuevo-colaborador').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase();return`bienvenida-${name||'nuevo-colaborador'}.${format}`}
+function newHireFreezeComputedLayout(root){
+  if(!root)return
+  ;[root,...root.querySelectorAll('*')].forEach(element=>{const computed=getComputedStyle(element);for(let index=0;index<computed.length;index++){const property=computed[index];element.style.setProperty(property,computed.getPropertyValue(property),computed.getPropertyPriority(property))}})
+  root.dataset.exportFrozen='true'
+}
 async function newHireCapture(){
   if(typeof window.html2canvas!=='function')throw Error('No se pudo preparar la imagen. Recarga e inténtalo de nuevo.')
   const host=document.createElement('div');host.className='new-hire-export-host';host.innerHTML=newHireArtHtml();document.body.append(host);const art=host.querySelector('.new-hire-art')
-  try{await document.fonts?.ready;newHireFitSingleLines(art);await Promise.all([...art.querySelectorAll('img')].map(image=>typeof image.decode==='function'?image.decode().catch(()=>{}):Promise.resolve()));await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));newHireFitSingleLines(art);return await window.html2canvas(art,{scale:1.5,useCORS:true,allowTaint:false,backgroundColor:'#ffffff',logging:false,width:720,height:900,windowWidth:720,windowHeight:900,scrollX:0,scrollY:0})}finally{host.remove()}
+  try{await document.fonts?.ready;newHireFitSingleLines(art);await Promise.all([...art.querySelectorAll('img')].map(image=>typeof image.decode==='function'?image.decode().catch(()=>{}):Promise.resolve()));await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));newHireFitSingleLines(art);newHireFreezeComputedLayout(art);return await window.html2canvas(art,{scale:1.5,useCORS:true,allowTaint:false,backgroundColor:'#ffffff',logging:false,width:720,height:900,windowWidth:720,windowHeight:900,scrollX:0,scrollY:0})}finally{host.remove()}
 }
 async function newHireExport(format='png'){
   format=String(format).toLowerCase();if(!['png','jpg','pdf'].includes(format)||_newHireExporting)return;if(!_newHire.name.trim()||_newHire.name===NEW_HIRE_DEFAULTS.name){toast('Escribe el nombre del colaborador antes de exportar.');return}if(!_newHire.photo){toast('Carga la fotografía del colaborador antes de exportar.');return}
