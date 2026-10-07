@@ -1,5 +1,7 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict')
 const {JSDOM}=require('jsdom')
+const newHireCss=fs.readFileSync(path.join(__dirname,'../../css/new-hire-builder.css'),'utf8')
+assert.match(newHireCss,/grid-template-rows:auto 500px 145px;gap:35px/)
 const dom=new JSDOM('<!doctype html><div id="tb-section"></div><div id="product-controls"></div><div id="sec-title"></div><div id="sec-sub"></div><div id="pg"></div>',{url:'https://test.local',runScripts:'outside-only'})
 const w=dom.window
 Object.assign(w,{
