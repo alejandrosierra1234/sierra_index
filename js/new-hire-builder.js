@@ -3,6 +3,7 @@ const NEW_HIRE_DEFAULTS={
   name:'Nombre del colaborador',
   role:'Puesto del colaborador',
   email:'nombre@sierratextiles.com',
+  phone:'',
   department:'Talento Humano',
   country:'Honduras',
   company:'Northern Textiles',
@@ -70,7 +71,7 @@ function newHireFormHtml(){
       <span class="new-hire-upload-copy"><b>${_newHire.photo?'Cambiar fotografía':'Cargar fotografía'}</b><small>Usa un retrato vertical y nítido.</small></span>
       <input type="file" accept="image/png,image/jpeg,image/webp" onchange="newHirePhoto(this)">
     </label>
-    ${newHireField('name','Nombre completo')}${newHireField('role','Puesto')}${newHireField('email','Contacto','email')}
+    ${newHireField('name','Nombre completo')}${newHireField('role','Puesto')}<div class="new-hire-grid">${newHireField('email','Correo','email')}${newHireField('phone','Teléfono (opcional)','tel')}</div>
   </section>
   <section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('building',16)} Organización</h3>
     <div class="new-hire-grid">${newHireField('department','Gerencia / departamento')}${newHireField('country','País')}</div>${newHireField('company','Empresa')}
@@ -97,7 +98,8 @@ function newHirePhoto(input){
 }
 function newHireArtHtml(){
   const p=NEW_HIRE_PALETTES[_newHire.palette]||NEW_HIRE_PALETTES.teal,logo=typeof memoLogoHtml==='function'?memoLogoHtml():'<strong>SIERRA</strong>'
-  const fact=(key,label,value,cls='')=>value?`<div class="new-hire-fact" data-nh-field="${key}" onclick="newHireFocusField('${key}')"><dt>${esc(label)}</dt><dd class="${cls}">${esc(value)}</dd></div>`:''
+  const fact=(key,label,value,cls='',wrapCls='')=>value?`<div class="new-hire-fact ${wrapCls}" data-nh-field="${key}" onclick="newHireFocusField('${key}')"><dt>${esc(label)}</dt><dd class="${cls}">${esc(value)}</dd></div>`:''
+  const contact=[_newHire.email?`<span data-nh-field="email" onclick="event.stopPropagation();newHireFocusField('email')">${esc(_newHire.email)}</span>`:'',_newHire.phone?`<span data-nh-field="phone" onclick="event.stopPropagation();newHireFocusField('phone')">${esc(_newHire.phone)}</span>`:''].filter(Boolean).join('')
   const photo=_newHire.photo?`<img src="${escAttr(_newHire.photo)}" alt="Retrato de ${escAttr(_newHire.name||'nuevo colaborador')}">`:`<div class="new-hire-photo-empty">${siIcon('user',64)}<b>Carga una fotografía</b></div>`
   return`<article class="new-hire-art" id="new-hire-art" style="--nh-primary:${p.primary};--nh-accent:${p.accent};--nh-deep:${p.deep};--nh-photo-x:${Number(_newHire.photoX)}%;--nh-photo-y:${Number(_newHire.photoY)}%;--nh-photo-zoom:${(Number(_newHire.photoZoom)||100)/100}">
     <header class="new-hire-art-header">${logo}<span class="new-hire-art-kicker">Nuevo colaborador</span></header>
@@ -105,7 +107,7 @@ function newHireArtHtml(){
       <div class="new-hire-heading"><h1 class="new-hire-art-title"><span>Te damos la bienvenida</span><span>al equipo <strong>SIERRA</strong></span></h1></div>
       <div class="new-hire-card-grid"><div class="new-hire-photo" data-nh-field="photo" onclick="newHireFocusField('photo')">${photo}</div><section class="new-hire-info">
         <h2 class="new-hire-name" data-nh-field="name" onclick="newHireFocusField('name')">${esc(_newHire.name||'Nombre del colaborador')}</h2><p class="new-hire-role" data-nh-field="role" onclick="newHireFocusField('role')">${esc(_newHire.role||'Puesto del colaborador')}</p>
-        <dl class="new-hire-facts">${fact('email','Contacto',_newHire.email)}${fact('department','Gerencia',_newHire.department,'new-hire-department')}${fact('country','País',_newHire.country)}${fact('company','Empresa',_newHire.company)}</dl>
+        <dl class="new-hire-facts">${contact?`<div class="new-hire-fact new-hire-fact-contact"><dt>Contacto</dt><dd class="new-hire-contact-lines">${contact}</dd></div>`:''}${fact('department','Gerencia',_newHire.department,'new-hire-department','new-hire-fact-department')}${fact('country','País',_newHire.country)}${fact('company','Empresa',_newHire.company)}</dl>
       </section></div>
       <footer class="new-hire-message-card"><div class="new-hire-message-copy"><p class="new-hire-message-label">Un mensaje para ti</p><p class="new-hire-message" data-nh-field="message" onclick="newHireFocusField('message')">${esc(_newHire.message)}</p></div><img class="new-hire-clay" src="marketing/assets/sierra-clay-welcome-team.png" alt="Equipo SIERRA con materiales textiles"></footer>
     </main>
