@@ -18,6 +18,7 @@ assert.equal(w.document.getElementById('sec-title').textContent,'Altas de colabo
 assert.equal(w.document.querySelector('.new-hire-art').offsetWidth,0)
 assert.match(w.document.querySelector('.new-hire-art').getAttribute('style'),/--nh-primary:#62b8b1/)
 assert.equal(w.document.querySelectorAll('.new-hire-tab').length,2)
+assert.equal(w.document.querySelector('.new-hire-pdf-action').textContent.trim(),'PDF')
 w.newHireOpenTab('design')
 assert.equal(w.document.querySelectorAll('.new-hire-palette').length,4)
 assert.equal(w.document.querySelectorAll('select').length,0)
@@ -58,4 +59,8 @@ assert.match(w.document.querySelector('.new-hire-art').getAttribute('style'),/--
 assert.equal(JSON.parse(w.localStorage.getItem('index_new_hire_v1:new-hire-test')).palette,'orange')
 w.newHireReset()
 assert.equal(w.document.querySelector('.new-hire-name').textContent,'Nombre del colaborador')
-console.log('PASS: new-hire creator renders, updates, stores and resets the SIERRA welcome art')
+let pdfSaved='',pdfFormat=''
+w.jspdf={jsPDF:function(options){pdfFormat=Array.from(options.format).join(',');return{internal:{pageSize:{getWidth:()=>216,getHeight:()=>270}},setProperties(){},addImage(){},save(name){pdfSaved=name}}}}
+w.html2canvas=async()=>({width:1080,height:1350,toDataURL:()=>'data:image/jpeg;base64,test'})
+w.newHireSet('name','Ana Martínez');w.newHireSet('photo','data:image/png;base64,test');[...w.document.querySelectorAll('#new-hire-art img')].forEach(image=>image.decode=()=>Promise.resolve())
+w.newHireExport('pdf').then(()=>{assert.equal(pdfFormat,'216,270');assert.equal(pdfSaved,'bienvenida-ana-martinez.pdf');console.log('PASS: new-hire creator renders, updates, stores, resets and exports the SIERRA welcome art')}).catch(error=>{console.error(error);process.exitCode=1})
