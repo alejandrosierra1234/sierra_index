@@ -6,9 +6,12 @@ const NEW_HIRE_DEFAULTS={
   department:'Talento Humano',
   country:'Honduras',
   company:'Northern Textiles',
-  message:'¡Bienvenido a SIERRA! Estamos muy emocionados de que formes parte de nuestro equipo. Tu talento y experiencia aportarán un gran valor a nuestra organización.',
+  message:'¡Bienvenida a SIERRA! Nos alegra que formes parte de nuestro equipo. Tu talento y experiencia suman a todo lo que construimos juntos.',
   photo:'',photoX:50,photoY:50,photoZoom:100,palette:'teal'
 }
+const NEW_HIRE_LEGACY_MESSAGES=[
+  '¡Bienvenido a SIERRA! Estamos muy emocionados de que formes parte de nuestro equipo. Tu talento y experiencia aportarán un gran valor a nuestra organización.'
+]
 const NEW_HIRE_PALETTES={
   teal:{label:'Turquesa institucional',primary:'#62b8b1',accent:'#dd6e28',deep:'#2d514e'},
   blue:{label:'Azul corporativo',primary:'#009fff',accent:'#ff7824',deep:'#004a86'},
@@ -19,7 +22,7 @@ let _newHire={...NEW_HIRE_DEFAULTS},_newHireScale=1,_newHireZoomMode='fit',_newH
 
 function newHireStorageKey(){return`index_new_hire_v1:${typeof me!=='undefined'&&me?.id?me.id:'local'}`}
 function newHireLoad(){
-  try{const value=JSON.parse(localStorage.getItem(newHireStorageKey())||'null');_newHire={...NEW_HIRE_DEFAULTS,...(value&&typeof value==='object'?value:{})}}
+  try{const value=JSON.parse(localStorage.getItem(newHireStorageKey())||'null');_newHire={...NEW_HIRE_DEFAULTS,...(value&&typeof value==='object'?value:{})};if(NEW_HIRE_LEGACY_MESSAGES.includes(_newHire.message))_newHire.message=NEW_HIRE_DEFAULTS.message}
   catch{_newHire={...NEW_HIRE_DEFAULTS}}
 }
 function newHireSave(){
@@ -99,7 +102,7 @@ function newHireArtHtml(){
   return`<article class="new-hire-art" id="new-hire-art" style="--nh-primary:${p.primary};--nh-accent:${p.accent};--nh-deep:${p.deep};--nh-photo-x:${Number(_newHire.photoX)}%;--nh-photo-y:${Number(_newHire.photoY)}%;--nh-photo-zoom:${(Number(_newHire.photoZoom)||100)/100}">
     <header class="new-hire-art-header">${logo}<span class="new-hire-art-kicker">Nuevo colaborador</span></header>
     <main class="new-hire-art-main">
-      <div class="new-hire-heading"><h1 class="new-hire-art-title"><span>Te damos la bienvenida</span><span>Al equipo <strong>SIERRA</strong></span></h1></div>
+      <div class="new-hire-heading"><h1 class="new-hire-art-title"><span>Te damos la bienvenida</span><span>al equipo <strong>SIERRA</strong></span></h1></div>
       <div class="new-hire-card-grid"><div class="new-hire-photo" data-nh-field="photo" onclick="newHireFocusField('photo')">${photo}</div><section class="new-hire-info">
         <h2 class="new-hire-name" data-nh-field="name" onclick="newHireFocusField('name')">${esc(_newHire.name||'Nombre del colaborador')}</h2><p class="new-hire-role" data-nh-field="role" onclick="newHireFocusField('role')">${esc(_newHire.role||'Puesto del colaborador')}</p>
         <dl class="new-hire-facts">${fact('email','Contacto',_newHire.email)}${fact('department','Gerencia',_newHire.department,'new-hire-department')}${fact('country','País',_newHire.country)}${fact('company','Empresa',_newHire.company)}</dl>
