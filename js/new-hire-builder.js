@@ -10,12 +10,12 @@ const NEW_HIRE_DEFAULTS={
   photo:'',photoX:50,photoY:50,photoZoom:100,palette:'teal'
 }
 const NEW_HIRE_PALETTES={
-  teal:{primary:'#62b8b1',accent:'#dd6e28',deep:'#2d514e'},
-  blue:{primary:'#009fff',accent:'#ff7824',deep:'#004a86'},
-  olive:{primary:'#b59e48',accent:'#9827b8',deep:'#625f02'},
-  orange:{primary:'#dd6e28',accent:'#62b8b1',deep:'#8b3c12'}
+  teal:{label:'Turquesa institucional',primary:'#62b8b1',accent:'#dd6e28',deep:'#2d514e'},
+  blue:{label:'Azul corporativo',primary:'#009fff',accent:'#ff7824',deep:'#004a86'},
+  olive:{label:'Oliva y morado',primary:'#b59e48',accent:'#9827b8',deep:'#625f02'},
+  orange:{label:'Naranja y turquesa',primary:'#dd6e28',accent:'#62b8b1',deep:'#8b3c12'}
 }
-let _newHire={...NEW_HIRE_DEFAULTS},_newHireScale=1,_newHireExporting=false
+let _newHire={...NEW_HIRE_DEFAULTS},_newHireScale=1,_newHireZoomMode='fit',_newHireTab='content',_newHireExporting=false
 
 function newHireStorageKey(){return`index_new_hire_v1:${typeof me!=='undefined'&&me?.id?me.id:'local'}`}
 function newHireLoad(){
@@ -35,8 +35,10 @@ function showNewHireCreator(){
 function renderNewHireCreator(){
   const pg=document.getElementById('pg');pg.style.display='block';pg.innerHTML=`<section class="new-hire-studio">
     <aside class="new-hire-editor" aria-label="Editor de bienvenida">
-      <header class="new-hire-editor-head"><h2>Nuevo colaborador</h2><p id="new-hire-save-state">Cambios guardados en este navegador</p></header>
-      <div class="new-hire-form">${newHireFormHtml()}</div>
+      <header class="new-hire-editor-head"><div class="new-hire-editor-title"><h2>Nuevo colaborador</h2><span class="new-hire-save-state" id="new-hire-save-state">Guardado</span></div>
+        <div class="new-hire-tabs" role="tablist" aria-label="Secciones del editor"><button type="button" class="new-hire-tab" role="tab" aria-selected="${_newHireTab==='content'}" onclick="newHireOpenTab('content')">Contenido</button><button type="button" class="new-hire-tab" role="tab" aria-selected="${_newHireTab==='design'}" onclick="newHireOpenTab('design')">Diseño</button></div>
+      </header>
+      <div class="new-hire-form" id="new-hire-form">${newHireFormHtml()}</div>
       <footer class="new-hire-actions">
         <button type="button" class="btn btn-ghost" onclick="newHireReset()">${siIcon('rotate-ccw',16)} Restablecer</button>
         <button type="button" class="btn btn-secondary" onclick="newHireExport('jpg')">${siIcon('photo',16)} JPG</button>
@@ -44,17 +46,17 @@ function renderNewHireCreator(){
       </footer>
     </aside>
     <section class="new-hire-preview" aria-label="Vista previa">
-      <div class="new-hire-preview-bar"><b>Vista previa</b><span>1080 × 1350 px · formato vertical 4:5</span></div>
+      <div class="new-hire-preview-bar"><b>Vista previa</b><span class="new-hire-preview-meta">1080 × 1350 px · vertical 4:5</span><div class="new-hire-preview-tools"><button type="button" class="new-hire-zoom-btn new-hire-fit-btn" onclick="newHireZoomFit()">Ajustar</button><button type="button" class="new-hire-zoom-btn" aria-label="Alejar" onclick="newHireZoom(-.1)">${siIcon('minus',16)}</button><span class="new-hire-zoom-value" id="new-hire-zoom-value">100%</span><button type="button" class="new-hire-zoom-btn" aria-label="Acercar" onclick="newHireZoom(.1)">${siIcon('plus',16)}</button></div></div>
       <div class="new-hire-stage" id="new-hire-stage"><div class="new-hire-sheet" id="new-hire-sheet"><div id="new-hire-art-root"></div></div></div>
     </section>
   </section>`
   newHireRenderArt();requestAnimationFrame(newHireFit)
 }
 function newHireField(key,label,type='text',hint=''){
-  return`<label class="new-hire-field"><span>${esc(label)}</span><input class="control-input" type="${type}" value="${escAttr(_newHire[key]||'')}" oninput="newHireSet('${key}',this.value)">${hint?`<small>${esc(hint)}</small>`:''}</label>`
+  return`<label class="new-hire-field"><span>${esc(label)}</span><input id="new-hire-field-${key}" class="control-input" type="${type}" value="${escAttr(_newHire[key]||'')}" oninput="newHireSet('${key}',this.value)">${hint?`<small>${esc(hint)}</small>`:''}</label>`
 }
 function newHireFormHtml(){
-  const palettes=Object.entries(NEW_HIRE_PALETTES).map(([key,value])=>`<button type="button" class="new-hire-palette" aria-label="Paleta ${escAttr(key)}" aria-pressed="${_newHire.palette===key}" onclick="newHirePalette('${key}')"><i style="--swatch:${value.primary}"></i><i style="--swatch:${value.accent}"></i><i style="--swatch:${value.deep}"></i></button>`).join('')
+  if(_newHireTab==='design')return newHireDesignFormHtml()
   return`<section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('user-plus',16)} Identidad</h3>
     <label class="new-hire-upload" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.querySelector('input').click()}">
       <span class="new-hire-upload-thumb" id="new-hire-upload-thumb">${_newHire.photo?`<img src="${escAttr(_newHire.photo)}" alt="Foto cargada">`:siIcon('user',26)}</span>
@@ -62,45 +64,54 @@ function newHireFormHtml(){
       <input type="file" accept="image/png,image/jpeg,image/webp" onchange="newHirePhoto(this)">
     </label>
     ${newHireField('name','Nombre completo')}${newHireField('role','Puesto')}${newHireField('email','Contacto','email')}
-    <div class="new-hire-range"><label for="new-hire-x">Posición horizontal</label><output id="new-hire-x-value">${Number(_newHire.photoX)}%</output><input id="new-hire-x" type="range" min="0" max="100" value="${Number(_newHire.photoX)}" oninput="newHireRange('photoX',this.value,'new-hire-x-value')"></div>
-    <div class="new-hire-range"><label for="new-hire-y">Posición vertical</label><output id="new-hire-y-value">${Number(_newHire.photoY)}%</output><input id="new-hire-y" type="range" min="0" max="100" value="${Number(_newHire.photoY)}" oninput="newHireRange('photoY',this.value,'new-hire-y-value')"></div>
-    <div class="new-hire-range"><label for="new-hire-zoom">Zoom de la fotografía</label><output id="new-hire-zoom-value">${Number(_newHire.photoZoom)}%</output><input id="new-hire-zoom" type="range" min="100" max="180" value="${Number(_newHire.photoZoom)}" oninput="newHireRange('photoZoom',this.value,'new-hire-zoom-value')"></div>
   </section>
   <section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('building',16)} Organización</h3>
     <div class="new-hire-grid">${newHireField('department','Gerencia / departamento')}${newHireField('country','País')}</div>${newHireField('company','Empresa')}
   </section>
   <section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('message',16)} Mensaje y color</h3>
-    <label class="new-hire-field"><span>Mensaje de bienvenida</span><textarea class="control-input" maxlength="280" oninput="newHireSet('message',this.value)">${esc(_newHire.message)}</textarea><small>Máximo 280 caracteres para conservar una lectura cómoda.</small></label>
-    <div class="new-hire-field"><span>Paleta SIERRA</span><div class="new-hire-palettes">${palettes}</div></div>
+    <label class="new-hire-field"><span>Mensaje de bienvenida</span><textarea id="new-hire-field-message" class="control-input" maxlength="280" oninput="newHireSet('message',this.value)">${esc(_newHire.message)}</textarea><small>Máximo 280 caracteres para conservar una lectura cómoda.</small></label>
   </section>`
 }
+function newHireDesignFormHtml(){
+  const palettes=Object.entries(NEW_HIRE_PALETTES).map(([key,value])=>`<button type="button" class="new-hire-palette" aria-label="Paleta ${escAttr(key)}" aria-pressed="${_newHire.palette===key}" onclick="newHirePalette('${key}')"><span class="new-hire-palette-swatches"><i style="--swatch:${value.primary}"></i><i style="--swatch:${value.accent}"></i><i style="--swatch:${value.deep}"></i></span><span>${esc(value.label)}</span><span class="new-hire-palette-check">${_newHire.palette===key?siIcon('check',16):''}</span></button>`).join('')
+  return`<section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('photo',16)} Encuadre de fotografía</h3><p class="new-hire-design-note">Ajusta el retrato sin alterar el tamaño final de la pieza.</p>
+    <div class="new-hire-range"><label for="new-hire-x">Posición horizontal</label><output id="new-hire-x-value">${Number(_newHire.photoX)}%</output><input id="new-hire-x" type="range" min="0" max="100" value="${Number(_newHire.photoX)}" oninput="newHireRange('photoX',this.value,'new-hire-x-value')"></div>
+    <div class="new-hire-range"><label for="new-hire-y">Posición vertical</label><output id="new-hire-y-value">${Number(_newHire.photoY)}%</output><input id="new-hire-y" type="range" min="0" max="100" value="${Number(_newHire.photoY)}" oninput="newHireRange('photoY',this.value,'new-hire-y-value')"></div>
+    <div class="new-hire-range"><label for="new-hire-zoom">Zoom de la fotografía</label><output id="new-hire-zoom-value">${Number(_newHire.photoZoom)}%</output><input id="new-hire-zoom" type="range" min="100" max="180" value="${Number(_newHire.photoZoom)}" oninput="newHireRange('photoZoom',this.value,'new-hire-zoom-value')"></div>
+  </section><section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('palette',16)} Paleta SIERRA</h3><div class="new-hire-palettes">${palettes}</div></section>`
+}
+function newHireOpenTab(tab){if(!['content','design'].includes(tab))return;_newHireTab=tab;document.querySelectorAll('.new-hire-tab').forEach((button,index)=>button.setAttribute('aria-selected',String((index===0)===(tab==='content'))));const form=document.getElementById('new-hire-form');if(form){form.innerHTML=newHireFormHtml();form.scrollTop=0}}
 function newHireSet(key,value){_newHire[key]=value;newHireRenderArt();newHireSave()}
 function newHireRange(key,value,outputId){_newHire[key]=Number(value);const output=document.getElementById(outputId);if(output)output.value=value+'%';newHireRenderArt();newHireSave()}
-function newHirePalette(key){if(!NEW_HIRE_PALETTES[key])return;_newHire.palette=key;document.querySelectorAll('.new-hire-palette').forEach(button=>button.setAttribute('aria-pressed',String(button.getAttribute('aria-label')===`Paleta ${key}`)));newHireRenderArt();newHireSave()}
+function newHirePalette(key){if(!NEW_HIRE_PALETTES[key])return;_newHire.palette=key;newHireOpenTab('design');newHireRenderArt();newHireSave()}
 function newHirePhoto(input){
   const file=input.files?.[0];if(!file)return;if(!/^image\/(png|jpeg|webp)$/i.test(file.type)){toast('Usa una imagen PNG, JPG o WebP.');return}
-  const reader=new FileReader();reader.onload=()=>{_newHire.photo=String(reader.result||'');const thumb=document.getElementById('new-hire-upload-thumb');if(thumb)thumb.innerHTML=`<img src="${escAttr(_newHire.photo)}" alt="Foto cargada">`;newHireRenderArt();newHireSave()};reader.onerror=()=>toast('No se pudo leer la fotografía.');reader.readAsDataURL(file)
+  const reader=new FileReader();reader.onload=()=>{const image=new Image();image.onload=()=>{const max=1600,scale=Math.min(1,max/Math.max(image.naturalWidth,image.naturalHeight)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);_newHire.photo=canvas.toDataURL('image/jpeg',.9);canvas.width=canvas.height=0;const thumb=document.getElementById('new-hire-upload-thumb');if(thumb)thumb.innerHTML=`<img src="${escAttr(_newHire.photo)}" alt="Foto cargada">`;newHireRenderArt();newHireSave()};image.onerror=()=>toast('No se pudo procesar la fotografía.');image.src=String(reader.result||'')};reader.onerror=()=>toast('No se pudo leer la fotografía.');reader.readAsDataURL(file)
 }
 function newHireArtHtml(){
   const p=NEW_HIRE_PALETTES[_newHire.palette]||NEW_HIRE_PALETTES.teal,logo=typeof memoLogoHtml==='function'?memoLogoHtml():'<strong>SIERRA</strong>'
-  const fact=(label,value,cls='')=>value?`<div class="new-hire-fact"><dt>${esc(label)}</dt><dd class="${cls}">${esc(value)}</dd></div>`:''
+  const fact=(key,label,value,cls='')=>value?`<div class="new-hire-fact" data-nh-field="${key}" onclick="newHireFocusField('${key}')"><dt>${esc(label)}</dt><dd class="${cls}">${esc(value)}</dd></div>`:''
   const photo=_newHire.photo?`<img src="${escAttr(_newHire.photo)}" alt="Retrato de ${escAttr(_newHire.name||'nuevo colaborador')}">`:`<div class="new-hire-photo-empty">${siIcon('user',64)}<b>Carga una fotografía</b></div>`
   return`<article class="new-hire-art" id="new-hire-art" style="--nh-primary:${p.primary};--nh-accent:${p.accent};--nh-deep:${p.deep};--nh-photo-x:${Number(_newHire.photoX)}%;--nh-photo-y:${Number(_newHire.photoY)}%;--nh-photo-zoom:${(Number(_newHire.photoZoom)||100)/100}">
     <header class="new-hire-art-header">${logo}<span class="new-hire-art-divider"></span><span class="new-hire-art-kicker">Nuevo colaborador</span></header>
-    <main class="new-hire-art-main"><h1 class="new-hire-art-title">Te damos la bienvenida<br>al equipo SIERRA</h1>
-      <div class="new-hire-card-grid"><div class="new-hire-photo">${photo}</div><section class="new-hire-info">
-        <h2 class="new-hire-name">${esc(_newHire.name||'Nombre del colaborador')}</h2><p class="new-hire-role">${esc(_newHire.role||'Puesto del colaborador')}</p>
-        <dl class="new-hire-facts">${fact('Contacto',_newHire.email)}${fact('Gerencia',_newHire.department,'new-hire-department')}${fact('País',_newHire.country)}${fact('Empresa',_newHire.company)}</dl>
+    <main class="new-hire-art-main"><h1 class="new-hire-art-title">Te damos la bienvenida <strong>al equipo SIERRA</strong></h1>
+      <div class="new-hire-card-grid"><div class="new-hire-photo" data-nh-field="photo" onclick="newHireFocusField('photo')">${photo}</div><section class="new-hire-info">
+        <h2 class="new-hire-name" data-nh-field="name" onclick="newHireFocusField('name')">${esc(_newHire.name||'Nombre del colaborador')}</h2><p class="new-hire-role" data-nh-field="role" onclick="newHireFocusField('role')">${esc(_newHire.role||'Puesto del colaborador')}</p>
+        <dl class="new-hire-facts">${fact('email','Contacto',_newHire.email)}${fact('department','Gerencia',_newHire.department,'new-hire-department')}${fact('country','País',_newHire.country)}${fact('company','Empresa',_newHire.company)}</dl>
       </section></div></main>
-    <footer class="new-hire-art-footer"><p class="new-hire-message">${esc(_newHire.message)}</p><img class="new-hire-clay" src="marketing/assets/sierra-clay-welcome-team.png" alt="Equipo SIERRA con materiales textiles"></footer>
+    <footer class="new-hire-art-footer"><p class="new-hire-message" data-nh-field="message" onclick="newHireFocusField('message')">${esc(_newHire.message)}</p><img class="new-hire-clay" src="marketing/assets/sierra-clay-welcome-team.png" alt="Equipo SIERRA con materiales textiles"></footer>
     <span class="new-hire-brand-line" aria-hidden="true"></span>
   </article>`
 }
 function newHireRenderArt(){const root=document.getElementById('new-hire-art-root');if(root)root.innerHTML=newHireArtHtml()}
 function newHireFit(){
   const stage=document.getElementById('new-hire-stage'),sheet=document.getElementById('new-hire-sheet');if(!stage||!sheet)return
-  _newHireScale=Math.min(1,(stage.clientWidth-48)/720,(stage.clientHeight-48)/900);_newHireScale=Math.max(.28,_newHireScale);sheet.style.transform=`scale(${_newHireScale})`;sheet.style.marginBottom=`${Math.round(900*(_newHireScale-1))}px`
+  if(_newHireZoomMode==='fit')_newHireScale=Math.min(1,(stage.clientWidth-48)/720,(stage.clientHeight-48)/900);_newHireScale=Math.max(.28,_newHireScale);newHireApplyScale()
 }
+function newHireApplyScale(){const sheet=document.getElementById('new-hire-sheet');if(!sheet)return;sheet.style.transform=`scale(${_newHireScale})`;sheet.style.marginBottom=`${Math.round(900*(_newHireScale-1))}px`;const label=document.getElementById('new-hire-zoom-value');if(label)label.textContent=`${Math.round(_newHireScale*100)}%`}
+function newHireZoom(delta){_newHireZoomMode='manual';_newHireScale=Math.min(1.25,Math.max(.3,Math.round((_newHireScale+delta)*10)/10));newHireApplyScale()}
+function newHireZoomFit(){_newHireZoomMode='fit';newHireFit()}
+function newHireFocusField(key){const design=key==='photo'&&!!_newHire.photo;newHireOpenTab(design?'design':'content');requestAnimationFrame(()=>{if(key==='photo'){(design?document.getElementById('new-hire-x'):document.querySelector('.new-hire-upload'))?.focus({preventScroll:true});return}const field=document.getElementById(`new-hire-field-${key}`);field?.focus({preventScroll:true});field?.scrollIntoView?.({block:'center',behavior:'smooth'})})}
 function newHireReset(){
   if(!confirm('¿Restablecer todos los campos y quitar la fotografía?'))return;_newHire={...NEW_HIRE_DEFAULTS};newHireSave();renderNewHireCreator();toast('Plantilla restablecida.')
 }
