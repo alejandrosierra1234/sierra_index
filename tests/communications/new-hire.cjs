@@ -25,6 +25,7 @@ assert.match(w.document.querySelector('.new-hire-clay').src,/sierra-clay-welcome
 assert.ok(w.document.querySelector('.new-hire-card-grid'))
 assert.ok(w.document.querySelector('.new-hire-info'))
 assert.ok(w.document.querySelector('.new-hire-message-card'))
+assert.equal(w.document.querySelector('.new-hire-message-label').textContent,'Nos alegra que estés aquí')
 assert.equal(w.document.querySelectorAll('.new-hire-heading-note').length,0)
 assert.equal(w.document.querySelectorAll('.new-hire-art-title > span').length,2)
 assert.equal(w.document.querySelector('.new-hire-art-title > span:last-child').textContent,'al equipo SIERRA')

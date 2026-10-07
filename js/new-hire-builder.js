@@ -114,7 +114,7 @@ function newHireArtHtml(){
         <h2 class="new-hire-name new-hire-single-line" data-min-font="15" data-nh-field="name" onclick="newHireFocusField('name')">${esc(_newHire.name||'Nombre del colaborador')}</h2><p class="new-hire-role" data-nh-field="role" onclick="newHireFocusField('role')">${esc(_newHire.role||'Puesto del colaborador')}</p>
         <dl class="new-hire-facts">${contact?`<div class="new-hire-fact new-hire-fact-contact"><dt>Contacto</dt><dd class="new-hire-contact-lines">${contact}</dd></div>`:''}${fact('department','Gerencia',_newHire.department,'new-hire-department','new-hire-fact-department')}${fact('country','País',_newHire.country)}${fact('company','Empresa',_newHire.company)}${fact('startDate','Fecha de ingreso',newHireDateLabel(_newHire.startDate),'','new-hire-fact-date')}</dl>
       </section></div>
-      <footer class="new-hire-message-card"><div class="new-hire-message-copy"><p class="new-hire-message-label">Un mensaje para ti</p><p class="new-hire-message" data-nh-field="message" onclick="newHireFocusField('message')">${esc(_newHire.message)}</p></div><img class="new-hire-clay" src="marketing/assets/sierra-clay-welcome-team.png" alt="Equipo SIERRA con materiales textiles"></footer>
+      <footer class="new-hire-message-card"><div class="new-hire-message-copy"><p class="new-hire-message-label">Nos alegra que estés aquí</p><p class="new-hire-message" data-nh-field="message" onclick="newHireFocusField('message')">${esc(_newHire.message)}</p></div><img class="new-hire-clay" src="marketing/assets/sierra-clay-welcome-team.png" alt="Equipo SIERRA con materiales textiles"></footer>
     </main>
   </article>`
 }
