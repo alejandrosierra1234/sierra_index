@@ -99,7 +99,7 @@ function newHireArtHtml(){
   return`<article class="new-hire-art" id="new-hire-art" style="--nh-primary:${p.primary};--nh-accent:${p.accent};--nh-deep:${p.deep};--nh-photo-x:${Number(_newHire.photoX)}%;--nh-photo-y:${Number(_newHire.photoY)}%;--nh-photo-zoom:${(Number(_newHire.photoZoom)||100)/100}">
     <header class="new-hire-art-header">${logo}<span class="new-hire-art-kicker">Nuevo colaborador</span></header>
     <main class="new-hire-art-main">
-      <div class="new-hire-heading"><p class="new-hire-eyebrow">Te damos la bienvenida</p><h1 class="new-hire-art-title">Al equipo <strong>SIERRA</strong></h1></div>
+      <div class="new-hire-heading"><h1 class="new-hire-art-title"><span>Te damos la bienvenida</span><span>Al equipo <strong>SIERRA</strong></span></h1></div>
       <div class="new-hire-card-grid"><div class="new-hire-photo" data-nh-field="photo" onclick="newHireFocusField('photo')">${photo}</div><section class="new-hire-info">
         <h2 class="new-hire-name" data-nh-field="name" onclick="newHireFocusField('name')">${esc(_newHire.name||'Nombre del colaborador')}</h2><p class="new-hire-role" data-nh-field="role" onclick="newHireFocusField('role')">${esc(_newHire.role||'Puesto del colaborador')}</p>
         <dl class="new-hire-facts">${fact('email','Contacto',_newHire.email)}${fact('department','Gerencia',_newHire.department,'new-hire-department')}${fact('country','País',_newHire.country)}${fact('company','Empresa',_newHire.company)}</dl>
