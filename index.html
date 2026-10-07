@@ -20,7 +20,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1/dist/jsQR.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js" defer></script>
   <link rel="stylesheet" href="css/infographic-builder.css?v=20260920-1">
-  <link rel="stylesheet" href="css/new-hire-builder.css?v=20261007-17">
+  <link rel="stylesheet" href="css/new-hire-builder.css?v=20261007-18">
   <style>
     /* ── FONTS ──
        Per SIERRA_DESIGN_SYSTEM.md §19: Aeonik is the interface typeface
@@ -36669,8 +36669,8 @@ function memoImagePalette(doc){
   });
 }
 // Rasterize object-fit before html2canvas, which otherwise stretches replaced images.
-async function memoPrepareFittedImages(doc,scale){
-  const images=Array.from(doc.querySelectorAll('.memo-page img'));
+async function memoPrepareFittedImages(doc,scale,root=null){
+  const images=Array.from(root?root.querySelectorAll('img'):doc.querySelectorAll('.memo-page img'));
   for(const img of images){
     const style=doc.defaultView.getComputedStyle(img),fit=style.objectFit;
     if(!['cover','contain','scale-down','none'].includes(fit)||!img.naturalWidth||!img.naturalHeight)continue;
@@ -37498,7 +37498,7 @@ window.addEventListener('resize',()=>{if(_policyCurrent)policyFitPreview()});
 <script src="js/communications-collaboration-integration.js?v=20260914-3"></script>
 <script src="js/communications-access.js?v=20260914-1"></script>
 <script src="js/infographic-builder.js?v=20260920-1"></script>
-<script src="js/new-hire-builder.js?v=20261007-17"></script>
+<script src="js/new-hire-builder.js?v=20261007-18"></script>
 <script src="js/sample-workflow.js?v=20260911-13"></script>
 <script src="js/sample-development.js?v=20260911-8"></script>
 <script src="js/sample-stock.js?v=20260911-8"></script>

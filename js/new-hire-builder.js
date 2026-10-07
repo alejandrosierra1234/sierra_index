@@ -104,7 +104,7 @@ function newHireDateLabel(value){
 }
 function newHireArtHtml(){
   const p=NEW_HIRE_PALETTES[_newHire.palette]||NEW_HIRE_PALETTES.teal,logo=typeof memoLogoHtml==='function'?memoLogoHtml():'<strong>SIERRA</strong>'
-  const fact=(key,label,value,cls='',wrapCls='')=>value?`<div class="new-hire-fact ${wrapCls}" data-nh-field="${key}" onclick="newHireFocusField('${key}')"><dt>${esc(label)}</dt><dd class="${cls}">${esc(value)}</dd></div>`:''
+  const fact=(key,label,value,cls='',wrapCls='')=>value?`<div class="new-hire-fact ${wrapCls}" data-nh-field="${key}" onclick="newHireFocusField('${key}')"><dt>${esc(label)}</dt><dd class="${cls}">${key==='department'?sierraDepartmentHtml(value,p.primary):esc(value)}</dd></div>`:''
   const contact=[_newHire.email?`<span class="new-hire-contact-line" data-nh-field="email" onclick="event.stopPropagation();newHireFocusField('email')">${siIcon('mail',14)}<span class="new-hire-contact-value new-hire-single-line" data-min-font="8">${esc(_newHire.email)}</span></span>`:'',_newHire.phone?`<span class="new-hire-contact-line" data-nh-field="phone" onclick="event.stopPropagation();newHireFocusField('phone')">${siIcon('phone',14)}<span class="new-hire-contact-value new-hire-single-line" data-min-font="9">${esc(_newHire.phone)}</span></span>`:''].filter(Boolean).join('')
   const photo=_newHire.photo?`<img src="${escAttr(_newHire.photo)}" alt="Retrato de ${escAttr(_newHire.name||'nuevo colaborador')}">`:`<div class="new-hire-photo-empty">${siIcon('user',64)}<b>Carga una fotografía</b></div>`
   return`<article class="new-hire-art" id="new-hire-art" style="--nh-primary:${p.primary};--nh-accent:${p.accent};--nh-deep:${p.deep};--nh-soft:${p.soft};--nh-photo-x:${Number(_newHire.photoX)}%;--nh-photo-y:${Number(_newHire.photoY)}%;--nh-photo-zoom:${(Number(_newHire.photoZoom)||100)/100}">
@@ -135,15 +135,16 @@ function newHireReset(){
   if(!confirm('¿Restablecer todos los campos y quitar la fotografía?'))return;_newHire={...NEW_HIRE_DEFAULTS};newHireSave();renderNewHireCreator();toast('Plantilla restablecida.')
 }
 function newHireFileName(format){const name=String(_newHire.name||'nuevo-colaborador').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase();return`bienvenida-${name||'nuevo-colaborador'}.${format}`}
-function newHireFreezeComputedLayout(root){
-  if(!root)return
-  ;[root,...root.querySelectorAll('*')].forEach(element=>{const computed=getComputedStyle(element);for(let index=0;index<computed.length;index++){const property=computed[index];element.style.setProperty(property,computed.getPropertyValue(property),computed.getPropertyPriority(property))}})
-  root.dataset.exportFrozen='true'
+function newHireEmbedExportStyles(host){
+  // Keep the loaded stylesheet in the capture document; do not fetch it again in the clone.
+  const sheet=Array.from(document.styleSheets).find(sheet=>sheet.href&&/\/new-hire-builder\.css(?:\?|$)/.test(sheet.href))
+  if(!sheet)throw Error('No se cargó el diseño de la bienvenida. Recarga la aplicación antes de exportar.')
+  const style=document.createElement('style');style.textContent=Array.from(sheet.cssRules,rule=>rule.cssText).join('\n');host.prepend(style)
 }
 async function newHireCapture(){
   if(typeof window.html2canvas!=='function')throw Error('No se pudo preparar la imagen. Recarga e inténtalo de nuevo.')
   const host=document.createElement('div');host.className='new-hire-export-host';host.innerHTML=newHireArtHtml();document.body.append(host);const art=host.querySelector('.new-hire-art')
-  try{await document.fonts?.ready;newHireFitSingleLines(art);await Promise.all([...art.querySelectorAll('img')].map(image=>typeof image.decode==='function'?image.decode().catch(()=>{}):Promise.resolve()));await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));newHireFitSingleLines(art);newHireFreezeComputedLayout(art);return await window.html2canvas(art,{scale:1.5,useCORS:true,allowTaint:false,backgroundColor:'#ffffff',logging:false,width:720,height:900,windowWidth:720,windowHeight:900,scrollX:0,scrollY:0})}finally{host.remove()}
+  try{newHireEmbedExportStyles(host);await document.fonts?.ready;newHireFitSingleLines(art);await Promise.all([...art.querySelectorAll('img')].map(image=>typeof image.decode==='function'?image.decode():Promise.resolve()));await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));newHireFitSingleLines(art);await memoPrepareFittedImages(document,3,art);return await window.html2canvas(art,{scale:1.5,useCORS:true,allowTaint:false,backgroundColor:'#ffffff',logging:false,width:720,height:900,windowWidth:720,windowHeight:900,scrollX:0,scrollY:0})}finally{host.remove()}
 }
 async function newHireExport(format='png'){
   format=String(format).toLowerCase();if(!['png','jpg','pdf'].includes(format)||_newHireExporting)return;if(!_newHire.name.trim()||_newHire.name===NEW_HIRE_DEFAULTS.name){toast('Escribe el nombre del colaborador antes de exportar.');return}if(!_newHire.photo){toast('Carga la fotografía del colaborador antes de exportar.');return}

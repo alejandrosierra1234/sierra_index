@@ -6,6 +6,7 @@ const dom=new JSDOM('<!doctype html><div id="tb-section"></div><div id="product-
 const w=dom.window
 Object.assign(w,{
   me:{id:'new-hire-test'},_navLeaf:null,
+  sierraDepartmentHtml:(name)=>`<div class="sierra-department"><svg class="invite-department-mark"></svg><span>${name}</span></div>`,memoPrepareFittedImages:async()=>{},
   syncModule(){},leaveView(){},renderSidebarTree(){},clearSecCrumbs(){},toast(){},confirm:()=>true,
   requestAnimationFrame:fn=>fn(),
   esc:v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'),
@@ -14,6 +15,7 @@ Object.assign(w,{
 })
 w.eval=code=>vm.runInContext(code,dom.getInternalVMContext())
 w.eval(fs.readFileSync(path.join(__dirname,'../../js/new-hire-builder.js'),'utf8'))
+const stylesheet=w.document.createElement('style');stylesheet.textContent=newHireCss;w.document.head.append(stylesheet);Object.defineProperty(stylesheet.sheet,'href',{value:'https://test.local/css/new-hire-builder.css'})
 
 w.showNewHireCreator()
 assert.equal(w.document.getElementById('sec-title').textContent,'Altas de colaborador')
@@ -64,6 +66,6 @@ w.newHireReset()
 assert.equal(w.document.querySelector('.new-hire-name').textContent,'Nombre del colaborador')
 let pdfSaved='',pdfFormat='',captureParent='',captureOptions
 w.jspdf={jsPDF:function(options){pdfFormat=Array.from(options.format).join(',');return{internal:{pageSize:{getWidth:()=>216,getHeight:()=>270}},setProperties(){},addImage(){},save(name){pdfSaved=name}}}}
-w.html2canvas=async(element,options)=>{captureParent=element.parentElement.className;captureOptions=options;assert.equal(element.dataset.exportFrozen,'true');return{width:1080,height:1350,toDataURL:()=>'data:image/jpeg;base64,test'}}
+w.html2canvas=async(element,options)=>{captureParent=element.parentElement.className;captureOptions=options;assert.match(element.parentElement.querySelector('style').textContent,/new-hire-art/);return{width:1080,height:1350,toDataURL:()=>'data:image/jpeg;base64,test'}}
 w.newHireSet('name','Ana Martínez');w.newHireSet('photo','data:image/png;base64,test');[...w.document.querySelectorAll('#new-hire-art img')].forEach(image=>image.decode=()=>Promise.resolve())
 w.newHireExport('pdf').then(()=>{assert.equal(pdfFormat,'216,270');assert.equal(pdfSaved,'bienvenida-ana-martinez.pdf');assert.equal(captureParent,'new-hire-export-host');assert.equal(captureOptions.windowWidth,720);assert.equal(w.document.querySelectorAll('.new-hire-export-host').length,0);console.log('PASS: new-hire creator renders, updates, stores, resets and exports the SIERRA welcome art')}).catch(error=>{console.error(error);process.exitCode=1})
