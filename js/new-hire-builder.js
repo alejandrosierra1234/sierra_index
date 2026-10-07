@@ -34,21 +34,25 @@ function showNewHireCreator(){
 }
 function renderNewHireCreator(){
   const pg=document.getElementById('pg');pg.style.display='block';pg.innerHTML=`<section class="new-hire-studio">
-    <aside class="new-hire-editor" aria-label="Editor de bienvenida">
-      <header class="new-hire-editor-head"><div class="new-hire-editor-title"><h2>Nuevo colaborador</h2><span class="new-hire-save-state" id="new-hire-save-state">Guardado</span></div>
-        <div class="new-hire-tabs" role="tablist" aria-label="Secciones del editor"><button type="button" class="new-hire-tab" role="tab" aria-selected="${_newHireTab==='content'}" onclick="newHireOpenTab('content')">Contenido</button><button type="button" class="new-hire-tab" role="tab" aria-selected="${_newHireTab==='design'}" onclick="newHireOpenTab('design')">Diseño</button></div>
-      </header>
-      <div class="new-hire-form" id="new-hire-form">${newHireFormHtml()}</div>
-      <footer class="new-hire-actions">
+    <header class="new-hire-studio-head">
+      <div class="new-hire-studio-title"><h2>Bienvenida de colaborador</h2><p>Formato vertical 1080 × 1350 px</p></div>
+      <span class="new-hire-save-state" id="new-hire-save-state">Guardado</span>
+      <div class="new-hire-head-actions">
         <button type="button" class="btn btn-ghost" onclick="newHireReset()">${siIcon('rotate-ccw',16)} Restablecer</button>
         <button type="button" class="btn btn-secondary" onclick="newHireExport('jpg')">${siIcon('photo',16)} JPG</button>
         <button type="button" class="btn btn-primary" onclick="newHireExport('png')">${siIcon('download',16)} Descargar PNG</button>
-      </footer>
-    </aside>
-    <section class="new-hire-preview" aria-label="Vista previa">
-      <div class="new-hire-preview-bar"><b>Vista previa</b><span class="new-hire-preview-meta">1080 × 1350 px · vertical 4:5</span><div class="new-hire-preview-tools"><button type="button" class="new-hire-zoom-btn new-hire-fit-btn" onclick="newHireZoomFit()">Ajustar</button><button type="button" class="new-hire-zoom-btn" aria-label="Alejar" onclick="newHireZoom(-.1)">${siIcon('minus',16)}</button><span class="new-hire-zoom-value" id="new-hire-zoom-value">100%</span><button type="button" class="new-hire-zoom-btn" aria-label="Acercar" onclick="newHireZoom(.1)">${siIcon('plus',16)}</button></div></div>
-      <div class="new-hire-stage" id="new-hire-stage"><div class="new-hire-sheet" id="new-hire-sheet"><div id="new-hire-art-root"></div></div></div>
-    </section>
+      </div>
+    </header>
+    <div class="new-hire-workspace">
+      <aside class="new-hire-editor" aria-label="Editor de bienvenida">
+        <div class="new-hire-tabs" role="tablist" aria-label="Secciones del editor"><button type="button" class="new-hire-tab" role="tab" aria-selected="${_newHireTab==='content'}" onclick="newHireOpenTab('content')">Contenido</button><button type="button" class="new-hire-tab" role="tab" aria-selected="${_newHireTab==='design'}" onclick="newHireOpenTab('design')">Diseño</button></div>
+        <div class="new-hire-form" id="new-hire-form">${newHireFormHtml()}</div>
+      </aside>
+      <section class="new-hire-preview" aria-label="Vista previa">
+        <div class="new-hire-preview-bar"><b>Vista previa</b><span class="new-hire-preview-meta">La pieza se actualiza al escribir</span><div class="new-hire-preview-tools"><button type="button" class="new-hire-zoom-btn new-hire-fit-btn" onclick="newHireZoomFit()">Ajustar</button><button type="button" class="new-hire-zoom-btn" aria-label="Alejar" onclick="newHireZoom(-.1)">${siIcon('minus',16)}</button><span class="new-hire-zoom-value" id="new-hire-zoom-value">100%</span><button type="button" class="new-hire-zoom-btn" aria-label="Acercar" onclick="newHireZoom(.1)">${siIcon('plus',16)}</button></div></div>
+        <div class="new-hire-stage" id="new-hire-stage"><div class="new-hire-sheet" id="new-hire-sheet"><div id="new-hire-art-root"></div></div></div>
+      </section>
+    </div>
   </section>`
   newHireRenderArt();requestAnimationFrame(newHireFit)
 }
@@ -68,7 +72,7 @@ function newHireFormHtml(){
   <section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('building',16)} Organización</h3>
     <div class="new-hire-grid">${newHireField('department','Gerencia / departamento')}${newHireField('country','País')}</div>${newHireField('company','Empresa')}
   </section>
-  <section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('message',16)} Mensaje y color</h3>
+  <section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('message',16)} Mensaje</h3>
     <label class="new-hire-field"><span>Mensaje de bienvenida</span><textarea id="new-hire-field-message" class="control-input" maxlength="280" oninput="newHireSet('message',this.value)">${esc(_newHire.message)}</textarea><small>Máximo 280 caracteres para conservar una lectura cómoda.</small></label>
   </section>`
 }
@@ -93,14 +97,14 @@ function newHireArtHtml(){
   const fact=(key,label,value,cls='')=>value?`<div class="new-hire-fact" data-nh-field="${key}" onclick="newHireFocusField('${key}')"><dt>${esc(label)}</dt><dd class="${cls}">${esc(value)}</dd></div>`:''
   const photo=_newHire.photo?`<img src="${escAttr(_newHire.photo)}" alt="Retrato de ${escAttr(_newHire.name||'nuevo colaborador')}">`:`<div class="new-hire-photo-empty">${siIcon('user',64)}<b>Carga una fotografía</b></div>`
   return`<article class="new-hire-art" id="new-hire-art" style="--nh-primary:${p.primary};--nh-accent:${p.accent};--nh-deep:${p.deep};--nh-photo-x:${Number(_newHire.photoX)}%;--nh-photo-y:${Number(_newHire.photoY)}%;--nh-photo-zoom:${(Number(_newHire.photoZoom)||100)/100}">
-    <header class="new-hire-art-header">${logo}<span class="new-hire-art-divider"></span><span class="new-hire-art-kicker">Nuevo colaborador</span></header>
-    <main class="new-hire-art-main"><h1 class="new-hire-art-title">Te damos la bienvenida <strong>al equipo SIERRA</strong></h1>
-      <div class="new-hire-card-grid"><div class="new-hire-photo" data-nh-field="photo" onclick="newHireFocusField('photo')">${photo}</div><section class="new-hire-info">
-        <h2 class="new-hire-name" data-nh-field="name" onclick="newHireFocusField('name')">${esc(_newHire.name||'Nombre del colaborador')}</h2><p class="new-hire-role" data-nh-field="role" onclick="newHireFocusField('role')">${esc(_newHire.role||'Puesto del colaborador')}</p>
-        <dl class="new-hire-facts">${fact('email','Contacto',_newHire.email)}${fact('department','Gerencia',_newHire.department,'new-hire-department')}${fact('country','País',_newHire.country)}${fact('company','Empresa',_newHire.company)}</dl>
-      </section></div></main>
-    <footer class="new-hire-art-footer"><p class="new-hire-message" data-nh-field="message" onclick="newHireFocusField('message')">${esc(_newHire.message)}</p><img class="new-hire-clay" src="marketing/assets/sierra-clay-welcome-team.png" alt="Equipo SIERRA con materiales textiles"></footer>
-    <span class="new-hire-brand-line" aria-hidden="true"></span>
+    <header class="new-hire-art-header">${logo}<span class="new-hire-art-kicker">Nuevo colaborador</span></header>
+    <div class="new-hire-portrait-column"><div class="new-hire-photo" data-nh-field="photo" onclick="newHireFocusField('photo')">${photo}</div></div>
+    <main class="new-hire-content"><p class="new-hire-eyebrow">Te damos la bienvenida</p><h1 class="new-hire-art-title">Al equipo <strong>SIERRA</strong></h1>
+      <h2 class="new-hire-name" data-nh-field="name" onclick="newHireFocusField('name')">${esc(_newHire.name||'Nombre del colaborador')}</h2><p class="new-hire-role" data-nh-field="role" onclick="newHireFocusField('role')">${esc(_newHire.role||'Puesto del colaborador')}</p>
+      <dl class="new-hire-facts">${fact('email','Contacto',_newHire.email)}${fact('department','Gerencia',_newHire.department,'new-hire-department')}${fact('country','País',_newHire.country)}${fact('company','Empresa',_newHire.company)}</dl>
+      <p class="new-hire-message" data-nh-field="message" onclick="newHireFocusField('message')">${esc(_newHire.message)}</p>
+      <footer class="new-hire-content-footer"><img class="new-hire-clay" src="marketing/assets/sierra-clay-welcome-team.png" alt="Equipo SIERRA con materiales textiles"></footer>
+    </main>
   </article>`
 }
 function newHireRenderArt(){const root=document.getElementById('new-hire-art-root');if(root)root.innerHTML=newHireArtHtml()}
@@ -119,7 +123,7 @@ function newHireFileName(format){const name=String(_newHire.name||'nuevo-colabor
 async function newHireExport(format='png'){
   if(_newHireExporting)return;if(!_newHire.name.trim()||_newHire.name===NEW_HIRE_DEFAULTS.name){toast('Escribe el nombre del colaborador antes de exportar.');return}if(!_newHire.photo){toast('Carga la fotografía del colaborador antes de exportar.');return}
   const art=document.getElementById('new-hire-art');if(!art||typeof html2canvas!=='function'){toast('No se pudo preparar la imagen. Recarga e inténtalo de nuevo.');return}
-  _newHireExporting=true;const buttons=document.querySelectorAll('.new-hire-actions button');buttons.forEach(button=>button.disabled=true)
+  _newHireExporting=true;const buttons=document.querySelectorAll('.new-hire-head-actions button');buttons.forEach(button=>button.disabled=true)
   try{await document.fonts?.ready;await Promise.all([...art.images].map(image=>image.decode().catch(()=>{})));const canvas=await html2canvas(art,{scale:1.5,useCORS:true,allowTaint:false,backgroundColor:'#ffffff',logging:false,width:720,height:900});const mime=format==='jpg'?'image/jpeg':'image/png',quality=format==='jpg' ? .94 : undefined;const blob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(Error('No se pudo crear el archivo.')),mime,quality));const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=newHireFileName(format);document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);canvas.width=canvas.height=0;toast(`${format.toUpperCase()} listo para compartir.`)}catch(error){console.error(error);alert(error.message||'No se pudo exportar la bienvenida.')}finally{_newHireExporting=false;buttons.forEach(button=>button.disabled=false)}
 }
 window.addEventListener('resize',()=>{if(document.getElementById('new-hire-studio'))newHireFit()})
