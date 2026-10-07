@@ -7,6 +7,7 @@ const NEW_HIRE_DEFAULTS={
   department:'Talento Humano',
   country:'Honduras',
   company:'Northern Textiles',
+  startDate:new Date().toISOString().slice(0,10),
   message:'¡Bienvenida a SIERRA! Nos alegra que formes parte de nuestro equipo. Tu talento y experiencia suman a todo lo que construimos juntos.',
   photo:'',photoX:50,photoY:50,photoZoom:100,palette:'teal'
 }
@@ -14,10 +15,10 @@ const NEW_HIRE_LEGACY_MESSAGES=[
   '¡Bienvenido a SIERRA! Estamos muy emocionados de que formes parte de nuestro equipo. Tu talento y experiencia aportarán un gran valor a nuestra organización.'
 ]
 const NEW_HIRE_PALETTES={
-  teal:{label:'Turquesa institucional',primary:'#62b8b1',accent:'#dd6e28',deep:'#2d514e'},
-  blue:{label:'Azul corporativo',primary:'#009fff',accent:'#ff7824',deep:'#004a86'},
-  olive:{label:'Oliva y morado',primary:'#b59e48',accent:'#9827b8',deep:'#625f02'},
-  orange:{label:'Naranja y turquesa',primary:'#dd6e28',accent:'#62b8b1',deep:'#8b3c12'}
+  teal:{label:'Turquesa institucional',primary:'#62b8b1',accent:'#dd6e28',deep:'#2d514e',soft:'#edf8f7'},
+  blue:{label:'Azul corporativo',primary:'#009fff',accent:'#ff7824',deep:'#004a86',soft:'#eef8ff'},
+  olive:{label:'Oliva y morado',primary:'#b59e48',accent:'#9827b8',deep:'#625f02',soft:'#f7f5e9'},
+  orange:{label:'Naranja y turquesa',primary:'#dd6e28',accent:'#62b8b1',deep:'#8b3c12',soft:'#fff3ec'}
 }
 let _newHire={...NEW_HIRE_DEFAULTS},_newHireScale=1,_newHireZoomMode='fit',_newHireTab='content',_newHireExporting=false
 
@@ -74,7 +75,7 @@ function newHireFormHtml(){
     ${newHireField('name','Nombre completo')}${newHireField('role','Puesto')}<div class="new-hire-grid">${newHireField('email','Correo','email')}${newHireField('phone','Teléfono (opcional)','tel')}</div>
   </section>
   <section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('building',16)} Organización</h3>
-    <div class="new-hire-grid">${newHireField('department','Gerencia / departamento')}${newHireField('country','País')}</div>${newHireField('company','Empresa')}
+    ${newHireField('department','Gerencia / departamento')}<div class="new-hire-grid">${newHireField('country','País')}${newHireField('company','Empresa')}</div>${newHireField('startDate','Fecha de ingreso','date')}
   </section>
   <section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('message',16)} Mensaje</h3>
     <label class="new-hire-field"><span>Mensaje de bienvenida</span><textarea id="new-hire-field-message" class="control-input" maxlength="280" oninput="newHireSet('message',this.value)">${esc(_newHire.message)}</textarea><small>Máximo 280 caracteres para conservar una lectura cómoda.</small></label>
@@ -96,18 +97,22 @@ function newHirePhoto(input){
   const file=input.files?.[0];if(!file)return;if(!/^image\/(png|jpeg|webp)$/i.test(file.type)){toast('Usa una imagen PNG, JPG o WebP.');return}
   const reader=new FileReader();reader.onload=()=>{const image=new Image();image.onload=()=>{const max=1600,scale=Math.min(1,max/Math.max(image.naturalWidth,image.naturalHeight)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);_newHire.photo=canvas.toDataURL('image/jpeg',.9);canvas.width=canvas.height=0;const thumb=document.getElementById('new-hire-upload-thumb');if(thumb)thumb.innerHTML=`<img src="${escAttr(_newHire.photo)}" alt="Foto cargada">`;newHireRenderArt();newHireSave()};image.onerror=()=>toast('No se pudo procesar la fotografía.');image.src=String(reader.result||'')};reader.onerror=()=>toast('No se pudo leer la fotografía.');reader.readAsDataURL(file)
 }
+function newHireDateLabel(value){
+  const match=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!match)return String(value||'')
+  return new Intl.DateTimeFormat('es-GT',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3]))))
+}
 function newHireArtHtml(){
   const p=NEW_HIRE_PALETTES[_newHire.palette]||NEW_HIRE_PALETTES.teal,logo=typeof memoLogoHtml==='function'?memoLogoHtml():'<strong>SIERRA</strong>'
   const fact=(key,label,value,cls='',wrapCls='')=>value?`<div class="new-hire-fact ${wrapCls}" data-nh-field="${key}" onclick="newHireFocusField('${key}')"><dt>${esc(label)}</dt><dd class="${cls}">${esc(value)}</dd></div>`:''
-  const contact=[_newHire.email?`<span data-nh-field="email" onclick="event.stopPropagation();newHireFocusField('email')">${esc(_newHire.email)}</span>`:'',_newHire.phone?`<span data-nh-field="phone" onclick="event.stopPropagation();newHireFocusField('phone')">${esc(_newHire.phone)}</span>`:''].filter(Boolean).join('')
+  const contact=[_newHire.email?`<span class="new-hire-contact-line" data-nh-field="email" onclick="event.stopPropagation();newHireFocusField('email')">${siIcon('mail',14)}<span>${esc(_newHire.email)}</span></span>`:'',_newHire.phone?`<span class="new-hire-contact-line" data-nh-field="phone" onclick="event.stopPropagation();newHireFocusField('phone')">${siIcon('phone',14)}<span>${esc(_newHire.phone)}</span></span>`:''].filter(Boolean).join('')
   const photo=_newHire.photo?`<img src="${escAttr(_newHire.photo)}" alt="Retrato de ${escAttr(_newHire.name||'nuevo colaborador')}">`:`<div class="new-hire-photo-empty">${siIcon('user',64)}<b>Carga una fotografía</b></div>`
-  return`<article class="new-hire-art" id="new-hire-art" style="--nh-primary:${p.primary};--nh-accent:${p.accent};--nh-deep:${p.deep};--nh-photo-x:${Number(_newHire.photoX)}%;--nh-photo-y:${Number(_newHire.photoY)}%;--nh-photo-zoom:${(Number(_newHire.photoZoom)||100)/100}">
+  return`<article class="new-hire-art" id="new-hire-art" style="--nh-primary:${p.primary};--nh-accent:${p.accent};--nh-deep:${p.deep};--nh-soft:${p.soft};--nh-photo-x:${Number(_newHire.photoX)}%;--nh-photo-y:${Number(_newHire.photoY)}%;--nh-photo-zoom:${(Number(_newHire.photoZoom)||100)/100}">
     <header class="new-hire-art-header">${logo}<span class="new-hire-art-kicker">Nuevo colaborador</span></header>
     <main class="new-hire-art-main">
       <div class="new-hire-heading"><h1 class="new-hire-art-title"><span>Te damos la bienvenida</span><span>al equipo <strong>SIERRA</strong></span></h1></div>
       <div class="new-hire-card-grid"><div class="new-hire-photo" data-nh-field="photo" onclick="newHireFocusField('photo')">${photo}</div><section class="new-hire-info">
         <h2 class="new-hire-name" data-nh-field="name" onclick="newHireFocusField('name')">${esc(_newHire.name||'Nombre del colaborador')}</h2><p class="new-hire-role" data-nh-field="role" onclick="newHireFocusField('role')">${esc(_newHire.role||'Puesto del colaborador')}</p>
-        <dl class="new-hire-facts">${contact?`<div class="new-hire-fact new-hire-fact-contact"><dt>Contacto</dt><dd class="new-hire-contact-lines">${contact}</dd></div>`:''}${fact('department','Gerencia',_newHire.department,'new-hire-department','new-hire-fact-department')}${fact('country','País',_newHire.country)}${fact('company','Empresa',_newHire.company)}</dl>
+        <dl class="new-hire-facts">${contact?`<div class="new-hire-fact new-hire-fact-contact"><dt>Contacto</dt><dd class="new-hire-contact-lines">${contact}</dd></div>`:''}${fact('department','Gerencia',_newHire.department,'new-hire-department','new-hire-fact-department')}${fact('country','País',_newHire.country)}${fact('company','Empresa',_newHire.company)}${fact('startDate','Fecha de ingreso',newHireDateLabel(_newHire.startDate),'','new-hire-fact-date')}</dl>
       </section></div>
       <footer class="new-hire-message-card"><div class="new-hire-message-copy"><p class="new-hire-message-label">Un mensaje para ti</p><p class="new-hire-message" data-nh-field="message" onclick="newHireFocusField('message')">${esc(_newHire.message)}</p></div><img class="new-hire-clay" src="marketing/assets/sierra-clay-welcome-team.png" alt="Equipo SIERRA con materiales textiles"></footer>
     </main>
