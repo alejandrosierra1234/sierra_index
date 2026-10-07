@@ -29,7 +29,7 @@ const server=http.createServer((req,res)=>{
  await new Promise(r=>server.listen(0,'127.0.0.1',r))
  const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true})
  try{
- const page=await browser.newPage({viewport:{width:1100,height:1100},deviceScaleFactor:1.5})
+ const page=await browser.newPage({viewport:{width:1100,height:1100},deviceScaleFactor:3})
  await page.goto(`http://127.0.0.1:${server.address().port}`)
  await page.evaluate(async()=>{
   const c=document.createElement('canvas');c.width=800;c.height=600;const x=c.getContext('2d');x.fillStyle='#eeeeee';x.fillRect(0,0,800,600);x.fillStyle='#009fff';x.beginPath();x.arc(400,300,65,0,Math.PI*2);x.fill();x.fillStyle='#ff00ff';for(const [cx,cy] of [[0,0],[776,0],[0,576],[776,576]])x.fillRect(cx,cy,24,24)
@@ -49,22 +49,22 @@ const server=http.createServer((req,res)=>{
  const reference=PNG.sync.read(await page.locator('.new-hire-art').screenshot())
  const result=await page.evaluate(async({x,y,zoom})=>{
   Object.assign(_newHire,{photoX:x,photoY:y,photoZoom:zoom});newHireRenderArt();const canvas=await newHireCapture();const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;let minX=Infinity,minY=Infinity,maxX=0,maxY=0;
-  for(let y=300;y<1050;y++)for(let x=52;x<480;x++){let i=(y*canvas.width+x)*4;if(pixels[i]<20&&pixels[i+1]>135&&pixels[i+1]<180&&pixels[i+2]>240){minX=Math.min(x,minX);maxX=Math.max(x,maxX);minY=Math.min(y,minY);maxY=Math.max(y,maxY)}}
-  const pdf=new jspdf.jsPDF({unit:'mm',format:[216,270]});pdf.addImage(canvas.toDataURL('image/jpeg',.96),'JPEG',0,0,216,270)
+  for(let y=600;y<2100;y++)for(let x=104;x<960;x++){let i=(y*canvas.width+x)*4;if(pixels[i]<20&&pixels[i+1]>135&&pixels[i+1]<180&&pixels[i+2]>240){minX=Math.min(x,minX);maxX=Math.max(x,maxX);minY=Math.min(y,minY);maxY=Math.max(y,maxY)}}
+  const pdf=new jspdf.jsPDF({unit:'mm',format:[216,270]});pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,216,270)
   return{width:canvas.width,height:canvas.height,circle:[maxX-minX+1,maxY-minY+1],png:canvas.toDataURL(),jpg:canvas.toDataURL('image/jpeg',.94),pdf:pdf.output('datauristring')}
  },{x,y,zoom})
- assert.equal(result.width,1080);assert.equal(result.height,1350);assert.ok(result.circle[0]>60);assert.ok(Math.abs(result.circle[0]-result.circle[1])<=2,`${name}: distorted circle ${result.circle}`)
+ assert.equal(result.width,2160);assert.equal(result.height,2700);assert.ok(result.circle[0]>60);assert.ok(Math.abs(result.circle[0]-result.circle[1])<=2,`${name}: distorted circle ${result.circle}`)
  for(const format of ['png','jpg','pdf'])fs.writeFileSync(path.join(out,`${name}.${format}`),Buffer.from(result[format].split(',')[1],'base64'))
  const exported=PNG.sync.read(Buffer.from(result.png.split(',')[1],'base64'))
- const corners=[0,0,0,0];for(let y=300;y<1050;y++)for(let x=51;x<481;x++){const i=(y*1080+x)*4;if(exported.data[i]>230&&exported.data[i+1]<20&&exported.data[i+2]>230)corners[(y>=675?2:0)+(x>=266?1:0)]++}
+ const corners=[0,0,0,0];for(let y=600;y<2100;y++)for(let x=102;x<962;x++){const i=(y*2160+x)*4;if(exported.data[i]>230&&exported.data[i+1]<20&&exported.data[i+2]>230)corners[(y>=1350?2:0)+(x>=532?1:0)]++}
  assert.ok(corners.every(count=>count>50),`${name}: missing original image corners: ${corners}`)
  if(name==='positioned')assert.deepEqual(exported.data,firstExport,'Saved crop/zoom must not alter the original photo');else firstExport=exported.data
  for(const [region,x1,y1,x2,y2] of [['title',0,100,1080,280],['portrait',51,300,480,1050],['details',504,380,1029,970],['footer',51,1100,1029,1320]]){
   let different=0,total=0
-  for(let y=y1;y<y2;y++)for(let x=x1;x<x2;x++){const i=(y*1080+x)*4;total++;if(Math.max(...[0,1,2].map(c=>Math.abs(reference.data[i+c]-exported.data[i+c])))>50)different++}
+  for(let y=y1*2;y<y2*2;y++)for(let x=x1*2;x<x2*2;x++){const i=(y*2160+x)*4;total++;if(Math.max(...[0,1,2].map(c=>Math.abs(reference.data[i+c]-exported.data[i+c])))>50)different++}
   assert.ok(different/total<.06,`${name} ${region}: ${(100*different/total).toFixed(2)}% pixels differ from preview`)
  }
-  console.log(`PASS ${name}: circle ${result.circle.join('×')}; PNG/JPG/PDF 1080×1350`)
+  console.log(`PASS ${name}: circle ${result.circle.join('×')}; PNG/JPG 2160×2700`)
  }
  // Exercise the actual download functions, not only the common capture helper.
  for(const format of ['png','jpg','pdf']){
