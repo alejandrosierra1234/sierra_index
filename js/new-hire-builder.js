@@ -15,10 +15,10 @@ const NEW_HIRE_LEGACY_MESSAGES=[
   '¡Bienvenido a SIERRA! Estamos muy emocionados de que formes parte de nuestro equipo. Tu talento y experiencia aportarán un gran valor a nuestra organización.'
 ]
 const NEW_HIRE_PALETTES={
-  teal:{label:'Turquesa institucional',primary:'#62b8b1',accent:'#dd6e28',deep:'#2d514e',soft:'#edf8f7'},
-  blue:{label:'Azul corporativo',primary:'#009fff',accent:'#ff7824',deep:'#004a86',soft:'#eef8ff'},
-  olive:{label:'Oliva y morado',primary:'#b59e48',accent:'#9827b8',deep:'#625f02',soft:'#f7f5e9'},
-  orange:{label:'Naranja y turquesa',primary:'#dd6e28',accent:'#62b8b1',deep:'#8b3c12',soft:'#fff3ec'}
+  teal:{label:'Turquesa institucional',primary:'#62b8b1',accent:'#62b8b1',deep:'#2d514e',soft:'#edf8f7'},
+  blue:{label:'Azul corporativo',primary:'#009fff',accent:'#009fff',deep:'#004a86',soft:'#eef8ff'},
+  olive:{label:'Oliva institucional',primary:'#b59e48',accent:'#b59e48',deep:'#625f02',soft:'#f7f5e9'},
+  orange:{label:'Naranja institucional',primary:'#dd6e28',accent:'#dd6e28',deep:'#8b3c12',soft:'#fff3ec'}
 }
 let _newHire={...NEW_HIRE_DEFAULTS},_newHireScale=1,_newHireZoomMode='fit',_newHireTab='content',_newHireExporting=false
 
@@ -72,17 +72,17 @@ function newHireFormHtml(){
       <span class="new-hire-upload-copy"><b>${_newHire.photo?'Cambiar fotografía':'Cargar fotografía'}</b><small>Usa un retrato vertical y nítido.</small></span>
       <input type="file" accept="image/png,image/jpeg,image/webp" onchange="newHirePhoto(this)">
     </label>
-    ${newHireField('name','Nombre completo')}${newHireField('role','Puesto')}<div class="new-hire-grid">${newHireField('email','Correo','email')}${newHireField('phone','Teléfono (opcional)','tel')}</div>
+    ${newHireField('name','Nombre completo')}${newHireField('role','Puesto')}${newHireField('email','Correo','email')}${newHireField('phone','Teléfono (opcional)','tel')}
   </section>
   <section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('building',16)} Organización</h3>
-    ${newHireField('department','Gerencia / departamento')}<div class="new-hire-grid">${newHireField('country','País')}${newHireField('company','Empresa')}</div>${newHireField('startDate','Fecha de ingreso','date')}
+    ${newHireField('department','Gerencia / departamento')}${newHireField('country','País')}${newHireField('company','Empresa')}${newHireField('startDate','Fecha de ingreso','date')}
   </section>
   <section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('message',16)} Mensaje</h3>
     <label class="new-hire-field"><span>Mensaje de bienvenida</span><textarea id="new-hire-field-message" class="control-input" maxlength="280" oninput="newHireSet('message',this.value)">${esc(_newHire.message)}</textarea><small>Máximo 280 caracteres para conservar una lectura cómoda.</small></label>
   </section>`
 }
 function newHireDesignFormHtml(){
-  const palettes=Object.entries(NEW_HIRE_PALETTES).map(([key,value])=>`<button type="button" class="new-hire-palette" aria-label="Paleta ${escAttr(key)}" aria-pressed="${_newHire.palette===key}" onclick="newHirePalette('${key}')"><span class="new-hire-palette-swatches"><i style="--swatch:${value.primary}"></i><i style="--swatch:${value.accent}"></i><i style="--swatch:${value.deep}"></i></span><span>${esc(value.label)}</span><span class="new-hire-palette-check">${_newHire.palette===key?siIcon('check',16):''}</span></button>`).join('')
+  const palettes=Object.entries(NEW_HIRE_PALETTES).map(([key,value])=>`<button type="button" class="new-hire-palette" aria-label="Paleta ${escAttr(key)}" aria-pressed="${_newHire.palette===key}" onclick="newHirePalette('${key}')"><span class="new-hire-palette-swatches"><i style="--swatch:${value.soft}"></i><i style="--swatch:${value.primary}"></i><i style="--swatch:${value.deep}"></i></span><span>${esc(value.label)}</span><span class="new-hire-palette-check">${_newHire.palette===key?siIcon('check',16):''}</span></button>`).join('')
   return`<section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('photo',16)} Encuadre de fotografía</h3><p class="new-hire-design-note">Ajusta el retrato sin alterar el tamaño final de la pieza.</p>
     <div class="new-hire-range"><label for="new-hire-x">Posición horizontal</label><output id="new-hire-x-value">${Number(_newHire.photoX)}%</output><input id="new-hire-x" type="range" min="0" max="100" value="${Number(_newHire.photoX)}" oninput="newHireRange('photoX',this.value,'new-hire-x-value')"></div>
     <div class="new-hire-range"><label for="new-hire-y">Posición vertical</label><output id="new-hire-y-value">${Number(_newHire.photoY)}%</output><input id="new-hire-y" type="range" min="0" max="100" value="${Number(_newHire.photoY)}" oninput="newHireRange('photoY',this.value,'new-hire-y-value')"></div>
