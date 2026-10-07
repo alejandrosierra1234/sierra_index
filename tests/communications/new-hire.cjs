@@ -26,6 +26,8 @@ assert.match(w.document.querySelector('.new-hire-clay').src,/sierra-clay-welcome
 assert.ok(w.document.querySelector('.new-hire-card-grid'))
 assert.ok(w.document.querySelector('.new-hire-info'))
 assert.ok(w.document.querySelector('.new-hire-message-card'))
+assert.equal(w.document.querySelector('.new-hire-message-card').style.alignSelf,'stretch')
+const layoutProbe=w.document.createElement('div');layoutProbe.innerHTML='<main class="new-hire-art-main" style="padding-bottom:20px"><footer class="new-hire-message-card"></footer></main>';const probeMain=layoutProbe.firstElementChild,probeCard=probeMain.firstElementChild;probeMain.getBoundingClientRect=()=>({bottom:900});probeCard.getBoundingClientRect=()=>({top:677});w.newHireLockExportLayout(layoutProbe);assert.equal(probeCard.style.height,'203px')
 assert.equal(w.document.querySelector('.new-hire-message-label').textContent,'Nos alegra que estés aquí')
 assert.equal(w.document.querySelectorAll('.new-hire-heading-note').length,0)
 assert.equal(w.document.querySelectorAll('.new-hire-art-title > span').length,2)
