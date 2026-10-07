@@ -59,8 +59,8 @@ assert.match(w.document.querySelector('.new-hire-art').getAttribute('style'),/--
 assert.equal(JSON.parse(w.localStorage.getItem('index_new_hire_v1:new-hire-test')).palette,'orange')
 w.newHireReset()
 assert.equal(w.document.querySelector('.new-hire-name').textContent,'Nombre del colaborador')
-let pdfSaved='',pdfFormat=''
+let pdfSaved='',pdfFormat='',captureParent='',captureOptions
 w.jspdf={jsPDF:function(options){pdfFormat=Array.from(options.format).join(',');return{internal:{pageSize:{getWidth:()=>216,getHeight:()=>270}},setProperties(){},addImage(){},save(name){pdfSaved=name}}}}
-w.html2canvas=async()=>({width:1080,height:1350,toDataURL:()=>'data:image/jpeg;base64,test'})
+w.html2canvas=async(element,options)=>{captureParent=element.parentElement.className;captureOptions=options;return{width:1080,height:1350,toDataURL:()=>'data:image/jpeg;base64,test'}}
 w.newHireSet('name','Ana Martínez');w.newHireSet('photo','data:image/png;base64,test');[...w.document.querySelectorAll('#new-hire-art img')].forEach(image=>image.decode=()=>Promise.resolve())
-w.newHireExport('pdf').then(()=>{assert.equal(pdfFormat,'216,270');assert.equal(pdfSaved,'bienvenida-ana-martinez.pdf');console.log('PASS: new-hire creator renders, updates, stores, resets and exports the SIERRA welcome art')}).catch(error=>{console.error(error);process.exitCode=1})
+w.newHireExport('pdf').then(()=>{assert.equal(pdfFormat,'216,270');assert.equal(pdfSaved,'bienvenida-ana-martinez.pdf');assert.equal(captureParent,'new-hire-export-host');assert.equal(captureOptions.windowWidth,720);assert.equal(w.document.querySelectorAll('.new-hire-export-host').length,0);console.log('PASS: new-hire creator renders, updates, stores, resets and exports the SIERRA welcome art')}).catch(error=>{console.error(error);process.exitCode=1})
