@@ -32,11 +32,19 @@ const server=http.createServer((req,res)=>{
  const page=await browser.newPage({viewport:{width:1100,height:1100},deviceScaleFactor:1.5})
  await page.goto(`http://127.0.0.1:${server.address().port}`)
  await page.evaluate(async()=>{
-  const c=document.createElement('canvas');c.width=800;c.height=600;const x=c.getContext('2d');x.fillStyle='#eeeeee';x.fillRect(0,0,800,600);x.fillStyle='#009fff';x.beginPath();x.arc(400,300,65,0,Math.PI*2);x.fill()
+  const c=document.createElement('canvas');c.width=800;c.height=600;const x=c.getContext('2d');x.fillStyle='#eeeeee';x.fillRect(0,0,800,600);x.fillStyle='#009fff';x.beginPath();x.arc(400,300,65,0,Math.PI*2);x.fill();x.fillStyle='#ff00ff';for(const [cx,cy] of [[0,0],[776,0],[0,576],[776,576]])x.fillRect(cx,cy,24,24)
   Object.assign(_newHire,{name:'Andrea López',role:'Talent Acquisition Coordinator',email:'acquisition.coordinator@sierratextiles.com',phone:'3054 0720',department:'Talento Humano',country:'Guatemala',company:'Hilos y Algodón, S.A.',startDate:'2026-10-05',palette:'olive',photo:c.toDataURL()});newHireRenderArt();await document.fonts.ready;await Promise.all([...document.images].map(i=>i.decode()));newHireFitSingleLines()
  })
  await page.locator('.new-hire-art').screenshot({path:path.join(out,'preview.png')})
- for(const [name,x,y,zoom] of [['center',50,50,100],['positioned',45,60,130]]){
+ let firstExport
+ for(const [name,x,y,zoom] of [['center',50,50,100],['positioned',45,60,130],['portrait',50,50,100]]){
+ if(name==='portrait'){
+  await page.evaluate(async()=>{
+   const c=document.createElement('canvas');c.width=400;c.height=900;const ctx=c.getContext('2d');ctx.fillStyle='#eee';ctx.fillRect(0,0,400,900);ctx.fillStyle='#009fff';ctx.beginPath();ctx.arc(200,450,65,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff00ff';for(const [x,y] of [[0,0],[376,0],[0,876],[376,876]])ctx.fillRect(x,y,24,24)
+   window.originalPhoto=c.toDataURL();const blob=await new Promise(resolve=>c.toBlob(resolve));newHirePhoto({files:[new File([blob],'original.png',{type:'image/png'})]})
+  })
+  await page.waitForFunction(()=>_newHire.photo===window.originalPhoto)
+ }
  await page.evaluate(({x,y,zoom})=>{Object.assign(_newHire,{photoX:x,photoY:y,photoZoom:zoom});newHireRenderArt()},{x,y,zoom})
  const reference=PNG.sync.read(await page.locator('.new-hire-art').screenshot())
  const result=await page.evaluate(async({x,y,zoom})=>{
@@ -45,9 +53,12 @@ const server=http.createServer((req,res)=>{
   const pdf=new jspdf.jsPDF({unit:'mm',format:[216,270]});pdf.addImage(canvas.toDataURL('image/jpeg',.96),'JPEG',0,0,216,270)
   return{width:canvas.width,height:canvas.height,circle:[maxX-minX+1,maxY-minY+1],png:canvas.toDataURL(),jpg:canvas.toDataURL('image/jpeg',.94),pdf:pdf.output('datauristring')}
  },{x,y,zoom})
- assert.equal(result.width,1080);assert.equal(result.height,1350);assert.ok(result.circle[0]>100);assert.ok(Math.abs(result.circle[0]-result.circle[1])<=2,`${name}: distorted circle ${result.circle}`)
+ assert.equal(result.width,1080);assert.equal(result.height,1350);assert.ok(result.circle[0]>60);assert.ok(Math.abs(result.circle[0]-result.circle[1])<=2,`${name}: distorted circle ${result.circle}`)
  for(const format of ['png','jpg','pdf'])fs.writeFileSync(path.join(out,`${name}.${format}`),Buffer.from(result[format].split(',')[1],'base64'))
  const exported=PNG.sync.read(Buffer.from(result.png.split(',')[1],'base64'))
+ const corners=[0,0,0,0];for(let y=300;y<1050;y++)for(let x=51;x<481;x++){const i=(y*1080+x)*4;if(exported.data[i]>230&&exported.data[i+1]<20&&exported.data[i+2]>230)corners[(y>=675?2:0)+(x>=266?1:0)]++}
+ assert.ok(corners.every(count=>count>50),`${name}: missing original image corners: ${corners}`)
+ if(name==='positioned')assert.deepEqual(exported.data,firstExport,'Saved crop/zoom must not alter the original photo');else firstExport=exported.data
  for(const [region,x1,y1,x2,y2] of [['title',0,100,1080,280],['portrait',51,300,480,1050],['details',504,380,1029,970],['footer',51,1100,1029,1320]]){
   let different=0,total=0
   for(let y=y1;y<y2;y++)for(let x=x1;x<x2;x++){const i=(y*1080+x)*4;total++;if(Math.max(...[0,1,2].map(c=>Math.abs(reference.data[i+c]-exported.data[i+c])))>50)different++}
