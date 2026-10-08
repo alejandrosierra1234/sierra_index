@@ -58,5 +58,7 @@ function fixture({ tainted = false } = {}) {
   assert.match(html.slice(end, html.indexOf('async function policyDownloadPdf()', end)), /const exportPolicy=await policyRasterizeSvgLogo\(p\)/)
   assert.match(html.slice(end, html.indexOf('async function policyDownloadPdf()', end)), /policyPageHtml\(exportPolicy\)/)
   assert.match(html.slice(end, html.indexOf('async function policyDownloadPdf()', end)), /policyFitExportLogos\(doc\)/)
+  assert.match(html.slice(end, html.indexOf('async function policyDownloadPdf()', end)), /captureScale=4/)
+  assert.match(html.slice(end, html.indexOf('async function policyDownloadPdf()', end)), /canvas\.toDataURL\('image\/png'\)/)
   console.log('PASS: SVG logo and PDF boxes preserve intrinsic aspect ratio')
 })().catch(error => { console.error(error); process.exitCode = 1 })
