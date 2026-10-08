@@ -57,6 +57,8 @@ assert.match(html, /\.policy-responsibility-table\{width:100%;table-layout:fixed
 assert.match(html, /\.policy-responsibility-table col:first-child\{width:34%\}/)
 assert.match(html, /\.policy-responsibility-table col:last-child\{width:66%\}/)
 assert.match(html, /class="policy-responsibility-rich" contenteditable="true"/)
+assert.match(html, /\.policy-person-row\.is-responsible\{grid-template-columns:minmax\(0,1fr\) 32px/)
+assert.match(html, /\.policy-person-row\.is-responsible>\.policy-responsibility-editor\{grid-column:1\/-1;grid-row:2\}/)
 assert.match(html, /policyResponsibilityCommand\(event,\$\{i\},'insertUnorderedList'\)/)
 assert.match(html, /policyResponsibilityCommand\(event,\$\{i\},'insertOrderedList'\)/)
 assert.match(html, /function policyResponsibilityKeydown\(event,editor\)/)
