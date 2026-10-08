@@ -20,18 +20,18 @@ const policy = {
   title: 'Política de seguridad', code: 'POL-2026-001', version: '1.0',
   processName: 'Mantenimiento', department: 'Operaciones',
   companyName: 'Hilos y Algodón', siteName: 'Planta Norte',
-  companyLogo: '', confidential: true, date: '2026-09-22',
+  companyLogo: '', confidential: true, date: '2026-09-22', reviewDate: '2027-09-22',
   sections: [{ title: 'Objetivo', html: '<p>Contenido</p>' }],
   responsibles: [], org: [], signers: [], changeControl: '',
 }
 const header = context.policyHeaderHtml(policy, 1, 3)
 const initial = header.split('<div class="policy-header-compact">')[0]
 const compact = header.split('<div class="policy-header-compact">')[1]
-assert.match(initial, /Código.*POL-2026-001.*Rev\. 1\.0.*CONFIDENCIAL/s)
-assert.match(initial, /Empresa.*Hilos y Algodón.*Departamento.*Operaciones.*Aprobación/s)
+assert.match(initial, /Política.*CONFIDENCIAL.*Política de seguridad/s)
+assert.match(initial, /Código.*POL-2026-001.*Versión.*1\.0.*Empresa.*Hilos y Algodón.*Departamento.*Operaciones.*Aprobación.*Próxima revisión/s)
 assert.doesNotMatch(initial, /Planta|Planta Norte/)
 assert.doesNotMatch(initial, /Página|>Proceso</)
-assert.match(compact, /Política.*Política de seguridad/s)
+assert.match(compact, /Política.*CONFIDENCIAL.*Política de seguridad/s)
 assert.match(compact, /Hilos y Algodón/)
 assert.doesNotMatch(compact, /Planta Norte/)
 assert.doesNotMatch(compact, /Página/)
@@ -48,6 +48,8 @@ assert.match(html, /\.policy-record-logo img\{display:block;width:auto;height:au
 assert.match(html, /\.policy-page\.is-continuation \.policy-record-logo img\{max-width:28mm;max-height:12mm\}/)
 assert.match(html, /\.policy-index h2,\.policy-document-section h2\{[^}]*background:transparent;font:700 11\.5pt/)
 assert.match(html, /\.policy-page \.policy-watermark\{font-size:50pt\}/)
+assert.match(html, /\.policy-record-metadata\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/)
+assert.match(html, /\.policy-record-classification\{[^}]*border:\.25mm solid #e80000[^}]*background:#ffc7c7[^}]*color:#b40b0b/)
 assert.match(html, /\.policy-approval\{min-height:44mm;border:\.25mm solid #cfd2d5/)
 assert.doesNotMatch(html.slice(html.indexOf('function policyInfoPanel()'), html.indexOf('function policySectionEditor(')), /policySetSite|policySiteOptions|>Planta</)
 console.log('PASS: policy index table, compact header and implementation-area footer')
