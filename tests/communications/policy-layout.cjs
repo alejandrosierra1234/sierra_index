@@ -48,5 +48,6 @@ assert.match(html, /\.policy-record-logo img\{display:block;width:auto;height:au
 assert.match(html, /\.policy-page\.is-continuation \.policy-record-logo img\{max-width:28mm;max-height:12mm\}/)
 assert.match(html, /\.policy-index h2,\.policy-document-section h2\{[^}]*background:transparent;font:700 11\.5pt/)
 assert.match(html, /\.policy-page \.policy-watermark\{font-size:50pt\}/)
+assert.match(html, /\.policy-approval\{min-height:44mm;border:\.25mm solid #cfd2d5/)
 assert.doesNotMatch(html.slice(html.indexOf('function policyInfoPanel()'), html.indexOf('function policySectionEditor(')), /policySetSite|policySiteOptions|>Planta</)
 console.log('PASS: policy index table, compact header and implementation-area footer')
