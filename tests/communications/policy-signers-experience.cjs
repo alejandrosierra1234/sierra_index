@@ -15,5 +15,7 @@ assert.match(html, /policySyncSignerCard\(i,value\)/)
 assert.match(html, /\.policy-signer-fields\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\)/)
 assert.match(html, /@media\(max-width:520px\)\{\.policy-signer-fields\{grid-template-columns:1fr\}/)
 assert.match(html, /active\.color\?` style="color:\$\{escAttr\(active\.color\)\}"`/)
+assert.match(html, /o\.color\?` style="--option-color:\$\{escAttr\(o\.color\)\}"`/)
+assert.match(html, /\.policy-signer-role \.pd-select-opt\.is-active\{background:color-mix\(in srgb,var\(--option-color\) 16%,#fff\)/)
 
 console.log('PASS: signer cards stay readable and color-code authoring, review and approval roles')
