@@ -37354,9 +37354,10 @@ function policyDefaultSections(){return[
 const POLICY_COMMENT_COLORS={yellow:{label:'Amarillo',base:'#ffc529',soft:'#fff0af',ink:'#7a6200'},pink:{label:'Rojo',base:'#e80000',soft:'#ffc7c7',ink:'#8f0808'},blue:{label:'Azul',base:'#009fff',soft:'#c5e9ff',ink:'#004a86'},green:{label:'Verde',base:'#3ed600',soft:'#d1ffbe',ink:'#256f08'},purple:{label:'Morado',base:'#9e00cb',soft:'#f6d8ff',ink:'#670084'}};
 function policyCommentColorData(value){return POLICY_COMMENT_COLORS[value]||POLICY_COMMENT_COLORS.yellow}
 function policyNormalizeComments(comments){return Array.isArray(comments)?comments.map(comment=>({...comment,color:POLICY_COMMENT_COLORS[comment?.color]?comment.color:'yellow',replies:Array.isArray(comment?.replies)?comment.replies:[]})):[]}
+function policyDurableAssetUrl(value){const source=String(value||'');return typeof indexAssets!=='undefined'&&typeof indexAssets.canonical==='function'?indexAssets.canonical(source):source}
 function createPolicyDraft(seed={}){const now=new Date(),date=policyLocalDate(now);return{
   id:seed.id||policyUid(),title:String(seed.title||'POLÍTICA SIN TÍTULO').toLocaleUpperCase('es'),department:seed.department||'Procesos',code:seed.code||`POL-${now.getFullYear()}-001`,version:seed.version||'1.0',date:seed.date||date,status:seed.status||'Borrador',owner:seed.owner||'Coordinación de Procesos',reviewDate:seed.reviewDate||`${now.getFullYear()+1}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`,
-  companyId:seed.companyId||'',companyName:seed.companyName||'',companyLegalName:seed.companyLegalName||'',companyLogo:seed.companyLogo||'',processName:seed.processName||'Proceso por definir',confidential:seed.confidential===true,
+  companyId:seed.companyId||'',companyName:seed.companyName||'',companyLegalName:seed.companyLegalName||'',companyLogo:policyDurableAssetUrl(seed.companyLogo),processName:seed.processName||'Proceso por definir',confidential:seed.confidential===true,
   sections:seed.sections||policyDefaultSections(),responsibles:seed.responsibles||[{name:'Coordinación de Procesos',role:'Custodio de la política'}],org:seed.org||[],signers:seed.signers||[{role:'Elaborado por',name:'Coordinación de Procesos',title:''},{role:'Revisado por',name:'',title:''},{role:'Aprobado por',name:'',title:''}],comments:policyNormalizeComments(seed.comments),changeControl:seed.changeControl||'La presente política será revisada anualmente para garantizar que permanezca vigente, actualizada y alineada con las necesidades de la organización y la normativa aplicable.',updatedAt:seed.updatedAt||new Date().toISOString(),createdAt:seed.createdAt||new Date().toISOString()}}
 function policyNormalize(p){const sections=Array.isArray(p?.sections)?p.sections.map(s=>({...s,kind:s.kind||(/roles y responsabilidades/i.test(s.title||'')?'responsibilities':'')})):undefined;return createPolicyDraft({...p,title:String(p?.title||'POLÍTICA SIN TÍTULO').toLocaleUpperCase('es'),sections,responsibles:Array.isArray(p?.responsibles)?p.responsibles:undefined,org:Array.isArray(p?.org)?p.org:undefined,signers:Array.isArray(p?.signers)?p.signers:undefined,comments:Array.isArray(p?.comments)?p.comments:[]})}
 function policyLoad(){try{_policies=JSON.parse(localStorage.getItem(POLICY_STORE_KEY)||'[]').map(policyNormalize)}catch{_policies=[]}if(!_policies.length){_policies=[createPolicyDraft()];policyPersistAll()}}
@@ -37366,7 +37367,7 @@ function policyAutosave(){clearTimeout(_policySaveTimer);const state=document.qu
 function policyCachedCompanies(){const records=Object.values(typeof _badge==='object'&&_badge?.companies||{}).flat();return records.filter(Boolean)}
 async function policyLoadOrganization(){if(_policyOrgLoading)return;_policyOrgLoading=true;try{const cachedCompanies=policyCachedCompanies();if(cachedCompanies.length)_policyCompanies=cachedCompanies;if(!_policyCompanies.length){let result=await sb.from('companies').select('id, name, legal_name, code, logo_url').order('name');if(result.error&&/logo_url/i.test(result.error.message||'')){result=await sb.from('companies').select('id, name, legal_name, code').order('name');result.data=(result.data||[]).map(c=>({...c,logo_url:null}))}if(result.error)throw result.error;_policyCompanies=result.data||[]}}catch(error){console.warn('No se pudieron cargar las empresas para políticas:',error)}finally{_policyOrgLoading=false;if(_policyCurrent){const form=document.getElementById('policy-form');if(form&&_policyTab==='info')form.innerHTML=policyInfoPanel();policyRenderPreview()}}}
 function policyCompanyOptions(){return`<option value="">Selecciona una empresa</option>${_policyCompanies.map(c=>`<option value="${escAttr(c.id)}" ${String(c.id)===String(_policyCurrent.companyId)?'selected':''}>${esc(c.name||c.legal_name||c.code||'Empresa')}</option>`).join('')}`}
-function policySetCompany(id){const company=_policyCompanies.find(c=>String(c.id)===String(id));_policyCurrent.companyId=company?.id||'';_policyCurrent.companyName=company?.name||'';_policyCurrent.companyLegalName=company?.legal_name||'';_policyCurrent.companyLogo=company?.logo_url||'';policyCommit();const subtitle=document.querySelector('.policy-panel-subtitle');if(subtitle)subtitle.textContent=`${_policyCurrent.code} · ${_policyCurrent.companyName||'Empresa por seleccionar'}`;if(_policyTab==='info')document.getElementById('policy-form').innerHTML=policyInfoPanel();policyRenderPreview()}
+function policySetCompany(id){const company=_policyCompanies.find(c=>String(c.id)===String(id));_policyCurrent.companyId=company?.id||'';_policyCurrent.companyName=company?.name||'';_policyCurrent.companyLegalName=company?.legal_name||'';_policyCurrent.companyLogo=policyDurableAssetUrl(company?.logo_url);policyCommit();const subtitle=document.querySelector('.policy-panel-subtitle');if(subtitle)subtitle.textContent=`${_policyCurrent.code} · ${_policyCurrent.companyName||'Empresa por seleccionar'}`;if(_policyTab==='info')document.getElementById('policy-form').innerHTML=policyInfoPanel();policyRenderPreview()}
 function showPolicies(){syncModule('procesos');_navLeaf='procesos|_|policies';sessionStorage.setItem('sierra_route','module:procesos');leaveView();renderSidebarTree();document.getElementById('tb-section').textContent='Procesos';document.getElementById('product-controls').style.display='none';clearSecCrumbs();document.getElementById('sec-title').textContent='Políticas';document.getElementById('sec-sub').textContent='Documentos corporativos claros, consistentes y listos para aprobación';policyLoad();policyLoadOrganization();renderPolicyLibrary()}
 function policyLibraryResults(){const query=_policyLibraryQuery.trim().toLocaleLowerCase('es');return _policies.filter(p=>(_policyLibraryStatus==='all'||p.status===_policyLibraryStatus)&&(!query||[p.title,p.code,p.processName,p.companyName,p.department].some(value=>String(value||'').toLocaleLowerCase('es').includes(query))))}
 function policyLibraryRows(){const results=policyLibraryResults();return results.length?results.map(policyCardHtml).join(''):`<div class="policy-empty"><p>${_policies.length?'No hay políticas que coincidan con la búsqueda.':'No hay políticas todavía.'}</p>${_policies.length?'':`<button class="btn btn-primary" onclick="policyNew()">Crear la primera</button>`}</div>`}
@@ -37495,18 +37496,26 @@ function policyFileName(p){const base=String(p.code||p.title||'politica').normal
 async function policyRasterizeSvgLogo(p){
   const source=p.companyLogo||'';
   if(!/\.svg(?:[?#]|$)|^data:image\/svg\+xml/i.test(source))return p;
-  const url=new URL(source,document.baseURI),sameAsset=img=>{try{return new URL(img.src,document.baseURI).pathname===url.pathname}catch{return false}};
-  let image=[...document.querySelectorAll('#policy-preview-sheet .policy-record-logo img')].find(img=>sameAsset(img)&&img.naturalWidth>0);
-  if(!image){image=new Image();image.crossOrigin='anonymous';image.src=source;try{await image.decode()}catch{try{const response=await fetch(source,{mode:'cors'});if(!response.ok)throw Error(String(response.status));const blobUrl=URL.createObjectURL(await response.blob());try{image=new Image();image.src=blobUrl;await image.decode()}finally{URL.revokeObjectURL(blobUrl)}}catch(error){throw Error('No se pudo cargar el logo SVG para el PDF. Comprueba el archivo o súbelo como PNG. '+(error?.message||''))}}}
+  let image,blobUrl='';
   try{
+    if(/^data:image\/svg\+xml/i.test(source))image=await policyLoadExportImage(source);
+    else{
+      const assetUrl=typeof indexAssets!=='undefined'&&indexAssets.path(source)!==null?await indexAssets.resolve(source):source;
+      const response=await fetch(assetUrl,{mode:'cors',credentials:'omit',cache:'no-store'});
+      if(!response.ok)throw Error(`El servidor respondió ${response.status}.`);
+      const downloaded=await response.blob(),svgBlob=downloaded.type==='image/svg+xml'?downloaded:new Blob([await downloaded.arrayBuffer()],{type:'image/svg+xml'});
+      blobUrl=URL.createObjectURL(svgBlob);image=await policyLoadExportImage(blobUrl);
+    }
     const width=image.naturalWidth,height=image.naturalHeight;
     if(!width||!height)throw Error('El SVG no tiene dimensiones válidas.');
     const scale=Math.min(8,1200/Math.max(width,height)),canvas=document.createElement('canvas');
     canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
     canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
     return {...p,companyLogo:canvas.toDataURL('image/png')};
-  }catch(error){throw Error('No se pudo convertir el logo SVG para el PDF. Comprueba el archivo o súbelo como PNG. '+(error?.message||''))}
+  }catch(error){throw Error('No se pudo preparar el logo para el PDF. Recarga la página e inténtalo de nuevo. '+(error?.message||''))}
+  finally{if(blobUrl)URL.revokeObjectURL(blobUrl)}
 }
+function policyLoadExportImage(source){return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(Error('El archivo del logo no es un SVG válido.'));image.src=source})}
 function policyFitExportLogos(doc){
   doc.querySelectorAll('.policy-record-logo img').forEach(img=>{
     const width=img.naturalWidth,height=img.naturalHeight;
@@ -37524,7 +37533,8 @@ async function policyPdfBlob(p){
   const pageWidth=215.9,pageHeight=279.4,orientation='portrait',format='letter',captureScale=4;
   let pdf=null,pageOffset=0;
   for(const policy of policies){
-    const exportPolicy=await policyRasterizeSvgLogo(policy),frame=document.createElement('iframe');frame.title='Preparando PDF de la política';frame.setAttribute('aria-hidden','true');frame.style.cssText='position:fixed;left:-10000px;top:0;width:816px;height:1056px;border:0;pointer-events:none';
+    let exportPolicy;try{exportPolicy=await policyRasterizeSvgLogo(policy)}catch(error){console.warn('El PDF continuará sin el logo SVG:',error);exportPolicy={...policy,companyLogo:''}}
+    const frame=document.createElement('iframe');frame.title='Preparando PDF de la política';frame.setAttribute('aria-hidden','true');frame.style.cssText='position:fixed;left:-10000px;top:0;width:816px;height:1056px;border:0;pointer-events:none';
     let timer;const timeout=()=>new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('El PDF tardó demasiado en prepararse.')),30000)});
     try{
       const css=[...document.querySelectorAll('style')].map(s=>s.textContent).join('\n'),fontCss=typeof memoExportFontCss==='function'?await memoExportFontCss():'';

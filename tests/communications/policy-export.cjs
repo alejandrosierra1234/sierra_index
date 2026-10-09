@@ -8,28 +8,57 @@ const start = html.indexOf('async function policyRasterizeSvgLogo(p)')
 const end = html.indexOf('async function policyPdfBlob(p)', start)
 assert(start >= 0 && end > start, 'SVG conversion helper is present')
 
-function fixture({ tainted = false } = {}) {
-  const source = 'https://example.test/company.svg?token=abc'
-  const image = { src: source, naturalWidth: 125, naturalHeight: 150 }
-  let draws = 0
+function fixture({ tainted = false, storage = false, status = 200 } = {}) {
+  const source = storage
+    ? 'https://assets.test/storage/v1/object/sign/product-images/company.svg?token=expired'
+    : 'https://example.test/company.svg?token=abc'
+  const fresh = 'https://assets.test/storage/v1/object/sign/product-images/company.svg?token=fresh'
+  let draws = 0, revoked = '', resolved = '', requested = ''
+  class TestImage {
+    set src(value) {
+      this._src = value
+      this.naturalWidth = 125
+      this.naturalHeight = 150
+      queueMicrotask(() => this.onload?.())
+    }
+    get src() { return this._src }
+  }
   const document = {
-    baseURI: 'https://example.test/',
-    querySelectorAll: () => [image],
     createElement: type => {
       assert.equal(type, 'canvas')
       return {
         getContext: () => ({ drawImage(value, x, y, width, height) {
           draws++
-          assert.equal(value, image)
+          assert(value instanceof TestImage)
           assert.deepEqual([x, y, width, height], [0, 0, 1000, 1200])
         } }),
         toDataURL() { if (tainted) throw Error('Canvas is tainted'); return 'data:image/png;base64,AA==' },
       }
     },
   }
-  const context = vm.createContext({ document, URL, Image: class { constructor() { throw Error('The loaded preview should be reused') } } })
+  const context = vm.createContext({
+    document,
+    Blob,
+    Image: TestImage,
+    URL: {
+      createObjectURL: () => 'blob:policy-logo',
+      revokeObjectURL: value => { revoked = value },
+    },
+    fetch: async value => {
+      requested = value
+      return {
+        ok: status >= 200 && status < 300,
+        status,
+        blob: async () => new Blob(['<svg viewBox="0 0 125 150"></svg>'], { type: 'image/svg+xml' }),
+      }
+    },
+    indexAssets: {
+      path: value => storage && value === source ? 'company.svg' : null,
+      resolve: async value => { resolved = value; return fresh },
+    },
+  })
   vm.runInContext(html.slice(start, end), context)
-  return { context, source, image, getDraws: () => draws }
+  return { context, source, fresh, getDraws: () => draws, getRequested: () => requested, getResolved: () => resolved, getRevoked: () => revoked }
 }
 
 ;(async () => {
@@ -38,12 +67,22 @@ function fixture({ tainted = false } = {}) {
   const result = await loaded.context.policyRasterizeSvgLogo(draft)
   assert.equal(result.companyLogo, 'data:image/png;base64,AA==')
   assert.equal(draft.companyLogo, loaded.source, 'saved draft keeps its SVG')
-  assert.equal(loaded.getDraws(), 1, 'loaded preview is converted once before creating the PDF iframe')
+  assert.equal(loaded.getDraws(), 1, 'downloaded SVG is converted once before creating the PDF iframe')
+  assert.equal(loaded.getRequested(), loaded.source)
+  assert.equal(loaded.getRevoked(), 'blob:policy-logo')
+
+  const expired = fixture({ storage: true })
+  const refreshed = await expired.context.policyRasterizeSvgLogo({ companyLogo: expired.source })
+  assert.equal(refreshed.companyLogo, 'data:image/png;base64,AA==')
+  assert.equal(expired.getResolved(), expired.source, 'expired storage URL is refreshed through the active session')
+  assert.equal(expired.getRequested(), expired.fresh, 'PDF fetches the refreshed signed URL')
 
   const png = { companyLogo: 'https://example.test/company.png' }
   assert.equal(await loaded.context.policyRasterizeSvgLogo(png), png, 'PNG logos pass through unchanged')
   const failure = fixture({ tainted: true })
-  await assert.rejects(failure.context.policyRasterizeSvgLogo({ companyLogo: failure.source }), /No se pudo convertir el logo SVG para el PDF/)
+  await assert.rejects(failure.context.policyRasterizeSvgLogo({ companyLogo: failure.source }), /No se pudo preparar el logo para el PDF/)
+  const unavailable = fixture({ status: 400 })
+  await assert.rejects(unavailable.context.policyRasterizeSvgLogo({ companyLogo: unavailable.source }), /El servidor respondió 400/)
   const wide = (compact) => ({ naturalWidth: 300, naturalHeight: 65, style: {}, closest: () => compact ? {} : null })
   const first = wide(false), continued = wide(true), square = { naturalWidth: 100, naturalHeight: 100, style: {}, closest: () => ({}) }
   loaded.context.policyFitExportLogos({ querySelectorAll: () => [first, continued, square] })
@@ -55,12 +94,15 @@ function fixture({ tainted = false } = {}) {
   assert.equal(square.style.height, '12.000mm')
   assert.equal(first.style.maxWidth, 'none')
   assert.equal(continued.style.maxHeight, 'none')
-  assert.match(html.slice(end, html.indexOf('async function policyDownloadPdf()', end)), /const exportPolicy=await policyRasterizeSvgLogo\(policy\)/)
+  assert.match(html.slice(end, html.indexOf('async function policyDownloadPdf()', end)), /exportPolicy=await policyRasterizeSvgLogo\(policy\)/)
+  assert.match(html.slice(end, html.indexOf('async function policyDownloadPdf()', end)), /exportPolicy=\{\.\.\.policy,companyLogo:''\}/)
   assert.match(html.slice(end, html.indexOf('async function policyDownloadPdf()', end)), /Array\.isArray\(p\)\?p:\[p\]/)
   assert.match(html.slice(end, html.indexOf('async function policyDownloadPdf()', end)), /pageNumber:pageOffset\+target/)
   assert.match(html.slice(end, html.indexOf('async function policyDownloadPdf()', end)), /policyPageHtml\(exportPolicy\)/)
   assert.match(html.slice(end, html.indexOf('async function policyDownloadPdf()', end)), /policyFitExportLogos\(doc\)/)
   assert.match(html.slice(end, html.indexOf('async function policyDownloadPdf()', end)), /captureScale=4/)
   assert.match(html.slice(end, html.indexOf('async function policyDownloadPdf()', end)), /canvas\.toDataURL\('image\/png'\)/)
+  assert.match(html, /companyLogo:policyDurableAssetUrl\(seed\.companyLogo\)/)
+  assert.match(html, /_policyCurrent\.companyLogo=policyDurableAssetUrl\(company\?\.logo_url\)/)
   console.log('PASS: SVG logo and PDF boxes preserve intrinsic aspect ratio')
 })().catch(error => { console.error(error); process.exitCode = 1 })
