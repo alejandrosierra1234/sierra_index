@@ -19,6 +19,7 @@ assert.match(html, /class="policy-card-document-meta"/)
 assert.match(html, /class="policy-card-document-table"/)
 assert.match(html, /policy-studio-actions button\[onclick="policyBack\(\)"\][^{]*\{/)
 assert.match(html, /policy-studio-actions button\[onclick="policyBack\(\)"\]:before\{content:"←"/)
+assert.match(html, /\.policy-panel-collapse:after\{content:"Contraer"\}/)
 assert.match(html, /o\.icon \? `<span class="pd-select-value-icon">/)
 
 console.log('PASS: policy library separates archives, color-codes lifecycle, and uses intentional icon-led controls')
