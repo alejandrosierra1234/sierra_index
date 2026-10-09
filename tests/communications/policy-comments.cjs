@@ -29,6 +29,9 @@ assert.match(html, /if\(key==='title'\)value=String\(value\|\|''\)\.toLocaleUppe
 assert.match(html, /alignments=new Set\(\['left','center','right','justify'\]\)/)
 
 assert.match(html, /function policyCommentMarkerHtml\(p,sectionId=''\)/)
+assert.match(html, /\.policy-editorial-marker\{[^}]*right:0;top:-1mm/)
+assert.match(html, /class="policy-comment-popover" role="tooltip"/)
+assert.match(html, /\.policy-editorial-marker:hover \.policy-comment-popover,\.policy-editorial-marker:focus-visible \.policy-comment-popover\{display:grid/)
 assert.match(html, /data-policy-section-id="\$\{escAttr\(s\.id\)\}"/)
 assert.match(html, /function policyOpenCommentThread\(sectionId=''\)/)
 assert.match(html, /function policyShowCommentLocation\(sectionId=''\)/)
