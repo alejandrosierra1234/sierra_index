@@ -37,8 +37,10 @@ assert.match(html, /alignments=new Set\(\['left','center','right','justify'\]\)/
 
 assert.match(html, /function policyCommentMarkerHtml\(p,sectionId=''\)/)
 assert.match(html, /\.policy-editorial-marker\{[^}]*right:0;top:-1mm/)
-assert.match(html, /class="policy-comment-popover" role="dialog"/)
-assert.match(html, /\.policy-editorial-marker:hover \.policy-comment-popover,\.policy-editorial-marker:focus-within \.policy-comment-popover\{display:grid/)
+assert.match(html, /function policyShowCommentPopover\(trigger,sectionId='',pin=false\)/)
+assert.match(html, /document\.querySelector\('body>\.policy-comment-popover'\)/)
+assert.match(html, /max-height:min\(520px,calc\(100vh - 24px\)\)/)
+assert.match(html, /onmouseenter="policyShowCommentPopover/)
 assert.match(html, /class="policy-comment-popover-head"/)
 assert.match(html, /class="policy-marker-count"/)
 assert.match(html, /Revisión editorial · no se imprime/)
