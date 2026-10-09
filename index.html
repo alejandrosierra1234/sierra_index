@@ -37700,7 +37700,7 @@ function policyFitExportLogos(doc){
 async function policyPdfBlob(p,onProgress=()=>{}){
   if(!window.jspdf?.jsPDF||typeof window.html2canvas!=='function')throw Error('No se pudo cargar el generador de PDF. Recarga la aplicación e inténtalo de nuevo.');
   const policies=(Array.isArray(p)?p:[p]).filter(Boolean);if(!policies.length)throw Error('Selecciona al menos una política para descargar.');
-  const pageWidth=215.9,pageHeight=279.4,orientation='portrait',format='letter',captureScale=4;
+  const pageWidth=215.9,pageHeight=279.4,orientation='portrait',format='letter',captureScale=2.5,imageFormat='JPEG',imageQuality=.94,imageCompression='FAST';
   let pdf=null,pageOffset=0;
   for(let policyIndex=0;policyIndex<policies.length;policyIndex++){
     const policy=policies[policyIndex];onProgress('Preparando recursos',`Procesando ${policy.title||'la política'}…`,8);
@@ -37723,7 +37723,7 @@ async function policyPdfBlob(p,onProgress=()=>{}){
         const completed=(policyIndex+i/pages.length)/policies.length,onPage=Math.round(20+completed*75);onProgress('Generando PDF',`Procesando página ${i+1} de ${pages.length}…`,onPage);await new Promise(resolve=>requestAnimationFrame(resolve));
         const page=pages[i],rect=page.getBoundingClientRect(),canvas=await window.html2canvas(page,{scale:captureScale,useCORS:true,allowTaint:false,backgroundColor:'#ffffff',logging:false,width:Math.ceil(rect.width),height:Math.ceil(rect.height),windowWidth:816,windowHeight:1056,scrollX:0,scrollY:0});
         if(pageOffset+i)pdf.addPage(format,orientation);
-        pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,pageWidth,pageHeight,undefined,'SLOW');
+        const imageData=canvas.toDataURL('image/jpeg',imageQuality);pdf.addImage(imageData,imageFormat,0,0,pageWidth,pageHeight,undefined,imageCompression);
         const scaleX=pageWidth/rect.width,scaleY=pageHeight/rect.height;
         page.querySelectorAll('.policy-index-row').forEach(row=>{const target=Number(row.querySelector('[data-policy-index-page]')?.textContent),box=row.getBoundingClientRect();if(target>=1&&target<=pages.length)pdf.link((box.left-rect.left)*scaleX,(box.top-rect.top)*scaleY,box.width*scaleX,box.height*scaleY,{pageNumber:pageOffset+target})});
         canvas.width=canvas.height=0;
