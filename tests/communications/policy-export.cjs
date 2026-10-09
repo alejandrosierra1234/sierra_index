@@ -5,7 +5,7 @@ const vm = require('node:vm')
 
 const html = fs.readFileSync(path.join(__dirname, '../../index.html'), 'utf8')
 const start = html.indexOf('async function policyRasterizeSvgLogo(p)')
-const end = html.indexOf('async function policyPdfBlob(p)', start)
+const end = html.indexOf('async function policyPdfBlob(p', start)
 assert(start >= 0 && end > start, 'SVG conversion helper is present')
 
 function fixture({ tainted = false, storage = false, status = 200 } = {}) {
@@ -104,5 +104,9 @@ function fixture({ tainted = false, storage = false, status = 200 } = {}) {
   assert.match(html.slice(end, html.indexOf('async function policyDownloadPdf()', end)), /canvas\.toDataURL\('image\/png'\)/)
   assert.match(html, /companyLogo:policyDurableAssetUrl\(seed\.companyLogo\)/)
   assert.match(html, /_policyCurrent\.companyLogo=policyDurableAssetUrl\(company\?\.logo_url\)/)
+  assert.match(html, /function policyExportProgress\(active,title=/)
+  assert.match(html, /if\(!_policyCurrent\|\|_policyPdfBusy\)return/)
+  assert.match(html, /Procesando página \$\{i\+1\} de \$\{pages\.length\}/)
+  assert.match(html, /policyExportProgress\(true,'PDF listo'/)
   console.log('PASS: SVG logo and PDF boxes preserve intrinsic aspect ratio')
 })().catch(error => { console.error(error); process.exitCode = 1 })
