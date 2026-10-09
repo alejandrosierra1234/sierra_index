@@ -14,6 +14,8 @@ For all new or edited SIERRA materials, preserve these brand components:
 
 Shared renderers live in `index.html`; regression coverage lives in `tests/communications/management.cjs`.
 
+- Never ship browser- or operating-system-native dropdowns in SIERRA editor, detail, or library interfaces. Use the shared `pdSelect` SIERRA control (or a purpose-built SIERRA control when the interaction is not a listbox), preserving clear focus, hover, selected, disabled, and keyboard states. Native form controls may remain only when they are visually hidden implementation details.
+
 - Communication block tools are grouped into Texto (teal), Multimedia (blue), Personas y eventos (green), Acciones y destacados (orange), and Estructura (purple), using SIERRA palette colors and SI_ICON. Outline icons use the same category color; feature blocks show their chosen icon/color. Insert after the active block. Pointer dragging uses a dedicated handle, destination indicator, edge scrolling and cancellation; retain keyboard-accessible move actions. Preserve form, preview and outer scroll positions and restore popover focus with preventScroll.
 - Separators support line style, SIERRA color and vertical spacing. Video blocks use an optional uploaded poster, a play link opening the original URL in a new tab, the visible original URL, and a QR with white padding. Regenerate the QR when the URL changes; discard stale async results. Use the shared renderer in preview and exports.
 
