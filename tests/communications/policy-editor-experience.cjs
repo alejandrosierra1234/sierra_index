@@ -1,0 +1,22 @@
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+
+const html = fs.readFileSync(path.join(__dirname, '../../index.html'), 'utf8')
+
+assert.match(html, /function policyRenderEditorWorkspace\(\)/)
+assert.match(html, /renderPolicyEditor=policyRenderEditorWorkspace/)
+assert.match(html, /class=\"policy-editor-back\"[^>]*aria-label=\"Volver a políticas\"/)
+assert.match(html, /siIcon\('arrow-left',16\)/)
+assert.match(html, /siIcon\('columns',16\).*Contraer panel/)
+assert.match(html, /\['info','settings','Datos'\]/)
+assert.match(html, /\['content','file-edit','Contenido'\]/)
+assert.match(html, /\['people','users','Firmantes'\]/)
+assert.match(html, /\['comments','message','Comentarios'\]/)
+assert.match(html, /data-policy-editor-status/)
+assert.match(html, /function policySyncEditorStatus\(\)/)
+assert.match(html, /class=\"policy-preview-title-icon\">\$\{siIcon\('eye',16\)\}/)
+assert.match(html, /Cambios guardados automáticamente/)
+assert.match(html, /\.policy-editor-workspace \.policy-panel-collapse\{width:auto;min-width:132px/)
+
+console.log('PASS: policy editor has intentional navigation, lifecycle context, icon-led tabs and preview')
