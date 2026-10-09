@@ -12,6 +12,7 @@ const context = vm.createContext({
   escAttr: value => String(value ?? ''),
   policyDateLabel: () => '22 sept 2026',
   policySanitize: value => value,
+  policyCommentMarkerHtml: () => '',
   policyResponsibilityHtml: person => person.roleHtml || person.role || '',
   policyOrgHtml: () => '',
 })
