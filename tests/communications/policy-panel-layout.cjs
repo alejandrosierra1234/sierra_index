@@ -51,6 +51,10 @@ assert.doesNotMatch(html, /<span class="policy-editor-doc-icon">\$\{siIcon\('fil
 assert.match(html, /@media\(max-width:940px\)/)
 assert.match(html, /function policyStartPresence\(\)/)
 assert.match(html, /sb\.rpc\('policy_presence_touch'/)
+assert.match(html, /function policyEnsureBaselineVersion\(policy\)/)
+assert.match(html, /function policyFlushPendingSave\(\)/)
+assert.match(html, /currentFingerprint=JSON\.stringify\(policyVersionSnapshot\(_policyCurrent\)\)/)
+assert.doesNotMatch(html, /function policyOpenHistory\(\)\{policyCommit\(\)/)
 assert.match(html, /function policyOpenHistory\(\)/)
 assert.match(html, /function policyRestoreVersion\(id\)/)
 
