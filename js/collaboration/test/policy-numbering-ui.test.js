@@ -41,8 +41,17 @@ test('numbering UI uses a catalog, prevents manual codes, and verifies a lost ap
   w.policySet('title','MUST NOT CHANGE DURING UNKNOWN APPROVAL');assert.notEqual(w.eval('_policyCurrent.title'),'MUST NOT CHANGE DURING UNKNOWN APPROVAL');
   await w.PolicyNumbering.resume();assert.equal(w.fixtureApprovalCalls,2);assert.equal(w.eval('_policyCurrent.code'),'HN-HSM-008-POL-001');assert.equal(w.eval('_policyCurrent.status'),'Aprobada');assert.equal(d.querySelector('#policy-approval-progress'),null);
   assert.equal(w.localStorage.getItem('policy-approval-pending:account-a'),null);
+  assert.ok(d.querySelector('[data-policy-new-version]'),'approved editor exposes one clear revision action');
+  assert.ok(d.querySelector('.policy-approved-lock'));assert.match(d.querySelector('.policy-approved-lock').textContent,/no se puede sobrescribir/i);
+  assert.ok([...d.querySelectorAll('#policy-form input,#policy-form textarea')].every(control=>control.disabled),'approved content controls are read-only');
+  w.policySelectTab('comments');assert.equal(d.querySelector('#policy-form').classList.contains('is-policy-readonly'),false,'comments remain collaborative on an approval');
+  w.policySelectTab('info');assert.equal(d.querySelector('input[oninput*="version"]'),null);assert.equal(d.querySelector('#policy-version-label+output').textContent,'1.0');
+  const creating=w.PolicyNumbering.createVersion();await tick();const versionDialog=d.querySelector('dialog.comms-confirm');assert.match(versionDialog.textContent,/quedará intacta/);versionDialog.querySelectorAll('button')[1].click();await creating;
+  assert.equal(w.eval('_policyCurrent.status'),'Borrador');assert.equal(w.eval('_policyCurrent.version'),'2.0');assert.equal(w.eval('_policyCurrent.code'),'HN-HSM-008-POL-001');assert.equal(d.querySelector('.policy-approved-lock'),null);assert.equal(d.querySelector('input.policy-uppercase').disabled,false);
+  await w.policyOpenHistory();assert.ok(d.querySelector('.policy-version-card.is-published'));assert.match(d.querySelector('.policy-version-card.is-published').textContent,/Versión 1.0/);assert.equal(d.querySelector('.policy-version-card.is-published button[onclick*="policyRestoreVersion"]'),null);
+  w.policyCloseHistory();
   const copy=w.policyDuplicateDraft(w.eval('_policyCurrent'));assert.equal(copy.code,'');assert.equal(copy.numbering,null);assert.equal(copy._revision,0);
-  w.policySetCompany('');assert.equal(w.eval('_policyCurrent.companyId'),'company-a');
+  w.policySetCompany('');assert.equal(w.eval('_policyCurrent.companyId'),'company-a','issued identity remains frozen in the new draft');
  }finally{w.policyStopPresence();w.close()}
 });
 

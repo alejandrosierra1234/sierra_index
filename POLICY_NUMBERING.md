@@ -51,3 +51,34 @@ history; no direct anonymous reads or authenticated writes. Content fingerprints
 identical before/after. Three old references retained as legacyCode, including
 the case where the former legacyCode was an empty string. No real document was
 approved for testing.
+
+## Approved publications — migration 51
+
+Apply `update51.sql` after 50. An approval is an immutable publication, not an
+editable state. PostgreSQL captures its exact snapshot in `policy_publications`;
+ordinary document saves cannot change an approved or published-and-archived
+snapshot. Comments remain separate and can continue on a publication without
+changing the printable document.
+
+`policy_create_version(policy_id, revision, operation_id)` is the only path from an
+approved publication to editable work. It retains the official policy code, stores
+the approval unchanged, and opens the next major revision (`1.0`, `2.0`, `3.0`)
+as one shared draft. A document advisory lock, revision comparison, publication
+unique keys and an idempotent operation ID prevent duplicate version numbers,
+lost-response duplication and two people creating competing drafts. Archive and
+restore use their own CAS operation and never convert a publication into a draft.
+
+The browser treats version as server-owned output. Approved data, content and
+signers are read-only; “Crear nueva versión” is the explicit transition. Commenting,
+viewing, PDF export and immutable publication history remain available. Never add
+a browser-side version counter or make an approved snapshot editable as an offline
+fallback.
+
+Verified in production on 2026-10-10: marker 51, one existing approved
+publication captured as version 1.0, and no approved publication missing from the
+immutable ledger. The five document records, lifecycle counts, 13 comment threads,
+16 messages and 16 comment events were unchanged; the content fingerprint excluding
+the newly canonicalized version field was identical before and after. RLS is enabled
+on both new tables, anonymous execution is denied, and authenticated accounts have
+RPC access without direct table writes. No real policy was changed, approved or used
+to exercise the create-version operation.

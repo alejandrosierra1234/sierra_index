@@ -48,10 +48,28 @@ test('numbering SQL: migration, atomic approval, frozen identity, rollback, retr
   b=await save({...results[0],status:'Archivada'});await assert.rejects(approve(b),e=>e.code==='22023');
   b=await save({...b,status:'Borrador'});assert.equal((await approve(b)).code,'HN-HSM-008-POL-006');
   const stale=await save(draft('stale'));await save({...stale,title:'Newer content'});await assert.rejects(approve(stale),e=>e.code==='40001');
-  for(const table of ['policy_code_registry','policy_code_counters','policy_company_codes'])await assert.rejects(db.query('select * from '+table),e=>e.code==='42501');
+  await db.exec('reset role');await db.exec(await sql(51));await db.exec(await sql(51));await account();
+  assert.equal((await call('policy_numbering_catalog')).version,51);
+  a=await get('a');const approvedTitle=a.title,approvedRevision=a._revision;
+  let publications=await call('policy_publication_list',['a']);assert.deepEqual(publications.map(p=>p.versionLabel),['1.0']);assert.equal(publications[0].snapshot.title,approvedTitle);
+  await assert.rejects(save({...a,title:'Sobrescritura prohibida'}),e=>e.code==='22023');assert.equal((await get('a')).title,approvedTitle);
+  a=await call('policy_set_archived',['a',approvedRevision,true]);assert.equal(a.status,'Archivada');
+  await assert.rejects(save({...a,title:'Cambio archivado'}),e=>e.code==='22023');
+  a=await call('policy_set_archived',['a',a._revision,false]);assert.equal(a.status,'Aprobada');
+  const operation='00000000-0000-4000-8000-000000000051',sourceRevision=a._revision;
+  a=await call('policy_create_version',['a',sourceRevision,operation]);assert.equal(a.status,'Borrador');assert.equal(a.version,'2.0');assert.equal(a.code,'HN-HSM-008-POL-005');assert.equal(a.approvedAt,null);
+  const retried=await call('policy_create_version',['a',sourceRevision,operation]);assert.equal(retried._revision,a._revision);assert.equal(retried.version,'2.0');
+  a=await save({...a,title:'Segunda versión',version:'99.0'});assert.equal(a.version,'2.0','browser cannot forge a version');
+  a=await approve(a);assert.equal(a.version,'2.0');assert.equal(a.code,'HN-HSM-008-POL-005');
+  publications=await call('policy_publication_list',['a']);assert.deepEqual(publications.map(p=>p.versionLabel),['2.0','1.0']);assert.equal(publications[1].snapshot.title,approvedTitle,'version one remains immutable');
+  const simultaneous=await Promise.allSettled([
+   call('policy_create_version',['a',a._revision,'00000000-0000-4000-8000-000000000052']),
+   call('policy_create_version',['a',a._revision,'00000000-0000-4000-8000-000000000053'])
+  ]);assert.equal(simultaneous.filter(result=>result.status==='fulfilled').length,1);assert.equal(simultaneous.filter(result=>result.status==='rejected'&&result.reason.code==='40001').length,1);assert.equal((await get('a')).version,'3.0');
+  for(const table of ['policy_code_registry','policy_code_counters','policy_company_codes','policy_publications','policy_version_operations'])await assert.rejects(db.query('select * from '+table),e=>e.code==='42501');
   await db.exec('reset role');await db.exec("update policy_code_counters set last_number=999 where prefix='HN-HSM-008-POL'");await account();
   const exhausted=await save(draft('exhausted'));await assert.rejects(approve(exhausted),e=>e.code==='22023');assert.equal((await get('exhausted')).status,'Borrador');
   await db.exec(`reset role;delete from capability_grants where capability='write'`);await account();await assert.rejects(approve(stale),e=>e.code==='42501');
-  await account('anon');await assert.rejects(call('policy_numbering_catalog'),e=>e.code==='42501');await assert.rejects(approve(a),e=>e.code==='42501');
+  await account('anon');await assert.rejects(call('policy_numbering_catalog'),e=>e.code==='42501');await assert.rejects(approve(a),e=>e.code==='42501');await assert.rejects(call('policy_create_version',['a',a._revision,'anon-operation']),e=>e.code==='42501');
  }finally{await db.close()}
 });
