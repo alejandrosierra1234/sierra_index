@@ -1,0 +1,27 @@
+.policy-preview-stage{display:block!important;padding:24px!important;overflow:auto;position:relative}
+.policy-review-canvas{position:relative;margin:0 auto;box-sizing:content-box}
+.policy-review-canvas .policy-preview-sheet{margin:0;position:relative;overflow:visible;transform:none}
+#policy-review-rail{position:absolute;top:0;font-size:14px;line-height:1.45;color:var(--text-primary,#171717)}
+.review-pin-slot{position:absolute;left:0;width:100%}
+.review-pin{width:40px;height:40px;border:0;background:none;padding:0;position:relative;cursor:pointer;display:flex;align-items:center}
+.review-pin small{position:absolute;right:-4px;bottom:-4px;background:var(--surface,#fff);border:1px solid var(--border,#ddd);border-radius:5px;padding:0 3px;font-size:10px}
+.review-avatar{--author-color:#ffc529;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;flex-shrink:0;border:2px solid var(--author-color);border-radius:50%;background:#fff;color:#333;font-size:12px;font-weight:700;overflow:hidden}
+.review-avatar img{width:100%;height:100%;object-fit:cover}
+.review-pin[aria-expanded=true] .review-avatar{box-shadow:0 0 0 3px color-mix(in srgb,var(--author-color),transparent 75%)}
+.review-thread{background:var(--surface,#fff);border:1px solid var(--border,#ddd);border-left:3px solid var(--author-color);border-radius:8px;box-shadow:0 6px 20px #0000000b;margin:8px 0 12px;overflow:hidden;min-width:0}
+.review-thread-head{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border,#eee);font-size:12px;color:var(--text-muted,#666)}
+.review-thread-head button{padding:4px 6px!important;min-height:32px}
+.review-message{padding:14px 14px 8px}.review-message+ .review-message{border-top:1px solid var(--border,#eee)}
+.review-message header{display:flex;gap:10px;align-items:center}.review-message header>span:last-child{display:grid;min-width:0}.review-message strong{font-size:13px;overflow-wrap:anywhere}.review-message small,.review-history small{display:block;color:var(--text-muted,#666);font-size:11px}
+.review-body{white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0 6px;font-size:14px;line-height:1.5}
+.review-thread-actions,.review-message-tools{display:flex;flex-wrap:wrap;gap:4px;padding:4px 10px}.review-message-tools{padding:0;font-size:12px}.review-message-tools button{min-height:30px;font-size:11px;padding:4px 8px}
+.review-reply,.review-composer form{padding:12px;display:grid;gap:10px;border-top:1px solid var(--border,#eee)}
+.review-reply>button{justify-self:end}.review-composer{background:var(--surface,#fff);border:1px solid var(--border,#ddd);border-radius:8px;box-shadow:0 6px 20px #0001}.review-composer form>div{display:flex;justify-content:flex-end;gap:8px}
+.review-thread textarea,.review-composer textarea{box-sizing:border-box;width:100%;min-height:80px;resize:vertical;border:1px solid var(--border,#d5d5d8);border-radius:8px;padding:10px;font:inherit;background:var(--surface,#fff);color:inherit}
+.review-thread textarea:focus,.review-composer textarea:focus{outline:2px solid var(--teal,#00877d);outline-offset:2px}
+.review-warning{padding:12px;background:#fff8df;color:#715900;font-size:12px;border-radius:8px;line-height:1.5}.review-warning button{display:flex}.review-filters{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0}.review-summary{margin:12px 0}.review-summary-open{width:100%;padding:14px;border:1px solid var(--border,#ddd);border-radius:8px;background:var(--surface,#fff);color:inherit;display:flex;gap:12px;align-items:center;text-align:left;cursor:pointer}.review-summary-open>span:nth-child(2){display:grid;gap:6px;flex:1;min-width:0}.review-summary-open>span:nth-child(2)>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.review-summary-open small{font-size:11px;color:var(--text-muted,#666)}
+.review-history{padding:12px;border-top:1px solid var(--border,#ddd);max-height:300px;overflow:auto;font-size:12px}.review-history>div{padding:10px 0;border-bottom:1px solid var(--border,#eee)}.review-history p{white-space:pre-wrap;overflow-wrap:anywhere}
+.review-selection-action{position:absolute;z-index:5;white-space:nowrap;box-shadow:0 4px 12px #0002}
+.policy-comment-highlight{background:transparent!important;text-decoration:underline solid #ffc529 3px;text-underline-offset:3px;cursor:pointer}.policy-comment-highlight:focus-visible{outline:2px solid #00877d}
+.review-panel .review-thread{box-shadow:none}.review-panel .review-thread-head button{display:none}
+@media print{#policy-review-rail,.review-selection-action{display:none!important}.policy-comment-highlight{text-decoration:none!important;background:transparent!important}}
