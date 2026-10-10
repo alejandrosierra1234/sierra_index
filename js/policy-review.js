@@ -150,7 +150,15 @@
      if(token!==renderEpoch||!sheet.isConnected){next.remove();return}
      policyPaginateDom(document,next);
      if(token!==renderEpoch||!sheet.isConnected){next.remove();return}
+     // Reuse the exact painted image nodes when the source has not changed. Even a
+     // decoded cached image can flash when a brand-new <img> enters the render tree.
+     const paintedImages=[...sheet.querySelectorAll('.policy-record-logo img')];
+     const replacementImages=[...next.querySelectorAll('.policy-record-logo img')];
      next.removeAttribute('style');sheet.replaceWith(next);next.id='policy-preview-sheet';
+     for(const replacement of replacementImages){
+       const index=paintedImages.findIndex(image=>image.currentSrc===replacement.currentSrc||image.src===replacement.src);
+       if(index>=0)replacement.replaceWith(paintedImages.splice(index,1)[0]);
+     }
      annotate();
      const count=next.querySelectorAll('.policy-page').length;
      if($('policy-preview-pages'))$('policy-preview-pages').textContent=`${count} ${count===1?'página':'páginas'}`;
