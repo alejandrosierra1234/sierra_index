@@ -11,6 +11,7 @@ test('anchors disambiguate repetitions and report removed text instead of guessi
   assert.equal(core.locate(a,text).start,15);
   assert.equal(core.locate(a,'Nuevo '+text).start,21);
   assert.equal(core.locate({quote:'igual'},text).status,'orphan');
+  assert.equal(core.locate({quote:'LINEAMIENTOS GENERALES',legacy:true},'Lineamientos generales').status,'attached');
   assert.equal(core.locate(core.anchor('b','Hola mundo grande',5,17),'Hola ').status,'orphan');
   assert.equal(core.locate(core.anchor('b','Hola mundo grande',5,17),'Hola mundo muy grande').status,'changed');
   const merged=core.merge({a:1,b:1},{a:2,b:1},{a:1,b:2});

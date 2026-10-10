@@ -11,6 +11,9 @@
     if(!a||!a.quote)return {status:'section'};
     const quote=normalize(a.quote),source=a.source;
     if(source===text&&text.slice(a.start,a.end)===quote)return {status:'attached',start:a.start,end:a.end};
+    // Older browser selections serialized CSS-uppercase headings. Match their
+    // original casing only when the location is unambiguous in the same block.
+    if(a.legacy&&quote&&!text.includes(quote))return locate({...a,legacy:false,quote:quote.toLocaleLowerCase('es')},text.toLocaleLowerCase('es'));
     if(typeof source==='string'&&Number.isInteger(a.start)&&Number.isInteger(a.end)){
       let lead=0,tail=0;while(lead<Math.min(source.length,text.length)&&source[lead]===text[lead])lead++;
       while(tail<Math.min(source.length-lead,text.length-lead)&&source[source.length-1-tail]===text[text.length-1-tail])tail++;
