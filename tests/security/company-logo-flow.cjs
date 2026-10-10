@@ -19,6 +19,8 @@ function fixture(uploadError = null) {
     'company-code': { value: 'PT' },
     'company-legal-name': { value: 'Planta de prueba, S.A.' },
     'company-country': { value: 'country-1' },
+    'company-policy-prefix': { value: 'PTC' },
+    'company-brand-color': { value: '#008C82' },
     'company-logo-file': input,
     'company-logo-file-name': status,
     'company-save-btn': button,
@@ -35,6 +37,7 @@ function fixture(uploadError = null) {
   }
   const sb = {
     storage: { from: () => storage },
+    rpc: async (_name, payload) => { calls.updates++; calls.payload = payload; return { error: null } },
     from: () => ({
       select: () => ({ limit: async () => ({ error: null }) }),
       update: payload => ({ eq: async () => { calls.updates++; calls.payload = payload; return { error: null } } }),
@@ -44,9 +47,11 @@ function fixture(uploadError = null) {
     document: { getElementById: id => fields[id] || null, querySelector: () => null },
     _badge: { companies: { 'country-1': [{ id: 'company-1', name: 'Planta de prueba', logo_url: null }] } },
     sb, IMG_MAX_MB: 8, window: {},
+    companyColor: value => value,
+    can: () => false,
     toast: message => calls.messages.push(message),
     closeCompanyEditor: () => { calls.closed++; button.isConnected = false },
-    loadBadgeData: async () => {}, renderBadgeModule: () => {},
+    refreshCompanyManagement: async () => {},
   })
   vm.runInContext(flow, context)
   return { context, input, status, button, calls }
@@ -60,7 +65,9 @@ function fixture(uploadError = null) {
   await success.context.saveCompany('company-1')
   assert.equal(success.calls.uploads, 1)
   assert.equal(success.calls.updates, 1)
-  assert.match(success.calls.payload.logo_url, /company-logos\/company-1/)
+  assert.match(success.calls.payload.p_logo_url, /company-logos\/company-1/)
+  assert.equal(success.calls.payload.p_policy_prefix, 'PTC')
+  assert.equal(success.calls.payload.p_brand_color, '#008C82')
   assert.equal(success.calls.closed, 1)
 
   const failure = fixture({ message: 'permission denied' })

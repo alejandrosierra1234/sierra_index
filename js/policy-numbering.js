@@ -11,7 +11,7 @@
   const next=handler?[...form.querySelectorAll('[oninput]')].find(el=>el.getAttribute('oninput')===handler):id?document.getElementById(id):null;
   next?.focus({preventScroll:true});if(next?.setSelectionRange&&typeof start==='number')next.setSelectionRange(start,end);decorate();
  }
- async function load(){if(loading)return loading;const accountId=me?.id;loading=(async()=>{try{const result=await rpc('policy_numbering_catalog');if(result?.version!==51||!Array.isArray(result.areas)||!Array.isArray(result.companies))throw Error('Catálogo no disponible');if(me?.id===accountId)catalog={...result,accountId}}catch{catalog=null}finally{loading=null;refresh();decorate()}})();return loading}
+ async function load(){if(loading)return loading;const accountId=me?.id;loading=(async()=>{try{const result=await rpc('policy_numbering_catalog');if(Number(result?.version)<51||!Array.isArray(result.areas)||!Array.isArray(result.companies))throw Error('Catálogo no disponible');if(me?.id===accountId)catalog={...result,accountId}}catch{catalog=null}finally{loading=null;refresh();decorate()}})();return loading}
  function serverCatalog(){return catalog?.accountId===me?.id?catalog:null}
  function areas(){return serverCatalog()?.areas||PolicyCatalog.areas}
  function identityLocked(p){return Boolean(p?.numbering)||/^[A-Z]{2}-[A-Z&]{3}-\d{3}-POL-\d{3}$/.test(p?.code||'')}

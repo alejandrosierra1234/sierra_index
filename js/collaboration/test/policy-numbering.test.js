@@ -20,9 +20,12 @@ test('numbering SQL: migration, atomic approval, frozen identity, rollback, retr
    insert into profiles values('${user}','test','Test Author','active',null);
    insert into capability_grants(user_id,domain,capability) values('${user}','communications','read'),('${user}','communications','write');
    create table countries(id uuid primary key,code text,name text);
-   create table companies(id uuid primary key,name text,legal_name text,country_id uuid references countries);
+   create table companies(id uuid primary key,name text,legal_name text,country_id uuid references countries,code text,logo_url text);
+   create unique index companies_code_key on companies(code) where code is not null;
+   create table sites(id uuid primary key default gen_random_uuid(),company_id uuid references companies,name text,internal_code text,badge_color text);
+   alter table sites enable row level security;
    insert into countries values('${company}','HN','Honduras');
-   insert into companies values('${company}','Honduras Spinning Mills','HSM legal','${company}');`);
+   insert into companies(id,name,legal_name,country_id,code,logo_url) values('${company}','Honduras Spinning Mills','HSM legal','${company}','HSM',null);`);
   const auth=await sql(40);await db.exec(auth.slice(auth.indexOf('create or replace function public.authorize('),auth.indexOf('create or replace function public.get_my_access(')));
   for(const n of [47,48,49])await db.exec(await sql(n));
   await account();await save({...draft('historic'),code:'HN-HSM-008-POL-004'});await save({...draft('old'),code:'POL-2026-001',legacyCode:''});
@@ -48,8 +51,11 @@ test('numbering SQL: migration, atomic approval, frozen identity, rollback, retr
   b=await save({...results[0],status:'Archivada'});await assert.rejects(approve(b),e=>e.code==='22023');
   b=await save({...b,status:'Borrador'});assert.equal((await approve(b)).code,'HN-HSM-008-POL-006');
   const stale=await save(draft('stale'));await save({...stale,title:'Newer content'});await assert.rejects(approve(stale),e=>e.code==='40001');
-  await db.exec('reset role');await db.exec(await sql(51));await db.exec(await sql(51));await account();
-  assert.equal((await call('policy_numbering_catalog')).version,51);
+  await db.exec('reset role');await db.exec(await sql(51));await db.exec(await sql(51));await db.exec(await sql(52));await db.exec(await sql(52));await account();
+  assert.equal((await call('policy_numbering_catalog')).version,52);
+  await call('process_company_save',[company,company,'Honduras Spinning Mills','HSM legal','HSM','HMX',null,'#123ABC']);
+  const companyCatalog=(await call('policy_numbering_catalog')).companies[0];assert.equal(companyCatalog.companyCode,'HMX');assert.equal(companyCatalog.brandColor,'#123ABC');assert.ok(companyCatalog.issuedPolicies>=1);
+  await call('process_company_save',[company,company,'Honduras Spinning Mills','HSM legal','HSM','HSM',null,'#123ABC']);
   a=await get('a');const approvedTitle=a.title,approvedRevision=a._revision;
   let publications=await call('policy_publication_list',['a']);assert.deepEqual(publications.map(p=>p.versionLabel),['1.0']);assert.equal(publications[0].snapshot.title,approvedTitle);
   await assert.rejects(save({...a,title:'Sobrescritura prohibida'}),e=>e.code==='22023');assert.equal((await get('a')).title,approvedTitle);
