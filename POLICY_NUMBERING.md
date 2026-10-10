@@ -42,3 +42,12 @@ Production checks: migration marker 50, RLS and no direct authenticated privileg
 on the four catalogs/registries, no duplicate registered codes, counter >= max
 serial, existing comment counts unchanged, historical references retained. Do not
 equate PGlite tests with a production deployment or a mathematical zero-risk claim.
+
+Verified in production on 2026-10-10: marker 50, 13 areas, five mapped companies,
+five documents, two reserved historical official identities and correct counter
+floors (001 area: 2; 008 area: 1). RLS enabled on catalogs, registries and revision
+history; no direct anonymous reads or authenticated writes. Content fingerprints
+(excluding migrated identity fields), threads, messages and comment events were
+identical before/after. Three old references retained as legacyCode, including
+the case where the former legacyCode was an empty string. No real document was
+approved for testing.

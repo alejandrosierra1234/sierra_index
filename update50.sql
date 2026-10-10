@@ -1,5 +1,7 @@
 -- Policy numbering. Apply after 49. Allocation and approval are one transaction.
 begin;
+-- Keep the historical reservation and snapshot update on the same document set.
+lock table public.policy_documents in share row exclusive mode;
 create table if not exists public.policy_areas (
  code text primary key check(code ~ '^[0-9]{3}$'), name text not null unique
 );
@@ -72,7 +74,7 @@ on conflict(prefix) do update set last_number=greatest(policy_code_counters.last
 with prepared as (
  select d.id,(d.snapshot - 'numbering') || jsonb_build_object(
   'code',coalesce(r.code,''),'areaCode',coalesce(r.area_code,d.snapshot->>'areaCode',''),
-  'legacyCode',coalesce(d.snapshot->>'legacyCode',case when r.code is null then d.snapshot->>'code' else '' end,''),
+  'legacyCode',coalesce(nullif(d.snapshot->>'legacyCode',''),case when r.code is null then d.snapshot->>'code' else '' end,''),
   'numbering',case when r.code is null then null else jsonb_build_object('code',r.code,'countryCode',r.country_code,'companyCode',r.company_code,'areaCode',r.area_code,'serial',r.serial,'legacy',r.legacy) end
  ) as snapshot from public.policy_documents d left join public.policy_code_registry r on r.policy_id=d.id
 ), updated as (

@@ -11,7 +11,7 @@ const parsed=new JSDOM(source);
 const styles=[...parsed.window.document.querySelectorAll('style')].map(el=>el.outerHTML).join('\n');parsed.window.close();
 const setup=`
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),escAttr=esc;
-const siIcon=(name,size=16)=>'<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M12 4v16" fill="none" stroke="currentColor"/></svg>';
+${source.slice(source.indexOf('const SI_ICON ='),source.indexOf('// StatusBadge (workflow/lifecycle'))}
 const can=()=>true,me={id:'account-a'},profile={full_name:'Ana Prueba'},avatarStyle=()=>'',clearSecCrumbs=()=>{},toast=message=>{document.getElementById('fixture-status').textContent=message};
 ${source.slice(source.indexOf('function jsStr(s)'),source.indexOf('\n/* ═',source.indexOf('function pdSelect(')))}
 function commsConfirm(title,message,action,label){const d=document.createElement('dialog');d.className='comms-confirm';d.innerHTML='<h2>'+title+'</h2><p>'+message+'</p><button>Cancelar</button><button>'+label+'</button>';d.querySelectorAll('button')[0].onclick=()=>d.close();d.querySelectorAll('button')[1].onclick=()=>{d.close();action()};d.addEventListener('close',()=>d.remove());document.body.append(d);d.showModal()}
@@ -41,6 +41,7 @@ if(process.argv[1]===fileURLToPath(import.meta.url))http.createServer((req,res)=
  if(url.pathname==='/fixture'){
   let html=fixture({pdf:true});
   if(url.searchParams.get('catalog')==='offline')html=html.replace('<script>','<script>window.fixtureCatalogUnavailable=true;').replace("const para=","_policyCompanies=[{id:'company-a',name:'Honduras Spinning Mills',countries:{name:'Honduras',code:'HN'}}];\nconst para=");
+  if(url.searchParams.get('scenario')==='legacy')html=html.replace("const para=","_policyCompanies=[{id:'amtex',name:'AMTEX',countries:{name:'El Salvador',code:'SV'}}];\nconst para=").replace("p.comments=mockThreads;","Object.assign(p,{companyId:'amtex',department:'oo',legacyCode:'POL-2026-001'});p.comments=mockThreads;");
   res.setHeader('Content-Type','text/html');res.end(html);return
  }
  if(url.pathname==='/migration'){res.setHeader('Content-Type','text/html;charset=utf-8');res.end('<!doctype html><title>Migración verificada 50</title><h1>Migración verificada 50</h1><pre>'+readFileSync(path.join(root,'update50.sql'),'utf8').replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</pre>');return}

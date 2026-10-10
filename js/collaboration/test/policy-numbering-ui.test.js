@@ -5,6 +5,28 @@ import {readFileSync} from 'node:fs';
 import {fixture} from './policy-browser-fixture.js';
 const source=fixture().replace(/<link[^>]+>/g,'').replace(/<script src="([^"]+)"><\/script>/g,(_,path)=>'<script>'+readFileSync(new URL('../../..'+path,import.meta.url),'utf8')+'</script>');
 const tick=()=>new Promise(r=>setTimeout(r,30));
+test('classification form keeps notices outside paired fields and preserves legacy references without presenting them as official codes',async()=>{
+ const dom=new JSDOM(source,{url:'http://localhost/fixture',runScripts:'dangerously',pretendToBeVisual:true});
+ const w=dom.window,d=w.document;
+ try{
+  await tick();
+  w.eval("_policyCompanies=[{id:'amtex',name:'AMTEX',countries:{name:'El Salvador',code:'SV'}}];Object.assign(_policyCurrent,{companyId:'amtex',department:'oo',areaCode:'',code:'',legacyCode:'POL-2026-001'})");
+  d.querySelector('#policy-form').innerHTML=w.policyInfoPanel();
+  assert.equal(d.querySelector('.policy-code-output').textContent,'Por asignar');
+  assert.equal(d.querySelector('.policy-legacy-reference>span').textContent,'POL-2026-001');
+  assert.equal(d.querySelectorAll('.policy-numbering-note').length,1);
+  assert.match(d.querySelector('.policy-numbering-note').textContent,/AMTEX no tiene abreviatura oficial/);
+  assert.equal(d.querySelector('.policy-code-grid small,.policy-code-grid p'),null,'long explanations never stretch the version field');
+  assert.equal(d.querySelector('.policy-org-choice'),null,'no redundant card around a single field');
+  assert.equal(d.querySelectorAll('.policy-derived-fields').length,1);
+  assert.equal(d.querySelector('.policy-info-section').firstElementChild.textContent,'Nombre de la política');
+  assert.equal(d.querySelectorAll('#policy-form select').length,0);
+  assert.ok(d.querySelector('#policy-company-dd svg'),'real company icon is present');
+  assert.equal(d.querySelectorAll('.policy-derived-fields svg').length,2,'both metadata icons exist in the real icon library');
+  assert.doesNotMatch(source,/\.policy-tab\{font-size:0/,'mobile tabs keep their names legible');
+  assert.equal(w.eval('_policyCurrent.department'),'oo','unmapped historical content is never guessed or erased');
+ }finally{w.policyStopPresence();w.close()}
+});
 test('numbering UI uses a catalog, prevents manual codes, and verifies a lost approval without issuing twice',async()=>{
  const dom=new JSDOM(source,{url:'http://localhost/fixture',runScripts:'dangerously',pretendToBeVisual:true,beforeParse(w){w.HTMLDialogElement.prototype.showModal=function(){this.open=true};w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'))}}});
  const w=dom.window,d=w.document;
@@ -45,7 +67,7 @@ test('workbook selectors work without migration 50; legacy values, drafts and ed
   assert.equal(d.querySelector('#policy-area').disabled,false);
   assert.equal(d.querySelector('input[oninput*="department"]'),null);
   assert.equal(d.querySelector('input[oninput*="code"]'),null);
-  assert.match(d.querySelector('#policy-form').textContent,/Valor anterior: Procesos/);
+  assert.match(d.querySelector('#policy-form').textContent,/Área anterior: «Procesos»/);
   assert.equal(w.eval('_policyCurrent.department'),'Procesos');
   w.eval("_policyCompanies=[{id:'ha',name:'Hilos y Algodón',logo_url:'',countries:{name:'Guatemala',code:'GT'}}]");
   w.policySetCompany('ha');w.policySelectChanged('013','policy-area');await tick();

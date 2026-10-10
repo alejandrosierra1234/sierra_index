@@ -25,7 +25,7 @@ test('numbering SQL: migration, atomic approval, frozen identity, rollback, retr
    insert into companies values('${company}','Honduras Spinning Mills','HSM legal','${company}');`);
   const auth=await sql(40);await db.exec(auth.slice(auth.indexOf('create or replace function public.authorize('),auth.indexOf('create or replace function public.get_my_access(')));
   for(const n of [47,48,49])await db.exec(await sql(n));
-  await account();await save({...draft('historic'),code:'HN-HSM-008-POL-004'});await save({...draft('old'),code:'POL-2026-001'});
+  await account();await save({...draft('historic'),code:'HN-HSM-008-POL-004'});await save({...draft('old'),code:'POL-2026-001',legacyCode:''});
   await db.exec('reset role');await db.exec(await sql(50));
   const revisions=(await db.query('select count(*)::int as n from policy_revisions')).rows[0].n;
   await db.exec(await sql(50));assert.equal((await db.query('select count(*)::int as n from policy_revisions')).rows[0].n,revisions,'migration is repeatable');
