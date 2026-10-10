@@ -22,12 +22,12 @@
  policyVersionSnapshot=function(p){const result=originalVersion(p);delete result._revision;return result};
  const originalHistory=policyOpenHistory;
  policyOpenHistory=async function(){const id=current()?.id;if(!id)return;policyFlushPendingSave();if(_policyCloudWrites.has(id))await _policyCloudWrites.get(id);try{const versions=await rpc('policy_revision_list',{p_policy_id:id});if(current()?.id!==id)return;current().versions=[...versions].reverse();originalHistory()}catch{toast('No se pudo cargar el historial de la nube. Intenta de nuevo.')}};
- policyRestoreVersion=async function(id){const version=current()?.versions?.find(v=>v.id===id);if(!version||!writable())return;if(!await confirm('El contenido actual se conservará en el historial. Los comentarios no se sobrescribirán.','Restaurar versión'))return;const preserved={id:current().id,_revision:current()._revision,comments:current().comments,versions:current().versions,createdAt:current().createdAt};_policyCurrent=policyNormalize({...current(),...copy(version.snapshot),...preserved});_policyVersionPreviewId='';policyCloseHistory();policyCommit(true);policyRefreshEditor();toast('Restauración preparada. Comprueba el indicador de guardado.')};
+ policyRestoreVersion=async function(id){const version=current()?.versions?.find(v=>v.id===id);if(!version||!writable())return;if(!await confirm('El contenido actual se conservará en el historial. Los comentarios, el estado y el código emitido no se sobrescribirán.','Restaurar versión'))return;const preserved={id:current().id,_revision:current()._revision,comments:current().comments,versions:current().versions,createdAt:current().createdAt};for(const key of ['code','numbering','legacyCode','approvedAt','approvedBy','status'])preserved[key]=current()[key];if(current().numbering)for(const key of ['companyId','companyName','companyLegalName','companyLogo','areaCode','department'])preserved[key]=current()[key];_policyCurrent=policyNormalize({...current(),...copy(version.snapshot),...preserved});_policyVersionPreviewId='';policyCloseHistory();policyCommit(true);policyRefreshEditor();toast('Restauración preparada. Comprueba el indicador de guardado.')};
  const originalLoad=policyLoad;
  policyLoad=async function(){const box=outbox();await originalLoad();_policies.forEach(p=>bases.set(p.id,copy(p)));for(const [id,item] of Object.entries(box)){if(item.base)bases.set(id,item.base);const i=_policies.findIndex(p=>p.id===id);if(i>=0)_policies[i]=policyNormalize(item.snapshot);else _policies.unshift(policyNormalize(item.snapshot));policyQueueCloudSave(item.snapshot)}policyPersistAll()};
  async function rpc(name,args){const {data,error}=await sb.rpc(name,args);if(error)throw error;return data}
  policyCloudSave=async function(p){const saved=policyNormalize(await rpc('policy_cloud_save',{p_snapshot:copy(p)}));bases.set(p.id,copy(saved));return saved};
- function updateRevision(id,saved){for(const p of [_policies.find(p=>p.id===id),current(),_policyCloudDrafts.get(id)])if(p?.id===id){p._revision=saved._revision;p.comments=saved.comments}policyPersistAll()}
+ function updateRevision(id,saved){for(const p of [_policies.find(p=>p.id===id),current(),_policyCloudDrafts.get(id)])if(p?.id===id){p._revision=saved._revision;p.comments=saved.comments;for(const key of ['code','numbering','legacyCode','approvedAt','approvedBy'])p[key]=saved[key];if(saved.numbering)for(const key of ['companyId','areaCode','department'])p[key]=saved[key]}policyPersistAll()}
  policyQueueCloudSave=function(p){
    if(!p?.id)return;const id=p.id;_policyCloudDrafts.set(id,copy(p));persistOutbox(id,p);policyCloudState('Guardando en la nube…','saving');if(_policyCloudWrites.has(id))return;
    const accountId=me?.id;
@@ -191,5 +191,6 @@
  policyResolveComment=id=>handleAction('resolve:'+id,{target:document.body});
  policyRemoveComment=id=>handleAction('delete-thread:'+id,{target:document.body});
  policyToggleComment=id=>handleAction((thread(id)?.resolved?'reopen:':'resolve:')+id,{target:document.body});
- window.PolicyReview={locateThread,textMap,stamp,annotate,apply,core};
+ function acceptDocument(data){const saved=policyNormalize(data);bases.set(saved.id,copy(saved));_policyCloudDrafts.delete(saved.id);persistOutbox(saved.id,null);const i=_policies.findIndex(p=>p.id===saved.id);if(i>=0)_policies[i]=copy(saved);if(current()?.id===saved.id)Object.assign(current(),copy(saved));policyPersistAll();return saved}
+ window.PolicyReview={locateThread,textMap,stamp,annotate,apply,core,acceptDocument};
 })();
