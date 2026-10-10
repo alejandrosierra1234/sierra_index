@@ -4,6 +4,28 @@ import {JSDOM} from 'jsdom';
 import {readFileSync} from 'node:fs';
 import {fixture} from './policy-browser-fixture.js';
 const source=fixture().replace(/<link[^>]+>/g,'').replace(/<script src="([^"]+)"><\/script>/g,(_,path)=>'<script>'+readFileSync(new URL('../../..'+path,import.meta.url),'utf8')+'</script>');
+test('policy library replaces the redundant banner with one creation action beside the views',async()=>{
+ const dom=new JSDOM(source,{url:'http://localhost/fixture',runScripts:'dangerously',pretendToBeVisual:true});
+ const w=dom.window,d=w.document;
+ try{
+  await new Promise(resolve=>setTimeout(resolve,80));
+  w.policyBack();
+  for(const view of ['active','archived']){
+   w.policySetLibraryView(view);
+   const topbar=d.querySelector('.policy-library-topbar');
+   assert.ok(topbar.querySelector('nav[aria-label="Vistas de políticas"]'));
+   assert.equal(d.querySelectorAll('.policy-library-create').length,1);
+   assert.equal(topbar.querySelector('.policy-library-create').textContent.trim(),'Nueva política');
+   assert.equal(d.querySelector('.policy-library-command'),null);
+   assert.equal(d.querySelector('.policy-library-heading'),null);
+   assert.equal(topbar.querySelector('[aria-current="page"]').textContent.includes(view==='active'?'Activas':'Archivadas'),true);
+   assert.ok(d.querySelector('#policy-library-search'));
+  }
+  d.querySelector('.policy-library-create').click();
+  await new Promise(resolve=>setTimeout(resolve,80));
+  assert.ok(d.querySelector('.policy-studio'));
+ }finally{w.policyStopPresence();w.close()}
+});
 test('actual editor DOM: exact threads, overlap, post-pagination delegation, drafts, read-only authors and tombstones',async()=>{
  const dom=new JSDOM(source,{url:'http://localhost/fixture',runScripts:'dangerously',pretendToBeVisual:true});
  const w=dom.window,d=w.document;
