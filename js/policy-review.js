@@ -133,7 +133,30 @@
    // Locations use DOM elements after highlights, never stale text-node ranges.
    for(const [id,loc] of locations){const mark=[...$('policy-preview-sheet')?.querySelectorAll('[data-review-threads]')||[]].find(el=>el.dataset.reviewThreads.split('|').includes(id));if(mark)loc.element=mark}
  }
- policyRenderPreview=function(){const sheet=$('policy-preview-sheet');if(!sheet||!current())return;const token=++renderEpoch;policyPlaceEditorStatus();policyPrepareZoomControls();sheet.innerHTML=policyPageHtml(policyActivePreviewDocument());stamp(sheet);const banner=document.querySelector('[data-policy-version-banner]');if(banner)banner.innerHTML=policyVersionPreviewBannerHtml();requestAnimationFrame(async()=>{await document.fonts?.ready;await Promise.all([...sheet.querySelectorAll('img')].map(img=>img.decode?.().catch(()=>{})));if(token!==renderEpoch||!sheet.isConnected)return;policyPaginateDom(document,sheet);annotate();const count=sheet.querySelectorAll('.policy-page').length;if($('policy-preview-pages'))$('policy-preview-pages').textContent=`${count} ${count===1?'página':'páginas'}`;policyFitPreview()})};
+ policyRenderPreview=function(){
+   clearTimeout(_policyPreviewTimer);_policyPreviewTimer=null;
+   const sheet=$('policy-preview-sheet');if(!sheet||!current())return;
+   const token=++renderEpoch,next=document.createElement('div');
+   policyPlaceEditorStatus();policyPrepareZoomControls();
+   // Compose and paginate off-screen. The current preview (and its already painted
+   // logo) remains visible until every image in the replacement is decoded.
+   next.className='policy-preview-sheet';
+   next.style.cssText='position:fixed;left:-10000px;top:0;width:816px;visibility:hidden;pointer-events:none';
+   next.innerHTML=policyPageHtml(policyActivePreviewDocument());stamp(next);document.body.append(next);
+   const banner=document.querySelector('[data-policy-version-banner]');if(banner)banner.innerHTML=policyVersionPreviewBannerHtml();
+   requestAnimationFrame(async()=>{
+     await document.fonts?.ready;
+     await Promise.all([...next.querySelectorAll('img')].map(img=>img.decode?.().catch(()=>{})));
+     if(token!==renderEpoch||!sheet.isConnected){next.remove();return}
+     policyPaginateDom(document,next);
+     if(token!==renderEpoch||!sheet.isConnected){next.remove();return}
+     next.removeAttribute('style');sheet.replaceWith(next);next.id='policy-preview-sheet';
+     annotate();
+     const count=next.querySelectorAll('.policy-page').length;
+     if($('policy-preview-pages'))$('policy-preview-pages').textContent=`${count} ${count===1?'página':'páginas'}`;
+     policyFitPreview();
+   });
+ };
  function canvas(){const sheet=$('policy-preview-sheet');if(!sheet)return null;let c=sheet.parentElement;if(!c.classList.contains('policy-review-canvas')){c=document.createElement('div');c.className='policy-review-canvas';sheet.before(c);c.append(sheet);const rail=document.createElement('aside');rail.id='policy-review-rail';rail.setAttribute('aria-label','Comentarios del documento');c.append(rail)}return c}
  policyFitPreview=function(){const stage=$('policy-preview-stage'),sheet=$('policy-preview-sheet'),set=sheet?.querySelector('.policy-page-set'),page=sheet?.querySelector('.policy-page'),c=canvas();if(!stage||!set||!page||!c)return;
    const width=page.offsetWidth||816,height=set.scrollHeight,railWidth=(open||selection?.composing||pending)?336:threads().some(t=>!t.deleted&&!t.resolved)?64:0;
