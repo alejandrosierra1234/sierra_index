@@ -9,9 +9,10 @@ let response = {data: {version: 2, active: true, grants: []}};
 const ctx = vm.createContext({
   Date: Clock, me: {id: 'alice'}, profile: {role: 'admin', account_status: 'active'}, myGrants: [],
   sb: {rpc: async () => response}, window: {addEventListener() {}},
-  document: {addEventListener() {}}, setInterval() {}
+  document: {addEventListener() {}, visibilityState: 'visible'}, setInterval() {}, setTimeout, clearTimeout,
+  toast() {}, renderSidebarTree() {}
 });
-vm.runInContext(source.slice(source.indexOf('let accessVerifiedAt='), source.indexOf('// Division-aware helpers:')), ctx);
+vm.runInContext(source.slice(source.indexOf('const ACCESS_REQUEST_TIMEOUT_MS='), source.indexOf('// Division-aware helpers:')), ctx);
 const can = (...args) => ctx.can(...args);
 (async () => {
   assert.equal(can('read', 'fabric'), false, 'unverified fails closed');
@@ -48,6 +49,10 @@ const can = (...args) => ctx.can(...args);
   response = {error: new Error('network')};
   assert.equal(await ctx.loadGrants(), false);
   assert.equal(can('admin', 'platform'), false);
+  let logoutCalls = 0;
+  ctx.logout = async () => { logoutCalls += 1 };
+  await ctx.refreshAccess();
+  assert.equal(logoutCalls, 0, 'a transient verification failure must not sign everyone out');
   response = {data: {version: 1, active: true, grants: []}};
   assert.equal(await ctx.loadGrants(), false, 'old server cannot enable UI');
   response = {data: {version: 2, active: false, grants: []}};

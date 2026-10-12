@@ -8726,12 +8726,18 @@ function hasWarehouseAccess(division) {
   return AUTH_WAREHOUSES.some(d => can('read', d) || can('dispatch', d)) || can('read', 'warehouse') || can('dispatch', 'warehouse')
 }
 
-let accessVerifiedAt=0,accessRefreshPending=false;
+const ACCESS_REQUEST_TIMEOUT_MS=15000;
+let accessVerifiedAt=0,accessRefreshPending=false,accessRefreshWarningShown=false;
+function withAccessTimeout(request,message='El servicio de acceso no respondió a tiempo.'){
+  let timer;
+  const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(message)),ACCESS_REQUEST_TIMEOUT_MS)});
+  return Promise.race([request,timeout]).finally(()=>clearTimeout(timer));
+}
 async function loadGrants() {
   if(!me){myGrants=[];accessVerifiedAt=0;return false;}
   const userId=me.id;
   try{
-    const {data,error}=await sb.rpc('get_my_access');
+    const {data,error}=await withAccessTimeout(sb.rpc('get_my_access'));
     if(me?.id!==userId||error||data?.version!==2||data.active!==true)return false;
     myGrants=Array.isArray(data.grants)?data.grants:[];
     accessVerifiedAt=Date.now();return true;
@@ -8752,7 +8758,12 @@ async function refreshAccess(){
   accessRefreshPending=true;
   const previous=JSON.stringify(myGrants);
   try{
-    if(!await loadGrants()){await logout();showErr('No se pudo verificar el acceso. Inicia sesión nuevamente.');return}
+    if(!await loadGrants()){
+      if(!accessRefreshWarningShown){toast('No se pudo verificar el acceso. Seguiremos intentando sin cerrar tu sesión.',7000);accessRefreshWarningShown=true}
+      if(Date.now()-accessVerifiedAt>60000)renderSidebarTree();
+      return;
+    }
+    accessRefreshWarningShown=false;
     if(previous!==JSON.stringify(myGrants)){
       document.getElementById('app').style.display='none';
       sessionStorage.removeItem('sierra_route');
@@ -10450,21 +10461,60 @@ async function login() {
   if (!email || !pass) { showErr('Fill in all fields.'); return }
   btn.innerHTML = '<span class="spinner"></span>'
   btn.disabled = true
-  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass })
-  if (error) { showErr('Incorrect email or password.'); btn.innerHTML = 'Sign in'; btn.disabled = false; return }
-  await enterApp(data.user)
+  try {
+    const { data, error } = await withAccessTimeout(
+      sb.auth.signInWithPassword({ email, password: pass }),
+      'El servicio de ingreso no respondió a tiempo.'
+    )
+    if (error) { showErr('Incorrect email or password.'); return }
+    await enterApp(data.user)
+  } catch (error) {
+    console.error('login unavailable:', error)
+    showErr('El servicio de acceso no está respondiendo. Inténtalo nuevamente en un momento.')
+  } finally {
+    btn.innerHTML = 'Sign in'
+    btn.disabled = false
+  }
 }
 
 async function enterApp(user) {
   me = user
-  const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).single()
+  let profileResult
+  try {
+    profileResult = await withAccessTimeout(
+      sb.from('profiles').select('*').eq('id', user.id).single(),
+      'El perfil no respondió a tiempo.'
+    )
+  } catch (error) {
+    console.error('profile unavailable:', error)
+    hideLoadingScreen()
+    document.getElementById('auth-screen').style.display = 'flex'
+    document.getElementById('app').style.display = 'none'
+    showErr('El servicio de acceso no está respondiendo. Tu sesión se conserva; vuelve a intentarlo en un momento.')
+    return
+  }
+  const { data: p, error: profileError } = profileResult
+  if (profileError || !p) {
+    hideLoadingScreen()
+    document.getElementById('auth-screen').style.display = 'flex'
+    document.getElementById('app').style.display = 'none'
+    showErr('No se pudo verificar tu perfil. Tu sesión se conserva; vuelve a intentarlo en un momento.')
+    return
+  }
   profile = p
   if (p?.ui_language === 'es' || p?.ui_language === 'en') appLang = p.ui_language
   localStorage.setItem('sierra-lang', appLang)
   applyLanguage({ render:false })
-  if(p?.account_status!=='active'||!await loadGrants()){
+  if(p.account_status!=='active'){
     await logout();hideLoadingScreen();
-    showErr('Acceso no disponible. La cuenta debe estar activa y sus permisos verificados por el servidor.');
+    showErr('Acceso no disponible. La cuenta no está activa.');
+    return;
+  }
+  if(!await loadGrants()){
+    hideLoadingScreen();
+    document.getElementById('auth-screen').style.display='flex';
+    document.getElementById('app').style.display='none';
+    showErr('No se pudieron verificar tus permisos. Tu sesión se conserva; vuelve a intentarlo en un momento.');
     return;
   }
   const name = p?.full_name || user.email.split('@')[0]
@@ -28244,16 +28294,17 @@ document.addEventListener('keydown', e => {
   // being hijacked by this handler inside every input/textarea in the
   // app. Also skip entirely while focus is in an editable field, as a
   // second guard against overriding text editing generally.
-  if (e.key.toLowerCase() === 'k' && !e.altKey && (IS_MAC ? (e.metaKey && !e.ctrlKey) : (e.ctrlKey && !e.metaKey))) {
+  const key = typeof e.key === 'string' ? e.key : ''
+  if (key.toLowerCase() === 'k' && !e.altKey && (IS_MAC ? (e.metaKey && !e.ctrlKey) : (e.ctrlKey && !e.metaKey))) {
     const t = e.target
     const editable = t?.tagName === 'INPUT' || t?.tagName === 'TEXTAREA' || t?.tagName === 'SELECT' || t?.isContentEditable
     if (!editable) { e.preventDefault(); openSpotlight() }
     return
   }
-  if (e.key === 'Escape' && document.getElementById('spotlight').classList.contains('open')) {
+  if (key === 'Escape' && document.getElementById('spotlight').classList.contains('open')) {
     closeSpotlight()
   }
-  if (e.key === 'Escape' && document.getElementById('scan-overlay').classList.contains('open')) {
+  if (key === 'Escape' && document.getElementById('scan-overlay').classList.contains('open')) {
     closeScanMode()
   }
 })
