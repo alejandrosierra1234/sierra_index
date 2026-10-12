@@ -33,6 +33,7 @@ try{
  assert.match(result.concurrent,/Ya se está generando/);assert.match(result.failedLogo,/logotipo/);assert.match(result.failedGlyph,/carácter/);
  assert.equal(result.unchanged,true);assert.equal(result.leakedFrames,0);assert.deepEqual(errors,[]);
  assert.equal(requests.some(r=>r.method!=='GET'||r.host!=='policy-render.invalid'),false,'No snapshots/tokens sent anywhere');
+ assert.equal(result.pages,4,'Text should flow through available page space instead of creating avoidable page breaks');
  assert.match(result.pageTexts[0],/03\s+LINEAMIENTOS GENERALES/,'A long section should use the remaining space on the current page');
  assert.match(result.pageTexts[1],/LINEAMIENTOS GENERALES · CONTINUACIÓN/,'A split section should continue with a clear repeated heading');
  assert(result.progress.every((value,i)=>!i||value>=result.progress[i-1]));
