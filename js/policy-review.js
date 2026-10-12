@@ -11,6 +11,12 @@
  const outboxKey=()=> 'policy-content-outbox:'+String(me?.id||'');
  function outbox(){try{return JSON.parse(localStorage.getItem(outboxKey())||'{}')}catch{return {}}}
  function persistOutbox(id,snapshot){const box=outbox();if(snapshot)box[id]={snapshot:copy(snapshot),base:bases.get(id)};else delete box[id];localStorage.setItem(outboxKey(),JSON.stringify(box))}
+ function published(p){return Boolean(p?.numbering)&&['Aprobada','Archivada'].includes(p?.status)}
+ function preserveRejectedDraft(id,local,remote){
+   const comparable=value=>{const result=copy(value);delete result._revision;delete result.comments;return result};
+   if(JSON.stringify(comparable(local))===JSON.stringify(comparable(remote)))return;
+   localStorage.setItem('policy-conflict:'+id,JSON.stringify({local:copy(local),remote:copy(remote),fields:['versión publicada en la nube']}));
+ }
  const draftKey=()=> 'policy-comment-drafts:'+String(me?.id||'')+':'+String(current()?.id||'');
  function persistDrafts(){localStorage.setItem(draftKey(),JSON.stringify([...drafts]))}
  const confirm=(message,title)=>new Promise(resolve=>{commsConfirm(title,message,()=>resolve(true),'Confirmar');const dialog=document.querySelector('dialog.comms-confirm');dialog?.addEventListener('close',()=>queueMicrotask(()=>resolve(false)),{once:true})});
@@ -24,7 +30,21 @@
  policyOpenHistory=async function(){const id=current()?.id;if(!id)return;policyFlushPendingSave();if(_policyCloudWrites.has(id))await _policyCloudWrites.get(id);try{const [versions,publications]=await Promise.all([rpc('policy_revision_list',{p_policy_id:id}),rpc('policy_publication_list',{p_policy_id:id})]);if(current()?.id!==id)return;const published=[...publications].reverse(),fingerprints=new Set(published.map(item=>JSON.stringify(item.snapshot)));current().versions=[...versions].reverse().filter(item=>!fingerprints.has(JSON.stringify(item.snapshot))).concat(published);originalHistory()}catch{toast('No se pudo cargar el historial de la nube. Intenta de nuevo.')}};
  policyRestoreVersion=async function(id){const version=current()?.versions?.find(v=>v.id===id);if(!version||version.published||!writable()||window.PolicyNumbering?.isLocked?.(current()))return;if(!await confirm('El contenido actual se conservará en el historial. Los comentarios, el estado y el código emitido no se sobrescribirán.','Restaurar versión'))return;const preserved={id:current().id,_revision:current()._revision,comments:current().comments,versions:current().versions,createdAt:current().createdAt};for(const key of ['code','numbering','legacyCode','approvedAt','approvedBy','status','version'])preserved[key]=current()[key];if(current().numbering)for(const key of ['companyId','companyName','companyLegalName','companyLogo','areaCode','department'])preserved[key]=current()[key];_policyCurrent=policyNormalize({...current(),...copy(version.snapshot),...preserved});_policyVersionPreviewId='';policyCloseHistory();policyCommit(true);policyRefreshEditor();toast('Restauración preparada. Comprueba el indicador de guardado.')};
  const originalLoad=policyLoad;
- policyLoad=async function(){const box=outbox();await originalLoad();_policies.forEach(p=>bases.set(p.id,copy(p)));for(const [id,item] of Object.entries(box)){if(item.base)bases.set(id,item.base);const i=_policies.findIndex(p=>p.id===id);if(i>=0)_policies[i]=policyNormalize(item.snapshot);else _policies.unshift(policyNormalize(item.snapshot));policyQueueCloudSave(item.snapshot)}policyPersistAll()};
+ policyLoad=async function(){
+   const box=outbox();await originalLoad();_policies.forEach(p=>bases.set(p.id,copy(p)));
+   for(const [id,item] of Object.entries(box)){
+     const i=_policies.findIndex(p=>p.id===id),remote=i>=0?_policies[i]:null,local=policyNormalize(item.snapshot);
+     // A browser outbox is only a recovery copy. It must never hide or attempt to
+     // overwrite an immutable publication that already won in PostgreSQL.
+     if(remote&&published(remote)){
+       preserveRejectedDraft(id,local,remote);persistOutbox(id,null);continue;
+     }
+     if(item.base)bases.set(id,item.base);
+     if(i>=0)_policies[i]=local;else _policies.unshift(local);
+     policyQueueCloudSave(local);
+   }
+   policyPersistAll();
+ };
  async function rpc(name,args){const {data,error}=await sb.rpc(name,args);if(error)throw error;return data}
  policyCloudSave=async function(p){const saved=policyNormalize(await rpc('policy_cloud_save',{p_snapshot:copy(p)}));bases.set(p.id,copy(saved));return saved};
  function updateRevision(id,saved){for(const p of [_policies.find(p=>p.id===id),current(),_policyCloudDrafts.get(id)])if(p?.id===id){p._revision=saved._revision;p.comments=saved.comments;for(const key of ['code','numbering','legacyCode','approvedAt','approvedBy'])p[key]=saved[key];if(saved.numbering)for(const key of ['companyId','areaCode','department'])p[key]=saved[key]}policyPersistAll()}

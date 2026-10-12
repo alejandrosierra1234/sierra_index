@@ -55,6 +55,23 @@ test('numbering UI uses a catalog, prevents manual codes, and verifies a lost ap
  }finally{w.policyStopPresence();w.close()}
 });
 
+test('a stale browser outbox never hides an approved cloud publication',async()=>{
+ const dom=new JSDOM(source,{url:'http://localhost/fixture',runScripts:'dangerously',pretendToBeVisual:true});
+ const w=dom.window;
+ try{
+  await tick();
+  w.eval(`mockPolicies.set('shared-approved',policyNormalize({id:'shared-approved',title:'PUBLICADA',status:'Aprobada',version:'1.0',code:'HN-HSM-008-POL-001',numbering:{code:'HN-HSM-008-POL-001',areaCode:'008',serial:1},_revision:12,updatedAt:'2026-10-12T23:00:00.000Z'}))`);
+  const stale={id:'shared-approved',title:'COPIA LOCAL',status:'Borrador',version:'1.0',_revision:7,updatedAt:'2026-10-12T22:00:00.000Z'};
+  w.localStorage.setItem('policy-content-outbox:account-a',JSON.stringify({'shared-approved':{snapshot:stale,base:stale}}));
+  await w.policyLoad();
+  assert.equal(w.eval(`_policies.find(p=>p.id==='shared-approved').status`),'Aprobada');
+  assert.equal(JSON.parse(w.localStorage.getItem('policy-content-outbox:account-a'))['shared-approved'],undefined);
+  const recovery=JSON.parse(w.localStorage.getItem('policy-conflict:shared-approved'));
+  assert.equal(recovery.local.title,'COPIA LOCAL');
+  assert.equal(recovery.remote.title,'PUBLICADA');
+ }finally{w.policyStopPresence();w.close()}
+});
+
 test('workbook selectors work without migration 50; legacy values, drafts and editing remain safe',async()=>{
  const dom=new JSDOM(source,{url:'http://localhost/fixture',runScripts:'dangerously',pretendToBeVisual:true,beforeParse(w){w.fixtureCatalogUnavailable=true}});
  const w=dom.window,d=w.document;
