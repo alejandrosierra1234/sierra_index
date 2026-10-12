@@ -27,11 +27,14 @@ try{
   let failedLogo='';try{await PolicyLocalPdf.generate({...policy,companyLogo:'https://policy-render.invalid/missing.png'})}catch(error){failedLogo=error.message}
   let failedGlyph='';try{await PolicyLocalPdf.generate({...policy,title:'PRUEBA 🧵',companyLogo:''})}catch(error){failedGlyph=error.message}
   const batch=await PolicyLocalPdf.generate([policy,{...policy,confidential:false,companyLogo:''}]);
-  return {pdf:Array.from(new Uint8Array(await blob.arrayBuffer())),batch:Array.from(new Uint8Array(await batch.arrayBuffer())),pages:root.querySelectorAll('.policy-page').length,text:root.innerText,progress,elapsed,concurrent,failedLogo,failedGlyph,unchanged:before===JSON.stringify(policy),leakedFrames:document.querySelectorAll('iframe').length};
+  const pageTexts=[...root.querySelectorAll('.policy-page')].map(node=>node.innerText);
+  return {pdf:Array.from(new Uint8Array(await blob.arrayBuffer())),batch:Array.from(new Uint8Array(await batch.arrayBuffer())),pages:pageTexts.length,pageTexts,text:root.innerText,progress,elapsed,concurrent,failedLogo,failedGlyph,unchanged:before===JSON.stringify(policy),leakedFrames:document.querySelectorAll('iframe').length};
  },samplePolicy);
  assert.match(result.concurrent,/Ya se está generando/);assert.match(result.failedLogo,/logotipo/);assert.match(result.failedGlyph,/carácter/);
  assert.equal(result.unchanged,true);assert.equal(result.leakedFrames,0);assert.deepEqual(errors,[]);
  assert.equal(requests.some(r=>r.method!=='GET'||r.host!=='policy-render.invalid'),false,'No snapshots/tokens sent anywhere');
+ assert.match(result.pageTexts[0],/03\s+LINEAMIENTOS GENERALES/,'A long section should use the remaining space on the current page');
+ assert.match(result.pageTexts[1],/LINEAMIENTOS GENERALES · CONTINUACIÓN/,'A split section should continue with a clear repeated heading');
  assert(result.progress.every((value,i)=>!i||value>=result.progress[i-1]));
  await writeFile(new URL('policy.pdf',out),Buffer.from(result.pdf));await writeFile(new URL('batch.pdf',out),Buffer.from(result.batch));
  const metrics={...result,pdf:undefined,batch:undefined};await writeFile(new URL('metrics.json',out),JSON.stringify(metrics,null,2));

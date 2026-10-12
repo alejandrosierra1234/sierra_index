@@ -13,6 +13,7 @@ html,body{display:block!important;margin:0!important;padding:0!important;height:
 </style></head><body><div id="export-root"></div><script>
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),escAttr=esc;
 const siIcon=()=>'',can=()=>false,me=null,profile=null;
+const companyColor=value=>/^#[0-9A-F]{6}$/i.test(String(value||'').trim())?String(value).trim():'#008C82';
 ${script}
 policyCommentMarkerHtml=()=>'';
 </script></body></html>`;

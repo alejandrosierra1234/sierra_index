@@ -37723,7 +37723,16 @@ function policyPaginateDom(doc,root=doc){
     entries.forEach(entry=>{container.append(entry);if(fits())return;entry.remove();if(container.children.length){newPage();begin(true)}container.append(entry);if(!fits())scaleToFit(part)});
   };
   newPage();
-  for(const block of blocks){content.append(block);if(fits())continue;block.remove();if(content.children.length)newPage();content.append(block);if(fits())continue;block.remove();if(block.classList.contains('policy-index'))splitCollection(block,'.policy-index-row','.policy-index-list');else if(block.querySelector('.policy-approvals'))splitCollection(block,'.policy-approval','.policy-approvals');else if(block.classList.contains('policy-document-section'))splitSection(block);else scaleToFit(block)}
+  for(const block of blocks){
+    content.append(block);if(fits())continue;block.remove();
+    const isApprovalSection=Boolean(block.querySelector('.policy-approvals'));
+    // A text section must try the space that is still available before opening
+    // another page. splitSection keeps the heading with a readable first fragment
+    // and only advances when even that lead cannot fit.
+    if(block.classList.contains('policy-document-section')&&!isApprovalSection){splitSection(block);continue}
+    if(content.children.length)newPage();content.append(block);if(fits())continue;block.remove();
+    if(block.classList.contains('policy-index'))splitCollection(block,'.policy-index-row','.policy-index-list');else if(isApprovalSection)splitCollection(block,'.policy-approval','.policy-approvals');else scaleToFit(block)
+  }
   const total=pages.length,pageMap={};pages.forEach((item,i)=>item.querySelectorAll('[data-policy-section]').forEach(section=>{const key=section.dataset.policySection;if(!pageMap[key])pageMap[key]=i+1}));pages.forEach((item,i)=>{item.querySelectorAll('[data-policy-page-count]').forEach(value=>value.textContent=`${i+1} / ${total}`);item.querySelector('[data-policy-footer-page]').textContent=`Página ${i+1} de ${total}`;item.querySelectorAll('[data-policy-index-page]').forEach(value=>value.textContent=pageMap[value.dataset.policyIndexPage]||'—')});return pages
 }
 function policyPrepareZoomControls(){const controls=document.querySelector('.policy-preview-zoom');if(!controls||controls.dataset.ready)return;controls.dataset.ready='true';controls.innerHTML=`<button onclick="policyZoom(-.1)" aria-label="Reducir zoom">−</button><span class="policy-zoom-value" id="policy-zoom-value">100%</span><button onclick="policyZoom(.1)" aria-label="Aumentar zoom">+</button><button class="policy-preview-zoom-mode" data-policy-zoom-mode="width" onclick="policyZoomWidth()" title="Ajustar al ancho de la página" aria-label="Ajustar al ancho de la página" aria-pressed="true">${siIcon('columns',13)}<span>Ancho</span></button><button class="policy-preview-zoom-mode" data-policy-zoom-mode="page" onclick="policyZoomPage()" title="Ajustar la página completa" aria-label="Ajustar la página completa" aria-pressed="false">${siIcon('file',13)}<span>Página</span></button>`}
