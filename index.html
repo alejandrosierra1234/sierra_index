@@ -19890,7 +19890,7 @@ function renderVacationsView() {
         .vac-manual-preview .vac-slip-copy{--vac-accent:#007d73;--vac-ink:#202124;--vac-muted:#5d6368;--vac-line:#d2d5d7;position:relative;box-sizing:border-box;width:100%;aspect-ratio:139.7/215.9;overflow:hidden;padding:3.2% 3.5% 3%;border:1px solid #aeb2b7;background:#fff;color:var(--vac-ink);font-family:'Aeonik',Arial,sans-serif}
         .vac-manual-preview .vac-slip-copy:before{content:attr(data-kind);position:absolute;z-index:0;top:51%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);color:#5d6368;font-family:'Replica',Arial,sans-serif;font-size:clamp(32px,4vw,48px);font-weight:700;letter-spacing:.08em;line-height:1;opacity:.075;white-space:nowrap;pointer-events:none}.vac-manual-preview .vac-slip-copy>*{position:relative;z-index:1}
         .vac-manual-preview .vac-slip-head{min-height:14%;display:grid;grid-template-columns:23% 1fr;grid-template-areas:'logo title' 'logo kind';align-items:stretch;border:1px solid #aeb2b7;border-radius:4px;overflow:hidden;background:#fff}
-        .vac-manual-preview .vac-slip-logo{grid-area:logo;display:flex;align-items:center;justify-content:center;padding:10%;border-right:1px solid var(--vac-line);overflow:hidden}.vac-manual-preview .vac-slip-logo img{display:block;max-width:100%;max-height:100%;object-fit:contain}.vac-manual-preview .vac-slip-logo-fallback{color:var(--vac-muted);font-size:6px;line-height:1.2;text-align:center}
+        .vac-manual-preview .vac-slip-logo{grid-area:logo;display:flex;align-items:center;justify-content:center;padding:10%;border-right:1px solid var(--vac-line);overflow:hidden}.vac-manual-preview .vac-slip-logo img{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;object-position:center}.vac-manual-preview .vac-slip-logo-fallback{color:var(--vac-muted);font-size:6px;line-height:1.2;text-align:center}
         .vac-manual-preview .vac-slip-title{grid-area:title;display:flex;flex-direction:column;justify-content:center;min-width:0;padding:3.2% 5%;text-align:left}.vac-manual-preview .vac-slip-title small{display:block;margin-bottom:3px;color:var(--vac-accent);font-size:6px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}.vac-manual-preview .vac-slip-title strong{display:block;color:var(--vac-ink);font-family:'Replica',Arial,sans-serif;font-size:clamp(13px,1.3vw,17px);font-weight:400;line-height:1.05}.vac-manual-preview .vac-slip-title span{display:block;overflow:hidden;margin-top:4px;color:var(--vac-muted);font-size:clamp(7px,.65vw,9px);font-weight:500;line-height:1.15;white-space:nowrap;text-overflow:ellipsis}
         .vac-manual-preview .vac-slip-kind{grid-area:kind;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--vac-line);background:#fff;color:var(--vac-ink)}.vac-manual-preview .vac-slip-kind>div{min-width:0;padding:3% 6%}.vac-manual-preview .vac-slip-kind>div+div{border-left:1px solid var(--vac-line)}.vac-manual-preview .vac-slip-kind span{display:block;color:var(--vac-muted);font-size:5px;font-weight:500;letter-spacing:.04em;text-transform:uppercase}.vac-manual-preview .vac-slip-kind strong,.vac-manual-preview .vac-slip-kind b{display:block;overflow:hidden;margin-top:2px;color:var(--vac-ink);font-size:clamp(7px,.68vw,9px);font-weight:650;line-height:1.1;white-space:nowrap;text-overflow:ellipsis}.vac-manual-preview .vac-slip-kind b{font-family:'Aeonik Mono',monospace;font-weight:500}
         .vac-manual-preview .vac-slip-section{margin-top:1.2%}.vac-manual-preview .vac-slip-section-title{display:flex;align-items:center;box-sizing:border-box;min-height:14px;padding:0 7px;border:1px solid #c9c9ce;border-left:3px solid var(--vac-accent);border-radius:4px 4px 0 0;background:#e9ebeb}.vac-manual-preview .vac-slip-section-title strong{color:var(--vac-ink);font-family:'Replica',Arial,sans-serif;font-size:clamp(8px,.78vw,10px);line-height:1.1;letter-spacing:.02em;text-transform:uppercase}
@@ -20397,7 +20397,7 @@ function vacPrintBoletaData(slipData) {
       .vac-slip-copy > * { position:relative; z-index:1; }
       .vac-slip-head { min-height:29mm; display:grid; grid-template-columns:28mm minmax(0,1fr); grid-template-areas:'logo title' 'logo kind'; align-items:stretch; border:.3mm solid #aeb2b7; border-radius:2mm; overflow:hidden; background:#fff; }
       .vac-slip-logo { grid-area:logo; min-width:0; display:flex; align-items:center; justify-content:center; padding:2mm; border-right:.25mm solid var(--vac-line); overflow:hidden; }
-      .vac-slip-logo img { display:block; max-width:24mm; max-height:23mm; object-fit:contain; object-position:center; }
+      .vac-slip-logo img { display:block; width:100%; height:100%; max-width:24mm; max-height:23mm; object-fit:contain; object-position:center; }
       .vac-slip-logo-fallback { max-width:24mm; color:var(--vac-muted); font:400 6.3pt/1.2 'Aeonik',Arial,sans-serif; text-align:center; }
       .vac-slip-title { grid-area:title; min-width:0; display:flex; flex-direction:column; justify-content:center; padding:2.2mm 3mm; text-align:left; }
       .vac-slip-title small { display:block; margin-bottom:.8mm; color:var(--vac-accent); font:700 6.3pt/1.1 'Aeonik',Arial,sans-serif; letter-spacing:.05em; text-transform:uppercase; }
@@ -20501,6 +20501,25 @@ function vacBlankFileName(companyName) {
     .replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase()
   return `boleta-vacaciones-vacia-${companySlug || 'empresa'}.pdf`
 }
+function vacFitSlipLogosForCapture(host) {
+  host.querySelectorAll('.vac-slip-logo img').forEach(img => {
+    const box = img.parentElement
+    const boxStyle = getComputedStyle(box)
+    const availableWidth = Math.max(1, box.clientWidth - parseFloat(boxStyle.paddingLeft) - parseFloat(boxStyle.paddingRight))
+    const availableHeight = Math.max(1, box.clientHeight - parseFloat(boxStyle.paddingTop) - parseFloat(boxStyle.paddingBottom))
+    const ratio = img.naturalWidth > 0 && img.naturalHeight > 0 ? img.naturalWidth / img.naturalHeight : 1
+    let width = availableWidth
+    let height = width / ratio
+    if (height > availableHeight) {
+      height = availableHeight
+      width = height * ratio
+    }
+    Object.assign(img.style, {
+      width:`${Math.max(1, width)}px`, height:`${Math.max(1, height)}px`,
+      maxWidth:'none', maxHeight:'none', objectFit:'fill', flex:'0 0 auto',
+    })
+  })
+}
 async function vacDownloadBlankBoleta(button) {
   const slipData = vacBlankSlipData()
   if (!slipData) return
@@ -20529,6 +20548,7 @@ async function vacDownloadBlankBoleta(button) {
       if (!img.complete) return new Promise(resolve => { img.onload = img.onerror = resolve })
       return img.decode ? img.decode().catch(() => {}) : Promise.resolve()
     }))
+    vacFitSlipLogosForCapture(host)
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
     for (const copy of host.querySelectorAll('.vac-slip-copy')) {
       const rect = copy.getBoundingClientRect()
