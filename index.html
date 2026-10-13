@@ -19887,19 +19887,18 @@ function renderVacationsView() {
         .vac-manual-preview-head strong{display:block;font-size:.84rem}.vac-manual-preview-head span{display:block;margin-top:.2rem;color:var(--text-3);font-size:.7rem}
         .vac-manual-preview-badge{flex:0 0 auto;padding:.25rem .45rem;border-radius:999px;background:var(--accent-light);color:var(--accent-dark);font-size:.62rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
         .vac-manual-preview{overflow:hidden;border-radius:8px;box-shadow:0 12px 30px rgba(13,32,46,.12)}
-        .vac-manual-preview .vac-slip-copy{position:relative;box-sizing:border-box;width:100%;aspect-ratio:206/132.5;overflow:hidden;border:1px solid #91a6b5;background:#fff;color:#183146;font-family:Arial,sans-serif}
-        .vac-manual-preview .vac-slip-head{height:13.2%;padding:1.2% 1.5%;display:grid;grid-template-columns:12% 1fr 11%;align-items:center;gap:1.5%;color:#fff;background:#183f63}
-        .vac-manual-preview .vac-slip-logo{height:70%;display:flex;align-items:center;overflow:hidden}.vac-manual-preview .vac-slip-logo img{display:block;max-width:100%;max-height:100%;object-fit:contain}.vac-manual-preview .vac-slip-logo-fallback{font-size:6px;font-weight:700}
-        .vac-manual-preview .vac-slip-title{text-align:center;min-width:0}.vac-manual-preview .vac-slip-title strong{display:block;font-family:'Replica',Arial,sans-serif;font-size:clamp(8px,1.15vw,14px);line-height:1.05}.vac-manual-preview .vac-slip-title span{display:block;margin-top:3px;color:#d4e3ec;font-size:clamp(4px,.55vw,7px);font-weight:800;letter-spacing:.1em}
-        .vac-manual-preview .vac-slip-kind{text-align:right;font-size:clamp(4px,.52vw,7px);font-weight:900;letter-spacing:.08em}.vac-manual-preview .vac-slip-kind b{display:block;margin-top:3px;color:#f2c94c;font-family:'Aeonik Mono',monospace;font-size:clamp(4px,.45vw,6px);letter-spacing:0}
-        .vac-manual-preview .vac-slip-bar{padding:.55% 1%;color:#fff;background:#2a5d87;font-size:clamp(4px,.5vw,7px);font-weight:900;text-align:center;letter-spacing:.08em;text-transform:uppercase}
-        .vac-manual-preview .vac-slip-grid{display:grid}.vac-manual-preview .vac-slip-grid-3{grid-template-columns:1fr 2fr 1.3fr}.vac-manual-preview .vac-slip-grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
-        .vac-manual-preview .vac-slip-cell{box-sizing:border-box;min-width:0;min-height:7.7%;padding:.65% 1%;border-right:1px solid #c7d3db;border-bottom:1px solid #c7d3db}.vac-manual-preview .vac-slip-cell:last-child{border-right:0}
-        .vac-manual-preview .vac-slip-cell span{display:block;margin-bottom:2px;color:#526a7a;font-size:clamp(4px,.45vw,6px);font-weight:800;text-transform:uppercase}.vac-manual-preview .vac-slip-cell strong{display:block;overflow:hidden;color:#1e5b86;font-size:clamp(5px,.58vw,8px);line-height:1.15;white-space:nowrap;text-overflow:ellipsis}
-        .vac-manual-preview .vac-slip-emphasis{background:#edf5f9;text-align:center}.vac-manual-preview .vac-slip-emphasis strong{color:#183f63;font-size:clamp(6px,.75vw,10px)}
-        .vac-manual-preview .vac-slip-signatures{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2%;padding:3.2% 2% 1.2%}.vac-manual-preview .vac-slip-signatures>div{min-width:0;text-align:center;font-size:clamp(4px,.45vw,6px)}.vac-manual-preview .vac-slip-signatures i{display:flex;height:18px;align-items:flex-end;justify-content:center;border-bottom:1px solid #728997;color:#1e5b86;font-size:clamp(4px,.5vw,7px);font-style:normal}.vac-manual-preview .vac-slip-signatures strong{display:block;margin-top:3px}.vac-manual-preview .vac-slip-signatures small{display:block;overflow:hidden;color:#657987;font-size:4px;font-weight:400;white-space:nowrap;text-overflow:ellipsis}
-        .vac-manual-preview .vac-slip-observations{box-sizing:border-box;height:7%;padding:.7% 1%;border-bottom:1px solid #c7d3db;color:#1e5b86;font-size:clamp(4px,.5vw,7px);white-space:pre-wrap}.vac-manual-preview .vac-slip-foot{position:absolute;right:1.5%;bottom:.7%;color:#758894;font-size:clamp(3px,.4vw,5px)}
-        @media(max-width:1180px){.vac-manual-layout{grid-template-columns:1fr}.vac-manual-preview-panel{position:static}.vac-manual-preview .vac-slip-title strong{font-size:14px}.vac-manual-preview .vac-slip-title span,.vac-manual-preview .vac-slip-kind{font-size:7px}.vac-manual-preview .vac-slip-cell span{font-size:6px}.vac-manual-preview .vac-slip-cell strong{font-size:8px}}
+        .vac-manual-preview .vac-slip-copy{--vac-accent:#16cdbe;--vac-ink:#202124;--vac-muted:#5d6368;--vac-line:#d8dadd;position:relative;box-sizing:border-box;width:100%;aspect-ratio:206/132.5;overflow:hidden;padding:2.7% 3.2% 2.2%;border:1px solid #cfd2d5;background:#fff;color:var(--vac-ink);font-family:'Aeonik',Arial,sans-serif}
+        .vac-manual-preview .vac-slip-head{min-height:15%;display:grid;grid-template-columns:14% 1fr 18%;align-items:stretch;border:1px solid #aeb2b7;border-radius:4px;overflow:hidden;background:#fff}
+        .vac-manual-preview .vac-slip-logo{display:flex;align-items:center;justify-content:center;padding:7%;border-right:1px solid var(--vac-line);overflow:hidden}.vac-manual-preview .vac-slip-logo img{display:block;max-width:100%;max-height:100%;object-fit:contain}.vac-manual-preview .vac-slip-logo-fallback{color:var(--vac-muted);font-size:5px;line-height:1.15;text-align:center}
+        .vac-manual-preview .vac-slip-title{display:grid;align-content:center;min-width:0;padding:2% 4%;text-align:left}.vac-manual-preview .vac-slip-title span{display:block;margin-bottom:2px;color:var(--vac-muted);font-size:clamp(4px,.48vw,6px);font-weight:700;letter-spacing:.08em;text-transform:uppercase}.vac-manual-preview .vac-slip-title strong{display:block;overflow:hidden;color:var(--vac-ink);font-family:'Replica',Arial,sans-serif;font-size:clamp(8px,1.05vw,13px);font-weight:400;line-height:1.05;white-space:nowrap;text-overflow:ellipsis}
+        .vac-manual-preview .vac-slip-kind{position:relative;display:grid;align-content:center;padding:4% 8%;border-left:1px solid var(--vac-line);background:#2b2b2b;color:#fff;text-align:left}.vac-manual-preview .vac-slip-kind:before{content:'';position:absolute;left:8%;top:0;width:32%;height:3px;background:var(--vac-accent)}.vac-manual-preview .vac-slip-kind span{color:#d7d7da;font-size:4px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.vac-manual-preview .vac-slip-kind strong{display:block;margin:2px 0;color:#fff;font-size:clamp(5px,.62vw,8px);letter-spacing:.05em}.vac-manual-preview .vac-slip-kind b{display:block;overflow:hidden;color:#ededed;font-family:'Aeonik Mono',monospace;font-size:clamp(4px,.45vw,6px);font-weight:400;white-space:nowrap;text-overflow:ellipsis}
+        .vac-manual-preview .vac-slip-section{margin-top:1.2%}.vac-manual-preview .vac-slip-section-title{display:flex;align-items:center;gap:1.2%;padding:0 0 .55%;border-bottom:1px solid #c9c9ce}.vac-manual-preview .vac-slip-section-title span{color:var(--vac-muted);font-family:'Aeonik Mono',monospace;font-size:4px}.vac-manual-preview .vac-slip-section-title strong{font-family:'Replica',Arial,sans-serif;font-size:clamp(5px,.58vw,7px);letter-spacing:0}
+        .vac-manual-preview .vac-slip-table{overflow:hidden;border:1px solid var(--vac-line);border-top:0;border-radius:0 0 3px 3px}.vac-manual-preview .vac-slip-grid{display:grid}.vac-manual-preview .vac-slip-grid+.vac-slip-grid{border-top:1px solid var(--vac-line)}.vac-manual-preview .vac-slip-grid-3{grid-template-columns:1fr 2fr 1.3fr}.vac-manual-preview .vac-slip-grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+        .vac-manual-preview .vac-slip-cell{box-sizing:border-box;min-width:0;min-height:6.4%;padding:.55% .85%;border-right:1px solid var(--vac-line)}.vac-manual-preview .vac-slip-cell:last-child{border-right:0}.vac-manual-preview .vac-slip-cell span{display:block;margin-bottom:1px;color:var(--vac-muted);font-size:clamp(3px,.4vw,5px);font-weight:700;letter-spacing:.04em;text-transform:uppercase}.vac-manual-preview .vac-slip-cell strong{display:block;overflow:hidden;color:var(--vac-ink);font-size:clamp(4px,.5vw,6.5px);font-weight:500;line-height:1.15;white-space:nowrap;text-overflow:ellipsis}
+        .vac-manual-preview .vac-slip-emphasis{box-shadow:inset 3px 0 0 var(--vac-accent);background:#f4f5f5}.vac-manual-preview .vac-slip-emphasis strong{font-family:'Aeonik Mono',monospace;font-size:clamp(5px,.62vw,8px);font-weight:700}
+        .vac-manual-preview .vac-slip-signatures{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2.5%;padding:2.7% 1.5% 1.1%;border:1px solid var(--vac-line);border-top:0;border-radius:0 0 3px 3px}.vac-manual-preview .vac-slip-signatures>div{min-width:0;text-align:left;font-size:clamp(3px,.4vw,5px)}.vac-manual-preview .vac-slip-signatures i{display:flex;height:13px;align-items:flex-end;border-bottom:1px solid #8e9398;color:var(--vac-muted);font-size:clamp(3px,.4vw,5px);font-style:normal}.vac-manual-preview .vac-slip-signatures strong{display:block;margin-top:2px;color:var(--vac-ink)}.vac-manual-preview .vac-slip-signatures small{display:block;overflow:hidden;color:var(--vac-muted);font-size:3px;font-weight:400;white-space:nowrap;text-overflow:ellipsis}
+        .vac-manual-preview .vac-slip-observations{box-sizing:border-box;min-height:5.8%;padding:.6% .85%;border-top:1px solid var(--vac-line);color:var(--vac-ink);font-size:clamp(4px,.45vw,6px);white-space:pre-wrap}.vac-manual-preview .vac-slip-observations span{display:block;margin-bottom:1px;color:var(--vac-muted);font-size:clamp(3px,.38vw,5px);font-weight:700;letter-spacing:.04em;text-transform:uppercase}.vac-manual-preview .vac-slip-foot{position:absolute;right:3.2%;bottom:.8%;left:3.2%;display:flex;justify-content:space-between;padding-top:.5%;border-top:1px solid #e5e5e5;color:var(--vac-muted);font-size:clamp(3px,.35vw,4.5px);letter-spacing:.04em;text-transform:uppercase}
+        @media(max-width:1180px){.vac-manual-layout{grid-template-columns:1fr}.vac-manual-preview-panel{position:static}.vac-manual-preview .vac-slip-title strong{font-size:13px}.vac-manual-preview .vac-slip-section-title strong{font-size:7px}.vac-manual-preview .vac-slip-cell strong{font-size:6.5px}}
       </style>
       <div class="page-toolbar" style="align-items:flex-start;gap:1rem;flex-wrap:wrap">
         <div style="min-width:260px;flex:1"><h2 style="margin:0">Creador de boletas de vacaciones</h2><p style="margin:.25rem 0 0;color:var(--text-3);font-size:.82rem">Formulario independiente · no consulta ni guarda datos de colaboradores.</p></div>
@@ -20300,51 +20299,64 @@ function vacBoletaCopyHtml(kind, data) {
   return `<article class="vac-slip-copy">
     <header class="vac-slip-head">
       <div class="vac-slip-logo">${logo}</div>
-      <div class="vac-slip-title"><strong>${esc(data.companyName)}</strong><span>SOLICITUD DE VACACIONES</span></div>
-      <div class="vac-slip-kind">${esc(kind)}<b>${esc(data.folio)}</b></div>
+      <div class="vac-slip-title"><span>Talento Humano · Solicitud de vacaciones</span><strong>${esc(data.companyName)}</strong></div>
+      <div class="vac-slip-kind"><span>Ejemplar</span><strong>${esc(kind)}</strong><b>${esc(data.folio)}</b></div>
     </header>
-    <div class="vac-slip-bar">Datos del colaborador</div>
-    <div class="vac-slip-grid vac-slip-grid-3">
-      ${vacBoletaCell('Código', data.emp.employee_code || '—')}
-      ${vacBoletaCell('Nombre del empleado', `${data.emp.first_name} ${data.emp.last_name}`)}
-      ${vacBoletaCell('Documento de identificación', data.identification)}
-    </div>
-    <div class="vac-slip-grid vac-slip-grid-4">
-      ${vacBoletaCell('Fecha de solicitud', hrFmtDate(data.req.created_at))}
-      ${vacBoletaCell('Fecha de ingreso', data.emp.hire_date ? hrFmtDate(data.emp.hire_date) : '—')}
-      ${vacBoletaCell('Puesto / cargo', data.emp.position || '—')}
-      ${vacBoletaCell('Departamento', data.emp.department || '—')}
-    </div>
-    <div class="vac-slip-bar">Periodo solicitado</div>
-    <div class="vac-slip-grid vac-slip-grid-4">
-      ${vacBoletaCell('Desde', hrFmtDate(data.req.start_date))}
-      ${vacBoletaCell('Hasta', hrFmtDate(data.req.end_date))}
-      ${vacBoletaCell('Regresa a sus labores', vacReturnDate(data.req.end_date))}
-      ${vacBoletaCell('Días hábiles solicitados', String(data.req.requested_days), 'vac-slip-emphasis')}
-    </div>
-    <div class="vac-slip-grid vac-slip-grid-4">
-      ${vacBoletaCell('Saldo antes', data.balanceBefore !== null ? `${data.balanceBefore} días` : '—')}
-      ${vacBoletaCell('Saldo después', data.balanceAfter !== null ? `${data.balanceAfter} días` : '—')}
-      ${vacBoletaCell('Sede', data.site?.name || '—')}
-      ${vacBoletaCell('Estado', data.statusLabel || VAC_STATUS_LABELS[data.req.status] || data.req.status)}
-    </div>
-    <div class="vac-slip-bar">Firmas y autorizaciones</div>
-    <div class="vac-slip-signatures">
-      <div><i></i><strong>Firma del empleado</strong></div>
-      <div><i></i><strong>Jefe de Talento Humano</strong></div>
-      <div><i></i><strong>Jefe inmediato${data.managerName ? `<small>${esc(data.managerName)}</small>` : ''}</strong></div>
-      <div><i>${hrFmtDate(data.req.created_at)}</i><strong>Fecha de solicitud</strong></div>
-    </div>
-    <div class="vac-slip-bar">Uso exclusivo de Recursos Humanos / Gerencia de Área</div>
-    <div class="vac-slip-grid vac-slip-grid-4">
-      ${vacBoletaCell('Jefe inmediato', data.managerApproval || 'Firma pendiente')}
-      ${vacBoletaCell('Gerencia de área', data.areaApproval || 'Firma pendiente')}
-      ${vacBoletaCell('Recursos Humanos', data.hrApproval || (data.req.status === 'approved' ? 'Aprobado' : (VAC_STATUS_LABELS[data.req.status] || data.req.status)))}
-      ${vacBoletaCell('Fecha aprobación RR. HH.', data.approvalDate ? hrFmtDate(data.approvalDate) : (data.req.decided_at ? hrFmtDate(data.req.decided_at) : '—'))}
-    </div>
-    <div class="vac-slip-bar">Observaciones</div>
-    <div class="vac-slip-observations">${esc(data.observations || data.req.decision_note || data.req.comment || '—')}</div>
-    <footer class="vac-slip-foot">Documento interno · Boleta generada en SIERRA Index</footer>
+    <section class="vac-slip-section">
+      <div class="vac-slip-section-title"><span>01</span><strong>Datos del colaborador</strong></div>
+      <div class="vac-slip-table">
+        <div class="vac-slip-grid vac-slip-grid-3">
+          ${vacBoletaCell('Código', data.emp.employee_code || '—')}
+          ${vacBoletaCell('Nombre del empleado', `${data.emp.first_name} ${data.emp.last_name}`)}
+          ${vacBoletaCell('Documento de identificación', data.identification)}
+        </div>
+        <div class="vac-slip-grid vac-slip-grid-4">
+          ${vacBoletaCell('Fecha de solicitud', hrFmtDate(data.req.created_at))}
+          ${vacBoletaCell('Fecha de ingreso', data.emp.hire_date ? hrFmtDate(data.emp.hire_date) : '—')}
+          ${vacBoletaCell('Puesto / cargo', data.emp.position || '—')}
+          ${vacBoletaCell('Departamento', data.emp.department || '—')}
+        </div>
+      </div>
+    </section>
+    <section class="vac-slip-section">
+      <div class="vac-slip-section-title"><span>02</span><strong>Periodo solicitado</strong></div>
+      <div class="vac-slip-table">
+        <div class="vac-slip-grid vac-slip-grid-4">
+          ${vacBoletaCell('Desde', hrFmtDate(data.req.start_date))}
+          ${vacBoletaCell('Hasta', hrFmtDate(data.req.end_date))}
+          ${vacBoletaCell('Regresa a sus labores', vacReturnDate(data.req.end_date))}
+          ${vacBoletaCell('Días solicitados', String(data.req.requested_days), 'vac-slip-emphasis')}
+        </div>
+        <div class="vac-slip-grid vac-slip-grid-4">
+          ${vacBoletaCell('Saldo antes', data.balanceBefore !== null ? `${data.balanceBefore} días` : '—')}
+          ${vacBoletaCell('Saldo después', data.balanceAfter !== null ? `${data.balanceAfter} días` : '—')}
+          ${vacBoletaCell('Sede', data.site?.name || '—')}
+          ${vacBoletaCell('Estado', data.statusLabel || VAC_STATUS_LABELS[data.req.status] || data.req.status)}
+        </div>
+      </div>
+    </section>
+    <section class="vac-slip-section">
+      <div class="vac-slip-section-title"><span>03</span><strong>Firmas y autorizaciones</strong></div>
+      <div class="vac-slip-signatures">
+        <div><i></i><strong>Firma del empleado</strong></div>
+        <div><i></i><strong>Jefe de Talento Humano</strong></div>
+        <div><i></i><strong>Jefe inmediato${data.managerName ? `<small>${esc(data.managerName)}</small>` : ''}</strong></div>
+        <div><i>${hrFmtDate(data.req.created_at)}</i><strong>Fecha de solicitud</strong></div>
+      </div>
+    </section>
+    <section class="vac-slip-section">
+      <div class="vac-slip-section-title"><span>04</span><strong>Control de aprobación</strong></div>
+      <div class="vac-slip-table">
+        <div class="vac-slip-grid vac-slip-grid-4">
+          ${vacBoletaCell('Jefe inmediato', data.managerApproval || 'Firma pendiente')}
+          ${vacBoletaCell('Gerencia de área', data.areaApproval || 'Firma pendiente')}
+          ${vacBoletaCell('Recursos Humanos', data.hrApproval || (data.req.status === 'approved' ? 'Aprobado' : (VAC_STATUS_LABELS[data.req.status] || data.req.status)))}
+          ${vacBoletaCell('Fecha aprobación RR. HH.', data.approvalDate ? hrFmtDate(data.approvalDate) : (data.req.decided_at ? hrFmtDate(data.req.decided_at) : '—'))}
+        </div>
+        <div class="vac-slip-observations"><span>Observaciones</span>${esc(data.observations || data.req.decision_note || data.req.comment || '—')}</div>
+      </div>
+    </section>
+    <footer class="vac-slip-foot"><span>Documento interno · SIERRA Index</span><span>Talento Humano</span></footer>
   </article>`
 }
 function vacPrintBoletaData(slipData) {
@@ -20362,36 +20374,45 @@ function vacPrintBoletaData(slipData) {
       @page { size:letter portrait; margin:5mm; }
       body.printing-vac-slip { margin:0 !important; background:#fff !important; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
       body.printing-vac-slip > *:not(#vac-print-root) { display:none !important; }
-      body.printing-vac-slip #vac-print-root { display:block !important; color:#183146; font-family:Arial,sans-serif; }
-      .vac-slip-copy { position:relative; box-sizing:border-box; height:132.5mm; overflow:hidden; border:.25mm solid #91a6b5; background:#fff; break-inside:avoid; page-break-inside:avoid; }
+      body.printing-vac-slip #vac-print-root { display:block !important; color:#202124; font-family:'Aeonik',Arial,sans-serif; }
+      .vac-slip-copy { --vac-accent:#16cdbe; --vac-ink:#202124; --vac-muted:#5d6368; --vac-line:#d8dadd; position:relative; box-sizing:border-box; height:132.5mm; padding:5.5mm 7mm 4.5mm; overflow:hidden; border:.25mm solid #cfd2d5; background:#fff; color:var(--vac-ink); break-inside:avoid; page-break-inside:avoid; }
       .vac-slip-copy + .vac-slip-copy { margin-top:2mm; }
-      .vac-slip-copy + .vac-slip-copy:before { content:'✂  CORTE'; position:absolute; z-index:2; top:-2.4mm; left:50%; transform:translateX(-50%); padding:0 2mm; color:#718794; background:#fff; font-size:5.5pt; letter-spacing:.12em; }
-      .vac-slip-head { height:17mm; padding:2mm 3mm; display:grid; grid-template-columns:25mm 1fr 22mm; align-items:center; gap:3mm; color:#fff; background:#183f63; }
-      .vac-slip-logo { width:23mm; height:12mm; display:flex; align-items:center; justify-content:flex-start; overflow:hidden; }
-      .vac-slip-logo img { display:block; max-width:100%; max-height:100%; object-fit:contain; object-position:left center; }
-      .vac-slip-logo-fallback { font-size:5pt; line-height:1.1; font-weight:700; }
-      .vac-slip-title { min-width:0; text-align:center; }
-      .vac-slip-title strong { display:block; font-family:'Replica',Arial,sans-serif; font-size:10pt; line-height:1.05; }
-      .vac-slip-title span { display:block; margin-top:1mm; color:#d4e3ec; font-size:6.3pt; font-weight:800; letter-spacing:.1em; }
-      .vac-slip-kind { text-align:right; font-size:6pt; font-weight:900; letter-spacing:.1em; }
-      .vac-slip-kind b { display:block; margin-top:1mm; color:#f2c94c; font-family:'Aeonik Mono',monospace; font-size:5.4pt; letter-spacing:0; }
-      .vac-slip-bar { padding:1mm 2.5mm; color:#fff; background:#2a5d87; font-size:5.8pt; font-weight:900; text-align:center; letter-spacing:.08em; text-transform:uppercase; }
+      .vac-slip-copy + .vac-slip-copy:before { content:'✂  CORTE'; position:absolute; z-index:2; top:-2.4mm; left:50%; transform:translateX(-50%); padding:0 2mm; color:#6b6b73; background:#fff; font:600 5.2pt/1 'Aeonik',Arial,sans-serif; letter-spacing:.12em; }
+      .vac-slip-head { min-height:19mm; display:grid; grid-template-columns:29mm minmax(0,1fr) 36mm; align-items:stretch; border:.3mm solid #aeb2b7; border-radius:2mm; overflow:hidden; background:#fff; }
+      .vac-slip-logo { min-width:0; display:flex; align-items:center; justify-content:center; padding:2mm; border-right:.25mm solid var(--vac-line); overflow:hidden; }
+      .vac-slip-logo img { display:block; max-width:25mm; max-height:15mm; object-fit:contain; object-position:center; }
+      .vac-slip-logo-fallback { max-width:25mm; color:var(--vac-muted); font:400 5.2pt/1.15 'Aeonik',Arial,sans-serif; text-align:center; }
+      .vac-slip-title { min-width:0; display:flex; flex-direction:column; justify-content:center; padding:2.5mm 4mm; text-align:left; }
+      .vac-slip-title span { display:block; margin-bottom:1mm; color:var(--vac-muted); font:650 5.5pt/1.15 'Aeonik',Arial,sans-serif; letter-spacing:.075em; text-transform:uppercase; }
+      .vac-slip-title strong { display:block; overflow:hidden; color:var(--vac-ink); font:400 11pt/1.05 'Replica',Arial,sans-serif; white-space:nowrap; text-overflow:ellipsis; }
+      .vac-slip-kind { position:relative; display:flex; flex-direction:column; justify-content:center; padding:2.5mm 3mm; border-left:.25mm solid #2b2b2b; background:#2b2b2b; color:#fff; text-align:left; }
+      .vac-slip-kind:before { content:''; position:absolute; left:3mm; top:0; width:10mm; height:.7mm; background:var(--vac-accent); }
+      .vac-slip-kind span { color:#d7d7da; font:650 5.2pt/1.1 'Aeonik',Arial,sans-serif; letter-spacing:.08em; text-transform:uppercase; }
+      .vac-slip-kind strong { display:block; margin:1mm 0 .8mm; color:#fff; font:700 7.4pt/1 'Aeonik',Arial,sans-serif; letter-spacing:.05em; }
+      .vac-slip-kind b { display:block; overflow:hidden; color:#ededed; font:400 5.4pt/1.1 'Aeonik Mono',monospace; white-space:nowrap; text-overflow:ellipsis; }
+      .vac-slip-section { margin-top:1.8mm; }
+      .vac-slip-section-title { display:flex; align-items:center; gap:2mm; padding:0 0 1mm; border-bottom:.25mm solid #c9c9ce; }
+      .vac-slip-section-title span { color:var(--vac-muted); font:500 5.4pt/1 'Aeonik Mono',monospace; }
+      .vac-slip-section-title strong { color:var(--vac-ink); font:700 6.4pt/1.1 'Replica',Arial,sans-serif; }
+      .vac-slip-table { overflow:hidden; border:.25mm solid var(--vac-line); border-top:0; border-radius:0 0 1.2mm 1.2mm; }
       .vac-slip-grid { display:grid; }
+      .vac-slip-grid + .vac-slip-grid { border-top:.25mm solid var(--vac-line); }
       .vac-slip-grid-3 { grid-template-columns:1fr 2fr 1.3fr; }
       .vac-slip-grid-4 { grid-template-columns:repeat(4,minmax(0,1fr)); }
-      .vac-slip-cell { box-sizing:border-box; min-width:0; min-height:10.3mm; padding:1.2mm 2mm; border-right:.2mm solid #c7d3db; border-bottom:.2mm solid #c7d3db; }
+      .vac-slip-cell { box-sizing:border-box; min-width:0; min-height:8.1mm; padding:1mm 1.8mm; border-right:.25mm solid var(--vac-line); }
       .vac-slip-cell:last-child { border-right:0; }
-      .vac-slip-cell span { display:block; margin-bottom:.8mm; color:#526a7a; font-size:5.1pt; font-weight:800; text-transform:uppercase; }
-      .vac-slip-cell strong { display:block; overflow:hidden; color:#1e5b86; font-size:6.7pt; line-height:1.15; white-space:nowrap; text-overflow:ellipsis; }
-      .vac-slip-emphasis { background:#edf5f9; text-align:center; }
-      .vac-slip-emphasis strong { color:#183f63; font-size:8.5pt; }
-      .vac-slip-signatures { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4mm; padding:4.5mm 4mm 1.8mm; }
-      .vac-slip-signatures > div { min-width:0; text-align:center; font-size:5.2pt; }
-      .vac-slip-signatures i { display:flex; height:4.5mm; align-items:flex-end; justify-content:center; border-bottom:.25mm solid #728997; color:#1e5b86; font-size:6pt; font-style:normal; }
-      .vac-slip-signatures strong { display:block; margin-top:1mm; }
-      .vac-slip-signatures small { display:block; margin-top:.5mm; overflow:hidden; color:#657987; font-size:4.5pt; font-weight:400; white-space:nowrap; text-overflow:ellipsis; }
-      .vac-slip-observations { box-sizing:border-box; height:9mm; padding:1.4mm 2mm; border-bottom:.2mm solid #c7d3db; color:#1e5b86; font-size:5.8pt; white-space:pre-wrap; }
-      .vac-slip-foot { position:absolute; right:3mm; bottom:1mm; color:#758894; font-size:4.7pt; }
+      .vac-slip-cell span { display:block; margin-bottom:.7mm; color:var(--vac-muted); font:650 4.6pt/1.1 'Aeonik',Arial,sans-serif; letter-spacing:.045em; text-transform:uppercase; }
+      .vac-slip-cell strong { display:block; overflow:hidden; color:var(--vac-ink); font:500 6pt/1.15 'Aeonik',Arial,sans-serif; white-space:nowrap; text-overflow:ellipsis; }
+      .vac-slip-emphasis { box-shadow:inset .8mm 0 0 var(--vac-accent); background:#f4f5f5; }
+      .vac-slip-emphasis strong { font:700 7.2pt/1.1 'Aeonik Mono',monospace; }
+      .vac-slip-signatures { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4mm; padding:3.8mm 3mm 1.6mm; border:.25mm solid var(--vac-line); border-top:0; border-radius:0 0 1.2mm 1.2mm; }
+      .vac-slip-signatures > div { min-width:0; text-align:left; font:500 4.9pt/1.2 'Aeonik',Arial,sans-serif; }
+      .vac-slip-signatures i { display:flex; height:4mm; align-items:flex-end; border-bottom:.25mm solid #8e9398; color:var(--vac-muted); font:400 5.2pt/1 'Aeonik',Arial,sans-serif; font-style:normal; }
+      .vac-slip-signatures strong { display:block; margin-top:.8mm; color:var(--vac-ink); }
+      .vac-slip-signatures small { display:block; margin-top:.4mm; overflow:hidden; color:var(--vac-muted); font-size:4.3pt; font-weight:400; white-space:nowrap; text-overflow:ellipsis; }
+      .vac-slip-observations { box-sizing:border-box; min-height:7mm; padding:1mm 1.8mm; border-top:.25mm solid var(--vac-line); color:var(--vac-ink); font:400 5.3pt/1.25 'Aeonik',Arial,sans-serif; white-space:pre-wrap; }
+      .vac-slip-observations span { display:block; margin-bottom:.6mm; color:var(--vac-muted); font:650 4.6pt/1.1 'Aeonik',Arial,sans-serif; letter-spacing:.045em; text-transform:uppercase; }
+      .vac-slip-foot { position:absolute; right:7mm; bottom:1.6mm; left:7mm; display:flex; justify-content:space-between; padding-top:1mm; border-top:.25mm solid #e5e5e5; color:var(--vac-muted); font:500 4.3pt/1 'Aeonik',Arial,sans-serif; letter-spacing:.055em; text-transform:uppercase; }
     }
   `
   document.head.appendChild(pageStyle)
