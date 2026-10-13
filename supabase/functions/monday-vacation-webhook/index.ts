@@ -55,6 +55,11 @@ function nextDate(value:string) {
   date.setUTCDate(date.getUTCDate() + 1)
   return date.toISOString().slice(0,10)
 }
+function eventDate(value:unknown) {
+  const date = new Date(clean(value))
+  if (Number.isNaN(date.getTime())) return ''
+  return new Intl.DateTimeFormat('en-CA', { timeZone:'America/Tegucigalpa', year:'numeric', month:'2-digit', day:'2-digit' }).format(date)
+}
 function folio(requestDate:string, code:string, itemId:string) {
   const date = requestDate.replaceAll('-','').slice(2)
   return [date, clean(code) || itemId].filter(Boolean).join('-')
@@ -192,7 +197,7 @@ async function processEvent(event:any, token:string) {
     partialTime:normalize(timeType).includes('parcial') ? columnText(item,COLUMNS.partialTime) : '',
     managerApproval:manager ? `Aprobado - ${manager}` : 'Aprobado',
     hrApproval:hr ? `Finalizado - ${hr}` : TARGET_STATUS,
-    approvalDate:columnText(item,COLUMNS.approvalDate),
+    approvalDate:columnText(item,COLUMNS.approvalDate) || eventDate(event?.triggerTime || event?.triggered_at) || requestDate,
     observations:columnText(item,COLUMNS.observations),
   }
   const logo = await fetchCompanyLogo(identity.logoUrl)
@@ -228,4 +233,4 @@ Deno.serve(async req => {
   return json({ ok:true, queued:true })
 })
 
-export { COLUMNS, BOARD_ID, STATUS_COLUMN_ID, OUTPUT_COLUMN_ID, TARGET_STATUS, parseTimeline, nextDate, folio, processEvent }
+export { COLUMNS, BOARD_ID, STATUS_COLUMN_ID, OUTPUT_COLUMN_ID, TARGET_STATUS, parseTimeline, nextDate, eventDate, folio, processEvent }
