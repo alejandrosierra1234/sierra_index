@@ -14,11 +14,21 @@ assert.match(functionSource, /const TARGET_STATUS = 'Finalizado'/)
 assert.match(functionSource, /body\?\.challenge/)
 assert.match(functionSource, /MONDAY_VACATIONS_WEBHOOK_SECRET/)
 assert.match(functionSource, /normalize\(columnText\(item,COLUMNS\.status\)\)/)
+assert.match(functionSource, /\.\.\. on FormulaValue \{ display_value \}/)
+assert.match(functionSource, /source\?\.display_value \?\? source\?\.text/)
+assert.match(functionSource, /@resvg\/resvg-wasm@2\.6\.2/)
+assert.match(functionSource, /image\/svg\+xml/)
+assert.match(functionSource, /client\.storage\.from\(location\.bucket\)\.download\(location\.path\)/)
+assert.match(functionSource, /fetchCompanyLogo\(identity\.logoUrl\)/)
 assert.match(functionSource, /columnFiles\(item,COLUMNS\.output\).*outputName/)
 assert.match(functionSource, /add_file_to_column/)
 assert.match(functionSource, /variables\[file\]/)
 assert.match(functionSource, /companyIdentity\(\)/)
 assert.match(functionSource, /createVacationPdf\(pdfLib/)
+assert.doesNotMatch(functionSource, /employeeSignature:/)
+assert.doesNotMatch(functionSource, /managerSignature:/)
+assert.match(pdfSource, /'Fecha de solicitud', null, data\.requestDate/)
+assert.match(pdfSource, /'Fecha de aprobación RR\. HH\.', data\.approvalDate/)
 
 ;(async () => {
   const moduleUrl = 'data:text/javascript;base64,' + Buffer.from(pdfSource).toString('base64')
@@ -27,7 +37,7 @@ assert.match(functionSource, /createVacationPdf\(pdfLib/)
     companyName:'Northern Textiles, S.A. de C.V.', folio:'261012-NT-00255', employeeCode:'NT-00255', requestDate:'2026-10-12',
     employeeName:'Daniel Edgardo Bustamante Carbajal', identification:'801197901904', department:'Production', site:'Northern Textiles',
     timeType:'Días completos', startDate:'2026-10-22', endDate:'2026-10-23', returnDate:'2026-10-24', requestedDays:'2',
-    status:'Finalizado', partialTime:'', managerApproval:'Aprobado', hrApproval:'Finalizado', observations:'Boleta generada desde monday.com.',
+    status:'Finalizado', partialTime:'', managerApproval:'Aprobado', hrApproval:'Finalizado', approvalDate:'2026-10-12', observations:'Boleta generada desde monday.com.',
   })
   const outputDir = path.join(root, 'tmp/pdfs')
   fs.mkdirSync(outputDir, { recursive:true })
