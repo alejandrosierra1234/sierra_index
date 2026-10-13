@@ -20135,6 +20135,69 @@ async function vacBalanceSubmit() {
    approved request. Snapshots balance before/after into
    vacation_documents so the printed slip never drifts from what was
    true at generation time, even if the balance is corrected later. ── */
+function vacReturnDate(endDate) {
+  const date = parseDateOnly(endDate)
+  if (!date) return '—'
+  date.setUTCDate(date.getUTCDate() + 1)
+  return hrFmtDate(date.toISOString().slice(0, 10))
+}
+function vacBoletaCell(label, value, extraClass = '') {
+  return `<div class="vac-slip-cell ${extraClass}"><span>${esc(label)}</span><strong>${esc(value ?? '—')}</strong></div>`
+}
+function vacBoletaCopyHtml(kind, data) {
+  const logo = data.company?.logo_url
+    ? `<img src="${escAttr(data.company.logo_url)}" alt="Logo de ${escAttr(data.companyName)}">`
+    : `<span class="vac-slip-logo-fallback">${esc(data.companyName)}</span>`
+  return `<article class="vac-slip-copy">
+    <header class="vac-slip-head">
+      <div class="vac-slip-logo">${logo}</div>
+      <div class="vac-slip-title"><strong>${esc(data.companyName)}</strong><span>SOLICITUD DE VACACIONES</span></div>
+      <div class="vac-slip-kind">${esc(kind)}<b>${esc(data.folio)}</b></div>
+    </header>
+    <div class="vac-slip-bar">Datos del colaborador</div>
+    <div class="vac-slip-grid vac-slip-grid-3">
+      ${vacBoletaCell('Código', data.emp.employee_code || '—')}
+      ${vacBoletaCell('Nombre del empleado', `${data.emp.first_name} ${data.emp.last_name}`)}
+      ${vacBoletaCell('Documento de identificación', data.identification)}
+    </div>
+    <div class="vac-slip-grid vac-slip-grid-4">
+      ${vacBoletaCell('Fecha de solicitud', hrFmtDate(data.req.created_at))}
+      ${vacBoletaCell('Fecha de ingreso', data.emp.hire_date ? hrFmtDate(data.emp.hire_date) : '—')}
+      ${vacBoletaCell('Puesto / cargo', data.emp.position || '—')}
+      ${vacBoletaCell('Departamento', data.emp.department || '—')}
+    </div>
+    <div class="vac-slip-bar">Periodo solicitado</div>
+    <div class="vac-slip-grid vac-slip-grid-4">
+      ${vacBoletaCell('Desde', hrFmtDate(data.req.start_date))}
+      ${vacBoletaCell('Hasta', hrFmtDate(data.req.end_date))}
+      ${vacBoletaCell('Regresa a sus labores', vacReturnDate(data.req.end_date))}
+      ${vacBoletaCell('Días hábiles solicitados', String(data.req.requested_days), 'vac-slip-emphasis')}
+    </div>
+    <div class="vac-slip-grid vac-slip-grid-4">
+      ${vacBoletaCell('Saldo antes', data.balanceBefore !== null ? `${data.balanceBefore} días` : '—')}
+      ${vacBoletaCell('Saldo después', data.balanceAfter !== null ? `${data.balanceAfter} días` : '—')}
+      ${vacBoletaCell('Sede', data.site?.name || '—')}
+      ${vacBoletaCell('Estado', VAC_STATUS_LABELS[data.req.status] || data.req.status)}
+    </div>
+    <div class="vac-slip-bar">Firmas y autorizaciones</div>
+    <div class="vac-slip-signatures">
+      <div><i></i><strong>Firma del empleado</strong></div>
+      <div><i></i><strong>Jefe de Talento Humano</strong></div>
+      <div><i></i><strong>Jefe inmediato${data.managerName ? `<small>${esc(data.managerName)}</small>` : ''}</strong></div>
+      <div><i>${hrFmtDate(data.req.created_at)}</i><strong>Fecha de solicitud</strong></div>
+    </div>
+    <div class="vac-slip-bar">Uso exclusivo de Recursos Humanos / Gerencia de Área</div>
+    <div class="vac-slip-grid vac-slip-grid-4">
+      ${vacBoletaCell('Jefe inmediato', 'Firma pendiente')}
+      ${vacBoletaCell('Gerencia de área', 'Firma pendiente')}
+      ${vacBoletaCell('Recursos Humanos', data.req.status === 'approved' ? 'Aprobado' : (VAC_STATUS_LABELS[data.req.status] || data.req.status))}
+      ${vacBoletaCell('Fecha aprobación RR. HH.', data.req.decided_at ? hrFmtDate(data.req.decided_at) : '—')}
+    </div>
+    <div class="vac-slip-bar">Observaciones</div>
+    <div class="vac-slip-observations">${esc(data.req.decision_note || data.req.comment || '—')}</div>
+    <footer class="vac-slip-foot">Documento interno · Saldo registrado al generar la boleta</footer>
+  </article>`
+}
 async function vacGenerateBoleta(requestId) {
   const req = _badge.vacationRequests.find(r => r.id === requestId)
   if (!req) return
@@ -20151,36 +20214,64 @@ async function vacGenerateBoleta(requestId) {
   })
   if (error) { toast('Error al generar la boleta: ' + error.message); return }
   const site = _badge.sites.find(s => s.id === emp.site_id)
+  const companies = Object.values(_badge.companies || {}).flat()
+  const company = (site && companies.find(c => String(c.id) === String(site.company_id)))
+    || companies.find(c => c.name === emp.company || c.legal_name === emp.company)
   const mgrRel = orgCurrentManagerRelationship(emp.id)
   const mgr = mgrRel ? orgEmpById(mgrRel.manager_employee_id) : null
+  const companyName = company?.legal_name || company?.name || emp.company || 'Empresa por definir'
+  const identification = [emp.identification_type, emp.identification_number].filter(Boolean).join(' · ') || '—'
+  const folioDate = String(req.created_at || '').slice(0, 10).replaceAll('-', '').slice(2)
+  const folio = [folioDate, emp.employee_code].filter(Boolean).join('-') || '—'
+  const slipData = {
+    req, emp, site, company, companyName, identification, folio,
+    balanceBefore, balanceAfter,
+    managerName: mgr ? orgFullName(mgr) : '',
+  }
   const root = document.createElement('div')
   root.id = 'vac-print-root'
-  root.innerHTML = `
-    <div style="max-width:640px;margin:0 auto;padding:2rem;font-family:Arial,sans-serif;color:#111">
-      <h2 style="margin:0 0 0.2rem">Boleta de vacaciones</h2>
-      <div style="color:#555;font-size:0.85rem;margin-bottom:1.2rem">Generada ${hrFmtDate(new Date().toISOString())}</div>
-      <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
-        ${[
-          ['Colaborador', `${emp.first_name} ${emp.last_name}`],
-          ['Código', emp.employee_code || '—'],
-          ['Empresa', emp.company || '—'],
-          ['Sede', site?.name || '—'],
-          ['Departamento', emp.department || '—'],
-          ['Puesto', emp.position || '—'],
-          ['Jefe inmediato', mgr ? orgFullName(mgr) : '—'],
-          ['Fechas', `${hrFmtDate(req.start_date)} – ${hrFmtDate(req.end_date)}`],
-          ['Días hábiles', String(req.requested_days)],
-          ['Saldo antes', balanceBefore !== null ? `${balanceBefore} días` : '—'],
-          ['Saldo después', balanceAfter !== null ? `${balanceAfter} días` : '—'],
-          ['Aprobado por', req.decided_at ? hrFmtDate(req.decided_at) : '—'],
-        ].map(([k, v]) => `<tr><td style="padding:0.35rem 0;color:#555;width:40%">${esc(k)}</td><td style="padding:0.35rem 0;font-weight:600">${esc(v)}</td></tr>`).join('')}
-      </table>
-    </div>
-  `
+  root.innerHTML = vacBoletaCopyHtml('ORIGINAL', slipData) + vacBoletaCopyHtml('COPIA', slipData)
   document.body.appendChild(root)
   const pageStyle = document.createElement('style')
   pageStyle.id = 'vac-page-style'
-  pageStyle.textContent = 'body.printing-vac-slip > *:not(#vac-print-root) { display:none !important; } body.printing-vac-slip #vac-print-root { display:block !important; }'
+  pageStyle.textContent = `
+    #vac-print-root { display:none; }
+    @media print {
+      @page { size:letter portrait; margin:5mm; }
+      body.printing-vac-slip { margin:0 !important; background:#fff !important; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+      body.printing-vac-slip > *:not(#vac-print-root) { display:none !important; }
+      body.printing-vac-slip #vac-print-root { display:block !important; color:#183146; font-family:Arial,sans-serif; }
+      .vac-slip-copy { position:relative; box-sizing:border-box; height:132.5mm; overflow:hidden; border:.25mm solid #91a6b5; background:#fff; break-inside:avoid; page-break-inside:avoid; }
+      .vac-slip-copy + .vac-slip-copy { margin-top:2mm; }
+      .vac-slip-copy + .vac-slip-copy:before { content:'✂  CORTE'; position:absolute; z-index:2; top:-2.4mm; left:50%; transform:translateX(-50%); padding:0 2mm; color:#718794; background:#fff; font-size:5.5pt; letter-spacing:.12em; }
+      .vac-slip-head { height:17mm; padding:2mm 3mm; display:grid; grid-template-columns:25mm 1fr 22mm; align-items:center; gap:3mm; color:#fff; background:#183f63; }
+      .vac-slip-logo { width:23mm; height:12mm; display:flex; align-items:center; justify-content:flex-start; overflow:hidden; }
+      .vac-slip-logo img { display:block; max-width:100%; max-height:100%; object-fit:contain; object-position:left center; }
+      .vac-slip-logo-fallback { font-size:5pt; line-height:1.1; font-weight:700; }
+      .vac-slip-title { min-width:0; text-align:center; }
+      .vac-slip-title strong { display:block; font-family:'Replica',Arial,sans-serif; font-size:10pt; line-height:1.05; }
+      .vac-slip-title span { display:block; margin-top:1mm; color:#d4e3ec; font-size:6.3pt; font-weight:800; letter-spacing:.1em; }
+      .vac-slip-kind { text-align:right; font-size:6pt; font-weight:900; letter-spacing:.1em; }
+      .vac-slip-kind b { display:block; margin-top:1mm; color:#f2c94c; font-family:'Aeonik Mono',monospace; font-size:5.4pt; letter-spacing:0; }
+      .vac-slip-bar { padding:1mm 2.5mm; color:#fff; background:#2a5d87; font-size:5.8pt; font-weight:900; text-align:center; letter-spacing:.08em; text-transform:uppercase; }
+      .vac-slip-grid { display:grid; }
+      .vac-slip-grid-3 { grid-template-columns:1fr 2fr 1.3fr; }
+      .vac-slip-grid-4 { grid-template-columns:repeat(4,minmax(0,1fr)); }
+      .vac-slip-cell { box-sizing:border-box; min-width:0; min-height:10.3mm; padding:1.2mm 2mm; border-right:.2mm solid #c7d3db; border-bottom:.2mm solid #c7d3db; }
+      .vac-slip-cell:last-child { border-right:0; }
+      .vac-slip-cell span { display:block; margin-bottom:.8mm; color:#526a7a; font-size:5.1pt; font-weight:800; text-transform:uppercase; }
+      .vac-slip-cell strong { display:block; overflow:hidden; color:#1e5b86; font-size:6.7pt; line-height:1.15; white-space:nowrap; text-overflow:ellipsis; }
+      .vac-slip-emphasis { background:#edf5f9; text-align:center; }
+      .vac-slip-emphasis strong { color:#183f63; font-size:8.5pt; }
+      .vac-slip-signatures { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4mm; padding:4.5mm 4mm 1.8mm; }
+      .vac-slip-signatures > div { min-width:0; text-align:center; font-size:5.2pt; }
+      .vac-slip-signatures i { display:flex; height:4.5mm; align-items:flex-end; justify-content:center; border-bottom:.25mm solid #728997; color:#1e5b86; font-size:6pt; font-style:normal; }
+      .vac-slip-signatures strong { display:block; margin-top:1mm; }
+      .vac-slip-signatures small { display:block; margin-top:.5mm; overflow:hidden; color:#657987; font-size:4.5pt; font-weight:400; white-space:nowrap; text-overflow:ellipsis; }
+      .vac-slip-observations { box-sizing:border-box; height:9mm; padding:1.4mm 2mm; border-bottom:.2mm solid #c7d3db; color:#1e5b86; font-size:5.8pt; white-space:pre-wrap; }
+      .vac-slip-foot { position:absolute; right:3mm; bottom:1mm; color:#758894; font-size:4.7pt; }
+    }
+  `
   document.head.appendChild(pageStyle)
   document.body.classList.add('printing-vac-slip')
   const cleanup = () => {
