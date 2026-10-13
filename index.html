@@ -19991,13 +19991,12 @@ async function loadVacManualCompanies() {
   }
 }
 function vacManualDefaults() {
-  const today = hrToday().toISOString().slice(0, 10)
   return {
     companyId: '', companyName: '', companyLogo: '',
-    employeeCode: '', employeeName: '', identificationType: 'Documento de identidad', identificationNumber: '', requestDate: today,
+    employeeCode: '', employeeName: '', identificationType: '', identificationNumber: '', requestDate: '',
     hireDate: '', position: '', department: '', siteName: '', managerName: '', startDate: '', endDate: '', returnDate: '',
-    daysRequested: '', balanceBefore: '', balanceAfter: '', managerApproval: 'Pendiente', areaApproval: 'Pendiente',
-    hrApproval: 'Pendiente', approvalDate: '', observations: '',
+    daysRequested: '', balanceBefore: '', balanceAfter: '', managerApproval: '', areaApproval: '',
+    hrApproval: '', approvalDate: '', observations: '',
   }
 }
 function vacManualEnsure() { if (!_vacManual) _vacManual = vacManualDefaults() }
@@ -20296,9 +20295,10 @@ function vacBoletaCell(label, value, extraClass = '') {
 }
 function vacBoletaCopyHtml(kind, data) {
   const blank = Boolean(data.blank)
-  const empty = blank ? '' : '—'
-  const dateLabel = value => blank ? '' : hrFmtDate(value)
-  const returnDateLabel = value => blank ? '' : vacReturnDate(value)
+  const manual = Boolean(data.manual)
+  const empty = blank || manual ? '' : '—'
+  const dateLabel = value => value ? hrFmtDate(value) : empty
+  const returnDateLabel = value => value ? vacReturnDate(value) : empty
   const employeeName = [data.emp.first_name, data.emp.last_name].filter(Boolean).join(' ')
   const logo = data.company?.logo_url
     ? `<img src="${escAttr(data.company.logo_url)}" alt="Logo de ${escAttr(data.companyName)}">`
@@ -20321,7 +20321,7 @@ function vacBoletaCopyHtml(kind, data) {
         </div>
         <div class="vac-slip-grid vac-slip-grid-2">
           ${vacBoletaCell('Documento de identificación', data.identification || empty)}
-          ${vacBoletaCell('Fecha de ingreso', blank ? '' : (data.emp.hire_date ? hrFmtDate(data.emp.hire_date) : '—'))}
+          ${vacBoletaCell('Fecha de ingreso', data.emp.hire_date ? hrFmtDate(data.emp.hire_date) : empty)}
         </div>
         <div class="vac-slip-grid vac-slip-grid-2">
           ${vacBoletaCell('Puesto / cargo', data.emp.position || empty)}
@@ -20338,15 +20338,15 @@ function vacBoletaCopyHtml(kind, data) {
         </div>
         <div class="vac-slip-grid vac-slip-grid-2">
           ${vacBoletaCell('Regresa a sus labores', returnDateLabel(data.req.end_date))}
-          ${vacBoletaCell('Días solicitados', blank ? '' : String(data.req.requested_days), 'vac-slip-emphasis')}
+          ${vacBoletaCell('Días solicitados', data.req.requested_days === '' || data.req.requested_days == null ? empty : String(data.req.requested_days), 'vac-slip-emphasis')}
         </div>
         <div class="vac-slip-grid vac-slip-grid-2">
-          ${vacBoletaCell('Saldo antes', blank ? '' : (data.balanceBefore !== null ? `${data.balanceBefore} días` : '—'))}
-          ${vacBoletaCell('Saldo después', blank ? '' : (data.balanceAfter !== null ? `${data.balanceAfter} días` : '—'))}
+          ${vacBoletaCell('Saldo antes', data.balanceBefore !== null && data.balanceBefore !== '' ? `${data.balanceBefore} días` : empty)}
+          ${vacBoletaCell('Saldo después', data.balanceAfter !== null && data.balanceAfter !== '' ? `${data.balanceAfter} días` : empty)}
         </div>
         <div class="vac-slip-grid vac-slip-grid-2">
           ${vacBoletaCell('Sede', data.site?.name || empty)}
-          ${vacBoletaCell('Estado', blank ? '' : (data.statusLabel || VAC_STATUS_LABELS[data.req.status] || data.req.status))}
+          ${vacBoletaCell('Estado', data.statusLabel || (manual || blank ? '' : (VAC_STATUS_LABELS[data.req.status] || data.req.status)))}
         </div>
       </div>
     </section>
@@ -20363,14 +20363,14 @@ function vacBoletaCopyHtml(kind, data) {
       <div class="vac-slip-section-title"><strong>Control de aprobación</strong></div>
       <div class="vac-slip-table">
         <div class="vac-slip-grid vac-slip-grid-2">
-          ${vacBoletaCell('Jefe inmediato', blank ? '' : (data.managerApproval || 'Firma pendiente'))}
-          ${vacBoletaCell('Gerencia de área', blank ? '' : (data.areaApproval || 'Firma pendiente'))}
+          ${vacBoletaCell('Jefe inmediato', data.managerApproval || (manual || blank ? '' : 'Firma pendiente'))}
+          ${vacBoletaCell('Gerencia de área', data.areaApproval || (manual || blank ? '' : 'Firma pendiente'))}
         </div>
         <div class="vac-slip-grid vac-slip-grid-2">
-          ${vacBoletaCell('Recursos Humanos', blank ? '' : (data.hrApproval || (data.req.status === 'approved' ? 'Aprobado' : (VAC_STATUS_LABELS[data.req.status] || data.req.status))))}
-          ${vacBoletaCell('Fecha aprobación RR. HH.', blank ? '' : (data.approvalDate ? hrFmtDate(data.approvalDate) : (data.req.decided_at ? hrFmtDate(data.req.decided_at) : '—')))}
+          ${vacBoletaCell('Recursos Humanos', data.hrApproval || (manual || blank ? '' : (data.req.status === 'approved' ? 'Aprobado' : (VAC_STATUS_LABELS[data.req.status] || data.req.status))))}
+          ${vacBoletaCell('Fecha aprobación RR. HH.', data.approvalDate ? hrFmtDate(data.approvalDate) : (data.req.decided_at ? hrFmtDate(data.req.decided_at) : empty))}
         </div>
-        <div class="vac-slip-observations"><span>Observaciones</span>${esc(blank ? '' : (data.observations || data.req.decision_note || data.req.comment || '—'))}</div>
+        <div class="vac-slip-observations"><span>Observaciones</span>${esc(data.observations || data.req.decision_note || data.req.comment || empty)}</div>
       </div>
     </section>
     <footer class="vac-slip-foot"><span>Documento interno</span><span>Talento Humano</span></footer>
@@ -20454,14 +20454,15 @@ function vacManualSlipData() {
   const companyName = m.companyName.trim() || 'Empresa por definir'
   const folioDate = String(m.requestDate || '').replaceAll('-', '').slice(2)
   return {
+    manual:true,
     company: { logo_url:m.companyLogo || null }, companyName,
-    folio:[folioDate, m.employeeCode.trim()].filter(Boolean).join('-') || '—',
+    folio:[folioDate, m.employeeCode.trim()].filter(Boolean).join('-'),
     emp:{ employee_code:m.employeeCode, first_name:m.employeeName, last_name:'', hire_date:m.hireDate, position:m.position, department:m.department },
-    identification:[m.identificationType, m.identificationNumber].filter(Boolean).join(' · ') || '—',
-    req:{ created_at:m.requestDate, start_date:m.startDate, end_date:m.endDate, requested_days:m.daysRequested || '—', status:'manual', decided_at:m.approvalDate || null, comment:m.observations },
-    site:{ name:m.siteName || '—' }, managerName:m.managerName,
+    identification:[m.identificationType, m.identificationNumber].filter(Boolean).join(' · '),
+    req:{ created_at:m.requestDate, start_date:m.startDate, end_date:m.endDate, requested_days:m.daysRequested, status:'manual', decided_at:m.approvalDate || null, comment:m.observations },
+    site:{ name:m.siteName }, managerName:m.managerName,
     balanceBefore:m.balanceBefore === '' ? null : Number(m.balanceBefore), balanceAfter:m.balanceAfter === '' ? null : Number(m.balanceAfter),
-    statusLabel:'Lista para firma', managerApproval:m.managerApproval, areaApproval:m.areaApproval, hrApproval:m.hrApproval,
+    statusLabel:'', managerApproval:m.managerApproval, areaApproval:m.areaApproval, hrApproval:m.hrApproval,
     approvalDate:m.approvalDate, observations:m.observations,
   }
 }
