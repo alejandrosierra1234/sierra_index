@@ -20445,10 +20445,7 @@ function vacManualSlipData() {
 }
 function vacPrintManualBoleta() {
   vacManualEnsure()
-  if (!_vacManual.companyName.trim() || !_vacManual.employeeName.trim() || !_vacManual.identificationNumber.trim() || !_vacManual.startDate || !_vacManual.endDate || !_vacManual.daysRequested) {
-    toast('Completa empresa, nombre, identificación, fechas y días solicitados')
-    return
-  }
+  // Temporal: permite imprimir el formato en blanco o parcialmente lleno.
   vacPrintBoletaData(vacManualSlipData())
 }
 async function vacGenerateBoleta(requestId) {
