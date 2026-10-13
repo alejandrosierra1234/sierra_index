@@ -19888,7 +19888,8 @@ function renderVacationsView() {
         .vac-manual-preview-badge{flex:0 0 auto;padding:.25rem .45rem;border-radius:999px;background:var(--accent-light);color:var(--accent-dark);font-size:.62rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
         .vac-manual-preview{width:min(100%,430px);margin:0 auto;overflow:hidden;border-radius:8px;box-shadow:0 12px 30px rgba(13,32,46,.12)}
         .vac-manual-preview .vac-slip-copy{--vac-accent:#007d73;--vac-ink:#202124;--vac-muted:#5d6368;--vac-line:#d2d5d7;position:relative;box-sizing:border-box;width:100%;aspect-ratio:139.7/215.9;overflow:hidden;padding:3.2% 3.5% 3%;border:1px solid #aeb2b7;background:#fff;color:var(--vac-ink);font-family:'Aeonik',Arial,sans-serif}
-        .vac-manual-preview .vac-slip-copy:before{content:attr(data-kind);position:absolute;z-index:0;top:51%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);color:#5d6368;font-family:'Replica',Arial,sans-serif;font-size:clamp(42px,5.5vw,64px);font-weight:700;letter-spacing:.08em;line-height:1;opacity:.075;white-space:nowrap;pointer-events:none}.vac-manual-preview .vac-slip-copy>*{position:relative;z-index:1}
+        .vac-manual-preview .vac-slip-copy:before{content:attr(data-kind);position:absolute;z-index:0;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);color:#5d6368;font-family:'Replica',Arial,sans-serif;font-size:clamp(42px,5.5vw,64px);font-weight:700;letter-spacing:.08em;line-height:1;opacity:.075;white-space:nowrap;pointer-events:none}.vac-manual-preview .vac-slip-copy>*{position:relative;z-index:1}
+        .vac-manual-preview .vac-slip-copy[data-kind="ORIGINAL"]:before{font-size:clamp(58px,7vw,76px)}.vac-manual-preview .vac-slip-copy[data-kind="COPIA"]:before{font-size:clamp(70px,8.5vw,90px)}
         .vac-manual-preview .vac-slip-head{min-height:14%;display:grid;grid-template-columns:23% 1fr;grid-template-areas:'logo title' 'logo kind';align-items:stretch;border:1px solid #aeb2b7;border-radius:4px;overflow:hidden;background:#fff}
         .vac-manual-preview .vac-slip-logo{grid-area:logo;display:flex;align-items:center;justify-content:center;padding:10%;border-right:1px solid var(--vac-line);overflow:hidden}.vac-manual-preview .vac-slip-logo img{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;object-position:center}.vac-manual-preview .vac-slip-logo-fallback{color:var(--vac-muted);font-size:6px;line-height:1.2;text-align:center}
         .vac-manual-preview .vac-slip-title{grid-area:title;display:flex;flex-direction:column;justify-content:center;min-width:0;padding:3.2% 5%;text-align:left}.vac-manual-preview .vac-slip-title small{display:block;margin-bottom:3px;color:var(--vac-accent);font-size:6px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}.vac-manual-preview .vac-slip-title strong{display:block;color:var(--vac-ink);font-family:'Replica',Arial,sans-serif;font-size:clamp(13px,1.3vw,17px);font-weight:400;line-height:1.05}.vac-manual-preview .vac-slip-title span{display:block;overflow:hidden;margin-top:4px;color:var(--vac-muted);font-size:clamp(7px,.65vw,9px);font-weight:500;line-height:1.15;white-space:nowrap;text-overflow:ellipsis}
@@ -20393,7 +20394,9 @@ function vacPrintBoletaData(slipData) {
       body.printing-vac-slip #vac-print-root { position:relative; display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.5mm; color:#202124; font-family:'Aeonik',Arial,sans-serif; }
       body.printing-vac-slip #vac-print-root:after { content:'CORTE'; position:absolute; z-index:3; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-90deg); padding:0 1.2mm; color:#5d6368; background:#fff; font:650 5.2pt/1 'Aeonik',Arial,sans-serif; letter-spacing:.1em; }
       .vac-slip-copy { --vac-accent:#007d73; --vac-ink:#202124; --vac-muted:#5d6368; --vac-line:#d2d5d7; position:relative; box-sizing:border-box; width:100%; min-width:0; height:209.9mm; padding:4mm 4.5mm 3.5mm; overflow:hidden; border:.25mm solid #aeb2b7; background:#fff; color:var(--vac-ink); break-inside:avoid; page-break-inside:avoid; }
-      .vac-slip-copy:before { content:attr(data-kind); position:absolute; z-index:0; top:51%; left:50%; transform:translate(-50%,-50%) rotate(-35deg); color:#5d6368; font:700 48pt/1 'Replica',Arial,sans-serif; letter-spacing:.08em; opacity:.075; white-space:nowrap; pointer-events:none; }
+      .vac-slip-copy:before { content:attr(data-kind); position:absolute; z-index:0; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-35deg); color:#5d6368; font:700 48pt/1 'Replica',Arial,sans-serif; letter-spacing:.08em; opacity:.075; white-space:nowrap; pointer-events:none; }
+      .vac-slip-copy[data-kind="ORIGINAL"]:before { font-size:68pt; }
+      .vac-slip-copy[data-kind="COPIA"]:before { font-size:82pt; }
       .vac-slip-copy > * { position:relative; z-index:1; }
       .vac-slip-head { min-height:29mm; display:grid; grid-template-columns:28mm minmax(0,1fr); grid-template-areas:'logo title' 'logo kind'; align-items:stretch; border:.3mm solid #aeb2b7; border-radius:2mm; overflow:hidden; background:#fff; }
       .vac-slip-logo { grid-area:logo; min-width:0; display:flex; align-items:center; justify-content:center; padding:2mm; border-right:.25mm solid var(--vac-line); overflow:hidden; }
@@ -20568,8 +20571,9 @@ function vacDrawBlankSlipPdf(pdf, data, kind, x, y, width, height, logo) {
   }
   pdf.setFillColor(255,255,255); setDraw([174,178,183]); pdf.setLineWidth(.28)
   pdf.rect(x, y, width, height, 'FD')
-  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(48); pdf.setTextColor(234,235,236)
-  pdf.text(kind, x + (width / 2), y + (height / 2), { align:'center', angle:35 })
+  const watermarkFontSize = kind === 'COPIA' ? 82 : 68
+  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(watermarkFontSize); pdf.setTextColor(234,235,236)
+  pdf.text(kind, x + (width / 2), y + (height / 2), { align:'center', baseline:'middle', angle:35 })
 
   const headerY = y + 4
   const headerHeight = 29
