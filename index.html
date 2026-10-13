@@ -20501,29 +20501,155 @@ function vacBlankFileName(companyName) {
     .replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase()
   return `boleta-vacaciones-vacia-${companySlug || 'empresa'}.pdf`
 }
-function vacFitSlipLogosForCapture(host) {
-  host.querySelectorAll('.vac-slip-logo img').forEach(img => {
-    const box = img.parentElement
-    const boxStyle = getComputedStyle(box)
-    const availableWidth = Math.max(1, box.clientWidth - parseFloat(boxStyle.paddingLeft) - parseFloat(boxStyle.paddingRight))
-    const availableHeight = Math.max(1, box.clientHeight - parseFloat(boxStyle.paddingTop) - parseFloat(boxStyle.paddingBottom))
-    const ratio = img.naturalWidth > 0 && img.naturalHeight > 0 ? img.naturalWidth / img.naturalHeight : 1
-    let width = availableWidth
-    let height = width / ratio
-    if (height > availableHeight) {
-      height = availableHeight
-      width = height * ratio
-    }
-    Object.assign(img.style, {
-      width:`${Math.max(1, width)}px`, height:`${Math.max(1, height)}px`,
-      maxWidth:'none', maxHeight:'none', objectFit:'fill', flex:'0 0 auto',
+async function vacPdfLogoPng(url) {
+  if (!url) return null
+  const response = await fetch(url, { mode:'cors', credentials:'omit', cache:'force-cache' })
+  if (!response.ok) throw new Error('No se pudo cargar el logotipo de la empresa.')
+  const blob = await response.blob()
+  const objectUrl = URL.createObjectURL(blob)
+  try {
+    const image = new Image()
+    image.decoding = 'async'
+    image.src = objectUrl
+    await new Promise((resolve, reject) => {
+      image.onload = resolve
+      image.onerror = () => reject(new Error('El logotipo de la empresa no se pudo procesar.'))
     })
+    const naturalWidth = image.naturalWidth || image.width
+    const naturalHeight = image.naturalHeight || image.height
+    if (!naturalWidth || !naturalHeight) throw new Error('El logotipo de la empresa no tiene dimensiones válidas.')
+    const scale = Math.min(1, 2400 / Math.max(naturalWidth, naturalHeight))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(naturalWidth * scale))
+    canvas.height = Math.max(1, Math.round(naturalHeight * scale))
+    const context = canvas.getContext('2d')
+    context.clearRect(0, 0, canvas.width, canvas.height)
+    context.drawImage(image, 0, 0, canvas.width, canvas.height)
+    return { dataUrl:canvas.toDataURL('image/png'), width:canvas.width, height:canvas.height }
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
+}
+function vacPdfTrimText(pdf, value, maxWidth) {
+  const text = String(value || '')
+  if (pdf.getTextWidth(text) <= maxWidth) return text
+  let trimmed = text
+  while (trimmed.length > 1 && pdf.getTextWidth(trimmed + '...') > maxWidth) trimmed = trimmed.slice(0, -1)
+  return trimmed + '...'
+}
+function vacDrawBlankSlipPdf(pdf, data, kind, x, y, width, height, logo) {
+  const ink = [32,33,36], muted = [93,99,104], line = [202,205,208], panel = [233,235,235], accent = [0,125,115]
+  const pad = 4.5
+  const innerX = x + pad
+  const innerWidth = width - (pad * 2)
+  const setText = color => pdf.setTextColor(...color)
+  const setDraw = color => pdf.setDrawColor(...color)
+  const drawCell = (cellX, cellY, cellWidth, cellHeight, label) => {
+    setDraw(line); pdf.setLineWidth(.22); pdf.rect(cellX, cellY, cellWidth, cellHeight)
+    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(5.8); setText(muted)
+    pdf.text(String(label).toUpperCase(), cellX + 1.8, cellY + 3.4)
+  }
+  const drawRow = (rowY, labels, rowHeight = 9.2) => {
+    const cellWidth = innerWidth / labels.length
+    labels.forEach((label, index) => drawCell(innerX + (cellWidth * index), rowY, cellWidth, rowHeight, label))
+    return rowY + rowHeight
+  }
+  const drawSectionTitle = (sectionY, title) => {
+    setDraw(line); pdf.setFillColor(...panel); pdf.setLineWidth(.22)
+    pdf.roundedRect(innerX, sectionY, innerWidth, 5, 1.2, 1.2, 'FD')
+    pdf.setFillColor(...accent); pdf.rect(innerX, sectionY, 1.1, 5, 'F')
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8.5); setText(ink)
+    pdf.text(title.toUpperCase(), innerX + 3, sectionY + 3.6)
+    return sectionY + 5
+  }
+  pdf.setFillColor(255,255,255); setDraw([174,178,183]); pdf.setLineWidth(.28)
+  pdf.rect(x, y, width, height, 'FD')
+  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(33); pdf.setTextColor(237,238,239)
+  pdf.text(kind, x + (width / 2), y + (height / 2), { align:'center', angle:35 })
+
+  const headerY = y + 4
+  const headerHeight = 29
+  const logoWidth = 30
+  setDraw([174,178,183]); pdf.setLineWidth(.3)
+  pdf.roundedRect(innerX, headerY, innerWidth, headerHeight, 2, 2, 'S')
+  pdf.line(innerX + logoWidth, headerY, innerX + logoWidth, headerY + headerHeight)
+  pdf.line(innerX + logoWidth, headerY + 19, innerX + innerWidth, headerY + 19)
+  const rightWidth = innerWidth - logoWidth
+  pdf.line(innerX + logoWidth + (rightWidth / 2), headerY + 19, innerX + logoWidth + (rightWidth / 2), headerY + headerHeight)
+  if (logo?.dataUrl && logo.width && logo.height) {
+    const maxLogoWidth = logoWidth - 5
+    const maxLogoHeight = headerHeight - 7
+    const ratio = logo.width / logo.height
+    let logoDrawWidth = maxLogoWidth
+    let logoDrawHeight = logoDrawWidth / ratio
+    if (logoDrawHeight > maxLogoHeight) {
+      logoDrawHeight = maxLogoHeight
+      logoDrawWidth = logoDrawHeight * ratio
+    }
+    pdf.addImage(logo.dataUrl, 'PNG', innerX + ((logoWidth - logoDrawWidth) / 2), headerY + ((headerHeight - logoDrawHeight) / 2), logoDrawWidth, logoDrawHeight, undefined, 'FAST')
+  } else {
+    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(6.5); setText(muted)
+    pdf.text(pdf.splitTextToSize(data.companyName, logoWidth - 6), innerX + (logoWidth / 2), headerY + 13, { align:'center' })
+  }
+  const titleX = innerX + logoWidth + 3
+  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(6.2); setText(accent)
+  pdf.text('TALENTO HUMANO', titleX, headerY + 5.4)
+  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(13.5); setText(ink)
+  pdf.text('Solicitud de vacaciones', titleX, headerY + 11.8)
+  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7.2); setText(muted)
+  pdf.text(vacPdfTrimText(pdf, data.companyName, rightWidth - 6), titleX, headerY + 16.2)
+  const kindCellWidth = rightWidth / 2
+  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(5.2); setText(muted)
+  pdf.text('EJEMPLAR', titleX, headerY + 22.3)
+  pdf.text('FOLIO', titleX + kindCellWidth, headerY + 22.3)
+  pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.5); setText(ink)
+  pdf.text(kind, titleX, headerY + 26.3)
+
+  let cursor = headerY + headerHeight + 1.8
+  cursor = drawSectionTitle(cursor, 'Datos del colaborador')
+  cursor = drawRow(cursor, ['Código', 'Fecha de solicitud'])
+  cursor = drawRow(cursor, ['Nombre del empleado'], 11)
+  cursor = drawRow(cursor, ['Documento de identificación', 'Fecha de ingreso'])
+  cursor = drawRow(cursor, ['Puesto / cargo', 'Departamento'])
+
+  cursor += 1.8
+  cursor = drawSectionTitle(cursor, 'Periodo solicitado')
+  cursor = drawRow(cursor, ['Desde', 'Hasta'])
+  cursor = drawRow(cursor, ['Regresa a sus labores', 'Días solicitados'])
+  cursor = drawRow(cursor, ['Saldo antes', 'Saldo después'])
+  cursor = drawRow(cursor, ['Sede', 'Estado'])
+
+  cursor += 1.8
+  cursor = drawSectionTitle(cursor, 'Firmas y autorizaciones')
+  const signatureHeight = 16.5
+  const signatureWidth = innerWidth / 2
+  ;[['Firma del empleado','Jefe de Talento Humano'],['Jefe inmediato','Fecha de solicitud']].forEach(labels => {
+    labels.forEach((label, index) => {
+      const cellX = innerX + (signatureWidth * index)
+      setDraw(line); pdf.setLineWidth(.22); pdf.rect(cellX, cursor, signatureWidth, signatureHeight)
+      pdf.setDrawColor(142,147,152); pdf.line(cellX + 2, cursor + 10.2, cellX + signatureWidth - 2, cursor + 10.2)
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(6.2); setText(ink)
+      pdf.text(label, cellX + 1.8, cursor + 14.2)
+    })
+    cursor += signatureHeight
   })
+
+  cursor += 1.8
+  cursor = drawSectionTitle(cursor, 'Control de aprobación')
+  cursor = drawRow(cursor, ['Jefe inmediato', 'Gerencia de área'])
+  cursor = drawRow(cursor, ['Recursos Humanos', 'Fecha aprobación RR. HH.'])
+  drawCell(innerX, cursor, innerWidth, 12, 'Observaciones')
+
+  const footerY = y + height - 5.8
+  setDraw(line); pdf.setLineWidth(.22); pdf.line(innerX, footerY, innerX + innerWidth, footerY)
+  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(5.2); setText(muted)
+  pdf.text('DOCUMENTO INTERNO', innerX, footerY + 3.3)
+  pdf.text('TALENTO HUMANO', innerX + innerWidth, footerY + 3.3, { align:'right' })
 }
 async function vacDownloadBlankBoleta(button) {
   const slipData = vacBlankSlipData()
   if (!slipData) return
-  if (typeof window.html2canvas !== 'function' || !window.jspdf?.jsPDF) {
+  if (!window.jspdf?.jsPDF) {
     alert('No se pudo iniciar la descarga. Recarga la página e inténtalo de nuevo.')
     return
   }
@@ -20532,32 +20658,8 @@ async function vacDownloadBlankBoleta(button) {
     button.disabled = true
     button.textContent = 'Preparando PDF…'
   }
-  const host = document.createElement('div')
-  host.className = 'vac-manual-preview'
-  host.setAttribute('aria-hidden', 'true')
-  Object.assign(host.style, {
-    position:'fixed', left:'-10000px', top:'0', width:'430px', margin:'0',
-    overflow:'visible', boxShadow:'none', pointerEvents:'none',
-  })
-  host.innerHTML = vacBoletaCopyHtml('ORIGINAL', slipData) + vacBoletaCopyHtml('COPIA', slipData)
-  document.body.appendChild(host)
-  const canvases = []
   try {
-    await document.fonts?.ready
-    await Promise.all([...host.querySelectorAll('img')].map(img => {
-      if (!img.complete) return new Promise(resolve => { img.onload = img.onerror = resolve })
-      return img.decode ? img.decode().catch(() => {}) : Promise.resolve()
-    }))
-    vacFitSlipLogosForCapture(host)
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-    for (const copy of host.querySelectorAll('.vac-slip-copy')) {
-      const rect = copy.getBoundingClientRect()
-      canvases.push(await window.html2canvas(copy, {
-        scale:2, useCORS:true, allowTaint:false, backgroundColor:'#fff', logging:false,
-        width:Math.ceil(rect.width), height:Math.ceil(rect.height),
-        windowWidth:430, windowHeight:665, scrollX:0, scrollY:0,
-      }))
-    }
+    const logo = await vacPdfLogoPng(slipData.company?.logo_url).catch(error => { console.warn(error); return null })
     const pdf = new window.jspdf.jsPDF({ orientation:'landscape', unit:'mm', format:'letter', compress:true })
     pdf.setProperties({ title:`Boleta de vacaciones vacía · ${slipData.companyName}`, creator:'SIERRA' })
     const pageWidth = pdf.internal.pageSize.getWidth()
@@ -20566,17 +20668,17 @@ async function vacDownloadBlankBoleta(button) {
     const gap = 1.5
     const copyWidth = (pageWidth - (margin * 2) - gap) / 2
     const copyHeight = pageHeight - (margin * 2)
-    canvases.forEach((canvas, index) => {
-      pdf.addImage(canvas.toDataURL('image/jpeg', .96), 'JPEG', margin + (index * (copyWidth + gap)), margin, copyWidth, copyHeight, undefined, 'FAST')
-    })
+    vacDrawBlankSlipPdf(pdf, slipData, 'ORIGINAL', margin, margin, copyWidth, copyHeight, logo)
+    vacDrawBlankSlipPdf(pdf, slipData, 'COPIA', margin + copyWidth + gap, margin, copyWidth, copyHeight, logo)
+    pdf.setDrawColor(190,193,196); pdf.setLineWidth(.18); pdf.setLineDashPattern([1,1], 0)
+    pdf.line(pageWidth / 2, margin, pageWidth / 2, pageHeight - margin)
+    pdf.setLineDashPattern([], 0)
     pdf.save(vacBlankFileName(slipData.companyName))
     toast('Boleta vacía descargada')
   } catch (error) {
     console.error(error)
     alert(error?.message || 'No se pudo descargar la boleta vacía.')
   } finally {
-    host.remove()
-    canvases.forEach(canvas => { canvas.width = 0; canvas.height = 0 })
     if (button) {
       button.disabled = false
       button.innerHTML = originalButtonHtml
