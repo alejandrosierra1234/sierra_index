@@ -19888,6 +19888,7 @@ function renderVacationsView() {
         .vac-manual-preview-badge{flex:0 0 auto;padding:.25rem .45rem;border-radius:999px;background:var(--accent-light);color:var(--accent-dark);font-size:.62rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
         .vac-manual-preview{width:min(100%,430px);margin:0 auto;overflow:hidden;border-radius:8px;box-shadow:0 12px 30px rgba(13,32,46,.12)}
         .vac-manual-preview .vac-slip-copy{--vac-accent:#007d73;--vac-ink:#202124;--vac-muted:#5d6368;--vac-line:#d2d5d7;position:relative;box-sizing:border-box;width:100%;aspect-ratio:139.7/215.9;overflow:hidden;padding:3.2% 3.5% 3%;border:1px solid #aeb2b7;background:#fff;color:var(--vac-ink);font-family:'Aeonik',Arial,sans-serif}
+        .vac-manual-preview .vac-slip-copy:before{content:attr(data-kind);position:absolute;z-index:0;top:51%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);color:#5d6368;font-family:'Replica',Arial,sans-serif;font-size:clamp(32px,4vw,48px);font-weight:700;letter-spacing:.08em;line-height:1;opacity:.075;white-space:nowrap;pointer-events:none}.vac-manual-preview .vac-slip-copy>*{position:relative;z-index:1}
         .vac-manual-preview .vac-slip-head{min-height:14%;display:grid;grid-template-columns:23% 1fr;grid-template-areas:'logo title' 'logo kind';align-items:stretch;border:1px solid #aeb2b7;border-radius:4px;overflow:hidden;background:#fff}
         .vac-manual-preview .vac-slip-logo{grid-area:logo;display:flex;align-items:center;justify-content:center;padding:10%;border-right:1px solid var(--vac-line);overflow:hidden}.vac-manual-preview .vac-slip-logo img{display:block;max-width:100%;max-height:100%;object-fit:contain}.vac-manual-preview .vac-slip-logo-fallback{color:var(--vac-muted);font-size:6px;line-height:1.2;text-align:center}
         .vac-manual-preview .vac-slip-title{grid-area:title;display:flex;flex-direction:column;justify-content:center;min-width:0;padding:3.2% 5%;text-align:left}.vac-manual-preview .vac-slip-title small{display:block;margin-bottom:3px;color:var(--vac-accent);font-size:6px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}.vac-manual-preview .vac-slip-title strong{display:block;color:var(--vac-ink);font-family:'Replica',Arial,sans-serif;font-size:clamp(13px,1.3vw,17px);font-weight:400;line-height:1.05}.vac-manual-preview .vac-slip-title span{display:block;overflow:hidden;margin-top:4px;color:var(--vac-muted);font-size:clamp(7px,.65vw,9px);font-weight:500;line-height:1.15;white-space:nowrap;text-overflow:ellipsis}
@@ -19902,7 +19903,7 @@ function renderVacationsView() {
       </style>
       <div class="page-toolbar" style="align-items:flex-start;gap:1rem;flex-wrap:wrap">
         <div style="min-width:260px;flex:1"><h2 style="margin:0">Creador de boletas de vacaciones</h2><p style="margin:.25rem 0 0;color:var(--text-3);font-size:.82rem">Formulario independiente · no consulta ni guarda datos de colaboradores.</p></div>
-        <div style="display:flex;gap:.5rem"><button type="button" class="btn btn-secondary btn-sm" onclick="vacManualReset()">Limpiar</button><button type="button" class="btn btn-primary btn-sm" onclick="vacPrintManualBoleta()">${siIcon('printer',14)} Imprimir original y copia</button></div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap"><button type="button" class="btn btn-secondary btn-sm" onclick="vacManualReset()">Limpiar</button><button type="button" class="btn btn-secondary btn-sm" onclick="vacDownloadBlankBoleta(this)">${siIcon('download',14)} Descargar boleta vacía</button><button type="button" class="btn btn-primary btn-sm" onclick="vacPrintManualBoleta()">${siIcon('printer',14)} Imprimir original y copia</button></div>
       </div>
       <div class="vac-manual-layout">
       <div class="vac-manual-editor">
@@ -20293,10 +20294,15 @@ function vacBoletaCell(label, value, extraClass = '') {
   return `<div class="vac-slip-cell ${extraClass}"><span>${esc(label)}</span><strong>${esc(value ?? '—')}</strong></div>`
 }
 function vacBoletaCopyHtml(kind, data) {
+  const blank = Boolean(data.blank)
+  const empty = blank ? '' : '—'
+  const dateLabel = value => blank ? '' : hrFmtDate(value)
+  const returnDateLabel = value => blank ? '' : vacReturnDate(value)
+  const employeeName = [data.emp.first_name, data.emp.last_name].filter(Boolean).join(' ')
   const logo = data.company?.logo_url
     ? `<img src="${escAttr(data.company.logo_url)}" alt="Logo de ${escAttr(data.companyName)}">`
     : `<span class="vac-slip-logo-fallback">${esc(data.companyName)}</span>`
-  return `<article class="vac-slip-copy">
+  return `<article class="vac-slip-copy" data-kind="${escAttr(kind)}">
     <header class="vac-slip-head">
       <div class="vac-slip-logo">${logo}</div>
       <div class="vac-slip-title"><small>Talento Humano</small><strong>Solicitud de vacaciones</strong><span>${esc(data.companyName)}</span></div>
@@ -20306,19 +20312,19 @@ function vacBoletaCopyHtml(kind, data) {
       <div class="vac-slip-section-title"><strong>Datos del colaborador</strong></div>
       <div class="vac-slip-table">
         <div class="vac-slip-grid vac-slip-grid-2">
-          ${vacBoletaCell('Código', data.emp.employee_code || '—')}
-          ${vacBoletaCell('Fecha de solicitud', hrFmtDate(data.req.created_at))}
+          ${vacBoletaCell('Código', data.emp.employee_code || empty)}
+          ${vacBoletaCell('Fecha de solicitud', dateLabel(data.req.created_at))}
         </div>
         <div class="vac-slip-grid vac-slip-grid-1">
-          ${vacBoletaCell('Nombre del empleado', `${data.emp.first_name} ${data.emp.last_name}`)}
+          ${vacBoletaCell('Nombre del empleado', employeeName)}
         </div>
         <div class="vac-slip-grid vac-slip-grid-2">
-          ${vacBoletaCell('Documento de identificación', data.identification)}
-          ${vacBoletaCell('Fecha de ingreso', data.emp.hire_date ? hrFmtDate(data.emp.hire_date) : '—')}
+          ${vacBoletaCell('Documento de identificación', data.identification || empty)}
+          ${vacBoletaCell('Fecha de ingreso', blank ? '' : (data.emp.hire_date ? hrFmtDate(data.emp.hire_date) : '—'))}
         </div>
         <div class="vac-slip-grid vac-slip-grid-2">
-          ${vacBoletaCell('Puesto / cargo', data.emp.position || '—')}
-          ${vacBoletaCell('Departamento', data.emp.department || '—')}
+          ${vacBoletaCell('Puesto / cargo', data.emp.position || empty)}
+          ${vacBoletaCell('Departamento', data.emp.department || empty)}
         </div>
       </div>
     </section>
@@ -20326,20 +20332,20 @@ function vacBoletaCopyHtml(kind, data) {
       <div class="vac-slip-section-title"><strong>Periodo solicitado</strong></div>
       <div class="vac-slip-table">
         <div class="vac-slip-grid vac-slip-grid-2">
-          ${vacBoletaCell('Desde', hrFmtDate(data.req.start_date))}
-          ${vacBoletaCell('Hasta', hrFmtDate(data.req.end_date))}
+          ${vacBoletaCell('Desde', dateLabel(data.req.start_date))}
+          ${vacBoletaCell('Hasta', dateLabel(data.req.end_date))}
         </div>
         <div class="vac-slip-grid vac-slip-grid-2">
-          ${vacBoletaCell('Regresa a sus labores', vacReturnDate(data.req.end_date))}
-          ${vacBoletaCell('Días solicitados', String(data.req.requested_days), 'vac-slip-emphasis')}
+          ${vacBoletaCell('Regresa a sus labores', returnDateLabel(data.req.end_date))}
+          ${vacBoletaCell('Días solicitados', blank ? '' : String(data.req.requested_days), 'vac-slip-emphasis')}
         </div>
         <div class="vac-slip-grid vac-slip-grid-2">
-          ${vacBoletaCell('Saldo antes', data.balanceBefore !== null ? `${data.balanceBefore} días` : '—')}
-          ${vacBoletaCell('Saldo después', data.balanceAfter !== null ? `${data.balanceAfter} días` : '—')}
+          ${vacBoletaCell('Saldo antes', blank ? '' : (data.balanceBefore !== null ? `${data.balanceBefore} días` : '—'))}
+          ${vacBoletaCell('Saldo después', blank ? '' : (data.balanceAfter !== null ? `${data.balanceAfter} días` : '—'))}
         </div>
         <div class="vac-slip-grid vac-slip-grid-2">
-          ${vacBoletaCell('Sede', data.site?.name || '—')}
-          ${vacBoletaCell('Estado', data.statusLabel || VAC_STATUS_LABELS[data.req.status] || data.req.status)}
+          ${vacBoletaCell('Sede', data.site?.name || empty)}
+          ${vacBoletaCell('Estado', blank ? '' : (data.statusLabel || VAC_STATUS_LABELS[data.req.status] || data.req.status))}
         </div>
       </div>
     </section>
@@ -20349,21 +20355,21 @@ function vacBoletaCopyHtml(kind, data) {
         <div><i></i><strong>Firma del empleado</strong></div>
         <div><i></i><strong>Jefe de Talento Humano</strong></div>
         <div><i></i><strong>Jefe inmediato${data.managerName ? `<small>${esc(data.managerName)}</small>` : ''}</strong></div>
-        <div><i>${hrFmtDate(data.req.created_at)}</i><strong>Fecha de solicitud</strong></div>
+        <div><i>${dateLabel(data.req.created_at)}</i><strong>Fecha de solicitud</strong></div>
       </div>
     </section>
     <section class="vac-slip-section">
       <div class="vac-slip-section-title"><strong>Control de aprobación</strong></div>
       <div class="vac-slip-table">
         <div class="vac-slip-grid vac-slip-grid-2">
-          ${vacBoletaCell('Jefe inmediato', data.managerApproval || 'Firma pendiente')}
-          ${vacBoletaCell('Gerencia de área', data.areaApproval || 'Firma pendiente')}
+          ${vacBoletaCell('Jefe inmediato', blank ? '' : (data.managerApproval || 'Firma pendiente'))}
+          ${vacBoletaCell('Gerencia de área', blank ? '' : (data.areaApproval || 'Firma pendiente'))}
         </div>
         <div class="vac-slip-grid vac-slip-grid-2">
-          ${vacBoletaCell('Recursos Humanos', data.hrApproval || (data.req.status === 'approved' ? 'Aprobado' : (VAC_STATUS_LABELS[data.req.status] || data.req.status)))}
-          ${vacBoletaCell('Fecha aprobación RR. HH.', data.approvalDate ? hrFmtDate(data.approvalDate) : (data.req.decided_at ? hrFmtDate(data.req.decided_at) : '—'))}
+          ${vacBoletaCell('Recursos Humanos', blank ? '' : (data.hrApproval || (data.req.status === 'approved' ? 'Aprobado' : (VAC_STATUS_LABELS[data.req.status] || data.req.status))))}
+          ${vacBoletaCell('Fecha aprobación RR. HH.', blank ? '' : (data.approvalDate ? hrFmtDate(data.approvalDate) : (data.req.decided_at ? hrFmtDate(data.req.decided_at) : '—')))}
         </div>
-        <div class="vac-slip-observations"><span>Observaciones</span>${esc(data.observations || data.req.decision_note || data.req.comment || '—')}</div>
+        <div class="vac-slip-observations"><span>Observaciones</span>${esc(blank ? '' : (data.observations || data.req.decision_note || data.req.comment || '—'))}</div>
       </div>
     </section>
     <footer class="vac-slip-foot"><span>Documento interno</span><span>Talento Humano</span></footer>
@@ -20387,6 +20393,8 @@ function vacPrintBoletaData(slipData) {
       body.printing-vac-slip #vac-print-root { position:relative; display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.5mm; color:#202124; font-family:'Aeonik',Arial,sans-serif; }
       body.printing-vac-slip #vac-print-root:after { content:'CORTE'; position:absolute; z-index:3; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-90deg); padding:0 1.2mm; color:#5d6368; background:#fff; font:650 5.2pt/1 'Aeonik',Arial,sans-serif; letter-spacing:.1em; }
       .vac-slip-copy { --vac-accent:#007d73; --vac-ink:#202124; --vac-muted:#5d6368; --vac-line:#d2d5d7; position:relative; box-sizing:border-box; width:100%; min-width:0; height:209.9mm; padding:4mm 4.5mm 3.5mm; overflow:hidden; border:.25mm solid #aeb2b7; background:#fff; color:var(--vac-ink); break-inside:avoid; page-break-inside:avoid; }
+      .vac-slip-copy:before { content:attr(data-kind); position:absolute; z-index:0; top:51%; left:50%; transform:translate(-50%,-50%) rotate(-35deg); color:#5d6368; font:700 34pt/1 'Replica',Arial,sans-serif; letter-spacing:.08em; opacity:.075; white-space:nowrap; pointer-events:none; }
+      .vac-slip-copy > * { position:relative; z-index:1; }
       .vac-slip-head { min-height:29mm; display:grid; grid-template-columns:28mm minmax(0,1fr); grid-template-areas:'logo title' 'logo kind'; align-items:stretch; border:.3mm solid #aeb2b7; border-radius:2mm; overflow:hidden; background:#fff; }
       .vac-slip-logo { grid-area:logo; min-width:0; display:flex; align-items:center; justify-content:center; padding:2mm; border-right:.25mm solid var(--vac-line); overflow:hidden; }
       .vac-slip-logo img { display:block; max-width:24mm; max-height:23mm; object-fit:contain; object-position:center; }
@@ -20458,6 +20466,102 @@ function vacPrintManualBoleta() {
   vacManualEnsure()
   // Temporal: permite imprimir el formato en blanco o parcialmente lleno.
   vacPrintBoletaData(vacManualSlipData())
+}
+function vacBlankSlipData() {
+  vacManualEnsure()
+  const m = _vacManual
+  if (!m.companyId || !m.companyName.trim()) {
+    toast('Selecciona una empresa para descargar la boleta vacía')
+    document.querySelector('[aria-label="Empresa"]')?.focus()
+    return null
+  }
+  return {
+    blank:true,
+    company:{ logo_url:m.companyLogo || null },
+    companyName:m.companyName.trim(),
+    folio:'',
+    emp:{ employee_code:'', first_name:'', last_name:'', hire_date:'', position:'', department:'' },
+    identification:'',
+    req:{ created_at:'', start_date:'', end_date:'', requested_days:'', status:'manual', decided_at:null, comment:'' },
+    site:{ name:'' },
+    managerName:'',
+    balanceBefore:null,
+    balanceAfter:null,
+    statusLabel:'',
+    managerApproval:'',
+    areaApproval:'',
+    hrApproval:'',
+    approvalDate:'',
+    observations:'',
+  }
+}
+function vacBlankFileName(companyName) {
+  const companySlug = String(companyName || 'empresa')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase()
+  return `boleta-vacaciones-vacia-${companySlug || 'empresa'}.pdf`
+}
+async function vacDownloadBlankBoleta(button) {
+  const slipData = vacBlankSlipData()
+  if (!slipData) return
+  if (typeof window.html2canvas !== 'function' || !window.jspdf?.jsPDF) {
+    alert('No se pudo iniciar la descarga. Recarga la página e inténtalo de nuevo.')
+    return
+  }
+  const originalButtonHtml = button?.innerHTML
+  if (button) {
+    button.disabled = true
+    button.textContent = 'Preparando PDF…'
+  }
+  const host = document.createElement('div')
+  host.className = 'vac-manual-preview'
+  host.setAttribute('aria-hidden', 'true')
+  Object.assign(host.style, {
+    position:'fixed', left:'-10000px', top:'0', width:'430px', margin:'0',
+    overflow:'visible', boxShadow:'none', pointerEvents:'none',
+  })
+  host.innerHTML = vacBoletaCopyHtml('ORIGINAL', slipData) + vacBoletaCopyHtml('COPIA', slipData)
+  document.body.appendChild(host)
+  const canvases = []
+  try {
+    await document.fonts?.ready
+    await Promise.all([...host.querySelectorAll('img')].map(img => {
+      if (!img.complete) return new Promise(resolve => { img.onload = img.onerror = resolve })
+      return img.decode ? img.decode().catch(() => {}) : Promise.resolve()
+    }))
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    for (const copy of host.querySelectorAll('.vac-slip-copy')) {
+      const rect = copy.getBoundingClientRect()
+      canvases.push(await window.html2canvas(copy, {
+        scale:2, useCORS:true, allowTaint:false, backgroundColor:'#fff', logging:false,
+        width:Math.ceil(rect.width), height:Math.ceil(rect.height),
+        windowWidth:430, windowHeight:665, scrollX:0, scrollY:0,
+      }))
+    }
+    const pdf = new window.jspdf.jsPDF({ orientation:'landscape', unit:'mm', format:'letter', compress:true })
+    pdf.setProperties({ title:`Boleta de vacaciones vacía · ${slipData.companyName}`, creator:'SIERRA' })
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const pageHeight = pdf.internal.pageSize.getHeight()
+    const margin = 3
+    const gap = 1.5
+    const copyWidth = (pageWidth - (margin * 2) - gap) / 2
+    const copyHeight = pageHeight - (margin * 2)
+    canvases.forEach((canvas, index) => {
+      pdf.addImage(canvas.toDataURL('image/jpeg', .96), 'JPEG', margin + (index * (copyWidth + gap)), margin, copyWidth, copyHeight, undefined, 'FAST')
+    })
+    pdf.save(vacBlankFileName(slipData.companyName))
+    toast('Boleta vacía descargada')
+  } catch (error) {
+    console.error(error)
+    alert(error?.message || 'No se pudo descargar la boleta vacía.')
+  } finally {
+    host.remove()
+    canvases.forEach(canvas => { canvas.width = 0; canvas.height = 0 })
+    if (button) {
+      button.disabled = false
+      button.innerHTML = originalButtonHtml
+    }
+  }
 }
 async function vacGenerateBoleta(requestId) {
   const req = _badge.vacationRequests.find(r => r.id === requestId)
