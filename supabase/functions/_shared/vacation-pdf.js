@@ -77,7 +77,7 @@ export async function createVacationPdf(pdfLib, data, assets = {}) {
       text(title.toUpperCase(), mm(7), y + mm(1.2), 7.7, bold, ink)
       return y + mm(5)
     }
-    const signature = (x, y, width, label, image) => {
+    const signature = (x, y, width, label, image, value = '') => {
       rect(x, y, width, mm(16), { borderColor:line })
       if (image) {
         const scaled = image.scale(1)
@@ -86,6 +86,7 @@ export async function createVacationPdf(pdfLib, data, assets = {}) {
         const imageWidth = scaled.width * ratio, imageHeight = scaled.height * ratio
         page.drawImage(image, { x:localX(x + ((width - imageWidth) / 2)), y:localY(y + mm(10)) + mm(1), width:imageWidth, height:imageHeight })
       }
+      if (value) text(value, x + mm(2), y + mm(6.3), 7.2, mono, ink, { maxWidth:width - mm(4) })
       rule(x + mm(2), y + mm(10), x + width - mm(2), y + mm(10), border, 0.65)
       text(label, x + mm(1.5), y + mm(11.4), 6.2, bold, ink, { maxWidth:width - mm(3) })
     }
@@ -142,10 +143,11 @@ export async function createVacationPdf(pdfLib, data, assets = {}) {
 
     cursor += mm(1.8); cursor = section(cursor, 'Firmas y autorizaciones')
     signature(innerX, cursor, half, 'Firma del empleado', employeeSignature); signature(innerX + half, cursor, half, 'Jefe inmediato', managerSignature); cursor += mm(16)
-    signature(innerX, cursor, half, 'Recursos Humanos', null); signature(innerX + half, cursor, half, 'Fecha de solicitud', null); cursor += mm(16)
+    signature(innerX, cursor, half, 'Recursos Humanos', null); signature(innerX + half, cursor, half, 'Fecha de solicitud', null, data.requestDate); cursor += mm(16)
 
     cursor += mm(1.8); cursor = section(cursor, 'Control de aprobación')
     cell(innerX, cursor, half, mm(9.2), 'Jefe inmediato', data.managerApproval); cell(innerX + half, cursor, half, mm(9.2), 'Recursos Humanos', data.hrApproval); cursor += mm(9.2)
+    cell(innerX, cursor, innerWidth, mm(9.2), 'Fecha de aprobación RR. HH.', data.approvalDate); cursor += mm(9.2)
     cell(innerX, cursor, innerWidth, mm(12), 'Observaciones', data.observations, { valueSize:7.1 })
 
     const footerY = copyHeight - mm(5.8)

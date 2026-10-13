@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import * as pdfLib from 'npm:pdf-lib@1.17.1'
+import { Resvg, initWasm } from 'npm:@resvg/resvg-wasm@2.6.2'
 import { createVacationPdf } from '../_shared/vacation-pdf.js'
 
 const BOARD_ID = '7729506932'
@@ -10,7 +11,7 @@ const COLUMNS = Object.freeze({
   dni:'n_mero__1', code:'short_textpir5roep', requestDate:'fecha__1', timeType:'selecci_n_m_ltiple',
   fullDates:'intervalo_de_fechas__1', partialDates:'intervalo_de_fechas1__1', partialTime:'selecci_n__nica__1',
   requestedDays:'f_rmula2', status:'estado8', department:'estado_10', manager:'personas__1', hr:'personas7__1',
-  observations:'texto__1', managerSignature:'file_mm3a6972', employeeSignature:'file_mm3aqbzz', output:'file_mm824tqy',
+  observations:'texto__1', approvalDate:'fecha8__1', output:'file_mm824tqy',
 })
 const ITEM_COLUMNS = Object.values(COLUMNS)
 const cors = {
@@ -32,7 +33,10 @@ async function mondayRequest(token:string, query:string, variables:Record<string
 }
 
 function column(item:any, id:string) { return (item?.column_values || []).find((entry:any) => entry?.id === id) }
-function columnText(item:any, id:string) { return clean(column(item,id)?.text) }
+function columnText(item:any, id:string) {
+  const source = column(item,id)
+  return clean(source?.display_value ?? source?.text)
+}
 function columnFiles(item:any, id:string) {
   return (column(item,id)?.files || []).map((entry:any) => entry?.asset).filter(Boolean)
 }
@@ -62,6 +66,7 @@ async function fetchItem(token:string, itemId:string) {
       id name board { id }
       column_values(ids:$columns) {
         id type text value
+        ... on FormulaValue { display_value }
         ... on FileValue { files { ... on FileAssetValue { asset { id name url public_url file_extension } } } }
       }
     }
@@ -80,18 +85,59 @@ async function companyIdentity() {
   return { name:company.legal_name || company.name || 'Northern Textiles, S.A. de C.V.', logoUrl:company.logo_url || '' }
 }
 
+let resvgInitialization:Promise<void> | null = null
+async function svgToPng(bytes:Uint8Array) {
+  if (!resvgInitialization) {
+    resvgInitialization = initWasm(fetch('https://unpkg.com/@resvg/resvg-wasm@2.6.2/index_bg.wasm'))
+  }
+  await resvgInitialization
+  const renderer = new Resvg(bytes, { fitTo:{ mode:'width', value:1200 }, font:{ loadSystemFonts:false } })
+  try {
+    return renderer.render().asPng()
+  } finally {
+    renderer.free()
+  }
+}
+
+async function pdfImage(bytes:Uint8Array, mime:string, source='') {
+  const normalizedMime = clean(mime).split(';')[0].toLowerCase()
+  if (normalizedMime === 'image/svg+xml' || /\.svg(?:$|[?#])/i.test(source)) {
+    return { bytes:await svgToPng(bytes), mime:'image/png' }
+  }
+  if (!['image/png','image/jpeg','image/jpg'].includes(normalizedMime)) return null
+  return { bytes, mime:normalizedMime }
+}
+
 async function fetchImage(url:string, token='') {
   if (!url) return null
   const response = await fetch(url, { headers:token ? { Authorization:token } : {}, signal:AbortSignal.timeout(15000) })
   if (!response.ok) return null
-  const mime = clean(response.headers.get('content-type')).split(';')[0].toLowerCase()
-  if (!['image/png','image/jpeg','image/jpg'].includes(mime)) return null
-  return { bytes:new Uint8Array(await response.arrayBuffer()), mime }
+  const bytes = new Uint8Array(await response.arrayBuffer())
+  return pdfImage(bytes, response.headers.get('content-type') || '', url)
 }
 
-async function firstImageAsset(assets:any[], token:string) {
-  const asset = assets.find(entry => /\.(?:png|jpe?g)$/i.test(entry?.name || '') || /^(?:png|jpe?g)$/i.test(entry?.file_extension || ''))
-  return asset ? fetchImage(asset.public_url || asset.url || '', token) : null
+function storageLocation(url:string) {
+  try {
+    const parsed = new URL(url)
+    const match = parsed.pathname.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)$/)
+    if (!match) return null
+    return { bucket:decodeURIComponent(match[1]), path:decodeURIComponent(match[2]) }
+  } catch {
+    return null
+  }
+}
+
+async function fetchCompanyLogo(url:string) {
+  const direct = await fetchImage(url).catch(() => null)
+  if (direct) return direct
+  const location = storageLocation(url)
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+  if (!location || !supabaseUrl || !serviceKey) return null
+  const client = createClient(supabaseUrl, serviceKey, { auth:{ persistSession:false, autoRefreshToken:false } })
+  const { data, error } = await client.storage.from(location.bucket).download(location.path)
+  if (error || !data) return null
+  return pdfImage(new Uint8Array(await data.arrayBuffer()), data.type || '', location.path)
 }
 
 async function uploadPdf(token:string, itemId:string, fileName:string, bytes:Uint8Array) {
@@ -146,14 +192,11 @@ async function processEvent(event:any, token:string) {
     partialTime:normalize(timeType).includes('parcial') ? columnText(item,COLUMNS.partialTime) : '',
     managerApproval:manager ? `Aprobado - ${manager}` : 'Aprobado',
     hrApproval:hr ? `Finalizado - ${hr}` : TARGET_STATUS,
+    approvalDate:columnText(item,COLUMNS.approvalDate),
     observations:columnText(item,COLUMNS.observations),
   }
-  const [logo, employeeSignature, managerSignature] = await Promise.all([
-    fetchImage(identity.logoUrl),
-    firstImageAsset(columnFiles(item,COLUMNS.employeeSignature), token),
-    firstImageAsset(columnFiles(item,COLUMNS.managerSignature), token),
-  ])
-  const bytes = await createVacationPdf(pdfLib, data, { logo, employeeSignature, managerSignature })
+  const logo = await fetchCompanyLogo(identity.logoUrl)
+  const bytes = await createVacationPdf(pdfLib, data, { logo })
   await uploadPdf(token, itemId, outputName, bytes)
   await addUpdate(token, itemId, `<b>Boleta de vacaciones generada</b><br>SIERRA Index creó ORIGINAL y COPIA en una hoja carta y adjuntó el PDF en la columna Boleta.`)
   return { ok:true, itemId, fileName:outputName, employee:safeFileToken(employeeName) }
