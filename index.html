@@ -18033,6 +18033,7 @@ async function showBadgeHires() { await showBadgeTab('hires', 'Altas') }
 async function showBadgeTerminations() { await showBadgeTab('terminations', 'Bajas') }
 async function showBadgeVacations() {
   _badge_ui.view = 'vacations'
+  await loadVacManualCompanies()
   await enterBadgeModule('vacations', 'Vacaciones', false)
 }
 async function showBadgeOrganization() { await showBadgeTab('organization', 'Organización') }
@@ -19868,19 +19869,52 @@ function vacFilteredRequests() {
 function renderVacationsView() {
   vacManualEnsure()
   const m = _vacManual
+  const companies = vacManualCompanies()
+  const companyOptions = companies.map(company => ({
+    value: String(company.id),
+    label: company.legal_name || company.name || company.code || 'Empresa',
+    icon: 'building',
+  }))
+  const selectedCompany = companies.find(company => String(company.id) === String(m.companyId))
   const field = (key, label, type = 'text', extra = '') => `<label class="data-field"><span class="data-field-label">${esc(label)}</span><span class="emp-edit-input"><input type="${type}" value="${escAttr(m[key] || '')}" ${extra} oninput="vacManualSet('${key}',this.value)"></span></label>`
   return `
     <div class="badge-employees-view">
+      <style>
+        .vac-manual-layout{display:grid;grid-template-columns:minmax(360px,.9fr) minmax(520px,1.1fr);gap:1rem;align-items:start;margin-top:1rem}
+        .vac-manual-editor{min-width:0}.vac-manual-editor>.data-block:first-child{margin-top:0!important}
+        .vac-manual-preview-panel{position:sticky;top:1rem;min-width:0;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface-subtle);padding:1rem}
+        .vac-manual-preview-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:.75rem}
+        .vac-manual-preview-head strong{display:block;font-size:.84rem}.vac-manual-preview-head span{display:block;margin-top:.2rem;color:var(--text-3);font-size:.7rem}
+        .vac-manual-preview-badge{flex:0 0 auto;padding:.25rem .45rem;border-radius:999px;background:var(--accent-light);color:var(--accent-dark);font-size:.62rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+        .vac-manual-preview{overflow:hidden;border-radius:8px;box-shadow:0 12px 30px rgba(13,32,46,.12)}
+        .vac-manual-preview .vac-slip-copy{position:relative;box-sizing:border-box;width:100%;aspect-ratio:206/132.5;overflow:hidden;border:1px solid #91a6b5;background:#fff;color:#183146;font-family:Arial,sans-serif}
+        .vac-manual-preview .vac-slip-head{height:13.2%;padding:1.2% 1.5%;display:grid;grid-template-columns:12% 1fr 11%;align-items:center;gap:1.5%;color:#fff;background:#183f63}
+        .vac-manual-preview .vac-slip-logo{height:70%;display:flex;align-items:center;overflow:hidden}.vac-manual-preview .vac-slip-logo img{display:block;max-width:100%;max-height:100%;object-fit:contain}.vac-manual-preview .vac-slip-logo-fallback{font-size:6px;font-weight:700}
+        .vac-manual-preview .vac-slip-title{text-align:center;min-width:0}.vac-manual-preview .vac-slip-title strong{display:block;font-family:'Replica',Arial,sans-serif;font-size:clamp(8px,1.15vw,14px);line-height:1.05}.vac-manual-preview .vac-slip-title span{display:block;margin-top:3px;color:#d4e3ec;font-size:clamp(4px,.55vw,7px);font-weight:800;letter-spacing:.1em}
+        .vac-manual-preview .vac-slip-kind{text-align:right;font-size:clamp(4px,.52vw,7px);font-weight:900;letter-spacing:.08em}.vac-manual-preview .vac-slip-kind b{display:block;margin-top:3px;color:#f2c94c;font-family:'Aeonik Mono',monospace;font-size:clamp(4px,.45vw,6px);letter-spacing:0}
+        .vac-manual-preview .vac-slip-bar{padding:.55% 1%;color:#fff;background:#2a5d87;font-size:clamp(4px,.5vw,7px);font-weight:900;text-align:center;letter-spacing:.08em;text-transform:uppercase}
+        .vac-manual-preview .vac-slip-grid{display:grid}.vac-manual-preview .vac-slip-grid-3{grid-template-columns:1fr 2fr 1.3fr}.vac-manual-preview .vac-slip-grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+        .vac-manual-preview .vac-slip-cell{box-sizing:border-box;min-width:0;min-height:7.7%;padding:.65% 1%;border-right:1px solid #c7d3db;border-bottom:1px solid #c7d3db}.vac-manual-preview .vac-slip-cell:last-child{border-right:0}
+        .vac-manual-preview .vac-slip-cell span{display:block;margin-bottom:2px;color:#526a7a;font-size:clamp(4px,.45vw,6px);font-weight:800;text-transform:uppercase}.vac-manual-preview .vac-slip-cell strong{display:block;overflow:hidden;color:#1e5b86;font-size:clamp(5px,.58vw,8px);line-height:1.15;white-space:nowrap;text-overflow:ellipsis}
+        .vac-manual-preview .vac-slip-emphasis{background:#edf5f9;text-align:center}.vac-manual-preview .vac-slip-emphasis strong{color:#183f63;font-size:clamp(6px,.75vw,10px)}
+        .vac-manual-preview .vac-slip-signatures{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2%;padding:3.2% 2% 1.2%}.vac-manual-preview .vac-slip-signatures>div{min-width:0;text-align:center;font-size:clamp(4px,.45vw,6px)}.vac-manual-preview .vac-slip-signatures i{display:flex;height:18px;align-items:flex-end;justify-content:center;border-bottom:1px solid #728997;color:#1e5b86;font-size:clamp(4px,.5vw,7px);font-style:normal}.vac-manual-preview .vac-slip-signatures strong{display:block;margin-top:3px}.vac-manual-preview .vac-slip-signatures small{display:block;overflow:hidden;color:#657987;font-size:4px;font-weight:400;white-space:nowrap;text-overflow:ellipsis}
+        .vac-manual-preview .vac-slip-observations{box-sizing:border-box;height:7%;padding:.7% 1%;border-bottom:1px solid #c7d3db;color:#1e5b86;font-size:clamp(4px,.5vw,7px);white-space:pre-wrap}.vac-manual-preview .vac-slip-foot{position:absolute;right:1.5%;bottom:.7%;color:#758894;font-size:clamp(3px,.4vw,5px)}
+        @media(max-width:1180px){.vac-manual-layout{grid-template-columns:1fr}.vac-manual-preview-panel{position:static}.vac-manual-preview .vac-slip-title strong{font-size:14px}.vac-manual-preview .vac-slip-title span,.vac-manual-preview .vac-slip-kind{font-size:7px}.vac-manual-preview .vac-slip-cell span{font-size:6px}.vac-manual-preview .vac-slip-cell strong{font-size:8px}}
+      </style>
       <div class="page-toolbar" style="align-items:flex-start;gap:1rem;flex-wrap:wrap">
         <div style="min-width:260px;flex:1"><h2 style="margin:0">Creador de boletas de vacaciones</h2><p style="margin:.25rem 0 0;color:var(--text-3);font-size:.82rem">Formulario independiente · no consulta ni guarda datos de colaboradores.</p></div>
         <div style="display:flex;gap:.5rem"><button type="button" class="btn btn-secondary btn-sm" onclick="vacManualReset()">Limpiar</button><button type="button" class="btn btn-primary btn-sm" onclick="vacPrintManualBoleta()">${siIcon('printer',14)} Imprimir original y copia</button></div>
       </div>
+      <div class="vac-manual-layout">
+      <div class="vac-manual-editor">
       <div class="data-block" style="margin-top:1rem">
         <div class="data-block-title"><span>Empresa y logotipo</span></div>
         <div class="data-fields-2">
-          ${field('companyName', 'Nombre legal de la empresa')}
-          <div class="data-field"><span class="data-field-label">Logotipo</span><div style="display:flex;align-items:center;gap:.75rem;min-height:42px">${m.companyLogo ? `<img src="${escAttr(m.companyLogo)}" alt="Logo seleccionado" style="width:88px;height:42px;object-fit:contain;border:1px solid var(--border);border-radius:6px;background:#fff">` : '<span style="color:var(--text-3);font-size:.8rem">Sin logotipo</span>'}<label class="btn btn-secondary btn-sm" for="vac-manual-logo">Cambiar logo</label><input id="vac-manual-logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden onchange="vacManualLogoChanged(this)"></div></div>
+          <div class="data-field"><span class="data-field-label">Empresa</span>${pdSelect('vac-manual-company', companyOptions, m.companyId, _vacCompaniesLoading ? 'Cargando empresas…' : 'Selecciona una empresa', 'vacManualCompanyChanged', 'wide').replace('aria-haspopup="listbox"','aria-label="Empresa" aria-haspopup="listbox"')}</div>
+          <div class="data-field"><span class="data-field-label">Identidad tomada de Procesos</span><div style="display:flex;align-items:center;gap:.75rem;min-height:42px">${m.companyLogo ? `<img src="${escAttr(m.companyLogo)}" alt="Logo de ${escAttr(m.companyName || 'la empresa seleccionada')}" style="width:88px;height:42px;object-fit:contain;border:1px solid var(--border);border-radius:6px;background:#fff">` : `<span style="color:var(--text-3);font-size:.8rem">${selectedCompany ? 'La empresa no tiene logotipo configurado' : 'Selecciona una empresa'}</span>`}</div></div>
         </div>
+        <p class="company-editor-note" style="margin-top:.7rem">${siIcon('info',15)}<span>El nombre legal y el logotipo se obtienen del Administrador de Empresas en Procesos. La boleta no consulta datos de colaboradores.</span></p>
+        ${_vacCompaniesError ? `<div class="alert alert-warning" style="margin-top:.7rem">${siIcon('alert-triangle',15)} No se pudieron cargar las empresas: ${esc(_vacCompaniesError)}</div>` : ''}
       </div>
       <div class="data-block" style="margin-top:.8rem">
         <div class="data-block-title"><span>Datos del colaborador</span></div>
@@ -19918,10 +19952,43 @@ function renderVacationsView() {
         </div>
         <label class="data-field" style="margin-top:.7rem"><span class="data-field-label">Observaciones</span><span class="emp-edit-input"><textarea rows="3" oninput="vacManualSet('observations',this.value)">${esc(m.observations)}</textarea></span></label>
       </div>
+      </div>
+      <aside class="vac-manual-preview-panel" aria-label="Previsualización de la boleta">
+        <div class="vac-manual-preview-head"><div><strong>Previsualización de la boleta</strong><span>Así se verá cada ejemplar en media carta.</span></div><span class="vac-manual-preview-badge">En vivo</span></div>
+        <div class="vac-manual-preview" id="vac-manual-preview">${vacBoletaCopyHtml('VISTA PREVIA', vacManualSlipData())}</div>
+        <p style="margin:.7rem 0 0;color:var(--text-3);font-size:.7rem;text-align:center">Al imprimir se generarán ORIGINAL y COPIA en una sola hoja carta.</p>
+      </aside>
+      </div>
     </div>
   `
 }
 let _vacManual = null
+let _vacCompaniesLoading = false
+let _vacCompaniesError = ''
+function vacManualCompanies() { return Object.values(_badge.companies || {}).flat() }
+async function loadVacManualCompanies() {
+  if (_vacCompaniesLoading) return
+  _vacCompaniesLoading = true
+  _vacCompaniesError = ''
+  try {
+    let result = await sb.from('companies').select('id, country_id, name, legal_name, code, logo_url, brand_color').order('name')
+    if (result.error && /brand_color|logo_url|schema cache/i.test(result.error.message || '')) {
+      result = await sb.from('companies').select('id, country_id, name, legal_name, code, logo_url').order('name')
+      if (result.error && /logo_url|schema cache/i.test(result.error.message || '')) result = await sb.from('companies').select('id, country_id, name, legal_name, code').order('name')
+    }
+    if (result.error) throw result.error
+    _badge.companies = {}
+    ;(result.data || []).forEach(company => {
+      company.logo_url ||= null
+      ;(_badge.companies[company.country_id || '_'] ||= []).push(company)
+    })
+    if (_vacManual?.companyId) vacManualCompanyChanged(_vacManual.companyId, '', false)
+  } catch (error) {
+    _vacCompaniesError = error?.message || String(error)
+  } finally {
+    _vacCompaniesLoading = false
+  }
+}
 function vacManualDefaults() {
   const today = hrToday().toISOString().slice(0, 10)
   return {
@@ -19933,14 +20000,18 @@ function vacManualDefaults() {
   }
 }
 function vacManualEnsure() { if (!_vacManual) _vacManual = vacManualDefaults() }
-function vacManualSet(key, value) { vacManualEnsure(); _vacManual[key] = value }
-function vacManualLogoChanged(input) {
-  const file = input.files?.[0]
-  if (!file) return
-  if (file.size > IMG_MAX_MB * 1024 * 1024) { toast(`El logo supera ${IMG_MAX_MB} MB`); input.value = ''; return }
-  const reader = new FileReader()
-  reader.onload = () => { _vacManual.companyLogo = String(reader.result || ''); renderBadgeModule() }
-  reader.readAsDataURL(file)
+function vacManualSet(key, value) { vacManualEnsure(); _vacManual[key] = value; vacManualUpdatePreview() }
+function vacManualCompanyChanged(companyId, _selectId = '', rerender = true) {
+  vacManualEnsure()
+  const company = vacManualCompanies().find(item => String(item.id) === String(companyId))
+  _vacManual.companyId = company ? String(company.id) : ''
+  _vacManual.companyName = company ? (company.legal_name || company.name || company.code || '') : ''
+  _vacManual.companyLogo = company?.logo_url || ''
+  if (rerender) renderBadgeModule()
+}
+function vacManualUpdatePreview() {
+  const preview = document.getElementById('vac-manual-preview')
+  if (preview) preview.innerHTML = vacBoletaCopyHtml('VISTA PREVIA', vacManualSlipData())
 }
 function vacManualDate(key, value) {
   vacManualEnsure(); _vacManual[key] = value
