@@ -1,0 +1,2 @@
+[functions.monday-vacation-webhook]
+verify_jwt = false

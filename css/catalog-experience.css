@@ -1,0 +1,94 @@
+/* Catalog anatomy: navigation → tools → result context → comparable records. */
+#cat-toolbar {gap:8px;margin-bottom:0;padding-bottom:20px;border-bottom:1px solid var(--border)}
+#cat-toolbar .sf-search {flex:1 1 320px;max-width:640px;min-width:220px}
+.catalog-results {display:flex;align-items:center;justify-content:space-between;gap:16px;padding:24px 0}
+.catalog-results>div:first-child {display:flex;flex-direction:column;gap:5px}
+.catalog-results strong {font-size:15px;font-weight:600}
+.catalog-results span {font-size:13px;color:var(--text-3)}
+.catalog-results .pd-tabs {flex-shrink:0;margin:0}
+.catalog-results .pd-tab {display:inline-flex;align-items:center;gap:8px}
+.catalog-filter-chips {display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
+.catalog-grid {align-items:stretch;gap:24px;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));padding-bottom:96px}
+.catalog-card {display:flex;flex-direction:column;cursor:default;box-shadow:none}
+.catalog-card:hover {transform:none;box-shadow:none}
+.catalog-media {position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:180px;border:0;border-bottom:1px solid var(--border);background:var(--surface2);color:var(--text-3);cursor:pointer;font:inherit;padding:0;overflow:hidden}
+.catalog-media img {width:100%;height:100%;object-fit:cover}
+.catalog-media>span:not([hidden]) {display:flex;flex-direction:column;align-items:center;gap:12px;font-size:13px}
+.catalog-media>span>svg {width:32px;height:32px;opacity:.6}
+.catalog-media small {font-size:13px}
+.catalog-select {position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface);font-size:13px;cursor:pointer;color:var(--text)}
+.catalog-card .card-check {position:static;opacity:1;pointer-events:auto;width:16px;height:16px;margin:0;transform:none;box-shadow:none;border-radius:3px;accent-color:var(--accent)}
+.catalog-card .card-body {padding:20px;display:flex;flex-direction:column;flex:1;gap:12px}
+.catalog-name {display:block;text-align:left;border:0;background:none;color:var(--text);font:inherit;font-size:18px;font-weight:600;line-height:1.35;overflow-wrap:anywhere;padding:0;cursor:pointer}
+.catalog-name:hover {text-decoration:underline;text-underline-offset:4px}
+.catalog-identity {display:flex;flex-wrap:wrap;gap:8px 16px;color:var(--text-3);font-size:13px}
+.catalog-identity>span:first-child {font-family:'Aeonik Mono',monospace}
+.catalog-composition {font-size:14px;line-height:1.55;margin:0;min-height:3.1em;overflow-wrap:anywhere}
+.catalog-specs {display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:4px 0 0;padding:16px 0;border-top:1px solid var(--border)}
+.catalog-specs dt {color:var(--text-3);font-size:12px;margin-bottom:5px}
+.catalog-specs dd {font-size:14px;line-height:1.4;margin:0;overflow-wrap:anywhere}
+.catalog-state {display:flex;align-items:center;gap:8px;margin-top:auto}
+.catalog-state>span:last-child {color:var(--text-3);font-size:12px}
+.catalog-card .card-actions {display:flex;gap:8px;margin:4px 0 0;padding:16px 0 0;border-top:1px solid var(--border)}
+.catalog-card .card-actions>.btn {flex:1;height:var(--control-h);min-height:var(--control-h);font-size:14px}
+.catalog-card .card-actions>.icon-btn {width:var(--control-h);height:var(--control-h);flex-shrink:0}
+.catalog-card:has(:focus-visible) {outline:2px solid var(--accent);outline-offset:3px}
+#select-bar {border-radius:12px;background:var(--surface);color:var(--text);border:1px solid var(--border);padding:12px 16px;box-shadow:0 8px 28px #00000018;max-width:calc(100vw - 32px);box-sizing:border-box;flex-wrap:wrap;white-space:normal;gap:12px;pointer-events:none;visibility:hidden}
+#select-bar.show {pointer-events:auto;visibility:visible}
+#select-bar #select-count {margin-right:8px}
+.sd-panel:has(.catalog-comparison) {width:min(1100px,95vw);max-width:95vw}
+.catalog-comparison>p {font-size:14px;line-height:1.6;color:var(--text-3);margin:0 0 24px}
+.catalog-comparison table {width:100%;min-width:600px}
+.catalog-comparison th,.catalog-comparison td {min-width:180px;padding:16px;white-space:normal;vertical-align:top;line-height:1.5}
+.catalog-comparison thead th {background:var(--surface2)}
+.catalog-comparison .catalog-name {font-size:16px}
+.catalog-comparison tbody th {font-size:13px;color:var(--text-3)}
+@media(max-width:600px){.catalog-results{align-items:flex-start;flex-direction:column}.catalog-grid{gap:16px}.catalog-media{height:180px}#select-bar{width:calc(100vw - 24px);bottom:12px}#select-bar #select-count{width:100%}.catalog-results .pd-tabs{align-self:flex-end}#cat-toolbar .sf-search{min-width:100%}}
+#cat-toolbar .sf-search>svg {position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none}
+.catalog-options details {padding:8px 0}
+.catalog-options summary {display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:14px;cursor:pointer;list-style:none}
+.catalog-options summary::after {content:'⌄';margin-left:auto}
+.catalog-options details[open] summary::after {content:'⌃'}
+.catalog-options .pop-menu-item {display:flex;align-items:center;gap:8px}
+#cat-toolbar .sf-search input.control-input {width:100%;max-width:none;padding-left:36px;padding-right:32px;font-size:14px}
+.catalog-grid:not(:has(.catalog-media img)) .catalog-media {height:112px}
+#select-bar {width:max-content}
+body:has(.sd-overlay.open .catalog-comparison) #select-bar {visibility:hidden;pointer-events:none}
+.catalog-quickview {display:flex;flex-direction:column;gap:20px}
+.catalog-quickview h3 {font-size:15px;margin:0}
+.catalog-quickview p {margin:0;line-height:1.6}
+.catalog-quickview .catalog-state {margin:0}
+.catalog-detail-image {width:100%;max-height:260px;object-fit:contain;border-radius:12px;background:var(--surface2)}
+.catalog-detail-actions {display:flex;flex-wrap:wrap;gap:8px}
+#cat-toolbar .cat-pop-row {font-size:14px;min-height:36px}
+#cat-toolbar .cat-pop-title {font-size:12px;text-transform:none;letter-spacing:0}
+
+/* Quick view: compact reference summary and a stable action area. */
+.sd-body:has(>.catalog-quickview){padding:0;display:flex;flex-direction:column}
+.catalog-quickview{gap:0;min-height:100%;flex:1}
+.cq-content{padding:24px;display:flex;flex-direction:column;gap:24px}
+.cq-reference,.cq-reference>span,.cq-status{display:flex;align-items:center;gap:8px}
+.cq-reference{justify-content:space-between}
+.cq-reference strong{font-size:14px;font-family:var(--font-mono,monospace);color:var(--text)}
+.cq-reference svg,.cq-caption{color:var(--text-3)}
+.cq-caption{font-size:12px;line-height:1.5}
+.cq-status{justify-content:space-between;font-size:12px;color:var(--text-3)}
+.catalog-quickview h3{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--text-3);margin:0 0 12px}
+.cq-composition{padding:16px;border-radius:var(--r-md,8px);background:var(--surface2)}
+.cq-composition p{font-size:17px;font-weight:500;line-height:1.5;color:var(--text)}
+.cq-spec-section .catalog-specs{margin:0;padding:0;border:0;gap:20px 24px}
+.cq-spec-section .catalog-specs dd{font-weight:500}
+.cq-spec-section .catalog-specs .cq-missing{font-weight:400;color:var(--text-3);font-size:13px}
+.cq-record{display:flex;align-items:center;gap:12px;text-align:left;font:inherit;color:var(--text);padding:16px 0;border:0;border-top:1px solid var(--border);background:transparent;cursor:pointer;width:100%}
+.cq-record>span:nth-child(2){flex:1;min-width:0}
+.cq-record strong{display:block;font-size:14px;font-weight:600}
+.cq-record small{display:block;font-size:12px;color:var(--text-3);margin-top:4px;line-height:1.5}
+.cq-record-icon{display:flex;color:var(--text-3)}
+.cq-record:hover strong{color:var(--accent-dark)}
+.cq-record:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:var(--r-md,8px)}
+.cq-actions{position:sticky;bottom:-1px;margin-top:auto;padding:16px 24px;background:var(--surface);border-top:1px solid var(--border);display:grid;gap:10px}
+.cq-actions>.btn{width:100%;justify-content:center}
+.cq-actions>div{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cq-actions .btn{justify-content:center}
+.cq-actions .btn[aria-pressed=true]{border-color:var(--accent-dark);color:var(--accent-dark)}
+@media(max-width:480px){.cq-content{padding:20px;gap:20px}.cq-actions{padding:12px 20px}}

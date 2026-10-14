@@ -1,0 +1,150 @@
+/* Official policy identity belongs to PostgreSQL. No browser counter or offline approval. */
+(function(){
+ 'use strict';
+ let catalog=null,loading=null,approving=false,versioning=false;
+ const rpc=async(name,args)=>{const {data,error}=await sb.rpc(name,args);if(error)throw error;return data};
+ const pendingKey=()=>`policy-approval-pending:${me?.id||''}`;
+ function refresh(){
+  const form=document.getElementById('policy-form');if(!form||_policyTab!=='info')return;
+  const top=form.scrollTop,active=document.activeElement,handler=form.contains(active)&&active.getAttribute('oninput'),id=active?.id,start=active?.selectionStart,end=active?.selectionEnd;
+  form.innerHTML=policyInfoPanel();form.scrollTop=top;
+  const next=handler?[...form.querySelectorAll('[oninput]')].find(el=>el.getAttribute('oninput')===handler):id?document.getElementById(id):null;
+  next?.focus({preventScroll:true});if(next?.setSelectionRange&&typeof start==='number')next.setSelectionRange(start,end);decorate();
+ }
+ async function load(){if(loading)return loading;const accountId=me?.id;loading=(async()=>{try{const result=await rpc('policy_numbering_catalog');if(Number(result?.version)<51||!Array.isArray(result.areas)||!Array.isArray(result.companies))throw Error('Catálogo no disponible');if(me?.id===accountId)catalog={...result,accountId}}catch{catalog=null}finally{loading=null;refresh();decorate()}})();return loading}
+ function serverCatalog(){return catalog?.accountId===me?.id?catalog:null}
+ function areas(){return serverCatalog()?.areas||PolicyCatalog.areas}
+ function identityLocked(p){return Boolean(p?.numbering)||/^[A-Z]{2}-[A-Z&]{3}-\d{3}-POL-\d{3}$/.test(p?.code||'')}
+ function documentLocked(p){return Boolean(p?.numbering)&&['Aprobada','Archivada'].includes(p?.status)}
+ function currentArea(p){return areas().find(a=>a.code===p.areaCode)||areas().find(a=>a.code===PolicyCatalog.area(p.department)?.code)}
+ function currentCompany(p){
+  const live=serverCatalog()?.companies.find(c=>String(c.id)===String(p.companyId));if(live)return live;
+  const company=_policyCompanies.find(c=>String(c.id)===String(p.companyId));if(!company)return null;
+  const country=company.countries||(typeof _badge==='object'?_badge.countries?.find(c=>c.id===company.country_id):null);
+  return {...company,companyCode:PolicyCatalog.companyCode(company),countryCode:country?.code||'',countryName:country?.name||''};
+ }
+ const originalOrg=policyLoadOrganization;
+ policyLoadOrganization=async function(){await Promise.all([originalOrg(),load()])};
+ // The tools panel is transformed during its collapse animation. Put its
+ // dedicated menus in the browser's top layer so overflow cannot clip them.
+ const originalSelectHtml=policySelect;
+ policySelect=function(...args){return originalSelectHtml(...args).replace('class="pd-select-menu"','class="pd-select-menu" popover="manual"')};
+ const originalClose=closePdSelects;
+ closePdSelects=function(exceptId=null){document.querySelectorAll('.policy-dedicated-select .pd-select-menu[popover]').forEach(menu=>{if(menu.parentElement.id!==`${exceptId}-dd`&&typeof menu.hidePopover==='function'&&menu.matches(':popover-open'))menu.hidePopover()});originalClose(exceptId)};
+ const originalToggle=togglePdSelect;
+ togglePdSelect=function(event,id){originalToggle(event,id);const dd=document.getElementById(id+'-dd'),menu=dd?.querySelector('.pd-select-menu[popover]');if(menu?.showPopover&&dd.classList.contains('open')){menu.showPopover();positionPdSelect(id)}};
+ policyInfoPanel=function(){
+  const p=_policyCurrent,company=currentCompany(p),locked=identityLocked(p),area=currentArea(p);
+  const options=areas().map(a=>({value:a.code,label:`${a.name} · ${a.code}`,icon:'briefcase'}));
+  const oldArea=!area&&p.department?`<small class="policy-field-hint">Área anterior: «${esc(p.department)}». Elige su equivalencia del catálogo.</small>`:'';
+  const areaHtml=`<div class="policy-field"><span>Departamento / área</span>${policySelect('policy-area','Departamento / área',options,area?.code||'','Selecciona un área','',locked)}${oldArea}</div>`;
+  const pending=company?.companyCode&&company.countryCode&&area?`${company.countryCode}-${company.companyCode}-${area.code}-POL-…`:'Por asignar';
+  const legacy=p.legacyCode||(!locked?p.code:'');
+  const note=locked?'Código reservado. Para cambiar empresa o área, duplica la política.':company&&!company.companyCode?`${company.name} no tiene abreviatura oficial en el catálogo. Puedes guardar el borrador; la aprobación requiere completar ese dato.`:company&&!company.countryCode?'Falta el país en el registro de la empresa. Puedes continuar guardando el borrador.':!serverCatalog()?'Numeración en la nube no disponible. Puedes seguir editando y guardando el borrador.':'El número definitivo se asigna al aprobar; no necesitas escribirlo.';
+  const needsAttention=!locked&&Boolean(company&&(!company.companyCode||!company.countryCode)||!serverCatalog());
+  const codeHtml=`<div class="policy-numbering-group"><div class="policy-field-grid policy-code-grid"><div class="policy-field"><span id="policy-code-label">Código automático</span><output class="policy-code-output" aria-labelledby="policy-code-label" aria-describedby="policy-code-note">${esc(locked?p.code:pending)}</output></div><div class="policy-field"><span id="policy-version-label">Versión automática</span><output class="policy-code-output" aria-labelledby="policy-version-label">${esc(p.version||'1.0')}</output></div></div><p id="policy-code-note" class="policy-field-hint policy-numbering-note${needsAttention?' is-attention':''}">${siIcon(needsAttention?'info':locked?'lock':'info',15)}<span>${esc(note)}</span></p>${legacy?`<details class="policy-legacy-reference"><summary>Referencia anterior</summary><span>${esc(legacy)}</span><small>Conservada para consulta; no es el código automático.</small></details>`:''}</div>`;
+  const derived=`<div class="policy-derived-fields" aria-label="Datos automáticos"><span>${siIcon('globe',14)}<span>${esc(company?.countryName||company?.countryCode||'País según empresa')}</span></span><span>${siIcon('file',14)}<span>Política · POL</span></span></div>`;
+  return `<div class="policy-form-section policy-info-section">${policyField('title','Nombre de la política')}<div class="policy-section-label">Clasificación</div><div class="policy-field"><span>Empresa</span>${policySelect('policy-company','Empresa',policyCompanyOptions(),String(p.companyId||''),_policyOrgLoading?'Cargando empresas…':'Selecciona una empresa','',locked||_policyOrgLoading)}${derived}</div>${areaHtml}${policyField('processName','Proceso al que pertenece')}${codeHtml}<div class="policy-section-label">Revisión y aprobación</div><div class="policy-field"><span>Estado</span>${policySelect('policy-status','Estado',policyStatusOptions().map(policyStatusOption),p.status,'Selecciona un estado')}</div><div class="policy-field-grid">${policyField('date','Fecha de aprobación','date')}${policyField('reviewDate','Próxima revisión','date')}</div>${policyField('owner','Responsable del documento')}<label class="policy-confidential-toggle"><input type="checkbox" ${p.confidential?'checked':''} onchange="policySet('confidential',this.checked)"><span><b>Documento confidencial</b><small>Agrega la clasificación y una marca de agua en el documento.</small></span></label><div class="policy-section-label">Control de cambios</div>${policyField('changeControl','Criterio de revisión','textarea')}</div>`;
+ };
+ const originalSelect=policySelectChanged;
+ policySelectChanged=function(value,id){if(!can('write','processes'))return false;if(id==='policy-area'){if(identityLocked(_policyCurrent)||approving)return false;const area=areas().find(a=>a.code===value);if(!area)return false;_policyCurrent.areaCode=area.code;_policyCurrent.department=area.name;policyCommit();refresh();document.querySelector('#policy-area-dd .pd-select-btn')?.focus({preventScroll:true});policyRenderPreview();return true}return originalSelect(value,id)};
+ const originalCompany=policySetCompany;
+ policySetCompany=function(id){if(!can('write','processes'))return false;if(identityLocked(_policyCurrent)||approving){toast('La empresa forma parte del código existente y no puede cambiarse.');refresh();return false}if(id&&!_policyCompanies.some(c=>String(c.id)===String(id)))return false;return originalCompany(id)};
+ const originalSet=policySet;
+ policySet=function(key,value){if(!can('write','processes')||approving||versioning||documentLocked(_policyCurrent)||['code','version','numbering','legacyCode','approvedAt','approvedBy','department','areaCode','companyId','companyName','companyLegalName','countryCode','documentType'].includes(key))return false;if(key==='status'&&value==='Aprobada'&&_policyCurrent.status!=='Aprobada'){void approve();return true}return originalSet(key,value)};
+ const originalCommit=policyCommit;
+ policyCommit=function(...args){if(!can('write','processes')||documentLocked(_policyCurrent))return false;if(_policyCurrent&&!_policyCurrent.numbering){const area=currentArea(_policyCurrent);if(area){_policyCurrent.areaCode=area.code;_policyCurrent.department=area.name}}return originalCommit(...args)};
+ async function flush(id){policyFlushPendingSave();if(_policyCloudWrites.has(id))await _policyCloudWrites.get(id);if(_policyCloudDrafts.has(id)||!_policyCurrent?._revision)throw Error('Primero confirma el guardado en la nube. No se puede aprobar con cambios pendientes.');}
+ function confirmation(message){return new Promise(resolve=>{commsConfirm('Aprobar política',message,()=>resolve(true),'Aprobar y asignar código');document.querySelector('dialog.comms-confirm')?.addEventListener('close',()=>queueMicrotask(()=>resolve(false)),{once:true})})}
+ function progress(message,retry=false){
+  let dialog=document.getElementById('policy-approval-progress');if(!dialog){dialog=document.createElement('dialog');dialog.id='policy-approval-progress';dialog.className='comms-confirm';dialog.addEventListener('cancel',event=>event.preventDefault());document.body.append(dialog);dialog.showModal()}
+  dialog.replaceChildren();const h=document.createElement('h3');h.textContent=retry?'Aprobación por confirmar':'Confirmando aprobación';const p=document.createElement('p');p.textContent=message;dialog.append(h,p);dialog.setAttribute('aria-label',h.textContent);
+  if(retry){const b=document.createElement('button');b.className='btn btn-primary';b.textContent='Verificar y reintentar';b.onclick=()=>resume();dialog.append(b)}
+ }
+ function finish(){approving=false;document.getElementById('policy-approval-progress')?.remove();refresh();policySyncEditorStatus();policyRenderPreview();decorate()}
+ async function submit(intent){
+  const accountId=me?.id,key=pendingKey();
+  progress('La nube está reservando el código. No cierres esta ventana.');
+  try{
+   const saved=await rpc('policy_approve',{p_policy_id:intent.id,p_revision:intent.revision});
+   if(me?.id!==accountId){finish();return}
+   if(!saved?.numbering||saved.status!=='Aprobada')throw Error('Respuesta de aprobación incompleta');
+   PolicyReview.acceptDocument(saved);localStorage.removeItem(key);policyCloudState('Guardado en la nube','saved');finish();toast(`Política aprobada: ${saved.code}`);
+  }catch(error){
+   if(me?.id!==accountId){finish();return}
+   if(['22023','40001','42501','P0002'].includes(error.code)){
+    // A transaction rejected by PostgreSQL allocated nothing. Keep the local copy.
+    localStorage.removeItem(pendingKey());finish();toast(error.message||'No se pudo aprobar. Revisa los datos.');
+   }else progress('No llegó la confirmación. No emitiremos otro código: verificaremos la misma operación. Tu política sigue protegida.',true);
+  }
+ }
+ async function resume(){let intent;try{intent=JSON.parse(localStorage.getItem(pendingKey())||'null')}catch{}if(!intent)return;approving=true;await submit(intent)}
+ async function approve(){
+  if(approving||!_policyCurrent||!can('write','processes'))return;
+  const id=_policyCurrent.id;approving=true;
+  try{
+   if(!serverCatalog())await load();
+   if(!serverCatalog())throw Error('La numeración automática aún no está disponible en la nube. El borrador se conserva; no se asignará un código manual.');
+   if(!_policyCurrent.areaCode&&currentArea(_policyCurrent))policyCommit();
+   await flush(id);
+   const p=_policyCurrent,company=currentCompany(p),area=currentArea(p);
+   if(p?.id!==id)throw Error('La política abierta cambió.');
+   if(!p.numbering&&(!company?.companyCode||!area))throw Error('Selecciona una empresa con abreviatura oficial y un área del catálogo antes de aprobar.');
+   if(!p.title.trim()||p.title.trim()==='POLÍTICA SIN TÍTULO')throw Error('Escribe el nombre definitivo de la política.');
+   const message=p.numbering?`Se conservará el código ${p.code}.`:`Se asignará el siguiente número disponible de ${company.countryCode}-${company.companyCode}-${area.code}-POL. Empresa y área quedarán vinculadas a ese código; no se reutilizará aunque archives la política.`;
+   if(!await confirmation(message)){approving=false;refresh();return}
+   await flush(id);const intent={id,revision:_policyCurrent._revision};localStorage.setItem(pendingKey(),JSON.stringify(intent));await submit(intent);
+  }catch(error){approving=false;refresh();toast(error.message||'No se pudo iniciar la aprobación.')}
+ }
+ const versionPendingKey=()=>`policy-version-pending:${me?.id||''}:${_policyCurrent?.id||''}`;
+ function decorate(){
+  const p=_policyCurrent,signals=document.querySelector('.policy-editor-signals'),form=document.getElementById('policy-form');if(!p||!signals||!form)return;
+  signals.querySelector('[data-policy-new-version]')?.remove();
+  const writable=can('write','processes');
+  if(writable&&documentLocked(p)&&p.status==='Aprobada')signals.insertAdjacentHTML('beforeend',`<button class="policy-new-version-button" data-policy-new-version type="button" onclick="PolicyNumbering.createVersion()">${siIcon('copy',15)}<span>Crear nueva versión</span></button>`);
+  form.classList.remove('is-policy-readonly');
+  if(writable&&(!documentLocked(p)||_policyTab==='comments'))return;
+  form.querySelector('.policy-approved-lock')?.remove();
+  const title=writable?`Versión ${esc(p.version||'1.0')} protegida`:'Acceso de solo lectura';
+  const detail=writable?(p.status==='Archivada'?'Esta publicación está archivada y conserva su contenido.':'La política aprobada no se puede sobrescribir. Los comentarios siguen disponibles.'):'Puedes consultar, revisar el historial y descargar el documento, pero no modificarlo.';
+  form.insertAdjacentHTML('afterbegin',`<div class="policy-approved-lock" role="status"><span class="policy-approved-lock-icon">${siIcon('lock',18)}</span><span><strong>${title}</strong><small>${detail}</small></span></div>`);
+  form.querySelectorAll('input,textarea,select').forEach(control=>control.disabled=true);
+  form.querySelectorAll('[contenteditable]').forEach(control=>{control.contentEditable='false';control.setAttribute('aria-readonly','true')});
+  form.querySelectorAll('button:not([data-policy-new-version])').forEach(button=>button.disabled=true);
+  form.classList.add('is-policy-readonly');
+ }
+ const originalRender=renderPolicyEditor;
+ renderPolicyEditor=function(){originalRender();decorate()};
+ const originalTab=policySelectTab;
+ policySelectTab=function(tab){originalTab(tab);decorate()};
+ const originalArchive=policyArchive;
+ policyArchive=async function(id){if(!can('write','processes'))return false;const p=_policies.find(item=>item.id===id);if(!p||!p.numbering)return originalArchive(id);const restore=p.status==='Archivada';try{const saved=await rpc('policy_set_archived',{p_policy_id:id,p_revision:p._revision,p_archived:!restore});PolicyReview.acceptDocument(saved);toast(restore?`Se restauró “${p.title}” como publicación aprobada.`:`Se archivó “${p.title}” sin alterar su publicación.`);renderPolicyLibrary();return true}catch(error){toast(error.message||'No se pudo cambiar el archivo. Actualiza e inténtalo de nuevo.');return false}};
+ function versionConfirmation(version){return new Promise(resolve=>{commsConfirm('Crear nueva versión',`La versión aprobada ${version} quedará intacta. Se abrirá un borrador con la siguiente versión, asignada por la nube para evitar duplicados.`,()=>resolve(true),'Crear nueva versión');document.querySelector('dialog.comms-confirm')?.addEventListener('close',()=>queueMicrotask(()=>resolve(false)),{once:true})})}
+ async function submitVersion(intent){
+  const accountId=me?.id;versioning=true;policyCloudState('Creando nueva versión…','saving');decorate();
+  try{
+   const saved=await rpc('policy_create_version',{p_policy_id:intent.id,p_revision:intent.revision,p_operation_id:intent.operationId});
+   if(me?.id!==accountId)return;
+   PolicyReview.acceptDocument(saved);localStorage.removeItem(versionPendingKey());policyCloudState('Nueva versión guardada en la nube','saved');versioning=false;renderPolicyEditor();toast(`Versión ${saved.version} creada. La versión aprobada permanece intacta.`);
+  }catch(error){
+   versioning=false;
+   if(error.code==='40001'){
+    try{const remote=await rpc('policy_cloud_get',{p_policy_id:intent.id});PolicyReview.acceptDocument(remote);localStorage.removeItem(versionPendingKey());renderPolicyEditor();toast(remote.status==='Borrador'?`Otra persona ya creó la versión ${remote.version}. Abrimos el mismo borrador compartido.`:'La política cambió. Se cargó la versión más reciente.');return}catch{}
+   }
+   if(['22023','42501','P0002'].includes(error.code))localStorage.removeItem(versionPendingKey());
+   policyCloudState('No se pudo crear la versión','error');decorate();toast(error.message||'No se pudo crear la nueva versión. Tu política aprobada no cambió.');
+  }
+ }
+ async function createVersion(){
+  if(versioning||!documentLocked(_policyCurrent)||_policyCurrent.status!=='Aprobada'||!can('write','processes'))return;
+  let intent;try{intent=JSON.parse(localStorage.getItem(versionPendingKey())||'null')}catch{}
+  if(!intent){if(!await versionConfirmation(_policyCurrent.version||'1.0'))return;intent={id:_policyCurrent.id,revision:_policyCurrent._revision,operationId:crypto.randomUUID?.()||policyUid('version-operation')};localStorage.setItem(versionPendingKey(),JSON.stringify(intent))}
+  await submitVersion(intent);
+ }
+ const originalOpen=policyOpen;
+ policyOpen=function(id){originalOpen(id);decorate();if(!serverCatalog())void load();if(localStorage.getItem(pendingKey()))void resume()};
+ // Restoring text never restores someone else's issued identity or approval state.
+ const originalVersion=policyVersionSnapshot;
+ policyVersionSnapshot=function(p){const result=originalVersion(p);for(const key of ['code','numbering','legacyCode','approvedAt','approvedBy','status','companyId','areaCode','department'])delete result[key];return result};
+ window.PolicyNumbering={reload:load,approve,resume,createVersion,decorate,isLocked:documentLocked};
+})();

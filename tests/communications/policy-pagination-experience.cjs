@@ -1,0 +1,22 @@
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+
+const html = fs.readFileSync(path.join(__dirname, '../../index.html'), 'utf8')
+
+assert.match(html, /break-after:avoid-page;page-break-after:avoid/)
+assert.match(html, /const ensureLeadRoom=\(\)=>/)
+assert.match(html, /begin\(false\);ensureLeadRoom\(\)/)
+assert.match(html, /leadLength=firstSpace>0\?firstSpace\+1:Math\.min\(value\.length,1\)/)
+assert.match(html, /const isFlowText=node=>\/\^\(P\|H\[1-6\]\|DIV\|BLOCKQUOTE\|UL\|OL\|LI\)\$\//)
+assert.match(html, /child\.remove\(\);if\(isFlowText\(child\)\)\{splitParagraph\(child\);continue\}/)
+assert.match(html, /if\(block\.classList\.contains\('policy-document-section'\)&&!isApprovalSection\)\{splitSection\(block\);continue\}/)
+assert.doesNotMatch(html, /block\.remove\(\);if\(content\.children\.length\)newPage\(\);content\.append\(block\);if\(fits\(\)\)continue;block\.remove\(\);if\(block\.classList\.contains\('policy-index'\)/)
+assert.match(html, /function policyZoomWidth\(\)/)
+assert.match(html, /function policyZoomPage\(\)/)
+assert.match(html, /data-policy-zoom-mode="width"/)
+assert.match(html, /data-policy-zoom-mode="page"/)
+assert.match(html, />Ancho<\/span>/)
+assert.match(html, />Página<\/span>/)
+
+console.log('PASS: policy preview keeps headings with content and supports width/page fitting')

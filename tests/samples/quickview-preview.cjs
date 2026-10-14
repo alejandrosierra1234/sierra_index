@@ -1,0 +1,7 @@
+const fs=require('fs'),path=require('path'),{mock,script}=require('./catalog-preview.cjs');
+const html=fs.readFileSync(path.join(__dirname,'../../index.html'),'utf8');const take=(a,b)=>html.slice(html.indexOf(a),html.indexOf(b,html.indexOf(a)));
+const drawer=take('<div class="sd-overlay" id="sd-overlay"','<!-- ══ IMAGE LIGHTBOX');
+const actual=take('function openCatalogDrawer(p)','function enc(p)')+take('function openSideDrawer({','function toast(msg)');
+const setup=`let _sdOnTab;function canSeeCatalogPricing(){return true}function catPriceText(p){return p.specs?.Price||'—'}function quickReq(){}function openFicha(){}function quickLabel(){}`;
+if(require.main===module)fs.writeFileSync(path.join(__dirname,'preview.html'),`<!doctype html><html lang="es"><head><meta charset="utf-8"><base href="/"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${html.match(/<style>([\s\S]*?)<\/style>/)[1]}</style><link rel="stylesheet" href="css/catalog-experience.css"></head><body style="display:block"><main style="padding:32px"><h1>SIERRA Fabric</h1><p>Catálogo técnico de productos · demostración</p><div id="cat-toolbar"></div><div id="pg"></div></main>${drawer}<script>${mock}${script}${setup}${actual}renderProducts(demo);openCatalogDrawer({id:'zero',name:'Single Jersey',code:'SJ-010',division:'fabric',lot:'NT24-S394-2BB',specs:{Composition:'60% Cotton 40% Poly',GSM:'0',Color:'Blue /660C'}});</script></body></html>`);
+module.exports={mock,script,drawer,actual,setup};

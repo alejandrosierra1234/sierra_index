@@ -1,0 +1,20 @@
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+
+const html = fs.readFileSync(path.join(__dirname, '../../index.html'), 'utf8')
+const hr = html.slice(html.indexOf('talento_humano: {'), html.indexOf('samples: {'))
+const processes = html.slice(html.indexOf('procesos: {'), html.indexOf('administracion: {'))
+
+assert.doesNotMatch(hr, /id: 'companies'/)
+assert.match(processes, /id: 'companies', label: 'Empresas'/)
+assert.match(processes, /run: 'showProcessCompanies'/)
+assert.match(html, /sessionStorage\.setItem\('sierra_route','module:procesos:companies'\)/)
+assert.match(html, /pdSelect\('company-country'/)
+assert.doesNotMatch(html.slice(html.indexOf('function openCompanyEditor'), html.indexOf('function closeCompanyEditor')), /<select/)
+assert.match(html, /id="company-policy-prefix"/)
+assert.match(html, /id="company-brand-color"/)
+assert.match(html, /sb\.rpc\('process_company_save',payload\)/)
+assert.match(html, /los códigos ya publicados no se modifican/)
+
+console.log('PASS: company identity moved to Processes with SIERRA country, prefix, logo and color controls')

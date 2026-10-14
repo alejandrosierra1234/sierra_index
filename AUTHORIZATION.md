@@ -1,5 +1,65 @@
 # SIERRA Index — Capability-Based Authorization
 
+## Current Contract: Authorization V2
+
+`update40.sql` supersedes the legacy rules documented below. Apply it after
+update39 and BEFORE deploying the V2 client. Never rerun the old role backfill.
+
+- An active profile and explicit, unexpired grants are required. Legacy
+  `admin`, `editor`, and `dispatcher` roles do not confer runtime permissions.
+  The migration preserves existing active administrators as explicit platform
+  grants once, tracked by `index_security_migrations`.
+- `authorize()` is authoritative. Restrictive RLS checks active accounts on
+  public tables; product, collection, comment, event, link and inventory reads
+  are additionally scoped. Existing self-service/collection membership and HR
+  relationships remain independent sources of access.
+- The Data API pre-request hook checks suspension even for SECURITY DEFINER
+  RPCs. This hook does not protect other Supabase services. Anonymous Data API
+  access is limited to the two intentionally public sample-card RPCs.
+- Obsolete sample-creation RPCs accepting a client-supplied actor are disabled
+  for authenticated callers. Cloning requires access to the source collection.
+- `get_my_access()` returns version 2 and active grants. The client fails
+  closed on missing/failed verification, checks expiration on each action,
+  refreshes every 45 seconds and on focus/visibility, and expires its snapshot
+  after 60 seconds. Changed grants force a fresh page to discard cached data.
+  Data already delivered cannot be recalled from a recipient's device.
+- Only a platform administrator can call `set_index_access()`. Assignment
+  replaces the domain-wide bundle atomically, including downgrades. Empty
+  bundles revoke domain-wide grants; scoped grants and collection membership
+  are separate and are not silently revoked. Direct client grant writes and
+  self-assignment are prohibited. The existing audit trigger records changes.
+- Profile > Mi acceso groups capabilities, scope and expiration. Equipo shows
+  scoped grants separately and excludes expired grants. Old role editing is
+  disabled. Permission mutation errors never report success.
+- Communication records, signatures, counters and IndexedDB assets are keyed
+  by account. Unowned legacy browser records are retained but not automatically
+  attributed to whichever person signs in next.
+
+### Known Remaining Boundaries
+
+This migration is not a claim that every surface has completed a security
+audit. Production `product-images` is still a PUBLIC bucket: known file URLs
+bypass database row policies. A coordinated private-file and URL migration is
+required before treating those files as confidential. Browser communication
+storage is also plaintext; account namespacing is not protection against a
+person with access to that browser profile/devtools. Server-owned document
+storage (including an explicit legacy ownership migration) is still required
+for that threat model. Deployed Edge Function code and every domain RPC need
+separate review; repository account-creation functions call `authorize()`.
+
+### Verification
+
+`node tests/security/access.cjs` covers client fail-closed behavior. For a
+database rehearsal, replace update40's final COMMIT with
+`tests/security/authorization.sql`; its final ROLLBACK restores all test grant
+and suspension changes. Never commit the test transaction.
+
+## Historical V1 Notes
+
+The remainder describes the old model and related module history. Any legacy
+fallback, public catalog access, deployment-order or delegation statements
+below are superseded by the V2 contract above.
+
 Governance model: **Platform Owner + Data Owners**. Enforcement is
 capability-based; legacy roles remain only as a compatibility fallback.
 
@@ -256,3 +316,81 @@ item).
   sticker ✓/needed chips with print buttons; finalize blocks while labels
   or required stickers are missing unless the dispatcher records an
   override reason, which is logged with the affected sample ids.
+# Manual Accounts (Update 42)
+
+This section supersedes the account-to-collaborator architecture below. Index
+accounts are created manually with `full_name` and `email`, independently of HR.
+The Team roster reads profiles and capability grants only. HR onboarding,
+termination and employee profiles no longer create or manage Index accounts.
+
+Apply `update42.sql` after update40 (update41 is not required). It retains account
+IDs, names, emails, statuses and grants; archives former employee links in an
+RPC-inaccessible administrative table; and requires `employee_id` to remain null.
+The auth insert trigger always creates a manual `user` profile without capability
+grants, ignoring any client-supplied role. Previously granted access is preserved.
+
+Deploy both `create-index-account` and its legacy alias `create-user` from
+`supabase/functions`. They share the same handler, verify the caller's JWT and
+active platform-admin capability, and send a password-setup invitation. The
+service role stays server-side. Invitations are blocked until migration 42 exists.
+Permissions are assigned separately using the existing atomic `set_index_access`
+RPC; changes to one's own access remain prohibited.
+
+Verification: `node tests/security/manual-accounts.cjs` covers the manual form,
+server permission checks, role injection, missing migration, and migration safety.
+# Communications Access (Update 43)
+
+Comunicaciones uses the independent `communications` domain, not `talento_humano`.
+Equipo offers read-only (`read`) and editor (`read`, `write`) access. Only a platform
+administrator assigns module access; no existing HR grant is copied automatically.
+Global administrators retain module access but do not gain membership in other
+people's private collaborative documents. Sharing a document does not grant module access.
+
+Apply `update43.sql` after authorization v2. It is safe with or without collaboration
+installed, and preserves grants and documents. Apply it again after an older copy of
+`update41.sql`; the current `update41.sql` also checks module access internally.
+RPCs require both module access and document membership. Read-only module access caps
+document owners/editors at viewer. Revocation, suspension and expiry deny server reads
+and writes. The editor gates routes, local storage, saving, creation and export; local
+drafts already stored on a device are not erased and are not remotely revocable copies.
+# Invitation And Recovery Redirects
+
+Supabase Site URL must be `https://alejandrosierra1234.github.io/sierra_index/`.
+Allow exactly `https://alejandrosierra1234.github.io/sierra_index/auth.html` as an
+additional redirect. Both manual-account endpoints send this fixed callback; no
+request-supplied redirect is accepted. Recovery emails use the same callback.
+The root forwards legacy invitation/recovery fragments before SDK initialization.
+The callback validates the email session with Supabase before showing a password
+form, checks account identity again before updating, clears credentials from the
+address bar, and never changes permissions. Passwords and callback tokens are not
+logged. Already consumed links require a new recovery email from the login screen.
+# Account Actions
+
+`update44.sql` and the `create-index-account` Edge Function support explicit
+resend and removal actions from Team. Only a verified active platform admin may
+act on another account. The server resolves the recipient from Auth and profiles;
+unconfirmed accounts receive an invitation, confirmed accounts receive password
+recovery, both pointing to `auth.html`. Neither action assigns permissions.
+
+Removal requires the exact account email. The database rejects self-removal,
+accounts with a current platform admin grant, and owners of cloud communications.
+It disables the profile and revokes grants before the Edge Function irreversibly
+soft-deletes Auth credentials. Historical profiles, authorship and records remain.
+Existing JWTs are denied by the active-account checks. An Auth failure leaves the
+account disabled and allows retry; it never restores access automatically.
+This is account access removal, not erasure of personal data or document transfer.
+
+Regression checks: `node tests/security/account-actions.cjs`.
+
+# Marketing And Processes Access (Update 53)
+
+Marketing keeps the `communications` domain. Processes now uses the independent
+`processes` domain for policies, policy comments and versions, numbering,
+company identity, company logos and site maintenance.
+
+Apply `update53.sql` after `update52.sql` before deploying the matching client.
+The migration copies each existing domain-wide Communications `read`/`write`
+grant to Processes once so current users retain access. Later grants and
+revocations are independent; changing Marketing no longer exposes or removes
+Processes, and vice versa. Both domains use the same Viewer/Editor bundles:
+Viewer is `read`; Editor is `read` plus `write`.

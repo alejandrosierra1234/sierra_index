@@ -1,0 +1,11 @@
+const {JSDOM}=require('../communications/node_modules/jsdom'),assert=require('node:assert/strict');
+const {mock,script,drawer,actual,setup}=require('./quickview-preview.cjs');
+const w=new JSDOM(drawer,{runScripts:'outside-only',url:'https://example.test'}).window;
+w.eval(mock.replace(/\b(let|const) /g,'var ')+script+setup+actual);
+const p={id:'test',name:'Single Jersey',division:'fabric',code:'SJ-010',specs:{Composition:'60% Cotton <script>bad</script>',GSM:'0',Price:'USD 4.00'}};
+w.openCatalogDrawer(p);let body=w.document.getElementById('sd-body');assert(!body.textContent.includes('0 GSM'));assert(body.textContent.includes('Sin registrar'));assert.equal(body.querySelector('script'),null);assert(body.textContent.includes('USD 4.00'));assert.equal(body.querySelectorAll('.cq-actions button').length,3);
+w.canSeeCatalogPricing=()=>false;w.catRenderDrawerBody(p);assert(!body.textContent.includes('USD 4.00'));assert(!body.textContent.includes('Precio de referencia'));
+for(const [gsm,expected] of [['180','180 GSM'],['180 GSM','180 GSM'],['0','—'],['','—']])assert.equal(w.catQuickSpecs({...p,specs:{GSM:gsm}})[1][1],expected);
+w.catRenderDrawerBody({...p,lifecycle:'discontinued'});assert(body.querySelector('.btn-primary').disabled);assert(body.textContent.includes('no admite solicitudes'));
+w.toggleProductSelect=item=>w.selectedProducts=[item];w.catRenderDrawerBody(p);const compare=body.querySelector('[data-cq-compare]');w.eval(compare.getAttribute('onclick'));assert.equal(body.querySelector('[data-cq-compare]').getAttribute('aria-pressed'),'true');assert.equal(w.document.activeElement,body.querySelector('[data-cq-compare]'));
+console.log('PASS: quick view respects pricing permissions and request eligibility, missing GSM, escaping and compare focus');w.close();
