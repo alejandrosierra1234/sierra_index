@@ -49,7 +49,12 @@
  policyCloudSave=async function(p){const saved=policyNormalize(await rpc('policy_cloud_save',{p_snapshot:copy(p)}));bases.set(p.id,copy(saved));return saved};
  function updateRevision(id,saved){for(const p of [_policies.find(p=>p.id===id),current(),_policyCloudDrafts.get(id)])if(p?.id===id){p._revision=saved._revision;p.comments=saved.comments;for(const key of ['code','numbering','legacyCode','approvedAt','approvedBy'])p[key]=saved[key];if(saved.numbering)for(const key of ['companyId','areaCode','department'])p[key]=saved[key]}policyPersistAll()}
  policyQueueCloudSave=function(p){
-   if(!p?.id||!writable())return;const id=p.id;_policyCloudDrafts.set(id,copy(p));persistOutbox(id,p);policyCloudState('Guardando en la nube…','saving');if(_policyCloudWrites.has(id))return;
+   if(!p?.id||!writable())return;const id=p.id;_policyCloudDrafts.set(id,copy(p));persistOutbox(id,p);
+   // A persisted conflict requires a human decision. Keeping the recovery copy
+   // locally is safer than hammering PostgreSQL with the same stale CAS write on
+   // every input event (or on every page reload).
+   if(localStorage.getItem('policy-conflict:'+id)){policyCloudState('Cambios simultáneos · revisar','error');return}
+   policyCloudState('Guardando en la nube…','saving');if(_policyCloudWrites.has(id))return;
    const accountId=me?.id;
    const work=(async()=>{while(_policyCloudDrafts.has(id)){
      if(me?.id!==accountId){_policyCloudDrafts.delete(id);break}
@@ -64,7 +69,11 @@
          const latest=_policyCloudDrafts.get(id)||snapshot,merged=core.merge(base,latest,remote);
          if(merged.conflicts.length){showConflict(id,latest,remote,merged.conflicts);throw Object.assign(new Error('Hay cambios simultáneos que requieren revisión.'),{conflict:true})}
          _policyCloudDrafts.delete(id);snapshot=merged.value;snapshot._revision=remote._revision;
-         saved=await policyCloudSave(snapshot);
+         try{saved=await policyCloudSave(snapshot)}catch(retryError){
+           if(retryError.code!=='40001')throw retryError;
+           showConflict(id,latest,remote,['documento actualizado repetidamente en la nube']);
+           throw Object.assign(new Error('El documento sigue cambiando en otra sesión.'),{conflict:true});
+         }
          if(current()?.id===id){Object.assign(current(),snapshot);policyRenderPreview()}
        }
        if(me?.id!==accountId){_policyCloudDrafts.delete(id);break}
@@ -242,6 +251,6 @@
  policyResolveComment=id=>handleAction('resolve:'+id,{target:document.body});
  policyRemoveComment=id=>handleAction('delete-thread:'+id,{target:document.body});
  policyToggleComment=id=>handleAction((thread(id)?.resolved?'reopen:':'resolve:')+id,{target:document.body});
- function acceptDocument(data){const saved=policyNormalize(data);bases.set(saved.id,copy(saved));_policyCloudDrafts.delete(saved.id);persistOutbox(saved.id,null);const i=_policies.findIndex(p=>p.id===saved.id);if(i>=0)_policies[i]=copy(saved);if(current()?.id===saved.id)Object.assign(current(),copy(saved));policyPersistAll();return saved}
+ function acceptDocument(data){const saved=policyNormalize(data);bases.set(saved.id,copy(saved));_policyCloudDrafts.delete(saved.id);persistOutbox(saved.id,null);localStorage.removeItem('policy-conflict:'+saved.id);const i=_policies.findIndex(p=>p.id===saved.id);if(i>=0)_policies[i]=copy(saved);if(current()?.id===saved.id)Object.assign(current(),copy(saved));policyPersistAll();return saved}
  window.PolicyReview={locateThread,textMap,stamp,annotate,apply,core,acceptDocument};
 })();
