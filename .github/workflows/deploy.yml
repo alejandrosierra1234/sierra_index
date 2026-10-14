@@ -15,7 +15,35 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            tests/communications/package-lock.json
+            tests/policy-pdf/package-lock.json
+            js/collaboration/package-lock.json
+      - name: Test communications and processes
+        working-directory: tests/communications
+        run: npm ci && npm test
+      - name: Test access controls
+        run: for test in tests/security/*.cjs; do node "$test"; done
+      - name: Test collaboration bundle
+        working-directory: js/collaboration
+        run: npm ci && npm test && npm run build && git diff --exit-code -- ../communications-collaboration.js
+      - name: Install PDF test browser
+        working-directory: tests/policy-pdf
+        run: npm ci && npx playwright install --with-deps chromium
+      - name: Test policy PDF export
+        working-directory: tests/policy-pdf
+        run: npm test
+
   deploy:
+    needs: test
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

@@ -6,7 +6,7 @@
  let active='',open='',filter='open',groups=new Map(),locations=new Map(),timer=null,polling=false,pending=null,busy=false,selection=null,reattach='',presenceOK=false,history=null,editing='',epoch=0,renderEpoch=0;
  const $=id=>document.getElementById(id),current=()=>_policyCurrent;
  const threads=()=>current()?.comments||[],thread=id=>threads().find(t=>t.id===id);
- const writable=()=>can('write','communications');
+ const writable=()=>can('write','processes');
  let lastThreadPayload='';
  const outboxKey=()=> 'policy-content-outbox:'+String(me?.id||'');
  function outbox(){try{return JSON.parse(localStorage.getItem(outboxKey())||'{}')}catch{return {}}}
@@ -49,7 +49,7 @@
  policyCloudSave=async function(p){const saved=policyNormalize(await rpc('policy_cloud_save',{p_snapshot:copy(p)}));bases.set(p.id,copy(saved));return saved};
  function updateRevision(id,saved){for(const p of [_policies.find(p=>p.id===id),current(),_policyCloudDrafts.get(id)])if(p?.id===id){p._revision=saved._revision;p.comments=saved.comments;for(const key of ['code','numbering','legacyCode','approvedAt','approvedBy'])p[key]=saved[key];if(saved.numbering)for(const key of ['companyId','areaCode','department'])p[key]=saved[key]}policyPersistAll()}
  policyQueueCloudSave=function(p){
-   if(!p?.id)return;const id=p.id;_policyCloudDrafts.set(id,copy(p));persistOutbox(id,p);policyCloudState('Guardando en la nube…','saving');if(_policyCloudWrites.has(id))return;
+   if(!p?.id||!writable())return;const id=p.id;_policyCloudDrafts.set(id,copy(p));persistOutbox(id,p);policyCloudState('Guardando en la nube…','saving');if(_policyCloudWrites.has(id))return;
    const accountId=me?.id;
    const work=(async()=>{while(_policyCloudDrafts.has(id)){
      if(me?.id!==accountId){_policyCloudDrafts.delete(id);break}
@@ -91,7 +91,7 @@
  const originalCloudState=policyCloudState;
  policyCloudState=function(message,state){originalCloudState(message,state);const el=document.querySelector('.policy-save-state');if(el){el.textContent=message;el.setAttribute('role','status')}};
  const originalOpen=policyOpen,originalStop=policyStopPresence;
- policyOpen=function(id){originalOpen(id);if(!bases.has(id)&&current())bases.set(id,copy(current()));active=id;open='';selection=null;history=null;editing='';filter='open';lastThreadPayload='';drafts.clear();for(const [key,value] of JSON.parse(localStorage.getItem(draftKey())||'[]'))drafts.set(key,value);pending=JSON.parse(localStorage.getItem(pendingKey())||'null');epoch++;sync();timer=setInterval(sync,2500);const conflict=JSON.parse(localStorage.getItem('policy-conflict:'+id)||'null');if(conflict)showConflict(id,conflict.local,conflict.remote,conflict.fields)};
+ policyOpen=function(id){originalOpen(id);if(!bases.has(id)&&current())bases.set(id,copy(current()));active=id;open='';selection=null;history=null;editing='';filter='open';lastThreadPayload='';drafts.clear();for(const [key,value] of JSON.parse(localStorage.getItem(draftKey())||'[]'))drafts.set(key,value);pending=JSON.parse(localStorage.getItem(pendingKey())||'null');epoch++;sync();timer=setInterval(sync,15000);const conflict=JSON.parse(localStorage.getItem('policy-conflict:'+id)||'null');if(conflict)showConflict(id,conflict.local,conflict.remote,conflict.fields)};
  policyStopPresence=function(){originalStop();clearInterval(timer);timer=null;active='';epoch++;presenceOK=false};
  policyPresenceHtml=function(){if(!presenceOK)return '<span class="policy-comment-meta">Presencia sin confirmar</span>';const people=_policyPresence;return `<span class="policy-presence"><span class="policy-presence-avatars">${people.slice(0,4).map(policyPresenceAvatarHtml).join('')}</span><span>${people.length} ${people.length===1?'persona aquí':'personas aquí'}</span></span>`};
  policySyncPresence=async function(id){try{const data=await rpc('policy_presence_touch',{p_policy_id:id});if(current()?.id!==id)return;_policyPresence=data.map(p=>({...p,color:policyUserCommentColor(p)}));presenceOK=true}catch{if(current()?.id!==id)return;_policyPresence=[];presenceOK=false}policyRenderPresence()};

@@ -12,7 +12,8 @@ const styles=[...parsed.window.document.querySelectorAll('style')].map(el=>el.ou
 const setup=`
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),escAttr=esc;
 ${source.slice(source.indexOf('const SI_ICON ='),source.indexOf('// StatusBadge (workflow/lifecycle'))}
-const can=()=>true,me={id:'account-a'},profile={full_name:'Ana Prueba'},avatarStyle=()=>'',clearSecCrumbs=()=>{},toast=message=>{document.getElementById('fixture-status').textContent=message};
+const can=(capability,domain)=>window.fixtureCan?window.fixtureCan(capability,domain):true,me={id:'account-a'},profile={full_name:'Ana Prueba'},avatarStyle=()=>'',clearSecCrumbs=()=>{},toast=message=>{document.getElementById('fixture-status').textContent=message};
+function companyColor(value){const color=String(value||'').trim().toUpperCase();return /^#[0-9A-F]{6}$/.test(color)?color:'#008C82'}
 ${source.slice(source.indexOf('function jsStr(s)'),source.indexOf('\n/* ═',source.indexOf('function pdSelect(')))}
 function commsConfirm(title,message,action,label){const d=document.createElement('dialog');d.className='comms-confirm';d.innerHTML='<h2>'+title+'</h2><p>'+message+'</p><button>Cancelar</button><button>'+label+'</button>';d.querySelectorAll('button')[0].onclick=()=>d.close();d.querySelectorAll('button')[1].onclick=()=>{d.close();action()};d.addEventListener('close',()=>d.remove());document.body.append(d);d.showModal()}
 let mockThreads=[],mockRevision=1;const mockPolicies=new Map(),mockPublications=new Map(),mockVersionOperations=new Map();

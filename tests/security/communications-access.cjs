@@ -27,7 +27,9 @@ try {
  assert.equal(w.localStorage.getItem(key),saved,'revocation preserves existing drafts');
  level='editor';w.commsLoad();assert.equal(w.openCommunicationDraft(id),true);w.commsSet('subject','Allowed');w.commsPersist();
  assert.equal(JSON.parse(w.localStorage.getItem(key))[0].subject,'Allowed');
- assert.match(source,/comunicaciones: \{\s*label: 'Comunicaciones',\s*domains: \['communications'\]/);
+ assert.match(source,/comunicaciones: \{\s*label: 'Marketing',\s*domains: \['communications'\]/);
+ const processes=source.slice(source.indexOf('procesos: {'),source.indexOf('administracion: {'));
+ assert.match(processes,/label: 'Procesos'/);assert.match(processes,/domains: \['processes'\]/);
  run(source.slice(source.indexOf('function teamAccessDomainChanged('),source.indexOf('function grantLevelOf(')));
  assert.deepEqual(Array.from(w.bundleCaps('communications','viewer')),['read']);
  assert.deepEqual(Array.from(w.bundleCaps('communications','editor')),['read','write']);
