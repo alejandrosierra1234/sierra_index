@@ -32942,6 +32942,11 @@ async function wsSetDeadline(collectionId, value) {
   if (error) toast('No se pudo guardar la fecha límite: ' + error.message)
 }
 
+async function wsSetDeadline(collectionId, value) {
+  const { error } = await sb.rpc('set_collection_deadline', { p_id: collectionId, p_deadline: value || null })
+  if (error) toast('No se pudo guardar la fecha límite: ' + error.message)
+}
+
 /* ── BULK SELECTION — select several samples at once (checkbox per card,
    "select all" in the section header) and act on all of them together:
    move to a category or remove. Selection is local UI state; it clears
