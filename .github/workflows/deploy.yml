@@ -30,11 +30,11 @@ jobs:
       - name: Test communications and processes
         working-directory: tests/communications
         run: npm ci && npm test
-      - name: Test access controls
-        run: for test in tests/security/*.cjs; do node "$test"; done
       - name: Test collaboration bundle
         working-directory: js/collaboration
         run: npm ci && npm test && npm run build && git diff --exit-code -- ../communications-collaboration.js
+      - name: Test access controls
+        run: for test in tests/security/*.cjs; do node "$test"; done
       - name: Install PDF test browser
         working-directory: tests/policy-pdf
         run: npm ci && npx playwright install --with-deps chromium
