@@ -22,14 +22,18 @@ w.invitationSimpleNameFocus(name);assert.equal(name.placeholder,'');
 w.invitationSimpleNameBlur(name);assert.equal(name.placeholder,'Ej. Reunión general');
 assert.equal(w.invitationSimpleRequireName(),false,'blank invitations cannot open the download menu');
 
-const bannerDraft={...draft,subject:'Encuentro SIERRA',sender:'Cultura y Talento',heroImage:'data:image/png;base64,AA'};
+const bannerDraft={...draft,subject:'Encuentro SIERRA',sender:'Cultura y Talento',heroImage:'data:image/png;base64,AA',bannerHeight:82,bannerZoom:145};
 const box=w.document.createElement('div');box.innerHTML=w.invitationPageHtml(bannerDraft);
 assert.equal(box.querySelector('.simple-invite-banner img').getAttribute('src'),bannerDraft.heroImage);
 assert.match(box.querySelector('.simple-invite-banner img').getAttribute('alt'),/Encuentro SIERRA/);
+assert.match(box.querySelector('.simple-invite-banner').getAttribute('style'),/--simple-banner-height:82mm/);
+assert.match(box.querySelector('.simple-invite-banner').getAttribute('style'),/--simple-banner-zoom:1\.45/);
 assert.equal(box.querySelector('.simple-invite-footer .sierra-department span').textContent,'Cultura y Talento');
 w.eval('_commsCurrent=commsNormalize('+JSON.stringify(bannerDraft)+')');w.renderCommunicationEditor();
 assert.ok(w.document.querySelector('.simple-invite-banner-editor input[type="file"][accept="image/*"]'));
 assert.ok(w.document.querySelector('.simple-invite-banner-editor button'),'an uploaded banner can be removed');
+assert.equal(w.document.querySelector('#simple-invite-banner-height').value,'82');
+assert.equal(w.document.querySelector('#simple-invite-banner-zoom').value,'145');
 assert.equal(w.document.querySelectorAll('input[name="simple-invite-mode"]').length,3);
 assert.equal(w.document.querySelector('#simple-invite-area').value,'Cultura y Talento');
 
@@ -49,12 +53,15 @@ assert.ok(w.document.querySelector('.simple-invite-qr-editor-preview'));
 const virtualOnly={...hybrid,mode:'virtual'};
 box.innerHTML=w.invitationPageHtml(virtualOnly);
 assert.doesNotMatch(box.textContent,/Salón principal/);
+assert.doesNotMatch(box.querySelector('.simple-invite-details').textContent,/Modalidad/,'virtual access already communicates the modality');
+assert.match(box.querySelector('.simple-invite-access').textContent,/Acceso virtual/);
 w.eval('_commsCurrent=commsNormalize('+JSON.stringify(virtualOnly)+')');w.renderCommunicationEditor();
 assert.equal(w.document.querySelector('#simple-invite-place'),null);
 assert.ok(w.document.querySelector('#simple-invite-virtual-url'));
 
 const exportCss=w.invitationModularPrintCss();
-assert.match(exportCss,/\.simple-invite-banner\{height:68mm;margin:8mm 12mm 0/);
+assert.match(exportCss,/\.simple-invite-banner\{height:var\(--simple-banner-height,68mm\);margin:8mm 12mm 0/);
+assert.match(exportCss,/transform:scale\(var\(--simple-banner-zoom,1\)\)/);
 assert.match(exportCss,/\.simple-invite-header\{[^}]*padding:12mm 12mm 8mm/);
 assert.match(exportCss,/\.simple-invite-body\{padding:8mm 12mm/);
 assert.match(exportCss,/\.simple-invite-access\{/);
