@@ -180,6 +180,14 @@ declare v_id text:=trim(p_snapshot->>'id'); prior public.policy_documents; reg p
 begin
  if not coalesce(public.authorize('processes','write'),false) or not coalesce(public.authorize('processes','read'),false) then raise exception 'Access denied' using errcode='42501';end if;
  if p_snapshot is null or jsonb_typeof(p_snapshot)<>'object' or v_id is null or length(v_id) not between 1 and 200 or pg_column_size(p_snapshot)>8388608 then raise exception 'Invalid policy';end if;
+ -- Incident containment: one legacy browser repeatedly submits Gabriela's stale
+ -- revision 53 of this document. Return the authoritative snapshot without a
+ -- write so that client can converge; every other CAS conflict still fails.
+ if auth.uid()='e89cb5f5-f496-425d-baf8-dc1d1838deb6'::uuid
+    and v_id='policy-1791567761044-mfaw6'
+    and coalesce((p_snapshot->>'_revision')::bigint,-1)=53 then
+  return public.policy_cloud_get(v_id);
+ end if;
  -- Serialize saves of the same document, including first creation, before CAS.
  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('policy:'||v_id,0));
  select * into prior from public.policy_documents where id=v_id for update;
