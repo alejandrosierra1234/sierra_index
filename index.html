@@ -38438,7 +38438,7 @@ document.getElementById('simple-invitation-editor-styles').textContent=SIMPLE_IN
 const simpleInvitationPrintCssBase=invitationModularPrintCss;
 invitationModularPrintCss=function invitationModularPrintCssWithSimpleEditor(){return simpleInvitationPrintCssBase()+SIMPLE_INVITATION_CSS+SIMPLE_INVITATION_CONTACT_CSS};
 const invitationSimpleCreateDraftBase=createInvitationDraft;
-createInvitationDraft=function createSimpleInvitationDraft(seed={}){const draft=invitationSimpleCreateDraftBase(seed);if(!Array.isArray(seed.contacts)||!seed.contacts.length)draft.contacts=[{uid:invitationUid('contact'),name:'',role:'',phone:'',email:'',photo:''}];return draft};
+createInvitationDraft=function createSimpleInvitationDraft(seed={}){const draft=invitationSimpleCreateDraftBase(seed);if(seed.bannerHeight!==undefined)draft.bannerHeight=invitationSimpleBannerHeight(seed);if(seed.bannerZoom!==undefined)draft.bannerZoom=invitationSimpleBannerZoom(seed);if(seed.bannerFit!==undefined)draft.bannerFit=invitationSimpleBannerFit(seed);if(seed.bannerFrame!==undefined||seed.bannerPositionX!==undefined||seed.bannerPositionY!==undefined){const frame=invitationSimpleBannerFrame(seed);draft.bannerFrame=frame.key;draft.bannerPositionX=frame.x;draft.bannerPositionY=frame.y}if(typeof seed.introHtml==='string')draft.introHtml=seed.introHtml;if(seed.introAlign!==undefined)draft.introAlign=invitationSimpleIntroAlign(seed);if(!Array.isArray(seed.contacts)||!seed.contacts.length)draft.contacts=[{uid:invitationUid('contact'),name:'',role:'',phone:'',email:'',photo:''}];return draft};
 const invitationSimpleSet=function invitationSimpleSetOverride(key,value){
   if(!_commsCurrent)return;
   if(key==='bannerFrame'){invitationSimpleSetFrame(value);return}
@@ -38551,7 +38551,7 @@ invitationPageHtml=function invitationPageSimple(d){
   const detail=(icon,label,value,wide=false)=>`<div class="simple-invite-detail${wide?' is-wide':''}">${siIcon(icon,20)}<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div></div>`;
   return `<article class="invite-page memo-page simple-invite-page">
     <header class="simple-invite-header">${sierraEventDateHtml(event)}<div><p class="simple-invite-kicker">Convocatoria</p><h1 class="simple-invite-title">${esc(d.subject||'Nombre del evento')}</h1></div></header>
-    ${banner?`<div class="simple-invite-banner" style="--simple-banner-height:${bannerHeight}mm;--simple-banner-zoom:${bannerZoom/100};--simple-banner-fit:${bannerFit};--simple-banner-position:${bannerFrame.position}"><img src="${escAttr(banner)}" alt="Banner de ${escAttr(d.subject||'la convocatoria')}"></div>`:''}
+    ${banner?`<div class="simple-invite-banner" style="height:${bannerHeight}mm;--simple-banner-height:${bannerHeight}mm;--simple-banner-zoom:${bannerZoom/100};--simple-banner-fit:${bannerFit};--simple-banner-position:${bannerFrame.position}"><img src="${escAttr(banner)}" alt="Banner de ${escAttr(d.subject||'la convocatoria')}" style="object-fit:${bannerFit};object-position:${bannerFrame.position};transform:scale(${bannerZoom/100});transform-origin:${bannerFrame.position}"></div>`:''}
     <main class="simple-invite-body">
       <div class="simple-invite-details">
         ${detail('calendar','Fecha',dateLabel)}
