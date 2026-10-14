@@ -381,3 +381,16 @@ account disabled and allows retry; it never restores access automatically.
 This is account access removal, not erasure of personal data or document transfer.
 
 Regression checks: `node tests/security/account-actions.cjs`.
+
+# Marketing And Processes Access (Update 53)
+
+Marketing keeps the `communications` domain. Processes now uses the independent
+`processes` domain for policies, policy comments and versions, numbering,
+company identity, company logos and site maintenance.
+
+Apply `update53.sql` after `update52.sql` before deploying the matching client.
+The migration copies each existing domain-wide Communications `read`/`write`
+grant to Processes once so current users retain access. Later grants and
+revocations are independent; changing Marketing no longer exposes or removes
+Processes, and vice versa. Both domains use the same Viewer/Editor bundles:
+Viewer is `read`; Editor is `read` plus `write`.
