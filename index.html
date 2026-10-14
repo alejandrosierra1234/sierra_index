@@ -8494,7 +8494,7 @@ const I18N = {
     'team.role.admin':'Admin', 'team.role.editor':'Editor', 'team.role.dispatcher':'Dispatcher', 'team.role.user':'User',
     'team.domain.fiber':'Fiber', 'team.domain.yarn':'Yarn', 'team.domain.fabric':'Fabric', 'team.domain.chemicals':'Chemicals',
     'team.domain.garment':'Apparel', 'team.domain.warehouse':'Warehouse', 'team.domain.customer_service':'Customer Service',
-    'team.domain.talento_humano':'Talento Humano', 'team.domain.platform':'Platform', 'team.domain.communications':'Communications',
+    'team.domain.talento_humano':'Talento Humano', 'team.domain.platform':'Platform', 'team.domain.communications':'Marketing', 'team.domain.processes':'Processes',
     'team.domain.warehouse_fiber':'Warehouse · Fiber', 'team.domain.warehouse_yarn':'Warehouse · Yarn',
     'team.domain.warehouse_fabric':'Warehouse · Fabric', 'team.domain.warehouse_chemicals':'Warehouse · Chemicals',
     'team.domain.warehouse_garment':'Warehouse · Apparel',
@@ -8587,7 +8587,7 @@ const I18N = {
     'team.role.admin':'Admin', 'team.role.editor':'Editor', 'team.role.dispatcher':'Despachador', 'team.role.user':'Usuario',
     'team.domain.fiber':'Fibra', 'team.domain.yarn':'Hilo', 'team.domain.fabric':'Tela', 'team.domain.chemicals':'Químicos',
     'team.domain.garment':'Confección', 'team.domain.warehouse':'Almacén', 'team.domain.customer_service':'Servicio al cliente',
-    'team.domain.talento_humano':'Talento Humano', 'team.domain.platform':'Plataforma', 'team.domain.communications':'Comunicaciones',
+    'team.domain.talento_humano':'Talento Humano', 'team.domain.platform':'Plataforma', 'team.domain.communications':'Marketing', 'team.domain.processes':'Procesos',
     'team.domain.warehouse_fiber':'Almacén de Muestras · Fibra', 'team.domain.warehouse_yarn':'Almacén de Muestras · Hilo',
     'team.domain.warehouse_fabric':'Almacén de Muestras · Tela', 'team.domain.warehouse_chemicals':'Almacén de Muestras · Químicos',
     'team.domain.warehouse_garment':'Almacén de Muestras · Confección',
@@ -8710,7 +8710,7 @@ function applyLanguage(opts = {}) {
    current access until grants exist — mirror of authorize()'s fallback. */
 const AUTH_DIVISIONS = ['fiber','yarn','fabric','chemicals','garment']
 const AUTH_WAREHOUSES = AUTH_DIVISIONS.map(d => 'warehouse_' + d)
-const AUTH_DOMAINS = [...AUTH_DIVISIONS, ...AUTH_WAREHOUSES, 'customer_service', 'talento_humano', 'communications', 'platform']
+const AUTH_DOMAINS = [...AUTH_DIVISIONS, ...AUTH_WAREHOUSES, 'customer_service', 'talento_humano', 'communications', 'processes', 'platform']
 let myGrants = []
 
 // Each division has its own warehouse domain (warehouse_<division>) — this
@@ -17236,10 +17236,9 @@ const MODULES = {
   },
   procesos: {
     label: 'Procesos',
-    // Policy authors already belong to the corporate-content audience.
-    // Reuse that capability domain until the database catalogue exposes
-    // a dedicated Processes grant, so the new module is immediately usable.
-    domains: ['communications'],
+    // Procesos has an independent grant from Marketing so access can be
+    // assigned, reviewed and revoked without exposing the other module.
+    domains: ['processes'],
     color: '#3ed600', light: '#d1ffbe', accent: '#237a00',
     icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M6 3.5h8a2 2 0 0 1 2 2v11H4v-11a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.4"/><path d="M7 3.5v-1h6v1M7 8h6M7 11h6M7 14h3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
     tools: [{
@@ -20948,7 +20947,7 @@ function renderSettingsView() {
 }
 
 function companyPolicyPrefix(company) { return String(company?.policy_prefix || company?.companyCode || '').toUpperCase() }
-function companyCanWrite() { return can('write', 'communications') || can('admin', 'platform') }
+function companyCanWrite() { return can('write', 'processes') || can('admin', 'platform') }
 function companyColor(value) { const color=String(value||'').trim().toUpperCase();return /^#[0-9A-F]{6}$/.test(color)?color:'#008C82' }
 async function loadProcessCompaniesData() {
   const [sitesResult,countriesResult,companiesResult,catalogResult]=await Promise.all([
@@ -20970,6 +20969,7 @@ async function loadProcessCompaniesData() {
 }
 function renderProcessCompaniesWorkspace(){const pg=document.getElementById('pg');if(pg)pg.innerHTML=renderCompaniesView();renderSidebarTree()}
 async function showProcessCompanies(){
+  if(!can('read','processes')){toast('No tienes acceso a Procesos.');showModuleHub();return}
   syncModule('procesos');_navLeaf='procesos|_|companies';_badge_ui.view=null;sessionStorage.setItem('sierra_route','module:procesos:companies');clearHash();leaveView();renderSidebarTree()
   document.getElementById('tb-section').textContent='Procesos';document.getElementById('product-controls').style.display='none';clearSecCrumbs();document.getElementById('sec-title').textContent='Empresas';document.getElementById('sec-sub').textContent='Identidad y nomenclatura corporativa'
   const pg=document.getElementById('pg');pg.style.display='block';pg.innerHTML='<div class="empty"><div class="empty-icon">⌛</div><p>Cargando empresas…</p></div>'
@@ -28309,7 +28309,7 @@ function teamAccessDomainChanged(domain, id) {
   host.outerHTML=pdSelect('gl-'+uid,levels,'viewer');
 }
 function bundleCaps(domain, level) {
-  if (domain === 'communications') return level === 'viewer' ? ['read'] : ['read','write']
+  if (domain === 'communications' || domain === 'processes') return level === 'viewer' ? ['read'] : ['read','write']
   if (domain === 'platform')
     return level === 'owner' ? ['read','admin','grant'] : level === 'editor' ? ['read','admin'] : ['read']
   if (domain === 'warehouse' || domain.startsWith('warehouse_'))
@@ -38097,7 +38097,7 @@ async function policyLoad(){
   let cloud=(Array.isArray(data)?data:[]).map(policyNormalize),migrationPending=localStorage.getItem(POLICY_CLOUD_MIGRATION_KEY)!=='1';
   if(migrationPending&&local.length){const ids=new Set(cloud.map(policy=>policy.id)),missing=local.filter(policy=>!ids.has(policy.id));try{const migrated=await Promise.all(missing.map(policyCloudSave));cloud=[...migrated,...cloud];localStorage.setItem(POLICY_CLOUD_MIGRATION_KEY,'1');if(migrated.length)toast(`${migrated.length} política${migrated.length===1?' migrada':'s migradas'} a la nube.`)}catch(migrationError){console.warn('No se pudieron migrar todas las políticas locales:',migrationError)}}
   _policies=cloud;
-  if(!_policies.length&&can('write','communications')){const initial=createPolicyDraft();_policies=[await policyCloudSave(initial)]}
+  if(!_policies.length&&can('write','processes')){const initial=createPolicyDraft();_policies=[await policyCloudSave(initial)]}
   _policyCloudAvailable=true;_policyCloudStatus='saved';_policyCloudMessage='Guardado en la nube';policyPersistAll();
 }
 function policyPersistAll(){localStorage.setItem(POLICY_STORE_KEY,JSON.stringify(_policies))}
@@ -38119,7 +38119,7 @@ function policyCachedCompanies(){const records=Object.values(typeof _badge==='ob
 async function policyLoadOrganization(){if(_policyOrgLoading)return;_policyOrgLoading=true;try{const cachedCompanies=policyCachedCompanies();if(cachedCompanies.length)_policyCompanies=cachedCompanies;if(!_policyCompanies.length||_policyCompanies.some(c=>!c.countries)){let result=await sb.from('companies').select('id, country_id, name, legal_name, code, logo_url, brand_color, countries(code, name)').order('name');if(result.error&&/brand_color|logo_url|schema cache/i.test(result.error.message||'')){result=await sb.from('companies').select('id, country_id, name, legal_name, code, logo_url, countries(code, name)').order('name');if(result.error&&/logo_url|schema cache/i.test(result.error.message||''))result=await sb.from('companies').select('id, country_id, name, legal_name, code, countries(code, name)').order('name');result.data=(result.data||[]).map(c=>({...c,logo_url:c.logo_url||null,brand_color:'#008C82'}))}if(result.error)throw result.error;_policyCompanies=result.data||[]}}catch(error){console.warn('No se pudieron cargar las empresas para políticas:',error)}finally{_policyOrgLoading=false;if(_policyCurrent){const form=document.getElementById('policy-form');if(form&&_policyTab==='info')form.innerHTML=policyInfoPanel();policyRenderPreview()}}}
 function policyCompanyOptions(){return[{value:'',label:'Selecciona una empresa',icon:'building'},..._policyCompanies.map(c=>({value:String(c.id),label:c.name||c.legal_name||c.code||'Empresa',icon:'building'}))]}
 function policySetCompany(id){const company=_policyCompanies.find(c=>String(c.id)===String(id));_policyCurrent.companyId=company?.id||'';_policyCurrent.companyName=company?.name||'';_policyCurrent.companyLegalName=company?.legal_name||'';_policyCurrent.companyLogo=policyDurableAssetUrl(company?.logo_url);policyCommit();const subtitle=document.querySelector('.policy-panel-subtitle');if(subtitle)subtitle.textContent=`${_policyCurrent.code} · ${_policyCurrent.companyName||'Empresa por seleccionar'}`;if(_policyTab==='info')document.getElementById('policy-form').innerHTML=policyInfoPanel();policyRenderPreview()}
-async function showPolicies(){syncModule('procesos');_navLeaf='procesos|_|policies';sessionStorage.setItem('sierra_route','module:procesos');leaveView();renderSidebarTree();document.getElementById('tb-section').textContent='Procesos';document.getElementById('product-controls').style.display='none';clearSecCrumbs();document.getElementById('sec-title').textContent='Políticas';document.getElementById('sec-sub').textContent='Documentos corporativos claros, consistentes y listos para aprobación';const pg=document.getElementById('pg');pg.style.display='block';pg.innerHTML='<div class="policy-empty"><p>Cargando políticas de la nube…</p></div>';await Promise.all([policyLoad(),policyLoadOrganization()]);if(_navLeaf==='procesos|_|policies')renderPolicyLibrary()}
+async function showPolicies(){if(!can('read','processes')){toast('No tienes acceso a Procesos.');showModuleHub();return}syncModule('procesos');_navLeaf='procesos|_|policies';sessionStorage.setItem('sierra_route','module:procesos');leaveView();renderSidebarTree();document.getElementById('tb-section').textContent='Procesos';document.getElementById('product-controls').style.display='none';clearSecCrumbs();document.getElementById('sec-title').textContent='Políticas';document.getElementById('sec-sub').textContent='Documentos corporativos claros, consistentes y listos para aprobación';const pg=document.getElementById('pg');pg.style.display='block';pg.innerHTML='<div class="policy-empty"><p>Cargando políticas de la nube…</p></div>';await Promise.all([policyLoad(),policyLoadOrganization()]);if(_navLeaf==='procesos|_|policies')renderPolicyLibrary()}
 function policyStatusData(status){return({Borrador:{icon:'file-edit',color:'#009fff',soft:'#e8f6ff',ink:'#004a86'},'En revisión':{icon:'clock',color:'#ffc529',soft:'#fff7cf',ink:'#715900'},Aprobada:{icon:'check-circle',color:'#3ed600',soft:'#e9ffe0',ink:'#256f08'},Archivada:{icon:'archive',color:'#9a9aa0',soft:'#f1f1f3',ink:'#55555b'}})[status]||{icon:'file',color:'#a4a4a4',soft:'#f5f5f5',ink:'#55555b'}}
 function policyStatusOption(status){const data=policyStatusData(status);return{value:status,label:status,icon:data.icon,color:data.color}}
 function policyLibraryResults(){const query=_policyLibraryQuery.trim().toLocaleLowerCase('es');return _policies.filter(p=>{const archived=p.status==='Archivada';return(_policyLibraryView==='archived'?archived:!archived)&&(_policyLibraryStatus==='all'||p.status===_policyLibraryStatus)&&(!query||[p.title,p.code,p.processName,p.companyName,p.department].some(value=>String(value||'').toLocaleLowerCase('es').includes(query)))})}
