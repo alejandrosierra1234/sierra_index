@@ -27,9 +27,13 @@ const box=w.document.createElement('div');box.innerHTML=w.invitationPageHtml(ban
 assert.equal(box.querySelector('.simple-invite-banner img').getAttribute('src'),bannerDraft.heroImage);
 assert.match(box.querySelector('.simple-invite-banner img').getAttribute('alt'),/Encuentro SIERRA/);
 assert.match(box.querySelector('.simple-invite-banner').getAttribute('style'),/--simple-banner-height:82mm/);
+assert.match(box.querySelector('.simple-invite-banner').getAttribute('style'),/(?:^|;)height:82mm/,'export receives a concrete banner height instead of relying only on a CSS variable');
 assert.match(box.querySelector('.simple-invite-banner').getAttribute('style'),/--simple-banner-zoom:1\.45/);
 assert.match(box.querySelector('.simple-invite-banner').getAttribute('style'),/--simple-banner-fit:contain/);
 assert.match(box.querySelector('.simple-invite-banner').getAttribute('style'),/--simple-banner-position:100% 0%/);
+assert.match(box.querySelector('.simple-invite-banner img').getAttribute('style'),/object-fit:contain/);
+assert.match(box.querySelector('.simple-invite-banner img').getAttribute('style'),/object-position:100% 0%/);
+assert.match(box.querySelector('.simple-invite-banner img').getAttribute('style'),/transform:scale\(1\.45\)/);
 assert.equal(box.querySelector('.simple-invite-footer .sierra-department span').textContent,'Cultura y Talento');
 w.eval('_commsCurrent=commsNormalize('+JSON.stringify(bannerDraft)+')');w.renderCommunicationEditor();
 assert.ok(w.document.querySelector('.simple-invite-banner-editor input[type="file"][accept="image/*"]'));
@@ -40,6 +44,12 @@ assert.equal(w.document.querySelector('#simple-invite-banner-fit').value,'contai
 assert.equal(w.document.querySelector('#simple-invite-banner-frame').value,'top-right');
 assert.equal(w.document.querySelector('#simple-invite-banner-x').value,'100');
 assert.equal(w.document.querySelector('#simple-invite-banner-y').value,'0');
+const copiedBanner=w.createInvitationDraft(bannerDraft);
+assert.equal(copiedBanner.bannerHeight,82,'duplicating an invitation keeps banner height');
+assert.equal(copiedBanner.bannerZoom,145,'duplicating an invitation keeps banner zoom');
+assert.equal(copiedBanner.bannerFit,'contain','duplicating an invitation keeps image fit');
+assert.equal(copiedBanner.bannerPositionX,100,'duplicating an invitation keeps horizontal framing');
+assert.equal(copiedBanner.bannerPositionY,0,'duplicating an invitation keeps vertical framing');
 assert.equal(w.document.querySelectorAll('input[name="simple-invite-mode"]').length,3);
 assert.equal(w.document.querySelector('#simple-invite-area').value,'Cultura y Talento');
 assert.ok(w.document.querySelector('[data-invitation-text][contenteditable="true"]'));
