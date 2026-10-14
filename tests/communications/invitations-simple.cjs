@@ -22,17 +22,41 @@ w.invitationSimpleNameFocus(name);assert.equal(name.placeholder,'');
 w.invitationSimpleNameBlur(name);assert.equal(name.placeholder,'Ej. Reunión general');
 assert.equal(w.invitationSimpleRequireName(),false,'blank invitations cannot open the download menu');
 
-const bannerDraft={...draft,subject:'Encuentro SIERRA',heroImage:'data:image/png;base64,AA'};
+const bannerDraft={...draft,subject:'Encuentro SIERRA',sender:'Cultura y Talento',heroImage:'data:image/png;base64,AA'};
 const box=w.document.createElement('div');box.innerHTML=w.invitationPageHtml(bannerDraft);
 assert.equal(box.querySelector('.simple-invite-banner img').getAttribute('src'),bannerDraft.heroImage);
 assert.match(box.querySelector('.simple-invite-banner img').getAttribute('alt'),/Encuentro SIERRA/);
+assert.equal(box.querySelector('.simple-invite-footer .sierra-department span').textContent,'Cultura y Talento');
 w.eval('_commsCurrent=commsNormalize('+JSON.stringify(bannerDraft)+')');w.renderCommunicationEditor();
 assert.ok(w.document.querySelector('.simple-invite-banner-editor input[type="file"][accept="image/*"]'));
 assert.ok(w.document.querySelector('.simple-invite-banner-editor button'),'an uploaded banner can be removed');
+assert.equal(w.document.querySelectorAll('input[name="simple-invite-mode"]').length,3);
+assert.equal(w.document.querySelector('#simple-invite-area').value,'Cultura y Talento');
+
+const hybrid={...bannerDraft,mode:'ambos',location:'Salón principal',virtualUrl:'https://meet.google.com/abc-defg-hij',virtualShowButton:true,virtualButtonText:'Entrar ahora',virtualShowQr:true,virtualQrImage:'data:image/png;base64,QR'};
+box.innerHTML=w.invitationPageHtml(hybrid);
+assert.match(box.textContent,/Salón principal/);
+assert.match(box.textContent,/Presencial y virtual/);
+assert.equal(box.querySelector('.simple-invite-access-button').textContent.trim(),'Entrar ahora');
+assert.equal(box.querySelector('.simple-invite-access-button').getAttribute('href'),hybrid.virtualUrl);
+assert.equal(box.querySelector('.simple-invite-access img').getAttribute('src'),hybrid.virtualQrImage);
+assert.equal(box.querySelector('.simple-invite-access-url').textContent,hybrid.virtualUrl,'the original virtual link stays visible');
+w.eval('_commsCurrent=commsNormalize('+JSON.stringify(hybrid)+')');w.renderCommunicationEditor();
+assert.ok(w.document.querySelector('#simple-invite-place'),'hybrid invitations keep the physical place');
+assert.ok(w.document.querySelector('#simple-invite-virtual-url'),'hybrid invitations expose virtual access');
+assert.ok(w.document.querySelector('.simple-invite-qr-editor-preview'));
+
+const virtualOnly={...hybrid,mode:'virtual'};
+box.innerHTML=w.invitationPageHtml(virtualOnly);
+assert.doesNotMatch(box.textContent,/Salón principal/);
+w.eval('_commsCurrent=commsNormalize('+JSON.stringify(virtualOnly)+')');w.renderCommunicationEditor();
+assert.equal(w.document.querySelector('#simple-invite-place'),null);
+assert.ok(w.document.querySelector('#simple-invite-virtual-url'));
 
 const exportCss=w.invitationModularPrintCss();
-assert.match(exportCss,/\.simple-invite-banner\{height:50mm;margin:8mm 12mm 0/);
+assert.match(exportCss,/\.simple-invite-banner\{height:68mm;margin:8mm 12mm 0/);
 assert.match(exportCss,/\.simple-invite-header\{[^}]*padding:12mm 12mm 8mm/);
-assert.match(exportCss,/\.simple-invite-body\{padding:10mm 12mm/);
-console.log('PASS: simplified invitation required title, banner and compact exported layout');
+assert.match(exportCss,/\.simple-invite-body\{padding:8mm 12mm/);
+assert.match(exportCss,/\.simple-invite-access\{/);
+console.log('PASS: simplified invitation title, tall banner, area identity and hybrid access');
 w.close();
