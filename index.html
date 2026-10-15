@@ -38347,9 +38347,8 @@ async function policyGoToEditor(target,{part='body',mediaId=''}={}){
   setTimeout(()=>highlight?.classList.remove('is-policy-jump-target'),reduced?900:1400);
   if(focus&&!focus.disabled){setTimeout(()=>{try{focus.focus({preventScroll:true})}catch{focus.focus()}},reduced?0:180)}
   if(tab==='info')setTimeout(()=>{
-    if(highlight?.isConnected)return;
     const current=document.getElementById('policy-form')?.querySelector(`[data-policy-field="${CSS.escape(key)}"]`);if(!current)return;
-    current.scrollIntoView({block:'center',behavior:'auto'});current.classList.add('is-policy-jump-target');
+    if(current!==highlight||!current.classList.contains('is-policy-jump-target')){current.scrollIntoView({block:'center',behavior:'auto'});current.classList.remove('is-policy-jump-target');void current.offsetWidth;current.classList.add('is-policy-jump-target')}
     const control=current.querySelector('input,textarea,button,[tabindex]');if(control&&!control.disabled)try{control.focus({preventScroll:true})}catch{control.focus()}
     setTimeout(()=>current?.classList.remove('is-policy-jump-target'),reduced?900:1400)
   },260);

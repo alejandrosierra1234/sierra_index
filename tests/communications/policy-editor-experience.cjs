@@ -33,7 +33,7 @@ assert.match(html, /data-policy-people-group="signers"/)
 assert.match(html, /data-policy-field="\$\{escAttr\(key\)\}"/)
 assert.match(html, /policySelectMedia\(media,editor\)/)
 assert.match(html, /\.is-policy-jump-target\{animation:policyEditTarget/)
-assert.match(html, /if\(highlight\?\.isConnected\)return/)
+assert.match(html, /current!==highlight\|\|!current\.classList\.contains\('is-policy-jump-target'\)/)
 for (const field of ['company', 'department', 'code', 'version', 'status', 'confidential']) {
   assert.match(numbering, new RegExp(`data-policy-field="${field}"`))
 }
