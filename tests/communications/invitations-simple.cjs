@@ -28,6 +28,8 @@ assert.equal(box.querySelector('.simple-invite-banner img').getAttribute('src'),
 assert.match(box.querySelector('.simple-invite-banner img').getAttribute('alt'),/Encuentro SIERRA/);
 assert.match(box.querySelector('.simple-invite-banner').getAttribute('style'),/--simple-banner-height:82mm/);
 assert.match(box.querySelector('.simple-invite-banner').getAttribute('style'),/(?:^|;)height:82mm/,'export receives a concrete banner height instead of relying only on a CSS variable');
+assert.match(box.querySelector('.simple-invite-banner').getAttribute('style'),/min-height:82mm/,'banner cannot shrink below the selected height');
+assert.match(box.querySelector('.simple-invite-banner').getAttribute('style'),/flex:0 0 82mm/,'fixed export sheet cannot compress the selected banner height');
 assert.match(box.querySelector('.simple-invite-banner').getAttribute('style'),/--simple-banner-zoom:1\.45/);
 assert.match(box.querySelector('.simple-invite-banner').getAttribute('style'),/--simple-banner-fit:contain/);
 assert.match(box.querySelector('.simple-invite-banner').getAttribute('style'),/--simple-banner-position:100% 0%/);
@@ -126,7 +128,8 @@ assert.equal(w.document.querySelector('#simple-invite-place'),null);
 assert.ok(w.document.querySelector('#simple-invite-virtual-url'));
 
 const exportCss=w.invitationModularPrintCss();
-assert.match(exportCss,/\.simple-invite-banner\{height:var\(--simple-banner-height,68mm\);margin:8mm 12mm 0/);
+assert.match(exportCss,/\.simple-invite-banner\{height:var\(--simple-banner-height,68mm\)/);
+assert.match(exportCss,/min-height:var\(--simple-banner-height,68mm\);flex:0 0 var\(--simple-banner-height,68mm\)/);
 assert.match(exportCss,/transform:scale\(var\(--simple-banner-zoom,1\)\)/);
 assert.match(exportCss,/object-position:var\(--simple-banner-position,50% 50%\)/);
 assert.match(exportCss,/\.simple-invite-header\{[^}]*padding:12mm 12mm 8mm/);
