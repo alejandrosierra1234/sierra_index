@@ -4,6 +4,7 @@ const path = require('node:path')
 
 const html = fs.readFileSync(path.join(__dirname, '../../index.html'), 'utf8')
 const review = fs.readFileSync(path.join(__dirname, '../../js/policy-review.js'), 'utf8')
+const numbering = fs.readFileSync(path.join(__dirname, '../../js/policy-numbering.js'), 'utf8')
 
 assert.match(html, /function policyRenderEditorWorkspace\(\)/)
 assert.match(html, /renderPolicyEditor=policyRenderEditorWorkspace/)
@@ -32,6 +33,10 @@ assert.match(html, /data-policy-people-group="signers"/)
 assert.match(html, /data-policy-field="\$\{escAttr\(key\)\}"/)
 assert.match(html, /policySelectMedia\(media,editor\)/)
 assert.match(html, /\.is-policy-jump-target\{animation:policyEditTarget/)
+assert.match(html, /if\(highlight\?\.isConnected\)return/)
+for (const field of ['company', 'department', 'code', 'version', 'status', 'confidential']) {
+  assert.match(numbering, new RegExp(`data-policy-field="${field}"`))
+}
 const decodeAt = review.indexOf("await Promise.all([...next.querySelectorAll('img')]")
 const swapAt = review.indexOf('sheet.replaceWith(next)')
 assert.ok(decodeAt > -1 && swapAt > decodeAt, 'the visible preview must only swap after replacement logos decode')
