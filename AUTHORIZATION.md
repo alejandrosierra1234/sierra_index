@@ -394,3 +394,13 @@ grant to Processes once so current users retain access. Later grants and
 revocations are independent; changing Marketing no longer exposes or removes
 Processes, and vice versa. Both domains use the same Viewer/Editor bundles:
 Viewer is `read`; Editor is `read` plus `write`.
+
+# Policy Content Images (Update 54)
+
+Apply `update54.sql` after `update53.sql`. Process editors can upload policy
+content images only below `<their-account-id>/policy-content/`; they cannot
+write into another account's folder or another private asset family. The
+existing private-bucket rules continue to require an active account for reads.
+
+Verification: `node tests/security/storage-policy.cjs` covers the permitted
+Processes path and rejects cross-account, wrong-subtree and read-only writes.
