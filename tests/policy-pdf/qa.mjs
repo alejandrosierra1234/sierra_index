@@ -28,7 +28,7 @@ try{
   let failedGlyph='';try{await PolicyLocalPdf.generate({...policy,title:'PRUEBA 🧵',companyLogo:''})}catch(error){failedGlyph=error.message}
   const batch=await PolicyLocalPdf.generate([policy,{...policy,confidential:false,companyLogo:''}]);
   const renderedPages=[...root.querySelectorAll('.policy-page')],pageTexts=renderedPages.map(node=>node.innerText),overflowingPages=renderedPages.filter(node=>{const area=node.querySelector('.policy-page-content');return area.scrollHeight>area.clientHeight+1}).length;
-  return {pdf:Array.from(new Uint8Array(await blob.arrayBuffer())),batch:Array.from(new Uint8Array(await batch.arrayBuffer())),pages:pageTexts.length,pageTexts,text:root.innerText,overflowingPages,progress,elapsed,concurrent,failedLogo,failedGlyph,unchanged:before===JSON.stringify(policy),leakedFrames:document.querySelectorAll('iframe').length};
+  return {pdf:Array.from(new Uint8Array(await blob.arrayBuffer())),batch:Array.from(new Uint8Array(await batch.arrayBuffer())),pages:pageTexts.length,pageTexts,text:root.innerText,contentImages:root.querySelectorAll('.policy-section-body figure img').length,overflowingPages,progress,elapsed,concurrent,failedLogo,failedGlyph,unchanged:before===JSON.stringify(policy),leakedFrames:document.querySelectorAll('iframe').length};
  },samplePolicy);
  assert.match(result.concurrent,/Ya se está generando/);assert.match(result.failedLogo,/logotipo/);assert.match(result.failedGlyph,/carácter/);
  assert.equal(result.unchanged,true);assert.equal(result.leakedFrames,0);assert.deepEqual(errors,[]);
@@ -37,6 +37,9 @@ try{
  assert.match(result.pageTexts[1],/LINEAMIENTOS GENERALES · CONTINUACIÓN/,'A split section should continue with a clear repeated heading');
  for(let i=1;i<=12;i++)assert.match(result.text,new RegExp(`RECURSO-UNICO-${i}(?:\\s|$)`),`List item ${i} must survive pagination`);
  assert.match(result.text,/COLA-UNICA-DESPUES-DE-LA-LISTA/,'Content after a paginated list must survive');
+ assert.match(result.text,/IMAGEN-AJUSTABLE-ANTES/);assert.match(result.text,/IMAGEN-AJUSTABLE-DESPUES/);
+ for(let i=1;i<=9;i++)assert.match(result.text,new RegExp(`FILA-MEDIA-${i}(?:\\s|$)`),`Table row ${i} must survive pagination`);
+ assert.equal(result.contentImages,2,'Image blocks survive in normal text and inside a table cell');
  assert.equal(result.overflowingPages,0,'No page may clip content outside its printable area');
  assert(result.progress.every((value,i)=>!i||value>=result.progress[i-1]));
  await writeFile(new URL('policy.pdf',out),Buffer.from(result.pdf));await writeFile(new URL('batch.pdf',out),Buffer.from(result.batch));

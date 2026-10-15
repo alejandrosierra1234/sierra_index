@@ -56,7 +56,7 @@
       const responseHeaders=new Headers(response.headers);responseHeaders.delete('content-length');responseHeaders.delete('content-encoding');
       return new Response(JSON.stringify(hydrated),{status:response.status,statusText:response.statusText,headers:responseHeaders});
     }
-    async function images(doc){await Promise.all(Array.from(doc.images||[],async img=>{
+    async function images(doc){const list=doc?.images||doc?.querySelectorAll?.('img')||[];await Promise.all(Array.from(list,async img=>{
       const original=img.getAttribute('src');if(path(original)===null)return;
       const signed=await resolve(original);
       if(img.getAttribute('src')===original){img.crossOrigin='anonymous';img.src=signed;}

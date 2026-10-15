@@ -10,6 +10,27 @@
  ];
  let fontData, busy=false;
  const pause=()=>new Promise(resolve=>setTimeout(resolve,0));
+ async function portableImages(doc,host){
+  if(typeof indexAssets!=='undefined')await indexAssets.images(host);
+  for(const image of host.querySelectorAll('img')){
+   if(!image.complete)await image.decode();
+   if(/^data:/i.test(image.src))continue;
+   const response=await fetch(image.src,{mode:'cors',credentials:'omit',signal:AbortSignal.timeout(30000)});
+   if(!response.ok)throw Error('No se pudo cargar una imagen del contenido. No se descargó un PDF incompleto.');
+   const blob=await response.blob(),data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)});
+   image.removeAttribute('crossorigin');image.src=data;await image.decode();
+  }
+ }
+ async function flattenPolicyMedia(doc,host,media){
+  for(const figure of host.querySelectorAll('figure.policy-content-image')){
+   const image=figure.querySelector(':scope>img');if(!image?.naturalWidth||!image.naturalHeight)continue;
+   const box=figure.getBoundingClientRect(),width=Math.max(1,Math.round(box.width)),height=Math.max(1,Math.round(box.height)),density=Math.min(2,1600/Math.max(width,height)),canvas=doc.createElement('canvas');
+   canvas.width=Math.max(1,Math.round(width*density));canvas.height=Math.max(1,Math.round(height*density));
+   const context=canvas.getContext('2d'),fit=figure.dataset.policyFit==='contain'?'contain':'cover',zoom=Math.max(.5,Math.min(2.5,Number(figure.dataset.policyZoom||100)/100)),base=fit==='contain'?Math.min(width/image.naturalWidth,height/image.naturalHeight):Math.max(width/image.naturalWidth,height/image.naturalHeight),drawWidth=image.naturalWidth*base*zoom,drawHeight=image.naturalHeight*base*zoom;
+   context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.drawImage(image,(width-drawWidth)*density/2,(height-drawHeight)*density/2,drawWidth*density,drawHeight*density);
+   const id=`policy-export-image-${media.size+1}`,data=canvas.toDataURL('image/png'),flattened=doc.createElement('div');media.set(id,data);flattened.setAttribute('data-policy-export-image',id);flattened.setAttribute('aria-label',image.alt||'Imagen');flattened.style.cssText=`display:block;width:${width}px;height:${height}px;max-width:100%;margin:12px auto;break-inside:avoid;background:#f1f3f3`;figure.replaceWith(flattened);canvas.width=canvas.height=1;
+  }
+ }
  async function fonts(){
   if(!fontData)fontData=Promise.all(faces.map(async face=>{
    const response=await fetch(new URL(face[3],root),{signal:AbortSignal.timeout(30000)});if(!response.ok)throw Error('No se pudo cargar la tipografía del PDF. Vuelve a intentarlo.');
@@ -77,7 +98,7 @@
    const base=doc.createElement('base');base.href=root.href;doc.head.append(base);
    document.querySelectorAll('style').forEach(style=>doc.head.append(style.cloneNode(true)));
    const reset=doc.createElement('style');reset.textContent='html,body{display:block!important;margin:0!important;padding:0!important;min-height:0!important;height:auto!important;overflow:visible!important;background:white!important;color-scheme:light}.policy-page-set{display:block!important;gap:0!important}.policy-page{margin:0!important;box-shadow:none!important}.policy-comment-marker,.policy-comment-rail,[data-policy-comment-marker]{display:none!important}';doc.head.append(reset);
-   const pages=[];
+   const pages=[],media=new Map();
    for(let i=0;i<policies.length;i++){
     onProgress('Preparando páginas',`Documento ${i+1} de ${policies.length}: conservando el diseño…`,10+15*i/policies.length);
     let p={...policies[i],comments:[]};
@@ -90,7 +111,7 @@
      }
     }
     const host=doc.createElement('div');host.innerHTML=policyPageHtml(p);doc.body.replaceChildren(host);
-    await doc.fonts.ready;for(const img of host.querySelectorAll('img'))await img.decode();
+    await doc.fonts.ready;await portableImages(doc,host);await flattenPolicyMedia(doc,host,media);
     if([...doc.fonts].some(face=>face.status==='error'))throw Error('Falta una tipografía. Recarga la aplicación antes de descargar.');
     policyPaginateDom(doc,host);policyFitExportLogos(host);
     for(const content of host.querySelectorAll('.policy-page-content'))if(content.scrollHeight>content.clientHeight+2)throw Error('Hay contenido que no cabe en una página. Revisa la sección antes de descargar.');
@@ -101,9 +122,11 @@
    for(let i=0;i<pages.length;i++){
     onProgress('Generando PDF',`Página ${i+1} de ${pages.length} · El texto seguirá siendo seleccionable.`,25+70*i/pages.length);await pause();
     if(i)pdf.addPage();doc.body.replaceChildren(pages[i]);await doc.fonts.ready;
-    ctx.save(true);
-    await window.html2canvas(pages[i],{canvas:pdf.canvas,scale:1,backgroundColor:'#ffffff',logging:false,useCORS:true,windowWidth:1100,windowHeight:1400,scrollX:0,scrollY:0});
-    ctx.restore(true);
+    const pageWidth=pages[i].offsetWidth,pageHeight=pages[i].offsetHeight;
+    ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;pdf.saveGraphicsState();ctx.save(true);
+    try{await window.html2canvas(pages[i],{canvas:pdf.canvas,scale:1,backgroundColor:'#ffffff',logging:false,useCORS:true,width:pageWidth,height:pageHeight,x:0,y:0,windowWidth:1100,windowHeight:1400,scrollX:0,scrollY:0})}
+    finally{ctx.restore(true);pdf.restoreGraphicsState()}
+    const pageBox=pages[i].getBoundingClientRect();for(const placeholder of pages[i].querySelectorAll('[data-policy-export-image]')){const data=media.get(placeholder.dataset.policyExportImage);if(!data)continue;const box=placeholder.getBoundingClientRect();pdf.saveGraphicsState();try{pdf.addImage(data,'PNG',box.left-pageBox.left,box.top-pageBox.top,box.width,box.height,placeholder.dataset.policyExportImage,'FAST')}finally{pdf.restoreGraphicsState()}}
    }
    if(pdf.getNumberOfPages()!==pages.length)throw Error('La paginación del PDF no coincide con la vista previa.');
    onProgress('Finalizando descarga','Preparando el archivo…',98);await pause();return pdf.output('blob');
