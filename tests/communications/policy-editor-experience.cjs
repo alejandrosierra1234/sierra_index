@@ -26,6 +26,7 @@ assert.doesNotMatch(html, /function policyAutosave\(\)[^{]*\{[^}]*policyRenderPr
 assert.match(html, /onclick="policyPreviewEdit\(event,this\)"/)
 assert.match(html, /function policyPreviewEdit\(event,page\)/)
 assert.match(html, /function policyGoToEditor\(target,\{part='body',mediaId=''\}=\{\}\)/)
+assert.match(html, /if\(tab==='content'\)\{await policyResolveRichImages\(form\);await new Promise/)
 assert.match(html, /selection&&!selection\.isCollapsed/)
 assert.match(html, /data-policy-edit-target="info:title"/)
 assert.match(html, /data-policy-edit-target="people:responsibles"/)

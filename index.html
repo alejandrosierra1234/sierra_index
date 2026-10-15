@@ -38326,8 +38326,7 @@ async function policyGoToEditor(target,{part='body',mediaId=''}={}){
   policySelectTab(tab);
   if(innerWidth<=940)policyTogglePreview(false);
   const form=document.getElementById('policy-form');
-  if(tab==='content')await policyResolveRichImages(form);
-  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  if(tab==='content'){await policyResolveRichImages(form);await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))}
   let highlight,focus;
   if(tab==='info'){
     highlight=form?.querySelector(`[data-policy-field="${CSS.escape(key)}"]`);
