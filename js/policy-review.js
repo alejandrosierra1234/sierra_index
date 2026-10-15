@@ -37,7 +37,15 @@
  policyRestoreVersion=async function(id){const version=current()?.versions?.find(v=>v.id===id);if(!version||version.published||!writable()||window.PolicyNumbering?.isLocked?.(current()))return;if(!await confirm('El contenido actual se conservará en el historial. Los comentarios, el estado y el código emitido no se sobrescribirán.','Restaurar versión'))return;const preserved={id:current().id,_revision:current()._revision,comments:current().comments,versions:current().versions,createdAt:current().createdAt};for(const key of ['code','numbering','legacyCode','approvedAt','approvedBy','status','version'])preserved[key]=current()[key];if(current().numbering)for(const key of ['companyId','companyName','companyLegalName','companyLogo','areaCode','department'])preserved[key]=current()[key];_policyCurrent=policyNormalize({...current(),...copy(version.snapshot),...preserved});_policyVersionPreviewId='';policyCloseHistory();policyCommit(true);policyRefreshEditor();toast('Restauración preparada. Comprueba el indicador de guardado.')};
  const originalLoad=policyLoad;
  policyLoad=async function(){
-   const box=outbox();await originalLoad();_policies.forEach(p=>bases.set(p.id,copy(p)));
+   // Capture the previous browser cache before the cloud loader compacts it. If
+   // an older build ran out of storage while creating its outbox, this is the
+   // only copy of the latest edit and must be allowed to finish saving.
+   const localRecovery=policyLocalCopies(),box=outbox();await originalLoad();_policies.forEach(p=>bases.set(p.id,copy(p)));
+   for(const draft of localRecovery){
+     const i=_policies.findIndex(p=>p.id===draft.id),remote=i>=0?_policies[i]:null,local=policyNormalize(draft),localTime=Date.parse(local.updatedAt||'')||0,remoteTime=Date.parse(remote?.updatedAt||'')||0;
+     if(!remote||published(remote)||published(local)||localTime<=remoteTime)continue;
+     _policies[i]=local;policyQueueCloudSave(local);
+   }
    for(const [id,item] of Object.entries(box)){
      const i=_policies.findIndex(p=>p.id===id),remote=i>=0?_policies[i]:null,local=policyNormalize(item.snapshot);
      // A browser outbox is only a recovery copy. It must never hide or attempt to
@@ -45,6 +53,7 @@
      if(remote&&published(remote)){
        preserveRejectedDraft(id,local,remote);persistOutbox(id,null);continue;
      }
+     if(remote&&(Date.parse(local.updatedAt||'')||0)<=(Date.parse(remote.updatedAt||'')||0)){persistOutbox(id,null);continue}
      if(item.base)bases.set(id,item.base);
      if(i>=0)_policies[i]=local;else _policies.unshift(local);
      policyQueueCloudSave(local);
