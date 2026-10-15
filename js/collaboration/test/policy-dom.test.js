@@ -61,3 +61,21 @@ test('actual editor DOM: exact threads, overlap, post-pagination delegation, dra
  assert.ok([...d.querySelectorAll('[data-review-threads]')].some(m=>m.dataset.reviewThreads.split('|').length===2));
  }finally{w.policyStopPresence();w.close()}
 });
+test('Processes viewers get a read-only editor and cannot mutate local policy state',async()=>{
+ const dom=new JSDOM(source,{url:'http://localhost/fixture',runScripts:'dangerously',pretendToBeVisual:true,beforeParse(w){w.fixtureCan=(capability,domain)=>domain==='processes'&&capability==='read'}});
+ const w=dom.window,d=w.document;
+ try{
+  await new Promise(resolve=>setTimeout(resolve,80));
+  assert.ok(d.querySelector('.policy-form.is-policy-readonly'));
+  assert.match(d.querySelector('.policy-approved-lock').textContent,/Acceso de solo lectura/);
+  assert.equal(d.querySelectorAll('#policy-form input:not(:disabled),#policy-form textarea:not(:disabled)').length,0);
+  const original=w.eval('_policyCurrent.title');
+  assert.equal(w.policySet('title','NO DEBE CAMBIAR'),false);
+  assert.equal(w.eval('_policyCurrent.title'),original);
+  assert.equal(w.policyNew(),false);
+  w.policyBack();
+  assert.equal(d.querySelector('.policy-library-create'),null);
+  assert.equal(d.querySelectorAll('[onclick^="policyArchive"],[onclick^="policyDuplicate"]').length,0);
+  assert.match(d.querySelector('.policy-card-open').textContent,/Ver/);
+ }finally{w.policyStopPresence();w.close()}
+});
