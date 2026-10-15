@@ -10,7 +10,13 @@
  let lastThreadPayload='';
  const outboxKey=()=> 'policy-content-outbox:'+String(me?.id||'');
  function outbox(){try{return JSON.parse(localStorage.getItem(outboxKey())||'{}')}catch{return {}}}
- function persistOutbox(id,snapshot){const box=outbox();if(snapshot)box[id]={snapshot:copy(snapshot),base:bases.get(id)};else delete box[id];localStorage.setItem(outboxKey(),JSON.stringify(box))}
+ function recoveryCopy(value){if(!value)return value;const result=copy(value);delete result.versions;return result}
+ function persistOutbox(id,snapshot){const box=outbox();if(snapshot)box[id]={snapshot:recoveryCopy(snapshot),base:recoveryCopy(bases.get(id))};else delete box[id];const key=outboxKey();try{localStorage.setItem(key,JSON.stringify(box));return true}catch(error){
+   // The cloud is the source of truth. A full browser cache must never prevent a
+   // write from reaching PostgreSQL; keep only this compact recovery draft and,
+   // if even that does not fit, continue the cloud save without local backup.
+   try{const current=box[id]?{[id]:box[id]}:{};localStorage.setItem(key,JSON.stringify(current));return true}catch(fallbackError){console.warn('No se pudo actualizar la copia de recuperación de la política:',fallbackError);return false}
+  }}
  function published(p){return Boolean(p?.numbering)&&['Aprobada','Archivada'].includes(p?.status)}
  function preserveRejectedDraft(id,local,remote){
    const comparable=value=>{const result=copy(value);delete result._revision;delete result.comments;return result};

@@ -38119,7 +38119,8 @@ async function policyLoad(){
   if(!_policies.length&&can('write','processes')){const initial=createPolicyDraft();_policies=[await policyCloudSave(initial)]}
   _policyCloudAvailable=true;_policyCloudStatus='saved';_policyCloudMessage='Guardado en la nube';policyPersistAll();
 }
-function policyPersistAll(){localStorage.setItem(POLICY_STORE_KEY,JSON.stringify(_policies))}
+function policyLocalCacheSnapshot(policy){const snapshot=JSON.parse(JSON.stringify(policy));delete snapshot.versions;return snapshot}
+function policyPersistAll(){const payload=JSON.stringify(_policies.map(policyLocalCacheSnapshot));try{localStorage.setItem(POLICY_STORE_KEY,payload);return true}catch(error){console.warn('No se pudo actualizar la copia local de políticas:',error);return false}}
 function policyCloudState(message,state=''){_policyCloudMessage=message;_policyCloudStatus=state||'local';document.querySelectorAll('[data-policy-save-indicator]').forEach(el=>{el.dataset.state=_policyCloudStatus;el.title=message;const label=el.querySelector('.policy-save-indicator-label');if(label)label.textContent=message;else el.textContent=message})}
 function policyQueueCloudSave(policy){
   if(!policy?.id)return;const id=policy.id;_policyCloudDrafts.set(id,JSON.parse(JSON.stringify(policy)));policyCloudState('Guardando en la nube…','saving');
