@@ -103,7 +103,7 @@ function fixture({ tainted = false, storage = false, status = 200 } = {}) {
   assert.match(local, /pdf\.addFont/)
   assert.match(local, /comments:\[\]/)
   assert.match(local, /frame\?\.remove\(\);busy=false/)
-  assert.match(local, /pdf\.addImage\(data,'PNG'/)
+  assert.match(local, /pdf\.addImage\(item\.bytes,item\.format/)
   assert.doesNotMatch(local, /splitTextToSize|Authorization|policy-export-config/)
   assert.doesNotMatch(pdfSource, /policyDisplayDate/)
   assert.doesNotMatch(pdfSource, /html2canvas/)

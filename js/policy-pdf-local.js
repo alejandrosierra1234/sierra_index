@@ -10,25 +10,26 @@
  ];
  let fontData, busy=false;
  const pause=()=>new Promise(resolve=>setTimeout(resolve,0));
+ async function decodedImage(image){try{if(!image.complete||!image.naturalWidth)await image.decode()}catch{}if(!image.naturalWidth||!image.naturalHeight)throw Error('Una imagen de la política no se pudo preparar. Vuelve a cargarla y reintenta la descarga.')}
  async function portableImages(doc,host){
   if(typeof indexAssets!=='undefined')await indexAssets.images(host);
   for(const image of host.querySelectorAll('img')){
-   if(!image.complete)await image.decode();
+   await decodedImage(image);
    if(/^data:/i.test(image.src))continue;
    const response=await fetch(image.src,{mode:'cors',credentials:'omit',signal:AbortSignal.timeout(30000)});
    if(!response.ok)throw Error('No se pudo cargar una imagen del contenido. No se descargó un PDF incompleto.');
    const blob=await response.blob(),data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)});
-   image.removeAttribute('crossorigin');image.src=data;await image.decode();
+   image.removeAttribute('crossorigin');image.src=data;await decodedImage(image);
   }
  }
  async function flattenPolicyMedia(doc,host,media){
   for(const figure of host.querySelectorAll('figure.policy-content-image')){
-   const image=figure.querySelector(':scope>img');if(!image?.naturalWidth||!image.naturalHeight)continue;
+   const image=figure.querySelector(':scope>img');if(!image)throw Error('Una imagen de la política no se pudo preparar. Vuelve a cargarla y reintenta la descarga.');await decodedImage(image);
    const box=figure.getBoundingClientRect(),width=Math.max(1,Math.round(box.width)),height=Math.max(1,Math.round(box.height)),density=Math.min(2,1600/Math.max(width,height)),canvas=doc.createElement('canvas');
    canvas.width=Math.max(1,Math.round(width*density));canvas.height=Math.max(1,Math.round(height*density));
    const context=canvas.getContext('2d'),fit=figure.dataset.policyFit==='contain'?'contain':'cover',zoom=Math.max(.5,Math.min(2.5,Number(figure.dataset.policyZoom||100)/100)),base=fit==='contain'?Math.min(width/image.naturalWidth,height/image.naturalHeight):Math.max(width/image.naturalWidth,height/image.naturalHeight),drawWidth=image.naturalWidth*base*zoom,drawHeight=image.naturalHeight*base*zoom;
-   context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.drawImage(image,(width-drawWidth)*density/2,(height-drawHeight)*density/2,drawWidth*density,drawHeight*density);
-   const id=`policy-export-image-${media.size+1}`,data=canvas.toDataURL('image/png'),flattened=doc.createElement('div');media.set(id,data);flattened.setAttribute('data-policy-export-image',id);flattened.setAttribute('aria-label',image.alt||'Imagen');flattened.style.cssText=`display:block;width:${width}px;height:${height}px;max-width:100%;margin:12px auto;break-inside:avoid;background:#f1f3f3`;figure.replaceWith(flattened);canvas.width=canvas.height=1;
+   context.fillStyle=getComputedStyle(figure).backgroundColor||'#f1f3f3';context.fillRect(0,0,canvas.width,canvas.height);context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.drawImage(image,(width-drawWidth)*density/2,(height-drawHeight)*density/2,drawWidth*density,drawHeight*density);
+   const blob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(Error('No se pudo preparar una imagen para el PDF.')),'image/jpeg',.96)),bytes=new Uint8Array(await blob.arrayBuffer()),id=`policy-export-image-${media.size+1}`,flattened=doc.createElement('div');media.set(id,{bytes,format:'JPEG'});flattened.setAttribute('data-policy-export-image',id);flattened.setAttribute('aria-label',image.alt||'Imagen');flattened.style.cssText=`display:block;width:${width}px;height:${height}px;max-width:100%;margin:12px auto;break-inside:avoid;background:#f1f3f3`;figure.replaceWith(flattened);canvas.width=canvas.height=1;
   }
  }
  async function fonts(){
@@ -126,7 +127,7 @@
     ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;pdf.saveGraphicsState();ctx.save(true);
     try{await window.html2canvas(pages[i],{canvas:pdf.canvas,scale:1,backgroundColor:'#ffffff',logging:false,useCORS:true,width:pageWidth,height:pageHeight,x:0,y:0,windowWidth:1100,windowHeight:1400,scrollX:0,scrollY:0})}
     finally{ctx.restore(true);pdf.restoreGraphicsState()}
-    const pageBox=pages[i].getBoundingClientRect();for(const placeholder of pages[i].querySelectorAll('[data-policy-export-image]')){const data=media.get(placeholder.dataset.policyExportImage);if(!data)continue;const box=placeholder.getBoundingClientRect();pdf.saveGraphicsState();try{pdf.addImage(data,'PNG',box.left-pageBox.left,box.top-pageBox.top,box.width,box.height,placeholder.dataset.policyExportImage,'FAST')}finally{pdf.restoreGraphicsState()}}
+    const pageBox=pages[i].getBoundingClientRect();for(const placeholder of pages[i].querySelectorAll('[data-policy-export-image]')){const item=media.get(placeholder.dataset.policyExportImage);if(!item)continue;const box=placeholder.getBoundingClientRect();pdf.saveGraphicsState();try{pdf.addImage(item.bytes,item.format,box.left-pageBox.left,box.top-pageBox.top,box.width,box.height,placeholder.dataset.policyExportImage,'FAST')}finally{pdf.restoreGraphicsState()}}
    }
    if(pdf.getNumberOfPages()!==pages.length)throw Error('La paginación del PDF no coincide con la vista previa.');
    onProgress('Finalizando descarga','Preparando el archivo…',98);await pause();return pdf.output('blob');

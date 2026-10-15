@@ -19,6 +19,7 @@ try{
  await page.setContent(rendererHtml,{waitUntil:'load'});
  for(const name of ['jspdf.js','html2canvas.js','js/policy-pdf-local.js'])await page.addScriptTag({url:'https://policy-render.invalid/'+name});
  const result=await page.evaluate(async snapshot=>{
+  const realistic=document.createElement('canvas');realistic.width=1400;realistic.height=900;const paint=realistic.getContext('2d');paint.clearRect(0,0,realistic.width,realistic.height);paint.fillStyle='#e72b67';paint.beginPath();paint.arc(420,430,270,0,Math.PI*2);paint.fill();paint.fillStyle='#16cdbe';paint.fillRect(700,180,520,520);paint.fillStyle='rgba(255,255,255,.72)';paint.font='700 120px sans-serif';paint.fillText('SIERRA',455,500);const realisticPhoto=realistic.toDataURL('image/webp',.92);snapshot.sections=snapshot.sections.map(section=>({...section,html:section.html.replace(/data:image\/png;base64,[A-Za-z0-9+/=]+/g,realisticPhoto)}));realistic.width=realistic.height=1;
   const policy=policyNormalize(snapshot),root=document.getElementById('export-root');root.innerHTML=policyPageHtml({...policy,comments:[]});await document.fonts.ready;for(const img of root.querySelectorAll('img'))await img.decode();policyPaginateDom(document,root);
   const before=JSON.stringify(policy),progress=[],start=performance.now();
   const pending=PolicyLocalPdf.generate(policy,(title,detail,percent)=>progress.push(percent));
