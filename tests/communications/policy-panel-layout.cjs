@@ -3,6 +3,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const html = fs.readFileSync(path.join(__dirname, '../../index.html'), 'utf8')
+const review = fs.readFileSync(path.join(__dirname, '../../js/policy-review.js'), 'utf8')
 
 assert.match(html, /const POLICY_PANEL_LAYOUT_KEY='sierra_policy_panel_layout_v1'/)
 assert.match(html, /function policyStartPanelResize\(event\)/)
@@ -57,5 +58,15 @@ assert.match(html, /currentFingerprint=JSON\.stringify\(policyVersionSnapshot\(_
 assert.doesNotMatch(html, /function policyOpenHistory\(\)\{policyCommit\(\)/)
 assert.match(html, /function policyOpenHistory\(\)/)
 assert.match(html, /function policyRestoreVersion\(id\)/)
+assert.match(html, /function policyHistorySetStatus\(kind,message,retry=false\)/)
+assert.match(review, /Actualizando el historial desde la nube/)
+assert.match(html, /event\.key==='Escape'/)
+assert.match(html, /event\.key!=='Tab'/)
+assert.match(review, /Promise\.allSettled\(\[/)
+assert.doesNotMatch(review, /Promise\.all\(\[rpc\('policy_revision_list'/)
+assert.match(review, /revisionResult\.status==='fulfilled'/)
+assert.match(review, /publicationResult\.status==='fulfilled'/)
+assert.match(review, /Se muestra la información disponible/)
+assert.match(review, /policyHistorySetStatus\('warning'/)
 
 console.log('PASS: policy tools panel is spacious, resizable, collapsible and persistent')
