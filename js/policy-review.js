@@ -33,28 +33,7 @@
  const originalVersion=policyVersionSnapshot;
  policyVersionSnapshot=function(p){const result=originalVersion(p);delete result._revision;return result};
  const originalHistory=policyOpenHistory;
- policyOpenHistory=async function(){
-  const id=current()?.id;if(!id)return;
-  originalHistory();policyHistorySetStatus('loading','Actualizando el historial desde la nube…');
-  const button=document.querySelector('.policy-history-button');button?.setAttribute('aria-busy','true');if(button)button.disabled=true;
-  policyFlushPendingSave();if(_policyCloudWrites.has(id))await _policyCloudWrites.get(id);
-  const [revisionResult,publicationResult]=await Promise.allSettled([
-   rpc('policy_revision_list',{p_policy_id:id}),rpc('policy_publication_list',{p_policy_id:id})
-  ]);
-  if(current()?.id!==id)return;
-  const local=Array.isArray(current().versions)?current().versions:[],localDrafts=local.filter(item=>!item.published),localPublications=local.filter(item=>item.published);
-  const revisions=revisionResult.status==='fulfilled'&&Array.isArray(revisionResult.value)?[...revisionResult.value].reverse():localDrafts;
-  const published=publicationResult.status==='fulfilled'&&Array.isArray(publicationResult.value)?[...publicationResult.value].reverse():localPublications;
-  const fingerprints=new Set(published.map(item=>JSON.stringify(item.snapshot)));
-  current().versions=revisions.filter(item=>!fingerprints.has(JSON.stringify(item.snapshot))).concat(published);
-  if(!document.querySelector('.policy-history-backdrop')){const closedButton=document.querySelector('.policy-history-button');closedButton?.removeAttribute('aria-busy');if(closedButton)closedButton.disabled=false;return}
-  originalHistory();
-  const failures=[];if(revisionResult.status==='rejected')failures.push('revisiones');if(publicationResult.status==='rejected')failures.push('publicaciones aprobadas');
-  if(failures.length)policyHistorySetStatus('warning',`No pudimos actualizar ${failures.join(' ni ')}. Se muestra la información disponible.`,true);
-  if(revisionResult.status==='rejected')console.warn('No se pudo cargar el historial de revisiones:',revisionResult.reason);
-  if(publicationResult.status==='rejected')console.warn('No se pudo cargar el historial de publicaciones:',publicationResult.reason);
-  const refreshedButton=document.querySelector('.policy-history-button');refreshedButton?.removeAttribute('aria-busy');if(refreshedButton)refreshedButton.disabled=false;
- };
+ policyOpenHistory=async function(){const id=current()?.id;if(!id)return;policyFlushPendingSave();if(_policyCloudWrites.has(id))await _policyCloudWrites.get(id);try{const [versions,publications]=await Promise.all([rpc('policy_revision_list',{p_policy_id:id}),rpc('policy_publication_list',{p_policy_id:id})]);if(current()?.id!==id)return;const published=[...publications].reverse(),fingerprints=new Set(published.map(item=>JSON.stringify(item.snapshot)));current().versions=[...versions].reverse().filter(item=>!fingerprints.has(JSON.stringify(item.snapshot))).concat(published);originalHistory()}catch{toast('No se pudo cargar el historial de la nube. Intenta de nuevo.')}};
  policyRestoreVersion=async function(id){const version=current()?.versions?.find(v=>v.id===id);if(!version||version.published||!writable()||window.PolicyNumbering?.isLocked?.(current()))return;if(!await confirm('El contenido actual se conservará en el historial. Los comentarios, el estado y el código emitido no se sobrescribirán.','Restaurar versión'))return;const preserved={id:current().id,_revision:current()._revision,comments:current().comments,versions:current().versions,createdAt:current().createdAt};for(const key of ['code','numbering','legacyCode','approvedAt','approvedBy','status','version'])preserved[key]=current()[key];if(current().numbering)for(const key of ['companyId','companyName','companyLegalName','companyLogo','areaCode','department'])preserved[key]=current()[key];_policyCurrent=policyNormalize({...current(),...copy(version.snapshot),...preserved});_policyVersionPreviewId='';policyCloseHistory();policyCommit(true);policyRefreshEditor();toast('Restauración preparada. Comprueba el indicador de guardado.')};
  const originalLoad=policyLoad;
  policyLoad=async function(){
@@ -82,7 +61,7 @@
    policyPersistAll();
  };
  async function rpc(name,args){const {data,error}=await sb.rpc(name,args);if(error)throw error;return data}
- policyCloudSave=async function(p){const saved=policyNormalize(await rpc('policy_cloud_save',{p_snapshot:copy(p)}));bases.set(p.id,copy(saved));return saved};
+ policyCloudSave=async function(p){const raw=await rpc('policy_cloud_save',{p_snapshot:copy(p)});if(raw?._saveConflict)throw Object.assign(new Error('Policy changed in another session'),{code:'40001'});const saved=policyNormalize(raw);bases.set(p.id,copy(saved));return saved};
  function updateRevision(id,saved){for(const p of [_policies.find(p=>p.id===id),current(),_policyCloudDrafts.get(id)])if(p?.id===id){p._revision=saved._revision;p.comments=saved.comments;for(const key of ['code','numbering','legacyCode','approvedAt','approvedBy'])p[key]=saved[key];if(saved.numbering)for(const key of ['companyId','areaCode','department'])p[key]=saved[key]}policyPersistAll()}
  policyQueueCloudSave=function(p){
    if(!p?.id||!writable())return;const id=p.id;_policyCloudDrafts.set(id,copy(p));persistOutbox(id,p);
@@ -142,18 +121,7 @@
  policySyncPresence=async function(id){try{const data=await rpc('policy_presence_touch',{p_policy_id:id});if(current()?.id!==id)return;_policyPresence=data.map(p=>({...p,color:policyUserCommentColor(p)}));presenceOK=true}catch{if(current()?.id!==id)return;_policyPresence=[];presenceOK=false}policyRenderPresence()};
  function pendingKey(){return 'policy-comment-pending:'+String(me?.id||'')+':'+String(current()?.id||'')}
  function accept(data){if(!current())return;lastThreadPayload=JSON.stringify(data.threads);current().comments=policyNormalize({comments:data.threads}).comments;const p=_policies.find(x=>x.id===current().id);if(p)p.comments=copy(current().comments);policyPersistAll();annotate();refreshPanel();renderRail()}
- function hasLocalDocumentWork(id){return Boolean(_policySaveTimer||_policyCloudDrafts.has(id)||_policyCloudWrites.has(id)||localStorage.getItem('policy-conflict:'+id))}
- function acceptDocument(value,id,token){
-   if(token!==epoch||current()?.id!==id||hasLocalDocumentWork(id))return false;
-   const remote=policyNormalize(value),local=current();
-   if(remote._revision<=Number(local?._revision||0))return false;
-   // Comments have their own atomic endpoint. Keep the freshest thread payload
-   // while replacing document content (including newly uploaded images).
-   remote.comments=copy(local.comments||[]);bases.set(id,copy(remote));
-   const i=_policies.findIndex(item=>item.id===id);if(i>=0)_policies[i]=copy(remote);else _policies.unshift(copy(remote));
-   _policyCurrent=remote;policyPersistAll();policyCloudState('Actualizado desde la nube','saved');policyRefreshEditor();return true;
- }
- async function sync(){if(polling||busy||!active||current()?.id!==active||!$('policy-studio')||document.hidden||(!selection?.composing&&getSelection()?.toString()))return;polling=true;const id=active,token=epoch;try{const [comments,documentSnapshot]=await Promise.all([rpc('policy_comments_read',{p_policy_id:id}),rpc('policy_cloud_get',{p_policy_id:id})]);if(token===epoch&&current()?.id===id){if(JSON.stringify(comments.threads)!==lastThreadPayload)accept(comments);acceptDocument(documentSnapshot,id,token)}}catch{if(token===epoch){const rail=$('policy-review-rail');if(rail)rail.dataset.offline='true'}}finally{polling=false}}
+ async function sync(){if(polling||busy||!active||current()?.id!==active||!$('policy-studio')||document.hidden||(!selection?.composing&&getSelection()?.toString()))return;polling=true;const id=active,token=epoch;try{const data=await rpc('policy_comments_read',{p_policy_id:id});if(token===epoch&&current()?.id===id&&JSON.stringify(data.threads)!==lastThreadPayload)accept(data)}catch{if(token===epoch){const rail=$('policy-review-rail');if(rail)rail.dataset.offline='true'}}finally{polling=false}}
  async function apply(op){
    if(busy||!writable())return false;if(pending&&op)return false;
    const id=current()?.id,accountId=me?.id;if(!id)return false;
