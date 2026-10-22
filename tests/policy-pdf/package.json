@@ -2,6 +2,6 @@
   "name": "sierra-local-pdf-tests",
   "private": true,
   "type": "module",
-  "scripts": {"test": "node qa.mjs"},
+  "scripts": {"test": "node qa.mjs && node list-orphans.mjs"},
   "devDependencies": {"playwright": "1.64.0", "parse5": "7.3.0", "jspdf": "4.2.1", "html2canvas": "1.4.1"}
 }
