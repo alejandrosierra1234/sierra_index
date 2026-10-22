@@ -39,6 +39,9 @@ try{
  for(let i=1;i<=12;i++)assert.match(result.text,new RegExp(`RECURSO-UNICO-${i}(?:\\s|$)`),`List item ${i} must survive pagination`);
  assert.match(result.text,/COLA-UNICA-DESPUES-DE-LA-LISTA/,'Content after a paginated list must survive');
  assert.match(result.text,/IMAGEN-AJUSTABLE-ANTES/);assert.match(result.text,/IMAGEN-AJUSTABLE-DESPUES/);
+ const beforeManual=result.pageTexts.findIndex(text=>text.includes('ANTES-SALTO-MANUAL')),afterManual=result.pageTexts.findIndex(text=>text.includes('DESPUES-SALTO-MANUAL'));
+ assert(beforeManual>=0&&afterManual>beforeManual,'A manual page break must move following content to a later page');
+ assert.doesNotMatch(result.text,/Salto de página/,'The editor-only page break marker must not print');
  for(let i=1;i<=9;i++)assert.match(result.text,new RegExp(`FILA-MEDIA-${i}(?:\\s|$)`),`Table row ${i} must survive pagination`);
  assert.equal(result.contentImages,2,'Image blocks survive in normal text and inside a table cell');
  assert.equal(result.overflowingPages,0,'No page may clip content outside its printable area');
