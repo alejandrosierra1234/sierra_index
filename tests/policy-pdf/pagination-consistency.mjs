@@ -19,6 +19,10 @@ try{
   assert.deepEqual(split.values,[1,2,3,3,4],'both fragments retain point 3 and point 4 keeps its number');
   assert.deepEqual(split.continuations,[false,false,false,true,false],'only the second fragment is marked as a continuation');
   assert.equal(split.paragraphTag,'P','a neighboring paragraph stays a paragraph');
+  const legacy=await page.evaluate(()=>{const saved=policySanitize('<ol><li value="8">PUNTO-8</li><li value="9">fragmento sin terminar</li></ol><div data-policy-page-break="true">Salto</div><ol><li>continúa aquí.</li><li>PUNTO-10</li></ol>'),template=document.createElement('template');template.innerHTML=saved;return{starts:[...template.content.querySelectorAll('ol')].map(list=>list.start),values:[...template.content.querySelectorAll('li')].map(item=>item.value),continuations:[...template.content.querySelectorAll('li')].map(item=>item.dataset.policyListContinuation==='true')}});
+  assert.deepEqual(legacy.starts,[1,9],'a legacy list after a page break resumes at the interrupted number');
+  assert.deepEqual(legacy.values,[8,9,9,10],'legacy continuation and following item receive the correct values');
+  assert.deepEqual(legacy.continuations,[false,false,true,false],'only a lowercase legacy tail is treated as a continuation');
   const result=await page.evaluate(async snapshot=>{const root=document.getElementById('export-root'),policy=policyNormalize(snapshot);root.innerHTML=policyPageHtml(policy);await document.fonts.ready;policyPaginateDom(document,root);const pages=[...root.querySelectorAll('.policy-page')];return{
     pages:pages.map(page=>page.innerText),
     numbered:[...root.querySelectorAll('[data-policy-section-id="automatic"] .policy-section-body>ol>li')].map(item=>({text:item.innerText.trim(),value:item.value,page:pages.indexOf(item.closest('.policy-page'))+1,continuation:item.dataset.policyListContinuation==='true'})),
