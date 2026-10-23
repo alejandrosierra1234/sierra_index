@@ -141,6 +141,24 @@ test('image galleries preserve legacy images and support grid and individual fra
   box.innerHTML=w.commsBlockEditor(b);assert.ok(box.querySelector('input[type="file"][multiple]'));
   b.images=[];assert.equal(w.memoBlockHtml(b),'');
 });
+test('memo org chart photos keep per-person framing in editor, preview and print',()=>{
+  w.newCommunicationDraft();w.commsAddBlock('orgchart');
+  const b=w.eval('_commsCurrent.blocks.at(-1)'),p=b.people[0];
+  Object.assign(p,{name:'Luisa Alburez',photo:'data:image/png;base64,AA',photoX:18,photoY:72,photoZoom:175});
+  let box=w.document.createElement('div');box.innerHTML=w.commsOrgEditorHtml(b,'');
+  assert.equal(box.querySelectorAll('.memo-org-photo-adjust input[type="range"]').length,3);
+  assert.equal(box.querySelector('input[aria-label^="Posición horizontal"]').value,'18');
+  assert.equal(box.querySelector('.memo-person-photo img').style.objectPosition,'18% 72%');
+  assert.equal(box.querySelector('.memo-person-photo img').style.transform,'scale(1.75)');
+  box.innerHTML=w.memoOrgChartHtml(b);const frame=box.querySelector('.memo-person-photo-frame'),img=frame.querySelector('img');
+  assert.ok(frame);assert.equal(img.style.objectPosition,'18% 72%');assert.equal(img.style.transform,'scale(1.75)');
+  w.commsPersist();assert.equal(w.eval('_commsDrafts[0].blocks.at(-1).people[0].photoZoom'),175);
+  assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('memo-person-photo-frame'));
+  assert.ok(w.communicationOrgPhotoPrintCss().includes('overflow:hidden'));
+  w.commsOrgPhotoReset(b.id,0);const reset=w.eval('_commsCurrent.blocks.at(-1).people[0]');assert.deepEqual([reset.photoX,reset.photoY,reset.photoZoom],[50,50,100]);
+  const legacy={id:'legacy-org',type:'orgchart',people:[{name:'Legacy',photo:'data:image/png;base64,AA',parent:'',photoX:-5,photoY:999,photoZoom:999}]};
+  w.commsEnsureOrgPeople(legacy);assert.deepEqual([legacy.people[0].photoX,legacy.people[0].photoY,legacy.people[0].photoZoom],[0,100,250]);
+});
 test('editorial circulars preserve their kind, metadata, layouts and shared blocks',()=>{
   w.newNewsDraft();const d=w.eval('_commsCurrent');assert.equal(d.kind,'circular');assert.ok(w.document.getElementById('sec-title').textContent.includes('circulares'));assert.ok(!w.document.querySelector('[data-comms-tab="signature"]'));
   Object.assign(d,{company:'SIERRA Chemicals',country:'Guatemala',summary:'Una nueva etapa',subject:'Avanzamos juntos',heroImage:'data:image/png;base64,AA',newsLayout:'image-right'});
