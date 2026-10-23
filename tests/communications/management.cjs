@@ -152,6 +152,8 @@ test('memo org chart photos keep per-person framing in editor, preview and print
   assert.equal(box.querySelector('.memo-person-photo img').style.transform,'scale(1.75)');
   box.innerHTML=w.memoOrgChartHtml(b);const frame=box.querySelector('.memo-person-photo-frame'),img=frame.querySelector('img');
   assert.ok(frame);assert.equal(img.style.objectPosition,'18% 72%');assert.equal(img.style.transform,'scale(1.75)');
+  b.people.push(...Array.from({length:3},(_,i)=>({uid:'sub-'+i,name:'Subordinado '+i,role:'Gerente',department:'Planta',photo:'',parent:p.uid})));
+  box.innerHTML=w.memoOrgChartHtml(b);assert.ok(box.querySelector('.memo-orgchart').classList.contains('memo-org-count-medium'));
   w.commsPersist();assert.equal(w.eval('_commsDrafts[0].blocks.at(-1).people[0].photoZoom'),175);
   assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('memo-person-photo-frame'));
   assert.ok(w.communicationOrgPhotoPrintCss().includes('overflow:hidden'));
