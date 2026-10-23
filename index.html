@@ -37326,7 +37326,7 @@ function memoImagePalette(doc){
     const mix=(base,weight)=>`rgb(${[1,3,5].map(i=>Math.round(parseInt(color.slice(i,i+2),16)*weight+parseInt(base.slice(i,i+2),16)*(1-weight))).join(',')})`;
     section.id=`memo-export-org-${index}`;
     const prefix=`#${section.id}`,style=doc.createElement('style');
-    style.textContent=`${prefix} .memo-person-card{border-color:${mix('#77777d',.46)}!important;background:${mix('#ffffff',.14)}!important}${prefix} .memo-person-card-placeholder{background:${mix('#e2e4e5',.18)}!important}${prefix} li::before,${prefix} li::after,${prefix} ul::before,${prefix} .memo-person-card::before{border-color:${mix('#66666d',.42)}!important}`;
+    style.textContent=`${prefix} .memo-person-card{border-color:${mix('#77777d',.46)}!important;background:${mix('#ffffff',.14)}!important}${prefix} .memo-person-card-placeholder,${prefix} .memo-person-photo-frame{background:${mix('#e2e4e5',.18)}!important}${prefix} li::before,${prefix} li::after,${prefix} ul::before,${prefix} .memo-person-card::before{border-color:${mix('#66666d',.42)}!important}`;
     doc.head.appendChild(style);
   });
 }
