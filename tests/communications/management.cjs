@@ -154,6 +154,8 @@ test('memo org chart photos keep per-person framing in editor, preview and print
   assert.ok(frame);assert.equal(img.style.objectPosition,'18% 72%');assert.equal(img.style.transform,'scale(1.75)');
   b.people.push(...Array.from({length:3},(_,i)=>({uid:'sub-'+i,name:'Subordinado '+i,role:'Gerente',department:'Planta',photo:'',parent:p.uid})));
   box.innerHTML=w.memoOrgChartHtml(b);assert.ok(box.querySelector('.memo-orgchart').classList.contains('memo-org-count-medium'));
+  const chart=box.querySelector('.memo-orgchart'),tree=chart.querySelector('.memo-org-tree');Object.defineProperty(chart,'clientWidth',{value:100});Object.defineProperty(tree,'scrollWidth',{value:200});tree.getBoundingClientRect=()=>({width:200,height:80});
+  assert.doesNotThrow(()=>w.memoFitExportContent(box));assert.equal(tree.parentElement.style.height,'40px');assert.equal(tree.style.transform,'scale(0.5)');
   w.commsPersist();assert.equal(w.eval('_commsDrafts[0].blocks.at(-1).people[0].photoZoom'),175);
   assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('memo-person-photo-frame'));
   assert.ok(w.communicationOrgPhotoPrintCss().includes('overflow:hidden'));
