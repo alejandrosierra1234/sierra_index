@@ -27,7 +27,7 @@
     walk(d);
   }
   const collab=window.SierraCollaboration.install({
-    account:()=>me?.id ? {id:me.id,name:profile?.full_name||me.email} : null,
+    account:()=>me?.id ? {id:me.id,name:profile?.full_name||me.email,email:me.email||'',avatar:profile?.avatar_url||''} : null,
     rpc:(name,args)=>{
       const writes=['communication_create','communication_share','communication_checkpoint'].includes(name)
         || (name==='communication_sync'&&args?.p_update!=null);
@@ -72,12 +72,22 @@
         if(!await collab.leave()){toast('Espera a que se guarden los cambios antes de salir.');return;}
         _commsCurrent=null;
       }
-      return original(...args);
+      const result=await original(...args);
+      if(name!=='showCommunications'&&_commsCurrent&&!collab.active())try{await collab.publishCurrent();}catch(error){toast(error.message||'El comunicado se guardó localmente, pero todavía no está disponible para el equipo.');}
+      return result;
     };
   }
   const openLocal=openCommunicationDraft;
   openCommunicationDraft=function(...args){
     if(collab.active()){toast('Vuelve a Comunicaciones antes de abrir otro documento.');return false;}
-    return openLocal(...args);
+    const opened=openLocal(...args);
+    if(opened)queueMicrotask(()=>collab.publishCurrent().catch(error=>toast(error.message||'El comunicado se abrió localmente, pero todavía no está disponible para el equipo.')));
+    return opened;
+  };
+  const duplicateLocal=commsDuplicate;
+  commsDuplicate=async function(...args){
+    const result=duplicateLocal(...args);
+    if(_commsCurrent&&!collab.active())try{await collab.publishCurrent();}catch(error){toast(error.message||'La copia se guardó localmente, pero todavía no está disponible para el equipo.');}
+    return result;
   };
 })();

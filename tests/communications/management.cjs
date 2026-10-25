@@ -342,13 +342,14 @@ test('memo text toolbar exposes lists, indentation, alignment and extra inline f
   w.newCommunicationDraft();const d=w.eval('_commsCurrent'),block=d.blocks.find(b=>b.type==='text');
   const editor=w.document.querySelector(`[data-block-id="${block.id}"]`),toolbar=editor.parentElement.querySelector('.memo-rich-toolbar');
   for(const label of ['Negrita','Cursiva','Subrayado','Tachado','Lista con viñetas','Lista numerada','Reducir sangría','Aumentar sangría','Alinear a la izquierda','Centrar','Alinear a la derecha','Justificar'])assert.ok(toolbar.querySelector(`[aria-label="${label}"]`),label);
-  const bullets=toolbar.querySelector('[data-block-style="bullets"]');w.commsRichBlockAction(bullets,'style','bullets');assert.equal(block.style,'bullets');assert.equal(bullets.getAttribute('aria-pressed'),'true');
+  assert.equal(editor.parentElement.querySelector('.memo-bullet-options'),null);assert.doesNotMatch(editor.parentElement.textContent,/Íconos/);assert.doesNotMatch(w.memoRichBlockHtml({style:'bullets',bulletMarker:'icon',content:'Uno\nDos'}),/memo-icon-bullet/);
+  const bullets=toolbar.querySelector('[data-command="insertUnorderedList"]');editor.innerHTML='<div>Uno</div><div>Dos</div>';const range=w.document.createRange();range.selectNodeContents(editor.lastElementChild);const selection=w.getSelection();selection.removeAllRanges();selection.addRange(range);w.commsRichRemember(editor);w.document.execCommand=command=>{assert.equal(command,'insertUnorderedList');editor.innerHTML='<div>Uno</div><ul><li>Dos</li></ul>';return true};w.commsRichCommand(bullets,'insertUnorderedList');assert.equal(block.style,'regular');assert.match(block.richHtml,/Uno<br><ul><li>Dos<\/li><\/ul>/);
   const increase=toolbar.querySelector('[data-indent="increase"]');w.commsRichBlockAction(increase,'indent',1);assert.equal(block.indent,1);assert.equal(editor.style.getPropertyValue('--memo-rich-indent'),'18px');
   w.commsRichKeydown({key:'Tab',shiftKey:false,preventDefault(){}},editor);assert.equal(block.indent,2);
   w.commsRichKeydown({key:'Tab',shiftKey:true,preventDefault(){}},editor);assert.equal(block.indent,1);
   const justify=toolbar.querySelector('[data-block-align="justify"]');w.commsRichBlockAction(justify,'align','justify');assert.equal(block.align,'justify');assert.equal(editor.style.textAlign,'justify');
+  const box=w.document.createElement('div');box.innerHTML=w.memoBlockHtml(block);assert.ok(box.querySelector('ul'));assert.equal(box.firstElementChild.style.marginLeft,'7mm');assert.equal(box.firstElementChild.style.textAlign,'justify');
   block.richHtml=w.commsSanitizeRich('<s>Anterior</s><span style="text-decoration:line-through">Reemplazado</span>');assert.equal(block.richHtml,'<s>Anterior</s><s>Reemplazado</s>');
-  const box=w.document.createElement('div');box.innerHTML=w.memoBlockHtml(block);assert.ok(box.querySelector('ul'));assert.equal(box.querySelector('ul').style.marginLeft,'7mm');assert.equal(box.querySelector('ul').style.textAlign,'justify');
   w.newCommunicationDraft();
 });
 test('notice preview shows a Letter sheet without changing adaptive exports',()=>{

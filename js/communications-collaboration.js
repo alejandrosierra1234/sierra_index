@@ -26814,6 +26814,12 @@ ${err.toString()}`);
         attrs: { color: {} },
         parseDOM: [{ style: "color", getAttrs: (value) => /^#[0-9a-f]{6}$|^rgb\([\d,\s]+\)$/i.test(value) ? { color: value } : false }],
         toDOM: (mark) => ["span", { style: "color:" + mark.attrs.color }, 0]
+      },
+      comment: {
+        attrs: { id: {} },
+        inclusive: false,
+        parseDOM: [{ tag: "mark[data-comment-id]", getAttrs: (element2) => ({ id: element2.getAttribute("data-comment-id") || "" }) }],
+        toDOM: (mark) => ["mark", { "data-comment-id": mark.attrs.id, class: "comms-comment-highlight" }, 0]
       }
     }
   });
@@ -26828,7 +26834,7 @@ ${err.toString()}`);
     const node = yXmlFragmentToProseMirrorRootNode(fragment, schema);
     const container = document.createElement("div");
     container.append(DOMSerializer.fromSchema(schema).serializeFragment(node.content));
-    return { richHtml: keepBlocks ? container.innerHTML : [...container.children].map((p) => p.innerHTML).join("<br>"), content: node.textBetween(0, node.content.size, "\n", "\n") };
+    return { richHtml: keepBlocks ? container.innerHTML : container.innerHTML, content: node.textBetween(0, node.content.size, "\n", "\n") };
   }
   function bindRich({ element: element2, fragment, awareness, editable, onChange, field }) {
     for (const attr of [...element2.attributes]) if (attr.name.startsWith("on")) element2.removeAttribute(attr.name);
@@ -26855,11 +26861,7 @@ ${err.toString()}`);
           "Mod-Shift-z": redo,
           "Mod-b": toggleMark(schema.marks.strong),
           "Mod-i": toggleMark(schema.marks.em),
-          Enter: (state, dispatch) => {
-            if (splitListItem(schema.nodes.list_item)(state, dispatch)) return true;
-            dispatch(state.tr.replaceSelectionWith(schema.nodes.hard_break.create()).scrollIntoView());
-            return true;
-          },
+          Enter: (state, dispatch) => splitListItem(schema.nodes.list_item)(state, dispatch),
           "Mod-[": liftListItem(schema.nodes.list_item)
         }),
         keymap(baseKeymap)
@@ -26883,12 +26885,28 @@ ${err.toString()}`);
     const mark = { bold: "strong", italic: "em", underline: "underline" }[command];
     if (mark) toggleMark(schema.marks[mark])(state, dispatch);
     else if (command === "formatBlock") setBlockType2(value === "p" ? schema.nodes.paragraph : schema.nodes.heading, { level: 3 })(state, dispatch);
-    else if (command === "insertUnorderedList" || command === "insertOrderedList") wrapInList(command === "insertUnorderedList" ? schema.nodes.bullet_list : schema.nodes.ordered_list)(state, dispatch);
-    else if (command === "foreColor" && /^#[0-9a-f]{6}$/i.test(value)) {
+    else if (command === "insertUnorderedList" || command === "insertOrderedList") {
+      const list = command === "insertUnorderedList" ? schema.nodes.bullet_list : schema.nodes.ordered_list;
+      let inSameList = false;
+      for (let depth = state.selection.$from.depth; depth > 0; depth--) if (state.selection.$from.node(depth).type === list) {
+        inSameList = true;
+        break;
+      }
+      if (inSameList) liftListItem(schema.nodes.list_item)(state, dispatch);
+      else wrapInList(list)(state, dispatch);
+    } else if (command === "foreColor" && /^#[0-9a-f]{6}$/i.test(value)) {
       const { from: from2, to, empty: empty2 } = state.selection, m = schema.marks.color.create({ color: value });
       dispatch(empty2 ? state.tr.addStoredMark(m) : state.tr.addMark(from2, to, m));
     } else if (command === "removeFormat") dispatch(state.tr.removeMark(state.selection.from, state.selection.to).setStoredMarks([]));
     view.focus();
+  }
+  function addCommentMark(view, id2) {
+    const { from: from2, to, empty: empty2 } = view.state.selection;
+    if (empty2) return "";
+    const quote = view.state.doc.textBetween(from2, to, " ", " ").replace(/\s+/g, " ").trim();
+    if (!quote) return "";
+    view.dispatch(view.state.tr.addMark(from2, to, schema.marks.comment.create({ id: id2 })).scrollIntoView());
+    return quote;
   }
 
   // images.js
@@ -27115,12 +27133,100 @@ ${err.toString()}`);
       api.preview();
       paintPresence(data.presence);
     }
+    const comments = () => Array.isArray(api.current()?.comments) ? api.current().comments : [];
+    const activeComments = () => comments().filter((comment) => !comment.resolved);
+    const syncComments = () => {
+      capture();
+      session?.transport.sync().catch(() => {
+      });
+    };
+    function commentsDialog(focusId = "") {
+      if (!active()) return;
+      const el = dialog("Comentarios");
+      const intro = document.createElement("p");
+      intro.className = "comms-collab-lock";
+      intro.textContent = "Los comentarios quedan en el editor y no se incluyen en la vista previa ni en las descargas.";
+      el.append(intro);
+      const list = document.createElement("div");
+      list.className = "comms-comment-list";
+      el.append(list);
+      const items = comments();
+      if (!items.length) message(el, "Selecciona texto y usa Comentar para iniciar una conversaci\xF3n.");
+      items.forEach((comment) => {
+        const card = document.createElement("article");
+        card.className = "comms-comment-card" + (comment.resolved ? " is-resolved" : "");
+        card.dataset.commentId = comment.id;
+        const meta = document.createElement("div");
+        meta.className = "comms-comment-meta";
+        const author = document.createElement("strong");
+        author.textContent = comment.authorName || "Colaborador";
+        const time = document.createElement("time");
+        time.textContent = comment.createdAt ? new Date(comment.createdAt).toLocaleString("es-GT") : "";
+        meta.append(author, time);
+        const quote = document.createElement("blockquote");
+        quote.textContent = comment.quote || "";
+        const body = document.createElement("p");
+        body.textContent = comment.body || "";
+        const action = document.createElement("button");
+        action.type = "button";
+        action.className = "btn btn-ghost btn-sm";
+        action.textContent = comment.resolved ? "Reabrir" : "Resolver";
+        action.onclick = () => {
+          comment.resolved = !comment.resolved;
+          comment.resolvedAt = comment.resolved ? (/* @__PURE__ */ new Date()).toISOString() : "";
+          syncComments();
+          el.close();
+          api.render();
+          queueMicrotask(() => commentsDialog(comment.id));
+        };
+        card.append(meta, quote, body, action);
+        list.append(card);
+      });
+      if (focusId) queueMicrotask(() => el.querySelector(`[data-comment-id="${CSS.escape(focusId)}"]`)?.scrollIntoView({ block: "center" }));
+    }
+    function addComment(view, field) {
+      if (!editable()) return;
+      const selected = view.state.doc.textBetween(view.state.selection.from, view.state.selection.to, " ", " ").replace(/\s+/g, " ").trim();
+      if (!selected) {
+        message(dialog("Agregar comentario"), "Selecciona primero el texto que quieres comentar.", true);
+        return;
+      }
+      const el = dialog("Agregar comentario"), form = document.createElement("form"), quote = document.createElement("blockquote"), label2 = document.createElement("label"), textarea = document.createElement("textarea"), button = document.createElement("button");
+      quote.textContent = selected;
+      label2.textContent = "Comentario";
+      textarea.className = "control-input";
+      textarea.name = "body";
+      textarea.required = true;
+      textarea.rows = 4;
+      label2.append(textarea);
+      button.className = "btn btn-primary";
+      button.type = "submit";
+      button.textContent = "Comentar";
+      form.append(quote, label2, button);
+      el.append(form);
+      textarea.focus();
+      form.onsubmit = (event) => {
+        event.preventDefault();
+        const id2 = "comment-" + crypto.randomUUID(), marked = addCommentMark(view, id2);
+        if (!marked) {
+          message(el, "La selecci\xF3n ya no est\xE1 disponible. Vuelve a seleccionar el texto.", true);
+          return;
+        }
+        const identity2 = api.account() || {};
+        const current = api.current();
+        current.comments = Array.isArray(current.comments) ? current.comments : [];
+        current.comments.push({ id: id2, field, quote: marked, body: textarea.value.trim(), authorId: identity2.id || "", authorName: identity2.name || "Colaborador", authorEmail: identity2.email || "", createdAt: (/* @__PURE__ */ new Date()).toISOString(), resolved: false });
+        syncComments();
+        el.close();
+        api.render();
+      };
+    }
     function paintPresence(people = []) {
       const bar = document.querySelector(".comms-collab-bar");
       if (!bar) return;
       bar.replaceChildren();
       const access = document.createElement("span");
-      access.textContent = "Privado \xB7 " + label(session.transport.role);
+      access.textContent = "Equipo \xB7 " + label(session.transport.role);
       bar.append(access);
       const seen = /* @__PURE__ */ new Set();
       people.forEach((p) => {
@@ -27147,7 +27253,7 @@ ${err.toString()}`);
       if (!active() && api.current() && !api.persistLocal()) throw Error("No se pudo guardar el documento local.");
       stop(false);
       api.current(null);
-      api.clearPage("Abriendo comunicado privado...");
+      api.clearPage("Abriendo comunicado del equipo...");
       const account = getAccount(), model = new CommunicationModel(), awareness = new Awareness(model.doc);
       const current = { id: id2, account, model, awareness, blocked: true, source: null, baseline: {} };
       const transport = new CommunicationTransport({
@@ -27179,12 +27285,32 @@ ${err.toString()}`);
         throw error;
       }
     }
+    async function publishCurrent() {
+      if (active()) return true;
+      if (!api.current() || !api.persistLocal()) throw Error("No se pudo guardar el comunicado antes de publicarlo al equipo.");
+      const draft = copy4(api.current());
+      if (JSON.stringify(draft).includes("sierra-memo-asset:")) throw Error("Faltan im\xE1genes locales. Usa \u201CGuardar en equipo\u201D para prepararlas.");
+      const model = new CommunicationModel();
+      let snapshot2;
+      try {
+        model.seed(stripped(draft));
+        prepareRich(model, draft);
+        snapshot2 = yjs_exports.encodeStateAsUpdate(model.doc);
+      } finally {
+        model.doc.destroy();
+      }
+      if (snapshot2.length > 16777216) throw Error("El comunicado necesita preparar sus im\xE1genes. Usa \u201CGuardar en equipo\u201D.");
+      const id2 = await rpc("communication_create", { p_source: draft.id, p_title: (draft.subject || "Comunicado").slice(0, 500), p_kind: draft.kind || "memo", p_snapshot: toBase642(snapshot2) });
+      if (api.current()?.id !== draft.id) return false;
+      await open(id2);
+      return true;
+    }
     async function share() {
       if (sharing) return;
       sharing = true;
       api.clearSelectors();
-      const el = dialog("Compartir acceso");
-      message(el, "Verificando acceso...");
+      const el = dialog("Espacio del equipo");
+      message(el, "Verificando el documento...");
       try {
         if (!active()) {
           if (!api.current() || !api.persistLocal()) throw Error("Guarda el comunicado antes de compartirlo.");
@@ -27219,70 +27345,17 @@ ${err.toString()}`);
           if (!valid()) return;
           if (JSON.stringify(api.current()) !== JSON.stringify(original)) throw Error("El comunicado cambi\xF3 durante la preparaci\xF3n. Vuelve a compartir la versi\xF3n actual.");
           if (snapshot2.length > 16777216) throw Error("No se pudo preparar la copia compartida autom\xE1ticamente. Tu comunicado original se conserva intacto.");
-          message(el, "Guardando la copia privada en Index...");
-          const id3 = await rpc("communication_create", { p_source: draft.id, p_title: (draft.subject || "Comunicado").slice(0, 500), p_kind: draft.kind || "memo", p_snapshot: toBase642(snapshot2) });
+          message(el, "Guardando el comunicado en el espacio del equipo...");
+          const id2 = await rpc("communication_create", { p_source: draft.id, p_title: (draft.subject || "Comunicado").slice(0, 500), p_kind: draft.kind || "memo", p_snapshot: toBase642(snapshot2) });
           if (!valid()) return;
-          await open(id3);
+          await open(id2);
         }
-        const id2 = session.id, access = await rpc("communication_access", { p_id: id2 });
         if (!el.isConnected) return;
         el.querySelector("[data-message]")?.remove();
-        const privacy = document.createElement("p");
-        privacy.className = "comms-collab-lock";
-        privacy.textContent = "Privado \xB7 Solo las personas de esta lista tienen acceso.";
-        el.append(privacy);
-        const rows = document.createElement("div");
-        el.append(rows);
-        for (const person of access.members) {
-          const row = document.createElement("div");
-          row.className = "comms-share-member";
-          const name = document.createElement("span"), email = document.createElement("small");
-          name.textContent = person.name;
-          email.textContent = person.email;
-          name.append(email);
-          row.append(name);
-          if (access.role === "owner" && person.role !== "owner") {
-            const select = api.select("Acceso de " + person.name, [{ value: "viewer", label: "Puede leer" }, { value: "editor", label: "Puede editar" }, { value: "", label: "Quitar acceso" }], person.role, async (value) => {
-              select.inert = true;
-              try {
-                await rpc("communication_share", { p_id: id2, p_email: person.email, p_role: value || null });
-                el.close();
-                await share();
-              } catch (error) {
-                select.inert = false;
-                message(el, "No se pudo cambiar el acceso. El permiso anterior se conserva.", true);
-              }
-            });
-            row.append(select);
-          } else {
-            const role = document.createElement("span");
-            role.textContent = label(person.role);
-            row.append(role);
-          }
-          rows.append(row);
-        }
-        if (access.role === "owner") {
-          let invitedRole = "viewer";
-          const form = document.createElement("form");
-          form.innerHTML = '<label>Correo de la persona<input name="email" type="email" class="control-input" autocomplete="off" required></label><div data-role-control></div><button class="btn btn-primary" type="submit">Dar acceso</button>';
-          form.querySelector("[data-role-control]").append(api.select("Permiso de la invitaci\xF3n", [{ value: "viewer", label: "Puede leer" }, { value: "editor", label: "Puede editar" }], invitedRole, (value) => {
-            invitedRole = value;
-          }));
-          form.onsubmit = async (event) => {
-            event.preventDefault();
-            const button = form.querySelector("button");
-            button.disabled = true;
-            try {
-              await rpc("communication_share", { p_id: id2, p_email: form.elements.email.value, p_role: invitedRole });
-              el.close();
-              await share();
-            } catch (error) {
-              button.disabled = false;
-              message(el, error.code === "42501" ? "No tienes permiso para compartir." : "No se pudo dar acceso. Verifica que el correo tenga una cuenta activa en Index.", true);
-            }
-          };
-          el.append(form);
-        }
+        const team = document.createElement("p");
+        team.className = "comms-collab-lock";
+        team.textContent = "Visible para todas las cuentas con acceso a Comunicaciones. Quienes tengan permiso de edici\xF3n pueden modificarlo y comentar en tiempo real.";
+        el.append(team);
       } catch (error) {
         if (el.isConnected) message(el, error.message || "No se pudo abrir el acceso compartido.", true);
       } finally {
@@ -27290,13 +27363,13 @@ ${err.toString()}`);
       }
     }
     async function library() {
-      const el = dialog("Comunicados compartidos");
+      const el = dialog("Comunicados del equipo");
       message(el, "Cargando...");
       try {
         const documents = await rpc("communication_list");
         if (!el.isConnected) return;
         el.querySelector("[data-message]")?.remove();
-        if (!documents.length) message(el, "No tienes comunicados compartidos.");
+        if (!documents.length) message(el, "Todav\xEDa no hay comunicados en el espacio del equipo.");
         for (const d of documents) {
           const row = document.createElement("button");
           row.className = "btn btn-ghost comms-share-member";
@@ -27329,7 +27402,7 @@ ${err.toString()}`);
         button.className = "btn btn-secondary";
         button.type = "button";
         button.dataset.shareAccess = "";
-        button.innerHTML = api.icon("users", 16) + " Compartir acceso";
+        button.innerHTML = api.icon("users", 16) + " Guardar en equipo";
         button.onclick = share;
         header.prepend(button);
       }
@@ -27359,6 +27432,28 @@ ${err.toString()}`);
           }
         } });
         views.set(element2, view);
+        const toolbar = element2.parentElement?.querySelector(".memo-rich-toolbar");
+        if (toolbar && !toolbar.querySelector("[data-comment-action]")) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.dataset.commentAction = "";
+          button.title = "Comentar selecci\xF3n";
+          button.setAttribute("aria-label", "Comentar texto seleccionado");
+          button.innerHTML = api.icon("message", 16) + " Comentar";
+          button.onclick = () => addComment(view, id2);
+          toolbar.append(button);
+        }
+        element2.querySelectorAll("mark[data-comment-id]").forEach((mark) => {
+          mark.tabIndex = 0;
+          mark.title = "Abrir comentario";
+          mark.onclick = () => commentsDialog(mark.dataset.commentId);
+          mark.onkeydown = (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              commentsDialog(mark.dataset.commentId);
+            }
+          };
+        });
       });
       document.querySelectorAll(".memo-form input,.memo-form textarea").forEach((element2) => {
         const handler = element2.getAttribute("oninput") || "";
@@ -27388,6 +27483,15 @@ ${err.toString()}`);
         });
       });
       header?.querySelectorAll('[aria-label="Acciones del comunicado"]').forEach((button) => button.disabled = true);
+      if (header && !header.querySelector("[data-comments-panel]")) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "btn btn-secondary";
+        button.dataset.commentsPanel = "";
+        button.innerHTML = api.icon("message", 16) + " Comentarios " + activeComments().length;
+        button.onclick = () => commentsDialog();
+        header.prepend(button);
+      }
       status(session.transport.dirty ? "Guardando cambios..." : "Guardado en Index", session.blocked);
     }
     function homeRendered() {
@@ -27396,7 +27500,7 @@ ${err.toString()}`);
       const button = document.createElement("button");
       button.className = "btn btn-secondary";
       button.dataset.sharedLibrary = "";
-      button.innerHTML = api.icon("users", 16) + " Compartidos";
+      button.innerHTML = api.icon("users", 16) + " Equipo";
       button.onclick = library;
       header.prepend(button);
     }
@@ -27421,6 +27525,7 @@ ${err.toString()}`);
       homeRendered,
       share,
       library,
+      publishCurrent,
       prepareImage: async (source) => {
         const current = session;
         if (!editable()) throw Error("No tienes permiso para editar este comunicado.");

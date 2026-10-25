@@ -404,3 +404,14 @@ existing private-bucket rules continue to require an active account for reads.
 
 Verification: `node tests/security/storage-policy.cjs` covers the permitted
 Processes path and rejects cross-account, wrong-subtree and read-only writes.
+
+# Team Communications (Update 55)
+
+Apply `update55.sql` after `update54.sql`. Cloud communications become a shared
+team library: every active account with Communications `read` can discover and
+open every document. Accounts with Communications `write` can edit and comment;
+viewers remain read-only. Direct table access stays revoked, inactive accounts
+remain denied, and existing owners, document IDs, revisions and audit records are
+preserved. Local browser drafts are promoted when opened; an oversized local
+draft remains recoverable and requires the editor's **Guardar en equipo** action
+to prepare its images.

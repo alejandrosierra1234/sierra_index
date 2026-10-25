@@ -85,6 +85,15 @@ test('database enforces private membership, read-only, revocation, suspension an
     await account(4);await denied('select communication_sync($1)',[id]);
     await db.query("select set_index_access($1,'communications',array['read','write'])",['00000000-0000-4000-8000-000000000001']);
     await account(1);assert.equal((await query('select communication_sync($1) as result',[id])).result.role,'owner');
+    await db.exec('reset role');await db.exec(await readFile(new URL('../../../update55.sql',import.meta.url),'utf8'));
+    await account(4);
+    assert.equal((await query('select communication_sync($1) as result',[id])).result.role,'editor');
+    assert.equal((await query('select communication_list() as docs')).docs.length,1);
+    assert.equal((await query('select communication_sync($1,-1,$2,$3) as result',[id,crypto.randomUUID(),'Aw=='])).result.revision,2);
+    await db.exec("reset role;update profiles set account_status='active' where email='viewer@test.local'");await account(3);
+    assert.equal((await query('select communication_sync($1) as result',[id])).result.role,'viewer');
+    await denied('select communication_sync($1,-1,$2,$3)',[id,crypto.randomUUID(),'BA==']);
+    await account(1);
     await db.exec(`reset role;update capability_grants set expires_at=now()-interval '1 minute' where domain='communications' and user_id='00000000-0000-4000-8000-000000000001';`);
     await account(1);await denied('select communication_sync($1)',[id]);
     await db.exec('reset role;set role anon');

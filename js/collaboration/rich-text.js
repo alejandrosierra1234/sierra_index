@@ -22,7 +22,10 @@ export const schema = new Schema({
     em:{parseDOM:[{tag:'i'},{tag:'em'},{style:'font-style=italic'}],toDOM:() => ['em',0]},
     underline:{parseDOM:[{tag:'u'},{style:'text-decoration=underline'}],toDOM:() => ['u',0]},
     color:{attrs:{color:{}},parseDOM:[{style:'color',getAttrs:value => /^#[0-9a-f]{6}$|^rgb\([\d,\s]+\)$/i.test(value) ? {color:value} : false}],
-      toDOM:mark => ['span',{style:'color:'+mark.attrs.color},0]}
+      toDOM:mark => ['span',{style:'color:'+mark.attrs.color},0]},
+    comment:{attrs:{id:{}},inclusive:false,
+      parseDOM:[{tag:'mark[data-comment-id]',getAttrs:element => ({id:element.getAttribute('data-comment-id')||''})}],
+      toDOM:mark => ['mark',{'data-comment-id':mark.attrs.id,class:'comms-comment-highlight'},0]}
   }
 });
 
@@ -37,7 +40,7 @@ export function readRich(fragment,keepBlocks=false) {
   const node = yXmlFragmentToProseMirrorRootNode(fragment, schema);
   const container = document.createElement('div');
   container.append(DOMSerializer.fromSchema(schema).serializeFragment(node.content));
-  return {richHtml:keepBlocks?container.innerHTML:[...container.children].map(p => p.innerHTML).join('<br>'),content:node.textBetween(0,node.content.size,'\n','\n')};
+  return {richHtml:keepBlocks?container.innerHTML:container.innerHTML,content:node.textBetween(0,node.content.size,'\n','\n')};
 }
 
 export function bindRich({element,fragment,awareness,editable,onChange,field}) {
@@ -55,7 +58,7 @@ export function bindRich({element,fragment,awareness,editable,onChange,field}) {
       yCursorPlugin(awareness,{cursorBuilder,awarenessStateFilter:(localId,clientId,state) => localId!==clientId && state.field===field}),
       yUndoPlugin(),keymap({'Mod-z':undo,'Mod-y':redo,'Mod-Shift-z':redo,
         'Mod-b':toggleMark(schema.marks.strong),'Mod-i':toggleMark(schema.marks.em),
-        Enter:(state,dispatch) => {if(splitListItem(schema.nodes.list_item)(state,dispatch))return true;dispatch(state.tr.replaceSelectionWith(schema.nodes.hard_break.create()).scrollIntoView());return true;},
+        Enter:(state,dispatch) => splitListItem(schema.nodes.list_item)(state,dispatch),
         'Mod-[':liftListItem(schema.nodes.list_item)}),keymap(baseKeymap)]}),
     editable,
     attributes:{'aria-label':element.getAttribute('aria-label') || 'Texto del comunicado','role':'textbox','aria-multiline':'true'},
@@ -74,10 +77,25 @@ export function richCommand(view,command,value) {
   const mark={bold:'strong',italic:'em',underline:'underline'}[command];
   if (mark) toggleMark(schema.marks[mark])(state,dispatch);
   else if(command==='formatBlock')setBlockType(value==='p'?schema.nodes.paragraph:schema.nodes.heading,{level:3})(state,dispatch);
-  else if(command==='insertUnorderedList'||command==='insertOrderedList')wrapInList(command==='insertUnorderedList'?schema.nodes.bullet_list:schema.nodes.ordered_list)(state,dispatch);
+  else if(command==='insertUnorderedList'||command==='insertOrderedList') {
+    const list=command==='insertUnorderedList'?schema.nodes.bullet_list:schema.nodes.ordered_list;
+    let inSameList=false;
+    for(let depth=state.selection.$from.depth;depth>0;depth--)if(state.selection.$from.node(depth).type===list){inSameList=true;break;}
+    if(inSameList)liftListItem(schema.nodes.list_item)(state,dispatch);
+    else wrapInList(list)(state,dispatch);
+  }
   else if(command==='foreColor' && /^#[0-9a-f]{6}$/i.test(value)) {
     const {from,to,empty}=state.selection, m=schema.marks.color.create({color:value});
     dispatch(empty ? state.tr.addStoredMark(m) : state.tr.addMark(from,to,m));
   } else if(command==='removeFormat') dispatch(state.tr.removeMark(state.selection.from,state.selection.to).setStoredMarks([]));
   view.focus();
+}
+
+export function addCommentMark(view,id) {
+  const {from,to,empty}=view.state.selection;
+  if(empty)return '';
+  const quote=view.state.doc.textBetween(from,to,' ',' ').replace(/\s+/g,' ').trim();
+  if(!quote)return '';
+  view.dispatch(view.state.tr.addMark(from,to,schema.marks.comment.create({id})).scrollIntoView());
+  return quote;
 }
