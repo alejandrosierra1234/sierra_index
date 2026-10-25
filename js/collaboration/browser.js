@@ -1,7 +1,7 @@
 import {CommunicationModel,Y,toBase64} from './model.js';
 import {CommunicationTransport} from './transport.js';
 import {Awareness} from 'y-protocols/awareness';
-import {bindRich,readRich,seedRich,richCommand} from './rich-text.js';
+import {bindRich,readRich,seedRich,richCommand,addCommentMark} from './rich-text.js';
 import {optimizeSharingImages} from './images.js';
 
 const copy = value => JSON.parse(JSON.stringify(value));
@@ -107,10 +107,41 @@ function install(api) {
     }
     api.preview();paintPresence(data.presence);
   }
+  const comments=() => Array.isArray(api.current()?.comments)?api.current().comments:[];
+  const activeComments=() => comments().filter(comment=>!comment.resolved);
+  const syncComments=() => {capture();session?.transport.sync().catch(()=>{});};
+  function commentsDialog(focusId='') {
+    if(!active())return;
+    const el=dialog('Comentarios');
+    const intro=document.createElement('p');intro.className='comms-collab-lock';intro.textContent='Los comentarios quedan en el editor y no se incluyen en la vista previa ni en las descargas.';el.append(intro);
+    const list=document.createElement('div');list.className='comms-comment-list';el.append(list);
+    const items=comments();
+    if(!items.length)message(el,'Selecciona texto y usa Comentar para iniciar una conversación.');
+    items.forEach(comment=>{
+      const card=document.createElement('article');card.className='comms-comment-card'+(comment.resolved?' is-resolved':'');card.dataset.commentId=comment.id;
+      const meta=document.createElement('div');meta.className='comms-comment-meta';
+      const author=document.createElement('strong');author.textContent=comment.authorName||'Colaborador';
+      const time=document.createElement('time');time.textContent=comment.createdAt?new Date(comment.createdAt).toLocaleString('es-GT'):'';meta.append(author,time);
+      const quote=document.createElement('blockquote');quote.textContent=comment.quote||'';
+      const body=document.createElement('p');body.textContent=comment.body||'';
+      const action=document.createElement('button');action.type='button';action.className='btn btn-ghost btn-sm';action.textContent=comment.resolved?'Reabrir':'Resolver';
+      action.onclick=()=>{comment.resolved=!comment.resolved;comment.resolvedAt=comment.resolved?new Date().toISOString():'';syncComments();el.close();api.render();queueMicrotask(()=>commentsDialog(comment.id));};
+      card.append(meta,quote,body,action);list.append(card);
+    });
+    if(focusId)queueMicrotask(()=>el.querySelector(`[data-comment-id="${CSS.escape(focusId)}"]`)?.scrollIntoView({block:'center'}));
+  }
+  function addComment(view,field) {
+    if(!editable())return;
+    const selected=view.state.doc.textBetween(view.state.selection.from,view.state.selection.to,' ',' ').replace(/\s+/g,' ').trim();
+    if(!selected){message(dialog('Agregar comentario'),'Selecciona primero el texto que quieres comentar.',true);return;}
+    const el=dialog('Agregar comentario'),form=document.createElement('form'),quote=document.createElement('blockquote'),label=document.createElement('label'),textarea=document.createElement('textarea'),button=document.createElement('button');
+    quote.textContent=selected;label.textContent='Comentario';textarea.className='control-input';textarea.name='body';textarea.required=true;textarea.rows=4;label.append(textarea);button.className='btn btn-primary';button.type='submit';button.textContent='Comentar';form.append(quote,label,button);el.append(form);textarea.focus();
+    form.onsubmit=event=>{event.preventDefault();const id='comment-'+crypto.randomUUID(),marked=addCommentMark(view,id);if(!marked){message(el,'La selección ya no está disponible. Vuelve a seleccionar el texto.',true);return;}const identity=api.account()||{};const current=api.current();current.comments=Array.isArray(current.comments)?current.comments:[];current.comments.push({id,field,quote:marked,body:textarea.value.trim(),authorId:identity.id||'',authorName:identity.name||'Colaborador',authorEmail:identity.email||'',createdAt:new Date().toISOString(),resolved:false});syncComments();el.close();api.render();};
+  }
   function paintPresence(people=[]) {
     const bar=document.querySelector('.comms-collab-bar');if(!bar)return;
     bar.replaceChildren();
-    const access=document.createElement('span');access.textContent='Privado · '+label(session.transport.role);bar.append(access);
+    const access=document.createElement('span');access.textContent='Equipo · '+label(session.transport.role);bar.append(access);
     const seen=new Set();
     people.forEach(p=>{
       if(seen.has(p.user_id))return;seen.add(p.user_id);
@@ -122,7 +153,7 @@ function install(api) {
     if(active() && session.id===id)return;
     if(active()){capture();await session.transport.sync();if(session.transport.dirty)throw Error('Todavía hay cambios pendientes.');}
     if(!active() && api.current() && !api.persistLocal())throw Error('No se pudo guardar el documento local.');
-    stop(false);api.current(null);api.clearPage('Abriendo comunicado privado...');
+    stop(false);api.current(null);api.clearPage('Abriendo comunicado del equipo...');
     const account=getAccount(),model=new CommunicationModel(),awareness=new Awareness(model.doc);
     const current={id,account,model,awareness,blocked:true,source:null,baseline:{}};
     const transport=new CommunicationTransport({doc:model.doc,
@@ -137,11 +168,24 @@ function install(api) {
       api.current(d);api.render();transport.start();
     } catch(error){stop();throw error;}
   }
+  async function publishCurrent() {
+    if(active())return true;
+    if(!api.current()||!api.persistLocal())throw Error('No se pudo guardar el comunicado antes de publicarlo al equipo.');
+    const draft=copy(api.current());
+    if(JSON.stringify(draft).includes('sierra-memo-asset:'))throw Error('Faltan imágenes locales. Usa “Guardar en equipo” para prepararlas.');
+    const model=new CommunicationModel();let snapshot;
+    try{model.seed(stripped(draft));prepareRich(model,draft);snapshot=Y.encodeStateAsUpdate(model.doc);}
+    finally{model.doc.destroy();}
+    if(snapshot.length>16777216)throw Error('El comunicado necesita preparar sus imágenes. Usa “Guardar en equipo”.');
+    const id=await rpc('communication_create',{p_source:draft.id,p_title:(draft.subject||'Comunicado').slice(0,500),p_kind:draft.kind||'memo',p_snapshot:toBase64(snapshot)});
+    if(api.current()?.id!==draft.id)return false;
+    await open(id);return true;
+  }
   async function share() {
     if(sharing)return;
     sharing=true;
     api.clearSelectors();
-    const el=dialog('Compartir acceso');message(el,'Verificando acceso...');
+    const el=dialog('Espacio del equipo');message(el,'Verificando el documento...');
     try {
       if(!active()) {
         if(!api.current() || !api.persistLocal()) throw Error('Guarda el comunicado antes de compartirlo.');
@@ -167,47 +211,23 @@ function install(api) {
         if(!valid())return;
         if(JSON.stringify(api.current())!==JSON.stringify(original))throw Error('El comunicado cambió durante la preparación. Vuelve a compartir la versión actual.');
         if(snapshot.length>16777216)throw Error('No se pudo preparar la copia compartida automáticamente. Tu comunicado original se conserva intacto.');
-        message(el,'Guardando la copia privada en Index...');
+        message(el,'Guardando el comunicado en el espacio del equipo...');
         const id=await rpc('communication_create',{p_source:draft.id,p_title:(draft.subject||'Comunicado').slice(0,500),p_kind:draft.kind||'memo',p_snapshot:toBase64(snapshot)});
         if(!valid())return;
         await open(id);
       }
-      const id=session.id,access=await rpc('communication_access',{p_id:id});
       if(!el.isConnected)return;
       el.querySelector('[data-message]')?.remove();
-      const privacy=document.createElement('p');privacy.className='comms-collab-lock';privacy.textContent='Privado · Solo las personas de esta lista tienen acceso.';el.append(privacy);
-      const rows=document.createElement('div');el.append(rows);
-      for(const person of access.members) {
-        const row=document.createElement('div');row.className='comms-share-member';
-        const name=document.createElement('span'),email=document.createElement('small');name.textContent=person.name;email.textContent=person.email;name.append(email);row.append(name);
-        if(access.role==='owner' && person.role!=='owner') {
-          const select=api.select('Acceso de '+person.name,[{value:'viewer',label:'Puede leer'},{value:'editor',label:'Puede editar'},{value:'',label:'Quitar acceso'}],person.role,async value=>{
-            select.inert=true;try{await rpc('communication_share',{p_id:id,p_email:person.email,p_role:value||null});el.close();await share();}
-            catch(error){select.inert=false;message(el,'No se pudo cambiar el acceso. El permiso anterior se conserva.',true);}
-          });
-          row.append(select);
-        } else {const role=document.createElement('span');role.textContent=label(person.role);row.append(role);}
-        rows.append(row);
-      }
-      if(access.role==='owner') {
-        let invitedRole='viewer';
-        const form=document.createElement('form');form.innerHTML='<label>Correo de la persona<input name="email" type="email" class="control-input" autocomplete="off" required></label><div data-role-control></div><button class="btn btn-primary" type="submit">Dar acceso</button>';
-        form.querySelector('[data-role-control]').append(api.select('Permiso de la invitación',[{value:'viewer',label:'Puede leer'},{value:'editor',label:'Puede editar'}],invitedRole,value=>{invitedRole=value;}));
-        form.onsubmit=async event=>{
-          event.preventDefault();const button=form.querySelector('button');button.disabled=true;
-          try{await rpc('communication_share',{p_id:id,p_email:form.elements.email.value,p_role:invitedRole});el.close();await share();}
-          catch(error){button.disabled=false;message(el,error.code==='42501'?'No tienes permiso para compartir.':'No se pudo dar acceso. Verifica que el correo tenga una cuenta activa en Index.',true);}
-        };el.append(form);
-      }
+      const team=document.createElement('p');team.className='comms-collab-lock';team.textContent='Visible para todas las cuentas con acceso a Comunicaciones. Quienes tengan permiso de edición pueden modificarlo y comentar en tiempo real.';el.append(team);
     }catch(error){if(el.isConnected)message(el,error.message||'No se pudo abrir el acceso compartido.',true);}
     finally{sharing=false;}
   }
   async function library() {
-    const el=dialog('Comunicados compartidos');message(el,'Cargando...');
+    const el=dialog('Comunicados del equipo');message(el,'Cargando...');
     try {
       const documents=await rpc('communication_list');if(!el.isConnected)return;
       el.querySelector('[data-message]')?.remove();
-      if(!documents.length)message(el,'No tienes comunicados compartidos.');
+      if(!documents.length)message(el,'Todavía no hay comunicados en el espacio del equipo.');
       for(const d of documents) {
         const row=document.createElement('button');row.className='btn btn-ghost comms-share-member';row.style.width='100%';row.textContent=d.title;
         const access=document.createElement('small');access.textContent=label(d.role);row.append(access);
@@ -220,7 +240,7 @@ function install(api) {
     const header=document.querySelector('.memo-panel-head .comms-header-actions');
     if(header&&!header.querySelector('[data-share-access]')) {
       const button=document.createElement('button');button.className='btn btn-secondary';button.type='button';button.dataset.shareAccess='';
-      button.innerHTML=api.icon('users',16)+' Compartir acceso';button.onclick=share;header.prepend(button);
+      button.innerHTML=api.icon('users',16)+' Guardar en equipo';button.onclick=share;header.prepend(button);
     }
     if(!active())return;
     destroyViews();
@@ -235,6 +255,9 @@ function install(api) {
         if(block){Object.assign(block,readRich(fragment));api.preview();}
         else if(id==='notice-message'&&api.current().kind==='aviso'){const rich=readRich(fragment,true);api.current().noticeRichHtml=rich.richHtml;api.current().noticeMessage=rich.content;api.preview();}
       }});views.set(element,view);
+      const toolbar=element.parentElement?.querySelector('.memo-rich-toolbar');
+      if(toolbar&&!toolbar.querySelector('[data-comment-action]')){const button=document.createElement('button');button.type='button';button.dataset.commentAction='';button.title='Comentar selección';button.setAttribute('aria-label','Comentar texto seleccionado');button.innerHTML=api.icon('message',16)+' Comentar';button.onclick=()=>addComment(view,id);toolbar.append(button);}
+      element.querySelectorAll('mark[data-comment-id]').forEach(mark=>{mark.tabIndex=0;mark.title='Abrir comentario';mark.onclick=()=>commentsDialog(mark.dataset.commentId);mark.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();commentsDialog(mark.dataset.commentId);}};});
     });
     document.querySelectorAll('.memo-form input,.memo-form textarea').forEach(element=>{
       const handler=element.getAttribute('oninput')||'';
@@ -261,17 +284,18 @@ function install(api) {
     });
     // Lifecycle/copy operations in the local library must not fork shared state silently.
     header?.querySelectorAll('[aria-label="Acciones del comunicado"]').forEach(button=>button.disabled=true);
+    if(header&&!header.querySelector('[data-comments-panel]')){const button=document.createElement('button');button.type='button';button.className='btn btn-secondary';button.dataset.commentsPanel='';button.innerHTML=api.icon('message',16)+' Comentarios '+activeComments().length;button.onclick=()=>commentsDialog();header.prepend(button);}
     status(session.transport.dirty?'Guardando cambios...':'Guardado en Index',session.blocked);
   }
   function homeRendered() {
     const header=document.querySelector('.comms-header-actions');if(!header||header.querySelector('[data-shared-library]'))return;
-    const button=document.createElement('button');button.className='btn btn-secondary';button.dataset.sharedLibrary='';button.innerHTML=api.icon('users',16)+' Compartidos';button.onclick=library;header.prepend(button);
+    const button=document.createElement('button');button.className='btn btn-secondary';button.dataset.sharedLibrary='';button.innerHTML=api.icon('users',16)+' Equipo';button.onclick=library;header.prepend(button);
   }
   document.addEventListener('focusout',()=>setTimeout(()=>{
     if(active()&&deferred&&!document.activeElement?.closest('.memo-form')){deferred=false;api.render();}
   },0));
   window.addEventListener('beforeunload',event=>{if(active()&&session.transport.dirty){event.preventDefault();event.returnValue='';}});
-  return {active,editable,stop,capture,rendered,homeRendered,share,library,
+  return {active,editable,stop,capture,rendered,homeRendered,share,library,publishCurrent,
     prepareImage:async source=>{
       const current=session;
       if(!editable())throw Error('No tienes permiso para editar este comunicado.');

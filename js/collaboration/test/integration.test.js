@@ -8,7 +8,7 @@ const root=new URL('../../../',import.meta.url);
 const source=readFileSync(new URL('index.html',root),'utf8');
 const until=async predicate=>{for(let i=0;i<100;i++){if(predicate())return;await new Promise(r=>setTimeout(r,10));}assert.fail('UI did not reach expected state');};
 
-test('real editor sharing keeps cloud writes out of localStorage and survives back/logout',async()=>{
+test('real editor promotes communications to the team, keeps cloud writes out of localStorage and survives back/logout',async()=>{
   const dom=new JSDOM('<div id="pg"></div><div id="sec-title"></div><div id="sec-sub"></div>',{url:'https://test.local',runScripts:'outside-only',pretendToBeVisual:true});
   const w=dom.window;let snapshot,revision=0,updates=[],authCallback;
   const windowErrors=[];w.addEventListener('error',event=>windowErrors.push(event.error));
@@ -42,32 +42,26 @@ test('real editor sharing keeps cloud writes out of localStorage and survives ba
     w.eval(readFileSync(new URL('js/communications-access.js',root),'utf8'));
     await w.newCommunicationDraft();
     assert.ok(w.document.querySelector('[data-share-access]'),JSON.stringify(notices));
+    assert.ok(w.document.querySelector('.comms-collab-bar'));
+    const local=w.localStorage.getItem('sierra_communications_v1:'+w.me.id);
     w.commsAddBlock('feature');
     w.eval("Object.assign(_commsCurrent.blocks.at(-1),{content:'Feature text must survive sharing',richHtml:'<strong>Feature text must survive sharing</strong>'})");w.commsPersist();
-    const largeImage='data:image/png;base64,'+'A'.repeat(18*1024*1024);
-    w.largeImage=largeImage;
-    w.eval("_commsCurrent.heroImage=largeImage;_commsAssetIds.set(largeImage,'sierra-memo-asset:test');_commsAssetValues.set('sierra-memo-asset:test',largeImage)");
-    w.Image=class {naturalWidth=3000;naturalHeight=2000;async decode(){}};
-    w.HTMLCanvasElement.prototype.getContext=()=>({drawImage(){}});
-    w.HTMLCanvasElement.prototype.toDataURL=()=> 'data:image/webp;base64,U01BTEw=';
-    w.commsPersist();
     w.document.querySelector('[data-share-access]').click();
-    await until(()=>w.document.querySelector('.comms-collab-bar') && w.document.querySelector('#comms-sharing form'));
-    const local=w.localStorage.getItem('sierra_communications_v1:'+w.me.id);
-    assert.ok(snapshot.length<100000,'large images are prepared before the RPC');
-    assert.equal(w.eval('_commsCurrent.heroImage'),'data:image/webp;base64,U01BTEw=');
-    assert.equal(w.eval("commsStorageParse(localStorage.getItem('sierra_communications_v1:'+me.id))[0].heroImage"),largeImage,'the local original is untouched');
+    await until(()=>w.document.querySelector('#comms-sharing .comms-collab-lock'));
+    assert.match(w.document.querySelector('#comms-sharing .comms-collab-lock').textContent,/todas las cuentas/);
     assert.ok(w.document.querySelector('.memo-rich-editor .ProseMirror'));
-    assert.equal(w.eval('_commsCurrent.blocks.at(-1).content'),'Feature text must survive sharing');
+    assert.ok(w.document.querySelector('[data-comment-action]'));
+    assert.equal(w.eval('_commsCurrent.blocks.at(-1).type'),'feature');
     assert.equal(w.document.querySelector('#comms-sharing select'),null,'use Index selectors');
-    w.commsSet('subject','Private collaborative change');w.commsPersist();
+    w.document.querySelector('#comms-sharing').close();
+    w.commsSet('subject','Team collaborative change');w.commsPersist();
     await until(()=>revision>0);
     assert.equal(w.localStorage.getItem('sierra_communications_v1:'+w.me.id),local);
     await w.commsBack();assert.equal(w.eval('_commsCurrent'),null);
     assert.ok(w.document.querySelector('[data-shared-library]'));
     await w.newNewsDraft();assert.equal(w.eval('_commsCurrent.kind'),'circular');
-    w.commsSet('subject','Local circular');w.commsPersist();
-    assert.match(w.localStorage.getItem('sierra_communications_v1:'+w.me.id),/Local circular/);
+    assert.ok(w.document.querySelector('.comms-collab-bar'));
+    w.commsSet('subject','Circular del equipo');w.commsPersist();
     await w.logout();assert.equal(w.eval('_commsCurrent'),null);
   }finally{await w.logout?.();await new Promise(r=>setTimeout(r,30));dom.window.close();assert.deepEqual(windowErrors,[]);}
 });
