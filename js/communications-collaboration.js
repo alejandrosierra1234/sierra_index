@@ -27415,18 +27415,23 @@ ${err.toString()}`);
       access.className = "comms-collab-access";
       access.textContent = "Equipo \xB7 " + label(session.transport.role);
       bar.append(access);
-      const peopleButton = document.createElement("button");
+      const collaborators = rows.filter((row) => !row.self), peopleButton = document.createElement("button");
       peopleButton.type = "button";
       peopleButton.className = "comms-collab-people";
       peopleButton.dataset.presencePanel = "";
-      peopleButton.setAttribute("aria-label", `${rows.length} ${rows.length === 1 ? "persona conectada" : "personas conectadas"}`);
+      peopleButton.setAttribute("aria-label", collaborators.length ? `${collaborators.length} ${collaborators.length === 1 ? "colaborador conectado" : "colaboradores conectados"}` : "Solo t\xFA est\xE1s en este comunicado");
       peopleButton.onclick = presenceDialog;
-      rows.slice(0, 4).forEach((row) => peopleButton.append(personNode(row)));
-      if (rows.length > 4) {
+      collaborators.slice(0, 3).forEach((row) => peopleButton.append(personNode(row)));
+      if (collaborators.length > 3) {
         const more = document.createElement("span");
         more.className = "comms-collab-more";
-        more.textContent = `+${rows.length - 4}`;
+        more.textContent = `+${collaborators.length - 3}`;
         peopleButton.append(more);
+      } else if (!collaborators.length) {
+        const alone = document.createElement("span");
+        alone.className = "comms-collab-alone";
+        alone.textContent = "Solo t\xFA";
+        peopleButton.append(alone);
       }
       bar.append(peopleButton);
       const latest = session.events[0];
@@ -27719,7 +27724,7 @@ ${err.toString()}`);
     }
     function rendered() {
       if (!api.current()) return;
-      const header = document.querySelector(".memo-panel-head .comms-header-actions");
+      const header = document.querySelector(".memo-editor-primary-actions .comms-header-actions,.memo-panel-head .comms-header-actions");
       if (header && !header.querySelector("[data-share-access]")) {
         const button = document.createElement("button");
         button.className = "btn btn-secondary";
@@ -27736,7 +27741,7 @@ ${err.toString()}`);
       if (!panel.querySelector(".comms-collab-bar")) {
         const bar = document.createElement("div");
         bar.className = "comms-collab-bar";
-        panel.querySelector(".memo-panel-head").after(bar);
+        (panel.querySelector(".memo-editor-primary-actions") || panel.querySelector(".memo-panel-head")).after(bar);
       }
       document.querySelectorAll(".memo-rich-editor[data-block-id]").forEach((element2) => {
         const id2 = element2.dataset.blockId, fragment = session.model.doc.getXmlFragment("rich:" + id2);
