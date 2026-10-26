@@ -35,7 +35,7 @@
   const home=renderCommunicationsHome;
   renderCommunicationsHome=function(...args){
     const result=home(...args);
-    if(read()&&!write())document.querySelectorAll('.comms-header-actions button[onclick^="new"]').forEach(el=>el.remove());
+    if(read()&&!write())document.querySelectorAll('.comms-header-actions button[onclick^="new"],.comms-header-actions [data-comms-create]').forEach(el=>el.remove());
     return result;
   };
   const actions=commsOpenActions;
