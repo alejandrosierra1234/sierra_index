@@ -22,3 +22,18 @@ test('response after account switch is ignored',async()=>{
   const request=transport.sync();valid=false;resolve(response);await request;
   assert.equal(changed,false);assert.equal(transport.revision,-1);transport.stop();model.doc.destroy();
 });
+test('transient access errors retry before stopping or clearing the document',async()=>{
+  let calls=0;const{model,transport,statuses}=make(async()=>{if(++calls<3)throw Object.assign(Error('stale session'),{code:'42501'});return response;});
+  await transport.sync();assert.equal(calls,3);assert.equal(transport.stopped,false);assert.equal(transport.revision,0);
+  assert.ok(statuses.some(([text])=>text==='Verificando acceso…'));transport.stop();model.doc.destroy();
+});
+test('a rejected write becomes read-only without discarding local changes',async()=>{
+  const requests=[];const{model,transport}=make(async(_name,args)=>{requests.push(args);if(args.p_update)throw Object.assign(Error('read only'),{code:'42501'});return{...response,role:'viewer'};});
+  model.seed({subject:'Cambio local'});await transport.sync();
+  assert.equal(transport.writeBlocked,true);assert.equal(transport.role,'viewer');assert.equal(transport.dirty,true);assert.equal(transport.stopped,false);
+  assert.equal(requests.at(-1).p_update,null);transport.stop();model.doc.destroy();
+});
+test('leave removes the current presence session explicitly',async()=>{
+  let last;const{model,transport}=make(async(_name,args)=>{last=args;return response;});
+  await transport.leave();assert.equal(last.p_session,transport.session);assert.equal(last.p_awareness,null);assert.equal(transport.stopped,true);model.doc.destroy();
+});

@@ -7,7 +7,7 @@ HR and commercial-card storage. It does not change the public media bucket.
 
 1. Run `npm ci --ignore-scripts` in this directory, then `npm run build` and `npm test`.
 2. Run the existing communications and security regression tests.
-3. Apply `update41.sql` after `update40.sql`, then apply `update55.sql` after the later numbered migrations.
+3. Apply `update41.sql` after `update40.sql`, then `update55.sql` and `update56.sql` after the later numbered migrations.
 4. Publish the generated bundle, integration bridge, stylesheet and `index.html`.
 5. Verify with two distinct authenticated accounts, including a viewer and a revoked member.
 
@@ -16,15 +16,19 @@ service-role key is required in the browser. The integration reuses Index's clie
 
 ## Access Boundary
 
-Cloud documents form one team library for active accounts with Communications
-access. Module readers can inspect and export; module editors can change content
-and add comments. Ownership is retained for provenance, not visibility.
+Cloud documents form one team library for every active Index account. Any active
+account can inspect and export; Communications editors can change content and add
+comments. Ownership is retained for provenance, not visibility.
 
 The five collaboration tables have RLS enabled and no direct privileges for
 authenticated or anonymous users. RPCs check the active account and current module
 permission on every call.
 
-Cursor presence uses the same authenticated RPC as updates. It is not sent through
+Cursor and active-area presence use the same authenticated RPC as updates. Rich-text
+fields show named cursors and selections; other controls show the person and area
+being edited. The people panel records joins and leaves observed during the open
+session. An explicit leave removes presence immediately; abandoned sessions expire
+after 15 seconds. Presence is not sent through
 Supabase public Broadcast/Presence channels. A revoked client cannot read subsequent
 updates, even with an already-open connection. Previously downloaded/exported content
 cannot be recalled. Names shown in presence come from server profiles, not cursor payloads.

@@ -43,7 +43,7 @@ export function readRich(fragment,keepBlocks=false) {
   return {richHtml:keepBlocks?container.innerHTML:container.innerHTML,content:node.textBetween(0,node.content.size,'\n','\n')};
 }
 
-export function bindRich({element,fragment,awareness,editable,onChange,field}) {
+export function bindRich({element,fragment,awareness,editable,onChange,field,area,onActivity}) {
   for (const attr of [...element.attributes]) if (attr.name.startsWith('on')) element.removeAttribute(attr.name);
   element.removeAttribute('contenteditable'); element.innerHTML='';
   const cursorBuilder = user => {
@@ -62,7 +62,13 @@ export function bindRich({element,fragment,awareness,editable,onChange,field}) {
         'Mod-[':liftListItem(schema.nodes.list_item)}),keymap(baseKeymap)]}),
     editable,
     attributes:{'aria-label':element.getAttribute('aria-label') || 'Texto del comunicado','role':'textbox','aria-multiline':'true'},
-    handleDOMEvents:{focus:() => {awareness.setLocalStateField('field',field);return false;}},
+    handleDOMEvents:{focus:() => {
+      awareness.setLocalStateField('field',field);
+      awareness.setLocalStateField('area',area || 'Texto del comunicado');
+      awareness.setLocalStateField('mode','cursor');
+      onActivity?.();
+      return false;
+    }},
     dispatchTransaction(transaction) {
       if(this.isDestroyed)return;
       this.updateState(this.state.apply(transaction));

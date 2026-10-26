@@ -9993,6 +9993,8 @@ ${err.toString()}`);
       this.stopped = false;
       this.role = "viewer";
       this.failures = 0;
+      this.accessFailures = 0;
+      this.writeBlocked = false;
       this.listener = (update, origin) => {
         if (origin !== "remote") this.pending.push(update);
       };
@@ -10013,7 +10015,7 @@ ${err.toString()}`);
     }
     async exchange() {
       const count = this.pending.length;
-      if (!this.batch && count) this.batch = { count, nonce: crypto.randomUUID(), update: toBase642(yjs_exports.mergeUpdates(this.pending.slice(0, count))) };
+      if (!this.batch && count && !this.writeBlocked) this.batch = { count, nonce: crypto.randomUUID(), update: toBase642(yjs_exports.mergeUpdates(this.pending.slice(0, count))) };
       try {
         const data = await this.rpc("communication_sync", {
           p_after: this.revision,
@@ -10034,8 +10036,9 @@ ${err.toString()}`);
         }, "remote");
         this.revision = data.revision;
         this.failures = 0;
+        this.accessFailures = 0;
         this.onChange(data);
-        this.onStatus(this.dirty ? "Guardando cambios..." : "Guardado en Index", false);
+        this.onStatus(this.writeBlocked && this.dirty ? "Solo lectura \xB7 cambios locales sin guardar" : this.dirty ? "Guardando cambios..." : "Guardado en Index", this.writeBlocked);
         if (!this.dirty && this.role !== "viewer" && this.revision - data.snapshot_revision >= 50) {
           await this.rpc("communication_checkpoint", {
             p_revision: this.revision,
@@ -10047,8 +10050,21 @@ ${err.toString()}`);
         if (this.stopped || !this.valid()) return;
         this.failures++;
         if (error.code === "42501" || error.status === 401 || error.status === 403) {
+          this.accessFailures++;
+          if (this.batch) {
+            this.batch = null;
+            this.writeBlocked = true;
+            this.role = "viewer";
+            this.onStatus("Solo lectura \xB7 cambios locales sin guardar", true);
+            return this.exchange();
+          }
+          if (this.accessFailures < 3) {
+            this.onStatus("Verificando acceso\u2026", true);
+            await new Promise((resolve) => setTimeout(resolve, 250 * this.accessFailures));
+            return this.exchange();
+          }
           this.stop();
-          this.onStatus("Ya no tienes acceso a este comunicado.", true);
+          this.onStatus("No se pudo verificar el acceso. Vuelve a intentar sin cerrar esta p\xE1gina.", true);
         } else this.onStatus("Sin sincronizar. Conserva esta ventana abierta.", true);
         throw error;
       }
@@ -10062,6 +10078,20 @@ ${err.toString()}`);
         if (!this.stopped && this.valid()) this.timer = setTimeout(next, Math.min(1e4, 650 * 2 ** this.failures));
       };
       next();
+    }
+    async leave() {
+      if (this.stopped || !this.valid()) return;
+      try {
+        await this.rpc("communication_sync", {
+          p_after: this.revision,
+          p_nonce: null,
+          p_update: null,
+          p_session: this.session,
+          p_awareness: null
+        });
+      } finally {
+        this.stop();
+      }
     }
     stop() {
       this.stopped = true;
@@ -26836,7 +26866,7 @@ ${err.toString()}`);
     container.append(DOMSerializer.fromSchema(schema).serializeFragment(node.content));
     return { richHtml: keepBlocks ? container.innerHTML : container.innerHTML, content: node.textBetween(0, node.content.size, "\n", "\n") };
   }
-  function bindRich({ element: element2, fragment, awareness, editable, onChange, field }) {
+  function bindRich({ element: element2, fragment, awareness, editable, onChange, field, area, onActivity }) {
     for (const attr of [...element2.attributes]) if (attr.name.startsWith("on")) element2.removeAttribute(attr.name);
     element2.removeAttribute("contenteditable");
     element2.innerHTML = "";
@@ -26870,6 +26900,9 @@ ${err.toString()}`);
       attributes: { "aria-label": element2.getAttribute("aria-label") || "Texto del comunicado", "role": "textbox", "aria-multiline": "true" },
       handleDOMEvents: { focus: () => {
         awareness.setLocalStateField("field", field);
+        awareness.setLocalStateField("area", area || "Texto del comunicado");
+        awareness.setLocalStateField("mode", "cursor");
+        onActivity?.();
         return false;
       } },
       dispatchTransaction(transaction) {
@@ -27005,6 +27038,33 @@ ${err.toString()}`);
     node.textContent = value;
     el.append(node);
   }
+  var shortText = (value) => String(value || "").replace(/\s+/g, " ").trim().slice(0, 80);
+  var initials = (value) => shortText(value).split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "SI";
+  var safeColor = (value, fallback = "#007d73") => /^#[0-9a-f]{6}$/i.test(value || "") ? value : fallback;
+  var stableKey = (value) => {
+    let hash = 2166136261;
+    for (const char of String(value)) {
+      hash ^= char.charCodeAt(0);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(36);
+  };
+  function areaName(element2, index = 0) {
+    const field = element2.closest(".memo-field,.invite-image-control,.simple-invite-banner-control");
+    const fieldLabel = field?.querySelector("label,span");
+    if (shortText(fieldLabel?.textContent)) return shortText(fieldLabel.textContent);
+    const block = element2.closest(".memo-block,.invite-card-outline,.invite-item-editor");
+    const blockLabel = block?.querySelector(".memo-block-kind,.invite-card-toggle b,.invite-item-editor-head b");
+    if (shortText(blockLabel?.textContent)) return shortText(blockLabel.textContent);
+    const section = element2.closest(".memo-form-section");
+    const sectionLabel = section?.querySelector(".memo-form-section-title");
+    return shortText(element2.getAttribute("aria-label") || element2.getAttribute("placeholder") || sectionLabel?.textContent) || `\xC1rea ${index + 1}`;
+  }
+  function controlKey(element2, index = 0) {
+    const behavior = ["id", "name", "oninput", "onchange", "onclick"].map((name) => element2.getAttribute(name) || "").join("|");
+    const context = element2.closest("[data-invitation-card],[data-flow-block]")?.getAttribute("data-invitation-card") || element2.closest("[data-flow-block]")?.getAttribute("data-flow-block") || "";
+    return "control:" + stableKey(behavior + "|" + context + "|" + areaName(element2, index) + "|" + element2.tagName + "|" + (element2.getAttribute("type") || ""));
+  }
   function install(api) {
     let session = null, rendering = false, deferred = false, sharing = false;
     const views = /* @__PURE__ */ new Map(), inputCleanups = [], lockedElements = /* @__PURE__ */ new Map();
@@ -27060,10 +27120,8 @@ ${err.toString()}`);
       session.blocked = blocked;
       document.querySelectorAll("#memo-save-state,[data-collab-status]").forEach((el) => el.textContent = text2);
       if (session.transport.stopped) {
-        destroyViews();
-        api.current(null);
-        api.clearPage(text2);
-        stop();
+        document.querySelector(".memo-customizer")?.setAttribute("data-collab-disconnected", "true");
+        views.forEach((view) => view.setProps({ editable: () => false }));
         return;
       }
       if (editable()) {
@@ -27082,9 +27140,11 @@ ${err.toString()}`);
     function stop(closeDialog = true) {
       destroyViews();
       if (session) {
-        session.transport.stop();
-        session.awareness.destroy();
-        session.model.doc.destroy();
+        const current = session;
+        if (!current.transport.stopped) current.transport.leave().catch(() => current.transport.stop());
+        else current.transport.stop();
+        current.awareness.destroy();
+        current.model.doc.destroy();
       }
       session = null;
       deferred = false;
@@ -27106,7 +27166,7 @@ ${err.toString()}`);
           const state = JSON.parse(person.awareness), id2 = Number(state.clientID);
           if (!Number.isSafeInteger(id2) || id2 === session.model.doc.clientID) return;
           const name = String(person.name || "Colaborador").slice(0, 80), color = colors[id2 % colors.length];
-          states.set(id2, { user: { name, color }, field: state.field, cursor: state.cursor });
+          states.set(id2, { user: { name, color }, field: state.field, area: state.area, mode: state.mode, cursor: state.cursor });
           seen.add(id2);
         } catch {
         }
@@ -27221,27 +27281,178 @@ ${err.toString()}`);
         api.render();
       };
     }
+    function presenceRows(people = []) {
+      const rows = [], local = api.account() || {}, localState = session.awareness.getLocalState() || {};
+      rows.push({ key: "local", userId: local.id || "", name: local.name || "T\xFA", self: true, color: safeColor(localState.user?.color), area: shortText(localState.area) || "Documento", field: localState.field || "document", mode: localState.mode || "area" });
+      for (const person of people) {
+        if (person.session_id === session.transport.session) continue;
+        try {
+          const state = JSON.parse(person.awareness || "{}"), clientId = Number(state.clientID);
+          if (!Number.isSafeInteger(clientId)) continue;
+          rows.push({
+            key: person.session_id || String(clientId),
+            userId: person.user_id || "",
+            name: shortText(person.name) || "Colaborador",
+            self: false,
+            color: colors[clientId % colors.length],
+            area: shortText(state.area) || "Documento",
+            field: state.field || "document",
+            mode: state.mode || "area",
+            seenAt: person.seen_at || ""
+          });
+        } catch {
+        }
+      }
+      const unique = /* @__PURE__ */ new Map();
+      for (const row of rows) {
+        const key = row.self ? "local" : row.userId || row.key, previous = unique.get(key);
+        if (!previous || String(row.seenAt) > String(previous.seenAt)) unique.set(key, row);
+      }
+      return [...unique.values()];
+    }
+    function recordPresenceEvents(rows) {
+      const next = new Map(rows.filter((row) => !row.self).map((row) => [row.key, row]));
+      if (session.presenceReady) {
+        next.forEach((row, key) => {
+          if (!session.presenceSessions.has(key)) session.events.unshift({ text: `${row.name} entr\xF3 al documento`, at: /* @__PURE__ */ new Date(), kind: "join" });
+        });
+        session.presenceSessions.forEach((row, key) => {
+          if (!next.has(key)) session.events.unshift({ text: `${row.name} sali\xF3 del documento`, at: /* @__PURE__ */ new Date(), kind: "leave" });
+        });
+        session.events = session.events.slice(0, 12);
+      } else session.presenceReady = true;
+      session.presenceSessions = next;
+    }
+    function paintRemoteAreas(rows) {
+      const panel = document.querySelector(".memo-customizer");
+      if (!panel) return;
+      panel.querySelectorAll(".comms-remote-area").forEach((el) => el.classList.remove("comms-remote-area"));
+      panel.querySelectorAll("[data-remote-presence]").forEach((el) => el.remove());
+      const grouped = /* @__PURE__ */ new Map();
+      rows.filter((row) => !row.self && row.field && row.field !== "document").forEach((row) => {
+        const list = grouped.get(row.field) || [];
+        list.push(row);
+        grouped.set(row.field, list);
+      });
+      grouped.forEach((activeRows, field) => {
+        const target = [...panel.querySelectorAll("[data-collab-key]")].find((element2) => element2.dataset.collabKey === field);
+        if (!target) return;
+        const area = target.closest(".memo-block,.invite-card-outline,.invite-item-editor,.memo-field,.memo-form-section") || target;
+        area.classList.add("comms-remote-area");
+        area.style.setProperty("--remote-color", safeColor(activeRows[0].color));
+        const badge = document.createElement("span");
+        badge.dataset.remotePresence = "";
+        badge.className = "comms-remote-badge";
+        badge.style.setProperty("--remote-color", safeColor(activeRows[0].color));
+        badge.textContent = activeRows.map((row) => row.name).join(", ");
+        area.append(badge);
+      });
+    }
+    function personNode(row) {
+      const item = document.createElement("span");
+      item.className = "comms-collab-person";
+      item.style.setProperty("--person-color", safeColor(row.color));
+      const avatar = document.createElement("span");
+      avatar.className = "comms-collab-avatar";
+      avatar.setAttribute("aria-hidden", "true");
+      avatar.textContent = initials(row.name);
+      const text2 = document.createElement("span"), name = document.createElement("strong"), area = document.createElement("small");
+      name.textContent = row.self ? "T\xFA" : row.name;
+      area.textContent = row.area;
+      text2.append(name, area);
+      item.append(avatar, text2);
+      return item;
+    }
+    function presenceDialog() {
+      if (!active()) return;
+      const el = dialog("Personas en este comunicado"), rows = session.presenceRows || [];
+      const intro = document.createElement("p");
+      intro.className = "comms-collab-lock";
+      intro.textContent = "La ubicaci\xF3n se actualiza mientras cada persona trabaja. En los bloques de texto tambi\xE9n ver\xE1s su cursor y selecci\xF3n.";
+      el.append(intro);
+      const list = document.createElement("div");
+      list.className = "comms-presence-list";
+      rows.forEach((row) => {
+        const card = document.createElement("div");
+        card.className = "comms-presence-card";
+        card.append(personNode(row));
+        const state = document.createElement("span");
+        state.className = "comms-presence-online";
+        state.textContent = "En l\xEDnea";
+        card.append(state);
+        list.append(card);
+      });
+      el.append(list);
+      const heading = document.createElement("h3");
+      heading.className = "comms-presence-heading";
+      heading.textContent = "Actividad reciente";
+      el.append(heading);
+      const events = document.createElement("ol");
+      events.className = "comms-presence-events";
+      if (!session.events.length) {
+        const empty2 = document.createElement("li");
+        empty2.textContent = "A\xFAn no hay entradas o salidas durante esta sesi\xF3n.";
+        events.append(empty2);
+      }
+      session.events.forEach((event) => {
+        const item = document.createElement("li");
+        const time = document.createElement("time");
+        time.textContent = event.at.toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" });
+        item.append(document.createTextNode(event.text + " "), time);
+        events.append(item);
+      });
+      el.append(events);
+    }
     function paintPresence(people = []) {
       const bar = document.querySelector(".comms-collab-bar");
-      if (!bar) return;
+      if (!bar || !session) return;
+      const rows = presenceRows(people);
+      recordPresenceEvents(rows);
+      session.presenceRows = rows;
+      session.lastPresence = people;
       bar.replaceChildren();
       const access = document.createElement("span");
+      access.className = "comms-collab-access";
       access.textContent = "Equipo \xB7 " + label(session.transport.role);
       bar.append(access);
-      const seen = /* @__PURE__ */ new Set();
-      people.forEach((p) => {
-        if (seen.has(p.user_id)) return;
-        seen.add(p.user_id);
-        const item = document.createElement("span");
-        item.className = "comms-collab-person";
-        item.textContent = p.name;
-        bar.append(item);
-      });
+      const peopleButton = document.createElement("button");
+      peopleButton.type = "button";
+      peopleButton.className = "comms-collab-people";
+      peopleButton.dataset.presencePanel = "";
+      peopleButton.setAttribute("aria-label", `${rows.length} ${rows.length === 1 ? "persona conectada" : "personas conectadas"}`);
+      peopleButton.onclick = presenceDialog;
+      rows.slice(0, 4).forEach((row) => peopleButton.append(personNode(row)));
+      if (rows.length > 4) {
+        const more = document.createElement("span");
+        more.className = "comms-collab-more";
+        more.textContent = `+${rows.length - 4}`;
+        peopleButton.append(more);
+      }
+      bar.append(peopleButton);
+      const latest = session.events[0];
+      if (latest && Date.now() - latest.at.getTime() < 6500) {
+        const event = document.createElement("span");
+        event.className = "comms-presence-event";
+        if (session.announcedEvent !== latest) {
+          event.setAttribute("role", "status");
+          session.announcedEvent = latest;
+        }
+        event.textContent = latest.text;
+        bar.append(event);
+      }
       const state = document.createElement("span");
       state.dataset.collabStatus = "";
       state.setAttribute("role", "status");
-      state.textContent = session.transport.dirty ? "Guardando cambios..." : "Guardado en Index";
+      state.textContent = session.transport.writeBlocked && session.transport.dirty ? "Solo lectura \xB7 cambios locales sin guardar" : session.transport.dirty ? "Guardando cambios..." : "Guardado en Index";
       bar.append(state);
+      paintRemoteAreas(rows);
+    }
+    function setActivity(field, area, mode = "area") {
+      if (!active()) return;
+      session.awareness.setLocalState({ ...session.awareness.getLocalState(), field, area: shortText(area) || "Documento", mode });
+      paintPresence(session.lastPresence || []);
+      session.transport.sync().catch(() => {
+      });
     }
     async function open(id2) {
       if (active() && session.id === id2) return;
@@ -27252,10 +27463,8 @@ ${err.toString()}`);
       }
       if (!active() && api.current() && !api.persistLocal()) throw Error("No se pudo guardar el documento local.");
       stop(false);
-      api.current(null);
-      api.clearPage("Abriendo comunicado del equipo...");
       const account = getAccount(), model = new CommunicationModel(), awareness = new Awareness(model.doc);
-      const current = { id: id2, account, model, awareness, blocked: true, source: null, baseline: {} };
+      const current = { id: id2, account, model, awareness, blocked: true, source: null, baseline: {}, presenceReady: false, presenceSessions: /* @__PURE__ */ new Map(), presenceRows: [], events: [], lastPresence: [] };
       const transport = new CommunicationTransport({
         doc: model.doc,
         rpc: (name, args2) => rpc(name, { p_id: id2, ...args2 }),
@@ -27276,7 +27485,7 @@ ${err.toString()}`);
         current.source = d.id;
         current.baseline = stripped(d);
         current.blocked = false;
-        awareness.setLocalState({ user: { name: api.account().name || "Colaborador", color: colors[model.doc.clientID % colors.length] } });
+        awareness.setLocalState({ user: { name: api.account().name || "Colaborador", color: colors[model.doc.clientID % colors.length] }, field: "document", area: "Documento", mode: "area" });
         api.current(d);
         api.render();
         transport.start();
@@ -27415,10 +27624,11 @@ ${err.toString()}`);
         bar.className = "comms-collab-bar";
         panel.querySelector(".memo-panel-head").after(bar);
       }
-      paintPresence();
       document.querySelectorAll(".memo-rich-editor[data-block-id]").forEach((element2) => {
         const id2 = element2.dataset.blockId, fragment = session.model.doc.getXmlFragment("rich:" + id2);
-        const view = bindRich({ element: element2, fragment, awareness: session.awareness, editable, field: id2, onChange: () => {
+        const area = areaName(element2, [...document.querySelectorAll(".memo-rich-editor[data-block-id]")].indexOf(element2));
+        element2.dataset.collabKey = id2;
+        const view = bindRich({ element: element2, fragment, awareness: session.awareness, editable, field: id2, area, onActivity: () => setActivity(id2, area, "cursor"), onChange: () => {
           if (!active()) return;
           const block = richBlocks(api.current()).find((b) => b.id === id2);
           if (block) {
@@ -27453,6 +27663,18 @@ ${err.toString()}`);
               commentsDialog(mark.dataset.commentId);
             }
           };
+        });
+      });
+      const controls = [...panel.querySelectorAll('.memo-form input,.memo-form textarea,.memo-form select,.memo-form button,.memo-form [role="button"],.memo-form summary')].filter((element2) => !element2.closest(".memo-rich-toolbar") && !element2.closest(".memo-rich-editor"));
+      controls.forEach((element2, index) => {
+        const key = controlKey(element2, index), area = areaName(element2, index);
+        element2.dataset.collabKey = key;
+        const focused = () => setActivity(key, area, element2.matches("input,textarea") ? "field" : "area");
+        element2.addEventListener("focus", focused);
+        element2.addEventListener("pointerdown", focused);
+        inputCleanups.push(() => {
+          element2.removeEventListener("focus", focused);
+          element2.removeEventListener("pointerdown", focused);
         });
       });
       document.querySelectorAll(".memo-form input,.memo-form textarea").forEach((element2) => {
@@ -27492,6 +27714,7 @@ ${err.toString()}`);
         button.onclick = () => commentsDialog();
         header.prepend(button);
       }
+      paintPresence(session.lastPresence || []);
       status(session.transport.dirty ? "Guardando cambios..." : "Guardado en Index", session.blocked);
     }
     function homeRendered() {
@@ -27515,6 +27738,10 @@ ${err.toString()}`);
         event.preventDefault();
         event.returnValue = "";
       }
+    });
+    window.addEventListener("pagehide", () => {
+      if (active()) session.transport.leave().catch(() => {
+      });
     });
     return {
       active,
@@ -27559,14 +27786,12 @@ ${err.toString()}`);
       leave: async () => {
         if (!active()) return true;
         capture();
-        if (!session.transport.dirty) {
-          stop();
-          return true;
-        }
         try {
-          await session.transport.sync();
-          if (session.transport.dirty) return false;
-          stop();
+          const current = session;
+          for (let attempt = 0; current.transport.dirty && attempt < 3; attempt++) await current.transport.sync();
+          if (current.transport.dirty) return false;
+          await current.transport.leave();
+          if (session === current) stop();
           return true;
         } catch {
           return false;
