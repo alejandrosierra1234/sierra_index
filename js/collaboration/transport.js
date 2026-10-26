@@ -6,7 +6,8 @@ export class CommunicationTransport {
   constructor({doc, rpc, valid, presence, onChange, onStatus}) {
     Object.assign(this, {doc, rpc, valid, presence, onChange, onStatus});
     this.session = crypto.randomUUID(); this.revision = -1; this.pending = [];
-    this.stopped = false; this.role = 'viewer'; this.failures = 0;
+    this.stopped = false; this.role = 'viewer'; this.failures = 0; this.accessFailures = 0;
+    this.writeBlocked = false;
     this.listener = (update, origin) => { if (origin !== 'remote') this.pending.push(update); };
     doc.on('update', this.listener);
   }
@@ -19,7 +20,7 @@ export class CommunicationTransport {
   }
   async exchange() {
     const count = this.pending.length;
-    if (!this.batch && count) this.batch = {count, nonce:crypto.randomUUID(), update:toBase64(Y.mergeUpdates(this.pending.slice(0, count)))};
+    if (!this.batch && count && !this.writeBlocked) this.batch = {count, nonce:crypto.randomUUID(), update:toBase64(Y.mergeUpdates(this.pending.slice(0, count)))};
     try {
       const data = await this.rpc('communication_sync', {
         p_after:this.revision, p_nonce:this.batch?.nonce || null, p_update:this.batch?.update || null,
@@ -32,9 +33,9 @@ export class CommunicationTransport {
         if (data.snapshot) Y.applyUpdate(this.doc, fromBase64(data.snapshot), 'remote');
         for (const update of data.updates) Y.applyUpdate(this.doc, fromBase64(update.payload), 'remote');
       }, 'remote');
-      this.revision = data.revision; this.failures = 0;
+      this.revision = data.revision; this.failures = 0; this.accessFailures = 0;
       this.onChange(data);
-      this.onStatus(this.dirty ? 'Guardando cambios...' : 'Guardado en Index', false);
+      this.onStatus(this.writeBlocked && this.dirty ? 'Solo lectura · cambios locales sin guardar' : this.dirty ? 'Guardando cambios...' : 'Guardado en Index', this.writeBlocked);
       // Compact only an acknowledged state. Concurrent writers make this a no-op.
       if (!this.dirty && this.role !== 'viewer' && this.revision - data.snapshot_revision >= 50) {
         await this.rpc('communication_checkpoint', {
@@ -46,7 +47,18 @@ export class CommunicationTransport {
       if (this.stopped || !this.valid()) return;
       this.failures++;
       if (error.code === '42501' || error.status === 401 || error.status === 403) {
-        this.stop(); this.onStatus('Ya no tienes acceso a este comunicado.', true);
+        this.accessFailures++;
+        if (this.batch) {
+          this.batch = null; this.writeBlocked = true; this.role = 'viewer';
+          this.onStatus('Solo lectura · cambios locales sin guardar', true);
+          return this.exchange();
+        }
+        if (this.accessFailures < 3) {
+          this.onStatus('Verificando acceso…', true);
+          await new Promise(resolve=>setTimeout(resolve,250*this.accessFailures));
+          return this.exchange();
+        }
+        this.stop(); this.onStatus('No se pudo verificar el acceso. Vuelve a intentar sin cerrar esta página.', true);
       } else this.onStatus('Sin sincronizar. Conserva esta ventana abierta.', true);
       throw error;
     }
@@ -57,6 +69,15 @@ export class CommunicationTransport {
       if (!this.stopped && this.valid()) this.timer = setTimeout(next, Math.min(10000, 650 * 2 ** this.failures));
     };
     next();
+  }
+  async leave() {
+    if (this.stopped || !this.valid()) return;
+    try {
+      await this.rpc('communication_sync', {
+        p_after:this.revision, p_nonce:null, p_update:null,
+        p_session:this.session, p_awareness:null
+      });
+    } finally { this.stop(); }
   }
   stop() {
     this.stopped = true; clearTimeout(this.timer); this.doc.off('update', this.listener);

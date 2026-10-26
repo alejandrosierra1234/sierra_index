@@ -96,6 +96,16 @@ test('database enforces private membership, read-only, revocation, suspension an
     await account(1);
     await db.exec(`reset role;update capability_grants set expires_at=now()-interval '1 minute' where domain='communications' and user_id='00000000-0000-4000-8000-000000000001';`);
     await account(1);await denied('select communication_sync($1)',[id]);
+    await db.exec('reset role');await db.exec(await readFile(new URL('../../../update56.sql',import.meta.url),'utf8'));
+    await account(1);
+    assert.equal((await query('select communication_sync($1) as result',[id])).result.role,'viewer','every active account keeps read access');
+    const presenceSession=crypto.randomUUID();
+    let live=(await query('select communication_sync($1,-1,null,null,$2,$3) as result',[id,presenceSession,JSON.stringify({clientID:10,field:'subject',area:'Asunto'})])).result;
+    assert.equal(live.presence.length,1);assert.equal(live.presence[0].seen_at!==null,true);
+    live=(await query('select communication_sync($1,-1,null,null,$2,null) as result',[id,presenceSession])).result;
+    assert.equal(live.presence.length,0,'explicit leave removes presence immediately');
+    await db.exec("reset role;update profiles set account_status='suspended' where email='owner@test.local'");
+    await account(1);await denied('select communication_sync($1)',[id]);
     await db.exec('reset role;set role anon');
     await denied('select communication_list()');await denied('select * from communication_documents');
   }finally{await db.close();}

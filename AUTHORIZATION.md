@@ -415,3 +415,13 @@ remain denied, and existing owners, document IDs, revisions and audit records ar
 preserved. Local browser drafts are promoted when opened; an oversized local
 draft remains recoverable and requires the editor's **Guardar en equipo** action
 to prepare its images.
+
+# Live Communication Presence (Update 56)
+
+Apply `update56.sql` after `update55.sql`. Every active Index account can retain
+read access to the team communications library, even without a Communications
+grant. Communications `write` remains mandatory for content changes and comments.
+The synchronized presence payload exposes the active editor area and server profile
+name, never trusting a client-supplied display name. Explicit exits delete the
+session immediately; abandoned browser sessions expire after 15 seconds. A denied
+write downgrades the open editor to read-only without replacing the document.

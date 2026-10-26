@@ -31,8 +31,8 @@
     rpc:(name,args)=>{
       const writes=['communication_create','communication_share','communication_checkpoint'].includes(name)
         || (name==='communication_sync'&&args?.p_update!=null);
-      if(!can('read','communications')||(writes&&!can('write','communications')))
-        return Promise.resolve({error:{code:'42501',message:'No tienes el permiso requerido en Comunicaciones.'}});
+      if(!me?.id||(writes&&!can('write','communications')))
+        return Promise.resolve({error:{code:'42501',message:writes?'No tienes permiso para editar Comunicaciones.':'Inicia sesión para abrir este comunicado.'}});
       return sb.rpc(name,args);
     },
     current:function(value){if(arguments.length)_commsCurrent=value;return _commsCurrent;},
