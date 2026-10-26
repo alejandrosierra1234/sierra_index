@@ -227,9 +227,9 @@ function install(api) {
     const rows=presenceRows(people);recordPresenceEvents(rows);session.presenceRows=rows;session.lastPresence=people;
     bar.replaceChildren();
     const access=document.createElement('span');access.className='comms-collab-access';access.textContent='Equipo · '+label(session.transport.role);bar.append(access);
-    const peopleButton=document.createElement('button');peopleButton.type='button';peopleButton.className='comms-collab-people';peopleButton.dataset.presencePanel='';peopleButton.setAttribute('aria-label',`${rows.length} ${rows.length===1?'persona conectada':'personas conectadas'}`);peopleButton.onclick=presenceDialog;
-    rows.slice(0,4).forEach(row=>peopleButton.append(personNode(row)));
-    if(rows.length>4){const more=document.createElement('span');more.className='comms-collab-more';more.textContent=`+${rows.length-4}`;peopleButton.append(more);}bar.append(peopleButton);
+    const collaborators=rows.filter(row=>!row.self),peopleButton=document.createElement('button');peopleButton.type='button';peopleButton.className='comms-collab-people';peopleButton.dataset.presencePanel='';peopleButton.setAttribute('aria-label',collaborators.length?`${collaborators.length} ${collaborators.length===1?'colaborador conectado':'colaboradores conectados'}`:'Solo tú estás en este comunicado');peopleButton.onclick=presenceDialog;
+    collaborators.slice(0,3).forEach(row=>peopleButton.append(personNode(row)));
+    if(collaborators.length>3){const more=document.createElement('span');more.className='comms-collab-more';more.textContent=`+${collaborators.length-3}`;peopleButton.append(more);}else if(!collaborators.length){const alone=document.createElement('span');alone.className='comms-collab-alone';alone.textContent='Solo tú';peopleButton.append(alone);}bar.append(peopleButton);
     const latest=session.events[0];if(latest&&Date.now()-latest.at.getTime()<6500){const event=document.createElement('span');event.className='comms-presence-event';if(session.announcedEvent!==latest){event.setAttribute('role','status');session.announcedEvent=latest;}event.textContent=latest.text;bar.append(event);}
     const state=document.createElement('span');state.dataset.collabStatus='';state.setAttribute('role','status');state.textContent=session.transport.writeBlocked&&session.transport.dirty?'Solo lectura · cambios locales sin guardar':session.transport.dirty?'Guardando cambios...':'Guardado en Index';bar.append(state);
     paintRemoteAreas(rows);
@@ -312,22 +312,45 @@ function install(api) {
     }catch(error){if(el.isConnected)message(el,error.message||'No se pudo abrir el acceso compartido.',true);}
     finally{sharing=false;}
   }
+  const awarenessOf=person=>{try{return JSON.parse(person.awareness||'{}')}catch{return{}}};
+  const peopleIn=document=>{
+    const people=new Map();
+    for(const person of document.presence||[]){const previous=people.get(person.user_id);if(!previous||String(previous.seen_at)<String(person.seen_at))people.set(person.user_id,person);}
+    return [...people.values()];
+  };
+  const avatarFor=person=>{
+    const avatar=document.createElement('span');avatar.className='comms-collab-avatar';avatar.textContent=initials(person.name);avatar.style.setProperty('--person-color',colors[parseInt(stableKey(person.user_id||person.name),36)%colors.length]);avatar.setAttribute('aria-hidden','true');return avatar;
+  };
+  function renderTeamActivity(el,documents){
+    el.querySelector('[data-message]')?.remove();el.querySelector('[data-team-body]')?.remove();
+    const body=document.createElement('div');body.dataset.teamBody='';body.className='comms-team-body';body.setAttribute('aria-live','polite');
+    const intro=document.createElement('p');intro.className='comms-team-intro';intro.textContent='Consulta quién está trabajando, en qué comunicado y en qué área, sin abrir el documento.';body.append(intro);
+    if(!documents.length){const empty=document.createElement('p');empty.className='comms-team-empty';empty.textContent='Todavía no hay comunicados en el espacio del equipo.';body.append(empty);el.append(body);return;}
+    const live=documents.map(document=>({document,people:peopleIn(document)})).filter(item=>item.people.length);
+    const heading=document.createElement('h3');heading.className='comms-team-heading';heading.textContent=`Ahora mismo · ${live.reduce((sum,item)=>sum+item.people.length,0)} en línea`;body.append(heading);
+    if(!live.length){const empty=document.createElement('p');empty.className='comms-team-empty';empty.textContent='Nadie está editando ahora.';body.append(empty);}
+    else for(const {document:record,people} of live){
+      const card=document.createElement('section');card.className='comms-team-document';
+      const openButton=document.createElement('button');openButton.type='button';openButton.className='comms-team-document-open';
+      const title=document.createElement('strong');title.textContent=record.title||'Comunicado sin título';const hint=document.createElement('small');hint.textContent=`${people.length} ${people.length===1?'persona':'personas'} · Abrir comunicado`;openButton.append(title,hint);
+      openButton.onclick=async()=>{openButton.disabled=true;try{await open(record.id);el.close();}catch(error){openButton.disabled=false;message(el,'No se pudo abrir el comunicado. Comprueba tu acceso y conexión.',true);}};card.append(openButton);
+      const list=document.createElement('div');list.className='comms-team-people';
+      for(const person of people){const awareness=awarenessOf(person),row=document.createElement('div');row.className='comms-team-person';row.append(avatarFor(person));const copy=document.createElement('span'),name=document.createElement('strong'),area=document.createElement('small');name.textContent=person.name||'Cuenta SIERRA';area.textContent=shortText(awareness.area)||'En el documento';copy.append(name,area);row.append(copy);list.append(row);}
+      card.append(list);body.append(card);
+    }
+    const sharedHeading=document.createElement('h3');sharedHeading.className='comms-team-heading';sharedHeading.textContent='Comunicados compartidos';body.append(sharedHeading);
+    const all=document.createElement('div');all.className='comms-team-documents';
+    for(const record of documents){const people=peopleIn(record),row=document.createElement('button');row.type='button';row.className='comms-team-document-row';const copy=document.createElement('span'),title=document.createElement('strong'),meta=document.createElement('small'),count=document.createElement('span');title.textContent=record.title||'Comunicado sin título';meta.textContent=label(record.role);copy.append(title,meta);count.className=people.length?'is-online':'';count.textContent=people.length?`${people.length} en línea`:'Sin actividad';row.append(copy,count);row.onclick=async()=>{row.disabled=true;try{await open(record.id);el.close();}catch(error){row.disabled=false;message(el,'No se pudo abrir el comunicado. Comprueba tu acceso y conexión.',true);}};all.append(row);}
+    body.append(all);el.append(body);
+  }
   async function library() {
-    const el=dialog('Comunicados del equipo');message(el,'Cargando...');
-    try {
-      const documents=await rpc('communication_list');if(!el.isConnected)return;
-      el.querySelector('[data-message]')?.remove();
-      if(!documents.length)message(el,'Todavía no hay comunicados en el espacio del equipo.');
-      for(const d of documents) {
-        const row=document.createElement('button');row.className='btn btn-ghost comms-share-member';row.style.width='100%';row.textContent=d.title;
-        const access=document.createElement('small');access.textContent=label(d.role);row.append(access);
-        row.onclick=async()=>{row.disabled=true;try{await open(d.id);el.close();}catch(error){row.disabled=false;message(el,'No se pudo abrir el comunicado. Comprueba tu acceso y conexión.',true);}};el.append(row);
-      }
-    }catch(error){message(el,'El espacio compartido no está disponible. No se modificaron tus documentos locales.',true);}
+    const el=dialog('Actividad del equipo');el.classList.add('comms-team-dialog');message(el,'Cargando actividad...');let stopped=false,loading=false,timer=0;
+    const load=async()=>{if(stopped||loading)return;loading=true;try{const documents=await rpc('communication_list');if(el.isConnected)renderTeamActivity(el,documents||[]);}catch(error){if(el.isConnected)message(el,'El espacio compartido no está disponible. No se modificaron tus documentos locales.',true);}finally{loading=false;}};
+    el.addEventListener('close',()=>{stopped=true;clearInterval(timer)},{once:true});await load();if(!stopped)timer=setInterval(load,4000);
   }
   function rendered() {
     if(!api.current())return;
-    const header=document.querySelector('.memo-panel-head .comms-header-actions');
+    const header=document.querySelector('.memo-editor-primary-actions .comms-header-actions,.memo-panel-head .comms-header-actions');
     if(header&&!header.querySelector('[data-share-access]')) {
       const button=document.createElement('button');button.className='btn btn-secondary';button.type='button';button.dataset.shareAccess='';
       button.innerHTML=api.icon('users',16)+' Guardar en equipo';button.onclick=share;header.prepend(button);
@@ -335,7 +358,7 @@ function install(api) {
     if(!active())return;
     destroyViews();
     const panel=document.querySelector('.memo-customizer');if(!panel)return;
-    if(!panel.querySelector('.comms-collab-bar')){const bar=document.createElement('div');bar.className='comms-collab-bar';panel.querySelector('.memo-panel-head').after(bar);}
+    if(!panel.querySelector('.comms-collab-bar')){const bar=document.createElement('div');bar.className='comms-collab-bar';(panel.querySelector('.memo-editor-primary-actions')||panel.querySelector('.memo-panel-head')).after(bar);}
     document.querySelectorAll('.memo-rich-editor[data-block-id]').forEach(element=>{
       const id=element.dataset.blockId,fragment=session.model.doc.getXmlFragment('rich:'+id);
       const area=areaName(element,[...document.querySelectorAll('.memo-rich-editor[data-block-id]')].indexOf(element));

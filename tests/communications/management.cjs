@@ -120,7 +120,7 @@ test('CTA colors preserve a white QR sticker and right-side image',()=>{
   assert.equal(box.querySelector('.memo-action-button').style.color,'rgb(11, 11, 11)');
   b.src='';box.innerHTML=w.memoActionCardHtml(b);assert.equal(box.firstElementChild.style.gridTemplateColumns,'minmax(0,1fr)');
 });
-test('block quick actions duplicate independently, reorder and hide from every document view',()=>{
+test('block menu actions duplicate independently, reorder and hide from every document view',()=>{
   w.newCommunicationDraft();w.eval("_commsCurrent.blocks=[{id:'source',type:'text',content:'Contenido único',style:'regular',steps:[{uid:'one',parent:''},{uid:'two',parent:'one'}]}]");
   w.commsDuplicateBlock('source');
   const blocks=w.eval('_commsCurrent.blocks');assert.equal(blocks.length,2);assert.notEqual(blocks[0].id,blocks[1].id);assert.notEqual(blocks[0].steps[0].uid,blocks[1].steps[0].uid);assert.equal(blocks[1].steps[1].parent,blocks[1].steps[0].uid);
@@ -129,7 +129,7 @@ test('block quick actions duplicate independently, reorder and hide from every d
   w.commsHideBlock('source');assert.equal(blocks[1].hidden,true);
   const d=w.eval('_commsCurrent');for(const preview of [true,false]){const box=w.document.createElement('div');box.innerHTML=w.memoPageHtml(d,preview);assert.ok(!box.textContent.includes('Contenido único'));assert.ok(box.textContent.includes('Copia independiente'))}
   w.commsHideBlock('source');assert.equal(blocks[1].hidden,false);
-  const box=w.document.createElement('div');box.innerHTML=w.commsOutlineBlock(blocks[0],0);assert.equal(box.querySelectorAll('.memo-outline-quick button').length,5);assert.ok(box.querySelector('[aria-label="Subir bloque"]').disabled);
+  const box=w.document.createElement('div');box.innerHTML=w.commsOutlineBlock(blocks[0],0);assert.equal(box.querySelectorAll('.memo-outline-quick button').length,0);assert.ok(box.querySelector('[aria-label^="Más acciones del bloque"]'));assert.equal(box.querySelectorAll('.memo-outline-head>.icon-btn').length,2);
 });
 test('image galleries preserve legacy images and support grid and individual framing',()=>{
   const b={id:'gallery',type:'image',src:'data:image/png;base64,AA'},box=w.document.createElement('div');

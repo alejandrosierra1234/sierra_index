@@ -1,0 +1,20 @@
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+
+const html = fs.readFileSync(path.join(__dirname, '../../index.html'), 'utf8')
+const start = html.indexOf("let _commsView='active'")
+const end = html.indexOf('function newCommunicationDraft()', start)
+const library = html.slice(start, end)
+
+assert.ok(start > 0 && end > start, 'communications library should be defined')
+assert.match(library, /_commsLayout='list'/)
+assert.match(library, /function commsSetLayout\(layout\)/)
+assert.match(library, /aria-label="Vista de lista"/)
+assert.match(library, /aria-label="Vista de mosaico"/)
+assert.match(library, /class="comms-library-grid"/)
+assert.match(library, /class="comms-card-preview" aria-hidden="true"/)
+assert.match(library, /memoPageHtml\(d,true\)/)
+assert.match(library, /sierra_comms_layout/)
+
+console.log('PASS: communications library supports persisted list and real-preview mosaic views')

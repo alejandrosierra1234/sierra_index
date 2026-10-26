@@ -102,6 +102,12 @@ test('database enforces private membership, read-only, revocation, suspension an
     const presenceSession=crypto.randomUUID();
     let live=(await query('select communication_sync($1,-1,null,null,$2,$3) as result',[id,presenceSession,JSON.stringify({clientID:10,field:'subject',area:'Asunto'})])).result;
     assert.equal(live.presence.length,1);assert.equal(live.presence[0].seen_at!==null,true);
+    await db.exec('reset role');await db.exec(await readFile(new URL('../../../update57.sql',import.meta.url),'utf8'));
+    await account(1);
+    const activity=(await query('select communication_list() as docs')).docs;
+    assert.equal(activity[0].presence.length,1,'library exposes current document presence');
+    assert.equal(activity[0].presence[0].name,'Owner');
+    assert.equal(JSON.parse(activity[0].presence[0].awareness).area,'Asunto');
     live=(await query('select communication_sync($1,-1,null,null,$2,null) as result',[id,presenceSession])).result;
     assert.equal(live.presence.length,0,'explicit leave removes presence immediately');
     await db.exec("reset role;update profiles set account_status='suspended' where email='owner@test.local'");

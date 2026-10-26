@@ -359,7 +359,7 @@
   var LOWEST_INT32 = 1 << 31;
   var isInteger = Number.isInteger || ((num) => typeof num === "number" && isFinite(num) && floor(num) === num);
   var isNaN2 = Number.isNaN;
-  var parseInt = Number.parseInt;
+  var parseInt2 = Number.parseInt;
 
   // node_modules/lib0/string.js
   var fromCharCode = String.fromCharCode;
@@ -27415,18 +27415,23 @@ ${err.toString()}`);
       access.className = "comms-collab-access";
       access.textContent = "Equipo \xB7 " + label(session.transport.role);
       bar.append(access);
-      const peopleButton = document.createElement("button");
+      const collaborators = rows.filter((row) => !row.self), peopleButton = document.createElement("button");
       peopleButton.type = "button";
       peopleButton.className = "comms-collab-people";
       peopleButton.dataset.presencePanel = "";
-      peopleButton.setAttribute("aria-label", `${rows.length} ${rows.length === 1 ? "persona conectada" : "personas conectadas"}`);
+      peopleButton.setAttribute("aria-label", collaborators.length ? `${collaborators.length} ${collaborators.length === 1 ? "colaborador conectado" : "colaboradores conectados"}` : "Solo t\xFA est\xE1s en este comunicado");
       peopleButton.onclick = presenceDialog;
-      rows.slice(0, 4).forEach((row) => peopleButton.append(personNode(row)));
-      if (rows.length > 4) {
+      collaborators.slice(0, 3).forEach((row) => peopleButton.append(personNode(row)));
+      if (collaborators.length > 3) {
         const more = document.createElement("span");
         more.className = "comms-collab-more";
-        more.textContent = `+${rows.length - 4}`;
+        more.textContent = `+${collaborators.length - 3}`;
         peopleButton.append(more);
+      } else if (!collaborators.length) {
+        const alone = document.createElement("span");
+        alone.className = "comms-collab-alone";
+        alone.textContent = "Solo t\xFA";
+        peopleButton.append(alone);
       }
       bar.append(peopleButton);
       const latest = session.events[0];
@@ -27571,41 +27576,155 @@ ${err.toString()}`);
         sharing = false;
       }
     }
-    async function library() {
-      const el = dialog("Comunicados del equipo");
-      message(el, "Cargando...");
+    const awarenessOf = (person) => {
       try {
-        const documents = await rpc("communication_list");
-        if (!el.isConnected) return;
-        el.querySelector("[data-message]")?.remove();
-        if (!documents.length) message(el, "Todav\xEDa no hay comunicados en el espacio del equipo.");
-        for (const d of documents) {
-          const row = document.createElement("button");
-          row.className = "btn btn-ghost comms-share-member";
-          row.style.width = "100%";
-          row.textContent = d.title;
-          const access = document.createElement("small");
-          access.textContent = label(d.role);
-          row.append(access);
-          row.onclick = async () => {
-            row.disabled = true;
-            try {
-              await open(d.id);
-              el.close();
-            } catch (error) {
-              row.disabled = false;
-              message(el, "No se pudo abrir el comunicado. Comprueba tu acceso y conexi\xF3n.", true);
-            }
-          };
-          el.append(row);
-        }
-      } catch (error) {
-        message(el, "El espacio compartido no est\xE1 disponible. No se modificaron tus documentos locales.", true);
+        return JSON.parse(person.awareness || "{}");
+      } catch {
+        return {};
       }
+    };
+    const peopleIn = (document2) => {
+      const people = /* @__PURE__ */ new Map();
+      for (const person of document2.presence || []) {
+        const previous = people.get(person.user_id);
+        if (!previous || String(previous.seen_at) < String(person.seen_at)) people.set(person.user_id, person);
+      }
+      return [...people.values()];
+    };
+    const avatarFor = (person) => {
+      const avatar = document.createElement("span");
+      avatar.className = "comms-collab-avatar";
+      avatar.textContent = initials(person.name);
+      avatar.style.setProperty("--person-color", colors[parseInt(stableKey(person.user_id || person.name), 36) % colors.length]);
+      avatar.setAttribute("aria-hidden", "true");
+      return avatar;
+    };
+    function renderTeamActivity(el, documents) {
+      el.querySelector("[data-message]")?.remove();
+      el.querySelector("[data-team-body]")?.remove();
+      const body = document.createElement("div");
+      body.dataset.teamBody = "";
+      body.className = "comms-team-body";
+      body.setAttribute("aria-live", "polite");
+      const intro = document.createElement("p");
+      intro.className = "comms-team-intro";
+      intro.textContent = "Consulta qui\xE9n est\xE1 trabajando, en qu\xE9 comunicado y en qu\xE9 \xE1rea, sin abrir el documento.";
+      body.append(intro);
+      if (!documents.length) {
+        const empty2 = document.createElement("p");
+        empty2.className = "comms-team-empty";
+        empty2.textContent = "Todav\xEDa no hay comunicados en el espacio del equipo.";
+        body.append(empty2);
+        el.append(body);
+        return;
+      }
+      const live = documents.map((document2) => ({ document: document2, people: peopleIn(document2) })).filter((item) => item.people.length);
+      const heading = document.createElement("h3");
+      heading.className = "comms-team-heading";
+      heading.textContent = `Ahora mismo \xB7 ${live.reduce((sum, item) => sum + item.people.length, 0)} en l\xEDnea`;
+      body.append(heading);
+      if (!live.length) {
+        const empty2 = document.createElement("p");
+        empty2.className = "comms-team-empty";
+        empty2.textContent = "Nadie est\xE1 editando ahora.";
+        body.append(empty2);
+      } else for (const { document: record, people } of live) {
+        const card = document.createElement("section");
+        card.className = "comms-team-document";
+        const openButton = document.createElement("button");
+        openButton.type = "button";
+        openButton.className = "comms-team-document-open";
+        const title = document.createElement("strong");
+        title.textContent = record.title || "Comunicado sin t\xEDtulo";
+        const hint = document.createElement("small");
+        hint.textContent = `${people.length} ${people.length === 1 ? "persona" : "personas"} \xB7 Abrir comunicado`;
+        openButton.append(title, hint);
+        openButton.onclick = async () => {
+          openButton.disabled = true;
+          try {
+            await open(record.id);
+            el.close();
+          } catch (error) {
+            openButton.disabled = false;
+            message(el, "No se pudo abrir el comunicado. Comprueba tu acceso y conexi\xF3n.", true);
+          }
+        };
+        card.append(openButton);
+        const list = document.createElement("div");
+        list.className = "comms-team-people";
+        for (const person of people) {
+          const awareness = awarenessOf(person), row = document.createElement("div");
+          row.className = "comms-team-person";
+          row.append(avatarFor(person));
+          const copy5 = document.createElement("span"), name = document.createElement("strong"), area = document.createElement("small");
+          name.textContent = person.name || "Cuenta SIERRA";
+          area.textContent = shortText(awareness.area) || "En el documento";
+          copy5.append(name, area);
+          row.append(copy5);
+          list.append(row);
+        }
+        card.append(list);
+        body.append(card);
+      }
+      const sharedHeading = document.createElement("h3");
+      sharedHeading.className = "comms-team-heading";
+      sharedHeading.textContent = "Comunicados compartidos";
+      body.append(sharedHeading);
+      const all2 = document.createElement("div");
+      all2.className = "comms-team-documents";
+      for (const record of documents) {
+        const people = peopleIn(record), row = document.createElement("button");
+        row.type = "button";
+        row.className = "comms-team-document-row";
+        const copy5 = document.createElement("span"), title = document.createElement("strong"), meta = document.createElement("small"), count = document.createElement("span");
+        title.textContent = record.title || "Comunicado sin t\xEDtulo";
+        meta.textContent = label(record.role);
+        copy5.append(title, meta);
+        count.className = people.length ? "is-online" : "";
+        count.textContent = people.length ? `${people.length} en l\xEDnea` : "Sin actividad";
+        row.append(copy5, count);
+        row.onclick = async () => {
+          row.disabled = true;
+          try {
+            await open(record.id);
+            el.close();
+          } catch (error) {
+            row.disabled = false;
+            message(el, "No se pudo abrir el comunicado. Comprueba tu acceso y conexi\xF3n.", true);
+          }
+        };
+        all2.append(row);
+      }
+      body.append(all2);
+      el.append(body);
+    }
+    async function library() {
+      const el = dialog("Actividad del equipo");
+      el.classList.add("comms-team-dialog");
+      message(el, "Cargando actividad...");
+      let stopped = false, loading = false, timer = 0;
+      const load = async () => {
+        if (stopped || loading) return;
+        loading = true;
+        try {
+          const documents = await rpc("communication_list");
+          if (el.isConnected) renderTeamActivity(el, documents || []);
+        } catch (error) {
+          if (el.isConnected) message(el, "El espacio compartido no est\xE1 disponible. No se modificaron tus documentos locales.", true);
+        } finally {
+          loading = false;
+        }
+      };
+      el.addEventListener("close", () => {
+        stopped = true;
+        clearInterval(timer);
+      }, { once: true });
+      await load();
+      if (!stopped) timer = setInterval(load, 4e3);
     }
     function rendered() {
       if (!api.current()) return;
-      const header = document.querySelector(".memo-panel-head .comms-header-actions");
+      const header = document.querySelector(".memo-editor-primary-actions .comms-header-actions,.memo-panel-head .comms-header-actions");
       if (header && !header.querySelector("[data-share-access]")) {
         const button = document.createElement("button");
         button.className = "btn btn-secondary";
@@ -27622,7 +27741,7 @@ ${err.toString()}`);
       if (!panel.querySelector(".comms-collab-bar")) {
         const bar = document.createElement("div");
         bar.className = "comms-collab-bar";
-        panel.querySelector(".memo-panel-head").after(bar);
+        (panel.querySelector(".memo-editor-primary-actions") || panel.querySelector(".memo-panel-head")).after(bar);
       }
       document.querySelectorAll(".memo-rich-editor[data-block-id]").forEach((element2) => {
         const id2 = element2.dataset.blockId, fragment = session.model.doc.getXmlFragment("rich:" + id2);
