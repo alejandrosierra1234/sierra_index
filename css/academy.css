@@ -29,6 +29,7 @@
 
 .academy-studio{display:grid;grid-template-columns:minmax(390px,460px) minmax(0,1fr);height:calc(100dvh - 176px);min-height:650px;margin:0 22px 24px;overflow:hidden;border:1px solid var(--border);border-radius:20px;background:var(--surface)}
 .academy-customizer{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;min-width:0;min-height:0;border-right:1px solid var(--border);background:var(--surface)}
+.academy-customizer>*{width:100%;min-width:0;max-width:100%}
 .academy-editor-head{min-height:84px;padding:16px;border-bottom:1px solid var(--border)}
 .academy-editor-head>div{min-width:0;flex:1}.academy-editor-head p{margin:0 0 3px;color:var(--text-3);font-size:11px;font-weight:700;letter-spacing:.075em;text-transform:uppercase}
 .academy-editor-head h2{margin:0;font:700 17px/1.15 Aeonik,Replica,Arial;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
