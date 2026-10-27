@@ -37615,7 +37615,30 @@ function commsDeletePermanently(id){commsCloseMenu();const d=_commsDrafts.find(d
 function commsConfirm(title,message,action,confirmLabel='Eliminar definitivamente'){const previous=document.activeElement,dialog=document.createElement('dialog');dialog.className='modal-content comms-confirm';dialog.setAttribute('aria-label',title);dialog.innerHTML=`<div class="modal-header"><h2>${esc(title)}</h2></div><p>${esc(message)}</p><div class="modal-footer"><button type="button" class="btn btn-secondary">Cancelar</button><button type="button" class="btn btn-danger">${esc(confirmLabel)}</button></div>`;const buttons=dialog.querySelectorAll('button');buttons[0].onclick=()=>dialog.close();buttons[1].onclick=()=>{dialog.close();action()};dialog.addEventListener('close',()=>{dialog.remove();if(previous?.isConnected)previous.focus()},{once:true});document.body.appendChild(dialog);dialog.showModal();buttons[0].focus()}
 function commsCloseMenu(restore=true){document.getElementById('comms-popover')?.remove();if(_commsMenuTrigger){_commsMenuTrigger.setAttribute('aria-expanded','false');if(restore&&_commsMenuTrigger.isConnected)_commsMenuTrigger.focus({preventScroll:true})}_commsMenuTrigger=null}
 function commsPopover(event,render,role='menu'){event.stopPropagation();const trigger=event.currentTarget;if(_commsMenuTrigger===trigger){commsCloseMenu();return}commsCloseMenu(false);closePdSelects();_commsMenuTrigger=trigger;trigger.setAttribute('aria-expanded','true');const menu=document.createElement('div');menu.id='comms-popover';menu.className='ws-pop open';menu.setAttribute('role',role);menu.style.cssText='display:block;position:fixed;right:auto;top:0;z-index:10000;min-width:220px;max-width:calc(100vw - 24px);max-height:70vh;overflow:auto';menu.style.width=role==='group'?'272px':'240px';render(menu);document.body.appendChild(menu);const r=trigger.getBoundingClientRect();menu.style.left=Math.max(12,Math.min(r.left,window.innerWidth-menu.offsetWidth-12))+'px';menu.style.top=(r.bottom+menu.offsetHeight+8<window.innerHeight?r.bottom+6:Math.max(12,r.top-menu.offsetHeight-6))+'px';menu.querySelector('input,button')?.focus()}
-function commsMenuItem(menu,label,action,danger=false){const b=document.createElement('button');b.type='button';b.className='pop-menu-item'+(danger?' danger':'');b.setAttribute('role','menuitem');const icon=label.startsWith('Descargar')?(label.endsWith('PDF')?'printer':'photo'):({'Abrir':'file','Guardar ahora':'save','Duplicar como borrador':'copy','Archivar':'archive','Desarchivar':'restore','Restaurar':'restore','Mover a papelera':'trash','Eliminar definitivamente':'trash','PDF / Imprimir':'printer','Nombrar bloque':'text-size','Subir bloque':'arrow-up','Bajar bloque':'arrow-down','Eliminar bloque completo':'trash'}[label]||'download');b.innerHTML=siIcon(icon,16);const text=document.createElement('span');text.textContent=label;b.appendChild(text);b.onclick=e=>{e.stopPropagation();commsCloseMenu();action()};menu.appendChild(b)}
+function commsMenuIcon(label){
+  if(label.startsWith('Descargar'))return label.endsWith('PDF')?'printer':'photo';
+  return({
+    'Abrir':'file',
+    'Guardar ahora':'save',
+    'Duplicar como borrador':'copy',
+    'Duplicar bloque':'copy',
+    'Ocultar bloque':'eye-off',
+    'Mostrar bloque':'eye',
+    'Archivar':'archive',
+    'Desarchivar':'restore',
+    'Restaurar':'restore',
+    'Mover a papelera':'trash',
+    'Eliminar definitivamente':'trash',
+    'Ver PDF':'eye',
+    'Imprimir':'printer',
+    'PDF / Imprimir':'printer',
+    'Nombrar bloque':'text-size',
+    'Subir bloque':'arrow-up',
+    'Bajar bloque':'arrow-down',
+    'Eliminar bloque completo':'trash'
+  })[label]||'dots'
+}
+function commsMenuItem(menu,label,action,danger=false){const b=document.createElement('button');b.type='button';b.className='pop-menu-item'+(danger?' danger':'');b.setAttribute('role','menuitem');b.innerHTML=siIcon(commsMenuIcon(label),16);const text=document.createElement('span');text.textContent=label;b.appendChild(text);b.onclick=e=>{e.stopPropagation();commsCloseMenu();action()};menu.appendChild(b)}
 function commsOpenActions(event,id){const d=_commsDrafts.find(d=>d.id===id)||(_commsCurrent?.id===id?_commsCurrent:null);if(!d)return;commsPopover(event,menu=>{if(d.lifecycle==='trashed'){commsMenuItem(menu,'Restaurar',()=>commsLifecycle(id,'restore'));commsMenuItem(menu,'Eliminar definitivamente',()=>commsDeletePermanently(id),true);return}commsMenuItem(menu,'Abrir',()=>openCommunicationDraft(id));if(_commsCurrent?.id===id&&d.lifecycle==='active')commsMenuItem(menu,'Guardar ahora',()=>commsPersist());commsMenuItem(menu,'Duplicar como borrador',()=>commsDuplicate(id));['pdf','png','jpg'].forEach(format=>commsMenuItem(menu,'Descargar '+format.toUpperCase(),()=>{if(!openCommunicationDraft(id))return;if(format==='pdf')commsExportPdf();else downloadCommunicationImage(format)}));commsMenuItem(menu,d.lifecycle==='archived'?'Desarchivar':'Archivar',()=>commsLifecycle(id,d.lifecycle==='archived'?'unarchive':'archive'));commsMenuItem(menu,'Mover a papelera',()=>commsLifecycle(id,'trash'),true)})}
 function commsDownloadMenu(event){if(_memoImageExporting)return;commsPopover(event,menu=>{commsMenuItem(menu,'Ver PDF',()=>commsExportPdf('preview'));commsMenuItem(menu,'Descargar PDF',()=>commsExportPdf());commsMenuItem(menu,'Imprimir',()=>printCommunicationMemo());['png','jpg'].forEach(f=>commsMenuItem(menu,'Descargar '+f.toUpperCase(),()=>downloadCommunicationImage(f)))})}
 function commsRememberUndo(){if(_commsCurrent)_commsUndo={id:_commsCurrent.id,activeBlock:commsActiveBlock(),blocks:JSON.parse(JSON.stringify(_commsCurrent.blocks)),signature:_commsCurrent.signature,signerName:_commsCurrent.signerName,signerTitle:_commsCurrent.signerTitle,signerDepartment:_commsCurrent.signerDepartment||'',additionalSigners:JSON.parse(JSON.stringify(_commsCurrent.additionalSigners||[]))}}

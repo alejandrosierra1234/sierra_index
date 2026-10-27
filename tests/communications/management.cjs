@@ -131,6 +131,16 @@ test('block menu actions duplicate independently, reorder and hide from every do
   w.commsHideBlock('source');assert.equal(blocks[1].hidden,false);
   const box=w.document.createElement('div');box.innerHTML=w.commsOutlineBlock(blocks[0],0);assert.equal(box.querySelectorAll('.memo-outline-quick button').length,0);assert.ok(box.querySelector('[aria-label^="Más acciones del bloque"]'));assert.equal(box.querySelectorAll('.memo-outline-head>.icon-btn').length,2);
 });
+test('block action menu icons match their functions and unknown actions stay neutral',()=>{
+  assert.equal(w.commsMenuIcon('Duplicar bloque'),'copy');
+  assert.equal(w.commsMenuIcon('Ocultar bloque'),'eye-off');
+  assert.equal(w.commsMenuIcon('Mostrar bloque'),'eye');
+  assert.equal(w.commsMenuIcon('Nombrar bloque'),'text-size');
+  assert.equal(w.commsMenuIcon('Subir bloque'),'arrow-up');
+  assert.equal(w.commsMenuIcon('Bajar bloque'),'arrow-down');
+  assert.equal(w.commsMenuIcon('Eliminar bloque completo'),'trash');
+  assert.equal(w.commsMenuIcon('Acción futura'),'dots');
+});
 test('image galleries preserve legacy images and support grid and individual framing',()=>{
   const b={id:'gallery',type:'image',src:'data:image/png;base64,AA'},box=w.document.createElement('div');
   box.innerHTML=w.memoBlockHtml(b);assert.equal(box.querySelectorAll('.memo-gallery-image').length,1);
