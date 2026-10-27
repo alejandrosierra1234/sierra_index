@@ -142,7 +142,7 @@ function academyPickCompany(value){
 
 function academyLogoHtml(d,compact=false){
   const label=d.companyName||d.companyLegalName||'SIERRA';
-  if(d.companyLogo)return`<span class="academy-logo-fallback academy-sierra-logo" aria-label="SIERRA">${LBL_LOGO_SVG}</span><img src="${escAttr(d.companyLogo)}" alt="Logo de ${escAttr(label)}" crossorigin="anonymous" loading="eager" decoding="sync" onload="this.previousElementSibling.hidden=true" onerror="this.hidden=true">`;
+  if(d.companyLogo)return`<img src="${escAttr(d.companyLogo)}" alt="Logo de ${escAttr(label)}" crossorigin="anonymous" loading="eager" decoding="sync">`;
   return`<span class="academy-sierra-logo" aria-label="SIERRA">${LBL_LOGO_SVG}</span>`;
 }
 function academyDecorHtml(d){
