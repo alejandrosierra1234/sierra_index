@@ -182,9 +182,10 @@ test('memo org chart photos keep per-person framing in editor, preview and print
   const printHtml=w.memoPrintDocumentHtml(w.eval('_commsCurrent'));assert.ok(printHtml.includes('memo-person-photo-frame'));assert.ok(printHtml.includes('.memo-org-photo-edit-badge{display:none!important}'));
   const orgPhotoCss=w.communicationOrgPhotoPrintCss(),orgLayoutCss=w.communicationOrgLayoutPrintCss();
   assert.ok(orgPhotoCss.includes('overflow:hidden'));
-  assert.ok(orgPhotoCss.includes('.memo-org-count-small .memo-person-photo-frame{grid-column:1;grid-row:1/4;width:24mm;height:22mm'));
-  assert.ok(orgPhotoCss.includes('.memo-org-count-medium .memo-person-photo-frame{width:23mm;height:19mm}'));
-  assert.ok(orgPhotoCss.includes('.memo-org-count-large .memo-person-photo-frame{width:19mm;height:16mm}'));
+  assert.ok(orgPhotoCss.includes('width:24mm;height:24mm;aspect-ratio:1'));
+  assert.ok(orgPhotoCss.includes('.memo-org-count-small .memo-person-photo-frame{grid-column:1;grid-row:1/4;width:24mm;height:24mm'));
+  assert.ok(orgPhotoCss.includes('.memo-org-count-medium .memo-person-photo-frame{width:22mm;height:22mm}'));
+  assert.ok(orgPhotoCss.includes('.memo-org-count-large .memo-person-photo-frame{width:18mm;height:18mm}'));
   assert.ok(orgLayoutCss.includes('grid-template-columns:24mm minmax(0,1fr)'));
   w.commsOrgPhotoReset(b.id,0);const reset=w.eval('_commsCurrent.blocks.at(-1).people[0]');assert.deepEqual([reset.photoX,reset.photoY,reset.photoZoom],[50,50,100]);
   const legacy={id:'legacy-org',type:'orgchart',people:[{name:'Legacy',photo:'data:image/png;base64,AA',parent:'',photoX:-5,photoY:999,photoZoom:999}]};
