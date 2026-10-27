@@ -202,7 +202,10 @@ test('memo org charts separate consultants from direct reports',()=>{
   assert.equal(box.querySelector('.memo-org-advisors .memo-person-name').textContent,'Consultor estratégico');
   assert.equal(box.querySelector('.memo-org-advisor-label'),null);
   assert.ok(box.querySelector('.memo-person-card-advisor'));
-  assert.ok(!w.communicationOrgLayoutPrintCss().includes('memo-org-advisor-item::before'));
+  const advisorPrintCss=w.communicationOrgLayoutPrintCss();
+  assert.ok(advisorPrintCss.includes('.memo-org-layout.has-advisors::before'));
+  assert.ok(advisorPrintCss.includes('left:calc(50% + var(--org-link-start-offset));right:38mm'));
+  assert.ok(!advisorPrintCss.includes('memo-org-advisor-item::before'));
   w.commsPersist();assert.equal(w.eval(`_commsDrafts.find(d=>d.id===${JSON.stringify(w.eval('_commsCurrent.id'))}).blocks.at(-1).people[2].relationship`),'advisor');
   assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('memo-org-advisors'));
 });
