@@ -175,6 +175,28 @@ test('memo org chart photos keep per-person framing in editor, preview and print
   const legacy={id:'legacy-org',type:'orgchart',people:[{name:'Legacy',photo:'data:image/png;base64,AA',parent:'',photoX:-5,photoY:999,photoZoom:999}]};
   w.commsEnsureOrgPeople(legacy);assert.deepEqual([legacy.people[0].photoX,legacy.people[0].photoY,legacy.people[0].photoZoom],[0,100,250]);
 });
+test('memo org charts separate consultants from direct reports',()=>{
+  w.newCommunicationDraft();w.commsAddBlock('orgchart');
+  const b=w.eval('_commsCurrent.blocks.at(-1)'),root=b.people[0];
+  Object.assign(root,{name:'Pablo Hernández',role:'Vicepresidente'});
+  w.commsOrgAddChild(b.id,root.uid,'direct');
+  w.commsOrgAddChild(b.id,root.uid,'advisor');
+  const people=w.eval('_commsCurrent.blocks.at(-1).people'),manager=people[1],advisor=people[2];
+  Object.assign(manager,{name:'Gerente de planta',role:'Gerente'});
+  Object.assign(advisor,{name:'Consultor estratégico',role:'Asesor'});
+  assert.equal(advisor.relationship,'advisor');assert.equal(advisor.parent,root.uid);
+  let box=w.document.createElement('div');box.innerHTML=w.commsOrgEditorHtml(b,'');
+  assert.ok(box.textContent.includes('Consultoría / asesoría'));
+  assert.ok(box.querySelector('.memo-person-editor.is-advisor'));
+  box.innerHTML=w.memoOrgChartHtml(b);
+  assert.equal(box.querySelectorAll('.memo-org-tree .memo-person-card').length,2);
+  assert.equal(box.querySelector('.memo-org-advisors .memo-person-name').textContent,'Consultor estratégico');
+  assert.ok(box.querySelector('.memo-org-advisor-label').textContent.includes('Pablo Hernández'));
+  assert.ok(box.querySelector('.memo-person-card-advisor'));
+  assert.ok(w.communicationOrgLayoutPrintCss().includes('border-top:.35mm dashed'));
+  w.commsPersist();assert.equal(w.eval(`_commsDrafts.find(d=>d.id===${JSON.stringify(w.eval('_commsCurrent.id'))}).blocks.at(-1).people[2].relationship`),'advisor');
+  assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('memo-org-advisors'));
+});
 test('editorial circulars preserve their kind, metadata, layouts and shared blocks',()=>{
   w.newNewsDraft();const d=w.eval('_commsCurrent');assert.equal(d.kind,'circular');assert.ok(w.document.getElementById('sec-title').textContent.includes('circulares'));assert.ok(!w.document.querySelector('[data-comms-tab="signature"]'));
   Object.assign(d,{company:'SIERRA Chemicals',country:'Guatemala',summary:'Una nueva etapa',subject:'Avanzamos juntos',heroImage:'data:image/png;base64,AA',newsLayout:'image-right'});
