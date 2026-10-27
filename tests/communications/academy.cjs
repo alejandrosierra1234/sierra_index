@@ -34,6 +34,11 @@ const diploma = w.academyDefault()
 diploma.companyId = 'company-1'
 diploma.companyName = 'SIERRA'
 diploma.recipientName = 'Luisa Alburez'
+diploma.recipients = [
+  { uid: 'recipient-1', name: 'Luisa Alburez' },
+  { uid: 'recipient-2', name: 'Ana López' },
+  { uid: 'recipient-3', name: 'Carlos Méndez' },
+]
 diploma.courseTitle = 'Liderazgo intencional'
 diploma.companyLogo = 'https://assets.test/logo.svg'
 diploma.signers.push({ uid: 'signer-2', name: 'Pablo Hernández', title: 'Vicepresidente', signature: '' })
@@ -54,18 +59,32 @@ assert.match(back, /academy-identity-rail is-pattern/)
 assert.equal((back.match(/class="academy-curriculum-row"/g) || []).length, 3)
 assert.equal(w.academyTotalHours(diploma), 8)
 
+const batch = w.academyRecipientDocuments(diploma)
+assert.equal(batch.length, 3)
+assert.equal(batch[0].recipientName, 'Luisa Alburez')
+assert.equal(batch[1].recipientName, 'Ana López')
+assert.equal(batch[0].certificateNo, `${diploma.certificateNo}-01`)
+assert.equal(batch[2].certificateNo, `${diploma.certificateNo}-03`)
+assert.equal(diploma.certificateNo.endsWith('-01'), false)
+
 assert.match(source, /const ACADEMY_RENDER_SCALE=3\.125/)
 assert.match(source, /const ACADEMY_MAX_SIGNERS=4/)
 assert.match(source, /const ACADEMY_MAX_MODULES=14/)
+assert.match(source, /const ACADEMY_MAX_RECIPIENTS=100/)
 assert.match(source, /new window\.jspdf\.jsPDF\(\{orientation:'landscape',unit:'mm',format:'letter'/)
 assert.match(source, /pdf\.addPage\('letter','landscape'\)/)
 assert.match(source, /academyCompanyOptions/)
 assert.match(source, /data-academy-tab="design"/)
+assert.match(source, /data-academy-tab="participants"/)
+assert.match(source, /academySetRecipients/)
+assert.match(source, /Diplomas-Lote-/)
+assert.match(source, /academyPrintPdf/)
 assert.match(source, /academyDecorImage/)
 assert.match(source, /ACADEMY_DECOR_ICONS/)
 assert.match(css, /width:279\.4mm;height:215\.9mm/)
 assert.match(css, /\.academy-preview-shell\{[^}]*min-height:0;overflow:hidden/)
 assert.match(css, /\.academy-preview-stage\{[^}]*overflow:auto[^}]*scrollbar-gutter:stable/)
+assert.match(css, /\.academy-recipient-list\{[^}]*overflow:auto/)
 assert.match(css, /\.academy-identity-rail\{[^}]*right:0[^}]*width:152px/)
 assert.match(css, /@media\(max-width:900px\)/)
 assert.match(css, /@media\(max-width:375px\)/)

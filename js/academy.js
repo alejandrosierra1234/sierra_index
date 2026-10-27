@@ -6,6 +6,7 @@ const ACADEMY_STORE_KEY='sierra-academy-diplomas-v1';
 const ACADEMY_RENDER_SCALE=3.125;
 const ACADEMY_MAX_SIGNERS=4;
 const ACADEMY_MAX_MODULES=14;
+const ACADEMY_MAX_RECIPIENTS=100;
 const ACADEMY_DECOR_ICONS=['award','book','bulb','target','tools','leaf','factory','certificate'];
 const ACADEMY_DECOR_COLORS=[
   {value:'#CFFFFB',label:'Teal claro'},{value:'#16CDBE',label:'Teal'},{value:'#007D73',label:'Teal oscuro'},
@@ -22,6 +23,7 @@ let _academyCloudAvailable=true;
 let _academySaveState='Guardado en línea';
 let _academyZoom=.72;
 let _academyExporting=false;
+let _academyPreviewRecipient='';
 
 function academyId(prefix='academy'){
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
@@ -41,7 +43,7 @@ function academyDefault(){
   return academyNormalize({
     id:academyId(),status:'Borrador',companyId:'',companyName:'',companyLegalName:'',companyLogo:'',companyColor:'#16CDBE',
     decorMode:'pattern',decorIcon:'award',decorBg:'#CFFFFB',decorFg:'#007D73',decorImage:'',
-    recipientName:'Nombre de la persona',courseTitle:'Nombre del curso',courseDescription:'Por haber completado satisfactoriamente el programa de formación.',
+    recipientName:'Nombre de la persona',recipients:[{uid:academyId('recipient'),name:'Nombre de la persona'}],courseTitle:'Nombre del curso',courseDescription:'Por haber completado satisfactoriamente el programa de formación.',
     issueDate:academyIsoDate(),durationHours:8,certificateNo:`ACA-${year}-001`,location:'SIERRA Academia',
     signers:[{uid:academyId('signer'),name:'Nombre del firmante',title:'Cargo',signature:''}],
     contents:[
@@ -62,7 +64,12 @@ function academyNormalize(source={}){
   d.decorBg=ACADEMY_DECOR_COLORS.some(color=>color.value===String(d.decorBg||'').toUpperCase())?String(d.decorBg).toUpperCase():'#CFFFFB';
   d.decorFg=ACADEMY_DECOR_COLORS.some(color=>color.value===String(d.decorFg||'').toUpperCase())?String(d.decorFg).toUpperCase():'#007D73';
   d.decorImage=String(d.decorImage||'');
-  d.recipientName=String(d.recipientName||'');d.courseTitle=String(d.courseTitle||'');d.courseDescription=String(d.courseDescription||'');
+  d.recipientName=String(d.recipientName||'');
+  const recipientSource=Array.isArray(d.recipients)&&d.recipients.length?d.recipients:[{name:d.recipientName}];
+  const recipientSeen=new Set();
+  d.recipients=recipientSource.slice(0,ACADEMY_MAX_RECIPIENTS).map(item=>typeof item==='string'?{name:item}:item||{}).map(item=>({uid:item.uid||academyId('recipient'),name:String(item.name||'').trim()})).filter(item=>item.name&&!recipientSeen.has(item.name.toLocaleLowerCase('es'))&&recipientSeen.add(item.name.toLocaleLowerCase('es')));
+  d.recipientName=d.recipients[0]?.name||d.recipientName;
+  d.courseTitle=String(d.courseTitle||'');d.courseDescription=String(d.courseDescription||'');
   d.issueDate=String(d.issueDate||'');d.durationHours=academyNumber(d.durationHours);d.certificateNo=String(d.certificateNo||'');d.location=String(d.location||'');
   d.signers=(Array.isArray(d.signers)?d.signers:[]).slice(0,ACADEMY_MAX_SIGNERS).map(item=>({uid:item.uid||academyId('signer'),name:String(item.name||''),title:String(item.title||''),signature:String(item.signature||'')}));
   if(!d.signers.length)d.signers=[{uid:academyId('signer'),name:'',title:'',signature:''}];
@@ -145,6 +152,18 @@ function academyLogoHtml(d,compact=false){
   if(d.companyLogo)return`<img src="${escAttr(d.companyLogo)}" alt="Logo de ${escAttr(label)}" crossorigin="anonymous" loading="eager" decoding="sync">`;
   return`<span class="academy-sierra-logo" aria-label="SIERRA">${LBL_LOGO_SVG}</span>`;
 }
+function academyRecipientDocuments(d=_academyCurrent){
+  const recipients=d?.recipients?.length?d.recipients:[{uid:'recipient-fallback',name:d?.recipientName||''}];
+  return recipients.map((recipient,index)=>{
+    const copy=academyClone(d);copy.recipientName=recipient.name;
+    if(recipients.length>1&&copy.certificateNo)copy.certificateNo=`${copy.certificateNo}-${String(index+1).padStart(2,'0')}`;
+    copy._recipientUid=recipient.uid;copy._recipientIndex=index;return copy;
+  });
+}
+function academyPreviewDocument(){
+  const documents=academyRecipientDocuments();
+  return documents.find(item=>item._recipientUid===_academyPreviewRecipient)||documents[0]||_academyCurrent;
+}
 function academyDecorHtml(d){
   if(d.decorMode==='image'&&d.decorImage)return`<aside class="academy-identity-rail is-image" aria-hidden="true"><img src="${escAttr(d.decorImage)}" alt=""></aside>`;
   const icon=ACADEMY_DECOR_ICONS.includes(d.decorIcon)?d.decorIcon:'award';
@@ -178,11 +197,12 @@ function academyBackHtml(d=_academyCurrent){
 
 function academyLibraryResults(){
   const archived=_academyView==='archived',query=_academyQuery.trim().toLocaleLowerCase('es');
-  return _academyDocs.filter(d=>(d.status==='Archivado')===archived&&(!query||[d.recipientName,d.courseTitle,d.certificateNo,d.companyName].some(value=>String(value||'').toLocaleLowerCase('es').includes(query)))).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
+  return _academyDocs.filter(d=>(d.status==='Archivado')===archived&&(!query||[d.recipientName,...(d.recipients||[]).map(item=>item.name),d.courseTitle,d.certificateNo,d.companyName].some(value=>String(value||'').toLocaleLowerCase('es').includes(query)))).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
 }
 function academyLibraryCard(d){
   const archived=d.status==='Archivado';
-  return`<article class="academy-card"><button class="academy-card-preview" onclick="academyOpen('${d.id}')" aria-label="Abrir diploma de ${escAttr(d.recipientName||'participante')}"><span class="academy-card-sheet">${academyFrontHtml(d)}</span></button><div class="academy-card-copy"><span class="academy-card-kicker">${siIcon('certificate',14)} ${esc(d.certificateNo||'Sin folio')}</span><h3>${esc(d.recipientName||'Persona por definir')}</h3><p>${esc(d.courseTitle||'Curso por definir')}</p><small>${esc(d.companyName||'Logo SIERRA')} · ${esc(academyDateLabel(d.issueDate))}</small></div><div class="academy-card-actions"><button class="btn btn-ghost btn-sm" onclick="academyDuplicate('${d.id}')">${siIcon('copy',14)} Duplicar</button><button class="btn btn-ghost btn-sm" onclick="academyArchive('${d.id}')">${siIcon(archived?'rotate-ccw':'archive',14)} ${archived?'Restaurar':'Archivar'}</button><button class="btn btn-secondary btn-sm" onclick="academyOpen('${d.id}')">${siIcon(can('write','academy')?'file-edit':'eye',14)} ${can('write','academy')?'Abrir':'Ver'}</button></div></article>`;
+  const count=d.recipients?.length||1,preview=academyRecipientDocuments(d)[0]||d;
+  return`<article class="academy-card"><button class="academy-card-preview" onclick="academyOpen('${d.id}')" aria-label="Abrir diploma de ${escAttr(d.recipientName||'participante')}"><span class="academy-card-sheet">${academyFrontHtml(preview)}</span></button><div class="academy-card-copy"><span class="academy-card-kicker">${siIcon('certificate',14)} ${esc(d.certificateNo||'Sin folio')}</span><h3>${esc(d.recipientName||'Persona por definir')}${count>1?` <span class="academy-batch-count">+${count-1}</span>`:''}</h3><p>${esc(d.courseTitle||'Curso por definir')}</p><small>${count} ${count===1?'participante':'participantes'} · ${esc(d.companyName||'Logo SIERRA')} · ${esc(academyDateLabel(d.issueDate))}</small></div><div class="academy-card-actions"><button class="btn btn-ghost btn-sm" onclick="academyDuplicate('${d.id}')">${siIcon('copy',14)} Duplicar</button><button class="btn btn-ghost btn-sm" onclick="academyArchive('${d.id}')">${siIcon(archived?'rotate-ccw':'archive',14)} ${archived?'Restaurar':'Archivar'}</button><button class="btn btn-secondary btn-sm" onclick="academyOpen('${d.id}')">${siIcon(can('write','academy')?'file-edit':'eye',14)} ${can('write','academy')?'Abrir':'Ver'}</button></div></article>`;
 }
 function academyRenderLibrary(){
   const pg=document.getElementById('pg'),rows=academyLibraryResults(),active=_academyDocs.filter(d=>d.status!=='Archivado').length,archived=_academyDocs.length-active,writable=can('write','academy');
@@ -191,9 +211,9 @@ function academyRenderLibrary(){
 }
 function academySetView(view){_academyView=view==='archived'?'archived':'active';academyRenderLibrary()}
 function academySearch(value){_academyQuery=value;academyRenderLibrary();requestAnimationFrame(()=>{const input=document.getElementById('academy-search');if(input){input.focus();input.setSelectionRange(value.length,value.length)}})}
-function academyNew(){if(!can('write','academy'))return;_academyCurrent=academyDefault();_academyDocs.unshift(_academyCurrent);academyCommitLocal();academyAutosave();academyRenderEditor()}
-function academyOpen(id){const found=_academyDocs.find(item=>item.id===id);if(!found)return;_academyCurrent=found;academyRenderEditor()}
-function academyBack(){clearTimeout(_academySaveTimer);if(_academyCurrent)academyCommitLocal();_academyCurrent=null;academyRenderLibrary()}
+function academyNew(){if(!can('write','academy'))return;_academyCurrent=academyDefault();_academyPreviewRecipient=_academyCurrent.recipients[0]?.uid||'';_academyDocs.unshift(_academyCurrent);academyCommitLocal();academyAutosave();academyRenderEditor()}
+function academyOpen(id){const found=_academyDocs.find(item=>item.id===id);if(!found)return;_academyCurrent=found;_academyPreviewRecipient=found.recipients?.[0]?.uid||'';academyRenderEditor()}
+function academyBack(){clearTimeout(_academySaveTimer);if(_academyCurrent)academyCommitLocal();_academyCurrent=null;_academyPreviewRecipient='';academyRenderLibrary()}
 function academyDuplicate(id){if(!can('write','academy'))return;const source=_academyDocs.find(item=>item.id===id);if(!source)return;const copy=academyNormalize({...academyClone(source),id:academyId(),recipientName:`${source.recipientName||'Diploma'} — copia`,certificateNo:'',status:'Borrador',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),_revision:0});_academyDocs.unshift(copy);academyWriteLocal();_academyCurrent=copy;academyAutosave();academyRenderEditor()}
 async function academyArchive(id){
   if(!can('write','academy'))return;const d=_academyDocs.find(item=>item.id===id);if(!d)return;d.status=d.status==='Archivado'?'Borrador':'Archivado';d.updatedAt=new Date().toISOString();academyWriteLocal();
@@ -206,7 +226,11 @@ function academyField(label,key,type='text',attrs=''){
 }
 function academyDataPanel(){
   const companyNote=_academyCurrent.companyId?(_academyCurrent.companyLogo?'Se usará el logo configurado para esta empresa.':'La empresa no tiene logo; se usará el logo principal de SIERRA.'):'Selecciona la empresa cuyo logo debe aparecer.';
-  return`<section class="academy-form-section"><div class="academy-section-label">Identidad</div><label class="academy-field"><span>Empresa y logotipo</span>${pdSelect('academy-company',academyCompanyOptions(),String(_academyCurrent.companyId||''),'Selecciona una empresa','academyPickCompany')}</label><p class="academy-inline-note">${siIcon('info',15)} ${esc(companyNote)}</p><div class="academy-section-label">Diploma</div>${academyField('Nombre de quien recibe','recipientName','text','maxlength="90"')}${academyField('Nombre del curso','courseTitle','text','maxlength="110"')}${academyField('Texto de reconocimiento','courseDescription','textarea','maxlength="220" rows="3"')}<div class="academy-field-grid">${academyField('Fecha de emisión','issueDate','date')}${academyField('Duración total (horas)','durationHours','number','min="0" step="0.5"')}</div><div class="academy-field-grid">${academyField('Número de certificado','certificateNo','text','maxlength="40"')}${academyField('Lugar o unidad emisora','location','text','maxlength="70"')}</div></section>`;
+  return`<section class="academy-form-section"><div class="academy-section-label">Identidad</div><label class="academy-field"><span>Empresa y logotipo</span>${pdSelect('academy-company',academyCompanyOptions(),String(_academyCurrent.companyId||''),'Selecciona una empresa','academyPickCompany')}</label><p class="academy-inline-note">${siIcon('info',15)} ${esc(companyNote)}</p><div class="academy-section-label">Diploma</div>${academyField('Nombre del curso','courseTitle','text','maxlength="110"')}${academyField('Texto de reconocimiento','courseDescription','textarea','maxlength="220" rows="3"')}<div class="academy-field-grid">${academyField('Fecha de emisión','issueDate','date')}${academyField('Duración total (horas)','durationHours','number','min="0" step="0.5"')}</div><div class="academy-field-grid">${academyField('Prefijo del certificado','certificateNo','text','maxlength="40"')}${academyField('Lugar o unidad emisora','location','text','maxlength="70"')}</div><p class="academy-inline-note">${siIcon('users',15)} Agrega una o más personas en <b>Participantes</b>. En un lote, el folio recibe un consecutivo automático.</p></section>`;
+}
+function academyParticipantsPanel(){
+  const recipients=_academyCurrent.recipients||[],selected=_academyPreviewRecipient||recipients[0]?.uid||'';
+  return`<section class="academy-form-section"><div class="academy-panel-intro"><div><div class="academy-section-label">Participantes</div><p>Pega una lista desde Excel o escribe un nombre por línea. El diseño, contenido y firmantes se aplican a todo el lote.</p></div><span class="academy-recipient-count" id="academy-recipient-count">${recipients.length}/${ACADEMY_MAX_RECIPIENTS}</span></div><label class="academy-field"><span>Lista de nombres</span><textarea class="control-input academy-recipient-input" rows="9" maxlength="9000" placeholder="Ana López&#10;Carlos Méndez&#10;Luisa Alburez" oninput="academySetRecipients(this.value)">${esc(recipients.map(item=>item.name).join('\n'))}</textarea><small>Se eliminan líneas vacías y nombres duplicados.</small></label>${recipients.length?`<div class="academy-recipient-preview"><div class="academy-section-label">Persona en vista previa</div><div class="academy-recipient-list">${recipients.map((item,index)=>`<button type="button" class="academy-recipient-row" aria-pressed="${selected===item.uid}" onclick="academySelectRecipient('${item.uid}')"><span>${String(index+1).padStart(2,'0')}</span><b>${esc(item.name)}</b>${selected===item.uid?siIcon('eye',15):''}</button>`).join('')}</div></div>`:`<div class="academy-recipient-empty">${siIcon('users',22)}<b>Agrega al menos una persona</b><span>La primera aparecerá inmediatamente en la vista previa.</span></div>`}</section>`;
 }
 function academyColorChoices(key,label){
   const current=String(_academyCurrent?.[key]||'').toUpperCase();
@@ -224,12 +248,23 @@ function academySignersPanel(){
 }
 function academyRenderPanel(){
   const panel=document.getElementById('academy-form');if(!panel||!_academyCurrent)return;
-  panel.innerHTML=_academyTab==='content'?academyContentsPanel():_academyTab==='signers'?academySignersPanel():_academyTab==='design'?academyDesignPanel():academyDataPanel();
+  panel.innerHTML=_academyTab==='participants'?academyParticipantsPanel():_academyTab==='content'?academyContentsPanel():_academyTab==='signers'?academySignersPanel():_academyTab==='design'?academyDesignPanel():academyDataPanel();
   panel.classList.toggle('is-readonly',!can('write','academy'));
   if(!can('write','academy'))panel.querySelectorAll('input,textarea,button').forEach(control=>{control.disabled=true});
 }
-function academySelectTab(tab){_academyTab=['data','design','content','signers'].includes(tab)?tab:'data';document.querySelectorAll('[data-academy-tab]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.academyTab===_academyTab)));academyRenderPanel()}
+function academySelectTab(tab){_academyTab=['data','design','participants','content','signers'].includes(tab)?tab:'data';document.querySelectorAll('[data-academy-tab]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.academyTab===_academyTab)));academyRenderPanel()}
 function academySet(key,value){if(!_academyCurrent||!can('write','academy'))return;_academyCurrent[key]=key==='durationHours'?academyNumber(value):value;academyAutosave();academyRenderPreview();if(/^decor(?:Icon|Bg|Fg)$/.test(key))academyRenderPanel()}
+function academySetRecipients(value){
+  if(!_academyCurrent||!can('write','academy'))return;
+  const existing=new Map((_academyCurrent.recipients||[]).map(item=>[item.name.toLocaleLowerCase('es'),item.uid])),seen=new Set();
+  const names=String(value||'').split(/\r?\n/).map(name=>name.trim().replace(/\s+/g,' ')).filter(name=>{const key=name.toLocaleLowerCase('es');if(!name||seen.has(key))return false;seen.add(key);return true}).slice(0,ACADEMY_MAX_RECIPIENTS);
+  _academyCurrent.recipients=names.map(name=>({uid:existing.get(name.toLocaleLowerCase('es'))||academyId('recipient'),name}));
+  _academyCurrent.recipientName=names[0]||'';
+  if(!_academyCurrent.recipients.some(item=>item.uid===_academyPreviewRecipient))_academyPreviewRecipient=_academyCurrent.recipients[0]?.uid||'';
+  const counter=document.getElementById('academy-recipient-count');if(counter)counter.textContent=`${names.length}/${ACADEMY_MAX_RECIPIENTS}`;
+  academyAutosave();academyRenderPreview();
+}
+function academySelectRecipient(uid){if(!_academyCurrent?.recipients?.some(item=>item.uid===uid))return;_academyPreviewRecipient=uid;academyRenderPanel();academyRenderPreview()}
 function academySetDecorMode(mode){if(!_academyCurrent||!can('write','academy'))return;_academyCurrent.decorMode=mode==='image'?'image':'pattern';academyAutosave();academyRenderPanel();academyRenderPreview()}
 function academyClearDecorImage(){if(!_academyCurrent||!can('write','academy'))return;_academyCurrent.decorImage='';academyAutosave();academyRenderPanel();academyRenderPreview()}
 async function academyDecorImage(input){
@@ -258,40 +293,48 @@ async function academySignerImage(uid,input){
 
 function academyRenderPreview(){
   const host=document.getElementById('academy-preview-pages');if(!host||!_academyCurrent)return;
-  host.style.setProperty('--academy-scale',String(_academyZoom));host.innerHTML=`<div class="academy-preview-page"><span class="academy-face-label">Frente</span><div class="academy-sheet-wrap">${academyFrontHtml()}</div></div><div class="academy-preview-page"><span class="academy-face-label">Reverso</span><div class="academy-sheet-wrap">${academyBackHtml()}</div></div>`;
+  const preview=academyPreviewDocument();host.style.setProperty('--academy-scale',String(_academyZoom));host.innerHTML=`<div class="academy-preview-page"><span class="academy-face-label">Frente</span><div class="academy-sheet-wrap">${academyFrontHtml(preview)}</div></div><div class="academy-preview-page"><span class="academy-face-label">Reverso</span><div class="academy-sheet-wrap">${academyBackHtml(preview)}</div></div>`;
   const zoom=document.getElementById('academy-zoom-value');if(zoom)zoom.textContent=`${Math.round(_academyZoom*100)}%`;
 }
 function academyZoom(delta){_academyZoom=Math.min(1.1,Math.max(.35,_academyZoom+delta));academyRenderPreview()}
 function academyFitPreview(){const stage=document.getElementById('academy-preview-stage');if(!stage)return;const available=Math.max(320,stage.clientWidth-48);_academyZoom=Math.min(.9,available/1056);academyRenderPreview()}
 function academyRenderEditor(){
   if(!_academyCurrent)return;const writable=can('write','academy'),pg=document.getElementById('pg');
-  setSecCrumbs([{label:'Academia',onclick:'academyBack()'},{label:_academyCurrent.recipientName||'Nuevo diploma'}]);document.getElementById('sec-title').textContent='Creador de diplomas';document.getElementById('sec-sub').textContent='Carta horizontal · frente y reverso';
-  pg.innerHTML=`<div class="academy-studio"><section class="academy-customizer"><header class="academy-editor-head"><button class="icon-btn icon-btn-quiet" onclick="academyBack()" aria-label="Volver a diplomas">${siIcon('arrow-left',18)}</button><div><p>Academia · Diploma</p><h2>${esc(_academyCurrent.recipientName||'Nuevo diploma')}</h2><span data-academy-save data-state="saved" role="status" aria-live="polite">${esc(_academySaveState)}</span></div><button class="btn btn-primary" onclick="academyDownloadPdf()" ${_academyExporting?'disabled':''}>${siIcon('download',16)} Descargar PDF</button></header><nav class="academy-editor-tabs" role="tablist" aria-label="Secciones del creador"><button data-academy-tab="data" role="tab" aria-selected="${_academyTab==='data'}" onclick="academySelectTab('data')">Datos</button><button data-academy-tab="design" role="tab" aria-selected="${_academyTab==='design'}" onclick="academySelectTab('design')">Diseño</button><button data-academy-tab="content" role="tab" aria-selected="${_academyTab==='content'}" onclick="academySelectTab('content')">Contenido</button><button data-academy-tab="signers" role="tab" aria-selected="${_academyTab==='signers'}" onclick="academySelectTab('signers')">Firmantes</button></nav><div class="academy-form" id="academy-form"></div><footer class="academy-editor-footer"><span>Autoguardado activo</span><button class="btn btn-secondary academy-mobile-preview" onclick="document.getElementById('academy-preview-stage').scrollIntoView({behavior:'smooth'})">Ver diploma</button></footer></section><section class="academy-preview-shell"><header class="academy-preview-toolbar"><div><strong>Vista del diploma</strong><span>2 caras · Carta horizontal</span></div><div class="academy-preview-controls" role="group" aria-label="Zoom de vista previa"><button class="icon-btn icon-btn-quiet" onclick="academyZoom(-.1)" aria-label="Alejar">${siIcon('minus',16)}</button><span id="academy-zoom-value">${Math.round(_academyZoom*100)}%</span><button class="icon-btn icon-btn-quiet" onclick="academyZoom(.1)" aria-label="Acercar">${siIcon('plus',16)}</button><button class="btn btn-ghost btn-sm" onclick="academyFitPreview()">Ajustar</button></div></header><div class="academy-preview-stage" id="academy-preview-stage" tabindex="0" aria-label="Vista previa desplazable del frente y reverso"><div class="academy-preview-pages" id="academy-preview-pages"></div></div></section></div>`;
+  const count=_academyCurrent.recipients?.length||0,batch=count>1;setSecCrumbs([{label:'Academia',onclick:'academyBack()'},{label:_academyCurrent.courseTitle||'Nuevo diploma'}]);document.getElementById('sec-title').textContent='Creador de diplomas';document.getElementById('sec-sub').textContent='Carta horizontal · frente y reverso';
+  pg.innerHTML=`<div class="academy-studio"><section class="academy-customizer"><header class="academy-editor-head"><button class="icon-btn icon-btn-quiet" onclick="academyBack()" aria-label="Volver a diplomas">${siIcon('arrow-left',18)}</button><div><p>Academia · Diploma</p><h2>${esc(_academyCurrent.courseTitle||'Nuevo diploma')}</h2><span data-academy-save data-state="saved" role="status" aria-live="polite">${esc(_academySaveState)}</span></div><div class="academy-export-actions"><button class="btn btn-secondary" onclick="academyPrintPdf()" ${_academyExporting?'disabled':''}>${siIcon('printer',16)} Imprimir</button><button class="btn btn-primary" onclick="academyDownloadPdf()" ${_academyExporting?'disabled':''}>${siIcon('download',16)} ${batch?'Descargar lote':'Descargar PDF'}</button></div></header><nav class="academy-editor-tabs" role="tablist" aria-label="Secciones del creador"><button data-academy-tab="data" role="tab" aria-selected="${_academyTab==='data'}" onclick="academySelectTab('data')">Datos</button><button data-academy-tab="design" role="tab" aria-selected="${_academyTab==='design'}" onclick="academySelectTab('design')">Diseño</button><button data-academy-tab="participants" role="tab" aria-selected="${_academyTab==='participants'}" onclick="academySelectTab('participants')">Participantes <span>${count}</span></button><button data-academy-tab="content" role="tab" aria-selected="${_academyTab==='content'}" onclick="academySelectTab('content')">Contenido</button><button data-academy-tab="signers" role="tab" aria-selected="${_academyTab==='signers'}" onclick="academySelectTab('signers')">Firmantes</button></nav><div class="academy-form" id="academy-form"></div><footer class="academy-editor-footer"><span>Autoguardado activo</span><button class="btn btn-secondary academy-mobile-preview" onclick="document.getElementById('academy-preview-stage').scrollIntoView({behavior:'smooth'})">Ver diploma</button></footer></section><section class="academy-preview-shell"><header class="academy-preview-toolbar"><div><strong>Vista del diploma</strong><span>2 caras · Carta horizontal${batch?` · ${count} personas / ${count*2} páginas`:''}</span></div><div class="academy-preview-controls" role="group" aria-label="Zoom de vista previa"><button class="icon-btn icon-btn-quiet" onclick="academyZoom(-.1)" aria-label="Alejar">${siIcon('minus',16)}</button><span id="academy-zoom-value">${Math.round(_academyZoom*100)}%</span><button class="icon-btn icon-btn-quiet" onclick="academyZoom(.1)" aria-label="Acercar">${siIcon('plus',16)}</button><button class="btn btn-ghost btn-sm" onclick="academyFitPreview()">Ajustar</button></div></header><div class="academy-preview-stage" id="academy-preview-stage" tabindex="0" aria-label="Vista previa desplazable del frente y reverso"><div class="academy-preview-pages" id="academy-preview-pages"></div></div></section></div>`;
   academyRenderPanel();academyRenderPreview();requestAnimationFrame(academyFitPreview);
 }
 
 function academyValidate(){
-  const missing=[];if(!academyText(_academyCurrent?.recipientName))missing.push('el nombre de quien recibe');if(!academyText(_academyCurrent?.courseTitle))missing.push('el nombre del curso');if(!academyText(_academyCurrent?.companyId))missing.push('la empresa y su logotipo');
+  const missing=[];if(!_academyCurrent?.recipients?.length)missing.push('al menos un participante');if(!academyText(_academyCurrent?.courseTitle))missing.push('el nombre del curso');if(!academyText(_academyCurrent?.companyId))missing.push('la empresa y su logotipo');
   if(missing.length){toast(`Completa ${missing.join(', ')} antes de descargar.`);return false}return true;
 }
-async function academyPdfBlob(){
+async function academyPdfBlob(onProgress){
   if(!window.jspdf?.jsPDF||typeof window.html2canvas!=='function')throw Error('No se pudo cargar el generador de PDF. Recarga la aplicación.');
-  const host=document.createElement('div');host.className='academy-export-host';host.innerHTML=academyFrontHtml()+academyBackHtml();document.body.append(host);
+  const documents=academyRecipientDocuments(),host=document.createElement('div');host.className='academy-export-host';host.innerHTML=documents.map(document=>academyFrontHtml(document)+academyBackHtml(document)).join('');document.body.append(host);
   try{
     await document.fonts.ready;await Promise.all([...host.querySelectorAll('img')].map(image=>image.decode().catch(()=>{})));
-    const pages=[...host.querySelectorAll('.academy-sheet')],pdf=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'letter',compress:true});pdf.setProperties({title:`Diploma · ${_academyCurrent.recipientName}`,creator:'SIERRA Academia'});
+    const pages=[...host.querySelectorAll('.academy-sheet')],pdf=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'letter',compress:true});pdf.setProperties({title:`Diplomas · ${_academyCurrent.courseTitle}`,creator:'SIERRA Academia'});
     for(let index=0;index<pages.length;index++){
+      if(typeof onProgress==='function')onProgress(index+1,pages.length);
       const canvas=await html2canvas(pages[index],{scale:ACADEMY_RENDER_SCALE,useCORS:true,allowTaint:false,backgroundColor:'#ffffff',logging:false,width:1056,height:816,windowWidth:1056,windowHeight:816,scrollX:0,scrollY:0});
-      if(index)pdf.addPage('letter','landscape');pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,279.4,215.9);canvas.width=canvas.height=0;
+      if(index)pdf.addPage('letter','landscape');if(documents.length>1)pdf.addImage(canvas.toDataURL('image/jpeg',.96),'JPEG',0,0,279.4,215.9,undefined,'FAST');else pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,279.4,215.9);canvas.width=canvas.height=0;
     }
     return pdf.output('blob');
   }finally{host.remove()}
 }
 async function academyDownloadPdf(){
-  if(_academyExporting||!academyValidate())return;_academyExporting=true;const button=document.querySelector('.academy-editor-head .btn-primary');if(button){button.disabled=true;button.innerHTML=`${siIcon('refresh',16)} Generando…`}
-  try{await academySaveCloud();const blob=await academyPdfBlob(),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`Diploma-${academySafeName(_academyCurrent.recipientName)}-${academySafeName(_academyCurrent.courseTitle)}.pdf`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);toast('Diploma descargado: frente y reverso.')}
+  if(_academyExporting||!academyValidate())return;_academyExporting=true;const button=document.querySelector('.academy-editor-head .btn-primary'),count=_academyCurrent.recipients.length;if(button){button.disabled=true;button.innerHTML=`${siIcon('refresh',16)} Generando…`}
+  try{await academySaveCloud();const blob=await academyPdfBlob((page,total)=>{if(button)button.innerHTML=`${siIcon('refresh',16)} ${page}/${total}`}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=count>1?`Diplomas-Lote-${academySafeName(_academyCurrent.courseTitle)}-${count}-personas.pdf`:`Diploma-${academySafeName(_academyCurrent.recipientName)}-${academySafeName(_academyCurrent.courseTitle)}.pdf`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);toast(count>1?`Lote descargado: ${count} diplomas, ${count*2} páginas.`:'Diploma descargado: frente y reverso.')}
   catch(error){console.error(error);toast(error.message||'No se pudo generar el diploma.')}
-  finally{_academyExporting=false;if(button){button.disabled=false;button.innerHTML=`${siIcon('download',16)} Descargar PDF`}}
+  finally{_academyExporting=false;if(button){button.disabled=false;button.innerHTML=`${siIcon('download',16)} ${count>1?'Descargar lote':'Descargar PDF'}`}}
+}
+async function academyPrintPdf(){
+  if(_academyExporting||!academyValidate())return;const printWindow=window.open('','_blank');if(!printWindow){toast('Permite ventanas emergentes para abrir el lote de impresión.');return}
+  printWindow.document.write('<title>Preparando diplomas…</title><p style="font:16px Arial;padding:24px">Preparando el lote para impresión…</p>');_academyExporting=true;
+  try{await academySaveCloud();const blob=await academyPdfBlob(),url=URL.createObjectURL(blob);printWindow.location.href=url;setTimeout(()=>URL.revokeObjectURL(url),300000);toast('PDF abierto: usa Imprimir para enviar el lote completo.')}
+  catch(error){printWindow.close();console.error(error);toast(error.message||'No se pudo preparar la impresión.')}
+  finally{_academyExporting=false}
 }
 
 async function showAcademy(){
@@ -299,5 +342,5 @@ async function showAcademy(){
   syncModule('academia');_navLeaf='academia|_|diplomas';sessionStorage.setItem('sierra_route','module:academia');leaveView();renderSidebarTree();document.getElementById('tb-section').textContent='Academia';document.getElementById('product-controls').style.display='none';document.getElementById('sec-title').textContent='Academia';document.getElementById('sec-sub').textContent='Diplomas y constancias de formación';document.getElementById('pg').innerHTML='<div class="academy-empty"><p>Cargando diplomas…</p></div>';await academyLoad();if(_navLeaf==='academia|_|diplomas')academyRenderLibrary();
 }
 
-Object.assign(window,{showAcademy,academySetView,academySearch,academyNew,academyOpen,academyBack,academyDuplicate,academyArchive,academyPickCompany,academySelectTab,academySet,academySetDecorMode,academyClearDecorImage,academyDecorImage,academySetModule,academyAddModule,academyRemoveModule,academyMoveModule,academySetSigner,academyAddSigner,academyRemoveSigner,academyClearSignerImage,academySignerImage,academyZoom,academyFitPreview,academyDownloadPdf,academyFrontHtml,academyBackHtml,academyNormalize,academyDefault,academyTotalHours});
+Object.assign(window,{showAcademy,academySetView,academySearch,academyNew,academyOpen,academyBack,academyDuplicate,academyArchive,academyPickCompany,academySelectTab,academySet,academySetRecipients,academySelectRecipient,academySetDecorMode,academyClearDecorImage,academyDecorImage,academySetModule,academyAddModule,academyRemoveModule,academyMoveModule,academySetSigner,academyAddSigner,academyRemoveSigner,academyClearSignerImage,academySignerImage,academyZoom,academyFitPreview,academyDownloadPdf,academyPrintPdf,academyPdfBlob,academyFrontHtml,academyBackHtml,academyNormalize,academyDefault,academyTotalHours,academyRecipientDocuments});
 })();
