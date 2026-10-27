@@ -159,12 +159,13 @@ test('memo org chart photos keep per-person framing in editor, preview and print
   assert.equal(box.querySelectorAll('input[type="range"]').length,0);
   assert.ok(!box.textContent.includes('Encuadre de foto'));
   assert.ok(!box.textContent.includes('Color de las tarjetas'));
-  assert.ok(box.textContent.includes('arrástrala directamente en la vista previa'));
+  assert.ok(box.textContent.includes('Pulsa una foto en la vista previa'));
   assert.equal(box.querySelector('.memo-person-photo img').style.objectPosition,'18% 72%');
   assert.equal(box.querySelector('.memo-person-photo img').style.transform,'scale(1.75)');
   box.innerHTML=w.memoOrgChartHtml(b,true);let frame=box.querySelector('.memo-person-photo-frame'),img=frame.querySelector('img');
-  assert.ok(frame.classList.contains('is-interactive'));assert.ok(frame.querySelector('.memo-org-photo-handle'));assert.equal(frame.querySelectorAll('.memo-org-photo-tools button').length,3);
+  assert.ok(frame.classList.contains('is-interactive'));assert.ok(frame.querySelector('.memo-org-photo-edit-badge'));assert.equal(frame.querySelector('.memo-org-photo-tools'),null);assert.equal(frame.querySelector('.memo-org-photo-handle'),null);
   assert.equal(img.style.objectPosition,'18% 72%');assert.equal(img.style.transform,'scale(1.75)');
+  w.commsOrgPhotoOpen(null,b.id,p.uid);const cropDialog=w.document.querySelector('.comms-org-crop-dialog');assert.ok(cropDialog?.open);assert.ok(cropDialog.querySelector('.comms-org-crop-preview'));assert.equal(cropDialog.querySelectorAll('.comms-org-crop-preview img').length,1);assert.equal(cropDialog.querySelectorAll('.comms-org-crop-controls button').length,2);assert.equal(cropDialog.querySelector('input[type="range"]').value,'175');assert.ok(cropDialog.textContent.includes('Arrastra la imagen para centrarla'));cropDialog.close();
   w.commsOrgPhotoNudge(b.id,p.uid,5,-3);w.commsOrgPhotoZoom(b.id,p.uid,10);
   assert.deepEqual([p.photoX,p.photoY,p.photoZoom],[23,69,185]);
   box.innerHTML=w.memoOrgChartHtml(b,true);frame=box.querySelector('.memo-person-photo-frame');assert.equal(frame.querySelector('img').style.objectPosition,'23% 69%');assert.equal(frame.querySelector('img').style.transform,'scale(1.85)');
@@ -178,7 +179,7 @@ test('memo org chart photos keep per-person framing in editor, preview and print
   const exportDoc=w.document.implementation.createHTMLDocument('export');exportDoc.body.innerHTML=w.memoOrgChartHtml(b);w.memoImagePalette(exportDoc);const palette=exportDoc.head.querySelector('style').textContent;
   assert.ok(palette.includes('.memo-person-photo-frame{background:rgb(245,245,245)'));assert.ok(palette.includes('border-color:rgb(52,52,56)'));assert.ok(!palette.includes('color-mix'));
   w.commsPersist();assert.equal(w.eval('_commsDrafts[0].blocks.at(-1).people[0].photoZoom'),175);
-  const printHtml=w.memoPrintDocumentHtml(w.eval('_commsCurrent'));assert.ok(printHtml.includes('memo-person-photo-frame'));assert.ok(printHtml.includes('.memo-org-photo-handle,.memo-org-photo-tools{display:none!important}'));
+  const printHtml=w.memoPrintDocumentHtml(w.eval('_commsCurrent'));assert.ok(printHtml.includes('memo-person-photo-frame'));assert.ok(printHtml.includes('.memo-org-photo-edit-badge{display:none!important}'));
   assert.ok(w.communicationOrgPhotoPrintCss().includes('overflow:hidden'));
   w.commsOrgPhotoReset(b.id,0);const reset=w.eval('_commsCurrent.blocks.at(-1).people[0]');assert.deepEqual([reset.photoX,reset.photoY,reset.photoZoom],[50,50,100]);
   const legacy={id:'legacy-org',type:'orgchart',people:[{name:'Legacy',photo:'data:image/png;base64,AA',parent:'',photoX:-5,photoY:999,photoZoom:999}]};
