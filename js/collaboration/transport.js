@@ -35,7 +35,7 @@ export class CommunicationTransport {
       }, 'remote');
       this.revision = data.revision; this.failures = 0; this.accessFailures = 0;
       this.onChange(data);
-      this.onStatus(this.writeBlocked && this.dirty ? 'Solo lectura · cambios locales sin guardar' : this.dirty ? 'Guardando cambios...' : 'Guardado en Index', this.writeBlocked);
+      this.onStatus(this.writeBlocked && this.dirty ? 'Solo lectura · cambios locales sin guardar' : this.dirty ? 'Guardando en línea…' : 'Guardado en línea', this.writeBlocked);
       // Compact only an acknowledged state. Concurrent writers make this a no-op.
       if (!this.dirty && this.role !== 'viewer' && this.revision - data.snapshot_revision >= 50) {
         await this.rpc('communication_checkpoint', {

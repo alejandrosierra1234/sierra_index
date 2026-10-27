@@ -88,7 +88,7 @@ function install(api) {
   const status=(text,blocked=false) => {
     if(!session)return;
     session.blocked=blocked;
-    document.querySelectorAll('#memo-save-state,[data-collab-status]').forEach(el=>el.textContent=text);
+    document.querySelectorAll('#memo-save-state,[data-collab-status]').forEach(el=>(el.querySelector('span')||el).textContent=text);
     if(session.transport.stopped) {
       document.querySelector('.memo-customizer')?.setAttribute('data-collab-disconnected','true');
       views.forEach(view=>view.setProps({editable:()=>false}));
@@ -226,12 +226,9 @@ function install(api) {
     const bar=document.querySelector('.comms-collab-bar');if(!bar||!session)return;
     const rows=presenceRows(people);recordPresenceEvents(rows);session.presenceRows=rows;session.lastPresence=people;
     bar.replaceChildren();
-    const access=document.createElement('span');access.className='comms-collab-access';access.textContent='Equipo · '+label(session.transport.role);bar.append(access);
     const collaborators=rows.filter(row=>!row.self),peopleButton=document.createElement('button');peopleButton.type='button';peopleButton.className='comms-collab-people';peopleButton.dataset.presencePanel='';peopleButton.setAttribute('aria-label',collaborators.length?`${collaborators.length} ${collaborators.length===1?'colaborador conectado':'colaboradores conectados'}`:'Solo tú estás en este comunicado');peopleButton.onclick=presenceDialog;
     collaborators.slice(0,3).forEach(row=>peopleButton.append(personNode(row)));
     if(collaborators.length>3){const more=document.createElement('span');more.className='comms-collab-more';more.textContent=`+${collaborators.length-3}`;peopleButton.append(more);}else if(!collaborators.length){const alone=document.createElement('span');alone.className='comms-collab-alone';alone.textContent='Solo tú';peopleButton.append(alone);}bar.append(peopleButton);
-    const latest=session.events[0];if(latest&&Date.now()-latest.at.getTime()<6500){const event=document.createElement('span');event.className='comms-presence-event';if(session.announcedEvent!==latest){event.setAttribute('role','status');session.announcedEvent=latest;}event.textContent=latest.text;bar.append(event);}
-    const state=document.createElement('span');state.dataset.collabStatus='';state.setAttribute('role','status');state.textContent=session.transport.writeBlocked&&session.transport.dirty?'Solo lectura · cambios locales sin guardar':session.transport.dirty?'Guardando cambios...':'Guardado en Index';bar.append(state);
     paintRemoteAreas(rows);
   }
   function setActivity(field,area,mode='area') {
@@ -350,15 +347,11 @@ function install(api) {
   }
   function rendered() {
     if(!api.current())return;
-    const header=document.querySelector('.memo-editor-primary-actions .comms-header-actions,.memo-panel-head .comms-header-actions');
-    if(header&&!header.querySelector('[data-share-access]')) {
-      const button=document.createElement('button');button.className='btn btn-secondary';button.type='button';button.dataset.shareAccess='';
-      button.innerHTML=api.icon('users',16)+' Guardar en equipo';button.onclick=share;header.prepend(button);
-    }
+    const header=document.querySelector('#product-controls .comms-header-actions,.memo-panel-head .comms-header-actions');
     if(!active())return;
     destroyViews();
     const panel=document.querySelector('.memo-customizer');if(!panel)return;
-    if(!panel.querySelector('.comms-collab-bar')){const bar=document.createElement('div');bar.className='comms-collab-bar';(panel.querySelector('.memo-editor-primary-actions')||panel.querySelector('.memo-panel-head')).after(bar);}
+    if(!document.querySelector('.comms-collab-bar')){const bar=document.createElement('div');bar.className='comms-collab-bar';header?.before(bar);}
     document.querySelectorAll('.memo-rich-editor[data-block-id]').forEach(element=>{
       const id=element.dataset.blockId,fragment=session.model.doc.getXmlFragment('rich:'+id);
       const area=areaName(element,[...document.querySelectorAll('.memo-rich-editor[data-block-id]')].indexOf(element));
@@ -408,7 +401,7 @@ function install(api) {
     header?.querySelectorAll('[aria-label="Acciones del comunicado"]').forEach(button=>button.disabled=true);
     if(header&&!header.querySelector('[data-comments-panel]')){const button=document.createElement('button');button.type='button';button.className='btn btn-secondary';button.dataset.commentsPanel='';button.innerHTML=api.icon('message',16)+' Comentarios '+activeComments().length;button.onclick=()=>commentsDialog();header.prepend(button);}
     paintPresence(session.lastPresence||[]);
-    status(session.transport.dirty?'Guardando cambios...':'Guardado en Index',session.blocked);
+    status(session.transport.dirty?'Guardando en línea…':'Guardado en línea',session.blocked);
   }
   function homeRendered() {
     const header=document.querySelector('.comms-header-actions');if(!header||header.querySelector('[data-shared-library]'))return;

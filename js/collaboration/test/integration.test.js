@@ -9,7 +9,7 @@ const source=readFileSync(new URL('index.html',root),'utf8');
 const until=async predicate=>{for(let i=0;i<100;i++){if(predicate())return;await new Promise(r=>setTimeout(r,10));}assert.fail('UI did not reach expected state');};
 
 test('real editor promotes communications to the team, keeps cloud writes out of localStorage and survives back/logout',async()=>{
-  const dom=new JSDOM('<div id="pg"></div><div id="sec-title"></div><div id="sec-sub"></div>',{url:'https://test.local',runScripts:'outside-only',pretendToBeVisual:true});
+  const dom=new JSDOM('<div id="content"><div id="sec-title"></div><div id="sec-sub"></div><div id="product-controls"></div><div id="pg"></div></div>',{url:'https://test.local',runScripts:'outside-only',pretendToBeVisual:true});
   const w=dom.window;let snapshot,revision=0,updates=[],authCallback,remoteOnline=true,remoteField='document',leaveRequests=0,sharedDocuments=[];
   const windowErrors=[];w.addEventListener('error',event=>windowErrors.push(event.error));
   w.eval=code=>vm.runInContext(code,dom.getInternalVMContext());
@@ -44,24 +44,22 @@ test('real editor promotes communications to the team, keeps cloud writes out of
     w.eval(readFileSync(new URL('js/communications-access.js',root),'utf8'));
     await w.newCommunicationDraft();
     remoteField=w.document.querySelector('.memo-form [data-collab-key]')?.dataset.collabKey||'document';
-    assert.ok(w.document.querySelector('[data-share-access]'),JSON.stringify(notices));
+    assert.equal(w.document.querySelector('[data-share-access]'),null,'documents are online automatically; no manual team-save action');
     assert.ok(w.document.querySelector('.comms-collab-bar'));
     await until(()=>w.document.querySelector('.comms-remote-area'));
     assert.match(w.document.querySelector('.comms-collab-bar').textContent,/Asunto/);
     assert.ok(w.document.querySelector('.comms-remote-area'),'the active remote field is visible');
     remoteOnline=false;
-    await until(()=>/salió del documento/.test(w.document.querySelector('.comms-collab-bar')?.textContent||''));
+    await until(()=>/Solo tú/.test(w.document.querySelector('.comms-collab-bar')?.textContent||''));
+    w.document.querySelector('[data-presence-panel]').click();
+    assert.match(w.document.querySelector('#comms-sharing').textContent,/salió del documento/);
+    w.document.querySelector('#comms-sharing').close();
     const local=w.localStorage.getItem('sierra_communications_v1:'+w.me.id);
     w.commsAddBlock('feature');
     w.eval("Object.assign(_commsCurrent.blocks.at(-1),{content:'Feature text must survive sharing',richHtml:'<strong>Feature text must survive sharing</strong>'})");w.commsPersist();
-    w.document.querySelector('[data-share-access]').click();
-    await until(()=>w.document.querySelector('#comms-sharing .comms-collab-lock'));
-    assert.match(w.document.querySelector('#comms-sharing .comms-collab-lock').textContent,/todas las cuentas/);
     assert.ok(w.document.querySelector('.memo-rich-editor .ProseMirror'));
     assert.ok(w.document.querySelector('[data-comment-action]'));
     assert.equal(w.eval('_commsCurrent.blocks.at(-1).type'),'feature');
-    assert.equal(w.document.querySelector('#comms-sharing select'),null,'use Index selectors');
-    w.document.querySelector('#comms-sharing').close();
     w.commsSet('subject','Team collaborative change');w.commsPersist();
     await until(()=>revision>0);
     assert.equal(w.localStorage.getItem('sierra_communications_v1:'+w.me.id),local);
