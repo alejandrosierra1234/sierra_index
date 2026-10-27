@@ -7,6 +7,7 @@ const baseline = [
   'check.cjs', 'infographics.cjs', 'new-hire.cjs', 'management.cjs',
   'export.cjs', 'flow.cjs', 'clean.cjs', 'spelling.cjs', 'cards.cjs',
   'storage.cjs', 'process-companies.cjs', 'invitations-simple.cjs',
+  'academy.cjs',
 ]
 const policy = fs.readdirSync(__dirname).filter(name => /^policy-.*\.cjs$/.test(name)).sort()
 
