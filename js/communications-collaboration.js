@@ -10038,7 +10038,7 @@ ${err.toString()}`);
         this.failures = 0;
         this.accessFailures = 0;
         this.onChange(data);
-        this.onStatus(this.writeBlocked && this.dirty ? "Solo lectura \xB7 cambios locales sin guardar" : this.dirty ? "Guardando cambios..." : "Guardado en Index", this.writeBlocked);
+        this.onStatus(this.writeBlocked && this.dirty ? "Solo lectura \xB7 cambios locales sin guardar" : this.dirty ? "Guardando en l\xEDnea\u2026" : "Guardado en l\xEDnea", this.writeBlocked);
         if (!this.dirty && this.role !== "viewer" && this.revision - data.snapshot_revision >= 50) {
           await this.rpc("communication_checkpoint", {
             p_revision: this.revision,
@@ -27118,7 +27118,7 @@ ${err.toString()}`);
     const status = (text2, blocked = false) => {
       if (!session) return;
       session.blocked = blocked;
-      document.querySelectorAll("#memo-save-state,[data-collab-status]").forEach((el) => el.textContent = text2);
+      document.querySelectorAll("#memo-save-state,[data-collab-status]").forEach((el) => (el.querySelector("span") || el).textContent = text2);
       if (session.transport.stopped) {
         document.querySelector(".memo-customizer")?.setAttribute("data-collab-disconnected", "true");
         views.forEach((view) => view.setProps({ editable: () => false }));
@@ -27411,10 +27411,6 @@ ${err.toString()}`);
       session.presenceRows = rows;
       session.lastPresence = people;
       bar.replaceChildren();
-      const access = document.createElement("span");
-      access.className = "comms-collab-access";
-      access.textContent = "Equipo \xB7 " + label(session.transport.role);
-      bar.append(access);
       const collaborators = rows.filter((row) => !row.self), peopleButton = document.createElement("button");
       peopleButton.type = "button";
       peopleButton.className = "comms-collab-people";
@@ -27434,22 +27430,6 @@ ${err.toString()}`);
         peopleButton.append(alone);
       }
       bar.append(peopleButton);
-      const latest = session.events[0];
-      if (latest && Date.now() - latest.at.getTime() < 6500) {
-        const event = document.createElement("span");
-        event.className = "comms-presence-event";
-        if (session.announcedEvent !== latest) {
-          event.setAttribute("role", "status");
-          session.announcedEvent = latest;
-        }
-        event.textContent = latest.text;
-        bar.append(event);
-      }
-      const state = document.createElement("span");
-      state.dataset.collabStatus = "";
-      state.setAttribute("role", "status");
-      state.textContent = session.transport.writeBlocked && session.transport.dirty ? "Solo lectura \xB7 cambios locales sin guardar" : session.transport.dirty ? "Guardando cambios..." : "Guardado en Index";
-      bar.append(state);
       paintRemoteAreas(rows);
     }
     function setActivity(field, area, mode = "area") {
@@ -27724,24 +27704,15 @@ ${err.toString()}`);
     }
     function rendered() {
       if (!api.current()) return;
-      const header = document.querySelector(".memo-editor-primary-actions .comms-header-actions,.memo-panel-head .comms-header-actions");
-      if (header && !header.querySelector("[data-share-access]")) {
-        const button = document.createElement("button");
-        button.className = "btn btn-secondary";
-        button.type = "button";
-        button.dataset.shareAccess = "";
-        button.innerHTML = api.icon("users", 16) + " Guardar en equipo";
-        button.onclick = share;
-        header.prepend(button);
-      }
+      const header = document.querySelector("#product-controls .comms-header-actions,.memo-panel-head .comms-header-actions");
       if (!active()) return;
       destroyViews();
       const panel = document.querySelector(".memo-customizer");
       if (!panel) return;
-      if (!panel.querySelector(".comms-collab-bar")) {
+      if (!document.querySelector(".comms-collab-bar")) {
         const bar = document.createElement("div");
         bar.className = "comms-collab-bar";
-        (panel.querySelector(".memo-editor-primary-actions") || panel.querySelector(".memo-panel-head")).after(bar);
+        header?.before(bar);
       }
       document.querySelectorAll(".memo-rich-editor[data-block-id]").forEach((element2) => {
         const id2 = element2.dataset.blockId, fragment = session.model.doc.getXmlFragment("rich:" + id2);
@@ -27834,7 +27805,7 @@ ${err.toString()}`);
         header.prepend(button);
       }
       paintPresence(session.lastPresence || []);
-      status(session.transport.dirty ? "Guardando cambios..." : "Guardado en Index", session.blocked);
+      status(session.transport.dirty ? "Guardando en l\xEDnea\u2026" : "Guardado en l\xEDnea", session.blocked);
     }
     function homeRendered() {
       const header = document.querySelector(".comms-header-actions");
