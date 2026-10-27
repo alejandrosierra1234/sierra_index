@@ -1,5 +1,6 @@
 /* SIERRA Academia — focused editor UI and two-sided landscape Letter artwork. */
 .academy-library,.academy-studio{font-family:Replica,Arial,sans-serif;color:var(--text)}
+.academy-studio,.academy-studio *{box-sizing:border-box}
 .academy-library{padding:24px 28px 44px;max-width:1680px;margin:0 auto}
 .academy-library-tabs,.academy-library-tools,.academy-editor-head,.academy-preview-toolbar,.academy-panel-intro{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .academy-library-tabs [role="tablist"]{display:flex;gap:4px;padding:4px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
