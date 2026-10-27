@@ -200,9 +200,9 @@ test('memo org charts separate consultants from direct reports',()=>{
   box.innerHTML=w.memoOrgChartHtml(b);
   assert.equal(box.querySelectorAll('.memo-org-tree .memo-person-card').length,2);
   assert.equal(box.querySelector('.memo-org-advisors .memo-person-name').textContent,'Consultor estratégico');
-  assert.ok(box.querySelector('.memo-org-advisor-label').textContent.includes('Pablo Hernández'));
+  assert.equal(box.querySelector('.memo-org-advisor-label'),null);
   assert.ok(box.querySelector('.memo-person-card-advisor'));
-  assert.ok(w.communicationOrgLayoutPrintCss().includes('border-top:.35mm dashed'));
+  assert.ok(!w.communicationOrgLayoutPrintCss().includes('memo-org-advisor-item::before'));
   w.commsPersist();assert.equal(w.eval(`_commsDrafts.find(d=>d.id===${JSON.stringify(w.eval('_commsCurrent.id'))}).blocks.at(-1).people[2].relationship`),'advisor');
   assert.ok(w.memoPrintDocumentHtml(w.eval('_commsCurrent')).includes('memo-org-advisors'));
 });
