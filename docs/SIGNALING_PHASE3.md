@@ -6,6 +6,8 @@ La fase 3 amplía el mismo módulo y repositorio local de fase 1; no crea un mod
 
 Permite en un navegador de prueba:
 
+- Registrar perfiles de pantalla de prueba con nombre, planta, orientación y resolución declarada.
+- Identificar cada perfil como `local-test` y `not-linked`; el alta no genera credenciales, códigos ni emparejamiento.
 - Crear mensajes, imágenes HTTPS (`JPG`, `JPEG`, `PNG`, `WebP`, `GIF`) y videos HTTPS (`MP4`, `WebM`).
 - Exigir descripción accesible para multimedia, rechazar HTTP, credenciales embebidas y extensiones fuera del corte.
 - Crear listas ordenadas de hasta 50 entradas, con duración entre 5 y 3,600 segundos.
@@ -22,6 +24,7 @@ Permite en un navegador de prueba:
 - El fallback local solo ayuda cuando ya existe otro contenido válido en el mismo navegador. No equivale a caché multimedia, manifiesto firmado, publicación atómica remota ni offline universal.
 - El reloj usado es el del navegador; no hay NTP ni comprobación de deriva de dispositivo.
 - No existe telemetría, prueba física de imagen, emparejamiento, TV real o compatibilidad Smart TV validada.
+- “Agregar pantalla de prueba” crea únicamente un perfil en `localStorage`. “Vincular una TV real” permanece explícitamente fuera del corte y requiere servicio central, identidad de dispositivo y un protocolo seguro.
 - El módulo continúa restringido temporalmente a `platform.admin`. Las capacidades y RLS de `update59.sql` siguen sin aplicarse a un servicio.
 
 ## Coherencia con fase 2
@@ -49,8 +52,9 @@ Resultados finales:
 | Comprobación | Resultado |
 |---|---|
 | Fase 1 | 24 aserciones pasadas. |
-| Fase 2 SQL | 45 aserciones pasadas. |
-| Fase 3 | 29 aserciones pasadas. |
+| Fase 2 SQL | 47 aserciones pasadas. |
+| Fase 3 | 44 aserciones pasadas, incluidas validación, permiso, no mutación, duplicados, auditoría y distinción de pantallas vinculadas. |
+| Alta en Chromium local | Pasó: registrar perfil vertical, distinguirlo como no vinculado y conservarlo tras recargar. |
 | Navegador Chromium local | Pasó: crear imagen, crear lista, programar, persistir, abrir reproductor, detectar fallo remoto y recuperar mensaje válido. |
 | Seguridad, perfil, comunicaciones y muestras | Regresiones pasadas. |
 | `git diff --check` | Pasó. |

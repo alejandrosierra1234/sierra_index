@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Pantallas · Reproductor SIERRA</title>
+  <link rel="stylesheet" href="css/signage-player.css">
+</head>
+<body>
+  <main id="player" aria-live="polite">
+    <section class="sp-setup" id="sp-setup">
+      <div class="sp-logo">SIERRA</div>
+      <p class="sp-step">PASO 1 DE 2</p>
+      <h1>Vincula esta pantalla</h1>
+      <p>En SIERRA Index abre <b>Pantallas</b>, elige <b>Agregar pantalla</b> y escribe este código:</p>
+      <output id="sp-code" class="sp-code" aria-label="Código de vinculación">······</output>
+      <p id="sp-setup-status" class="sp-status">Generando un código seguro…</p>
+      <button id="sp-new-code" type="button" hidden>Generar otro código</button>
+    </section>
+    <section class="sp-stage" id="sp-stage" hidden>
+      <div class="sp-connection" id="sp-connection">Conectando…</div>
+      <div id="sp-content" class="sp-content"></div>
+    </section>
+  </main>
+  <script src="js/signage-backend-client.js"></script>
+  <script src="js/signage-live-share.js"></script>
+  <script src="js/signage-player.js"></script>
+</body>
+</html>

@@ -25,6 +25,7 @@ const ids = {
   contentA: '60000000-0000-4000-8000-000000000001',
   contentB: '60000000-0000-4000-8000-000000000002',
   contentMedia: '60000000-0000-4000-8000-000000000003',
+  contentLink: '60000000-0000-4000-8000-000000000004',
   playlistA: '70000000-0000-4000-8000-000000000001',
   scheduleA: '80000000-0000-4000-8000-000000000001',
 }
@@ -124,6 +125,11 @@ await expectSqlState(() => db.query(`select public.signage_content_save($1,$2,$3
 let media = await db.query(`select public.signage_content_save($1,$2,$3::jsonb,0) result`,[
  ids.workspaceA,ids.contentMedia,JSON.stringify({type:'image',title:'Imagen sintética',body:'Texto de apoyo.',theme:'blue',mediaUrl:'https://example.invalid/test.webp',alt:'Patrón sintético'})])
 eq(media.rows[0].result.revision,1,'server accepts aligned image snapshot')
+await expectSqlState(() => db.query(`select public.signage_content_save($1,$2,$3::jsonb,0)`,[
+ ids.workspaceA,ids.contentLink,JSON.stringify({type:'link',title:'Enlace inseguro',body:'',theme:'neutral',url:'http://example.invalid'})]),'22023','server rejects non-HTTPS link')
+let link = await db.query(`select public.signage_content_save($1,$2,$3::jsonb,0) result`,[
+ ids.workspaceA,ids.contentLink,JSON.stringify({type:'link',title:'Enlace seguro',body:'Tarjeta segura.',theme:'neutral',url:'https://example.invalid/pantallas'})])
+eq(link.rows[0].result.revision,1,'server accepts safe link card snapshot')
 let playlistResult = await db.query(`select public.signage_playlist_save($1,$2,'Lista SQL sintética',$3::jsonb,0) result`,[
  ids.workspaceA,ids.playlistA,JSON.stringify([{contentId:ids.contentA,durationSeconds:15},{contentId:ids.contentMedia,durationSeconds:20}])])
 eq(playlistResult.rows[0].result.revision,1,'playlist version 1 saved')

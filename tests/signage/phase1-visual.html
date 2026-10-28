@@ -24,11 +24,14 @@
   <div id="view-dashboard"></div><div id="view-styleguide"></div><div id="view-detail"></div><div id="view-samples"></div><div id="view-sample-detail"></div><div id="view-products"></div><div id="content"></div>
   <script>
     window.profile={full_name:'Persona sintética'};window.me={email:'synthetic@example.invalid'}
+    if(new URLSearchParams(location.search).get('backend')==='1'){window.SIERRA_SIGNAGE_BACKEND_URL='/api/signage';window.SIERRA_SIGNAGE_LOCAL_ADMIN_TOKEN='local-admin-test-token'}
     function isAdmin(){return true}function syncModule(){}function renderSidebarTree(){}function leaveView(){}function setSecCrumbs(){}
     function siIcon(){return '<span aria-hidden="true">＋</span>'}function esc(v){const d=document.createElement('div');d.textContent=String(v??'');return d.innerHTML}function escAttr(v){return esc(v).replace(/"/g,'&quot;')}
     function emptyStateHtml(o){return `<div class="empty-compact"><b>${esc(o.title)}</b><p>${esc(o.desc||'')}</p></div>`}
     function toast(message){document.getElementById('toast').textContent=message}function openSideDrawer(options){document.getElementById('sd-eyebrow').textContent=options.eyebrow||'';document.getElementById('sd-title').textContent=options.title||'';document.getElementById('sd-overlay').classList.add('open');options.onTab?.(options.activeTab)}function closeSideDrawer(){document.getElementById('sd-overlay').classList.remove('open')}
   </script>
+  <script src="../../js/signage-backend-client.js"></script>
+  <script src="../../js/signage-live-share.js"></script>
   <script src="../../js/signage-phase1.js"></script>
   <script>const visualParams=new URLSearchParams(location.search);if(visualParams.get('theme')==='dark')document.documentElement.dataset.theme='dark';if(visualParams.get('reset')==='1')localStorage.removeItem(SignagePhase1.STORAGE_KEY);showSignage()</script>
 </body>

@@ -9,9 +9,29 @@ let assertions = 0
 function eq(actual, expected, message) { assert.equal(actual, expected, message); assertions += 1 }
 function ok(value, message) { assert.ok(value, message); assertions += 1 }
 
-let state = Signage.initialState()
+let state = Signage.demoState()
 eq(state.schemaVersion, 3, 'phase 3 schema')
 eq(state.mode, 'local-synthetic-phase3', 'phase 3 mode')
+
+const screenCount = state.screens.length
+const invalidScreen = Signage.validateScreen({ name: 'A', plant: '', orientation: 'diagonal', width: 100, height: 9000 }, state)
+eq(invalidScreen.ok, false, 'invalid test screen is rejected')
+ok(invalidScreen.errors.name && invalidScreen.errors.plant && invalidScreen.errors.orientation && invalidScreen.errors.width && invalidScreen.errors.height, 'screen fields have actionable validation')
+assert.throws(() => Signage.createTestScreen(state, { name: 'Comedor de prueba', plant: 'Planta de prueba', orientation: 'horizontal', width: 1920, height: 1080 }, { canManage: false }), error => error.code === 'SIGNAGE_FORBIDDEN')
+assertions += 1
+const createdScreen = Signage.createTestScreen(state, { name: 'Comedor de prueba', plant: 'Planta de prueba', orientation: 'horizontal', width: 1920, height: 1080 }, admin, { now: start })
+eq(state.screens.length, screenCount, 'screen creation does not mutate input state')
+state = createdScreen.state
+eq(state.screens.length, screenCount + 1, 'test screen is appended to local state')
+eq(createdScreen.screen.kind, 'local-test', 'screen is explicitly a local test profile')
+eq(createdScreen.screen.connectionState, 'not-linked', 'screen is explicitly not linked')
+eq(createdScreen.screen.profile, 'Horizontal · 1920 × 1080', 'declared profile is derived deterministically')
+eq(state.audit[0].type, 'screen.created', 'screen creation is recorded locally')
+assert.throws(() => Signage.createTestScreen(state, { name: 'comedor de prueba', plant: 'Otra', orientation: 'vertical', width: 1080, height: 1920 }, admin), error => error.code === 'SIGNAGE_VALIDATION' && Boolean(error.fields.name))
+assertions += 1
+const pairedScreen = Signage.registerPairedScreen(state, { id: 'device-e2e', name: 'Pantalla vinculada', plant: 'Planta E2E', profile: 'Horizontal · 1920 × 1080' }, admin)
+eq(pairedScreen.screen.kind, 'paired', 'paired screen is distinct from browser-only test profile')
+eq(pairedScreen.screen.connectionState, 'paired', 'paired screen records explicit connection state')
 
 let invalidMedia = Signage.validateContent({ type: 'image', title: 'Imagen prueba', mediaUrl: 'http://example.invalid/picture.png', alt: '' })
 eq(invalidMedia.ok, false, 'insecure image URL rejected')
@@ -60,7 +80,7 @@ eq(resolved.source, 'last-valid', 'failed scheduled media falls back to last val
 eq(resolved.content.id, 'synthetic-content-welcome', 'last valid text recovered')
 eq(resolved.fallback, true, 'fallback is explicit')
 
-const migrated = Signage.normalizeState({ ...Signage.initialState(), schemaVersion: 1, mode: 'local-synthetic-phase1', playlists: undefined, schedules: undefined })
+const migrated = Signage.normalizeState({ ...Signage.demoState(), schemaVersion: 1, mode: 'local-synthetic-phase1', playlists: undefined, schedules: undefined })
 eq(migrated.schemaVersion, 3, 'phase 1 state migrates')
 ok(Array.isArray(migrated.playlists) && Array.isArray(migrated.schedules), 'migration supplies phase 3 collections')
 
@@ -81,6 +101,9 @@ const css = fs.readFileSync(path.join(root, 'css/signage-phase1.css'), 'utf8')
 assert.doesNotMatch(source, /<select\b/i, 'no native visible dropdown introduced')
 assertions += 1
 ok(source.includes('signageOpenScheduleDrawer'), 'schedule UI integrated')
+ok(source.includes('signageOpenScreenDrawer'), 'explicit test screen registration UI integrated')
+ok(source.includes('Vincular una TV real:'), 'real TV distinction is visible')
+ok(source.includes('No se conectó ninguna TV real.'), 'screen creation confirmation does not imply pairing')
 ok(source.includes('signagePlayerMediaFailed'), 'media failure recovery integrated')
 ok(css.includes('.sg-player-media'), 'media player styles exist')
 

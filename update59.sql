@@ -285,7 +285,7 @@ begin
   raise exception 'Invalid content snapshot' using errcode='22023';
  end if;
  v_title:=trim(coalesce(p_snapshot->>'title',''));
- if length(v_title) not between 3 and 80 or coalesce(p_snapshot->>'type','message') not in ('message','image','video')
+ if length(v_title) not between 3 and 80 or coalesce(p_snapshot->>'type','message') not in ('message','image','video','link')
    or length(trim(coalesce(p_snapshot->>'body',''))) > 240
    or (coalesce(p_snapshot->>'type','message')='message' and length(trim(coalesce(p_snapshot->>'body',''))) < 1)
    or coalesce(p_snapshot->>'theme','') not in ('neutral','teal','blue')
@@ -295,6 +295,10 @@ begin
      or length(trim(coalesce(p_snapshot->>'alt',''))) not between 1 and 180
      or (p_snapshot->>'type'='image' and lower(split_part(p_snapshot->>'mediaUrl','?',1)) !~ '\.(jpg|jpeg|png|webp|gif)$')
      or (p_snapshot->>'type'='video' and lower(split_part(p_snapshot->>'mediaUrl','?',1)) !~ '\.(mp4|webm)$')
+   ))
+   or (coalesce(p_snapshot->>'type','message')='link' and (
+     coalesce(p_snapshot->>'url','') !~ '^https://[^[:space:]@]+.*$'
+     or p_snapshot->>'url' ~ '^https://[^/]*@'
    )) then
   raise exception 'Invalid content fields' using errcode='22023';
  end if;

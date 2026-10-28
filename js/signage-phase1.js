@@ -9,7 +9,8 @@
   const SCHEMA_VERSION = 3
   const MAX_AUDIT_EVENTS = 100
   const THEMES = new Set(['neutral', 'teal', 'blue'])
-  const CONTENT_TYPES = new Set(['message', 'image', 'video'])
+  const CONTENT_TYPES = new Set(['message', 'image', 'video', 'link'])
+  const SCREEN_ORIENTATIONS = new Set(['horizontal', 'vertical'])
   const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif'])
   const VIDEO_EXTENSIONS = new Set(['mp4', 'webm'])
 
@@ -26,12 +27,25 @@
     return {
       schemaVersion: SCHEMA_VERSION,
       mode: 'local-synthetic-phase3',
-      screens: [
+      screens: [],
+      contents: [],
+      playlists: [],
+      schedules: [],
+      audit: [],
+    }
+  }
+
+  function demoState() {
+    const state = initialState()
+    state.testFixtures = true
+    state.screens = [
         {
           id: 'synthetic-screen-a',
           name: 'Pantalla sintética A',
           plant: 'Planta de prueba',
           profile: 'Horizontal · 1920 × 1080',
+          kind: 'local-test',
+          connectionState: 'not-linked',
           evidence: 'Sin telemetría',
           publishedContentId: 'synthetic-content-welcome',
           publicationVersion: 1,
@@ -45,6 +59,8 @@
           name: 'Pantalla sintética B',
           plant: 'Planta de prueba',
           profile: 'Vertical · 1080 × 1920',
+          kind: 'local-test',
+          connectionState: 'not-linked',
           evidence: 'Sin telemetría',
           publishedContentId: null,
           publicationVersion: 0,
@@ -53,8 +69,8 @@
           lastValidContentId: null,
           lastValidAt: null,
         },
-      ],
-      contents: [
+      ]
+    state.contents = [
         {
           id: 'synthetic-content-welcome',
           type: 'message',
@@ -73,11 +89,8 @@
           createdAt: null,
           createdBy: 'Sistema de prueba',
         },
-      ],
-      playlists: [],
-      schedules: [],
-      audit: [],
-    }
+      ]
+    return state
   }
 
   function normalizeState(input) {
@@ -94,9 +107,27 @@
       screen.history = Array.isArray(screen.history) ? screen.history : []
       screen.lastValidContentId = screen.lastValidContentId || screen.publishedContentId || null
       screen.lastValidAt = screen.lastValidAt || null
+      screen.kind = screen.kind || 'local-test'
+      screen.connectionState = screen.connectionState || 'not-linked'
     })
     state.contents.forEach(content => { content.type = CONTENT_TYPES.has(content.type) ? content.type : 'message' })
     return state
+  }
+
+  function validateScreen(input, state) {
+    const name = cleanText(input?.name)
+    const plant = cleanText(input?.plant)
+    const orientation = SCREEN_ORIENTATIONS.has(input?.orientation) ? input.orientation : 'horizontal'
+    const width = Math.trunc(Number(input?.width))
+    const height = Math.trunc(Number(input?.height))
+    const errors = {}
+    if (name.length < 3 || name.length > 80) errors.name = 'Usa un nombre de 3 a 80 caracteres.'
+    if (plant.length < 2 || plant.length > 80) errors.plant = 'Usa una planta de 2 a 80 caracteres.'
+    if (!SCREEN_ORIENTATIONS.has(input?.orientation)) errors.orientation = 'Selecciona una orientación.'
+    if (!Number.isInteger(width) || width < 320 || width > 7680) errors.width = 'El ancho debe estar entre 320 y 7,680 px.'
+    if (!Number.isInteger(height) || height < 320 || height > 7680) errors.height = 'El alto debe estar entre 320 y 7,680 px.'
+    if (state?.screens?.some(screen => cleanText(screen.name).toLocaleLowerCase('es') === name.toLocaleLowerCase('es'))) errors.name = 'Ya existe una pantalla local con ese nombre.'
+    return { ok: !Object.keys(errors).length, errors, value: { name, plant, orientation, width, height } }
   }
 
   function validateContent(input) {
@@ -105,13 +136,14 @@
     const body = cleanText(input?.body)
     const theme = THEMES.has(input?.theme) ? input.theme : 'neutral'
     const mediaUrl = cleanText(input?.mediaUrl)
+    const linkUrl = cleanText(input?.url)
     const alt = cleanText(input?.alt)
     const errors = {}
     if (title.length < 3) errors.title = 'Escribe un título de al menos 3 caracteres.'
     if (title.length > 80) errors.title = 'El título no puede superar 80 caracteres.'
     if (type === 'message' && !body) errors.body = 'Escribe el mensaje que se mostrará.'
     if (body.length > 240) errors.body = 'El texto no puede superar 240 caracteres.'
-    if (type !== 'message') {
+    if (type === 'image' || type === 'video') {
       let parsed = null
       try { parsed = new URL(mediaUrl) } catch {}
       if (!parsed || parsed.protocol !== 'https:' || parsed.username || parsed.password) errors.mediaUrl = 'Usa una URL HTTPS sin credenciales.'
@@ -121,7 +153,10 @@
       if (!alt) errors.alt = type === 'image' ? 'Describe la imagen para accesibilidad.' : 'Describe el contenido del video.'
       if (alt.length > 180) errors.alt = 'La descripción no puede superar 180 caracteres.'
     }
-    return { ok: !Object.keys(errors).length, errors, value: { type, title, body, theme, mediaUrl: type === 'message' ? '' : mediaUrl, alt: type === 'message' ? '' : alt } }
+    if (type === 'link') {
+      try { const parsed = new URL(linkUrl); if (parsed.protocol !== 'https:' || parsed.username || parsed.password) throw new Error() } catch { errors.url = 'Usa un enlace HTTPS sin usuario ni contraseña.' }
+    }
+    return { ok: !Object.keys(errors).length, errors, value: { type, title, body, theme, mediaUrl: ['image','video'].includes(type) ? mediaUrl : '', alt: ['image','video'].includes(type) ? alt : '', url: type === 'link' ? linkUrl : '' } }
   }
 
   function validatePlaylist(input, state) {
@@ -156,7 +191,7 @@
 
   function requireManage(context) {
     if (!context?.canManage) {
-      const error = new Error('No tienes permiso para modificar la señalización local.')
+      const error = new Error('No tienes permiso para modificar Pantallas.')
       error.code = 'SIGNAGE_FORBIDDEN'
       throw error
     }
@@ -191,6 +226,58 @@
       now: options?.now,
     })
     return { state, content }
+  }
+
+  function createTestScreen(current, input, context, options) {
+    requireManage(context)
+    const state = normalizeState(current)
+    const validation = validateScreen(input, state)
+    if (!validation.ok) {
+      const error = new Error('Corrige los campos marcados.')
+      error.code = 'SIGNAGE_VALIDATION'
+      error.fields = validation.errors
+      throw error
+    }
+    const value = validation.value
+    const screen = {
+      id: makeId('test-screen'),
+      name: value.name,
+      plant: value.plant,
+      profile: `${value.orientation === 'vertical' ? 'Vertical' : 'Horizontal'} · ${value.width} × ${value.height}`,
+      orientation: value.orientation,
+      width: value.width,
+      height: value.height,
+      kind: 'local-test',
+      connectionState: 'not-linked',
+      evidence: 'Sin telemetría',
+      publishedContentId: null,
+      publicationVersion: 0,
+      updatedAt: null,
+      history: [],
+      lastValidContentId: null,
+      lastValidAt: null,
+      createdAt: nowIso(options?.now),
+      createdBy: actorName(context.actor),
+    }
+    state.screens.unshift(screen)
+    appendAudit(state, { type: 'screen.created', actor: actorName(context.actor), screenId: screen.id, summary: `Registró la pantalla de prueba “${screen.name}” · no vinculada`, now: options?.now })
+    return { state, screen }
+  }
+
+  function registerPairedScreen(current, device, context) {
+    requireManage(context)
+    const state = normalizeState(current)
+    const id = cleanText(device?.id), name = cleanText(device?.name), plant = cleanText(device?.plant), profile = cleanText(device?.profile)
+    if (!id || name.length < 3 || plant.length < 2 || profile.length < 3) {
+      const error = new Error('El servicio devolvió una pantalla incompleta.')
+      error.code = 'SIGNAGE_BACKEND_INVALID'
+      throw error
+    }
+    if (state.screens.some(screen => screen.id === id)) return { state, screen: state.screens.find(screen => screen.id === id) }
+    const screen = { id, name, plant, profile, kind: 'paired', connectionState: 'paired', evidence: 'Esperando primera conexión', publishedContentId: null, publicationVersion: 0, updatedAt: null, history: [], lastValidContentId: null, lastValidAt: null }
+    state.screens.unshift(screen)
+    appendAudit(state, { type: 'screen.paired', actor: actorName(context.actor), screenId: id, summary: `Vinculó “${name}” mediante código` })
+    return { state, screen }
   }
 
   function createPlaylist(current, input, context, options) {
@@ -349,15 +436,24 @@
   function createRepository(storage) {
     const backupKey = STORAGE_KEY + '_backup'
     function parse(raw) { return raw ? normalizeState(JSON.parse(raw)) : null }
+    function removeLegacyDemo(state) {
+      if (!state || state.testFixtures) return state
+      const legacyScreenIds = new Set(['synthetic-screen-a','synthetic-screen-b'])
+      const legacyContentIds = new Set(['synthetic-content-welcome','synthetic-content-safety'])
+      state.screens = state.screens.filter(screen => !legacyScreenIds.has(screen.id) || screen.updatedAt || screen.history?.length)
+      const referenced = new Set(state.screens.flatMap(screen => [screen.publishedContentId,screen.lastValidContentId]).filter(Boolean))
+      state.contents = state.contents.filter(content => !legacyContentIds.has(content.id) || referenced.has(content.id) || content.createdAt)
+      return state
+    }
     return {
       load() {
         try {
           const raw = storage.getItem(STORAGE_KEY)
-          return { state: parse(raw) || initialState(), recovered: false, recoveredFromBackup: false, error: null }
+          return { state: removeLegacyDemo(parse(raw)) || initialState(), recovered: false, recoveredFromBackup: false, error: null }
         } catch (error) {
           try {
             const backup = parse(storage.getItem(backupKey))
-            if (backup) return { state: backup, recovered: true, recoveredFromBackup: true, error }
+            if (backup) return { state: removeLegacyDemo(backup), recovered: true, recoveredFromBackup: true, error }
           } catch {}
           return { state: initialState(), recovered: true, recoveredFromBackup: false, error }
         }
@@ -379,11 +475,15 @@
     STORAGE_KEY,
     SCHEMA_VERSION,
     initialState,
+    demoState,
     normalizeState,
     validateContent,
+    validateScreen,
     validatePlaylist,
     validateSchedule,
     createContent,
+    createTestScreen,
+    registerPairedScreen,
     createPlaylist,
     createSchedule,
     activeSchedules,
@@ -402,6 +502,8 @@ let _signageState = null
 let _signageLoadWarning = ''
 let _signagePlayerTimer = null
 let _signagePlayerFailure = null
+let _signageLiveSender = null
+let _signageLiveScreenId = null
 
 function signageRepository() { return SignagePhase1.createRepository(window.localStorage) }
 function signageContext() {
@@ -413,7 +515,7 @@ function signageContext() {
 function signageLoadState() {
   const result = signageRepository().load()
   _signageState = result.state
-  _signageLoadWarning = result.recovered ? (result.recoveredFromBackup ? 'La copia principal local estaba dañada. Se recuperó la última copia local válida.' : 'Los datos locales no se pudieron leer. Se cargó un conjunto sintético limpio.') : ''
+  _signageLoadWarning = result.recovered ? (result.recoveredFromBackup ? 'La copia principal guardada estaba dañada. Recuperamos la última copia válida.' : 'No pudimos leer los datos guardados. Empezamos con un espacio limpio.') : ''
   return _signageState
 }
 function signageSaveState(next) {
@@ -428,12 +530,24 @@ function signageSaveState(next) {
   }
 }
 function signageThemeLabel(theme) { return ({ neutral: 'Neutral', teal: 'Teal SIERRA', blue: 'Azul' })[theme] || 'Neutral' }
-function signageTypeLabel(type) { return ({ message: 'Mensaje', image: 'Imagen HTTPS', video: 'Video HTTPS' })[type] || 'Mensaje' }
+function signageTypeLabel(type) { return ({ message: 'Mensaje', image: 'Imagen', video: 'Video', link: 'Enlace' })[type] || 'Mensaje' }
 function signageFormatTime(value) {
   if (!value) return 'Sin publicación registrada'
   try { return new Intl.DateTimeFormat('es', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) } catch { return value }
 }
 function signageContentById(id) { return _signageState?.contents.find(item => item.id === id) || null }
+function signageBackendClient() {
+  return SignageBackendClient.createClient({
+    baseUrl: window.SIERRA_SIGNAGE_BACKEND_URL || '/api/signage',
+    currentOrigin: location.origin,
+    allowedOrigins: window.SIERRA_SIGNAGE_ALLOWED_BACKEND_ORIGINS || [],
+    tokenProvider: async () => {
+      if (window.SIERRA_SIGNAGE_LOCAL_ADMIN_TOKEN) return window.SIERRA_SIGNAGE_LOCAL_ADMIN_TOKEN
+      const result = await sb.auth.getSession()
+      return result.data.session?.access_token || ''
+    },
+  })
+}
 
 function showSignage() {
   if (_signagePlayerTimer) { clearInterval(_signagePlayerTimer); _signagePlayerTimer = null }
@@ -443,12 +557,12 @@ function showSignage() {
   sessionStorage.setItem('sierra_route', 'module:signage')
   leaveView()
   renderSidebarTree()
-  document.getElementById('tb-section').textContent = 'Señalización'
-  document.getElementById('sec-title').textContent = 'Señalización digital'
-  document.getElementById('sec-sub').textContent = 'Fase 3 · multimedia, listas y programación local con datos sintéticos'
+  document.getElementById('tb-section').textContent = 'Pantallas'
+  document.getElementById('sec-title').textContent = 'Pantallas'
+  document.getElementById('sec-sub').textContent = 'Agrega una pantalla, elige contenido y muéstralo'
   const controls = document.getElementById('product-controls')
   controls.style.display = 'flex'
-  controls.innerHTML = `<button class="btn btn-secondary" onclick="signageOpenPlaylistDrawer()">Nueva lista</button><button class="btn btn-secondary" onclick="signageOpenScheduleDrawer()">Programar</button><button class="btn btn-primary" onclick="signageOpenContentDrawer()">${siIcon('plus',16)} Nueva pieza</button>`
+  controls.innerHTML = `<button class="btn btn-secondary" onclick="signageOpenContentDrawer()">Agregar contenido</button><button class="btn btn-secondary" onclick="signageOpenPlaylistDrawer()">Nueva lista</button><button class="btn btn-secondary" onclick="signageOpenScheduleDrawer()">Crear horario</button><button class="btn btn-primary" onclick="signageOpenScreenDrawer()">${siIcon('plus',16)} Agregar pantalla</button>`
   signageLoadState()
   renderSignageHome()
 }
@@ -457,54 +571,167 @@ function renderSignageHome() {
   if (!_signageState) signageLoadState()
   const pg = document.getElementById('pg')
   if (!signageContext().canManage) {
-    pg.innerHTML = emptyStateHtml({ title: 'Acceso restringido', desc: 'La fase local de Señalización está disponible únicamente para administradores de plataforma.' })
+    pg.innerHTML = emptyStateHtml({ title: 'Acceso restringido', desc: 'No tienes permiso para administrar Pantallas.' })
     return
   }
   const published = _signageState.screens.filter(screen => screen.publishedContentId).length
   const warning = _signageLoadWarning ? `<div class="sg-banner sg-banner-warning" role="alert">${esc(_signageLoadWarning)}</div>` : ''
   pg.innerHTML = `<div class="sg-phase">
-    <div class="sg-banner" role="note"><b>Prueba local funcional.</b> Configuración, listas y texto viven solo en este navegador. Las imágenes y videos por URL requieren red y compatibilidad del navegador; no hay nube, telemetría, Smart TV verificada ni garantía offline.</div>
+    ${_signageLiveSender ? `<div class="sg-live-active" role="status"><div><b>Estás compartiendo tu pantalla</b><span>Se muestra en ${esc(_signageState.screens.find(item => item.id === _signageLiveScreenId)?.name || 'la pantalla elegida')}.</span></div><button class="btn btn-secondary" onclick="signageStopLive()">Dejar de compartir</button></div>` : ''}
+    <div class="sg-banner" role="note"><b>Modo de prueba en este navegador.</b> Puedes aprender el flujo sin afectar televisiones reales. Lo que agregues aquí no aparecerá en otro equipo hasta conectar el servicio central.</div>
     ${warning}
     <div class="page-metrics sg-metrics" aria-label="Resumen local">
-      <div class="sg-metric"><b>${_signageState.screens.length}</b><span>Pantallas sintéticas</span></div>
-      <div class="sg-metric"><b>${_signageState.contents.length}</b><span>Piezas locales</span></div>
-      <div class="sg-metric"><b>${published}</b><span>Con publicación local</span></div>
-      <div class="sg-metric"><b>${_signageState.playlists.length}</b><span>Listas locales</span></div>
-      <div class="sg-metric"><b>${_signageState.schedules.length}</b><span>Horarios locales</span></div>
+      <div class="sg-metric"><b>${_signageState.screens.length}</b><span>Pantallas agregadas</span></div>
+      <div class="sg-metric"><b>${_signageState.contents.length}</b><span>Contenidos</span></div>
+      <div class="sg-metric"><b>${published}</b><span>Mostrando contenido</span></div>
+      <div class="sg-metric"><b>${_signageState.playlists.length}</b><span>Listas</span></div>
+      <div class="sg-metric"><b>${_signageState.schedules.length}</b><span>Horarios</span></div>
     </div>
+    <section class="sg-start" aria-labelledby="sg-start-title">
+      <div><span class="sg-kicker">Empieza aquí</span><h3 id="sg-start-title">Tres pasos para mostrar contenido</h3><p>Cada paso te indica qué hacer. En este modo se guarda únicamente en tu navegador.</p></div>
+      <ol class="sg-steps"><li><b>1</b><span><strong>Agrega una pantalla</strong><small>Ponle un nombre fácil de reconocer.</small></span></li><li><b>2</b><span><strong>Elige contenido</strong><small>Mensaje, imagen, video o enlace.</small></span></li><li><b>3</b><span><strong>Muéstralo</strong><small>Publica ahora o programa una hora.</small></span></li></ol>
+      <button class="btn btn-primary" onclick="signageOpenScreenDrawer()">${siIcon('plus',16)} Agregar pantalla</button>
+      <p class="sg-real-tv-note"><b>Vincular una TV real:</b> todavía no disponible. Esa función requerirá servicio central, identidad de dispositivo y emparejamiento seguro.</p>
+    </section>
     <section aria-labelledby="sg-screens-title">
-      <div class="sg-section-head"><div><h3 id="sg-screens-title">Pantallas de prueba</h3><p>El estado físico y de red no está verificado en esta fase.</p></div></div>
+      <div class="sg-section-head"><div><h3 id="sg-screens-title">Tus pantallas</h3><p>Aquí ves qué está mostrando cada una.</p></div><button class="btn btn-secondary btn-sm" onclick="signageOpenScreenDrawer()">${siIcon('plus',15)} Agregar pantalla</button></div>
       ${signageScreensTableHtml()}
     </section>
     <section aria-labelledby="sg-library-title">
-      <div class="sg-section-head"><div><h3 id="sg-library-title">Biblioteca local</h3><p>Mensajes persistentes y referencias HTTPS a imágenes o video; los medios no se descargan ni cachean.</p></div><button class="btn btn-secondary btn-sm" onclick="signageOpenContentDrawer()">${siIcon('plus',15)} Nueva pieza</button></div>
+      <div class="sg-section-head"><div><h3 id="sg-library-title">Contenido</h3><p>Mensajes, imágenes, videos y enlaces listos para mostrar.</p></div><button class="btn btn-secondary btn-sm" onclick="signageOpenContentDrawer()">${siIcon('plus',15)} Agregar contenido</button></div>
       ${signageLibraryHtml()}
     </section>
     <section aria-labelledby="sg-program-title">
-      <div class="sg-section-head"><div><h3 id="sg-program-title">Listas y programación</h3><p>Ventanas absolutas según el reloj del navegador; conflictos por prioridad, inicio más reciente e ID.</p></div><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPlaylistDrawer()">Nueva lista</button><button class="btn btn-secondary btn-sm" onclick="signageOpenScheduleDrawer()">Programar</button></div></div>
+      <div class="sg-section-head"><div><h3 id="sg-program-title">Listas y horarios</h3><p>Combina contenidos y decide cuándo se muestran.</p></div><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPlaylistDrawer()">Nueva lista</button><button class="btn btn-secondary btn-sm" onclick="signageOpenScheduleDrawer()">Crear horario</button></div></div>
       ${signageProgrammingHtml()}
     </section>
     <section aria-labelledby="sg-audit-title">
-      <div class="sg-section-head"><div><h3 id="sg-audit-title">Actividad local</h3><p>Historial del navegador; no es auditoría de servidor.</p></div><button class="btn btn-ghost btn-sm" onclick="signageResetLocalData()">Restablecer datos sintéticos</button></div>
+      <div class="sg-section-head"><div><h3 id="sg-audit-title">Actividad</h3><p>Últimos cambios guardados en este navegador.</p></div><button class="btn btn-ghost btn-sm" onclick="signageResetLocalData()">Borrar datos de prueba</button></div>
       ${signageAuditHtml()}
     </section>
   </div>`
 }
 
 function signageScreensTableHtml() {
+  if (!_signageState.screens.length) return emptyStateHtml({ title: 'Aún no agregas una pantalla', desc: 'Agrega una pantalla para empezar. En modo de prueba podrás verla en este mismo navegador.', actionLabel: 'Agregar pantalla', actionOnClick: 'signageOpenScreenDrawer()' })
   return `<div class="erp-table-wrap"><table class="erp-table sg-table"><thead><tr><th>Pantalla</th><th>Planta</th><th>Perfil declarado</th><th>Publicación local</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${_signageState.screens.map(screen => {
     const content = signageContentById(screen.publishedContentId)
-    return `<tr><td><b>${esc(screen.name)}</b><div class="sg-sub">ID ${esc(screen.id)}</div></td><td>${esc(screen.plant)}</td><td>${esc(screen.profile)}</td><td>${content ? `<b>${esc(content.title)}</b><div class="sg-sub">v${screen.publicationVersion} · ${screen.updatedAt ? esc(signageFormatTime(screen.updatedAt)) : 'Datos iniciales sintéticos'}</div>` : '<span class="sg-muted">Sin contenido</span>'}</td><td><span class="sg-status sg-status-unknown">${esc(screen.evidence)}</span></td><td><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPublishDrawer('${escAttr(screen.id)}')">Publicar</button><button class="btn btn-ghost btn-sm" onclick="signageShowPlayer('${escAttr(screen.id)}')">Abrir reproductor</button>${screen.history.length ? `<button class="btn btn-ghost btn-sm" onclick="signageRollback('${escAttr(screen.id)}')">Rollback</button>` : ''}</div></td></tr>`
+    const paired = screen.kind === 'paired'
+    return `<tr><td><b>${esc(screen.name)}</b><div class="sg-sub">${paired ? 'Vinculada mediante código' : 'Guardada en este navegador'}</div></td><td>${esc(screen.plant)}</td><td>${esc(screen.profile)}</td><td>${content ? `<b>${esc(content.title)}</b><div class="sg-sub">Actualizado ${screen.updatedAt ? esc(signageFormatTime(screen.updatedAt)) : 'en este navegador'}</div>` : '<span class="sg-muted">Nada todavía</span>'}</td><td><div class="sg-state-stack"><span class="sg-status ${paired ? 'sg-status-connected' : 'sg-status-local'}">${paired ? 'Vinculada' : 'Modo de prueba'}</span><span class="sg-sub">${paired ? 'Conexión pendiente de comprobar' : 'No conectada a una TV'}</span></div></td><td><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPublishDrawer('${escAttr(screen.id)}')">Elegir qué mostrar</button>${paired ? `<button class="btn btn-ghost btn-sm" onclick="signageStartLive('${escAttr(screen.id)}')">Compartir mi pantalla</button>` : `<button class="btn btn-ghost btn-sm" onclick="signageShowPlayer('${escAttr(screen.id)}')">Ver pantalla</button>`}${screen.history.length ? `<button class="btn btn-ghost btn-sm" onclick="signageRollback('${escAttr(screen.id)}')">Deshacer cambio</button>` : ''}</div></td></tr>`
   }).join('')}</tbody></table></div>`
 }
 
+function signageOpenScreenDrawer() {
+  if (!signageContext().canManage) { toast('No tienes permiso para agregar pantallas.'); return }
+  openSideDrawer({ eyebrow: 'Pantallas', title: 'Agregar pantalla', onTab: () => {
+    document.getElementById('sd-body').innerHTML = `<div class="sg-form">
+      <div id="sg-pair-ready" class="sg-form-note"><b>Comprobando el servicio…</b> Espera un momento.</div>
+      <form class="sg-form" onsubmit="signageSubmitPairing(event)" novalidate>
+        <label class="sg-field" for="sg-pair-code"><span>Código de la pantalla <b aria-hidden="true">*</b></span><input class="control-input sg-code-input" id="sg-pair-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000"><small id="sg-pair-code-error" class="sg-error"></small></label>
+        <label class="sg-field" for="sg-pair-name"><span>¿Cómo quieres llamarla?</span><input class="control-input" id="sg-pair-name" maxlength="80" placeholder="Ej. Comedor planta 1"><small id="sg-pair-name-error" class="sg-error"></small></label>
+        <label class="sg-field" for="sg-pair-plant"><span>¿Dónde está?</span><input class="control-input" id="sg-pair-plant" maxlength="80" placeholder="Ej. Planta 1"><small id="sg-pair-plant-error" class="sg-error"></small></label>
+        <small id="sg-pair-service-error" class="sg-error" role="alert"></small>
+        <div class="sg-form-actions"><button id="sg-pair-submit" type="submit" class="btn btn-primary" disabled>Vincular pantalla</button></div>
+      </form>
+      <div class="sg-or"><span>o</span></div>
+      <div class="sg-test-choice"><div><b>¿Solo quieres conocer el módulo?</b><p>Crea una pantalla que funciona únicamente en este navegador.</p></div><button class="btn btn-secondary" onclick="signageOpenLocalScreenDrawer()">Usar modo de prueba</button></div>
+    </div>`
+    signageCheckBackendAvailability()
+  } })
+}
+
+async function signageCheckBackendAvailability() {
+  const host = document.getElementById('sg-pair-ready')
+  const submit = document.getElementById('sg-pair-submit')
+  try {
+    await signageBackendClient().health()
+    if (host) host.innerHTML = '<b>En la televisión o reproductor:</b> abre <a href="signage-player.html" target="_blank" rel="noopener">el reproductor de Pantallas</a>. Verás un código de 6 números.'
+    if (submit) submit.disabled = false
+    document.getElementById('sg-pair-code')?.focus()
+  } catch {
+    if (host) host.innerHTML = '<b>La conexión con televisiones todavía no está disponible en este sitio.</b> Puedes usar el modo de prueba mientras se configura el servicio central.'
+  }
+}
+
+async function signageSubmitPairing(event) {
+  event.preventDefault()
+  const code = document.getElementById('sg-pair-code').value.trim()
+  const name = document.getElementById('sg-pair-name').value.trim()
+  const plant = document.getElementById('sg-pair-plant').value.trim()
+  const errorEl = document.getElementById('sg-pair-service-error'); errorEl.textContent = ''
+  if (!/^\d{6}$/.test(code) || name.length < 3 || plant.length < 2) { errorEl.textContent = 'Completa el código, el nombre y la ubicación.'; return }
+  const submit = event.submitter; submit.disabled = true; submit.textContent = 'Vinculando…'
+  try {
+    const paired = await signageBackendClient().pairDevice({ code, name, plant, profile: 'Horizontal · 1920 × 1080' })
+    const result = SignagePhase1.registerPairedScreen(_signageState, paired.device, signageContext())
+    if (!signageSaveState(result.state)) return
+    closeSideDrawer(); renderSignageHome(); toast('Pantalla vinculada. Ya puedes elegir qué mostrar.')
+  } catch (error) {
+    errorEl.textContent = error.status === 404 ? 'El código no existe o ya venció. Genera uno nuevo en la pantalla.' : error.message || 'No se pudo conectar con el servicio de Pantallas.'
+  } finally { submit.disabled = false; submit.textContent = 'Vincular pantalla' }
+}
+
+function signageOpenLocalScreenDrawer() {
+  if (!signageContext().canManage) { toast('No tienes permiso para registrar pantallas de prueba.'); return }
+  openSideDrawer({ eyebrow: 'Pantallas · Modo de prueba', title: 'Agregar pantalla', onTab: () => {
+    document.getElementById('sd-body').innerHTML = `<form class="sg-form" onsubmit="signageSubmitScreen(event)" novalidate>
+      <div class="sg-form-note"><b>Estás en modo de prueba.</b> Esta pantalla se verá únicamente en este navegador. Para conectar una TV real se necesita el servicio central.</div>
+      <label class="sg-field" for="sg-screen-name"><span>Nombre de la pantalla <b aria-hidden="true">*</b></span><input class="control-input" id="sg-screen-name" maxlength="80" placeholder="Ej. Comedor de prueba" aria-describedby="sg-screen-name-error"><small id="sg-screen-name-error" class="sg-error"></small></label>
+      <label class="sg-field" for="sg-screen-plant"><span>Planta o ubicación <b aria-hidden="true">*</b></span><input class="control-input" id="sg-screen-plant" maxlength="80" placeholder="Ej. Planta de prueba" aria-describedby="sg-screen-plant-error"><small id="sg-screen-plant-error" class="sg-error"></small></label>
+      <fieldset class="sg-theme-field"><legend>Orientación declarada</legend><div class="sg-type-options" role="radiogroup"><button type="button" class="sg-type-option selected" data-screen-orientation="horizontal" role="radio" aria-checked="true" onclick="signageChooseScreenOrientation(this)">Horizontal</button><button type="button" class="sg-type-option" data-screen-orientation="vertical" role="radio" aria-checked="false" onclick="signageChooseScreenOrientation(this)">Vertical</button></div><small id="sg-screen-orientation-error" class="sg-error"></small></fieldset>
+      <div class="sg-dimensions"><label class="sg-field" for="sg-screen-width"><span>Ancho declarado (px)</span><input class="control-input" id="sg-screen-width" type="number" min="320" max="7680" step="1" value="1920" aria-describedby="sg-screen-width-error"><small id="sg-screen-width-error" class="sg-error"></small></label><label class="sg-field" for="sg-screen-height"><span>Alto declarado (px)</span><input class="control-input" id="sg-screen-height" type="number" min="320" max="7680" step="1" value="1080" aria-describedby="sg-screen-height-error"><small id="sg-screen-height-error" class="sg-error"></small></label></div>
+      <div class="sg-form-actions"><button type="button" class="btn btn-secondary" onclick="closeSideDrawer()">Cancelar</button><button type="submit" class="btn btn-primary">Agregar pantalla</button></div>
+    </form>`
+    requestAnimationFrame(() => document.getElementById('sg-screen-name')?.focus())
+  } })
+}
+
+function signageChooseScreenOrientation(button) {
+  button.closest('.sg-type-options').querySelectorAll('[data-screen-orientation]').forEach(option => {
+    const selected = option === button
+    option.classList.toggle('selected', selected)
+    option.setAttribute('aria-checked', String(selected))
+  })
+  const vertical = button.dataset.screenOrientation === 'vertical'
+  const width = document.getElementById('sg-screen-width')
+  const height = document.getElementById('sg-screen-height')
+  if (width && height) { width.value = vertical ? '1080' : '1920'; height.value = vertical ? '1920' : '1080' }
+}
+
+function signageSubmitScreen(event) {
+  event.preventDefault()
+  document.querySelectorAll('.sg-error').forEach(el => { el.textContent = '' })
+  const input = {
+    name: document.getElementById('sg-screen-name').value,
+    plant: document.getElementById('sg-screen-plant').value,
+    orientation: document.querySelector('[data-screen-orientation].selected')?.dataset.screenOrientation,
+    width: document.getElementById('sg-screen-width').value,
+    height: document.getElementById('sg-screen-height').value,
+  }
+  try {
+    const result = SignagePhase1.createTestScreen(_signageState, input, signageContext())
+    if (!signageSaveState(result.state)) return
+    closeSideDrawer(); renderSignageHome(); toast('Pantalla agregada al modo de prueba. No se conectó ninguna TV real.')
+  } catch (error) {
+    Object.entries(error.fields || {}).forEach(([field, message]) => {
+      const inputEl = document.getElementById('sg-screen-' + field)
+      const errorEl = document.getElementById('sg-screen-' + field + '-error')
+      inputEl?.setAttribute('aria-invalid', 'true')
+      if (errorEl) errorEl.textContent = message
+    })
+    const first = Object.keys(error.fields || {})[0]
+    document.getElementById('sg-screen-' + first)?.focus()
+    if (!error.fields) toast(error.message || 'No se pudo registrar la pantalla de prueba.')
+  }
+}
+
 function signageLibraryHtml() {
-  if (!_signageState.contents.length) return emptyStateHtml({ title: 'Sin piezas locales', desc: 'Crea un mensaje sintético para publicarlo en una pantalla de prueba.', actionLabel: 'Nueva pieza', actionOnClick: 'signageOpenContentDrawer()' })
-  return `<div class="sg-library">${_signageState.contents.map(content => `<article class="panel sg-content-card"><div class="sg-content-preview sg-theme-${escAttr(content.theme)}" aria-hidden="true"><span>${content.type === 'image' ? 'IMAGEN HTTPS' : content.type === 'video' ? 'VIDEO HTTPS' : esc(content.title)}</span></div><div class="sg-content-copy"><div><h4>${esc(content.title)}</h4><p>${esc(content.body || content.alt || '')}</p></div><div class="sg-sub">${esc(signageTypeLabel(content.type))} · ${esc(signageThemeLabel(content.theme))} · ${esc(content.createdBy)}</div></div></article>`).join('')}</div>`
+  if (!_signageState.contents.length) return emptyStateHtml({ title: 'Aún no agregas contenido', desc: 'Agrega un mensaje, imagen, video o enlace y después elige dónde mostrarlo.', actionLabel: 'Agregar contenido', actionOnClick: 'signageOpenContentDrawer()' })
+  return `<div class="sg-library">${_signageState.contents.map(content => `<article class="panel sg-content-card"><div class="sg-content-preview sg-theme-${escAttr(content.theme)}" aria-hidden="true"><span>${content.type === 'image' ? 'IMAGEN' : content.type === 'video' ? 'VIDEO' : content.type === 'link' ? 'ENLACE' : esc(content.title)}</span></div><div class="sg-content-copy"><div><h4>${esc(content.title)}</h4><p>${esc(content.body || content.alt || content.url || '')}</p></div><div class="sg-sub">${esc(signageTypeLabel(content.type))} · ${esc(signageThemeLabel(content.theme))} · ${esc(content.createdBy)}</div></div></article>`).join('')}</div>`
 }
 
 function signageProgrammingHtml() {
-  if (!_signageState.playlists.length && !_signageState.schedules.length) return emptyStateHtml({ title: 'Sin programación local', desc: 'Crea una lista ordenada y después asigna una ventana a una pantalla sintética.' })
+  if (!_signageState.playlists.length && !_signageState.schedules.length) return emptyStateHtml({ title: 'Aún no creas listas ni horarios', desc: 'Cuando tengas contenido, puedes combinarlo en una lista y elegir cuándo mostrarlo.' })
   const schedules = _signageState.schedules.map(schedule => {
     const screen = _signageState.screens.find(item => item.id === schedule.screenId)
     const playlist = _signageState.playlists.find(item => item.id === schedule.playlistId)
@@ -520,15 +747,16 @@ function signageAuditHtml() {
 
 function signageOpenContentDrawer() {
   if (!signageContext().canManage) { toast('No tienes permiso para crear contenido.'); return }
-  openSideDrawer({ eyebrow: 'Señalización · Fase 3', title: 'Nueva pieza local', onTab: () => {
+  openSideDrawer({ eyebrow: 'Pantallas · Contenido', title: 'Agregar contenido', onTab: () => {
     document.getElementById('sd-body').innerHTML = `<form class="sg-form" onsubmit="signageSubmitContent(event)" novalidate>
-      <div class="sg-form-note">La configuración se guarda en este navegador. Las URLs multimedia se reproducen desde su origen y requieren red; no se descargan ni validan en una TV.</div>
-      <fieldset class="sg-theme-field"><legend>Tipo de pieza</legend><div class="sg-type-options" role="radiogroup">${['message','image','video'].map((type,index)=>`<button type="button" class="sg-type-option${index===0?' selected':''}" data-content-type="${type}" role="radio" aria-checked="${index===0}" onclick="signageChooseContentType(this)">${esc(signageTypeLabel(type))}</button>`).join('')}</div></fieldset>
+      <div class="sg-form-note">Si vinculaste una pantalla, puedes subir un archivo. En modo de prueba también puedes usar una URL HTTPS.</div>
+      <fieldset class="sg-theme-field"><legend>¿Qué quieres mostrar?</legend><div class="sg-type-options" role="radiogroup">${['message','image','video','link'].map((type,index)=>`<button type="button" class="sg-type-option${index===0?' selected':''}" data-content-type="${type}" role="radio" aria-checked="${index===0}" onclick="signageChooseContentType(this)">${esc(signageTypeLabel(type))}</button>`).join('')}</div></fieldset>
       <label class="sg-field" for="sg-content-title"><span>Título <b aria-hidden="true">*</b></span><input class="control-input" id="sg-content-title" maxlength="80" required aria-describedby="sg-content-title-error"><small id="sg-content-title-error" class="sg-error"></small></label>
       <label class="sg-field" for="sg-content-body"><span id="sg-body-label">Mensaje <b aria-hidden="true">*</b></span><textarea class="control-input sg-textarea" id="sg-content-body" maxlength="240" required aria-describedby="sg-content-body-error"></textarea><small id="sg-content-body-error" class="sg-error"></small></label>
-      <div id="sg-media-fields" hidden><label class="sg-field" for="sg-content-mediaUrl"><span>URL HTTPS <b aria-hidden="true">*</b></span><input class="control-input" id="sg-content-mediaUrl" inputmode="url" maxlength="2048" aria-describedby="sg-content-mediaUrl-error"><small id="sg-content-mediaUrl-error" class="sg-error"></small></label><label class="sg-field" for="sg-content-alt"><span>Descripción accesible <b aria-hidden="true">*</b></span><input class="control-input" id="sg-content-alt" maxlength="180" aria-describedby="sg-content-alt-error"><small id="sg-content-alt-error" class="sg-error"></small></label></div>
+      <div id="sg-media-fields" hidden><label class="sg-field" for="sg-content-file"><span>Archivo de imagen o video</span><input class="control-input sg-file-input" id="sg-content-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" onchange="signagePreviewUpload(this)"><small class="sg-muted">Máximo propuesto: 10 MB por imagen y 50 MB por video.</small></label><div id="sg-upload-preview" class="sg-upload-preview" hidden></div><div class="sg-or"><span>o, en modo de prueba</span></div><label class="sg-field" for="sg-content-mediaUrl"><span>URL HTTPS del archivo</span><input class="control-input" id="sg-content-mediaUrl" inputmode="url" maxlength="2048" aria-describedby="sg-content-mediaUrl-error"><small id="sg-content-mediaUrl-error" class="sg-error"></small></label><label class="sg-field" for="sg-content-alt"><span>Descripción accesible <b aria-hidden="true">*</b></span><input class="control-input" id="sg-content-alt" maxlength="180" aria-describedby="sg-content-alt-error"><small id="sg-content-alt-error" class="sg-error"></small></label></div>
+      <div id="sg-link-fields" hidden><label class="sg-field" for="sg-content-url"><span>Enlace HTTPS <b aria-hidden="true">*</b></span><input class="control-input" id="sg-content-url" inputmode="url" maxlength="2048" placeholder="https://" aria-describedby="sg-content-url-error"><small id="sg-content-url-error" class="sg-error"></small></label><div class="sg-form-note">Se mostrará como una tarjeta segura. No todos los sitios permiten verse dentro de una pantalla y no se abrirán iframes arbitrarios.</div></div>
       <fieldset class="sg-theme-field"><legend>Estilo de contenido</legend><div class="sg-theme-options" role="radiogroup">${['neutral','teal','blue'].map((theme, index) => `<button type="button" class="sg-theme-option${index === 0 ? ' selected' : ''}" data-theme="${theme}" role="radio" aria-checked="${index === 0}" onclick="signageChooseTheme(this)"><span class="sg-theme-swatch sg-theme-${theme}"></span>${esc(signageThemeLabel(theme))}</button>`).join('')}</div></fieldset>
-      <div class="sg-form-actions"><button type="button" class="btn btn-secondary" onclick="closeSideDrawer()">Cancelar</button><button type="submit" class="btn btn-primary">Guardar pieza local</button></div>
+      <div class="sg-form-actions"><button type="button" class="btn btn-secondary" onclick="closeSideDrawer()">Cancelar</button><button type="submit" class="btn btn-primary">Guardar contenido</button></div>
     </form>`
     requestAnimationFrame(() => document.getElementById('sg-content-title')?.focus())
   } })
@@ -541,8 +769,12 @@ function signageChooseContentType(button) {
     option.setAttribute('aria-checked', String(selected))
   })
   const isMessage = button.dataset.contentType === 'message'
+  const isMedia = button.dataset.contentType === 'image' || button.dataset.contentType === 'video'
+  const isLink = button.dataset.contentType === 'link'
   const media = document.getElementById('sg-media-fields')
-  if (media) media.hidden = isMessage
+  if (media) media.hidden = !isMedia
+  const link = document.getElementById('sg-link-fields')
+  if (link) link.hidden = !isLink
   const body = document.getElementById('sg-content-body')
   if (body) body.required = isMessage
   const label = document.getElementById('sg-body-label')
@@ -557,22 +789,55 @@ function signageChooseTheme(button) {
   })
 }
 
-function signageSubmitContent(event) {
+function signagePreviewUpload(input) {
+  const file = input.files?.[0]
+  const host = document.getElementById('sg-upload-preview')
+  if (!host) return
+  if (!file) { host.hidden = true; host.innerHTML = ''; return }
+  const url = URL.createObjectURL(file)
+  host.hidden = false
+  host.innerHTML = file.type.startsWith('video/') ? `<video src="${escAttr(url)}" controls muted aria-label="Vista previa del video"></video><span>${esc(file.name)}</span>` : `<img src="${escAttr(url)}" alt="Vista previa del archivo seleccionado"><span>${esc(file.name)}</span>`
+}
+
+async function signageSubmitContent(event) {
   event.preventDefault()
   const title = document.getElementById('sg-content-title')
   const body = document.getElementById('sg-content-body')
   const type = document.querySelector('.sg-type-option.selected')?.dataset.contentType || 'message'
   const mediaUrl = document.getElementById('sg-content-mediaUrl')
   const alt = document.getElementById('sg-content-alt')
+  const url = document.getElementById('sg-content-url')
+  const file = document.getElementById('sg-content-file')?.files?.[0] || null
   const theme = document.querySelector('.sg-theme-option.selected')?.dataset.theme || 'neutral'
   document.querySelectorAll('.sg-error').forEach(el => { el.textContent = '' })
-  ;[title, body, mediaUrl, alt].forEach(input => input?.removeAttribute('aria-invalid'))
+  ;[title, body, mediaUrl, alt, url].forEach(input => input?.removeAttribute('aria-invalid'))
   try {
-    const result = SignagePhase1.createContent(_signageState, { type, title: title.value, body: body.value, theme, mediaUrl: mediaUrl?.value, alt: alt?.value }, signageContext())
+    let remote = null
+    let uploaded = null
+    const hasPairedScreen = _signageState.screens.some(screen => screen.kind === 'paired')
+    const candidateMediaUrl = file ? `https://assets.invalid/${encodeURIComponent(file.name)}` : mediaUrl?.value
+    const validation = SignagePhase1.validateContent({ type, title: title.value, body: body.value, theme, mediaUrl: candidateMediaUrl, alt: alt?.value, url: url?.value })
+    if (!validation.ok) { const validationError = new Error('Corrige los campos marcados.'); validationError.fields = validation.errors; throw validationError }
+    if (file) {
+      const expected = type === 'image' ? 'image/' : type === 'video' ? 'video/' : ''
+      if (!expected || !file.type.startsWith(expected)) throw new Error('El archivo elegido no coincide con el tipo de contenido.')
+      const client = signageBackendClient()
+      uploaded = await client.upload(file)
+      remote = await client.createContent({ type, title: title.value, body: body.value, alt: alt?.value, uploadId: uploaded.upload.id })
+    } else if (hasPairedScreen && (type === 'message' || type === 'link')) {
+      remote = await signageBackendClient().createContent({ type, title: title.value, body: body.value, url: url?.value })
+    }
+    const localMediaUrl = candidateMediaUrl
+    const result = SignagePhase1.createContent(_signageState, { type, title: title.value, body: body.value, theme, mediaUrl: localMediaUrl, alt: alt?.value, url: url?.value }, signageContext())
+    if (remote) {
+      result.content.backendContentId = remote.content.id
+      result.content.backendAssetId = uploaded?.upload.id || null
+      if (uploaded) result.content.mediaUrl = new URL(uploaded.upload.url, new URL(signageBackendClient().baseUrl).origin).href
+    }
     if (!signageSaveState(result.state)) return
     closeSideDrawer()
     renderSignageHome()
-    toast('Pieza guardada únicamente en este navegador.')
+    toast(remote ? 'Contenido guardado y listo para pantallas vinculadas.' : 'Contenido guardado en modo de prueba.')
   } catch (error) {
     if (error.fields) {
       Object.entries(error.fields).forEach(([field, message]) => {
@@ -581,10 +846,10 @@ function signageSubmitContent(event) {
         input?.setAttribute('aria-invalid', 'true')
         if (errorEl) errorEl.textContent = message
       })
-      ;(error.fields.title ? title : error.fields.body ? body : error.fields.mediaUrl ? mediaUrl : alt)?.focus()
+      ;(error.fields.title ? title : error.fields.body ? body : error.fields.mediaUrl ? mediaUrl : error.fields.alt ? alt : url)?.focus()
       return
     }
-    toast(error.message || 'No se pudo crear la pieza local.')
+    toast(error.message || 'No se pudo agregar el contenido.')
   }
 }
 
@@ -601,12 +866,18 @@ function signageOpenPlaylistDrawer() {
   } })
 }
 
-function signageSubmitPlaylist(event) {
+async function signageSubmitPlaylist(event) {
   event.preventDefault()
   document.querySelectorAll('.sg-error').forEach(el => { el.textContent = '' })
   const entries = [...document.querySelectorAll('.sg-entry-row')].filter(row => row.querySelector('.sg-entry.selected')).map(row => ({ contentId: row.querySelector('.sg-entry').dataset.contentId, durationSeconds: row.querySelector('.sg-duration').value }))
   try {
     const result = SignagePhase1.createPlaylist(_signageState, { name: document.getElementById('sg-playlist-name').value, entries }, signageContext())
+    if (_signageState.screens.some(screen => screen.kind === 'paired')) {
+      const remoteEntries = entries.map(entry => ({ contentId: signageContentById(entry.contentId)?.backendContentId, durationSeconds: Number(entry.durationSeconds) }))
+      if (remoteEntries.some(entry => !entry.contentId)) throw new Error('Para usar esta lista en una pantalla vinculada, primero guarda todos sus contenidos en el servicio.')
+      const remote = await signageBackendClient().createPlaylist({ name: result.playlist.name, entries: remoteEntries })
+      result.playlist.backendPlaylistId = remote.playlist.id
+    }
     if (!signageSaveState(result.state)) return
     closeSideDrawer(); renderSignageHome(); toast('Lista guardada únicamente en este navegador.')
   } catch (error) {
@@ -647,7 +918,7 @@ function signageChooseOne(button, selector) {
   })
 }
 
-function signageSubmitSchedule(event) {
+async function signageSubmitSchedule(event) {
   event.preventDefault()
   document.querySelectorAll('.sg-error').forEach(el => { el.textContent = '' })
   const input = {
@@ -659,6 +930,13 @@ function signageSubmitSchedule(event) {
   }
   try {
     const result = SignagePhase1.createSchedule(_signageState, input, signageContext())
+    const screen = _signageState.screens.find(item => item.id === input.screenId)
+    const playlist = _signageState.playlists.find(item => item.id === input.playlistId)
+    if (screen?.kind === 'paired') {
+      if (!playlist?.backendPlaylistId) throw new Error('Esta lista todavía no está guardada en el servicio de Pantallas.')
+      const remote = await signageBackendClient().createSchedule({ deviceId: screen.id, playlistId: playlist.backendPlaylistId, startsAt: new Date(input.startsAt).toISOString(), endsAt: new Date(input.endsAt).toISOString(), priority: Number(input.priority) })
+      result.schedule.backendScheduleId = remote.schedule.id
+    }
     if (!signageSaveState(result.state)) return
     closeSideDrawer(); renderSignageHome(); toast('Horario guardado únicamente en este navegador.')
   } catch (error) {
@@ -679,13 +957,24 @@ function signageOpenPublishDrawer(screenId) {
   } })
 }
 
-function signagePublish(screenId, contentId) {
+async function signagePublish(screenId, contentId) {
   try {
+    const screen = _signageState.screens.find(item => item.id === screenId)
+    const content = signageContentById(contentId)
+    if (screen?.kind === 'paired') {
+      let backendContentId = content?.backendContentId
+      if (!backendContentId && content && (content.type === 'message' || content.type === 'link')) {
+        const remote = await signageBackendClient().createContent({ type: content.type, title: content.title, body: content.body, url: content.url })
+        backendContentId = remote.content.id; content.backendContentId = backendContentId
+      }
+      if (!backendContentId) throw new Error('Para mostrar esta imagen o video en una pantalla vinculada, vuelve a agregarlo usando “Archivo de imagen o video”.')
+      await signageBackendClient().publish(screen.id, backendContentId)
+    }
     const result = SignagePhase1.publishContent(_signageState, screenId, contentId, signageContext())
     if (!signageSaveState(result.state)) return
     closeSideDrawer()
     renderSignageHome()
-    toast('Publicación local aplicada a ' + result.screen.name + '.')
+    toast(screen?.kind === 'paired' ? `Contenido enviado a ${result.screen.name}.` : `Contenido mostrado en ${result.screen.name} dentro de este navegador.`)
   } catch (error) { toast(error.message || 'No se pudo publicar localmente.') }
 }
 
@@ -700,16 +989,42 @@ function signageRollback(screenId) {
   } catch (error) { toast(error.message || 'No se pudo restaurar la publicación.') }
 }
 
+async function signageStartLive(screenId) {
+  const screen = _signageState.screens.find(item => item.id === screenId)
+  if (!screen || screen.kind !== 'paired') { toast('Primero vincula una pantalla con su código.'); return }
+  if (_signageLiveSender) { toast('Ya estás compartiendo tu pantalla. Detén esa transmisión primero.'); return }
+  try {
+    const sender = SignageLiveShare.createSender({
+      client: signageBackendClient(),
+      deviceId: screen.id,
+      onStop: () => { _signageLiveSender = null; _signageLiveScreenId = null; renderSignageHome() },
+    })
+    _signageLiveSender = sender; _signageLiveScreenId = screen.id
+    await sender.start()
+    renderSignageHome(); toast('Tu pantalla se está compartiendo. Usa “Dejar de compartir” para terminar.')
+  } catch (error) {
+    _signageLiveSender = null; _signageLiveScreenId = null
+    toast(error.name === 'NotAllowedError' ? 'No se compartió nada. Tú decides qué ventana o pantalla permitir.' : error.message || 'No se pudo iniciar la transmisión.')
+  }
+}
+
+async function signageStopLive() {
+  const sender = _signageLiveSender
+  _signageLiveSender = null; _signageLiveScreenId = null
+  await sender?.stop()
+  renderSignageHome(); toast('Dejaste de compartir. La pantalla volvió a su contenido programado.')
+}
+
 function signageShowPlayer(screenId) {
   const result = SignagePhase1.resolvePlayback(_signageState, screenId)
   if (!result.screen) { toast('La pantalla ya no está disponible.'); return }
   if (_signagePlayerTimer) clearInterval(_signagePlayerTimer)
   _signagePlayerFailure = null
   document.getElementById('product-controls').style.display = 'none'
-  setSecCrumbs([{ label: 'Señalización', onclick: 'showSignage()' }, { label: result.screen.name }])
+  setSecCrumbs([{ label: 'Pantallas', onclick: 'showSignage()' }, { label: result.screen.name }])
   document.getElementById('sec-title').textContent = result.screen.name
   document.getElementById('sec-sub').textContent = 'Reproductor local de prueba · no representa una televisión conectada'
-  document.getElementById('pg').innerHTML = `<div class="sg-player-page"><div class="sg-player-toolbar"><span class="sg-status sg-status-unknown">Sin telemetría</span><span>Perfil declarado: ${esc(result.screen.profile)}</span><button class="btn btn-secondary btn-sm" onclick="document.getElementById('sg-player-frame')?.requestFullscreen?.()">Pantalla completa</button></div><div id="sg-player-host"></div><p class="sg-player-disclaimer">El texto y la programación están en localStorage. Los medios HTTPS no se cachean: una falla de red intenta el último contenido válido local, pero no demuestra continuidad offline ni estado físico de una TV.</p></div>`
+  document.getElementById('pg').innerHTML = `<div class="sg-player-page"><div class="sg-player-toolbar"><span class="sg-status sg-status-unknown">Vista de prueba</span><span>${esc(result.screen.profile)}</span><button class="btn btn-secondary btn-sm" onclick="document.getElementById('sg-player-frame')?.requestFullscreen?.()">Pantalla completa</button></div><div id="sg-player-host"></div><p class="sg-player-disclaimer">Esta vista funciona en el navegador actual. Las imágenes y videos por URL requieren conexión; una TV vinculada usa el reproductor independiente.</p></div>`
   signageRenderPlayer(screenId)
   _signagePlayerTimer = setInterval(() => signageRefreshPlayer(screenId), 1000)
 }
@@ -719,6 +1034,7 @@ function signagePlayerBody(result) {
   if (!content) return `<div class="sg-player-empty"><b>Sin contenido reproducible</b><span>No existe una publicación local válida para recuperar.</span></div>`
   if (content.type === 'image') return `<div class="sg-player-media"><img src="${escAttr(content.mediaUrl)}" alt="${escAttr(content.alt)}" onload="signageRecordPlaybackSuccess('${escAttr(result.screen.id)}','${escAttr(content.id)}')" onerror="signagePlayerMediaFailed('${escAttr(result.screen.id)}','${escAttr(content.id)}')"><div class="sg-media-caption"><b>${esc(content.title)}</b>${content.body ? `<span>${esc(content.body)}</span>` : ''}</div></div>`
   if (content.type === 'video') return `<div class="sg-player-media"><video src="${escAttr(content.mediaUrl)}" aria-label="${escAttr(content.alt)}" autoplay muted playsinline oncanplay="signageRecordPlaybackSuccess('${escAttr(result.screen.id)}','${escAttr(content.id)}')" onerror="signagePlayerMediaFailed('${escAttr(result.screen.id)}','${escAttr(content.id)}')"></video><div class="sg-media-caption"><b>${esc(content.title)}</b>${content.body ? `<span>${esc(content.body)}</span>` : ''}</div></div>`
+  if (content.type === 'link') return `<div class="sg-player-content"><div class="sg-player-eyebrow">ENLACE SEGURO</div><h2>${esc(content.title)}</h2><p>${esc(content.body || content.url)}</p><small>${esc(content.url)}</small></div>`
   return `<div class="sg-player-content"><div class="sg-player-eyebrow">SIERRA · PRUEBA LOCAL</div><h2>${esc(content.title)}</h2><p>${esc(content.body)}</p></div>`
 }
 
@@ -756,11 +1072,11 @@ function signagePlayerMediaFailed(screenId, contentId) {
 }
 
 function signageResetLocalData() {
-  if (!signageContext().canManage || !confirm('¿Restablecer piezas, publicaciones e historial sintéticos de este navegador?')) return
+  if (!signageContext().canManage || !confirm('¿Borrar las pantallas, contenidos y horarios guardados en este navegador?')) return
   try {
     _signageState = signageRepository().reset()
     _signageLoadWarning = ''
     renderSignageHome()
-    toast('Datos sintéticos restablecidos.')
+    toast('Se borraron los datos del modo de prueba.')
   } catch { toast('No se pudo restablecer el almacenamiento local.') }
 }
