@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Academia editor · visual QA</title>
+  <link rel="stylesheet" href="../css/academy.css">
+  <style>
+    @font-face{font-family:Aeonik;src:url("../Aeonik-Regular.ttf")}@font-face{font-family:Aeonik;src:url("../Aeonik-Medium.ttf");font-weight:600}@font-face{font-family:Replica;src:url("../Replica Regular.otf")}@font-face{font-family:Replica;src:url("../Replica Bold.otf");font-weight:600}
+    :root{--text:#2b2b2b;--text-3:#666;--border:#e5e5e5;--surface:#fff;--bg:#f5f5f5;--module-academy-light:#efefaf;--module-academy-dark:#827e00;--r-md:8px}
+    *{box-sizing:border-box}body{margin:0;background:#f5f5f5;color:#2b2b2b;font-family:Aeonik,system-ui,sans-serif}.page-title{padding:20px 24px 12px}.page-title h1{margin:0;font:600 28px/1 Replica,sans-serif}.page-title p{margin:5px 0 0;color:#666}.btn,.icon-btn{min-height:44px;border:1px solid #d5d5d5;border-radius:8px;background:#fff;color:#2b2b2b;font:600 13px/1 Aeonik,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 14px}.btn-primary{border-color:#2b2b2b;background:#2b2b2b;color:#fff}.btn-sm{min-height:36px}.btn-ghost{border-color:transparent;background:transparent}.icon-btn{width:44px;padding:0}.control-input,select{width:100%;min-height:44px;padding:9px 11px;border:1px solid #d5d5d5;border-radius:8px;background:#fff;color:#2b2b2b;font:400 14px/1.4 Aeonik,sans-serif}
+  </style>
+</head>
+<body>
+  <header class="page-title"><h1 id="sec-title">Creador de diplomas</h1><p id="sec-sub">Carta horizontal · frente y reverso</p></header>
+  <main id="pg"></main>
+  <script>
+    window.esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));window.escAttr=window.esc;
+    window.siIcon=(name,size=24)=>`<svg class="si-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="5"></circle><path d="M9 14l-1 7 4-2 4 2-1-7"></path></svg>`;
+    window.policyDurableAssetUrl=value=>String(value||'');window.companyColor=value=>value;window.can=()=>true;window.toast=()=>{};window.setSecCrumbs=()=>{};window.clearSecCrumbs=()=>{};
+    window.pdSelect=(id,options,value,placeholder,handler)=>`<select id="${id}" onchange="${handler}(this.value)">${options.map(option=>`<option value="${option.value}" ${String(option.value)===String(value)?'selected':''}>${option.label}</option>`).join('')}</select>`;
+    window._policyCompanies=[{id:'pdm',name:'Pride Denim Mills',legal_name:'Pride Denim Mills, S.A.',brand_color:'#FF6B35',logo_url:''},{id:'hsm',name:'Honduras Spinning Mills',brand_color:'#8A9A00',logo_url:''}];
+  </script>
+  <script src="../js/academy.js"></script>
+  <script>academyNew();academyPickCompany('pdm');</script>
+</body>
+</html>

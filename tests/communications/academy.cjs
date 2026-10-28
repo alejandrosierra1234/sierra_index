@@ -32,7 +32,9 @@ w.eval(source)
 
 const diploma = w.academyDefault()
 diploma.companyId = 'company-1'
-diploma.companyName = 'SIERRA'
+diploma.companyName = 'Pride Chemicals'
+diploma.companyLegalName = 'Pride Chemicals, S.A.'
+diploma.companyColor = '#FF6B35'
 diploma.recipientName = 'Luisa Alburez'
 diploma.recipients = [
   { uid: 'recipient-1', name: 'Luisa Alburez' },
@@ -49,15 +51,32 @@ assert.match(front, /data-academy-face="front"/)
 assert.match(front, /Luisa Alburez/)
 assert.match(front, /Liderazgo intencional/)
 assert.match(front, /https:\/\/assets\.test\/logo\.svg/)
+assert.match(front, /Pride Chemicals · Academia/)
+assert.match(front, /Documento emitido por<\/small><b>Pride Chemicals<\/b>/)
+assert.doesNotMatch(front, /SIERRA ACADEMIA|SIERRA Academia/)
 assert.doesNotMatch(front, /academy-logo-fallback/)
 assert.equal((front.match(/<img src="https:\/\/assets\.test\/logo\.svg"/g) || []).length, 1)
 assert.match(front, /academy-identity-rail is-pattern/)
 assert.equal((front.match(/class="academy-signature"/g) || []).length, 2)
 assert.match(back, /data-academy-face="back"/)
 assert.match(back, /Contenido del curso/)
+assert.match(back, /Pride Chemicals · Registro de formación/)
+assert.doesNotMatch(back, /SIERRA ACADEMIA|SIERRA Academia/)
 assert.match(back, /academy-identity-rail is-pattern/)
 assert.equal((back.match(/class="academy-curriculum-row"/g) || []).length, 3)
 assert.equal(w.academyTotalHours(diploma), 8)
+assert.equal(JSON.stringify(w.academyPalette(diploma)), JSON.stringify({ light: '#FFDED3', base: '#FF6B35', dark: '#AC4A27' }))
+
+w._policyCompanies = [{
+  id: 'company-1', name: 'Pride Denim Mills', legal_name: 'Pride Denim Mills, S.A.',
+  logo_url: 'https://assets.test/pdm.svg', brand_color: '#FF6B35',
+}]
+const legacy = w.academyNormalize({ ...diploma, companyName: 'SIERRA', companyLogo: '', companyColor: '#16CDBE', location: 'SIERRA Academia' })
+w.academyApplyCompanyIdentity(legacy)
+assert.equal(legacy.companyName, 'Pride Denim Mills')
+assert.equal(legacy.companyLogo, 'https://assets.test/pdm.svg')
+assert.equal(legacy.companyColor, '#FF6B35')
+assert.equal(legacy.location, 'Pride Denim Mills')
 
 const batch = w.academyRecipientDocuments(diploma)
 assert.equal(batch.length, 3)
@@ -87,7 +106,10 @@ assert.match(css, /\.academy-preview-stage\{[^}]*overflow:auto[^}]*scrollbar-gut
 assert.match(css, /\.academy-studio,\.academy-studio \*\{box-sizing:border-box\}/)
 assert.match(css, /\.academy-customizer>\*\{width:100%;min-width:0;max-width:100%\}/)
 assert.match(css, /\.academy-recipient-list\{[^}]*overflow:auto/)
-assert.match(css, /\.academy-identity-rail\{[^}]*right:0[^}]*width:152px/)
+assert.match(css, /\.academy-identity-rail\{[^}]*right:0[^}]*width:244px/)
+assert.match(css, /\.academy-brand-palette\{/)
+assert.match(css, /font-family:"Aeonik","DM Sans"/)
+assert.doesNotMatch(css, /\.academy-sheet\{[^}]*font-family:[^}]*Arial/)
 assert.match(css, /@media\(max-width:900px\)/)
 assert.match(css, /@media\(max-width:375px\)/)
 

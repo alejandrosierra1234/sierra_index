@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Academia · visual QA</title>
+  <link rel="stylesheet" href="../css/academy.css">
+  <style>
+    :root{--text:#2b2b2b;--text-3:#666;--border:#e5e5e5;--surface:#fff;--bg:#f5f5f5;--module-academy-light:#efefaf;--module-academy-dark:#827e00}
+    body{margin:0;padding:32px;background:#e8ebe9;font-family:Aeonik,system-ui,sans-serif}
+    main{display:grid;gap:32px;justify-content:center}.academy-sheet{box-shadow:0 18px 52px rgba(23,23,23,.18)}
+  </style>
+</head>
+<body>
+  <main id="qa"></main>
+  <script>
+    window.esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    window.escAttr=window.esc;window.policyDurableAssetUrl=value=>String(value||'');window.companyColor=value=>value;window.can=()=>true;
+    window.siIcon=(name,size=24)=>`<svg class="si-icon" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="5"></circle><path d="M9 14l-1 7 4-2 4 2-1-7"></path></svg>`;
+  </script>
+  <script src="../js/academy.js"></script>
+  <script>
+    const diploma=academyDefault();
+    Object.assign(diploma,{companyId:'visual-qa',companyName:'Pride Denim Mills',companyLegalName:'Pride Denim Mills, S.A.',companyColor:'#FF6B35',location:'Pride Denim Mills',recipientName:'Luisa Alburez',recipients:[{uid:'luisa',name:'Luisa Alburez'}],courseTitle:'Liderazgo para operaciones textiles',courseDescription:'Por haber completado satisfactoriamente el programa de formación y demostrado los conocimientos requeridos.',certificateNo:'PDM-ACA-2026-014'});
+    diploma.signers=[{uid:'one',name:'Pablo Hernández',title:'Vicepresidente',signature:''},{uid:'two',name:'María Fernanda López',title:'Directora de Talento',signature:''}];
+    document.getElementById('qa').innerHTML=academyFrontHtml(diploma)+academyBackHtml(diploma);
+  </script>
+</body>
+</html>
