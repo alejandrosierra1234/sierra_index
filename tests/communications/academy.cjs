@@ -126,6 +126,7 @@ assert.match(css, /\.academy-front-footer\{[^}]*grid-template-columns:repeat\(9/
 assert.match(css, /\.academy-back-head\{[^}]*grid-template-columns:repeat\(9/)
 assert.doesNotMatch(css, /\.academy-curriculum-row:nth-child/)
 assert.match(css, /@font-face\{font-family:"TT Milks Script"/)
+assert.match(css, /\.academy-front-main h2\{[^}]*font:400 68px\/\.96 "TT Milks Script"/)
 assert.match(css, /\.academy-signature-script\{[^}]*font:400 30px\/\.95 "TT Milks Script"/)
 assert.equal(fs.existsSync(signatureFont), true)
 assert.match(css, /\.academy-brand-palette\{/)
