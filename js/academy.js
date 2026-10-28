@@ -1,4 +1,4 @@
-/* SIERRA Academia — two-sided landscape Letter certificate creator. */
+/* SIERRA certificates — two-sided landscape Letter certificate creator. */
 (function academyModule(){
 'use strict';
 
@@ -39,7 +39,7 @@ function academyDefault(){
     id:academyId(),status:'Borrador',companyId:'',companyName:'',companyLegalName:'',companyLogo:'',companyColor:'#16CDBE',
     decorMode:'pattern',decorIcon:'award',decorImage:'',
     certificateTitle:'Certificado de finalización',recipientName:'Nombre de la persona',recipients:[{uid:academyId('recipient'),name:'Nombre de la persona'}],courseTitle:'Nombre del curso',courseDescription:'Por haber completado satisfactoriamente el programa de formación.',
-    issueDate:academyIsoDate(),durationHours:8,certificateNo:`ACA-${year}-001`,location:'',
+    issueDate:academyIsoDate(),durationHours:8,certificateNo:`ACA-${year}-001`,location:'',laborRegistration:'',
     signers:[{uid:academyId('signer'),name:'Nombre del firmante',title:'Cargo',signature:''}],
     contents:[
       {uid:academyId('module'),title:'Fundamentos',description:'Conceptos esenciales y contexto del curso.',hours:2},
@@ -63,7 +63,7 @@ function academyNormalize(source={}){
   d.recipients=recipientSource.slice(0,ACADEMY_MAX_RECIPIENTS).map(item=>typeof item==='string'?{name:item}:item||{}).map(item=>({uid:item.uid||academyId('recipient'),name:String(item.name||'').trim()})).filter(item=>item.name&&!recipientSeen.has(item.name.toLocaleLowerCase('es'))&&recipientSeen.add(item.name.toLocaleLowerCase('es')));
   d.recipientName=d.recipients[0]?.name||d.recipientName;
   d.courseTitle=String(d.courseTitle||'');d.courseDescription=String(d.courseDescription||'');
-  d.issueDate=String(d.issueDate||'');d.durationHours=academyNumber(d.durationHours);d.certificateNo=String(d.certificateNo||'');d.location=String(d.location||'');
+  d.issueDate=String(d.issueDate||'');d.durationHours=academyNumber(d.durationHours);d.certificateNo=String(d.certificateNo||'');d.location=String(d.location||'');d.laborRegistration=String(d.laborRegistration||'').trim();
   d.signers=(Array.isArray(d.signers)?d.signers:[]).slice(0,ACADEMY_MAX_SIGNERS).map(item=>({uid:item.uid||academyId('signer'),name:String(item.name||''),title:String(item.title||''),signature:String(item.signature||'')}));
   if(!d.signers.length)d.signers=[{uid:academyId('signer'),name:'',title:'',signature:''}];
   d.contents=(Array.isArray(d.contents)?d.contents:[]).slice(0,ACADEMY_MAX_MODULES).map(item=>({uid:item.uid||academyId('module'),title:String(item.title||''),description:String(item.description||''),hours:academyNumber(item.hours)}));
@@ -104,7 +104,7 @@ async function academyLoad(){
     academyWriteLocal();
   }catch(error){
     if(/academy_diploma_list|schema cache|does not exist|PGRST202/i.test(error?.message||''))_academyCloudAvailable=false;
-    else console.warn('No se pudieron cargar los certificados de Academia:',error);
+    else console.warn('No se pudieron cargar los certificados:',error);
   }
 }
 function academySetSaveState(message,state='saved'){
@@ -137,7 +137,7 @@ async function academySaveCloud(){
   }catch(error){
     if(/academy_diploma_save|schema cache|does not exist|PGRST202/i.test(error?.message||''))_academyCloudAvailable=false;
     academySetSaveState('Guardado en este dispositivo','local');
-    console.warn('Autoguardado de Academia:',error);
+    console.warn('Autoguardado de certificados:',error);
   }
 }
 
@@ -199,11 +199,11 @@ function academyFrontHtml(d=_academyCurrent){
   const density=`${d.decorMode==='image'&&d.decorImage?' is-decor-image':''}${nameLength>58?' is-name-extra-long':nameLength>34?' is-name-long':''}${titleLength>64?' is-title-extra-long':titleLength>38?' is-title-long':''}${copyLength>160?' is-copy-dense':''}`;
   return`<article class="academy-sheet academy-front${density}" style="${academyStyle(d)}" data-academy-face="front">
     ${academyDecorHtml(d)}
-    <header class="academy-document-head"><div class="academy-document-logo">${academyLogoHtml(d)}</div><div class="academy-document-id"><span>${esc(identity)} · Academia</span><b>${esc(d.certificateNo||'CERTIFICADO')}</b></div></header>
-    <main class="academy-front-main"><section class="academy-certificate-block"><p class="academy-eyebrow">Academia</p><h1>${esc(title)}</h1></section><section class="academy-recipient-block"><p class="academy-awarded">Se otorga a</p><h2>${esc(d.recipientName||'Nombre de la persona')}</h2><span class="academy-recipient-rule"></span></section><section class="academy-course-block"><p class="academy-achievement">${esc(d.courseDescription||'Por haber completado satisfactoriamente el programa de formación.')}</p><h3>${esc(d.courseTitle||'Nombre del curso')}</h3></section>
+    <header class="academy-document-head"><div class="academy-document-logo">${academyLogoHtml(d)}</div><div class="academy-document-id"><span>${esc(identity)}</span><b>${esc(d.certificateNo||'CERTIFICADO')}</b></div></header>
+    <main class="academy-front-main"><section class="academy-certificate-block"><h1>${esc(title)}</h1></section><section class="academy-recipient-block"><p class="academy-awarded">Se otorga a</p><h2>${esc(d.recipientName||'Nombre de la persona')}</h2><span class="academy-recipient-rule"></span></section><section class="academy-course-block"><p class="academy-achievement">${esc(d.courseDescription||'Por haber completado satisfactoriamente el programa de formación.')}</p><h3>${esc(d.courseTitle||'Nombre del curso')}</h3></section>
       <div class="academy-facts"><span><small>Fecha</small><b>${esc(academyDateLabel(d.issueDate))}</b></span><span><small>Duración</small><b>${esc(String(academyNumber(d.durationHours)||academyTotalHours(d)))} horas</b></span><span><small>Emisión</small><b>${esc(d.location||identity)}</b></span></div>
     </main>
-    <footer class="academy-front-footer"><div class="academy-signatures academy-signatures-${signers.length}">${signers.map(academySignerHtml).join('')}</div><div class="academy-authenticity"><span>${siIcon('certificate',19)}</span><small>Documento emitido por</small><b>${esc(identity)}</b></div></footer>
+    <footer class="academy-front-footer"><div class="academy-signatures academy-signatures-${signers.length}">${signers.map(academySignerHtml).join('')}</div><div class="academy-authenticity"><span class="academy-authenticity-icon">${siIcon('certificate',19)}</span><div class="academy-authenticity-copy"><small>Documento emitido por</small><b>${esc(identity)}</b></div>${d.laborRegistration?`<div class="academy-registration-seal"><small>Registro MINTRAB</small><b>${esc(d.laborRegistration)}</b></div>`:''}</div></footer>
   </article>`;
 }
 function academyBackHtml(d=_academyCurrent){
@@ -228,7 +228,7 @@ function academyLibraryCard(d){
 }
 function academyRenderLibrary(){
   const pg=document.getElementById('pg'),rows=academyLibraryResults(),active=_academyDocs.filter(d=>d.status!=='Archivado').length,archived=_academyDocs.length-active,writable=can('write','academy');
-  document.getElementById('sec-title').textContent='Academia';document.getElementById('sec-sub').textContent='Certificados y constancias de formación';clearSecCrumbs();
+  document.getElementById('sec-title').textContent='Certificados';document.getElementById('sec-sub').textContent='Certificados y constancias de formación';clearSecCrumbs();
   pg.innerHTML=`<section class="academy-library"><div class="academy-library-tabs"><div role="tablist" aria-label="Vistas de certificados"><button role="tab" aria-selected="${_academyView==='active'}" onclick="academySetView('active')">Activos <span>${active}</span></button><button role="tab" aria-selected="${_academyView==='archived'}" onclick="academySetView('archived')">Archivados <span>${archived}</span></button></div>${writable?`<button class="btn btn-primary" onclick="academyNew()">${siIcon('plus',16)} Crear certificado</button>`:''}</div><div class="academy-library-tools"><label>${siIcon('search',17)}<input id="academy-search" class="control-input" type="search" value="${escAttr(_academyQuery)}" placeholder="Buscar por persona, curso, folio o empresa" oninput="academySearch(this.value)"></label><span>${rows.length} ${rows.length===1?'certificado':'certificados'}</span></div><div class="academy-library-grid">${rows.length?rows.map(academyLibraryCard).join(''):`<div class="academy-empty">${siIcon('certificate',30)}<h3>${_academyView==='archived'?'No hay certificados archivados':'Crea el primer certificado'}</h3><p>El frente acredita el logro y el reverso conserva el contenido del curso.</p>${writable&&_academyView==='active'?`<button class="btn btn-primary" onclick="academyNew()">Crear certificado</button>`:''}</div>`}</div></section>`;
 }
 function academySetView(view){_academyView=view==='archived'?'archived':'active';academyRenderLibrary()}
@@ -248,7 +248,7 @@ function academyField(label,key,type='text',attrs=''){
 }
 function academyDataPanel(){
   const companyNote=_academyCurrent.companyId?(_academyCurrent.companyLogo?'Logo, nombre, emisor y paleta se aplican automáticamente a las dos caras.':'Esta empresa no tiene logotipo configurado; el documento usará su nombre como firma visual.'):'Selecciona la entidad que emite el certificado. Toda la identidad del documento cambiará con ella.';
-  return`<section class="academy-form-section"><div class="academy-section-label">Entidad emisora</div><label class="academy-field"><span>Empresa</span>${pdSelect('academy-company',academyCompanyOptions(),String(_academyCurrent.companyId||''),'Selecciona una empresa','academyPickCompany')}</label><p class="academy-inline-note">${siIcon('info',15)} <span>${esc(companyNote)}</span></p><div class="academy-section-label">Certificado</div>${academyField('Tipo o título del certificado','certificateTitle','text','maxlength="90" placeholder="Ej. Certificado de participación"')}${academyField('Nombre del curso','courseTitle','text','maxlength="110"')}${academyField('Texto acreditativo','courseDescription','textarea','maxlength="220" rows="3"')}<div class="academy-field-grid">${academyField('Fecha de emisión','issueDate','date')}${academyField('Duración total (horas)','durationHours','number','min="0" step="0.5"')}</div><div class="academy-field-grid">${academyField('Prefijo del certificado','certificateNo','text','maxlength="40"')}${academyField('Unidad emisora','location','text','maxlength="70"')}</div><p class="academy-inline-note">${siIcon('users',15)} <span>Agrega una o más personas en <b>Personas</b>. En un lote, cada certificado recibe un consecutivo automático.</span></p></section>`;
+  return`<section class="academy-form-section"><div class="academy-section-label">Entidad emisora</div><label class="academy-field"><span>Empresa</span>${pdSelect('academy-company',academyCompanyOptions(),String(_academyCurrent.companyId||''),'Selecciona una empresa','academyPickCompany')}</label><p class="academy-inline-note">${siIcon('info',15)} <span>${esc(companyNote)}</span></p><div class="academy-section-label">Certificado</div>${academyField('Tipo o título del certificado','certificateTitle','text','maxlength="90" placeholder="Ej. Certificado de participación"')}${academyField('Nombre del curso','courseTitle','text','maxlength="110"')}${academyField('Texto acreditativo','courseDescription','textarea','maxlength="220" rows="3"')}<div class="academy-field-grid">${academyField('Fecha de emisión','issueDate','date')}${academyField('Duración total (horas)','durationHours','number','min="0" step="0.5"')}</div><div class="academy-field-grid">${academyField('Prefijo del certificado','certificateNo','text','maxlength="40"')}${academyField('Unidad emisora','location','text','maxlength="70"')}</div>${academyField('Registro Ministerio de Trabajo','laborRegistration','text','maxlength="48" placeholder="Ej. 90028481"')}<p class="academy-field-help">Se mostrará como un sello de registro junto a la entidad emisora.</p><p class="academy-inline-note">${siIcon('users',15)} <span>Agrega una o más personas en <b>Personas</b>. En un lote, cada certificado recibe un consecutivo automático.</span></p></section>`;
 }
 function academyParticipantsPanel(){
   const recipients=_academyCurrent.recipients||[],selected=_academyPreviewRecipient||recipients[0]?.uid||'';
@@ -318,7 +318,7 @@ function academyZoom(delta){_academyZoom=Math.min(1.1,Math.max(.35,_academyZoom+
 function academyFitPreview(){const stage=document.getElementById('academy-preview-stage');if(!stage)return;const available=Math.max(320,stage.clientWidth-48);_academyZoom=Math.min(.9,available/1056);academyRenderPreview()}
 function academyRenderEditor(){
   if(!_academyCurrent)return;const writable=can('write','academy'),pg=document.getElementById('pg');
-  const count=_academyCurrent.recipients?.length||0,batch=count>1;setSecCrumbs([{label:'Academia',onclick:'academyBack()'},{label:_academyCurrent.courseTitle||'Nuevo certificado'}]);document.getElementById('sec-title').textContent='Creador de certificados';document.getElementById('sec-sub').textContent='Carta horizontal · frente y reverso';
+  const count=_academyCurrent.recipients?.length||0,batch=count>1;setSecCrumbs([{label:'Certificados',onclick:'academyBack()'},{label:_academyCurrent.courseTitle||'Nuevo certificado'}]);document.getElementById('sec-title').textContent='Creador de certificados';document.getElementById('sec-sub').textContent='Carta horizontal · frente y reverso';
   pg.innerHTML=`<div class="academy-studio"><section class="academy-customizer"><header class="academy-editor-head"><button class="icon-btn icon-btn-quiet" onclick="academyBack()" aria-label="Volver a certificados">${siIcon('arrow-left',18)}</button><div><p>${esc(academyIdentityName())} · Certificado</p><h2>${esc(_academyCurrent.courseTitle||'Nuevo certificado')}</h2><span data-academy-save data-state="saved" role="status" aria-live="polite">${esc(_academySaveState)}</span></div></header><nav class="academy-editor-tabs" role="tablist" aria-label="Secciones del creador"><button data-academy-tab="data" role="tab" aria-selected="${_academyTab==='data'}" onclick="academySelectTab('data')">Datos</button><button data-academy-tab="design" role="tab" aria-selected="${_academyTab==='design'}" onclick="academySelectTab('design')">Diseño</button><button data-academy-tab="participants" role="tab" aria-selected="${_academyTab==='participants'}" onclick="academySelectTab('participants')">Personas <span>${count}</span></button><button data-academy-tab="content" role="tab" aria-selected="${_academyTab==='content'}" onclick="academySelectTab('content')">Curso</button><button data-academy-tab="signers" role="tab" aria-selected="${_academyTab==='signers'}" onclick="academySelectTab('signers')">Firmas</button></nav><div class="academy-form" id="academy-form"></div><footer class="academy-editor-footer"><span>${siIcon('cloud',14)} Autoguardado activo</span><button class="btn btn-secondary academy-mobile-preview" onclick="document.getElementById('academy-preview-stage').scrollIntoView({behavior:'smooth'})">Ver certificado</button></footer></section><section class="academy-preview-shell"><header class="academy-preview-toolbar"><div><strong>Vista del certificado</strong><span>2 caras · Carta horizontal${batch?` · ${count} personas / ${count*2} páginas`:''}</span></div><div class="academy-preview-actions"><div class="academy-preview-controls" role="group" aria-label="Zoom de vista previa"><button class="icon-btn icon-btn-quiet" onclick="academyZoom(-.1)" aria-label="Alejar">${siIcon('minus',16)}</button><span id="academy-zoom-value">${Math.round(_academyZoom*100)}%</span><button class="icon-btn icon-btn-quiet" onclick="academyZoom(.1)" aria-label="Acercar">${siIcon('plus',16)}</button><button class="btn btn-ghost btn-sm" onclick="academyFitPreview()">Ajustar</button></div><div class="academy-export-actions"><button class="btn btn-secondary btn-sm" onclick="academyPrintPdf()" ${_academyExporting?'disabled':''}>${siIcon('printer',15)} Imprimir</button><button class="btn btn-primary btn-sm" onclick="academyDownloadPdf()" ${_academyExporting?'disabled':''}>${siIcon('download',15)} ${batch?'Descargar lote':'Descargar PDF'}</button></div></div></header><div class="academy-preview-stage" id="academy-preview-stage" tabindex="0" aria-label="Vista previa desplazable del frente y reverso"><div class="academy-preview-pages" id="academy-preview-pages"></div></div></section></div>`;
   academyRenderPanel();academyRenderPreview();requestAnimationFrame(academyFitPreview);
 }
@@ -356,8 +356,8 @@ async function academyPrintPdf(){
 }
 
 async function showAcademy(){
-  if(!can('read','academy')){toast('No tienes acceso a Academia.');showModuleHub();return}
-  syncModule('academia');_navLeaf='academia|_|diplomas';sessionStorage.setItem('sierra_route','module:academia');leaveView();renderSidebarTree();document.getElementById('tb-section').textContent='Academia';document.getElementById('product-controls').style.display='none';document.getElementById('sec-title').textContent='Academia';document.getElementById('sec-sub').textContent='Certificados y constancias de formación';document.getElementById('pg').innerHTML='<div class="academy-empty"><p>Cargando certificados…</p></div>';await academyLoad();if(_navLeaf==='academia|_|diplomas')academyRenderLibrary();
+  if(!can('read','academy')){toast('No tienes acceso a Certificados.');showModuleHub();return}
+  syncModule('academia');_navLeaf='academia|_|diplomas';sessionStorage.setItem('sierra_route','module:academia');leaveView();renderSidebarTree();document.getElementById('tb-section').textContent='Certificados';document.getElementById('product-controls').style.display='none';document.getElementById('sec-title').textContent='Certificados';document.getElementById('sec-sub').textContent='Certificados y constancias de formación';document.getElementById('pg').innerHTML='<div class="academy-empty"><p>Cargando certificados…</p></div>';await academyLoad();if(_navLeaf==='academia|_|diplomas')academyRenderLibrary();
 }
 
 Object.assign(window,{showAcademy,academySetView,academySearch,academyNew,academyOpen,academyBack,academyDuplicate,academyArchive,academyPickCompany,academySelectTab,academySet,academySetRecipients,academySelectRecipient,academySetDecorMode,academyClearDecorImage,academyDecorImage,academySetModule,academyAddModule,academyRemoveModule,academyMoveModule,academySetSigner,academyAddSigner,academyRemoveSigner,academyClearSignerImage,academySignerImage,academyZoom,academyFitPreview,academyDownloadPdf,academyPrintPdf,academyPdfBlob,academyFrontHtml,academyBackHtml,academyNormalize,academyApplyCompanyIdentity,academyDefault,academyTotalHours,academyRecipientDocuments,academyPalette,academyIdentityName});
