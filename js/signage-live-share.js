@@ -28,8 +28,9 @@
       } finally { if (!stopped) timer = setTimeout(poll, 1000) }
     }
     async function start() {
-      if (!navigator.mediaDevices?.getDisplayMedia) throw new Error('Este navegador no permite compartir pantalla.')
-      stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 } }, audio: false })
+      const capture = options.captureProvider || (() => navigator.mediaDevices?.getDisplayMedia?.({ video: { frameRate: { ideal: 15, max: 30 } }, audio: false }))
+      stream = await capture()
+      if (!stream) throw new Error('Este navegador no permite compartir pantalla.')
       session = (await options.client.startLive(options.deviceId)).session
       peer = new RTCPeerConnection(peerConfig(options.iceServers))
       stream.getTracks().forEach(track => { peer.addTrack(track, stream); track.addEventListener('ended', stop, { once: true }) })
@@ -43,7 +44,7 @@
       if (session) await options.client.stopLive(session.id).catch(() => {})
       options.onStop?.()
     }
-    return { start, stop, get session() { return session } }
+    return { start, stop, get session() { return session }, get connectionState() { return peer?.connectionState || 'new' }, get debugState() { return { connection:peer?.connectionState,ice:peer?.iceConnectionState,gathering:peer?.iceGatheringState,signaling:peer?.signalingState,local:peer?.localDescription?.type,remote:peer?.remoteDescription?.type,candidates:(peer?.localDescription?.sdp?.match(/a=candidate:/g)||[]).length } } }
   }
 
   function createReceiver(options) {
@@ -67,7 +68,7 @@
     }
     function start() { poll() }
     function stop() { if (stopped) return; stopped = true; clearTimeout(timer); peer?.close(); if (options.video) options.video.srcObject = null; options.onStop?.() }
-    return { start, stop }
+    return { start, stop, get connectionState() { return peer?.connectionState || 'new' }, get debugState() { return { connection:peer?.connectionState,ice:peer?.iceConnectionState,gathering:peer?.iceGatheringState,signaling:peer?.signalingState,local:peer?.localDescription?.type,remote:peer?.remoteDescription?.type,candidates:(peer?.localDescription?.sdp?.match(/a=candidate:/g)||[]).length } } }
   }
   return { createSender, createReceiver, waitIce }
 })

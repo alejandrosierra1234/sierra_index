@@ -64,6 +64,9 @@ const Client = require('../../js/signage-backend-client.js')
     await assert.rejects(() => player.manifest(paired.device.id), error => error.status === 401); assertions += 1
     const playerHtml = await fetch(base.replace('/api/signage','') + '/signage-player.html').then(response => response.text())
     ok(playerHtml.includes('Vincula esta pantalla'), 'standalone player is available without admin login')
+    const playerSource = await fetch(base.replace('/api/signage','') + '/js/signage-player.js').then(response => response.text())
+    ok(playerSource.includes('sierra_pantallas_last_manifest_v1'), 'player persists its last valid manifest')
+    ok(playerSource.includes("caches.open(MEDIA_CACHE)"), 'player keeps validated media in durable browser cache')
     console.log(`signage phase4 integration: ${assertions} assertions passed`)
   } finally { server.close(); await once(server, 'close') }
 })().catch(error => { console.error(error); process.exit(1) })

@@ -13,6 +13,7 @@ El corte local permite probar el recorrido completo con dos navegadores independ
 5. Al elegir qué mostrar, el reproductor recibe la nueva revisión en su siguiente sincronización.
 6. Listas y horarios pueden sustituir la publicación manual de forma determinista.
 7. Revocar la pantalla invalida el secreto y el reproductor deja de sincronizar.
+8. El reproductor conserva el último manifiesto y una copia de los medios recibidos en Cache Storage; una revocación borra ambos.
 
 El backend de esta fase vive solo en memoria y escucha únicamente en `127.0.0.1`. No es un servicio cloud ni conserva datos al reiniciar.
 
@@ -71,9 +72,9 @@ Resultados del corte:
 - Fase 1: aprobada.
 - SQL/RLS de fase 2: 47 aserciones.
 - Multimedia/programación de fase 3: 44 aserciones.
-- Integración fase 4: 23 aserciones para vinculación, secreto, carga, enlace, publicación cruzada, lista/horario, señalización WebRTC y revocación.
+- Integración fase 4: 25 aserciones para vinculación, secreto, carga, enlace, publicación cruzada, lista/horario, señalización WebRTC, revocación y caché durable.
 - Migración `update60.sql`: 10 aserciones locales de bucket privado, rutas, digests, sesión única y señales permitidas.
-- E2E Chromium entre dos páginas: aprobado para vincular, cargar PNG, publicar y reproducir sin login administrativo.
+- E2E Chromium entre dos páginas: aprobado para vincular, cargar PNG, publicar, reproducir sin login y recuperar manifiesto/imagen con API y ruta de medios bloqueadas. La oferta/respuesta WebRTC pasó; el entorno no expuso candidatos ICE, por lo que el video RTP quedó explícitamente no verificado.
 
 ## Ejecución local reproducible
 
