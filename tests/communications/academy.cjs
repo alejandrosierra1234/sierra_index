@@ -95,6 +95,14 @@ const legacyPattern = w.academyNormalize({ ...diploma, decorMode: 'image', decor
 assert.equal(JSON.stringify(w.academyDecorImages(legacyPattern)), JSON.stringify(['legacy.jpg']))
 assert.equal(legacyPattern.decorPatternColumns, 2)
 
+const storageSetItem = w.Storage.prototype.setItem
+const consoleWarn = w.console.warn
+w.console.warn = () => {}
+w.Storage.prototype.setItem = function(){ throw new w.DOMException('Quota exceeded', 'QuotaExceededError') }
+assert.equal(w.academyWriteLocal(), false)
+w.Storage.prototype.setItem = storageSetItem
+w.console.warn = consoleWarn
+
 w._policyCompanies = [{
   id: 'company-1', name: 'Pride Denim Mills', legal_name: 'Pride Denim Mills, S.A.',
   logo_url: 'https://assets.test/pdm.svg', brand_color: '#FF6B35',
@@ -132,6 +140,10 @@ assert.match(source, /Registro Ministerio de Trabajo/)
 assert.match(source, /academyPrintPdf/)
 assert.match(source, /academyDecorImagesUpload/)
 assert.match(source, /academySetPatternColumns/)
+assert.match(source, /academyMigrateEmbeddedAssets/)
+assert.match(source, /storage\.from\('product-images'\)\.upload/)
+assert.match(source, /Cambios sin guardar · almacenamiento lleno/)
+assert.match(source, /commsAssetStore/)
 assert.match(source, /ACADEMY_DECOR_ICONS/)
 assert.match(source, /academyPrepareExportDocument/)
 assert.match(source, /academyRasterExportAsset/)
