@@ -26,6 +26,7 @@ jobs:
           cache-dependency-path: |
             tests/communications/package-lock.json
             tests/policy-pdf/package-lock.json
+            tests/signage/package-lock.json
             js/collaboration/package-lock.json
       - name: Test communications and processes
         working-directory: tests/communications
@@ -35,6 +36,9 @@ jobs:
         run: npm ci && npm test && npm run build && git diff --exit-code -- ../communications-collaboration.js
       - name: Test access controls
         run: for test in tests/security/*.cjs; do node "$test"; done
+      - name: Test signage phases
+        working-directory: tests/signage
+        run: npm ci && npm test
       - name: Install PDF test browser
         working-directory: tests/policy-pdf
         run: npm ci && npx playwright install --with-deps chromium

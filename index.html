@@ -21,6 +21,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js" defer></script>
   <link rel="stylesheet" href="css/infographic-builder.css?v=20260920-1">
   <link rel="stylesheet" href="css/new-hire-builder.css?v=20261007-21">
+  <link rel="stylesheet" href="css/signage-phase1.css?v=20261028-3">
   <style>
     /* ── FONTS ──
        Per SIERRA_DESIGN_SYSTEM.md §19: Aeonik is the interface typeface
@@ -8363,6 +8364,7 @@ dialog[open]{position:fixed;inset:0;margin:auto}dialog::backdrop{background:rgba
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script src="js/private-assets.js"></script>
+<script src="js/signage-phase1.js?v=20261028-3"></script>
 <script>
 const SB_URL = 'https://vhyddogeemohtqijohry.supabase.co'
 const SB_KEY = 'sb_publishable_9g8UJRbV3NxOlmQgPxjDqg_Xw6hFB0f'
@@ -10606,6 +10608,7 @@ async function enterApp(user) {
     if (key === 'academia') { showAcademy(); return }
     if (key === 'procesos:companies') { showProcessCompanies(); return }
     if (key === 'procesos') { showPolicies(); return }
+    if (key === 'signage') { showSignage(); return }
     showModuleTools(key); return
   }
 
@@ -17284,6 +17287,22 @@ const MODULES = {
       run: 'showProcessCompanies',
     }],
   },
+  signage: {
+    label: 'Señalización',
+    // Fase 3 local: solo administradores de plataforma. El dominio
+    // `signage` y su RLS están preparados, pero no aplicados a un servicio.
+    domains: ['platform'],
+    access: () => isAdmin(),
+    color: '#009fff', light: '#c5e9ff', accent: '#004a86',
+    icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="2.5" y="3.5" width="15" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M7 17h6M10 13.5V17" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+    tools: [{
+      id: 'control', label: 'Control de pantallas',
+      desc: 'Gestiona contenido, listas y horarios locales de la fase de prueba',
+      icon: '<svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M7 17h6M10 14v3M6 8h8M6 11h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+      run: 'showSignage',
+      visible: () => isAdmin(),
+    }],
+  },
   administracion: {
     // "Index" — administration of the Index platform itself (Team &
     // Permissions, Access Logs, Style Guide). Deliberately not labeled
@@ -17332,7 +17351,10 @@ const MODULES = {
 // cliente interno (read on customer_service) both unlock the same
 // Muestras de Productos module, just with different tools inside it.
 const ANY_CAP = ['read', 'write', 'delete', 'publish', 'dispatch', 'manage_status', 'grant', 'admin']
-function moduleAccessible(m) { return m.domains.some(d => ANY_CAP.some(c => can(c, d))) }
+function moduleAccessible(m) {
+  if (typeof m.access === 'function') return m.access()
+  return m.domains.some(d => ANY_CAP.some(c => can(c, d)))
+}
 function accessibleModules() { return Object.entries(MODULES).filter(([, m]) => moduleAccessible(m)) }
 // Module identity tile colors — prefer the module's centralized CSS token
 // (--module-<token>-tile-bg/fg, see :root/[data-theme="dark"]) so the tile
