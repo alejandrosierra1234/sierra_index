@@ -1,2 +1,8 @@
 [functions.monday-vacation-webhook]
 verify_jwt = false
+
+# Pantallas authenticates administrator JWTs and device bearer tokens inside the
+# handler because player credentials are not Supabase JWTs. This declaration is
+# inert until an approved non-production project deploys the function.
+[functions.signage-api]
+verify_jwt = false

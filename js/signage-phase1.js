@@ -541,6 +541,7 @@ function signageBackendClient() {
     baseUrl: window.SIERRA_SIGNAGE_BACKEND_URL || '/api/signage',
     currentOrigin: location.origin,
     allowedOrigins: window.SIERRA_SIGNAGE_ALLOWED_BACKEND_ORIGINS || [],
+    workspaceProvider: async () => window.SIERRA_SIGNAGE_WORKSPACE_ID || '',
     tokenProvider: async () => {
       if (window.SIERRA_SIGNAGE_LOCAL_ADMIN_TOKEN) return window.SIERRA_SIGNAGE_LOCAL_ADMIN_TOKEN
       const result = await sb.auth.getSession()
@@ -662,7 +663,7 @@ async function signageSubmitPairing(event) {
   if (!/^\d{6}$/.test(code) || name.length < 3 || plant.length < 2) { errorEl.textContent = 'Completa el código, el nombre y la ubicación.'; return }
   const submit = event.submitter; submit.disabled = true; submit.textContent = 'Vinculando…'
   try {
-    const paired = await signageBackendClient().pairDevice({ code, name, plant, profile: 'Horizontal · 1920 × 1080' })
+    const paired = await signageBackendClient().pairDevice({ code, name, plant, workspaceId: window.SIERRA_SIGNAGE_WORKSPACE_ID || '', siteId: window.SIERRA_SIGNAGE_DEFAULT_SITE_ID || '', profile: 'Horizontal · 1920 × 1080' })
     const result = SignagePhase1.registerPairedScreen(_signageState, paired.device, signageContext())
     if (!signageSaveState(result.state)) return
     closeSideDrawer(); renderSignageHome(); toast('Pantalla vinculada. Ya puedes elegir qué mostrar.')

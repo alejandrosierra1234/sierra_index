@@ -15,7 +15,7 @@
   function peerConfig(iceServers) { return { iceServers: Array.isArray(iceServers) ? iceServers : [] } }
 
   function createSender(options) {
-    let peer = null, stream = null, timer = null, session = null, sequence = 0, stopped = false
+    let peer = null, stream = null, timer = null, session = null, sequence = 0, stopped = false, descriptionSent = false
     async function poll() {
       if (stopped || !session) return
       try {
@@ -33,9 +33,13 @@
       if (!stream) throw new Error('Este navegador no permite compartir pantalla.')
       session = (await options.client.startLive(options.deviceId)).session
       peer = new RTCPeerConnection(peerConfig(options.iceServers))
+      peer.addEventListener('icecandidate', event => {
+        if (descriptionSent && event.candidate) options.client.sendLiveSignal(session.id, { type: 'candidate', payload: event.candidate.toJSON() }).catch(options.onError || (() => {}))
+      })
       stream.getTracks().forEach(track => { peer.addTrack(track, stream); track.addEventListener('ended', stop, { once: true }) })
       await peer.setLocalDescription(await peer.createOffer()); await waitIce(peer)
       await options.client.sendLiveSignal(session.id, { type: 'offer', payload: peer.localDescription })
+      descriptionSent = true
       poll(); return { session, stream }
     }
     async function stop() {
@@ -48,7 +52,7 @@
   }
 
   function createReceiver(options) {
-    let peer = null, timer = null, sequence = 0, stopped = false, answered = false
+    let peer = null, timer = null, sequence = 0, stopped = false, answered = false, descriptionSent = false
     async function poll() {
       if (stopped) return
       try {
@@ -59,8 +63,11 @@
           if (signal.type === 'offer' && !answered) {
             peer = new RTCPeerConnection(peerConfig(options.iceServers))
             peer.addEventListener('track', event => { options.video.srcObject = event.streams[0]; options.video.play().catch(() => {}) })
+            peer.addEventListener('icecandidate', event => {
+              if (descriptionSent && event.candidate) options.client.sendLiveSignal(options.sessionId, { type: 'candidate', payload: event.candidate.toJSON() }).catch(options.onError || (() => {}))
+            })
             await peer.setRemoteDescription(signal.payload); await peer.setLocalDescription(await peer.createAnswer()); await waitIce(peer)
-            await options.client.sendLiveSignal(options.sessionId, { type: 'answer', payload: peer.localDescription }); answered = true; options.onConnected?.()
+            await options.client.sendLiveSignal(options.sessionId, { type: 'answer', payload: peer.localDescription }); descriptionSent = true; answered = true; options.onConnected?.()
           } else if (signal.type === 'candidate' && signal.payload && peer) await peer.addIceCandidate(signal.payload)
         }
       } catch (error) { options.onError?.(error) }

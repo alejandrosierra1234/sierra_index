@@ -20,11 +20,14 @@
     const fetchImpl = options?.fetchImpl || globalThis.fetch
     if (typeof fetchImpl !== 'function') throw new Error('Este navegador no ofrece fetch.')
     const tokenProvider = options?.tokenProvider || (() => '')
+    const workspaceProvider = options?.workspaceProvider || (() => '')
 
     async function request(path, init) {
       const token = await tokenProvider()
       const headers = new Headers(init?.headers || {})
       if (token) headers.set('Authorization', `Bearer ${token}`)
+      const workspaceId = await workspaceProvider()
+      if (workspaceId) headers.set('X-Signage-Workspace', workspaceId)
       if (init?.body && !(init.body instanceof Blob) && typeof init.body !== 'string') {
         headers.set('Content-Type', 'application/json')
         init = { ...init, body: JSON.stringify(init.body) }
@@ -52,13 +55,17 @@
       revokeDevice: (deviceId, reason) => request(`/admin/devices/${encodeURIComponent(deviceId)}/revoke`, { method: 'POST', body: { reason } }),
       listContent: () => request('/admin/content'),
       createContent: input => request('/admin/content', { method: 'POST', body: input }),
+      approveContent: (contentId, expectedRevision) => request(`/admin/content/${encodeURIComponent(contentId)}/approve`, { method: 'POST', body: { expectedRevision } }),
       publish: (deviceId, contentId) => request(`/admin/devices/${encodeURIComponent(deviceId)}/publish`, { method: 'POST', body: { contentId } }),
+      rollback: (deviceId, publicationId, expectedRevision) => request(`/admin/devices/${encodeURIComponent(deviceId)}/rollback`, { method: 'POST', body: { publicationId, expectedRevision } }),
       createPlaylist: input => request('/admin/playlists', { method: 'POST', body: input }),
       createSchedule: input => request('/admin/schedules', { method: 'POST', body: input }),
       startLive: deviceId => request('/admin/live-sessions', { method: 'POST', body: { deviceId } }),
       stopLive: sessionId => request(`/admin/live-sessions/${encodeURIComponent(sessionId)}/stop`, { method: 'POST' }),
       sendLiveSignal: (sessionId, signal) => request(`/admin/live-sessions/${encodeURIComponent(sessionId)}/signals`, { method: 'POST', body: signal }),
       receiveLiveSignals: (sessionId, after) => request(`/admin/live-sessions/${encodeURIComponent(sessionId)}/signals?after=${Number(after) || 0}`),
+      signUpload: input => request('/admin/uploads/sign', { method: 'POST', body: input }),
+      completeUpload: assetId => request(`/admin/uploads/${encodeURIComponent(assetId)}/complete`, { method: 'POST', body: {} }),
       upload: async file => {
         const headers = new Headers({ 'Content-Type': file.type || 'application/octet-stream', 'X-Filename': file.name || 'archivo' })
         const token = await tokenProvider()
@@ -86,6 +93,14 @@
         throw error
       }
       return payload
+    }
+    client.runtime = async () => {
+      const response = await fetchImpl(baseUrl + '/player/runtime', { headers: { Authorization: `Bearer ${tokenMap.get(client)}`, 'X-Device-Id': options?.deviceId || '' }, cache: 'no-store' })
+      const payload = await response.json().catch(() => null); if (!response.ok) throw new Error(payload?.message || 'No se pudo preparar la transmisión.'); return payload
+    }
+    client.heartbeat = async input => {
+      const response = await fetchImpl(baseUrl + '/player/heartbeat', { method: 'POST', headers: { Authorization: `Bearer ${tokenMap.get(client)}`, 'X-Device-Id': options?.deviceId || '', 'Content-Type': 'application/json' }, body: JSON.stringify(input || {}), cache: 'no-store' })
+      const payload = await response.json().catch(() => null); if (!response.ok) throw new Error(payload?.message || 'No se pudo reportar el estado.'); return payload
     }
     client.sendLiveSignal = async (sessionId, signal) => {
       const response = await fetchImpl(`${baseUrl}/player/live-sessions/${encodeURIComponent(sessionId)}/signals`, { method: 'POST', headers: { Authorization: `Bearer ${tokenMap.get(client)}`, 'X-Device-Id': options?.deviceId || '', 'Content-Type': 'application/json' }, body: JSON.stringify(signal), cache: 'no-store' })

@@ -27,6 +27,10 @@ El backend de esta fase vive solo en memoria y escucha únicamente en `127.0.0.1
 - Al terminar, vuelve al contenido publicado o programado.
 - Audio está desactivado en este corte.
 - La señalización oferta/respuesta WebRTC está probada localmente. No se ha validado video entre redes NAT ni televisiones físicas.
+- El diagnóstico aislado con un `RTCPeerConnection` y canal de datos, sin código de
+  Pantallas, también terminó la recolección ICE sin candidatos en Chromium 154 del
+  ejecutor. Esto identifica una limitación de red/navegador del entorno de prueba,
+  no demuestra compatibilidad RTP. El código conserva candidatos tardíos para TURN.
 
 Para operación por internet se debe configurar ICE/TURN. Sin TURN no se puede garantizar conexión entre redes corporativas. El costo variable se debe estimar como:
 
@@ -49,15 +53,49 @@ Antes de operar en cloud se requiere autorización explícita para un proyecto n
 
 1. Aplicar `update59.sql`, después de revisión y respaldo.
 2. Revisar y aplicar `update60.sql`, que prepara el bucket privado `signage-media`, activos, sesiones de vinculación, digest/vencimiento de credenciales y señalización WebRTC. No reutiliza `product-images`.
-3. Implementar la limpieza programada de sesiones y señales vencidas.
-4. Completar rotación y emisión de credenciales desde funciones de servidor.
-5. Implementar funciones HTTP para iniciar/reclamar vinculación, manifest, heartbeat, URLs firmadas y revocación. El `service_role` permanece solo en servidor.
-6. Aplicar límites, antivirus o cuarentena, retención y eliminación de medios.
-7. Implementar señalización WebRTC con TTL y rate limit.
+3. Configurar la limpieza programada de sesiones y señales vencidas.
+4. Desplegar y probar la emisión y revocación de credenciales preparada en Edge; la rotación periódica sigue pendiente.
+5. Desplegar las funciones HTTP preparadas para vinculación, manifiesto, heartbeat, URLs firmadas y revocación. El `service_role` permanece solo en servidor.
+6. Conectar un verificador aprobado para hash, tipo, antivirus/cuarentena, retención y eliminación de medios.
+7. Desplegar la señalización WebRTC preparada y conectarla a credenciales ICE efímeras.
 8. Elegir/provisionar TURN y definir límite de gasto y egreso.
 9. Configurar alertas, respaldo y recuperación.
 
 No se deben enviar claves por chat ni incluirlas en el repositorio.
+
+## Adaptador Edge preparado localmente
+
+`supabase/functions/signage-api/index.ts` es un adaptador desplegable, pero **no está
+desplegado ni conectado a un proyecto**. Su núcleo comprobable vive en
+`supabase/functions/_shared/signage-api-core.mjs`. Implementa:
+
+- JWT de administrador separado del token opaco por reproductor;
+- aislamiento obligatorio por `X-Signage-Workspace` y capacidad en servidor;
+- vinculación de un solo uso, entrega única del secreto y revocación;
+- manifiesto reservado a `service_role`, heartbeat y límites de frecuencia durables;
+- contenido, listas, horarios, aprobación, publicación y rollback mediante RPC con
+  la identidad del usuario, sin reducir autorización a botones ocultos;
+- preparación de cargas firmadas al bucket privado `signage-media`;
+- denegación segura mientras no exista verificador de tipo, hash y malware;
+- sesiones y señales WebRTC limitadas al workspace y dispositivo;
+- denegación segura de transmisión en vivo mientras no exista proveedor ICE/TURN.
+
+`update62.sql` agrega las operaciones atómicas, heartbeat y rate limiting requeridos.
+Está preparado para revisión y no se ha aplicado.
+
+Configuración requerida al desplegar en un proyecto no productivo autorizado:
+
+- automáticas de Supabase: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`;
+- `SIGNAGE_CORS_ORIGINS`: orígenes exactos permitidos, separados por coma;
+- `SIGNAGE_PAIRING_PEPPER`: secreto exclusivo de servidor para proteger los códigos
+  cortos de vinculación frente a lectura o fuerza bruta de la base;
+- `SIGNAGE_MEDIA_VERIFIER_URL` y `SIGNAGE_MEDIA_VERIFIER_TOKEN`: servicio aprobado de
+  verificación. Sin ambos, completar una carga responde `MEDIA_VERIFIER_NOT_CONFIGURED`;
+- `SIGNAGE_ICE_CONFIG_URL` y `SIGNAGE_ICE_CONFIG_TOKEN`: proveedor que emita
+  credenciales ICE efímeras. Sin ambos, iniciar vivo responde `LIVE_NOT_CONFIGURED`.
+
+No se deben colocar credenciales TURN estáticas en el frontend. El costo y proveedor
+de verificación/TURN siguen siendo decisiones comerciales pendientes.
 
 ## Pruebas
 
@@ -73,7 +111,8 @@ Resultados del corte:
 - SQL/RLS de fase 2: 47 aserciones.
 - Multimedia/programación de fase 3: 44 aserciones.
 - Integración fase 4: 25 aserciones para vinculación, secreto, carga, enlace, publicación cruzada, lista/horario, señalización WebRTC, revocación y caché durable.
-- Migración `update60.sql`: 10 aserciones locales de bucket privado, rutas, digests, sesión única y señales permitidas.
+- Migraciones `update60.sql` y `update62.sql`: 17 aserciones locales de bucket privado, rutas, digests, medios privados, sesión única, heartbeat y rate limiting.
+- Contrato Edge: 45 aserciones de autenticación separada, aislamiento, vinculación, administración, manifiesto, carga firmada, validación y denegaciones seguras.
 - E2E Chromium entre dos páginas: aprobado para vincular, cargar PNG, publicar, reproducir sin login y recuperar manifiesto/imagen con API y ruta de medios bloqueadas. La oferta/respuesta WebRTC pasó; el entorno no expuso candidatos ICE, por lo que el video RTP quedó explícitamente no verificado.
 
 ## Ejecución local reproducible
