@@ -188,7 +188,7 @@ function academyPreviewDocument(){
 function academyDecorHtml(d){
   if(d.decorMode==='image'&&d.decorImage)return`<aside class="academy-identity-rail is-image" aria-hidden="true"><img src="${escAttr(d.decorImage)}" alt=""></aside>`;
   const icon=ACADEMY_DECOR_ICONS.includes(d.decorIcon)?d.decorIcon:'award';
-  return`<aside class="academy-identity-rail is-pattern" aria-hidden="true">${Array.from({length:8},(_,index)=>`<span class="academy-pattern-tile academy-pattern-tile-${index+1}">${siIcon(icon,38)}</span>`).join('')}</aside>`;
+  return`<aside class="academy-identity-rail is-pattern" aria-hidden="true">${Array.from({length:3},(_,index)=>`<span class="academy-pattern-tile academy-pattern-tile-${index+1}">${siIcon(icon,36)}</span>`).join('')}</aside>`;
 }
 function academyTotalHours(d){return d.contents.reduce((sum,item)=>sum+academyNumber(item.hours),0)||academyNumber(d.durationHours)}
 function academySignerHtml(signer){
