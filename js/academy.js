@@ -20,6 +20,10 @@ let _academySaveState='Guardado en línea';
 let _academyZoom=.72;
 let _academyExporting=false;
 let _academyPreviewRecipient='';
+let _academyLocalSaveWarned=false;
+let _academyLocalSaved=true;
+const _academyAssetPreviews=new Map();
+const _academyMigratedAssetIds=new Set();
 
 function academyId(prefix='academy'){
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
@@ -57,9 +61,9 @@ function academyNormalize(source={}){
   d.companyColor=typeof companyColor==='function'?companyColor(d.companyColor):/^#[0-9a-f]{6}$/i.test(d.companyColor||'')?d.companyColor:'#16CDBE';
   d.decorMode=['pattern','image'].includes(d.decorMode)?d.decorMode:'pattern';
   d.decorIcon=ACADEMY_DECOR_ICONS.includes(d.decorIcon)?d.decorIcon:'award';
-  d.decorImage=String(d.decorImage||'');
+  d.decorImage=typeof policyDurableAssetUrl==='function'?policyDurableAssetUrl(d.decorImage):String(d.decorImage||'');
   const decorSource=Array.isArray(d.decorImages)?d.decorImages:(d.decorImage?[d.decorImage]:[]);
-  d.decorImages=decorSource.slice(0,ACADEMY_MAX_DECOR_IMAGES).map(String).filter(Boolean);
+  d.decorImages=decorSource.slice(0,ACADEMY_MAX_DECOR_IMAGES).map(value=>typeof policyDurableAssetUrl==='function'?policyDurableAssetUrl(value):String(value)).filter(Boolean);
   d.decorImage=d.decorImages[0]||d.decorImage;
   d.decorPatternColumns=Math.max(1,Math.min(6,Math.round(Number(d.decorPatternColumns)||2)));
   d.certificateTitle=String(d.certificateTitle||d.awardTitle||'Certificado de finalización');d.recipientName=String(d.recipientName||'');
@@ -69,7 +73,7 @@ function academyNormalize(source={}){
   d.recipientName=d.recipients[0]?.name||d.recipientName;
   d.courseTitle=String(d.courseTitle||'');d.courseDescription=String(d.courseDescription||'');
   d.issueDate=String(d.issueDate||'');d.durationHours=academyNumber(d.durationHours);d.certificateNo=String(d.certificateNo||'');d.location=String(d.location||'');d.laborRegistration=String(d.laborRegistration||'').trim();
-  d.signers=(Array.isArray(d.signers)?d.signers:[]).slice(0,ACADEMY_MAX_SIGNERS).map(item=>({uid:item.uid||academyId('signer'),name:String(item.name||''),title:String(item.title||''),signature:String(item.signature||'')}));
+  d.signers=(Array.isArray(d.signers)?d.signers:[]).slice(0,ACADEMY_MAX_SIGNERS).map(item=>({uid:item.uid||academyId('signer'),name:String(item.name||''),title:String(item.title||''),signature:typeof policyDurableAssetUrl==='function'?policyDurableAssetUrl(item.signature):String(item.signature||'')}));
   if(!d.signers.length)d.signers=[{uid:academyId('signer'),name:'',title:'',signature:''}];
   d.contents=(Array.isArray(d.contents)?d.contents:[]).slice(0,ACADEMY_MAX_MODULES).map(item=>({uid:item.uid||academyId('module'),title:String(item.title||''),description:String(item.description||''),hours:academyNumber(item.hours)}));
   if(!d.contents.length)d.contents=[{uid:academyId('module'),title:'',description:'',hours:0}];
@@ -80,7 +84,37 @@ function academyReadLocal(){
   try{return(JSON.parse(localStorage.getItem(ACADEMY_STORE_KEY)||'[]')||[]).map(academyNormalize)}catch{return[]}
 }
 function academyWriteLocal(){
-  localStorage.setItem(ACADEMY_STORE_KEY,JSON.stringify(_academyDocs));
+  try{localStorage.setItem(ACADEMY_STORE_KEY,JSON.stringify(_academyDocs));_academyLocalSaveWarned=false;_academyLocalSaved=true;return true}
+  catch(error){_academyLocalSaved=false;academySetSaveState('Cambios sin guardar · almacenamiento lleno','error');if(!_academyLocalSaveWarned){_academyLocalSaveWarned=true;if(typeof toast==='function')toast('No se pudo guardar el diploma en este navegador. Las imágenes se conservarán al reintentar en línea.')}console.warn('Guardado local de certificados:',error);return false}
+}
+function academyAssetDisplay(value){return _academyAssetPreviews.get(String(value||''))||String(value||'')}
+async function academyStoreEmbeddedAsset(value,documentId){
+  const source=String(value||'');if(!source)return'';
+  if(!/^data:image\//i.test(source)){
+    const durable=typeof policyDurableAssetUrl==='function'?policyDurableAssetUrl(source):source;
+    try{
+      if(durable.startsWith('sierra-memo-asset:')&&typeof commsAssetRead==='function')_academyAssetPreviews.set(durable,await commsAssetRead(durable));
+      else if(typeof indexAssets!=='undefined'&&indexAssets.path(durable)!==null)_academyAssetPreviews.set(durable,await indexAssets.resolve(durable));
+    }catch(error){console.warn('No se pudo preparar la vista de una imagen del certificado:',error)}
+    return durable;
+  }
+  if(typeof sb!=='undefined'&&typeof me!=='undefined'&&me?.id){
+    const blob=await(await fetch(source)).blob(),path=`${me.id}/academy/${documentId||'certificate'}/${crypto.randomUUID?.()||academyId('image')}.webp`;
+    const{error}=await sb.storage.from('product-images').upload(path,blob,{contentType:blob.type||'image/webp',upsert:false});
+    if(error)throw Error('No se pudo guardar la imagen del certificado en línea. '+error.message);
+    const durable=typeof policyDurableAssetUrl==='function'?policyDurableAssetUrl(sb.storage.from('product-images').getPublicUrl(path).data.publicUrl):sb.storage.from('product-images').getPublicUrl(path).data.publicUrl;
+    _academyAssetPreviews.set(durable,source);return durable;
+  }
+  if(typeof commsAssetStore==='function'){const key=await commsAssetStore(source);_academyAssetPreviews.set(key,source);return key}
+  throw Error('No hay un almacén de imágenes disponible. Recarga la aplicación e inténtalo nuevamente.');
+}
+async function academyMigrateEmbeddedAssets(d){
+  const copy=d,embedded=academyDecorImages(copy).some(value=>/^data:image\//i.test(value))||copy.signers.some(signer=>/^data:image\//i.test(signer.signature)),store=value=>academyStoreEmbeddedAsset(value,copy.id);
+  try{
+    copy.decorImages=await Promise.all(academyDecorImages(copy).map(store));copy.decorImage=copy.decorImages[0]||'';
+    copy.signers=await Promise.all(copy.signers.map(async signer=>({...signer,signature:await store(signer.signature)})));if(embedded)_academyMigratedAssetIds.add(copy.id);
+  }catch(error){console.warn('Migración de imágenes del certificado:',error)}
+  return copy;
 }
 function academyApplyCompanyIdentity(d){
   const company=academyCompanies().find(item=>String(item.id)===String(d?.companyId));
@@ -98,18 +132,20 @@ async function academyLoad(){
   _academyDocs=academyReadLocal();
   if(typeof policyLoadOrganization==='function')await policyLoadOrganization();
   _academyDocs=_academyDocs.map(academyApplyCompanyIdentity);
-  if(typeof sb==='undefined'||!can('read','academy'))return;
+  if(typeof sb==='undefined'||!can('read','academy')){_academyDocs=await Promise.all(_academyDocs.map(academyMigrateEmbeddedAssets));academyWriteLocal();return}
   try{
     const {data,error}=await sb.rpc('academy_diploma_list');
     if(error)throw error;
     const cloud=(Array.isArray(data)?data:[]).map(academyNormalize).map(academyApplyCompanyIdentity);
     const localById=new Map(_academyDocs.map(item=>[item.id,item]));
     cloud.forEach(item=>localById.set(item.id,item));
-    _academyDocs=[...localById.values()].sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt)));
+    _academyDocs=await Promise.all([...localById.values()].sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt))).map(academyMigrateEmbeddedAssets));
     academyWriteLocal();
+    const migrated=_academyDocs.filter(item=>_academyMigratedAssetIds.has(item.id));if(migrated.length)await Promise.allSettled(migrated.map(item=>sb.rpc('academy_diploma_save',{p_snapshot:item})));
   }catch(error){
     if(/academy_diploma_list|schema cache|does not exist|PGRST202/i.test(error?.message||''))_academyCloudAvailable=false;
     else console.warn('No se pudieron cargar los certificados:',error);
+    _academyDocs=await Promise.all(_academyDocs.map(academyMigrateEmbeddedAssets));academyWriteLocal();
   }
 }
 function academySetSaveState(message,state='saved'){
@@ -130,13 +166,13 @@ function academyAutosave(){
 }
 async function academySaveCloud(){
   if(!_academyCurrent)return;
-  const snapshot=academyClone(_academyCurrent);
-  if(!_academyCloudAvailable||typeof sb==='undefined'){academySetSaveState('Guardado en este dispositivo','local');return}
+  if(!_academyCloudAvailable||typeof sb==='undefined'){academySetSaveState(_academyLocalSaved?'Guardado en este dispositivo':'Cambios sin guardar · almacenamiento lleno',_academyLocalSaved?'local':'error');return}
   try{
+    const localSnapshot=academyClone(_academyCurrent),snapshot=typeof commsExportHydrateAssets==='function'?await commsExportHydrateAssets(localSnapshot):localSnapshot;
     const {data,error}=await sb.rpc('academy_diploma_save',{p_snapshot:snapshot});
     if(error)throw error;
     if(data&&_academyCurrent?.id===snapshot.id){
-      const saved=academyNormalize(data);Object.assign(_academyCurrent,saved);academyCommitLocal();
+      const saved=academyNormalize(data),decorImages=_academyCurrent.decorImages,decorImage=_academyCurrent.decorImage,signatures=new Map(_academyCurrent.signers.map(item=>[item.uid,item.signature]));Object.assign(_academyCurrent,saved,{decorImages,decorImage});_academyCurrent.signers.forEach(item=>{if(signatures.has(item.uid))item.signature=signatures.get(item.uid)});academyCommitLocal();
     }
     academySetSaveState('Guardado en línea','saved');
   }catch(error){
@@ -182,7 +218,9 @@ function academyLoadExportImage(source){
   return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(Error('No se pudo cargar el recurso gráfico.'));image.src=source});
 }
 async function academyResolveExportAsset(source){
-  const value=String(source||'');if(!value)return{url:'',revoke:false};
+  let value=String(source||'');if(!value)return{url:'',revoke:false};
+  if(_academyAssetPreviews.has(value))value=_academyAssetPreviews.get(value);
+  else if(value.startsWith('sierra-memo-asset:')&&typeof commsAssetRead==='function')value=await commsAssetRead(value);
   if(/^data:image\//i.test(value)||/^blob:/i.test(value))return{url:value,revoke:false};
   const resolved=typeof indexAssets!=='undefined'&&typeof indexAssets.path==='function'&&indexAssets.path(value)!==null&&typeof indexAssets.resolve==='function'?await indexAssets.resolve(value):value;
   if(/^data:image\//i.test(resolved)||/^blob:/i.test(resolved))return{url:resolved,revoke:false};
@@ -235,14 +273,14 @@ function academyDecorHtml(d){
   const images=academyDecorImages(d),columns=Math.max(1,Math.min(6,Math.round(Number(d.decorPatternColumns)||2)));
   if(d.decorMode==='image'&&images.length){
     const rows=Math.ceil(816/(264/columns))+1,tileCount=columns*rows;
-    return`<aside class="academy-identity-rail is-image-pattern" style="--academy-pattern-cols:${columns}" aria-hidden="true">${Array.from({length:tileCount},(_,index)=>`<span class="academy-pattern-tile"><img src="${escAttr(images[index%images.length])}" alt=""></span>`).join('')}</aside>`;
+    return`<aside class="academy-identity-rail is-image-pattern" style="--academy-pattern-cols:${columns}" aria-hidden="true">${Array.from({length:tileCount},(_,index)=>`<span class="academy-pattern-tile"><img src="${escAttr(academyAssetDisplay(images[index%images.length]))}" alt=""></span>`).join('')}</aside>`;
   }
   return`<aside class="academy-identity-rail is-accent" aria-hidden="true"></aside>`;
 }
 function academyTotalHours(d){return d.contents.reduce((sum,item)=>sum+academyNumber(item.hours),0)||academyNumber(d.durationHours)}
 function academySignerHtml(signer){
   const name=signer.name||'Nombre del firmante';
-  return`<div class="academy-signature"><div class="academy-signature-art">${signer.signature?`<img src="${escAttr(signer.signature)}" alt="Firma de ${escAttr(name)}">`:`<span class="academy-signature-script">${esc(name)}</span>`}</div><span class="academy-signature-line"></span><strong>${esc(name)}</strong><small>${esc(signer.title||'Cargo')}</small></div>`;
+  return`<div class="academy-signature"><div class="academy-signature-art">${signer.signature?`<img src="${escAttr(academyAssetDisplay(signer.signature))}" alt="Firma de ${escAttr(name)}">`:`<span class="academy-signature-script">${esc(name)}</span>`}</div><span class="academy-signature-line"></span><strong>${esc(name)}</strong><small>${esc(signer.title||'Cargo')}</small></div>`;
 }
 function academyFrontHtml(d=_academyCurrent){
   const signers=d.signers.slice(0,ACADEMY_MAX_SIGNERS),identity=academyIdentityName(d),title=academyText(d.certificateTitle,'Certificado de finalización'),nameLength=String(d.recipientName||'').length,titleLength=title.length,copyLength=String(d.courseDescription||'').length;
@@ -306,7 +344,7 @@ function academyParticipantsPanel(){
 }
 function academyDesignPanel(){
   const imageMode=_academyCurrent.decorMode==='image',palette=academyPalette(),identity=academyIdentityName(),images=academyDecorImages(),columns=_academyCurrent.decorPatternColumns||2;
-  return`<section class="academy-form-section"><div><div class="academy-section-label">Dirección visual</div><p class="academy-design-help">Las dos caras usan una retícula fija de 12 columnas: <b>9 para el documento</b> y <b>3 para la pleca visual</b>.</p></div><div class="academy-brand-palette" aria-label="Paleta automática de ${escAttr(identity)}"><span style="--swatch:${palette.light}"><i></i><b>Claro</b><small>${palette.light}</small></span><span style="--swatch:${palette.base}"><i></i><b>Base</b><small>${palette.base}</small></span><span style="--swatch:${palette.dark}"><i></i><b>Oscuro</b><small>${palette.dark}</small></span></div><p class="academy-inline-note">${siIcon('lock',15)} <span>La paleta está vinculada a ${esc(identity)} para preservar consistencia y trazabilidad.</span></p><div class="academy-section-label">Pleca de 3 columnas</div><div class="academy-decor-mode" role="group" aria-label="Contenido de la pleca visual"><button type="button" aria-pressed="${!imageMode}" onclick="academySetDecorMode('pattern')">${siIcon('minus',17)} Color</button><button type="button" aria-pressed="${imageMode}" onclick="academySetDecorMode('image')">${siIcon('grid',17)} Patrón de imágenes</button></div>${imageMode?`<div class="academy-pattern-editor"><div class="academy-pattern-assets">${images.map((source,index)=>`<figure><img src="${escAttr(source)}" alt="Imagen ${index+1} del patrón"><button type="button" onclick="academyRemoveDecorImage(${index})" aria-label="Quitar imagen ${index+1}">${siIcon('x',14)}</button></figure>`).join('')}${images.length<ACADEMY_MAX_DECOR_IMAGES?`<label class="academy-pattern-add">${siIcon('plus',19)}<span>${images.length?'Agregar':'Seleccionar'} ${images.length?'otra imagen':'imágenes'}</span><small>${images.length}/${ACADEMY_MAX_DECOR_IMAGES}</small><input type="file" multiple accept="image/png,image/jpeg,image/webp" onchange="academyDecorImagesUpload(this)"></label>`:''}</div><p class="academy-design-help">Cada imagen se recorta a un cuadrado 1:1 y se alterna para cubrir la pleca, sin deformarse.</p>${images.length?`<label class="academy-pattern-size"><span><b>Tamaño del patrón</b><output id="academy-pattern-size-value">${columns===1?'Muy grande':columns===2?'Grande':columns<=4?'Mediano':'Pequeño'}</output></span><input type="range" min="1" max="6" step="1" value="${columns}" oninput="academySetPatternColumns(this.value)"><small><span>Grande</span><span>Pequeño</span></small></label>`:''}</div>`:`<p class="academy-design-help">La pleca usa la gama corporativa de la empresa y mantiene la misma medida en ambas caras.</p>`}</section>`;
+  return`<section class="academy-form-section"><div><div class="academy-section-label">Dirección visual</div><p class="academy-design-help">Las dos caras usan una retícula fija de 12 columnas: <b>9 para el documento</b> y <b>3 para la pleca visual</b>.</p></div><div class="academy-brand-palette" aria-label="Paleta automática de ${escAttr(identity)}"><span style="--swatch:${palette.light}"><i></i><b>Claro</b><small>${palette.light}</small></span><span style="--swatch:${palette.base}"><i></i><b>Base</b><small>${palette.base}</small></span><span style="--swatch:${palette.dark}"><i></i><b>Oscuro</b><small>${palette.dark}</small></span></div><p class="academy-inline-note">${siIcon('lock',15)} <span>La paleta está vinculada a ${esc(identity)} para preservar consistencia y trazabilidad.</span></p><div class="academy-section-label">Pleca de 3 columnas</div><div class="academy-decor-mode" role="group" aria-label="Contenido de la pleca visual"><button type="button" aria-pressed="${!imageMode}" onclick="academySetDecorMode('pattern')">${siIcon('minus',17)} Color</button><button type="button" aria-pressed="${imageMode}" onclick="academySetDecorMode('image')">${siIcon('grid',17)} Patrón de imágenes</button></div>${imageMode?`<div class="academy-pattern-editor"><div class="academy-pattern-assets">${images.map((source,index)=>`<figure><img src="${escAttr(academyAssetDisplay(source))}" alt="Imagen ${index+1} del patrón"><button type="button" onclick="academyRemoveDecorImage(${index})" aria-label="Quitar imagen ${index+1}">${siIcon('x',14)}</button></figure>`).join('')}${images.length<ACADEMY_MAX_DECOR_IMAGES?`<label class="academy-pattern-add">${siIcon('plus',19)}<span>${images.length?'Agregar':'Seleccionar'} ${images.length?'otra imagen':'imágenes'}</span><small>${images.length}/${ACADEMY_MAX_DECOR_IMAGES}</small><input type="file" multiple accept="image/png,image/jpeg,image/webp" onchange="academyDecorImagesUpload(this)"></label>`:''}</div><p class="academy-design-help">Cada imagen se recorta a un cuadrado 1:1 y se alterna para cubrir la pleca, sin deformarse.</p>${images.length?`<label class="academy-pattern-size"><span><b>Tamaño del patrón</b><output id="academy-pattern-size-value">${columns===1?'Muy grande':columns===2?'Grande':columns<=4?'Mediano':'Pequeño'}</output></span><input type="range" min="1" max="6" step="1" value="${columns}" oninput="academySetPatternColumns(this.value)"><small><span>Grande</span><span>Pequeño</span></small></label>`:''}</div>`:`<p class="academy-design-help">La pleca usa la gama corporativa de la empresa y mantiene la misma medida en ambas caras.</p>`}</section>`;
 }
 function academyContentsPanel(){
   return`<section class="academy-form-section"><div class="academy-panel-intro"><div><div class="academy-section-label">Contenido del curso</div><p>Se imprime como tabla en el reverso. Máximo ${ACADEMY_MAX_MODULES} módulos.</p></div><button class="btn btn-secondary btn-sm" onclick="academyAddModule()" ${_academyCurrent.contents.length>=ACADEMY_MAX_MODULES?'disabled':''}>${siIcon('plus',14)} Agregar módulo</button></div><div class="academy-module-list">${_academyCurrent.contents.map((item,index)=>`<article class="academy-module-editor"><header><b>${String(index+1).padStart(2,'0')}</b><span>Módulo ${index+1}</span><div><button class="icon-btn icon-btn-quiet" onclick="academyMoveModule('${item.uid}',-1)" aria-label="Subir módulo" ${index===0?'disabled':''}>${siIcon('arrow-up',15)}</button><button class="icon-btn icon-btn-quiet" onclick="academyMoveModule('${item.uid}',1)" aria-label="Bajar módulo" ${index===_academyCurrent.contents.length-1?'disabled':''}>${siIcon('arrow-down',15)}</button><button class="icon-btn icon-btn-quiet" onclick="academyRemoveModule('${item.uid}')" aria-label="Eliminar módulo" ${_academyCurrent.contents.length===1?'disabled':''}>${siIcon('trash',15)}</button></div></header><label class="academy-field"><span>Título</span><input class="control-input" maxlength="70" value="${escAttr(item.title)}" oninput="academySetModule('${item.uid}','title',this.value)"></label><label class="academy-field"><span>Contenido</span><textarea class="control-input" maxlength="180" rows="2" oninput="academySetModule('${item.uid}','description',this.value)">${esc(item.description)}</textarea></label><label class="academy-field academy-hours"><span>Horas</span><input class="control-input" type="number" min="0" step="0.5" value="${escAttr(item.hours)}" oninput="academySetModule('${item.uid}','hours',this.value)"></label></article>`).join('')}</div><div class="academy-hours-total"><span>Total del temario</span><b>${academyTotalHours(_academyCurrent)} horas</b></div></section>`;
@@ -344,7 +382,7 @@ function academyRemoveDecorImage(index){
 async function academyDecorImagesUpload(input){
   const files=[...(input?.files||[])].slice(0,ACADEMY_MAX_DECOR_IMAGES-academyDecorImages().length);if(!files.length||!_academyCurrent||!can('write','academy'))return;input.disabled=true;
   try{
-    const values=await Promise.all(files.map(file=>typeof commsPrepareImageFile==='function'?commsPrepareImageFile(file,{maxDimension:1000,quality:.86}):new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(reader.error||Error('No se pudo leer la imagen.'));reader.readAsDataURL(file)})));
+    const prepared=await Promise.all(files.map(file=>typeof commsPrepareImageFile==='function'?commsPrepareImageFile(file,{maxDimension:1000,quality:.86}):new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(reader.error||Error('No se pudo leer la imagen.'));reader.readAsDataURL(file)}))),values=await Promise.all(prepared.map(value=>academyStoreEmbeddedAsset(value,_academyCurrent.id)));
     _academyCurrent.decorImages=[...academyDecorImages(),...values].slice(0,ACADEMY_MAX_DECOR_IMAGES);_academyCurrent.decorImage=_academyCurrent.decorImages[0]||'';_academyCurrent.decorMode='image';academyAutosave();academyRenderPanel();academyRenderPreview();
   }catch(error){console.error(error);toast(error.message||'No se pudieron procesar las imágenes.')}finally{input.value='';input.disabled=false}
 }
@@ -359,7 +397,7 @@ function academyClearSignerImage(uid){academySetSigner(uid,'signature','');acade
 async function academySignerImage(uid,input){
   const file=input.files?.[0];if(!file)return;input.disabled=true;
   try{
-    const value=typeof commsPrepareImageFile==='function'?await commsPrepareImageFile(file,{maxDimension:1200,quality:.9}):await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(reader.error||Error('No se pudo leer la firma.'));reader.readAsDataURL(file)});
+    const prepared=typeof commsPrepareImageFile==='function'?await commsPrepareImageFile(file,{maxDimension:1200,quality:.9}):await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result||''));reader.onerror=()=>reject(reader.error||Error('No se pudo leer la firma.'));reader.readAsDataURL(file)}),value=await academyStoreEmbeddedAsset(prepared,_academyCurrent.id);
     if(value.length>1800000)throw Error('La firma es demasiado pesada. Usa una imagen más pequeña.');
     academySetSigner(uid,'signature',value);academyRenderPanel();
   }catch(error){toast(error.message||'No se pudo preparar la firma.')}finally{input.value='';input.disabled=false}
@@ -416,5 +454,5 @@ async function showAcademy(){
   syncModule('academia');_navLeaf='academia|_|diplomas';sessionStorage.setItem('sierra_route','module:academia');leaveView();renderSidebarTree();document.getElementById('tb-section').textContent='Certificados';document.getElementById('product-controls').style.display='none';document.getElementById('sec-title').textContent='Certificados';document.getElementById('sec-sub').textContent='Certificados y constancias de formación';document.getElementById('pg').innerHTML='<div class="academy-empty"><p>Cargando certificados…</p></div>';await academyLoad();if(_navLeaf==='academia|_|diplomas')academyRenderLibrary();
 }
 
-Object.assign(window,{showAcademy,academySetView,academySearch,academyNew,academyOpen,academyBack,academyDuplicate,academyArchive,academyPickCompany,academySelectTab,academySet,academySetRecipients,academySelectRecipient,academySetDecorMode,academySetPatternColumns,academyRemoveDecorImage,academyDecorImagesUpload,academySetModule,academyAddModule,academyRemoveModule,academyMoveModule,academySetSigner,academyAddSigner,academyRemoveSigner,academyClearSignerImage,academySignerImage,academyZoom,academyFitPreview,academyDownloadPdf,academyPrintPdf,academyPdfBlob,academyPrepareExportDocument,academyFrontHtml,academyBackHtml,academyNormalize,academyApplyCompanyIdentity,academyDefault,academyTotalHours,academyRecipientDocuments,academyPalette,academyIdentityName,academyDecorImages});
+Object.assign(window,{showAcademy,academySetView,academySearch,academyNew,academyOpen,academyBack,academyDuplicate,academyArchive,academyPickCompany,academySelectTab,academySet,academySetRecipients,academySelectRecipient,academySetDecorMode,academySetPatternColumns,academyRemoveDecorImage,academyDecorImagesUpload,academySetModule,academyAddModule,academyRemoveModule,academyMoveModule,academySetSigner,academyAddSigner,academyRemoveSigner,academyClearSignerImage,academySignerImage,academyZoom,academyFitPreview,academyDownloadPdf,academyPrintPdf,academyPdfBlob,academyPrepareExportDocument,academyFrontHtml,academyBackHtml,academyNormalize,academyApplyCompanyIdentity,academyDefault,academyTotalHours,academyRecipientDocuments,academyPalette,academyIdentityName,academyDecorImages,academyWriteLocal,academyStoreEmbeddedAsset,academyMigrateEmbeddedAssets,academyAssetDisplay});
 })();
