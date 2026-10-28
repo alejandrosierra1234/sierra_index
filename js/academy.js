@@ -173,6 +173,40 @@ function academyLogoHtml(d,compact=false){
   if(d.companyLogo)return`<img src="${escAttr(d.companyLogo)}" alt="Logo de ${escAttr(label)}" crossorigin="anonymous" loading="eager" decoding="sync">`;
   return`<span class="academy-company-wordmark" aria-label="${escAttr(label)}">${esc(label)}</span>`;
 }
+function academyLoadExportImage(source){
+  return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(Error('No se pudo cargar el recurso gráfico.'));image.src=source});
+}
+async function academyResolveExportAsset(source){
+  const value=String(source||'');if(!value)return{url:'',revoke:false};
+  if(/^data:image\//i.test(value)||/^blob:/i.test(value))return{url:value,revoke:false};
+  const resolved=typeof indexAssets!=='undefined'&&typeof indexAssets.path==='function'&&indexAssets.path(value)!==null&&typeof indexAssets.resolve==='function'?await indexAssets.resolve(value):value;
+  if(/^data:image\//i.test(resolved)||/^blob:/i.test(resolved))return{url:resolved,revoke:false};
+  const response=await fetch(resolved,{mode:'cors',credentials:'omit',cache:'no-store'});if(!response.ok)throw Error(`El servidor respondió ${response.status}.`);
+  return{url:URL.createObjectURL(await response.blob()),revoke:true};
+}
+async function academyRasterExportAsset(source,{fit='contain',targetWidth=0,targetHeight=0,maxDimension=1800}={}){
+  if(!source)return'';let asset;
+  try{
+    asset=await academyResolveExportAsset(source);const image=await academyLoadExportImage(asset.url),sourceWidth=image.naturalWidth||image.width,sourceHeight=image.naturalHeight||image.height;
+    if(!sourceWidth||!sourceHeight)throw Error('El recurso no tiene dimensiones válidas.');
+    const canvas=document.createElement('canvas'),context=canvas.getContext('2d');if(!context)throw Error('No se pudo preparar el lienzo de exportación.');
+    if(fit==='cover'&&targetWidth>0&&targetHeight>0){
+      canvas.width=targetWidth;canvas.height=targetHeight;const scale=Math.max(targetWidth/sourceWidth,targetHeight/sourceHeight),drawWidth=sourceWidth*scale,drawHeight=sourceHeight*scale;
+      context.drawImage(image,(targetWidth-drawWidth)/2,(targetHeight-drawHeight)/2,drawWidth,drawHeight);
+    }else{
+      const scale=Math.min(1,maxDimension/Math.max(sourceWidth,sourceHeight));canvas.width=Math.max(1,Math.round(sourceWidth*scale));canvas.height=Math.max(1,Math.round(sourceHeight*scale));context.drawImage(image,0,0,canvas.width,canvas.height);
+    }
+    return canvas.toDataURL('image/png');
+  }finally{if(asset?.revoke)URL.revokeObjectURL(asset.url)}
+}
+async function academyPrepareExportDocument(d){
+  const copy=academyClone(d);
+  try{
+    if(copy.companyLogo)copy.companyLogo=await academyRasterExportAsset(copy.companyLogo,{fit:'contain',maxDimension:1400});
+    if(copy.decorMode==='image'&&copy.decorImage)copy.decorImage=await academyRasterExportAsset(copy.decorImage,{fit:'cover',targetWidth:825,targetHeight:2550});
+    return copy;
+  }catch(error){throw Error(`No se pudieron preparar el logo o la imagen para el PDF. ${error?.message||''}`.trim())}
+}
 function academyRecipientDocuments(d=_academyCurrent){
   const recipients=d?.recipients?.length?d.recipients:[{uid:'recipient-fallback',name:d?.recipientName||''}];
   return recipients.map((recipient,index)=>{
@@ -329,7 +363,7 @@ function academyValidate(){
 }
 async function academyPdfBlob(onProgress){
   if(!window.jspdf?.jsPDF||typeof window.html2canvas!=='function')throw Error('No se pudo cargar el generador de PDF. Recarga la aplicación.');
-  const documents=academyRecipientDocuments(),host=document.createElement('div');host.className='academy-export-host';host.innerHTML=documents.map(document=>academyFrontHtml(document)+academyBackHtml(document)).join('');document.body.append(host);
+  const prepared=await academyPrepareExportDocument(_academyCurrent),documents=academyRecipientDocuments(prepared),host=document.createElement('div');host.className='academy-export-host';host.innerHTML=documents.map(document=>academyFrontHtml(document)+academyBackHtml(document)).join('');document.body.append(host);
   try{
     await document.fonts.ready;await Promise.all([...host.querySelectorAll('img')].map(image=>image.decode().catch(()=>{})));
     const pages=[...host.querySelectorAll('.academy-sheet')],pdf=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'letter',compress:true});pdf.setProperties({title:`Certificados · ${_academyCurrent.courseTitle}`,creator:academyIdentityName(_academyCurrent),author:academyIdentityName(_academyCurrent)});
@@ -360,5 +394,5 @@ async function showAcademy(){
   syncModule('academia');_navLeaf='academia|_|diplomas';sessionStorage.setItem('sierra_route','module:academia');leaveView();renderSidebarTree();document.getElementById('tb-section').textContent='Certificados';document.getElementById('product-controls').style.display='none';document.getElementById('sec-title').textContent='Certificados';document.getElementById('sec-sub').textContent='Certificados y constancias de formación';document.getElementById('pg').innerHTML='<div class="academy-empty"><p>Cargando certificados…</p></div>';await academyLoad();if(_navLeaf==='academia|_|diplomas')academyRenderLibrary();
 }
 
-Object.assign(window,{showAcademy,academySetView,academySearch,academyNew,academyOpen,academyBack,academyDuplicate,academyArchive,academyPickCompany,academySelectTab,academySet,academySetRecipients,academySelectRecipient,academySetDecorMode,academyClearDecorImage,academyDecorImage,academySetModule,academyAddModule,academyRemoveModule,academyMoveModule,academySetSigner,academyAddSigner,academyRemoveSigner,academyClearSignerImage,academySignerImage,academyZoom,academyFitPreview,academyDownloadPdf,academyPrintPdf,academyPdfBlob,academyFrontHtml,academyBackHtml,academyNormalize,academyApplyCompanyIdentity,academyDefault,academyTotalHours,academyRecipientDocuments,academyPalette,academyIdentityName});
+Object.assign(window,{showAcademy,academySetView,academySearch,academyNew,academyOpen,academyBack,academyDuplicate,academyArchive,academyPickCompany,academySelectTab,academySet,academySetRecipients,academySelectRecipient,academySetDecorMode,academyClearDecorImage,academyDecorImage,academySetModule,academyAddModule,academyRemoveModule,academyMoveModule,academySetSigner,academyAddSigner,academyRemoveSigner,academyClearSignerImage,academySignerImage,academyZoom,academyFitPreview,academyDownloadPdf,academyPrintPdf,academyPdfBlob,academyPrepareExportDocument,academyFrontHtml,academyBackHtml,academyNormalize,academyApplyCompanyIdentity,academyDefault,academyTotalHours,academyRecipientDocuments,academyPalette,academyIdentityName});
 })();

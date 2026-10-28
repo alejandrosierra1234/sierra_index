@@ -20,10 +20,10 @@
   </script>
   <script src="../js/academy.js"></script>
   <script>
-    const diploma=academyDefault();
-    Object.assign(diploma,{companyId:'visual-qa',companyName:'Pride Denim Mills',companyLegalName:'Pride Denim Mills, S.A.',companyColor:'#FF6B35',location:'Pride Denim Mills',certificateTitle:'Certificado de participación',recipientName:'Luisa Alburez',recipients:[{uid:'luisa',name:'Luisa Alburez'}],courseTitle:'Liderazgo para operaciones textiles',courseDescription:'Por haber completado satisfactoriamente el programa de formación y demostrado los conocimientos requeridos.',certificateNo:'PDM-ACA-2026-014',laborRegistration:'90028481'});
+    const diploma=academyDefault(),logoSvg=`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="120" viewBox="0 0 600 120"><rect width="120" height="120" fill="#003b32"/><text x="150" y="78" font-family="sans-serif" font-size="54" font-weight="700">PRIDE DENIM</text></svg>`,decorSvg=`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><rect width="1200" height="800" fill="#ffded3"/><circle cx="300" cy="400" r="230" fill="#ff6b35"/><circle cx="900" cy="400" r="230" fill="#ac4a27"/></svg>`;
+    Object.assign(diploma,{companyId:'visual-qa',companyName:'Pride Denim Mills',companyLegalName:'Pride Denim Mills, S.A.',companyLogo:`data:image/svg+xml;charset=utf-8,${encodeURIComponent(logoSvg)}`,companyColor:'#FF6B35',location:'Pride Denim Mills',certificateTitle:'Certificado de participación',recipientName:'Luisa Alburez',recipients:[{uid:'luisa',name:'Luisa Alburez'}],courseTitle:'Liderazgo para operaciones textiles',courseDescription:'Por haber completado satisfactoriamente el programa de formación y demostrado los conocimientos requeridos.',certificateNo:'PDM-ACA-2026-014',laborRegistration:'90028481',decorMode:'image',decorImage:`data:image/svg+xml;charset=utf-8,${encodeURIComponent(decorSvg)}`});
     diploma.signers=[{uid:'one',name:'Pablo Hernández',title:'Vicepresidente',signature:''},{uid:'two',name:'María Fernanda López',title:'Directora de Talento',signature:''}];
-    document.getElementById('qa').innerHTML=academyFrontHtml(diploma)+academyBackHtml(diploma);
+    academyPrepareExportDocument(diploma).then(prepared=>{document.getElementById('qa').innerHTML=academyFrontHtml(prepared)+academyBackHtml(prepared);document.body.dataset.ready='true'}).catch(error=>{document.getElementById('qa').textContent=error.message;document.body.dataset.ready='error'});
   </script>
 </body>
 </html>
