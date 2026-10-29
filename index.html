@@ -21,7 +21,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js" defer></script>
   <link rel="stylesheet" href="css/infographic-builder.css?v=20260920-1">
   <link rel="stylesheet" href="css/new-hire-builder.css?v=20261007-21">
-  <link rel="stylesheet" href="css/signage-phase1.css?v=20261028-4">
+  <link rel="stylesheet" href="css/signage-phase1.css?v=20261029-8">
   <style>
     /* ── FONTS ──
        Per SIERRA_DESIGN_SYSTEM.md §19: Aeonik is the interface typeface
@@ -8367,7 +8367,7 @@ dialog[open]{position:fixed;inset:0;margin:auto}dialog::backdrop{background:rgba
 <script src="js/signage-config.js?v=20261029-3"></script>
 <script src="js/signage-backend-client.js?v=20261029-4"></script>
 <script src="js/signage-live-share.js?v=20261029-2"></script>
-<script src="js/signage-phase1.js?v=20261029-7"></script>
+<script src="js/signage-phase1.js?v=20261029-8"></script>
 <script>
 const SB_URL = 'https://vhyddogeemohtqijohry.supabase.co'
 const SB_KEY = 'sb_publishable_9g8UJRbV3NxOlmQgPxjDqg_Xw6hFB0f'
@@ -28689,7 +28689,10 @@ document.addEventListener('keydown', e => {
    an initial tab. Every "Activity"/"Comments"/"Permissions" surface in the
    app should go through this instead of building its own panel. */
 let _sdOnTab = null
+let _sdReturnFocus = null
 function openSideDrawer({ eyebrow = '', title = '', tabs = null, activeTab = null, onTab }) {
+  const overlay = document.getElementById('sd-overlay')
+  if (!overlay.classList.contains('open')) _sdReturnFocus = document.activeElement
   document.getElementById('sd-eyebrow').textContent = eyebrow
   document.getElementById('sd-title').textContent = title
   _sdOnTab = onTab
@@ -28701,7 +28704,7 @@ function openSideDrawer({ eyebrow = '', title = '', tabs = null, activeTab = nul
     tabsEl.style.display = 'none'
     tabsEl.innerHTML = ''
   }
-  document.getElementById('sd-overlay').classList.add('open')
+  overlay.classList.add('open')
   if (onTab) onTab(activeTab)
 }
 function switchDrawerTab(key) {
@@ -28711,6 +28714,9 @@ function switchDrawerTab(key) {
 function closeSideDrawer() {
   document.getElementById('sd-overlay').classList.remove('open')
   _sdOnTab = null
+  const returnFocus = _sdReturnFocus
+  _sdReturnFocus = null
+  if (returnFocus?.isConnected) requestAnimationFrame(() => returnFocus.focus({ preventScroll: true }))
 }
 function toast(msg) {
   const t = document.getElementById('toast')

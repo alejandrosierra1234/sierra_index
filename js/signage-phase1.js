@@ -752,7 +752,7 @@ function renderSignageHome() {
       <div class="sg-section-head"><div><h3 id="sg-spaces-title">Espacios</h3><p>Selecciona una o varias pantallas, incluso de lugares distintos.</p></div><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenSpaceDrawer()">${siIcon('plus',15)} Crear espacio</button><button class="btn btn-secondary btn-sm" onclick="signageOpenScreenDrawer()">${siIcon('plus',15)} Agregar pantalla</button></div></div>
       ${signageSpacesHtml()}
     </section>
-    ${signageSelectionBarHtml()}
+    <div id="sg-selection-slot">${signageSelectionBarHtml()}</div>
     <section aria-labelledby="sg-library-title">
       <div class="sg-section-head"><div><h3 id="sg-library-title">Contenido</h3><p>Empieza por una pieza y elige después dónde mostrarla.</p></div><button class="btn btn-secondary btn-sm" onclick="signageOpenContentDrawer()">${siIcon('plus',15)} Agregar contenido</button></div>
       ${signageLibraryHtml()}
@@ -780,7 +780,7 @@ function signageScreenTileHtml(screen) {
   const state = signageScreenState(screen)
   const selected = _signageSelectedScreenIds.has(screen.id)
   const preview = screen.outputPaused ? '<div class="sg-screen-preview sg-screen-rest"><img src="SIERRA_Primary_Blue02.svg" alt=""><span>Descanso SIERRA</span></div>' : content ? `<div class="sg-screen-preview sg-theme-${escAttr(content.theme)}"><small>${esc(signageTypeLabel(content.type))}</small><b>${esc(content.title)}</b></div>` : '<div class="sg-screen-preview sg-screen-rest"><img src="SIERRA_Primary_Blue02.svg" alt=""><span>Listo para mostrar</span></div>'
-  return `<article class="sg-screen-tile${selected ? ' selected' : ''}">${preview}<button class="sg-screen-select" type="button" aria-pressed="${selected}" aria-label="${selected ? 'Quitar' : 'Seleccionar'} ${escAttr(screen.name)}" onclick="signageToggleScreenSelection('${escAttr(screen.id)}')">${selected ? siIcon('check',16) : ''}</button><div class="sg-screen-copy"><div class="sg-screen-title"><b>${esc(screen.name)}</b><span class="sg-state sg-state-${state.cls}"><i></i>${esc(state.label)}</span></div><span>${esc(state.detail)}</span></div><div class="sg-screen-actions"><button class="btn btn-ghost btn-sm" onclick="signageOpenEditScreenDrawer('${escAttr(screen.id)}')">Configurar</button><button class="btn btn-secondary btn-sm" onclick="signageOpenPublishDrawer('${escAttr(screen.id)}')">Mostrar</button>${!screen.outputPaused ? `<button class="btn btn-ghost btn-sm" onclick="signageStopOutput('${escAttr(screen.id)}')">Reposo</button>` : ''}</div></article>`
+  return `<article class="sg-screen-tile${selected ? ' selected' : ''}">${preview}<button class="sg-screen-select" type="button" data-screen-id="${escAttr(screen.id)}" aria-pressed="${selected}" aria-label="${selected ? 'Quitar' : 'Seleccionar'} ${escAttr(screen.name)}" onclick="signageToggleScreenSelection('${escAttr(screen.id)}')">${selected ? siIcon('check',16) : ''}</button><div class="sg-screen-copy"><div class="sg-screen-title"><b>${esc(screen.name)}</b><span class="sg-state sg-state-${state.cls}"><i></i>${esc(state.label)}</span></div><span>${esc(state.detail)}</span></div><div class="sg-screen-actions"><button class="btn btn-ghost btn-sm" onclick="signageOpenEditScreenDrawer('${escAttr(screen.id)}')">Configurar</button><button class="btn btn-secondary btn-sm" onclick="signageOpenPublishDrawer('${escAttr(screen.id)}')">Mostrar</button>${!screen.outputPaused ? `<button class="btn btn-ghost btn-sm" onclick="signageStopOutput('${escAttr(screen.id)}')">Dejar en reposo</button>` : ''}</div></article>`
 }
 
 function signageSpacesHtml() {
@@ -799,12 +799,28 @@ function signageSelectionBarHtml() {
   return `<div class="sg-selection-bar" role="region" aria-label="Pantallas seleccionadas"><div><b>${screens.length} pantalla${screens.length === 1 ? '' : 's'} seleccionada${screens.length === 1 ? '' : 's'}</b><span>${screens.map(screen => esc(screen.name)).join(', ')}</span></div><div class="sg-actions"><button class="btn btn-ghost btn-sm" onclick="signageClearSelection()">Cancelar</button><button class="btn btn-secondary btn-sm" onclick="signageStopSelected()">Pantalla de descanso</button><button class="btn btn-primary btn-sm" onclick="signageOpenPublishDrawer()">Mostrar contenido</button></div></div>`
 }
 
+function signageRefreshSelectionUi(focusScreenId = '') {
+  document.querySelectorAll('.sg-screen-tile').forEach(tile => {
+    const button = tile.querySelector('.sg-screen-select')
+    const screenId = button?.dataset.screenId
+    if (!screenId) return
+    const selected = _signageSelectedScreenIds.has(screenId)
+    const screen = _signageState.screens.find(item => item.id === screenId)
+    tile.classList.toggle('selected', selected)
+    button.setAttribute('aria-pressed', String(selected))
+    button.setAttribute('aria-label', `${selected ? 'Quitar' : 'Seleccionar'} ${screen?.name || 'pantalla'}`)
+    button.innerHTML = selected ? siIcon('check', 16) : ''
+  })
+  const slot = document.getElementById('sg-selection-slot')
+  if (slot) slot.innerHTML = signageSelectionBarHtml()
+  if (focusScreenId) requestAnimationFrame(() => [...document.querySelectorAll('.sg-screen-select')].find(button => button.dataset.screenId === focusScreenId)?.focus({ preventScroll: true }))
+}
 function signageToggleScreenSelection(screenId) {
   if (_signageSelectedScreenIds.has(screenId)) _signageSelectedScreenIds.delete(screenId); else _signageSelectedScreenIds.add(screenId)
-  renderSignageHome()
+  signageRefreshSelectionUi(screenId)
 }
-function signageClearSelection() { _signageSelectedScreenIds.clear(); renderSignageHome() }
-function signageSelectSpace(spaceId) { _signageState.screens.filter(screen => (screen.spaceId || '') === spaceId).forEach(screen => _signageSelectedScreenIds.add(screen.id)); renderSignageHome() }
+function signageClearSelection() { _signageSelectedScreenIds.clear(); signageRefreshSelectionUi() }
+function signageSelectSpace(spaceId) { _signageState.screens.filter(screen => (screen.spaceId || '') === spaceId).forEach(screen => _signageSelectedScreenIds.add(screen.id)); signageRefreshSelectionUi() }
 function signageStopSelected() { return signageStopMany([..._signageSelectedScreenIds]) }
 
 function signageSpaceChoicesHtml(selectedId = '') {
@@ -982,13 +998,22 @@ function signageOpenContentDestinations(contentId) {
   const content = signageContentById(contentId)
   if (!content) { toast('El contenido ya no está disponible.'); return }
   if (!_signageState.screens.length) { toast('Agrega una pantalla antes de elegir dónde mostrar.'); return }
-  openSideDrawer({ eyebrow: 'Pantallas · Destinos', title: content.title, onTab: () => {
-    document.getElementById('sd-body').innerHTML = `<div class="sg-publish"><div class="sg-form-note"><b>Duplicar</b> muestra la pieza completa en cada pantalla elegida. No crea un videowall.</div><p>Elige uno o varios destinos.</p><div class="sg-destination-list">${_signageState.spaces.concat([{ id:'', name:'Sin espacio' }]).map(space => { const screens=_signageState.screens.filter(screen=>(screen.spaceId||'')===space.id); return screens.length?`<div><b>${esc(space.name)}</b>${screens.map(screen=>`<button type="button" class="sg-destination" data-screen-id="${escAttr(screen.id)}" aria-pressed="false" onclick="signageToggleDrawerDestination(this)"><span class="sg-destination-check"></span><span><strong>${esc(screen.name)}</strong><small>${esc(signageScreenState(screen).label)}</small></span></button>`).join('')}</div>`:'' }).join('')}</div><div class="sg-form-actions"><button class="btn btn-secondary" onclick="closeSideDrawer()">Cancelar</button><button class="btn btn-primary" onclick="signagePublishDrawerSelection('${escAttr(content.id)}')">Revisar y mostrar</button></div></div>`
+  openSideDrawer({ eyebrow: 'Pantallas · Mostrar en…', title: content.title, onTab: () => {
+    document.getElementById('sd-body').innerHTML = `<div class="sg-publish"><div class="sg-form-note"><b>Mismo contenido en cada pantalla.</b> Esto no crea un videowall.</div><p>Elige uno o varios destinos.</p><div class="sg-destination-list">${_signageState.spaces.concat([{ id:'', name:'Sin espacio' }]).map(space => { const screens=_signageState.screens.filter(screen=>(screen.spaceId||'')===space.id); return screens.length?`<div><b>${esc(space.name)}</b>${screens.map(screen=>{const selected=_signageSelectedScreenIds.has(screen.id);return `<button type="button" class="sg-destination${selected?' selected':''}" data-screen-id="${escAttr(screen.id)}" aria-pressed="${selected}" onclick="signageToggleDrawerDestination(this)"><span class="sg-destination-check">${selected?siIcon('check',14):''}</span><span><strong>${esc(screen.name)}</strong><small>${esc(signageScreenState(screen).label)}</small></span></button>`}).join('')}</div>`:'' }).join('')}</div><div id="sg-publish-feedback" class="sg-inline-feedback" role="status" aria-live="polite"></div><div class="sg-form-actions sg-drawer-actions"><button class="btn btn-secondary" onclick="closeSideDrawer()">Cancelar</button><button class="btn btn-primary" data-sg-publish-action onclick="signagePublishDrawerSelection('${escAttr(content.id)}')">Mostrar</button></div></div>`
+    signageUpdateDrawerDestinationAction()
+    requestAnimationFrame(() => document.querySelector('.sg-destination.selected,.sg-destination')?.focus({ preventScroll: true }))
   } })
 }
 
-function signageToggleDrawerDestination(button) { const selected=!button.classList.contains('selected');button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));button.querySelector('.sg-destination-check').innerHTML=selected?siIcon('check',14):'' }
-function signagePublishDrawerSelection(contentId) { const ids=[...document.querySelectorAll('.sg-destination.selected')].map(button=>button.dataset.screenId);if(!ids.length){toast('Selecciona al menos una pantalla.');return}signageOpenPublishDrawer(ids,contentId) }
+function signageUpdateDrawerDestinationAction() {
+  const count = document.querySelectorAll('.sg-destination.selected').length
+  const button = document.querySelector('[data-sg-publish-action]')
+  if (!button) return
+  button.disabled = !count || _signageBatchInFlight
+  button.textContent = count ? `Mostrar en ${count} pantalla${count === 1 ? '' : 's'}` : 'Elige una pantalla'
+}
+function signageToggleDrawerDestination(button) { const selected=!button.classList.contains('selected');button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));button.querySelector('.sg-destination-check').innerHTML=selected?siIcon('check',14):'';signageUpdateDrawerDestinationAction() }
+function signagePublishDrawerSelection(contentId) { const ids=[...document.querySelectorAll('.sg-destination.selected')].map(button=>button.dataset.screenId);if(!ids.length)return;return signagePublishMany(ids,contentId) }
 
 function signageProgrammingHtml() {
   if (!_signageState.playlists.length && !_signageState.schedules.length) return emptyStateHtml({ title: 'Aún no creas listas ni horarios', desc: 'Cuando tengas contenido, puedes combinarlo en una lista y elegir cuándo mostrarlo.' })
@@ -1010,8 +1035,8 @@ function signageOpenContentDrawer() {
   const mediaEnabled = signagePublicConfig().mediaEnabled
   openSideDrawer({ eyebrow: 'Pantallas · Contenido', title: 'Agregar contenido', onTab: () => {
     document.getElementById('sd-body').innerHTML = `<form class="sg-form" onsubmit="signageSubmitContent(event)" novalidate>
-      <div class="sg-form-note">${mediaEnabled ? 'Si vinculaste una pantalla, puedes subir un archivo. En modo de prueba también puedes usar una URL HTTPS.' : 'Este piloto permite mensajes y enlaces. Las imágenes y videos se habilitarán después de configurar su verificación segura.'}</div>
-      <fieldset class="sg-theme-field"><legend>¿Qué quieres mostrar?</legend><div class="sg-type-options" role="radiogroup">${['message','image','video','link'].map((type,index)=>{ const unavailable=!mediaEnabled&&(type==='image'||type==='video'); return `<button type="button" class="sg-type-option${index===0?' selected':''}" data-content-type="${type}" role="radio" aria-checked="${index===0}" ${unavailable?'disabled aria-disabled="true"':''} onclick="signageChooseContentType(this)">${esc(signageTypeLabel(type))}${unavailable?' · Próximamente':''}</button>` }).join('')}</div></fieldset>
+      <div class="sg-form-note">${mediaEnabled ? 'Si vinculaste una pantalla, puedes subir un archivo. En modo de prueba también puedes usar una URL HTTPS.' : '<b>Crea un mensaje o enlace.</b> Las imágenes y videos SIERRA disponibles están en la biblioteca principal; cargar archivos propios llegará en una fase posterior.'}</div>
+      <fieldset class="sg-theme-field"><legend>¿Qué quieres mostrar?</legend><div class="sg-type-options" role="radiogroup">${(mediaEnabled ? ['message','image','video','link'] : ['message','link']).map((type,index)=>`<button type="button" class="sg-type-option${index===0?' selected':''}" data-content-type="${type}" role="radio" aria-checked="${index===0}" onclick="signageChooseContentType(this)">${esc(signageTypeLabel(type))}</button>`).join('')}</div></fieldset>
       <label class="sg-field" for="sg-content-title"><span>Título <b aria-hidden="true">*</b></span><input class="control-input" id="sg-content-title" maxlength="80" required aria-describedby="sg-content-title-error"><small id="sg-content-title-error" class="sg-error"></small></label>
       <label class="sg-field" for="sg-content-body"><span id="sg-body-label">Mensaje <b aria-hidden="true">*</b></span><textarea class="control-input sg-textarea" id="sg-content-body" maxlength="240" required aria-describedby="sg-content-body-error"></textarea><small id="sg-content-body-error" class="sg-error"></small></label>
       <div id="sg-media-fields" hidden><label class="sg-field" for="sg-content-file"><span>Archivo de imagen o video</span><input class="control-input sg-file-input" id="sg-content-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" onchange="signagePreviewUpload(this)"><small class="sg-muted">Máximo propuesto: 10 MB por imagen y 50 MB por video.</small></label><div id="sg-upload-preview" class="sg-upload-preview" hidden></div><div class="sg-or"><span>o, en modo de prueba</span></div><label class="sg-field" for="sg-content-mediaUrl"><span>URL HTTPS del archivo</span><input class="control-input" id="sg-content-mediaUrl" inputmode="url" maxlength="2048" aria-describedby="sg-content-mediaUrl-error"><small id="sg-content-mediaUrl-error" class="sg-error"></small></label><label class="sg-field" for="sg-content-alt"><span>Descripción accesible <b aria-hidden="true">*</b></span><input class="control-input" id="sg-content-alt" maxlength="180" aria-describedby="sg-content-alt-error"><small id="sg-content-alt-error" class="sg-error"></small></label></div>
@@ -1228,7 +1253,8 @@ function signageOpenPublishDrawer(screenIds, preferredContentId) {
     const targets = screens.map(screen => `<li><b>${esc(screen.name)}</b><span>${esc(_signageState.spaces.find(space => space.id === screen.spaceId)?.name || 'Sin espacio')}</span></li>`).join('')
     const scope = `<div class="sg-form-note"><b>Duplicar en ${screens.length} pantalla${screens.length === 1 ? '' : 's'}.</b> Cada destino mostrará la pieza completa. Esto no crea un videowall.</div><ul class="sg-target-summary">${targets}</ul>`
     const contents = preferred ? [preferred] : _signageState.contents
-    document.getElementById('sd-body').innerHTML = `<div class="sg-publish">${scope}<p>${preferred ? 'Confirma qué se reemplazará en estos destinos.' : 'Selecciona la pieza que debe quedar activa.'}</p><div class="sg-publish-list">${contents.map(content => `<button type="button" class="sg-publish-item" onclick="signagePublishMany(${escAttr(JSON.stringify(ids))},'${escAttr(content.id)}')"><span class="sg-theme-swatch sg-theme-${escAttr(content.theme)}"></span><span><b>${esc(content.title)}</b><small>${esc(content.body || content.alt || content.url || '')}</small></span><em>${preferred ? 'Mostrar ahora' : 'Elegir'}</em></button>`).join('') || '<div class="sg-empty-inline"><b>No hay contenido disponible</b><span>Agrega contenido o elige una pieza de la selección SIERRA.</span></div>'}</div><button type="button" class="sg-rest-action" onclick="signageStopMany(${escAttr(JSON.stringify(ids))})"><span><b>Pantalla de descanso</b><small>Deja estos destinos en reposo sin desvincularlos.</small></span><span aria-hidden="true">→</span></button></div>`
+    document.getElementById('sd-body').innerHTML = `<div class="sg-publish">${scope}<p>${preferred ? 'Esta pieza reemplazará el contenido activo en los destinos indicados.' : 'Selecciona la pieza que debe quedar activa.'}</p><div class="sg-publish-list">${contents.map(content => `<button type="button" class="sg-publish-item" onclick="signagePublishMany(${escAttr(JSON.stringify(ids))},'${escAttr(content.id)}')"><span class="sg-theme-swatch sg-theme-${escAttr(content.theme)}"></span><span><b>${esc(content.title)}</b><small>${esc(content.body || content.alt || content.url || '')}</small></span><em>Mostrar</em></button>`).join('') || '<div class="sg-empty-inline"><b>No hay contenido disponible</b><span>Agrega contenido o elige una pieza de la selección SIERRA.</span></div>'}</div><button type="button" class="sg-rest-action" onclick="signageStopMany(${escAttr(JSON.stringify(ids))})"><span><b>Dejar en reposo</b><small>Muestra el descanso SIERRA sin desvincular ni borrar horarios.</small></span><span aria-hidden="true">→</span></button><div id="sg-publish-feedback" class="sg-inline-feedback" role="status" aria-live="polite"></div></div>`
+    requestAnimationFrame(() => document.querySelector('.sg-publish-item,.sg-rest-action')?.focus({ preventScroll: true }))
   } })
 }
 
@@ -1243,8 +1269,18 @@ async function signageEnsureRemoteContent(content) {
   return content.backendContentId
 }
 
-function signageBatchResultHtml(title, successes, failures) {
-  return `<div class="sg-batch-result" role="status"><h3>${esc(title)}</h3>${successes.length ? `<div class="sg-result-ok"><b>${successes.length} completada${successes.length === 1 ? '' : 's'}</b><ul>${successes.map(item => `<li>${esc(item.name)}</li>`).join('')}</ul></div>` : ''}${failures.length ? `<div class="sg-result-fail" role="alert"><b>${failures.length} no se pudo${failures.length === 1 ? '' : 'ieron'} actualizar</b><ul>${failures.map(item => `<li><span>${esc(item.name)}</span><small>${esc(item.message)}</small></li>`).join('')}</ul><p>Puedes cerrar y volver a intentar solo los destinos fallidos.</p></div>` : ''}<div class="sg-form-actions"><button class="btn btn-primary" onclick="closeSideDrawer()">Listo</button></div></div>`
+function signageSetDrawerBusy(busy, label = 'Actualizando pantallas…') {
+  const body = document.getElementById('sd-body')
+  if (!body) return
+  body.setAttribute('aria-busy', String(busy))
+  body.querySelectorAll('.sg-publish-item,.sg-rest-action,[data-sg-publish-action]').forEach(button => { button.disabled = busy })
+  const feedback = body.querySelector('#sg-publish-feedback')
+  if (feedback && busy) { feedback.dataset.pending = 'true'; feedback.setAttribute('role','status'); feedback.textContent = label }
+  else if (feedback?.dataset.pending === 'true') { feedback.dataset.pending = 'false'; feedback.textContent = '' }
+}
+
+function signageBatchResultHtml(title, successes, failures, retry = null) {
+  return `<div class="sg-batch-result" role="status"><h3>${esc(title)}</h3>${successes.length ? `<div class="sg-result-ok"><b>${successes.length} completada${successes.length === 1 ? '' : 's'}</b><ul>${successes.map(item => `<li>${esc(item.name)}</li>`).join('')}</ul></div>` : ''}${failures.length ? `<div class="sg-result-fail" role="alert"><b>${failures.length} no se pudo${failures.length === 1 ? '' : 'ieron'} actualizar</b><ul>${failures.map(item => `<li><span>${esc(item.name)}</span><small>${esc(item.message)}</small></li>`).join('')}</ul></div>` : ''}<div class="sg-form-actions">${retry ? `<button class="btn btn-secondary" onclick="${escAttr(retry.onclick)}">${esc(retry.label)}</button>` : ''}<button class="btn btn-primary" onclick="closeSideDrawer()">Listo</button></div></div>`
 }
 
 async function signagePublishMany(screenIds, contentId) {
@@ -1253,6 +1289,7 @@ async function signagePublishMany(screenIds, contentId) {
   const content = signageContentById(contentId)
   if (!ids.length || !content) { toast('El contenido o los destinos ya no están disponibles.'); return }
   _signageBatchInFlight = true
+  signageSetDrawerBusy(true, `Mostrando en ${ids.length} pantalla${ids.length === 1 ? '' : 's'}…`)
   const successes = [], failures = []
   try {
     const paired = _signageState.screens.filter(screen => ids.includes(screen.id) && screen.kind === 'paired')
@@ -1278,34 +1315,67 @@ async function signagePublishMany(screenIds, contentId) {
       } catch (error) { failures.push({ id: screen.id, name: screen.name, message: error.message || 'No se pudo actualizar.' }) }
     }
     if (successes.length && !signageSaveState(_signageState)) return
-    _signageSelectedScreenIds.clear()
+    successes.forEach(item => _signageSelectedScreenIds.delete(item.id))
+    failures.forEach(item => _signageSelectedScreenIds.add(item.id))
     renderSignageHome()
     const body = document.getElementById('sd-body')
-    if (body) body.innerHTML = signageBatchResultHtml('Contenido enviado', successes, failures)
+    if (body) body.innerHTML = signageBatchResultHtml('Contenido enviado', successes, failures, failures.length ? { label: `Reintentar ${failures.length} pantalla${failures.length === 1 ? '' : 's'}`, onclick: `signagePublishMany(${JSON.stringify(failures.map(item => item.id))},${JSON.stringify(content.id)})` } : null)
     if (!failures.length) toast(`Contenido enviado a ${successes.length} pantalla${successes.length === 1 ? '' : 's'}.`)
-  } catch (error) { toast(error.message || 'No se pudo preparar el contenido para estas pantallas.') }
-  finally { _signageBatchInFlight = false }
+  } catch (error) {
+    const feedback = document.getElementById('sg-publish-feedback')
+    if (feedback) { feedback.dataset.pending = 'false'; feedback.textContent = error.message || 'No se pudo preparar el contenido para estas pantallas.'; feedback.setAttribute('role','alert') }
+    else toast(error.message || 'No se pudo preparar el contenido para estas pantallas.')
+  }
+  finally { _signageBatchInFlight = false; signageSetDrawerBusy(false) }
 }
 
 function signagePublish(screenId, contentId) { return signagePublishMany([screenId], contentId) }
 
+function signageConfirmAction({ title, message, confirmLabel, tone = 'primary', onConfirm }) {
+  const previous = document.activeElement
+  const dialog = document.createElement('dialog')
+  dialog.className = 'modal-content comms-confirm sg-confirm-dialog'
+  dialog.setAttribute('aria-labelledby', 'sg-confirm-title')
+  dialog.setAttribute('aria-describedby', 'sg-confirm-message')
+  dialog.innerHTML = `<div class="modal-header"><h2 id="sg-confirm-title">${esc(title)}</h2></div><p id="sg-confirm-message">${esc(message)}</p><div class="modal-footer"><button type="button" class="btn btn-secondary" data-cancel>Cancelar</button><button type="button" class="btn ${tone === 'danger' ? 'btn-danger' : 'btn-primary'}" data-confirm>${esc(confirmLabel)}</button></div>`
+  const cancel = dialog.querySelector('[data-cancel]')
+  const confirmButton = dialog.querySelector('[data-confirm]')
+  cancel.onclick = () => dialog.close()
+  confirmButton.onclick = () => {
+    if (confirmButton.disabled) return
+    confirmButton.disabled = true
+    dialog.close('confirmed')
+    onConfirm()
+  }
+  dialog.addEventListener('close', () => { dialog.remove(); if (previous?.isConnected) previous.focus({ preventScroll: true }) }, { once: true })
+  document.body.appendChild(dialog)
+  dialog.showModal()
+  cancel.focus()
+}
+
 function signageRollback(screenId) {
   const screen = _signageState.screens.find(item => item.id === screenId)
-  if (!screen || !confirm(`Restaurar la publicación local anterior de ${screen?.name || 'esta pantalla'}?`)) return
-  try {
-    const result = SignagePhase1.rollbackScreen(_signageState, screenId, signageContext())
-    if (!signageSaveState(result.state)) return
-    renderSignageHome()
-    toast('Se restauró la publicación local anterior.')
-  } catch (error) { toast(error.message || 'No se pudo restaurar la publicación.') }
+  if (!screen) return
+  signageConfirmAction({ title: 'Restaurar contenido anterior', message: `Se restaurará la publicación local anterior de ${screen.name}.`, confirmLabel: 'Restaurar', onConfirm: () => {
+    try {
+      const result = SignagePhase1.rollbackScreen(_signageState, screenId, signageContext())
+      if (!signageSaveState(result.state)) return
+      renderSignageHome()
+      toast('Se restauró la publicación local anterior.')
+    } catch (error) { toast(error.message || 'No se pudo restaurar la publicación.') }
+  } })
 }
 
 async function signageStopMany(screenIds, options = {}) {
   const ids = signageTargetIds(screenIds)
   if (!ids.length || _signageBatchInFlight) return
   const names = _signageState.screens.filter(screen => ids.includes(screen.id)).map(screen => screen.name)
-  if (!options.confirmed && !confirm(`¿Mostrar la pantalla de descanso en ${ids.length === 1 ? names[0] : `${ids.length} pantallas`}? Seguirán vinculadas y conservarán su contenido y horarios.`)) return
+  if (!options.confirmed) {
+    signageConfirmAction({ title: ids.length === 1 ? 'Dejar pantalla en reposo' : `Dejar ${ids.length} pantallas en reposo`, message: `${ids.length === 1 ? names[0] : 'Las pantallas elegidas'} mostrar${ids.length === 1 ? 'á' : 'án'} el descanso SIERRA. Seguirán vinculadas y conservarán su contenido y horarios.`, confirmLabel: 'Dejar en reposo', onConfirm: () => signageStopMany(ids, { ...options, confirmed: true }) })
+    return
+  }
   _signageBatchInFlight = true
+  signageSetDrawerBusy(true, `Dejando ${ids.length === 1 ? 'la pantalla' : `${ids.length} pantallas`} en reposo…`)
   const successes = [], failures = []
   try {
     for (const id of ids) {
@@ -1325,12 +1395,13 @@ async function signageStopMany(screenIds, options = {}) {
       finally { _signageStopInFlight.delete(id) }
     }
     if (successes.length && !signageSaveState(_signageState)) return
-    ids.forEach(id => _signageSelectedScreenIds.delete(id))
+    successes.forEach(item => _signageSelectedScreenIds.delete(item.id))
+    failures.forEach(item => _signageSelectedScreenIds.add(item.id))
     renderSignageHome()
     const body = document.getElementById('sd-body')
-    if (body && options.showResult !== false) body.innerHTML = signageBatchResultHtml('Pantalla de descanso', successes, failures)
+    if (body && options.showResult !== false) body.innerHTML = signageBatchResultHtml('Pantalla de descanso', successes, failures, failures.length ? { label: `Reintentar ${failures.length} pantalla${failures.length === 1 ? '' : 's'}`, onclick: `signageStopMany(${JSON.stringify(failures.map(item => item.id))},{confirmed:true})` } : null)
     if (!failures.length) toast(`${successes.length} pantalla${successes.length === 1 ? '' : 's'} en reposo.`)
-  } finally { _signageBatchInFlight = false; renderSignageHome() }
+  } finally { _signageBatchInFlight = false; signageSetDrawerBusy(false); renderSignageHome() }
 }
 
 function signageStopOutput(screenId) { return signageStopMany([screenId]) }
@@ -1423,11 +1494,14 @@ function signagePlayerMediaFailed(screenId, contentId) {
 }
 
 function signageResetLocalData() {
-  if (!signageContext().canManage || !confirm('¿Borrar las pantallas, contenidos y horarios guardados en este navegador?')) return
-  try {
-    _signageState = signageRepository().reset()
-    _signageLoadWarning = ''
-    renderSignageHome()
-    toast('Se borraron los datos del modo de prueba.')
-  } catch { toast('No se pudo restablecer el almacenamiento local.') }
+  if (!signageContext().canManage) return
+  signageConfirmAction({ title: 'Borrar datos de prueba', message: 'Se borrarán únicamente las pantallas, contenidos y horarios guardados en este navegador. Las pantallas vinculadas al servicio central no se revocarán.', confirmLabel: 'Borrar datos de prueba', tone: 'danger', onConfirm: () => {
+    try {
+      _signageState = signageRepository().reset()
+      _signageLoadWarning = ''
+      _signageSelectedScreenIds.clear()
+      renderSignageHome()
+      toast('Se borraron los datos del modo de prueba.')
+    } catch { toast('No se pudo restablecer el almacenamiento local.') }
+  } })
 }
