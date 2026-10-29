@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>Pantallas · Reproductor SIERRA</title>
   <link rel="stylesheet" href="css/signage-player.css">
 </head>
@@ -22,9 +23,29 @@
       <div id="sp-content" class="sp-content"></div>
     </section>
   </main>
-  <script src="js/signage-config.js?v=20261029-2"></script>
-  <script src="js/signage-backend-client.js?v=20261029-2"></script>
-  <script src="js/signage-live-share.js"></script>
-  <script src="js/signage-player.js?v=20261029-2"></script>
+  <script>
+    (function () {
+      window.__sierraPlayerBooted = false
+      window.__sierraPlayerSettled = false
+      var status = document.getElementById('sp-setup-status')
+      var retry = document.getElementById('sp-new-code')
+      function showStartupError(message) {
+        if (window.__sierraPlayerSettled) return
+        status.textContent = message
+        retry.hidden = false
+      }
+      retry.addEventListener('click', function () { if (!window.__sierraPlayerBooted) location.reload() })
+      window.addEventListener('error', function (event) {
+        if (event.target && event.target.tagName === 'SCRIPT') showStartupError('No pudimos iniciar el reproductor en este navegador. Toca “Generar otro código” para intentar de nuevo.')
+      }, true)
+      setTimeout(function () {
+        showStartupError('La conexión está tardando demasiado. Toca “Generar otro código” para intentar de nuevo.')
+      }, 15000)
+    })()
+  </script>
+  <script src="js/signage-config.js?v=20261029-3"></script>
+  <script src="js/signage-backend-client.js?v=20261029-3"></script>
+  <script src="js/signage-live-share.js?v=20261029-3"></script>
+  <script src="js/signage-player.js?v=20261029-3"></script>
 </body>
 </html>

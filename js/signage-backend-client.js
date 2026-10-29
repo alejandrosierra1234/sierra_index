@@ -1,8 +1,8 @@
 (function (root, factory) {
-  const api = factory()
+  const api = factory(root)
   if (typeof module === 'object' && module.exports) module.exports = api
   root.SignageBackendClient = api
-})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (runtime) {
   'use strict'
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -28,33 +28,49 @@
   }
 
   function createClient(options) {
-    const baseUrl = normalizeBaseUrl(options?.baseUrl, options?.currentOrigin, options?.allowedOrigins)
-    const fetchImpl = options?.fetchImpl || globalThis.fetch
+    options = options || {}
+    const baseUrl = normalizeBaseUrl(options.baseUrl, options.currentOrigin, options.allowedOrigins)
+    const fetchImpl = options.fetchImpl || runtime.fetch
     if (typeof fetchImpl !== 'function') throw new Error('Este navegador no ofrece fetch.')
-    const tokenProvider = options?.tokenProvider || (() => '')
-    const workspaceProvider = options?.workspaceProvider || (() => '')
+    const tokenProvider = options.tokenProvider || (() => '')
+    const workspaceProvider = options.workspaceProvider || (() => '')
 
     async function request(path, init) {
+      init = init || {}
       const token = await tokenProvider()
-      const headers = new Headers(init?.headers || {})
+      const headers = new Headers(init.headers || {})
       if (token) headers.set('Authorization', `Bearer ${token}`)
       const workspaceId = await workspaceProvider()
       if (workspaceId) headers.set('X-Signage-Workspace', workspaceId)
-      if (init?.body && !(init.body instanceof Blob) && typeof init.body !== 'string') {
+      if (init.body && !(init.body instanceof Blob) && typeof init.body !== 'string') {
         headers.set('Content-Type', 'application/json')
         init = { ...init, body: JSON.stringify(init.body) }
       }
-      const response = await fetchImpl(baseUrl + path, { ...init, headers, cache: 'no-store' })
-      const text = await response.text()
-      let payload = null
-      try { payload = text ? JSON.parse(text) : null } catch { payload = { message: text } }
-      if (!response.ok) {
-        const error = new Error(payload?.message || `Solicitud rechazada (${response.status}).`)
-        error.status = response.status
-        error.code = payload?.code || 'SIGNAGE_BACKEND_ERROR'
+      const controller = typeof runtime.AbortController === 'function' && !init.signal ? new runtime.AbortController() : null
+      const timeout = controller ? setTimeout(() => controller.abort(), 12000) : null
+      if (controller) init = { ...init, signal: controller.signal }
+      try {
+        const response = await fetchImpl(baseUrl + path, { ...init, headers, cache: 'no-store' })
+        const text = await response.text()
+        let payload = null
+        try { payload = text ? JSON.parse(text) : null } catch (parseError) { payload = { message: text } }
+        if (!response.ok) {
+          const error = new Error((payload && payload.message) || `Solicitud rechazada (${response.status}).`)
+          error.status = response.status
+          error.code = (payload && payload.code) || 'SIGNAGE_BACKEND_ERROR'
+          throw error
+        }
+        return payload
+      } catch (error) {
+        if (error && error.name === 'AbortError') {
+          const timeoutError = new Error('La conexión tardó demasiado.')
+          timeoutError.code = 'REQUEST_TIMEOUT'
+          throw timeoutError
+        }
         throw error
+      } finally {
+        if (timeout) clearTimeout(timeout)
       }
-      return payload
     }
 
     return {
@@ -95,7 +111,7 @@
         if (token) headers.set('Authorization', `Bearer ${token}`)
         const response = await fetchImpl(baseUrl + '/admin/uploads', { method: 'PUT', headers, body: file, cache: 'no-store' })
         const payload = await response.json().catch(() => null)
-        if (!response.ok) throw new Error(payload?.message || `No se pudo subir el archivo (${response.status}).`)
+        if (!response.ok) throw new Error((payload && payload.message) || `No se pudo subir el archivo (${response.status}).`)
         return payload
       },
     }
@@ -103,35 +119,36 @@
 
   const tokenMap = new WeakMap()
   function createPlayerClient(options) {
-    const baseUrl = normalizeBaseUrl(options?.baseUrl, options?.currentOrigin, options?.allowedOrigins)
-    const fetchImpl = options?.fetchImpl || globalThis.fetch
+    options = options || {}
+    const baseUrl = normalizeBaseUrl(options.baseUrl, options.currentOrigin, options.allowedOrigins)
+    const fetchImpl = options.fetchImpl || runtime.fetch
     const client = { baseUrl, fetchImpl }
-    tokenMap.set(client, options?.deviceToken || '')
+    tokenMap.set(client, options.deviceToken || '')
     client.manifest = async deviceId => {
       const response = await fetchImpl(baseUrl + '/player/manifest', { headers: { Authorization: `Bearer ${tokenMap.get(client)}`, 'X-Device-Id': deviceId }, cache: 'no-store' })
       const payload = await response.json().catch(() => null)
       if (!response.ok) {
-        const error = new Error(payload?.message || `No se pudo sincronizar (${response.status}).`)
+        const error = new Error((payload && payload.message) || `No se pudo sincronizar (${response.status}).`)
         error.status = response.status
         throw error
       }
       return payload
     }
     client.runtime = async () => {
-      const response = await fetchImpl(baseUrl + '/player/runtime', { headers: { Authorization: `Bearer ${tokenMap.get(client)}`, 'X-Device-Id': options?.deviceId || '' }, cache: 'no-store' })
-      const payload = await response.json().catch(() => null); if (!response.ok) throw new Error(payload?.message || 'No se pudo preparar la transmisión.'); return payload
+      const response = await fetchImpl(baseUrl + '/player/runtime', { headers: { Authorization: `Bearer ${tokenMap.get(client)}`, 'X-Device-Id': options.deviceId || '' }, cache: 'no-store' })
+      const payload = await response.json().catch(() => null); if (!response.ok) throw new Error((payload && payload.message) || 'No se pudo preparar la transmisión.'); return payload
     }
     client.heartbeat = async input => {
-      const response = await fetchImpl(baseUrl + '/player/heartbeat', { method: 'POST', headers: { Authorization: `Bearer ${tokenMap.get(client)}`, 'X-Device-Id': options?.deviceId || '', 'Content-Type': 'application/json' }, body: JSON.stringify(input || {}), cache: 'no-store' })
-      const payload = await response.json().catch(() => null); if (!response.ok) throw new Error(payload?.message || 'No se pudo reportar el estado.'); return payload
+      const response = await fetchImpl(baseUrl + '/player/heartbeat', { method: 'POST', headers: { Authorization: `Bearer ${tokenMap.get(client)}`, 'X-Device-Id': options.deviceId || '', 'Content-Type': 'application/json' }, body: JSON.stringify(input || {}), cache: 'no-store' })
+      const payload = await response.json().catch(() => null); if (!response.ok) throw new Error((payload && payload.message) || 'No se pudo reportar el estado.'); return payload
     }
     client.sendLiveSignal = async (sessionId, signal) => {
-      const response = await fetchImpl(`${baseUrl}/player/live-sessions/${encodeURIComponent(sessionId)}/signals`, { method: 'POST', headers: { Authorization: `Bearer ${tokenMap.get(client)}`, 'X-Device-Id': options?.deviceId || '', 'Content-Type': 'application/json' }, body: JSON.stringify(signal), cache: 'no-store' })
-      const payload = await response.json().catch(() => null); if (!response.ok) throw new Error(payload?.message || 'No se pudo responder a la transmisión.'); return payload
+      const response = await fetchImpl(`${baseUrl}/player/live-sessions/${encodeURIComponent(sessionId)}/signals`, { method: 'POST', headers: { Authorization: `Bearer ${tokenMap.get(client)}`, 'X-Device-Id': options.deviceId || '', 'Content-Type': 'application/json' }, body: JSON.stringify(signal), cache: 'no-store' })
+      const payload = await response.json().catch(() => null); if (!response.ok) throw new Error((payload && payload.message) || 'No se pudo responder a la transmisión.'); return payload
     }
     client.receiveLiveSignals = async (sessionId, after) => {
-      const response = await fetchImpl(`${baseUrl}/player/live-sessions/${encodeURIComponent(sessionId)}/signals?after=${Number(after) || 0}`, { headers: { Authorization: `Bearer ${tokenMap.get(client)}`, 'X-Device-Id': options?.deviceId || '' }, cache: 'no-store' })
-      const payload = await response.json().catch(() => null); if (!response.ok) throw new Error(payload?.message || 'No se pudo recibir la transmisión.'); return payload
+      const response = await fetchImpl(`${baseUrl}/player/live-sessions/${encodeURIComponent(sessionId)}/signals?after=${Number(after) || 0}`, { headers: { Authorization: `Bearer ${tokenMap.get(client)}`, 'X-Device-Id': options.deviceId || '' }, cache: 'no-store' })
+      const payload = await response.json().catch(() => null); if (!response.ok) throw new Error((payload && payload.message) || 'No se pudo recibir la transmisión.'); return payload
     }
     return client
   }

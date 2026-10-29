@@ -13,6 +13,11 @@
     })
   }
   function peerConfig(iceServers) { return { iceServers: Array.isArray(iceServers) ? iceServers : [] } }
+  function debugState(peer) {
+    const local = peer && peer.localDescription
+    const remote = peer && peer.remoteDescription
+    return { connection:peer && peer.connectionState,ice:peer && peer.iceConnectionState,gathering:peer && peer.iceGatheringState,signaling:peer && peer.signalingState,local:local && local.type,remote:remote && remote.type,candidates:((local && local.sdp && local.sdp.match(/a=candidate:/g))||[]).length }
+  }
 
   function createSender(options) {
     let peer = null, stream = null, timer = null, session = null, sequence = 0, stopped = false, descriptionSent = false
@@ -28,7 +33,7 @@
       } finally { if (!stopped) timer = setTimeout(poll, 1000) }
     }
     async function start() {
-      const capture = options.captureProvider || (() => navigator.mediaDevices?.getDisplayMedia?.({ video: { frameRate: { ideal: 15, max: 30 } }, audio: false }))
+      const capture = options.captureProvider || (() => navigator.mediaDevices && typeof navigator.mediaDevices.getDisplayMedia === 'function' ? navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 } }, audio: false }) : null)
       stream = await capture()
       if (!stream) throw new Error('Este navegador no permite compartir pantalla.')
       session = (await options.client.startLive(options.deviceId)).session
@@ -44,11 +49,11 @@
     }
     async function stop() {
       if (stopped) return; stopped = true; clearTimeout(timer)
-      stream?.getTracks().forEach(track => track.stop()); peer?.close()
+      if (stream) stream.getTracks().forEach(track => track.stop()); if (peer) peer.close()
       if (session) await options.client.stopLive(session.id).catch(() => {})
-      options.onStop?.()
+      if (options.onStop) options.onStop()
     }
-    return { start, stop, get session() { return session }, get connectionState() { return peer?.connectionState || 'new' }, get debugState() { return { connection:peer?.connectionState,ice:peer?.iceConnectionState,gathering:peer?.iceGatheringState,signaling:peer?.signalingState,local:peer?.localDescription?.type,remote:peer?.remoteDescription?.type,candidates:(peer?.localDescription?.sdp?.match(/a=candidate:/g)||[]).length } } }
+    return { start, stop, get session() { return session }, get connectionState() { return peer ? peer.connectionState : 'new' }, get debugState() { return debugState(peer) } }
   }
 
   function createReceiver(options) {
@@ -67,15 +72,15 @@
               if (descriptionSent && event.candidate) options.client.sendLiveSignal(options.sessionId, { type: 'candidate', payload: event.candidate.toJSON() }).catch(options.onError || (() => {}))
             })
             await peer.setRemoteDescription(signal.payload); await peer.setLocalDescription(await peer.createAnswer()); await waitIce(peer)
-            await options.client.sendLiveSignal(options.sessionId, { type: 'answer', payload: peer.localDescription }); descriptionSent = true; answered = true; options.onConnected?.()
+            await options.client.sendLiveSignal(options.sessionId, { type: 'answer', payload: peer.localDescription }); descriptionSent = true; answered = true; if (options.onConnected) options.onConnected()
           } else if (signal.type === 'candidate' && signal.payload && peer) await peer.addIceCandidate(signal.payload)
         }
-      } catch (error) { options.onError?.(error) }
+      } catch (error) { if (options.onError) options.onError(error) }
       if (!stopped) timer = setTimeout(poll, 1000)
     }
     function start() { poll() }
-    function stop() { if (stopped) return; stopped = true; clearTimeout(timer); peer?.close(); if (options.video) options.video.srcObject = null; options.onStop?.() }
-    return { start, stop, get connectionState() { return peer?.connectionState || 'new' }, get debugState() { return { connection:peer?.connectionState,ice:peer?.iceConnectionState,gathering:peer?.iceGatheringState,signaling:peer?.signalingState,local:peer?.localDescription?.type,remote:peer?.remoteDescription?.type,candidates:(peer?.localDescription?.sdp?.match(/a=candidate:/g)||[]).length } } }
+    function stop() { if (stopped) return; stopped = true; clearTimeout(timer); if (peer) peer.close(); if (options.video) options.video.srcObject = null; if (options.onStop) options.onStop() }
+    return { start, stop, get connectionState() { return peer ? peer.connectionState : 'new' }, get debugState() { return debugState(peer) } }
   }
   return { createSender, createReceiver, waitIce }
 })

@@ -16,8 +16,8 @@
   let lastHeartbeatAt = 0
   const heartbeatInterval = Number(window.SIERRA_SIGNAGE_HEARTBEAT_INTERVAL) || 30000
 
-  function loadCredentials() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) } catch { return null } }
-  function loadLastManifest() { try { return JSON.parse(localStorage.getItem(LAST_MANIFEST_KEY)) } catch { return null } }
+  function loadCredentials() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) } catch (error) { return null } }
+  function loadLastManifest() { try { return JSON.parse(localStorage.getItem(LAST_MANIFEST_KEY)) } catch (error) { return null } }
   function saveCredentials(value) { localStorage.setItem(STORAGE_KEY, JSON.stringify(value)); credentials = value }
   function saveLastManifest(value) { localStorage.setItem(LAST_MANIFEST_KEY, JSON.stringify(value)); lastManifest = value }
   async function clearCachedPlayback() {
@@ -36,9 +36,14 @@
       const client = SignageBackendClient.createClient({ baseUrl, currentOrigin: location.origin, allowedOrigins })
       const pairing = await client.createPairing()
       document.getElementById('sp-code').textContent = pairing.code
+      window.__sierraPlayerSettled = true
       setupStatus('El código vence en 5 minutos y funciona una sola vez.', false)
       pollPairing(client, pairing.claimToken)
-    } catch (error) { setupStatus('No se pudo conectar con el servicio de Pantallas.', true) }
+    } catch (error) {
+      window.__sierraPlayerSettled = true
+      const detail = error && error.code === 'REQUEST_TIMEOUT' ? 'La conexión tardó demasiado.' : 'No se pudo conectar con el servicio de Pantallas.'
+      setupStatus(`${detail} Toca “Generar otro código” para intentar de nuevo.`, true)
+    }
   }
 
   async function pollPairing(client, claimToken) {
@@ -66,7 +71,7 @@
       if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl)
       currentObjectUrl = URL.createObjectURL(blob)
       return currentObjectUrl
-    } catch { return networkUrl }
+    } catch (error) { return networkUrl }
   }
 
   async function renderContent(content) {
@@ -76,14 +81,14 @@
     else if (content.type === 'video') host.innerHTML = `<div class="sp-media"><video src="${escapeAttr(await cachedMediaUrl(content))}" aria-label="${escapeAttr(content.alt)}" autoplay muted loop playsinline></video><div class="sp-caption"><b>${escapeHtml(content.title)}</b>${content.body ? `<span>${escapeHtml(content.body)}</span>` : ''}</div></div>`
     else if (content.type === 'link') host.innerHTML = `<div class="sp-link"><div class="sp-link-icon" aria-hidden="true">↗</div><h1>${escapeHtml(content.title)}</h1><p>${escapeHtml(content.body || 'Abre este enlace desde un dispositivo autorizado.')}</p><a href="${escapeAttr(content.url)}" rel="noopener noreferrer">${escapeHtml(content.url)}</a></div>`
     else host.innerHTML = `<div class="sp-message"><h1>${escapeHtml(content.title)}</h1><p>${escapeHtml(content.body)}</p></div>`
-    host.querySelectorAll('img,video').forEach(media => media.addEventListener('error', () => { if (lastManifest?.content) host.innerHTML = '<div class="sp-empty"><h1>No pudimos cargar este archivo</h1><p>Revisa la conexión o el formato desde SIERRA Index.</p></div>' }, { once: true }))
+    host.querySelectorAll('img,video').forEach(media => media.addEventListener('error', () => { if (lastManifest && lastManifest.content) host.innerHTML = '<div class="sp-empty"><h1>No pudimos cargar este archivo</h1><p>Revisa la conexión o el formato desde SIERRA Index.</p></div>' }, { once: true }))
   }
 
   async function showLive(session, client) {
     if (liveSessionId === session.id) return
     const runtime = await client.runtime()
-    if (!runtime.liveAvailable || !runtime.iceServers?.length) throw new Error('La transmisión en vivo no tiene una conexión ICE/TURN configurada.')
-    liveReceiver?.stop(); liveSessionId = session.id
+    if (!runtime.liveAvailable || !runtime.iceServers || !runtime.iceServers.length) throw new Error('La transmisión en vivo no tiene una conexión ICE/TURN configurada.')
+    if (liveReceiver) liveReceiver.stop(); liveSessionId = session.id
     const host = document.getElementById('sp-content')
     host.innerHTML = '<div class="sp-live"><span class="sp-live-label">PANTALLA COMPARTIDA EN VIVO</span><video id="sp-live-video" autoplay muted playsinline></video></div>'
     liveReceiver = SignageLiveShare.createReceiver({
@@ -107,13 +112,13 @@
       if (result.liveSession) await showLive(result.liveSession, client)
       else {
         if (liveReceiver) liveReceiver.stop()
-        if (!lastManifest || result.revision !== lastManifest.revision || result.content?.id !== lastManifest.content?.id || lastManifest.liveSession) await renderContent(result.content)
+        if (!lastManifest || result.revision !== lastManifest.revision || (result.content && result.content.id) !== (lastManifest.content && lastManifest.content.id) || lastManifest.liveSession) await renderContent(result.content)
       }
       saveLastManifest(result)
       if (Date.now() - lastHeartbeatAt >= heartbeatInterval) {
         lastHeartbeatAt = Date.now()
-        const estimate = await navigator.storage?.estimate?.().catch(() => null)
-        await client.heartbeat({ playerVersion: 'web-1', status: result.liveSession ? 'live' : result.content ? 'playing' : 'idle', lastManifestRevision: result.revision, storageFreeBytes: estimate?.quota && estimate?.usage ? Math.max(0, estimate.quota-estimate.usage) : null, errors: [] }).catch(() => {})
+        const estimate = navigator.storage && typeof navigator.storage.estimate === 'function' ? await navigator.storage.estimate().catch(() => null) : null
+        await client.heartbeat({ playerVersion: 'web-1', status: result.liveSession ? 'live' : result.content ? 'playing' : 'idle', lastManifestRevision: result.revision, storageFreeBytes: estimate && estimate.quota && estimate.usage ? Math.max(0, estimate.quota-estimate.usage) : null, errors: [] }).catch(() => {})
       }
     } catch (error) {
       document.getElementById('sp-connection').textContent = error.status === 401 ? 'Vinculación revocada' : 'Sin conexión · mostrando lo último recibido'
@@ -122,10 +127,11 @@
   }
 
   function startPlayer() {
+    window.__sierraPlayerSettled = true
     document.getElementById('sp-setup').hidden = true
     document.getElementById('sp-stage').hidden = false
     document.getElementById('sp-connection').textContent = 'Pantalla vinculada · conectando…'
-    if (lastManifest?.deviceId === credentials.deviceId) renderContent(lastManifest.content)
+    if (lastManifest && lastManifest.deviceId === credentials.deviceId) renderContent(lastManifest.content)
     else renderContent(null)
     sync(); manifestTimer = setInterval(sync, 2000)
   }
@@ -133,9 +139,10 @@
   function escapeAttr(value) { return escapeHtml(value).replace(/"/g, '&quot;') }
 
   document.getElementById('sp-new-code').addEventListener('click', beginPairing)
+  window.__sierraPlayerBooted = true
   if (!publicConfig.enabled) {
     document.getElementById('sp-code').textContent = '—'
     setupStatus('El servicio central de Pantallas todavía no está habilitado.', false)
-  } else if (credentials?.deviceId && credentials?.deviceToken) startPlayer()
+  } else if (credentials && credentials.deviceId && credentials.deviceToken) startPlayer()
   else beginPairing()
 })()

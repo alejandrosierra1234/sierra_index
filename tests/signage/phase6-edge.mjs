@@ -72,8 +72,12 @@ equal(calls.some(call=>call[0]==='admin'&&call[1]===WORKSPACE&&call[2]==='manage
 const here=path.dirname(fileURLToPath(import.meta.url)), root=path.resolve(here,'../..')
 const edgeSource=await fs.readFile(path.join(root,'supabase/functions/signage-api/index.ts'),'utf8')
 const clientSource=await fs.readFile(path.join(root,'js/signage-backend-client.js'),'utf8')
+const playerSource=await fs.readFile(path.join(root,'js/signage-player.js'),'utf8')
+const liveSource=await fs.readFile(path.join(root,'js/signage-live-share.js'),'utf8')
 assert.match(clientSource,/claimPairing: claimToken => request\('\/player\/pairings\/status'/); assertions+=1
 assert.doesNotMatch(clientSource,/pairings\/\$\{encodeURIComponent\(claimToken\)\}/); assertions+=1
+assert.doesNotMatch(clientSource+playerSource+liveSource,/\?\./); assertions+=1
+assert.doesNotMatch(clientSource,/globalThis\.fetch/); assertions+=1
 for(const required of ['signage_pairing_claim_service','signage_pairing_deliver_service','signage_device_manifest_service','createSignedUploadUrl','signage_device_heartbeats','SIGNAGE_MEDIA_VERIFIER_URL','SIGNAGE_ICE_CONFIG_URL','SIGNAGE_PAIRING_PEPPER','signage_playlist_save','signage_schedule_save']) {
   assert.match(edgeSource,new RegExp(required)); assertions+=1
 }
