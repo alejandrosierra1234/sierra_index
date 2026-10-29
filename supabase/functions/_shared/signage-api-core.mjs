@@ -156,6 +156,10 @@ export function createSignageHandler(adapter, options = {}) {
         const workspaceId = workspace(req), actor = await admin(req, workspaceId, 'read')
         return response(await adapter.listActivity({ workspaceId, actor }), 200, cors)
       }
+      if (req.method === 'GET' && path === '/admin/programming') {
+        const workspaceId = workspace(req), actor = await admin(req, workspaceId, 'read')
+        return response(await adapter.listProgramming({ workspaceId, actor }), 200, cors)
+      }
       const approve = path.match(/^\/admin\/content\/([^/]+)\/approve$/)
       if (req.method === 'POST' && approve) {
         const body = await jsonBody(req), workspaceId = workspace(req, body), actor = await admin(req, workspaceId, 'approve')

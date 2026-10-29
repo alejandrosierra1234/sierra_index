@@ -164,6 +164,17 @@ function playwright() {
       const playlist=await client.createPlaylist({name:'Lista programada E2E',entries:[{contentId:message.backendContentId,contentRevision:message.backendRevision,durationSeconds:30}]})
       await client.createSchedule({deviceId:screen.id,playlistId:playlist.playlist.id,startsAt:new Date(Date.now()-60000).toISOString(),endsAt:new Date(Date.now()+3600000).toISOString(),priority:9})
     })
+    const programmingContext = await browser.newContext()
+    await programmingContext.addInitScript(({origin,workspaceId,siteId}) => {
+      window.SIERRA_SIGNAGE_CONFIG={enabled:true,backendUrl:origin+'/functions/v1/signage-api',allowedOrigins:[origin],workspaceId,siteId,mediaEnabled:true,liveEnabled:true}
+      window.SIERRA_SIGNAGE_LOCAL_ADMIN_TOKEN='synthetic-admin-token'
+    },{origin,workspaceId:harness.state.workspaceId,siteId:harness.state.siteId})
+    const programmingAdmin = await programmingContext.newPage()
+    await programmingAdmin.goto(origin + '/tests/signage/phase1-visual.html?reset=1')
+    await programmingAdmin.waitForFunction(() => _signageState.playlists.some(item => item.name === 'Lista programada E2E' && item.central) && _signageState.schedules.some(item => item.central), null, { timeout: 5000 })
+    assert.equal(await programmingAdmin.evaluate(() => _signageState.playlists.find(item => item.name === 'Lista programada E2E').entries[0].durationSeconds), 30, 'a separate browser reconstructs the central playlist revision')
+    assert.equal(await programmingAdmin.evaluate(() => _signageState.schedules.find(item => item.central).priority), 9, 'a separate browser reconstructs the central schedule')
+    await programmingContext.close()
     await player.getByText('Mensaje cruzado E2E', { exact: true }).waitFor({ timeout: 7000 })
 
     await admin.locator('.sg-screen-tile').filter({ hasText: 'Comedor norte E2E' }).getByRole('button', { name: 'Dejar en reposo', exact: true }).click()

@@ -49,6 +49,7 @@ try{
 
   const playlist=await admin.createPlaylist({workspaceId,name:'Horario real',entries:[{contentId:draft.content.id,contentRevision:draft.content.revision,durationSeconds:30}]})
   await admin.createSchedule({workspaceId,deviceId:claimed.device.id,playlistId:playlist.playlist.id,startsAt:new Date(Date.now()-60000).toISOString(),endsAt:new Date(Date.now()+3600000).toISOString(),priority:9})
+  const programming=await admin.listProgramming();eq(programming.playlists[0].entries[0].contentId,draft.content.id,'central programming returns the pinned playlist entries');eq(programming.schedules[0].device_id,claimed.device.id,'central programming returns the destination schedule')
   manifest=await player.manifest(claimed.device.id);eq(manifest.content.title,'Mensaje aprobado','active schedule overrides direct publication');eq(manifest.schedule.priority,9,'schedule priority survives contract')
   const stopped=await admin.stopOutput(claimed.device.id,manifest.revision);eq(stopped.device.output_paused,true,'stop targets the selected device')
   manifest=await player.manifest(claimed.device.id);eq(manifest.state,'stopped','stop persists in the real Edge contract');eq(manifest.content,null,'stopped output hides scheduled and direct content');eq(manifest.schedule,null,'an active schedule cannot immediately restart a stopped screen')

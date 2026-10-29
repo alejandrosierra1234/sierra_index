@@ -698,6 +698,45 @@ function signageRemoteScreen(device, fallback = {}, remoteContentIds = new Map()
   }
 }
 
+function signageMergeRemoteProgramming(state, programming, remoteContentIds = new Map()) {
+  const remotePlaylists = Array.isArray(programming?.playlists) ? programming.playlists : []
+  const remoteSchedules = Array.isArray(programming?.schedules) ? programming.schedules : []
+  const remotePlaylistIds = new Set(remotePlaylists.map(item => item.id))
+  const remoteScheduleIds = new Set(remoteSchedules.map(item => item.id))
+  const localPlaylistIds = new Map()
+  const localPlaylists = state.playlists.filter(item => !item.central && !item.backendPlaylistId)
+  for (const item of remotePlaylists) {
+    const existing = state.playlists.find(playlist => playlist.backendPlaylistId === item.id || playlist.id === item.id)
+    const id = existing?.id || item.id
+    localPlaylistIds.set(item.id, id)
+    localPlaylists.push({
+      ...(existing || {}), id, name: item.name, central: true, backendPlaylistId: item.id,
+      backendRevision: Number(item.current_revision) || 0, createdAt: item.created_at || existing?.createdAt || null,
+      updatedAt: item.updated_at || null,
+      entries: (Array.isArray(item.entries) ? item.entries : []).map(entry => ({
+        contentId: remoteContentIds.get(entry.contentId) || entry.contentId,
+        contentRevision: Number(entry.contentRevision) || 0,
+        durationSeconds: Number(entry.durationSeconds) || 0,
+      })),
+    })
+  }
+  const localSchedules = state.schedules.filter(item => !item.central && !item.backendScheduleId)
+  for (const item of remoteSchedules) {
+    const existing = state.schedules.find(schedule => schedule.backendScheduleId === item.id || schedule.id === item.id)
+    const playlistId = localPlaylistIds.get(item.playlist_id) || item.playlist_id
+    localSchedules.push({
+      ...(existing || {}), id: existing?.id || item.id, central: true, backendScheduleId: item.id,
+      backendRevision: Number(item.revision) || 0, screenId: item.device_id, playlistId,
+      playlistRevision: Number(item.playlist_revision) || 0, startsAt: item.starts_at, endsAt: item.ends_at,
+      priority: Number(item.priority) || 0, enabled: item.enabled !== false,
+      createdAt: item.created_at || existing?.createdAt || null, updatedAt: item.updated_at || null,
+    })
+  }
+  state.playlists = localPlaylists.filter(item => !item.backendPlaylistId || remotePlaylistIds.has(item.backendPlaylistId))
+  state.schedules = localSchedules.filter(item => !item.backendScheduleId || remoteScheduleIds.has(item.backendScheduleId))
+  return state
+}
+
 async function signageSyncRemoteDevices(options = {}) {
   if (_signageRemoteSyncPromise) return _signageRemoteSyncPromise
   const config = signagePublicConfig()
@@ -706,11 +745,12 @@ async function signageSyncRemoteDevices(options = {}) {
     try {
       const client = signageBackendClient()
       _signageSyncState = { status: 'loading', at: _signageSyncState.at, error: '' }
-      const [result, spacesResult, contentResult, activityResult] = await Promise.all([
+      const [result, spacesResult, contentResult, activityResult, programmingResult] = await Promise.all([
         client.listDevices(),
         client.listSpaces().catch(() => ({ spaces: [] })),
         client.listContent(),
         client.listActivity().catch(() => ({ activity: [] })),
+        client.listProgramming(),
       ])
       const added = []
       let changed = false
@@ -729,6 +769,9 @@ async function signageSyncRemoteDevices(options = {}) {
         }
       }
       _signageRemoteActivity = Array.isArray(activityResult?.activity) ? activityResult.activity : []
+      const beforeProgramming = JSON.stringify({ playlists: next.playlists, schedules: next.schedules })
+      signageMergeRemoteProgramming(next, programmingResult, remoteContentIds)
+      if (beforeProgramming !== JSON.stringify({ playlists: next.playlists, schedules: next.schedules })) changed = true
       for (const remoteSpace of spacesResult?.spaces || []) {
         const normalized = { id: remoteSpace.id, name: remoteSpace.name, kind: 'paired', siteId: remoteSpace.site_id || remoteSpace.siteId, updatedAt: remoteSpace.updated_at || remoteSpace.updatedAt }
         const existingSpace = next.spaces.find(space => space.id === normalized.id)
@@ -844,7 +887,7 @@ function signageCentralActivityHtml() {
 }
 
 function signageActivityViewHtml() {
-  return `<section class="sg-view" aria-labelledby="sg-activity-title"><div class="sg-view-head"><div><span class="sg-kicker">Estado operacional</span><h2 id="sg-activity-title">Actividad</h2><p>Órdenes aceptadas por el servicio central. “Reproducción reportada” no confirma que el panel físico esté encendido.</p></div><button class="btn btn-secondary btn-sm" onclick="signageRefreshCentral()">${siIcon('refresh',15)} Actualizar</button></div>${signageCentralActivityHtml()}<details class="sg-local-section"><summary>Listas, horarios y actividad de este navegador</summary><div class="sg-local-warning"><b>Todavía no son una fuente central.</b><span>Se conservan en este navegador y no deben usarse para coordinar varios administradores.</span></div><div class="sg-section-head"><div><h3>Listas y horarios locales</h3></div><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPlaylistDrawer()">Nueva lista</button><button class="btn btn-secondary btn-sm" onclick="signageOpenScheduleDrawer()">Crear horario</button></div></div>${signageProgrammingHtml()}<div class="sg-section-head"><div><h3>Actividad local</h3></div></div>${signageAuditHtml()}</details></section>`
+  return `<section class="sg-view" aria-labelledby="sg-activity-title"><div class="sg-view-head"><div><span class="sg-kicker">Estado operacional</span><h2 id="sg-activity-title">Actividad</h2><p>Órdenes aceptadas por el servicio central. “Reproducción reportada” no confirma que el panel físico esté encendido.</p></div><button class="btn btn-secondary btn-sm" onclick="signageRefreshCentral()">${siIcon('refresh',15)} Actualizar</button></div>${signageCentralActivityHtml()}<details class="sg-local-section"><summary>Listas, horarios y registro local</summary><div class="sg-local-warning"><b>La programación vinculada se sincroniza con la cuenta.</b><span>Los borradores marcados “Solo aquí” permanecen en este navegador hasta que todos sus contenidos estén guardados centralmente.</span></div><div class="sg-section-head"><div><h3>Listas y horarios</h3></div><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPlaylistDrawer()">Nueva lista</button><button class="btn btn-secondary btn-sm" onclick="signageOpenScheduleDrawer()">Crear horario</button></div></div>${signageProgrammingHtml()}<div class="sg-section-head"><div><h3>Registro de este navegador</h3></div></div>${signageAuditHtml()}</details></section>`
 }
 
 function renderSignageHome() {
@@ -1154,9 +1197,9 @@ function signageProgrammingHtml() {
   const schedules = _signageState.schedules.map(schedule => {
     const screen = _signageState.screens.find(item => item.id === schedule.screenId)
     const playlist = _signageState.playlists.find(item => item.id === schedule.playlistId)
-    return `<tr><td><b>${esc(playlist?.name || 'Lista no disponible')}</b></td><td>${esc(screen?.name || 'Pantalla no disponible')}</td><td>${esc(signageFormatTime(schedule.startsAt))}<div class="sg-sub">hasta ${esc(signageFormatTime(schedule.endsAt))}</div></td><td>${schedule.priority}</td></tr>`
+    return `<tr><td><b>${esc(playlist?.name || 'Lista no disponible')}</b><div class="sg-sub">${schedule.central ? 'Cuenta SIERRA' : 'Solo aquí'}</div></td><td>${esc(screen?.name || 'Pantalla no disponible')}</td><td>${esc(signageFormatTime(schedule.startsAt))}<div class="sg-sub">hasta ${esc(signageFormatTime(schedule.endsAt))}</div></td><td>${schedule.priority}</td></tr>`
   }).join('')
-  return `<div class="sg-program-grid"><div><h4>Listas</h4><div class="sg-playlists">${_signageState.playlists.map(playlist => `<article class="panel sg-playlist-card"><b>${esc(playlist.name)}</b><span>${playlist.entries.length} pieza${playlist.entries.length === 1 ? '' : 's'} · ${playlist.entries.reduce((sum,item)=>sum+item.durationSeconds,0)} s por vuelta</span><ol>${playlist.entries.map(entry => `<li>${esc(signageContentById(entry.contentId)?.title || 'Pieza no disponible')} · ${entry.durationSeconds}s</li>`).join('')}</ol></article>`).join('') || '<p class="sg-muted">Sin listas.</p>'}</div></div><div><h4>Horarios</h4>${schedules ? `<div class="erp-table-wrap"><table class="erp-table sg-schedule-table"><thead><tr><th>Lista</th><th>Pantalla</th><th>Ventana</th><th>Prioridad</th></tr></thead><tbody>${schedules}</tbody></table></div>` : '<p class="sg-muted">Sin horarios.</p>'}</div></div>`
+  return `<div class="sg-program-grid"><div><h4>Listas</h4><div class="sg-playlists">${_signageState.playlists.map(playlist => `<article class="panel sg-playlist-card"><b>${esc(playlist.name)}</b><span>${playlist.central ? 'Cuenta SIERRA' : 'Solo aquí'} · ${playlist.entries.length} pieza${playlist.entries.length === 1 ? '' : 's'} · ${playlist.entries.reduce((sum,item)=>sum+item.durationSeconds,0)} s por vuelta</span><ol>${playlist.entries.map(entry => `<li>${esc(signageContentById(entry.contentId)?.title || 'Pieza no disponible')} · ${entry.durationSeconds}s</li>`).join('')}</ol></article>`).join('') || '<p class="sg-muted">Sin listas.</p>'}</div></div><div><h4>Horarios</h4>${schedules ? `<div class="erp-table-wrap"><table class="erp-table sg-schedule-table"><thead><tr><th>Lista</th><th>Pantalla</th><th>Ventana</th><th>Prioridad</th></tr></thead><tbody>${schedules}</tbody></table></div>` : '<p class="sg-muted">Sin horarios.</p>'}</div></div>`
 }
 
 function signageAuditHtml() {
@@ -1296,14 +1339,18 @@ async function signageSubmitPlaylist(event) {
   const entries = [...document.querySelectorAll('.sg-entry-row')].filter(row => row.querySelector('.sg-entry.selected')).map(row => ({ contentId: row.querySelector('.sg-entry').dataset.contentId, durationSeconds: row.querySelector('.sg-duration').value }))
   try {
     const result = SignagePhase1.createPlaylist(_signageState, { name: document.getElementById('sg-playlist-name').value, entries }, signageContext())
-    if (_signageState.screens.some(screen => screen.kind === 'paired')) {
+    let central = false
+    if (signagePublicConfig().enabled) {
       const remoteEntries = entries.map(entry => ({ contentId: signageContentById(entry.contentId)?.backendContentId, contentRevision: signageContentById(entry.contentId)?.backendRevision, durationSeconds: Number(entry.durationSeconds) }))
-      if (remoteEntries.some(entry => !entry.contentId)) throw new Error('Para usar esta lista en una pantalla vinculada, primero guarda todos sus contenidos en el servicio.')
+      if (remoteEntries.some(entry => !entry.contentId || !entry.contentRevision)) throw new Error('Para guardar esta lista en la cuenta, primero guarda todos sus contenidos en el servicio.')
       const remote = await signageBackendClient().createPlaylist({ name: result.playlist.name, entries: remoteEntries })
       result.playlist.backendPlaylistId = remote.playlist.id
+      result.playlist.backendRevision = Number(remote.playlist.revision) || 0
+      result.playlist.central = true
+      central = true
     }
     if (!signageSaveState(result.state)) return
-    closeSideDrawer(); renderSignageHome(); toast('Lista guardada únicamente en este navegador.')
+    closeSideDrawer(); renderSignageHome(); toast(central ? 'Lista guardada en la cuenta SIERRA.' : 'Lista guardada únicamente en este navegador.')
   } catch (error) {
     if (error.fields?.name) document.getElementById('sg-playlist-name-error').textContent = error.fields.name
     if (error.fields?.entries) document.getElementById('sg-playlist-entries-error').textContent = error.fields.entries
@@ -1360,9 +1407,11 @@ async function signageSubmitSchedule(event) {
       if (!playlist?.backendPlaylistId) throw new Error('Esta lista todavía no está guardada en el servicio de Pantallas.')
       const remote = await signageBackendClient().createSchedule({ deviceId: screen.id, playlistId: playlist.backendPlaylistId, startsAt: new Date(input.startsAt).toISOString(), endsAt: new Date(input.endsAt).toISOString(), priority: Number(input.priority) })
       result.schedule.backendScheduleId = remote.schedule.id
+      result.schedule.backendRevision = Number(remote.schedule.revision) || 0
+      result.schedule.central = true
     }
     if (!signageSaveState(result.state)) return
-    closeSideDrawer(); renderSignageHome(); toast('Horario guardado únicamente en este navegador.')
+    closeSideDrawer(); renderSignageHome(); toast(result.schedule.central ? 'Horario guardado en la cuenta SIERRA.' : 'Horario guardado únicamente en este navegador.')
   } catch (error) {
     Object.entries(error.fields || {}).forEach(([field,message]) => {
       const el = document.getElementById('sg-schedule-' + field + '-error')
@@ -1441,7 +1490,7 @@ async function signagePublishMany(screenIds, contentId) {
       if (!screen) continue
       try {
         if (screen.kind === 'paired') {
-          const remote = await signageBackendClient().publish(screen.id, backendContentId)
+          const remote = await signageBackendClient().publish(screen.id, backendContentId, screen.backendRevision)
           screen.backendRevision = Number(remote?.publication?.device_revision) || screen.backendRevision || 0
           screen.activePublicationId = remote?.publication?.id || screen.activePublicationId || null
           screen.desiredAt = new Date().toISOString()

@@ -141,6 +141,24 @@ const adapter = {
     const result = await service.from('signage_audit').select('id,event_type,entity_type,entity_id,actor_id,details,created_at').eq('workspace_id', input.workspaceId).order('created_at', { ascending: false }).limit(100)
     fail(result.error); return { activity: result.data || [] }
   },
+  async listProgramming(input: any) {
+    const playlists = await service.from('signage_playlists').select('id,name,current_revision,created_at,updated_at').eq('workspace_id', input.workspaceId).order('updated_at', { ascending: false })
+    fail(playlists.error)
+    const items = playlists.data || [], versions: any[] = []
+    for (let offset = 0; offset < items.length; offset += 25) {
+      const chunk = items.slice(offset, offset + 25)
+      const filter = chunk.map((item: any) => `and(playlist_id.eq.${item.id},revision.eq.${item.current_revision})`).join(',')
+      const result = await service.from('signage_playlist_versions').select('playlist_id,revision,entries,created_at').eq('workspace_id', input.workspaceId).or(filter)
+      fail(result.error); versions.push(...(result.data || []))
+    }
+    const current = new Map(versions.map((version: any) => [`${version.playlist_id}:${version.revision}`, version]))
+    const schedules = await service.from('signage_schedules').select('id,device_id,playlist_id,playlist_revision,starts_at,ends_at,priority,enabled,revision,created_at,updated_at').eq('workspace_id', input.workspaceId).order('starts_at', { ascending: false }).limit(500)
+    fail(schedules.error)
+    return {
+      playlists: items.map((item: any) => ({ ...item, entries: current.get(`${item.id}:${item.current_revision}`)?.entries || [] })),
+      schedules: schedules.data || [],
+    }
+  },
   async saveContent(input: any) {
     const source = input.content || {}, type = String(source.type || 'message')
     const snapshot: any = { type, title: String(source.title || ''), body: String(source.body || ''), theme: String(source.theme || 'neutral') }

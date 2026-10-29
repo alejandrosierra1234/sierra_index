@@ -127,7 +127,11 @@ assert.doesNotMatch(source, /\['designs',/, 'Diseños no se presenta como dispon
 assert.match(source, /signageMigrateLocalContent/, 'el contenido local requiere migración explícita')
 assert.match(source, /client\.listContent\(\)/, 'la sincronización recupera contenido central')
 assert.match(source, /client\.listActivity\(\)/, 'la sincronización recupera actividad central')
+assert.match(source, /client\.listProgramming\(\)/, 'la sincronización recupera listas y horarios centrales')
+assert.match(source, /function signageMergeRemoteProgramming\(/, 'listas y horarios centrales se reconstruyen sin borrar borradores locales')
+assert.doesNotMatch(source, /Todavía no son una fuente central/, 'la interfaz no presenta la programación vinculada como local')
+assert.match(source, /publish\(screen\.id, backendContentId, screen\.backendRevision\)/, 'los reintentos de publicación conservan la revisión esperada del destino')
 assert.match(css, /@media\(max-width:620px\)/)
 assert.match(css, /prefers-reduced-motion/)
 
-console.log('signage phase1: 64 assertions passed')
+console.log('signage phase1: 68 assertions passed')
