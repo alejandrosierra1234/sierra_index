@@ -1,5 +1,21 @@
 const assert = require('node:assert/strict')
 
+function syntheticPresentationPdf() {
+  const objects=[
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 640 360] /Contents 5 0 R /Resources << /Font << /F1 7 0 R >> >> >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 640 360] /Contents 6 0 R /Resources << /Font << /F1 7 0 R >> >> >>',
+    '<< /Length 47 >>\nstream\nBT /F1 26 Tf 72 180 Td (SIERRA pagina 1) Tj ET\nendstream',
+    '<< /Length 47 >>\nstream\nBT /F1 26 Tf 72 180 Td (SIERRA pagina 2) Tj ET\nendstream',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ]
+  let body='%PDF-1.4\n',offsets=[]
+  objects.forEach((value,index)=>{offsets.push(Buffer.byteLength(body));body+=`${index+1} 0 obj\n${value}\nendobj\n`})
+  const xref=Buffer.byteLength(body);body+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n${offsets.map(value=>String(value).padStart(10,'0')+' 00000 n ').join('\n')}\ntrailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`
+  return Buffer.from(body)
+}
+
 function playwright() {
   const candidates = [process.env.PLAYWRIGHT_CORE, '/tmp/signage-playwright/node_modules/playwright-core', 'playwright-core'].filter(Boolean)
   for (const candidate of candidates) { try { return require(candidate) } catch {} }
@@ -100,6 +116,37 @@ function playwright() {
     await admin.getByRole('button', { name: 'Finalizar y regresar' }).click()
     await player.locator('.sp-ambient h1').waitFor({ timeout: 7000 })
     assert.equal(await player.locator('.sp-ambient h1').textContent(), 'Materia que conecta.', 'finishing a welcome returns to the prior ambient output')
+
+    await admin.getByRole('button', { name: 'Preparar PDF' }).click()
+    await admin.locator('#sg-pdf-name').fill('Presentación PDF E2E')
+    await admin.locator('#sg-pdf-file').setInputFiles({ name:'presentacion-sintetica.pdf', mimeType:'application/pdf', buffer:syntheticPresentationPdf() })
+    try { await admin.getByText('2 diapositivas listas para revisar.', { exact:true }).waitFor({ timeout:15000 }) }
+    catch(error){const direct=await admin.evaluate(async base64=>{const bytes=Uint8Array.from(atob(base64),char=>char.charCodeAt(0));try{await SignagePdfPresentations.processPdf(new File([bytes],'directo.pdf',{type:'application/pdf'}));return{ok:true}}catch(failure){return{code:failure.code,message:failure.message,cause:failure.cause&&`${failure.cause.name}: ${failure.cause.message}`}}},syntheticPresentationPdf().toString('base64'));console.error('PDF diagnostics',await admin.evaluate(()=>({progress:document.getElementById('sg-pdf-progress')?.textContent,error:document.getElementById('sg-pdf-error')?.textContent,pdfjsBase:window.SignagePdfPresentations?true:false})),direct,errors);throw error}
+    assert.equal(await admin.locator('.sg-pdf-thumbs button').count(),2,'the browser renders a faithful thumbnail for every synthetic PDF page')
+    await admin.locator('input[name="presentation-device"]').check()
+    if(process.env.SIGNAGE_SCREENSHOT_DIR){
+      await admin.setViewportSize({width:1440,height:900});await admin.screenshot({path:process.env.SIGNAGE_SCREENSHOT_DIR+'/pantallas-pdf-desktop.png',fullPage:true})
+      await admin.setViewportSize({width:1024,height:900});await admin.screenshot({path:process.env.SIGNAGE_SCREENSHOT_DIR+'/pantallas-pdf-tablet.png',fullPage:true})
+      await admin.setViewportSize({width:390,height:844});await admin.screenshot({path:process.env.SIGNAGE_SCREENSHOT_DIR+'/pantallas-pdf-mobile.png',fullPage:true})
+      await admin.emulateMedia({reducedMotion:'reduce'});await admin.screenshot({path:process.env.SIGNAGE_SCREENSHOT_DIR+'/pantallas-pdf-reduced-motion.png',fullPage:true});await admin.emulateMedia({reducedMotion:'no-preference'});await admin.setViewportSize({width:1440,height:900})
+    }
+    await admin.getByRole('button',{name:'Mostrar ahora'}).click()
+    await player.locator('.sp-presentation img').waitFor({timeout:15000})
+    assert.equal([...harness.state.assets.values()].filter(asset=>asset.type==='image/png').length,2,'only the two derived PNG slides are stored')
+    assert.equal([...harness.state.assets.values()].some(asset=>asset.type==='application/pdf'),false,'the original PDF never reaches storage')
+    assert.equal(await player.locator('.sp-presentation-status').textContent(),'1 / 2','presentation starts on the first slide')
+    await admin.locator('[data-sg-view="sessions"]').click()
+    const presentationCard=admin.locator('.sg-session-card').filter({hasText:'Presentación PDF E2E'})
+    await presentationCard.getByRole('button',{name:'Siguiente'}).click()
+    await player.getByText('2 / 2',{exact:true}).waitFor({timeout:7000})
+    const presentationContext=await browser.newContext()
+    await presentationContext.addInitScript(({origin,workspaceId,siteId})=>{window.SIERRA_SIGNAGE_CONFIG={enabled:true,backendUrl:origin+'/functions/v1/signage-api',allowedOrigins:[origin],workspaceId,siteId,mediaEnabled:true,liveEnabled:false};window.SIERRA_SIGNAGE_LOCAL_ADMIN_TOKEN='synthetic-admin-token'},{origin,workspaceId:harness.state.workspaceId,siteId:harness.state.siteId})
+    const presentationAdmin=await presentationContext.newPage();await presentationAdmin.goto(origin+'/tests/signage/phase1-visual.html?reset=1');await presentationAdmin.locator('[data-sg-view="sessions"]').click()
+    await presentationAdmin.getByText(/Diapositiva 2 de 2/i).waitFor({timeout:5000})
+    assert.equal(await presentationAdmin.locator('.sg-session-card').filter({hasText:'Presentación PDF E2E'}).getByRole('button',{name:'Siguiente'}).isDisabled(),true,'a second admin reconstructs the current slide and its bounds')
+    await player.route('**/functions/v1/signage-api/player/manifest',route=>route.abort());await player.route('**/media/**',route=>route.abort());await player.reload();await player.getByText('2 / 2',{exact:true}).waitFor({timeout:7000});await player.unroute('**/functions/v1/signage-api/player/manifest');await player.unroute('**/media/**')
+    await presentationAdmin.locator('.sg-session-card').filter({hasText:'Presentación PDF E2E'}).getByRole('button',{name:'Finalizar y regresar'}).click();await player.locator('.sp-ambient h1').waitFor({timeout:7000});await presentationContext.close()
+    assert.equal(await player.locator('.sp-ambient h1').textContent(),'Materia que conecta.','finishing a presentation restores the prior valid output')
 
     await player.evaluate(() => { window.__signageOriginalPlay = HTMLMediaElement.prototype.play; HTMLMediaElement.prototype.play = () => Promise.reject(new Error('synthetic autoplay denial')) })
     await admin.locator('[data-sg-view="content"]').click()

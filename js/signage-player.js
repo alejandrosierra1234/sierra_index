@@ -106,9 +106,13 @@
   async function renderContent(content, options = {}) {
     const host = document.getElementById('sp-content')
     const connection = document.getElementById('sp-connection')
-    if (connection) connection.hidden = Boolean(content && (content.type === 'image' || content.type === 'video'))
+    if (connection) connection.hidden = Boolean(content && (content.type === 'image' || content.type === 'video' || content.type === 'presentation'))
     if (!content) { renderAmbient(options.note, options); return }
     if (content.type === 'welcome') host.innerHTML = `<article class="sp-welcome sp-welcome-${escapeAttr(content.template || 'essential')}"><header><img src="SIERRA_Primary_Blue02.svg" alt="SIERRA"><span>BIENVENIDA · SIERRA</span></header><main><span>BIENVENIDOS</span><h1>${escapeHtml(content.displayName)}</h1><p>${escapeHtml(content.subtitle)}</p></main><footer><span>SIERRA tvOS</span><time>${escapeHtml(ambientTime())}</time></footer></article>`
+    else if (content.type === 'presentation' && content.slide && content.slide.mediaUrl) {
+      const slide = { ...content.slide, mediaUrl: content.slide.mediaUrl }
+      host.innerHTML = `<div class="sp-presentation"><img src="${escapeAttr(await cachedMediaUrl(slide))}" alt="${escapeAttr(slide.alt || `Diapositiva ${Number(content.slideIndex) + 1}`)}"><div class="sp-presentation-status" aria-hidden="true">${Number(content.slideIndex) + 1} / ${Number(content.slideCount) || 1}</div></div>`
+    }
     else if (content.type === 'image') host.innerHTML = `<div class="sp-media"><img src="${escapeAttr(await cachedMediaUrl(content))}" alt="${escapeAttr(content.alt)}"></div>`
     else if (content.type === 'video') {
       host.innerHTML = `<div class="sp-media"><video src="${escapeAttr(await cachedMediaUrl(content))}"${content.poster ? ` poster="${escapeAttr(content.poster)}"` : ''} aria-label="${escapeAttr(content.alt)}" autoplay muted loop playsinline preload="auto"></video></div>`

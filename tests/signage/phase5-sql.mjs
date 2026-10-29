@@ -30,6 +30,7 @@ await db.query(`insert into public.signage_sites(id,workspace_id,name,timezone) 
 await db.query(`insert into public.signage_devices(id,workspace_id,site_id,name,state,revision,output_paused) values($1,$2,$3,'Pantalla','active',8,true)`,[device,workspace,site])
 await db.exec(await fs.readFile(path.join(root, 'update64.sql'), 'utf8'))
 await db.exec(await fs.readFile(path.join(root, 'update65.sql'), 'utf8'))
+await db.exec(await fs.readFile(path.join(root, 'update66.sql'), 'utf8'))
 const preservedInstallState=await db.query(`select revision,output_paused,space_id from public.signage_devices where id=$1`,[device])
 assert.equal(Number(preservedInstallState.rows[0].revision),8,'migration 64 preserves the existing device revision'); assertions += 1
 assert.equal(preservedInstallState.rows[0].output_paused,true,'migration 64 preserves an existing paused output'); assertions += 1
@@ -51,6 +52,7 @@ ok((await db.query(`select exists(select 1 from public.index_security_migrations
 ok((await db.query(`select exists(select 1 from public.index_security_migrations where version=63) applied`)).rows[0].applied,'migration 63 is recorded')
 ok((await db.query(`select exists(select 1 from public.index_security_migrations where version=64) applied`)).rows[0].applied,'migration 64 is recorded')
 ok((await db.query(`select exists(select 1 from public.index_security_migrations where version=65) applied`)).rows[0].applied,'migration 65 is recorded')
+ok((await db.query(`select exists(select 1 from public.index_security_migrations where version=66) applied`)).rows[0].applied,'migration 66 is recorded')
 assert.equal((await db.query(`select has_function_privilege('anon','public.signage_space_save(uuid,uuid,uuid,text,timestamptz)','execute') allowed`)).rows[0].allowed,false); assertions += 1
 assert.equal((await db.query(`select has_function_privilege('authenticated','public.signage_space_save(uuid,uuid,uuid,text,timestamptz)','execute') allowed`)).rows[0].allowed,true); assertions += 1
 assert.equal((await db.query(`select relrowsecurity from pg_class where oid='public.signage_spaces'::regclass`)).rows[0].relrowsecurity,true); assertions += 1
@@ -58,6 +60,8 @@ assert.equal((await db.query(`select relrowsecurity from pg_class where oid='pub
 assert.equal((await db.query(`select has_function_privilege('anon','public.signage_experience_start(uuid,uuid,uuid[],integer)','execute') allowed`)).rows[0].allowed,false); assertions += 1
 assert.equal((await db.query(`select has_function_privilege('authenticated','public.signage_experience_start(uuid,uuid,uuid[],integer)','execute') allowed`)).rows[0].allowed,true); assertions += 1
 assert.equal((await db.query(`select has_table_privilege('authenticated','public.signage_experience_sessions','insert') allowed`)).rows[0].allowed,false); assertions += 1
+assert.equal((await db.query(`select has_function_privilege('anon','public.signage_presentation_save(uuid,uuid,text,jsonb,timestamptz)','execute') allowed`)).rows[0].allowed,false); assertions += 1
+assert.equal((await db.query(`select has_function_privilege('authenticated','public.signage_experience_step(uuid,uuid,integer,bigint)','execute') allowed`)).rows[0].allowed,true); assertions += 1
 assert.match((await db.query(`select pg_get_functiondef('public.signage_experience_start(uuid,uuid,uuid[],integer)'::regprocedure) definition`)).rows[0].definition,/FOR UPDATE/i); assertions += 1
 assert.equal((await db.query(`select public.signage_rate_limit_service(repeat('c',64),2,60) allowed`)).rows[0].allowed,true); assertions += 1
 assert.equal((await db.query(`select public.signage_rate_limit_service(repeat('c',64),2,60) allowed`)).rows[0].allowed,true); assertions += 1
@@ -104,6 +108,29 @@ await db.exec('set role service_role')
 welcomeManifest=await db.query(`select public.signage_device_manifest_service($1,'70000000-0000-4000-8000-000000000001') result`,[device])
 assert.notEqual(welcomeManifest.rows[0].result.state,'experience','server expiry restores the prior output without a controller');assertions += 1
 await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claim.role','authenticated',false)",[admin]);await db.exec('set role authenticated')
+const presentationSlides=[{mediaAssetId:asset,alt:'Diapositiva sintética 1',width:1280,height:720,index:0},{mediaAssetId:asset,alt:'Diapositiva sintética 2',width:1280,height:720,index:1}]
+const presentation=await db.query(`select public.signage_presentation_save($1,null,'Presentación sintética',$2::jsonb,null) result`,[workspace,JSON.stringify(presentationSlides)])
+assert.equal(presentation.rows[0].result.kind,'presentation');assertions += 1
+const presentationSession=await db.query(`select public.signage_experience_start($1,$2,array[$3::uuid],30) result`,[workspace,presentation.rows[0].result.id,device])
+assert.equal(Number(presentationSession.rows[0].result.session.current_slide),0);assertions += 1
+const stepped=await db.query(`select public.signage_experience_step($1,$2,1,0) result`,[workspace,presentationSession.rows[0].result.session.id])
+assert.equal(Number(stepped.rows[0].result.session.current_slide),1);assertions += 1
+assert.equal(Number(stepped.rows[0].result.session.control_revision),1);assertions += 1
+await expectSqlState(()=>db.query(`select public.signage_experience_step($1,$2,0,0)`,[workspace,presentationSession.rows[0].result.session.id]),'40001','slide control uses a durable compare-and-swap revision')
+await expectSqlState(()=>db.query(`select public.signage_experience_step($1,$2,2,1)`,[workspace,presentationSession.rows[0].result.session.id]),'22023','slide control rejects an out-of-range target')
+await db.exec('reset role');await db.exec('set role service_role')
+let presentationManifest=await db.query(`select public.signage_device_manifest_service($1,'70000000-0000-4000-8000-000000000001') result`,[device])
+assert.equal(presentationManifest.rows[0].result.experience_snapshot.type,'presentation');assertions += 1
+assert.equal(Number(presentationManifest.rows[0].result.experience_snapshot.slideIndex),1);assertions += 1
+assert.equal(presentationManifest.rows[0].result.experience_snapshot.slide.mediaAssetId,asset);assertions += 1
+await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claim.role','authenticated',false)",[admin]);await db.exec('set role authenticated')
+await db.query(`select public.signage_experience_finish($1,$2)`,[workspace,presentationSession.rows[0].result.session.id])
+await db.exec('reset role');await db.exec('set role service_role')
+presentationManifest=await db.query(`select public.signage_device_manifest_service($1,'70000000-0000-4000-8000-000000000001') result`,[device])
+assert.notEqual(presentationManifest.rows[0].result.state,'experience');assertions += 1
+await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claim.role','authenticated',false)",[admin]);await db.exec('set role authenticated')
+await expectSqlState(()=>db.query(`select public.signage_presentation_save($1,null,'Presentación inválida',$2::jsonb,null)`,[workspace,JSON.stringify([{mediaAssetId:'50000000-0000-4000-8000-000000000099',alt:'Fuera de cuenta',width:1280,height:720,index:0}])]),'42501','presentation cannot reference an asset outside the workspace')
+await db.exec('reset role')
 const savedPrivateMedia = await db.query(`select public.signage_content_save($1,null,$2::jsonb,0) result`,[workspace,JSON.stringify({type:'image',title:'Imagen privada',body:'',theme:'neutral',alt:'Imagen sintética',mediaAssetId:asset})])
 assert.equal(savedPrivateMedia.rows[0].result.snapshot.mediaAssetId,asset); assertions += 1
 const curatedMediaUrl='https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F67448935dfb12aa5cb9c86e9_video-cortado-transcode.mp4'

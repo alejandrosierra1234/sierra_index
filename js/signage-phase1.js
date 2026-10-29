@@ -664,6 +664,7 @@ const _signageViewScroll = { spaces: 0, content: 0, sessions: 0 }
 const _signageStopInFlight = new Set()
 const _signageSelectedScreenIds = new Set()
 let _signageBatchInFlight = false
+let _signagePresentationDraft = null
 const SIERRA_SIGNAGE_LOGO_URL = typeof document === 'undefined'
   ? 'SIERRA_Primary_Blue02.svg'
   : new URL('../SIERRA_Primary_Blue02.svg', document.currentScript?.src || window.location.href).href
@@ -1003,8 +1004,18 @@ function signageSessionsViewHtml() {
   const now = Date.now()
   const experienceById = new Map(_signageRemoteExperiences.map(item => [item.id, item]))
   const sessions = _signageRemoteSessions.map(session => ({ ...session, experience: experienceById.get(session.experience_id), activeNow: session.state === 'active' && Date.parse(session.expires_at) > now }))
-  const cards = sessions.length ? sessions.map(session => `<article class="sg-session-card"><div><span class="sg-state ${session.activeNow ? 'sg-state-ok' : 'sg-state-local'}"><i></i>${session.activeNow ? 'Activa' : session.state === 'ended' ? 'Finalizada' : 'Vencida'}</span><h3>${esc(session.experience?.name || 'Bienvenida')}</h3><p>${esc(signageSessionDestinations(session).join(', ') || 'Sin destinos')} · ${session.activeNow ? `termina ${esc(signageFormatTime(session.expires_at))}` : `inició ${esc(signageFormatTime(session.starts_at))}`}</p></div>${session.activeNow ? `<button class="btn btn-secondary btn-sm" onclick="signageFinishExperience('${escAttr(session.id)}')">Finalizar y regresar</button>` : ''}</article>`).join('') : '<div class="sg-empty-inline"><b>Aún no hay sesiones</b><span>Prepara una bienvenida y revísala antes de mostrarla.</span></div>'
-  return `<section class="sg-view" aria-labelledby="sg-sessions-title"><div class="sg-view-head"><div><span class="sg-kicker">Experiencias temporales</span><h2 id="sg-sessions-title">Sesiones</h2><p>Prepara sin publicar. Al finalizar o vencer, cada pantalla regresa a su salida anterior.</p></div><button class="btn btn-primary btn-sm" onclick="signageOpenWelcomeDrawer()">${siIcon('plus',15)} Preparar bienvenida</button></div><div class="sg-session-list">${cards}</div><details class="sg-local-section"><summary>Actividad y programación</summary>${signageCentralActivityHtml()}<div class="sg-section-head"><div><h3>Listas y horarios</h3></div><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPlaylistDrawer()">Nueva lista</button><button class="btn btn-secondary btn-sm" onclick="signageOpenScheduleDrawer()">Crear horario</button></div></div>${signageProgrammingHtml()}</details></section>`
+  const cards = sessions.length ? sessions.map(session => {
+    const presentation = session.experience?.kind === 'presentation'
+    const slide = Number(session.current_slide) || 0
+    const count = Number(session.experience?.snapshot?.pageCount) || 0
+    const destinations = (session.signage_experience_destinations || []).map(row => {
+      const screen = _signageState.screens.find(item => item.id === row.device_id)
+      const state = screen ? signageScreenState(screen) : { label: 'Sin estado reciente', cls: 'off' }
+      return `<li><span>${esc(screen?.name || 'Pantalla vinculada')}</span><b class="sg-state sg-state-${escAttr(state.cls)}"><i></i>${esc(state.label)}</b></li>`
+    }).join('')
+    return `<article class="sg-session-card"><div><span class="sg-state ${session.activeNow ? 'sg-state-ok' : 'sg-state-local'}"><i></i>${session.activeNow ? 'Activa' : session.state === 'ended' ? 'Finalizada' : 'Vencida'}</span><h3>${esc(session.experience?.name || 'Bienvenida')}</h3><p>${presentation ? `Diapositiva ${slide + 1} de ${count}` : session.activeNow ? `Termina ${esc(signageFormatTime(session.expires_at))}` : `Inició ${esc(signageFormatTime(session.starts_at))}`}</p>${session.activeNow ? `<ul class="sg-session-destinations" aria-label="Estado por destino">${destinations}</ul>` : `<p>${esc(signageSessionDestinations(session).join(', ') || 'Sin destinos')}</p>`}</div>${session.activeNow ? `<div class="sg-session-actions">${presentation ? `<button class="btn btn-secondary btn-sm" ${slide <= 0 ? 'disabled' : ''} onclick="signageStepPresentation('${escAttr(session.id)}',${slide - 1},${Number(session.control_revision) || 0})">Anterior</button><button class="btn btn-secondary btn-sm" ${slide >= count - 1 ? 'disabled' : ''} onclick="signageStepPresentation('${escAttr(session.id)}',${slide + 1},${Number(session.control_revision) || 0})">Siguiente</button>` : ''}<button class="btn btn-secondary btn-sm" onclick="signageFinishExperience('${escAttr(session.id)}')">Finalizar y regresar</button></div>` : ''}</article>`
+  }).join('') : '<div class="sg-empty-inline"><b>Aún no hay sesiones</b><span>Prepara una bienvenida o una presentación y revísala antes de mostrarla.</span></div>'
+  return `<section class="sg-view" aria-labelledby="sg-sessions-title"><div class="sg-view-head"><div><span class="sg-kicker">Experiencias temporales</span><h2 id="sg-sessions-title">Sesiones</h2><p>Prepara sin publicar. Al finalizar o vencer, cada pantalla regresa a su salida anterior.</p></div><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPresentationDrawer()">${siIcon('file',15)} Preparar PDF</button><button class="btn btn-primary btn-sm" onclick="signageOpenWelcomeDrawer()">${siIcon('plus',15)} Preparar bienvenida</button></div></div><div class="sg-session-list">${cards}</div><details class="sg-local-section"><summary>Actividad y programación</summary>${signageCentralActivityHtml()}<div class="sg-section-head"><div><h3>Listas y horarios</h3></div><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPlaylistDrawer()">Nueva lista</button><button class="btn btn-secondary btn-sm" onclick="signageOpenScheduleDrawer()">Crear horario</button></div></div>${signageProgrammingHtml()}</details></section>`
 }
 
 function renderSignageHome() {
@@ -1138,6 +1149,65 @@ async function signageSubmitWelcome(event, mode) {
 async function signageFinishExperience(sessionId) {
   try { await signageBackendClient().finishExperience(sessionId); await signageSyncRemoteDevices({silent:true}); toast('Sesión finalizada. Las pantallas regresan a su salida anterior.') }
   catch (error) { toast(error.message||'No se pudo finalizar la sesión.') }
+}
+
+function signageReleasePresentationDraft() {
+  if (_signagePresentationDraft?.slides) _signagePresentationDraft.slides.forEach(slide => { if (slide.previewUrl) URL.revokeObjectURL(slide.previewUrl) })
+  _signagePresentationDraft = null
+}
+
+function signagePresentationDestinationsHtml(selected) {
+  return _signageState.screens.filter(screen=>screen.kind==='paired').map(screen=>`<label class="sg-destination"><input type="checkbox" name="presentation-device" value="${escAttr(screen.id)}"${selected.has(screen.id)?' checked':''}><span><strong>${esc(screen.name)}</strong><small>${esc(_signageState.spaces.find(space=>space.id===screen.spaceId)?.name||'Sin espacio')} · ${esc(signageScreenState(screen).label)}</small></span></label>`).join('')||'<div class="sg-empty-inline"><b>No hay pantallas vinculadas</b><span>Agrega una pantalla antes de mostrar la presentación.</span></div>'
+}
+
+function signagePresentationPreviewHtml() {
+  const draft=_signagePresentationDraft
+  if(!draft)return '<div class="sg-pdf-empty"><b>El PDF se procesa aquí</b><span>El original no se sube. Solo guardaremos imágenes PNG verificadas de sus páginas cuando confirmes.</span></div>'
+  const slide=draft.slides[draft.activeIndex||0]
+  return `<div class="sg-pdf-stage"><img src="${escAttr(slide.previewUrl)}" alt="${escAttr(slide.alt)}"><span>${slide.index+1} / ${draft.pageCount}</span></div><div class="sg-pdf-thumbs" role="list" aria-label="Diapositivas">${draft.slides.map(item=>`<button type="button" role="listitem" class="${item.index===(draft.activeIndex||0)?'selected':''}" onclick="signageSelectPdfSlide(${item.index})" aria-label="Ver diapositiva ${item.index+1}"><img src="${escAttr(item.previewUrl)}" alt=""><span>${item.index+1}</span></button>`).join('')}</div>`
+}
+
+function signageOpenPresentationDrawer() {
+  signageReleasePresentationDraft()
+  const selected=new Set(_signageSelectedScreenIds)
+  openSideDrawer({eyebrow:'Pantallas · Sesiones',title:'Preparar presentación PDF',onTab:()=>{
+    document.getElementById('sd-body').innerHTML=`<form class="sg-form" onsubmit="signageSubmitPresentation(event,'prepare')" novalidate><div class="sg-form-note"><b>Procesamiento privado en este navegador.</b><span>PDF de hasta 25 MB y 50 páginas. No se ejecutan scripts; PowerPoint y Keynote aún no son compatibles.</span></div><label class="sg-field" for="sg-pdf-name"><span>Nombre de la sesión</span><input class="control-input" id="sg-pdf-name" maxlength="100" placeholder="Ej. Presentación de resultados"></label><label class="sg-pdf-picker" for="sg-pdf-file"><span>${siIcon('file',20)}</span><b>Elegir PDF</b><small>El original no saldrá de este dispositivo.</small><input id="sg-pdf-file" type="file" accept="application/pdf,.pdf" onchange="signageProcessPdf(event)" hidden></label><div id="sg-pdf-progress" class="sg-pdf-progress" role="status" aria-live="polite"></div><div id="sg-pdf-preview" class="sg-pdf-preview">${signagePresentationPreviewHtml()}</div><fieldset class="sg-theme-field"><legend>Regresar automáticamente</legend><div class="sg-choice-list" role="radiogroup"><button type="button" class="sg-choice selected" data-presentation-duration="60" aria-pressed="true" onclick="signageChooseOne(this,'.sg-choice[data-presentation-duration]')">1 hora</button><button type="button" class="sg-choice" data-presentation-duration="240" aria-pressed="false" onclick="signageChooseOne(this,'.sg-choice[data-presentation-duration]')">4 horas</button><button type="button" class="sg-choice" data-presentation-duration="480" aria-pressed="false" onclick="signageChooseOne(this,'.sg-choice[data-presentation-duration]')">Jornada</button></div></fieldset><fieldset class="sg-theme-field"><legend>Destinos</legend><div class="sg-destination-list">${signagePresentationDestinationsHtml(selected)}</div><small id="sg-pdf-error" class="sg-error"></small></fieldset><div class="sg-form-note"><b>Al finalizar, vencer o perder la conexión</b><span>La pantalla conserva la última diapositiva válida durante la reconexión. Al finalizar la sesión regresa a la bienvenida, publicación, horario o reposo anterior.</span></div><div class="sg-form-actions sg-drawer-actions"><button type="button" class="btn btn-secondary" onclick="signageReleasePresentationDraft();closeSideDrawer()">Cancelar</button><button class="btn btn-secondary" type="submit">Guardar preparada</button><button class="btn btn-primary" type="button" onclick="signageSubmitPresentation(event,'start')">Mostrar ahora</button></div></form>`
+    requestAnimationFrame(()=>document.getElementById('sg-pdf-name')?.focus())
+  }})
+}
+
+async function signageProcessPdf(event) {
+  const file=event.target.files?.[0],progress=document.getElementById('sg-pdf-progress'),error=document.getElementById('sg-pdf-error')
+  if(!file)return
+  signageReleasePresentationDraft();error.textContent='';progress.textContent='Validando PDF…'
+  try {
+    const result=await SignagePdfPresentations.processPdf(file,{onProgress:state=>{progress.textContent=state.stage==='rendering'?`Preparando diapositiva ${state.completed+1} de ${state.total}…`:state.stage==='complete'?`${state.total} diapositivas listas para revisar.`:'Validando PDF…'}})
+    result.activeIndex=0;result.slides.forEach(slide=>{slide.previewUrl=URL.createObjectURL(slide.blob);slide.mediaAssetId=null});_signagePresentationDraft=result
+    if(!document.getElementById('sg-pdf-name').value.trim())document.getElementById('sg-pdf-name').value=result.name
+    document.getElementById('sg-pdf-preview').innerHTML=signagePresentationPreviewHtml()
+  } catch(failure){progress.textContent='';error.textContent=failure.message||'No se pudo preparar el PDF.';event.target.value=''}
+}
+
+function signageSelectPdfSlide(index){if(!_signagePresentationDraft||!_signagePresentationDraft.slides[index])return;_signagePresentationDraft.activeIndex=index;document.getElementById('sg-pdf-preview').innerHTML=signagePresentationPreviewHtml()}
+
+async function signageSubmitPresentation(event,mode){
+  event.preventDefault();const form=event.currentTarget?.closest?.('form')||document.querySelector('#sd-body form'),error=document.getElementById('sg-pdf-error'),progress=document.getElementById('sg-pdf-progress'),buttons=[...form.querySelectorAll('button')]
+  const deviceIds=[...form.querySelectorAll('input[name="presentation-device"]:checked')].map(input=>input.value)
+  if(!_signagePresentationDraft){error.textContent='Elige y revisa un PDF.';return}if(mode==='start'&&!deviceIds.length){error.textContent='Elige al menos una pantalla.';return}
+  error.textContent='';buttons.forEach(button=>button.disabled=true)
+  try{
+    const client=signageBackendClient(),slides=_signagePresentationDraft.slides
+    for(let index=0;index<slides.length;index+=1){const slide=slides[index];if(slide.mediaAssetId)continue;progress.textContent=`Guardando diapositiva ${index+1} de ${slides.length}…`;const file=new File([slide.blob],slide.fileName,{type:'image/png'});const uploaded=await client.upload(file);slide.mediaAssetId=uploaded.asset?.id||uploaded.asset?.assetId||uploaded.upload?.id||uploaded.assetId;if(!slide.mediaAssetId)throw new Error('La diapositiva se verificó, pero el servicio no devolvió su identificador.')}
+    progress.textContent='Guardando presentación preparada…'
+    const saved=await client.savePresentation({name:document.getElementById('sg-pdf-name').value.trim(),slides:slides.map(slide=>({mediaAssetId:slide.mediaAssetId,alt:slide.alt,width:slide.width,height:slide.height,index:slide.index}))})
+    if(mode==='start')await client.startExperience(saved.experience.id,{deviceIds,durationMinutes:Number(form.querySelector('.sg-choice[data-presentation-duration].selected')?.dataset.presentationDuration||60)})
+    signageReleasePresentationDraft();closeSideDrawer();_signageActiveView='sessions';sessionStorage.setItem('sierra_signage_view','sessions');await signageSyncRemoteDevices({silent:true});toast(mode==='start'?'Presentación enviada. Comprueba cada destino.':'Presentación guardada como preparada.')
+  }catch(failure){error.textContent=failure.message||'No se pudo guardar la presentación. Puedes reintentar sin volver a procesar el PDF.';buttons.forEach(button=>button.disabled=false)}
+}
+
+async function signageStepPresentation(sessionId,targetSlide,expectedControlRevision){
+  try{await signageBackendClient().stepExperience(sessionId,{targetSlide,expectedControlRevision});await signageSyncRemoteDevices({silent:true})}
+  catch(error){await signageSyncRemoteDevices({silent:true});toast(error.message||'La presentación cambió. Actualizamos su estado para continuar.')}
 }
 
 function signageOpenSpaceDrawer() {

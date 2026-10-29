@@ -171,6 +171,17 @@ export function createSignageHandler(adapter, options = {}) {
           return response(await adapter.saveExperience({ workspaceId, actor, experience: { id: body.id ? id(body.id, 'experiencia') : null, name, displayName, subtitle, template, expectedUpdatedAt: body.expectedUpdatedAt || null } }), body.id ? 200 : 201, cors)
         }
       }
+      const experienceDetail = path.match(/^\/admin\/experiences\/([^/]+)$/)
+      if (req.method === 'GET' && experienceDetail) {
+        const workspaceId = workspace(req), actor = await admin(req, workspaceId, 'read')
+        return response(await adapter.getExperience({ workspaceId, actor, experienceId: id(experienceDetail[1], 'experiencia') }), 200, cors)
+      }
+      if (req.method === 'POST' && path === '/admin/presentations') {
+        const body = await jsonBody(req, 300000), workspaceId = workspace(req, body), actor = await admin(req, workspaceId, 'write')
+        const name = clean(body.name, 100), slides = Array.isArray(body.slides) ? body.slides : []
+        if (name.length < 2 || !slides.length || slides.length > 50) throw new ApiError(400, 'INVALID_PRESENTATION', 'Completa la presentación antes de guardarla.')
+        return response(await adapter.savePresentation({ workspaceId, actor, presentation: { id: body.id ? id(body.id, 'presentación') : null, name, slides, expectedUpdatedAt: body.expectedUpdatedAt || null } }), body.id ? 200 : 201, cors)
+      }
       const experienceStart = path.match(/^\/admin\/experiences\/([^/]+)\/start$/)
       if (req.method === 'POST' && experienceStart) {
         const body = await jsonBody(req, 16384), workspaceId = workspace(req, body), actor = await admin(req, workspaceId, 'publish')
@@ -181,6 +192,13 @@ export function createSignageHandler(adapter, options = {}) {
       if (req.method === 'POST' && experienceFinish) {
         const body = await jsonBody(req, 4096), workspaceId = workspace(req, body), actor = await admin(req, workspaceId, 'publish')
         return response(await adapter.finishExperience({ workspaceId, actor, sessionId: id(experienceFinish[1], 'sesión') }), 200, cors)
+      }
+      const experienceStep = path.match(/^\/admin\/experience-sessions\/([^/]+)\/step$/)
+      if (req.method === 'POST' && experienceStep) {
+        const body = await jsonBody(req, 4096), workspaceId = workspace(req, body), actor = await admin(req, workspaceId, 'publish')
+        const targetSlide = Number(body.targetSlide), expectedControlRevision = Number(body.expectedControlRevision)
+        if (!Number.isInteger(targetSlide) || !Number.isSafeInteger(expectedControlRevision) || expectedControlRevision < 0) throw new ApiError(400, 'INVALID_PRESENTATION_STEP', 'La posición de la presentación no es válida.')
+        return response(await adapter.stepExperience({ workspaceId, actor, sessionId: id(experienceStep[1], 'sesión'), targetSlide, expectedControlRevision }), 200, cors)
       }
       const approve = path.match(/^\/admin\/content\/([^/]+)\/approve$/)
       if (req.method === 'POST' && approve) {

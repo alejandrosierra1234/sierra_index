@@ -179,14 +179,37 @@ const adapter = {
   async listExperiences(input: any) {
     const experiences = await service.from('signage_experiences').select('id,kind,name,snapshot,state,created_at,updated_at').eq('workspace_id', input.workspaceId).neq('state','archived').order('updated_at',{ascending:false}).limit(100)
     fail(experiences.error)
-    const sessions = await service.from('signage_experience_sessions').select('id,experience_id,state,starts_at,expires_at,ended_at,created_at,signage_experience_destinations(device_id,accepted_at)').eq('workspace_id', input.workspaceId).order('created_at',{ascending:false}).limit(100)
+    const sessions = await service.from('signage_experience_sessions').select('id,experience_id,state,starts_at,expires_at,ended_at,created_at,current_slide,control_revision,signage_experience_destinations(device_id,accepted_at)').eq('workspace_id', input.workspaceId).order('created_at',{ascending:false}).limit(100)
     fail(sessions.error)
     return { experiences: experiences.data || [], sessions: sessions.data || [], serverTime: new Date().toISOString() }
+  },
+  async getExperience(input: any) {
+    const result = await service.from('signage_experiences').select('id,kind,name,snapshot,state,created_at,updated_at').eq('id', input.experienceId).eq('workspace_id', input.workspaceId).neq('state','archived').maybeSingle()
+    fail(result.error); if (!result.data) throw new ApiError(404, 'EXPERIENCE_NOT_FOUND', 'No se encontró la experiencia.')
+    const experience: any = result.data
+    if (experience.kind !== 'presentation') return { experience }
+    const slides = Array.isArray(experience.snapshot?.slides) ? experience.snapshot.slides : []
+    const assetIds = slides.map((slide: any) => slide.mediaAssetId).filter(Boolean)
+    const assets = assetIds.length ? await service.from('signage_media_assets').select('id,storage_path').eq('workspace_id',input.workspaceId).eq('state','ready').eq('content_type','image/png').in('id',assetIds) : { data: [], error: null }
+    fail(assets.error)
+    const links = assets.data?.length ? await service.storage.from('signage-media').createSignedUrls(assets.data.map((asset: any) => asset.storage_path), 5 * 60) : { data: [], error: null }
+    fail(links.error)
+    const byPath = new Map((links.data || []).map((link: any) => [link.path, link.signedUrl]))
+    const byId = new Map((assets.data || []).map((asset: any) => [asset.id, byPath.get(asset.storage_path)]))
+    return { experience: { ...experience, snapshot: { ...experience.snapshot, slides: slides.map((slide: any) => ({ ...slide, previewUrl: byId.get(slide.mediaAssetId) || null })) } }, previewExpiresAt: new Date(Date.now()+5*60*1000).toISOString() }
   },
   async saveExperience(input: any) {
     const source = input.experience || {}, { client } = await userClient(input.actor.token)
     const result = await client.rpc('signage_experience_save', { p_workspace: input.workspaceId, p_experience: source.id || null, p_name: source.name, p_snapshot: { template: source.template, displayName: source.displayName, subtitle: source.subtitle }, p_expected_updated_at: source.expectedUpdatedAt || null })
     fail(result.error, 'No se pudo guardar la bienvenida.'); return { experience: result.data }
+  },
+  async savePresentation(input: any) {
+    const source = input.presentation || {}, slides = Array.isArray(source.slides) ? source.slides.map((slide: any, index: number) => ({
+      mediaAssetId: String(slide.mediaAssetId || ''), alt: String(slide.alt || `Diapositiva ${index + 1}`), width: Number(slide.width), height: Number(slide.height), index,
+    })) : []
+    const { client } = await userClient(input.actor.token)
+    const result = await client.rpc('signage_presentation_save', { p_workspace: input.workspaceId, p_experience: source.id || null, p_name: String(source.name || ''), p_slides: slides, p_expected_updated_at: source.expectedUpdatedAt || null })
+    fail(result.error, 'No se pudo guardar la presentación.'); return { experience: result.data }
   },
   async startExperience(input: any) {
     const { client } = await userClient(input.actor.token)
@@ -197,6 +220,11 @@ const adapter = {
     const { client } = await userClient(input.actor.token)
     const result = await client.rpc('signage_experience_finish', { p_workspace: input.workspaceId, p_session: input.sessionId })
     fail(result.error, 'No se pudo finalizar la bienvenida.'); return result.data
+  },
+  async stepExperience(input: any) {
+    const { client } = await userClient(input.actor.token)
+    const result = await client.rpc('signage_experience_step', { p_workspace: input.workspaceId, p_session: input.sessionId, p_target_slide: input.targetSlide, p_expected_control_revision: input.expectedControlRevision })
+    fail(result.error, 'La presentación cambió. Actualiza la sesión para continuar.'); return result.data
   },
   async saveContent(input: any) {
     const source = input.content || {}, type = String(source.type || 'message')
