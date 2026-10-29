@@ -74,7 +74,7 @@ function playwright() {
 
     await admin.getByRole('button', { name: 'Agregar pantalla' }).first().click(); await admin.getByRole('button', { name: 'Usar modo de prueba' }).click(); await admin.locator('#sg-screen-name').fill('Pantalla local E2E'); await admin.locator('.sg-space-choices .sg-choice').filter({ hasText: 'Sala E2E' }).click(); await admin.getByRole('button', { name: 'Agregar pantalla', exact: true }).last().click(); await admin.getByText('Pantalla local E2E', { exact: true }).waitFor()
 
-    await admin.getByRole('button', { name: 'Agregar contenido' }).first().click(); await admin.locator('#sg-content-title').fill('Mensaje cruzado E2E'); await admin.locator('#sg-content-body').fill('Publicado desde otro navegador.'); await admin.getByRole('button', { name: 'Guardar contenido' }).click(); await admin.locator('#sd-overlay').waitFor({ state: 'hidden' })
+    await admin.locator('[data-sg-view="content"]').click(); await admin.getByRole('button', { name: 'Agregar contenido' }).click(); await admin.locator('#sg-content-title').fill('Mensaje cruzado E2E'); await admin.locator('#sg-content-body').fill('Publicado desde otro navegador.'); await admin.getByRole('button', { name: 'Guardar contenido' }).click(); await admin.locator('#sd-overlay').waitFor({ state: 'hidden' }); await admin.locator('[data-sg-view="spaces"]').click()
     for (const selector of await admin.locator('.sg-screen-select').all()) {
       const beforeScroll = await admin.evaluate(() => window.scrollY)
       await selector.click()
@@ -87,19 +87,43 @@ function playwright() {
     await admin.getByRole('button', { name: 'Listo', exact: true }).click()
     const pairedTile = admin.locator('.sg-screen-tile').filter({ hasText: 'Comedor norte E2E' })
     await pairedTile.locator('.sg-screen-select').click()
+    await admin.locator('[data-sg-view="content"]').click()
+    await admin.getByRole('heading', { name: 'Contenido', exact: true }).waitFor()
     await admin.locator('.sg-content-card').filter({ hasText: 'Mensaje cruzado E2E' }).getByRole('button', { name: 'Mostrar en…' }).click()
     assert.equal(await admin.locator('.sg-destination.selected').count(), 1, 'content-first flow reuses the current screen selection')
     assert.equal(await admin.getByRole('button', { name: 'Revisar y mostrar' }).count(), 0, 'content-first flow has no redundant review step')
     await admin.getByRole('button', { name: 'Mostrar en 1 pantalla', exact: true }).click()
     await admin.getByText('1 completada', { exact: true }).waitFor()
     await admin.getByRole('button', { name: 'Listo', exact: true }).click()
+    const secondContext = await browser.newContext()
+    await secondContext.addInitScript(({origin,workspaceId,siteId}) => {
+      window.SIERRA_SIGNAGE_CONFIG={enabled:true,backendUrl:origin+'/functions/v1/signage-api',allowedOrigins:[origin],workspaceId,siteId,mediaEnabled:true,liveEnabled:true}
+      window.SIERRA_SIGNAGE_LOCAL_ADMIN_TOKEN='synthetic-admin-token'
+    },{origin,workspaceId:harness.state.workspaceId,siteId:harness.state.siteId})
+    const secondAdmin = await secondContext.newPage()
+    await secondAdmin.goto(origin + '/tests/signage/phase1-visual.html?reset=1')
+    await secondAdmin.locator('[data-sg-view="content"]').click()
+    await secondAdmin.getByRole('heading', { name: 'Mensaje cruzado E2E', exact: true }).waitFor({ timeout: 5000 })
+    assert.equal(await secondAdmin.locator('.sg-content-card').filter({ hasText: 'Mensaje cruzado E2E' }).getByText('Central', { exact: true }).count(), 1, 'a separate browser session reconstructs central content')
+    await secondAdmin.getByRole('searchbox', { name: 'Buscar contenido' }).fill('sin coincidencias')
+    assert.equal(await secondAdmin.locator('.sg-content-card:visible').count(), 0, 'content search filters without losing the current view')
+    await secondAdmin.getByRole('searchbox', { name: 'Buscar contenido' }).fill('Mensaje cruzado')
+    assert.equal(await secondAdmin.locator('.sg-content-card:visible').count(), 1, 'content search finds central content')
+    await secondAdmin.locator('[data-sg-view="activity"]').click()
+    await secondAdmin.getByText('Orden de publicación aceptada', { exact: true }).first().waitFor()
+    await secondAdmin.locator('[data-sg-view="spaces"]').click()
+    await secondAdmin.getByText('Comedor norte E2E', { exact: true }).waitFor()
+    assert.match(await secondAdmin.locator('.sg-screen-tile').filter({ hasText: 'Comedor norte E2E' }).locator('.sg-state').textContent(), /Orden aceptada|Reproducción reportada/)
+    await secondContext.close()
     if (process.env.SIGNAGE_SCREENSHOT_DIR) {
+      await admin.setViewportSize({ width: 1440, height: 900 }); await admin.screenshot({ path: process.env.SIGNAGE_SCREENSHOT_DIR + '/pantallas-content-desktop.png', fullPage: true })
+      await admin.locator('[data-sg-view="spaces"]').click()
       await admin.setViewportSize({ width: 1440, height: 900 }); await admin.screenshot({ path: process.env.SIGNAGE_SCREENSHOT_DIR + '/pantallas-management-desktop.png', fullPage: true })
       await admin.setViewportSize({ width: 1024, height: 900 }); await admin.screenshot({ path: process.env.SIGNAGE_SCREENSHOT_DIR + '/pantallas-management-tablet.png', fullPage: true })
       await admin.setViewportSize({ width: 390, height: 844 }); await admin.screenshot({ path: process.env.SIGNAGE_SCREENSHOT_DIR + '/pantallas-management-mobile.png', fullPage: true })
       await admin.setViewportSize({ width: 1280, height: 720 })
-    }
-    await admin.goto(origin + '/tests/signage/phase1-visual.html'); await admin.getByText('Comedor norte E2E', { exact: true }).waitFor(); await admin.getByText('Sala E2E', { exact: true }).first().waitFor()
+    } else await admin.locator('[data-sg-view="spaces"]').click()
+    await admin.goto(origin + '/tests/signage/phase1-visual.html'); await admin.locator('[data-sg-view="spaces"]').click(); await admin.getByText('Comedor norte E2E', { exact: true }).waitFor(); await admin.getByText('Sala E2E', { exact: true }).first().waitFor()
     const pairedDeviceId = await admin.evaluate(() => _signageState.screens.find(item => item.kind === 'paired').id)
     await admin.route(`**/admin/devices/${pairedDeviceId}/publish`, route => route.abort())
     for (const selector of await admin.locator('.sg-screen-select').all()) await selector.click()
@@ -123,9 +147,9 @@ function playwright() {
     await admin.getByRole('button', { name: 'Listo', exact: true }).click()
     assert.equal([...harness.state.contents.values()].find(item => item.snapshot.title === 'Mensaje cruzado E2E').status, 'approved')
 
-    await admin.getByRole('button', { name: 'Agregar contenido' }).first().click(); await admin.locator('[data-content-type="image"]').click(); await admin.locator('#sg-content-title').fill('Imagen cargada E2E'); await admin.locator('#sg-content-alt').fill('Cuadro sintético')
+    await admin.locator('[data-sg-view="content"]').click(); await admin.getByRole('button', { name: 'Agregar contenido' }).click(); await admin.locator('[data-content-type="image"]').click(); await admin.locator('#sg-content-title').fill('Imagen cargada E2E'); await admin.locator('#sg-content-alt').fill('Cuadro sintético')
     const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
-    await admin.locator('#sg-content-file').setInputFiles({ name: 'cuadro.png', mimeType: 'image/png', buffer: png }); await admin.locator('#sg-upload-preview img').waitFor(); await admin.getByRole('button', { name: 'Guardar contenido' }).click()
+    await admin.locator('#sg-content-file').setInputFiles({ name: 'cuadro.png', mimeType: 'image/png', buffer: png }); await admin.locator('#sg-upload-preview img').waitFor(); await admin.getByRole('button', { name: 'Guardar contenido' }).click(); await admin.locator('[data-sg-view="spaces"]').click()
     await admin.locator('.sg-screen-tile').filter({ hasText: 'Comedor norte E2E' }).getByRole('button', { name: 'Mostrar', exact: true }).click(); await admin.locator('.sg-publish-item').filter({ hasText: 'Imagen cargada E2E' }).click(); await player.locator('img[alt="Cuadro sintético"]').waitFor({ timeout: 7000 }); await admin.getByRole('button', { name: 'Listo', exact: true }).click()
 
     await player.route('**/functions/v1/signage-api/player/manifest', route => route.abort())

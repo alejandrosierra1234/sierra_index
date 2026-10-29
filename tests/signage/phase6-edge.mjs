@@ -19,6 +19,7 @@ const adapter={
   claimPairing: async input=>({state:'claimed',device:{id:DEVICE,name:input.name,workspaceId:input.workspaceId}}),
   revokeDevice: async input=>{ calls.push(['revoke',input.workspaceId,input.actor.id]) },
   listDevices:async input=>({devices:[{id:DEVICE,workspaceId:input.workspaceId}]}),
+  listActivity:async()=>({activity:[{id:1,event_type:'content.saved'}]}),
   listContent:async()=>({content:[]}), saveContent:async input=>({content:{id:ASSET,title:input.content.title}}), approveContent:async()=>({content:{status:'approved'}}),
   publish:async()=>({publication:{version:1}}), stopOutput:async input=>({state:'stopped',device:{id:input.deviceId,output_paused:true,revision:2}}), rollback:async()=>({publication:{version:2,kind:'rollback'}}), savePlaylist:async()=>({playlist:{id:ASSET}}), saveSchedule:async()=>({schedule:{id:SESSION}}),
   manifest: async()=>({schema_version:1,device_id:DEVICE,device_revision:7,state:'ready',snapshot:{type:'message',title:'Prueba'}}),
@@ -57,6 +58,7 @@ result=await request('POST','/admin/pairings/claim',{token:'admin-token',body:{w
 result=await request('POST','/admin/pairings/claim',{token:'admin-token',workspace:OTHER,body:{workspaceId:OTHER,siteId:SITE,code:'123456',name:'Comedor'}}); equal(result.response.status,403)
 result=await request('POST',`/admin/devices/${DEVICE}/revoke`,{token:'admin-token',body:{workspaceId:WORKSPACE,reason:'Equipo retirado'}}); equal(result.payload.state,'revoked'); equal(calls.at(-1)[2],'10000000-0000-4000-8000-000000000001')
 result=await request('GET','/admin/devices',{token:'admin-token'}); equal(result.payload.devices[0].id,DEVICE)
+result=await request('GET','/admin/activity',{token:'admin-token'}); equal(result.payload.activity[0].event_type,'content.saved')
 result=await request('POST','/admin/content',{token:'admin-token',body:{workspaceId:WORKSPACE,type:'message',title:'Aviso',body:'Prueba'}}); equal(result.response.status,201)
 result=await request('POST',`/admin/content/${ASSET}/approve`,{token:'admin-token',body:{workspaceId:WORKSPACE,expectedRevision:1}}); equal(result.payload.content.status,'approved')
 result=await request('POST',`/admin/devices/${DEVICE}/publish`,{token:'admin-token',body:{workspaceId:WORKSPACE,contentId:ASSET}}); equal(result.payload.publication.version,1)

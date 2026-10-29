@@ -26,6 +26,9 @@ try{
   const draft=await admin.createContent({workspaceId,type:'message',title:'Mensaje aprobado',body:'Contenido sintético',theme:'neutral'})
   await assert.rejects(()=>admin.publish(claimed.device.id,draft.content.id),error=>error.status===409&&error.code==='APPROVAL_REQUIRED');assertions+=1
   await admin.approveContent(draft.content.id,draft.content.revision);await admin.publish(claimed.device.id,draft.content.id)
+  const centralContent=await admin.listContent();eq(centralContent.content[0].snapshot.body,'Contenido sintético','content list carries the current central snapshot')
+  const centralDevices=await admin.listDevices();eq(centralDevices.devices[0].active_publication.content_id,draft.content.id,'device list carries desired central content')
+  const centralActivity=await admin.listActivity();eq(Array.isArray(centralActivity.activity),true,'central activity uses the authenticated Edge contract')
   let manifest=await player.manifest(claimed.device.id);eq(manifest.content.title,'Mensaje aprobado','manifest uses player contract');eq(manifest.revision,2,'manifest revision includes the prior device naming change')
 
   const curatedUrl='https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F67448935dfb12aa5cb9c86e9_video-cortado-transcode.mp4'

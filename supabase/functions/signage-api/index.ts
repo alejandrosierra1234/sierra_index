@@ -94,7 +94,15 @@ const adapter = {
       .order('name')
       .order('received_at', { referencedTable: 'signage_device_heartbeats', ascending: false })
       .limit(1, { referencedTable: 'signage_device_heartbeats' })
-    fail(result.error); return { devices: result.data || [] }
+    fail(result.error)
+    const devices: any[] = result.data || []
+    const publicationIds = devices.map(device => device.active_publication_id).filter(Boolean)
+    const publications = publicationIds.length
+      ? await service.from('signage_publications').select('id,device_id,content_id,content_revision,published_at,version,kind').eq('workspace_id', input.workspaceId).in('id', publicationIds)
+      : { data: [], error: null }
+    fail(publications.error)
+    const byId = new Map((publications.data || []).map((publication: any) => [publication.id, publication]))
+    return { devices: devices.map(device => ({ ...device, active_publication: byId.get(device.active_publication_id) || null })) }
   },
   async listSpaces(input: any) {
     const result = await service.from('signage_spaces').select('id,workspace_id,site_id,name,state,sort_order,created_at,updated_at').eq('workspace_id', input.workspaceId).eq('state', 'active').order('sort_order').order('name')
@@ -116,8 +124,22 @@ const adapter = {
     fail(result.error, 'No se pudo actualizar la pantalla.'); return { device: result.data }
   },
   async listContent(input: any) {
-    const result = await service.from('signage_content_items').select('id,title,status,current_revision,updated_at').eq('workspace_id', input.workspaceId).order('updated_at', { ascending: false }).limit(200)
-    fail(result.error); return { content: result.data || [] }
+    const result = await service.from('signage_content_items').select('id,title,status,current_revision,updated_at,created_at,created_by,updated_by').eq('workspace_id', input.workspaceId).order('updated_at', { ascending: false }).limit(200)
+    fail(result.error)
+    const items: any[] = result.data || []
+    const versionRows: any[] = []
+    for (let offset = 0; offset < items.length; offset += 25) {
+      const chunk = items.slice(offset, offset + 25)
+      const filter = chunk.map(item => `and(content_id.eq.${item.id},revision.eq.${item.current_revision})`).join(',')
+      const versions = await service.from('signage_content_versions').select('content_id,revision,snapshot,created_at').eq('workspace_id', input.workspaceId).or(filter)
+      fail(versions.error); versionRows.push(...(versions.data || []))
+    }
+    const current = new Map(versionRows.map((version: any) => [`${version.content_id}:${version.revision}`, version]))
+    return { content: items.map(item => ({ ...item, revision: item.current_revision, snapshot: current.get(`${item.id}:${item.current_revision}`)?.snapshot || null })) }
+  },
+  async listActivity(input: any) {
+    const result = await service.from('signage_audit').select('id,event_type,entity_type,entity_id,actor_id,details,created_at').eq('workspace_id', input.workspaceId).order('created_at', { ascending: false }).limit(100)
+    fail(result.error); return { activity: result.data || [] }
   },
   async saveContent(input: any) {
     const source = input.content || {}, type = String(source.type || 'message')

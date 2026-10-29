@@ -82,6 +82,7 @@
       pairDevice: input => request('/admin/pairings/claim', { method: 'POST', body: input }),
       listDevices: () => request('/admin/devices'),
       listSpaces: () => request('/admin/spaces'),
+      listActivity: () => request('/admin/activity'),
       saveSpace: input => request('/admin/spaces', { method: 'POST', body: input }),
       updateDevice: (deviceId, input) => request(`/admin/devices/${encodeURIComponent(deviceId)}/update`, { method: 'POST', body: input }),
       revokeDevice: (deviceId, reason) => request(`/admin/devices/${encodeURIComponent(deviceId)}/revoke`, { method: 'POST', body: { reason } }),
