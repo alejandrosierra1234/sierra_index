@@ -74,6 +74,7 @@ for(const required of ['signage_pairing_claim_service','signage_pairing_deliver_
 }
 assert.doesNotMatch(edgeSource,/product-images/); assertions+=1
 assert.match(edgeSource,/rpc\('signage_device_revoke'/); assertions+=1
+assert.match(edgeSource,/contentRevision: Number\(item\.contentRevision\)/); assertions+=1
 const migration59=await fs.readFile(path.join(root,'update59.sql'),'utf8')
 assert.doesNotMatch(migration59,/drop constraint if exists capability_grants/); assertions+=1
 assert.doesNotMatch(migration59,/create or replace function public\.set_index_access/); assertions+=1

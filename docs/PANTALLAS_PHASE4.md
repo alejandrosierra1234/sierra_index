@@ -160,14 +160,14 @@ Resultados del corte:
 - Multimedia/programación de fase 3: 44 aserciones.
 - Integración fase 4: 25 aserciones para vinculación, secreto, carga, enlace, publicación cruzada, lista/horario, señalización WebRTC, revocación y caché durable.
 - Migraciones `update60.sql` y `update62.sql`: 17 aserciones locales de bucket privado, rutas, digests, medios privados, sesión única, heartbeat y rate limiting.
-- Contrato Edge estático: 49 aserciones de autenticación separada, aislamiento,
+- Contrato Edge estático: 50 aserciones de autenticación separada, aislamiento,
   vinculación, administración, manifiesto, carga firmada, validación y denegaciones
   seguras.
 - Handler Edge real con adaptador sintético: 20 aserciones para configuración
   pública, vinculación, rechazo de borrador, aprobación/publicación, manifiesto
   normalizado, imágenes/videos firmados, enlaces, horarios, heartbeat, denegación
   segura de servicios ausentes y revocación transaccional.
-- Total estándar: 226 aserciones aprobadas en siete suites.
+- Total estándar: 227 aserciones aprobadas en siete suites.
 - E2E Chromium entre dos páginas: aprobado para vincular, cargar PNG, publicar,
   reproducir sin login, aplicar un horario y recuperar manifiesto/imagen con API y
   ruta de medios bloqueadas. También comprobó el heartbeat periódico y el uso de la

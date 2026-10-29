@@ -136,7 +136,7 @@ const adapter = {
     fail(result.error, 'No se pudo restaurar la publicación.'); return { publication: result.data }
   },
   async savePlaylist(input: any) {
-    const source = input.playlist || {}, entries = Array.isArray(source.entries) ? source.entries.map((item: any) => ({ contentId: item.contentId, durationSeconds: Number(item.durationSeconds) })) : []
+    const source = input.playlist || {}, entries = Array.isArray(source.entries) ? source.entries.map((item: any) => ({ contentId: item.contentId, contentRevision: Number(item.contentRevision), durationSeconds: Number(item.durationSeconds) })) : []
     const { client } = await userClient(input.actor.token)
     const result = await client.rpc('signage_playlist_save', { p_workspace: input.workspaceId, p_playlist: source.id || null, p_name: String(source.name || ''), p_entries: entries, p_expected_revision: Number(source.expectedRevision) || 0 })
     fail(result.error, 'No se pudo guardar la lista.'); return { playlist: result.data }
