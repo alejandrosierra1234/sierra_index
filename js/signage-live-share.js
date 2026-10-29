@@ -34,19 +34,24 @@
       } finally { if (!stopped) timer = setTimeout(poll, 1000) }
     }
     async function start() {
-      const capture = options.captureProvider || (() => navigator.mediaDevices && typeof navigator.mediaDevices.getDisplayMedia === 'function' ? navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 } }, audio: false }) : null)
-      stream = await capture()
-      if (!stream) throw new Error('Este navegador no permite compartir pantalla.')
-      session = (await options.client.startLive(options.deviceId)).session
-      peer = new RTCPeerConnection(peerConfig(options.iceServers))
-      peer.addEventListener('icecandidate', event => {
-        if (descriptionSent && event.candidate) options.client.sendLiveSignal(session.id, { type: 'candidate', payload: event.candidate.toJSON() }).catch(options.onError || (() => {}))
-      })
-      stream.getTracks().forEach(track => { peer.addTrack(track, stream); track.addEventListener('ended', stop, { once: true }) })
-      await peer.setLocalDescription(await peer.createOffer()); await waitIce(peer)
-      await options.client.sendLiveSignal(session.id, { type: 'offer', payload: peer.localDescription })
-      descriptionSent = true
-      poll(); return { session, stream }
+      try {
+        const capture = options.captureProvider || (() => navigator.mediaDevices && typeof navigator.mediaDevices.getDisplayMedia === 'function' ? navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 } }, audio: false }) : null)
+        stream = await capture()
+        if (!stream) throw new Error('Este navegador no permite compartir pantalla.')
+        session = (await options.client.startLive(options.deviceId)).session
+        peer = new RTCPeerConnection(peerConfig(options.iceServers))
+        peer.addEventListener('icecandidate', event => {
+          if (descriptionSent && event.candidate) options.client.sendLiveSignal(session.id, { type: 'candidate', payload: event.candidate.toJSON() }).catch(options.onError || (() => {}))
+        })
+        stream.getTracks().forEach(track => { peer.addTrack(track, stream); track.addEventListener('ended', stop, { once: true }) })
+        await peer.setLocalDescription(await peer.createOffer()); await waitIce(peer)
+        await options.client.sendLiveSignal(session.id, { type: 'offer', payload: peer.localDescription })
+        descriptionSent = true
+        poll(); return { session, stream }
+      } catch (error) {
+        await stop()
+        throw error
+      }
     }
     async function stop() {
       if (stopped) return; stopped = true; clearTimeout(timer)
@@ -68,12 +73,12 @@
           sequence = Math.max(sequence, signal.sequence)
           if (signal.type === 'offer' && !answered) {
             peer = new RTCPeerConnection(peerConfig(options.iceServers))
-            peer.addEventListener('track', event => { options.video.srcObject = event.streams[0]; options.video.play().catch(() => {}) })
+            peer.addEventListener('track', event => { options.video.srcObject = event.streams[0]; options.video.play().catch(() => {}); if (options.onConnected) options.onConnected() }, { once: true })
             peer.addEventListener('icecandidate', event => {
               if (descriptionSent && event.candidate) options.client.sendLiveSignal(options.sessionId, { type: 'candidate', payload: event.candidate.toJSON() }).catch(options.onError || (() => {}))
             })
             await peer.setRemoteDescription(signal.payload); await peer.setLocalDescription(await peer.createAnswer()); await waitIce(peer)
-            await options.client.sendLiveSignal(options.sessionId, { type: 'answer', payload: peer.localDescription }); descriptionSent = true; answered = true; if (options.onConnected) options.onConnected()
+            await options.client.sendLiveSignal(options.sessionId, { type: 'answer', payload: peer.localDescription }); descriptionSent = true; answered = true
           } else if (signal.type === 'candidate' && signal.payload && peer) await peer.addIceCandidate(signal.payload)
         }
       } catch (error) { if (options.onError) options.onError(error) }

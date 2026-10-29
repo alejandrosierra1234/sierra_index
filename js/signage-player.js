@@ -3,6 +3,9 @@
   const STORAGE_KEY = 'sierra_pantallas_player_v1'
   const LAST_MANIFEST_KEY = 'sierra_pantallas_last_manifest_v1'
   const MEDIA_CACHE = 'sierra-pantallas-media-v1'
+  const SIERRA_AMBIENT_VIDEO = 'https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F67448935dfb12aa5cb9c86e9_video-cortado-transcode.mp4'
+  const SIERRA_AMBIENT_POSTER = 'https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F67448935dfb12aa5cb9c86e9_video-cortado-poster-00001.jpg'
+  const SIERRA_REST_IMAGE = 'https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3/673f7b62650c2610524db19f_DSC09322-Enhanced-NR%20(1).jpg'
   const params = new URLSearchParams(location.search)
   const publicConfig = SignageBackendClient.publicConfig(window.SIERRA_SIGNAGE_CONFIG || {})
   const baseUrl = params.get('backend') || publicConfig.backendUrl || '/api/signage'
@@ -27,7 +30,7 @@
   async function clearCachedPlayback() {
     localStorage.removeItem(LAST_MANIFEST_KEY); lastManifest = null
     if ('caches' in window) await caches.delete(MEDIA_CACHE).catch(() => {})
-    await renderContent(null)
+    await renderContent(null, { state: 'no-content' })
   }
   function setupStatus(message, retry) { document.getElementById('sp-setup-status').textContent = message; document.getElementById('sp-new-code').hidden = !retry }
   const allowedOrigins = publicConfig.allowedOrigins
@@ -35,9 +38,24 @@
   function ambientTime() {
     try { return new Intl.DateTimeFormat('es', { hour: '2-digit', minute: '2-digit' }).format(new Date()) } catch (error) { return '' }
   }
-  function renderAmbient(note) {
+  function renderAmbient(note, options = {}) {
     const host = document.getElementById('sp-content')
-    host.innerHTML = `<div class="sp-ambient"><img src="SIERRA_Primary_Blue02.svg" alt="SIERRA"><div><span class="sp-ambient-kicker">SIERRA OS · AMBIENTE</span><h1>Materia, proceso<br>y personas.</h1><p>${escapeHtml(note || 'Elige qué mostrar desde SIERRA Index.')}</p></div><footer><span>SIERRA · Pantallas</span><time>${escapeHtml(ambientTime())}</time></footer></div>`
+    const stopped = options.state === 'stopped'
+    const media = stopped
+      ? `<div class="sp-ambient-visual" style="background-image:url('${SIERRA_REST_IMAGE}')" aria-hidden="true"></div>`
+      : `<video class="sp-ambient-visual" src="${SIERRA_AMBIENT_VIDEO}" poster="${SIERRA_AMBIENT_POSTER}" autoplay muted loop playsinline preload="metadata" aria-hidden="true"></video>`
+    host.innerHTML = `<div class="sp-ambient${stopped ? ' is-resting' : ''}">${media}<div class="sp-ambient-shade" aria-hidden="true"></div><header><img src="SIERRA_Primary_Blue02.svg" alt="SIERRA"><span>SIERRA OS</span></header><main><span class="sp-ambient-kicker">${stopped ? 'PANTALLA EN REPOSO' : 'LISTA PARA MOSTRAR'}</span><h1>${stopped ? 'Una pausa que también comunica.' : 'Materia que conecta.'}</h1><p>${escapeHtml(note || (stopped ? 'La vinculación y el contenido programado se conservan.' : 'Elige imágenes, videos o mensajes desde SIERRA Index.'))}</p></main><footer><span>SIERRA · Pantallas</span><time>${escapeHtml(ambientTime())}</time></footer></div>`
+    const ambientVideo = host.querySelector('.sp-ambient video')
+    if (ambientVideo && typeof ambientVideo.play === 'function') {
+      ambientVideo.muted = true; ambientVideo.defaultMuted = true; ambientVideo.playsInline = true
+      ambientVideo.play().catch(() => ambientVideo.classList.add('is-still'))
+    }
+  }
+
+  function renderMediaFallback(content, message) {
+    const host = document.getElementById('sp-content')
+    const poster = content && content.poster ? ` style="--sp-poster:url('${escapeCssUrl(content.poster)}')"` : ''
+    host.innerHTML = `<div class="sp-media-fallback${poster ? ' has-poster' : ''}"${poster}><div class="sp-media-fallback-shade" aria-hidden="true"></div><header><img src="SIERRA_Primary_Blue02.svg" alt="SIERRA"><span>SIERRA OS · CONTENIDO</span></header><main><span>${escapeHtml(content && content.type === 'video' ? 'VIDEO EN PAUSA' : 'ARCHIVO NO DISPONIBLE')}</span><h1>${escapeHtml(content && content.title ? content.title : 'Contenido pendiente')}</h1><p>${escapeHtml(message)}</p></main><footer>La pieza elegida se conserva. Corrígela o reemplázala desde SIERRA Index.</footer></div>`
   }
 
   async function beginPairing() {
@@ -85,18 +103,23 @@
     } catch (error) { return networkUrl }
   }
 
-  async function renderContent(content) {
+  async function renderContent(content, options = {}) {
     const host = document.getElementById('sp-content')
-    if (!content) { renderAmbient(); return }
-    if (content.type === 'image') host.innerHTML = `<div class="sp-media"><img src="${escapeAttr(await cachedMediaUrl(content))}" alt="${escapeAttr(content.alt)}"><div class="sp-caption"><b>${escapeHtml(content.title)}</b>${content.body ? `<span>${escapeHtml(content.body)}</span>` : ''}</div></div>`
+    const connection = document.getElementById('sp-connection')
+    if (connection) connection.hidden = Boolean(content && (content.type === 'image' || content.type === 'video'))
+    if (!content) { renderAmbient(options.note, options); return }
+    if (content.type === 'image') host.innerHTML = `<div class="sp-media"><img src="${escapeAttr(await cachedMediaUrl(content))}" alt="${escapeAttr(content.alt)}"></div>`
     else if (content.type === 'video') {
-      host.innerHTML = `<div class="sp-media"><video src="${escapeAttr(await cachedMediaUrl(content))}" aria-label="${escapeAttr(content.alt)}" autoplay muted loop playsinline></video><div class="sp-caption"><b>${escapeHtml(content.title)}</b>${content.body ? `<span>${escapeHtml(content.body)}</span>` : ''}</div></div>`
+      host.innerHTML = `<div class="sp-media"><video src="${escapeAttr(await cachedMediaUrl(content))}"${content.poster ? ` poster="${escapeAttr(content.poster)}"` : ''} aria-label="${escapeAttr(content.alt)}" autoplay muted loop playsinline preload="auto"></video></div>`
       const video = host.querySelector('video')
-      if (video && typeof video.play === 'function') video.play().catch(() => renderAmbient('El video no pudo iniciar automáticamente. Elige otra pieza desde SIERRA Index.'))
+      if (video && typeof video.play === 'function') {
+        video.muted = true; video.defaultMuted = true; video.playsInline = true
+        video.play().catch(() => renderMediaFallback(content, 'El navegador no pudo iniciar el video automáticamente.'))
+      }
     }
     else if (content.type === 'link') host.innerHTML = `<div class="sp-link"><div class="sp-link-icon" aria-hidden="true">↗</div><h1>${escapeHtml(content.title)}</h1><p>${escapeHtml(content.body || 'Abre este enlace desde un dispositivo autorizado.')}</p><a href="${escapeAttr(content.url)}" rel="noopener noreferrer">${escapeHtml(content.url)}</a></div>`
-    else host.innerHTML = `<div class="sp-message"><h1>${escapeHtml(content.title)}</h1><p>${escapeHtml(content.body)}</p></div>`
-    host.querySelectorAll('img,video').forEach(media => media.addEventListener('error', () => { if (lastManifest && lastManifest.content) renderAmbient('No pudimos cargar ese archivo. Revisa la conexión o el formato desde SIERRA Index.') }, { once: true }))
+    else host.innerHTML = `<article class="sp-message"><header><img src="SIERRA_Primary_Blue02.svg" alt="SIERRA"><span>SIERRA OS · MENSAJE</span></header><main><h1>${escapeHtml(content.title)}</h1><p>${escapeHtml(content.body)}</p></main><footer><span>SIERRA · Pantallas</span><time>${escapeHtml(ambientTime())}</time></footer></article>`
+    host.querySelectorAll('img,video').forEach(media => media.addEventListener('error', () => { if (lastManifest && lastManifest.content) renderMediaFallback(content, 'No pudimos cargar este archivo. Revisa la conexión o el formato desde SIERRA Index.') }, { once: true }))
   }
 
   function loadLiveShare() {
@@ -132,8 +155,8 @@
       video: document.getElementById('sp-live-video'),
       iceServers: runtime.iceServers,
       onConnected: () => { document.getElementById('sp-connection').textContent = 'Transmisión en vivo' },
-      onStop: () => { liveSessionId = null; liveReceiver = null; if (lastManifest) renderContent(lastManifest.content) },
-      onError: () => { document.getElementById('sp-connection').textContent = 'Reconectando transmisión…' },
+      onStop: () => { liveSessionId = null; liveReceiver = null; if (lastManifest) renderContent(lastManifest.content, { state: lastManifest.state }) },
+      onError: () => { document.getElementById('sp-connection').textContent = 'Transmisión interrumpida' },
     })
     window.__signageLiveReceiver = liveReceiver
     liveReceiver.start()
@@ -147,7 +170,7 @@
       if (result.liveSession) await showLive(result.liveSession, client)
       else {
         if (liveReceiver) liveReceiver.stop()
-        if (!lastManifest || result.revision !== lastManifest.revision || (result.content && result.content.id) !== (lastManifest.content && lastManifest.content.id) || lastManifest.liveSession) await renderContent(result.content)
+        if (!lastManifest || result.revision !== lastManifest.revision || result.state !== lastManifest.state || (result.content && result.content.id) !== (lastManifest.content && lastManifest.content.id) || lastManifest.liveSession) await renderContent(result.content, { state: result.state })
       }
       saveLastManifest(result)
       if (Date.now() - lastHeartbeatAt >= heartbeatInterval) {
@@ -156,6 +179,7 @@
         await client.heartbeat({ playerVersion: 'web-1', status: result.liveSession ? 'live' : result.content ? 'playing' : 'idle', lastManifestRevision: result.revision, storageFreeBytes: estimate && estimate.quota && estimate.usage ? Math.max(0, estimate.quota-estimate.usage) : null, errors: [] }).catch(() => {})
       }
     } catch (error) {
+      document.getElementById('sp-connection').hidden = false
       document.getElementById('sp-connection').textContent = error.status === 401 ? 'Vinculación revocada' : 'Sin conexión · mostrando lo último recibido'
       if (error.status === 401) { localStorage.removeItem(STORAGE_KEY); clearInterval(manifestTimer); await clearCachedPlayback() }
     }
@@ -166,12 +190,13 @@
     document.getElementById('sp-setup').hidden = true
     document.getElementById('sp-stage').hidden = false
     document.getElementById('sp-connection').textContent = 'Pantalla vinculada · conectando…'
-    if (lastManifest && lastManifest.deviceId === credentials.deviceId) renderContent(lastManifest.content)
-    else renderContent(null)
+    if (lastManifest && lastManifest.deviceId === credentials.deviceId) renderContent(lastManifest.content, { state: lastManifest.state })
+    else renderContent(null, { state: 'no-content' })
     sync(); manifestTimer = setInterval(sync, 2000)
   }
   function escapeHtml(value) { const div = document.createElement('div'); div.textContent = String(value || ''); return div.innerHTML }
   function escapeAttr(value) { return escapeHtml(value).replace(/"/g, '&quot;') }
+  function escapeCssUrl(value) { return String(value || '').replace(/[\\'"()\n\r]/g, '') }
 
   document.getElementById('sp-new-code').addEventListener('click', beginPairing)
   window.__sierraPlayerBooted = true
