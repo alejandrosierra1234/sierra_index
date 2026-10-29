@@ -4,6 +4,18 @@
   root.SignageBackendClient = api
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict'
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+  function publicConfig(value) {
+    const config = value && typeof value === 'object' ? value : {}
+    const backendUrl = String(config.backendUrl || '').trim()
+    const workspaceId = String(config.workspaceId || '').trim()
+    const siteId = String(config.siteId || '').trim()
+    const allowedOrigins = Array.isArray(config.allowedOrigins) ? config.allowedOrigins.map(String) : []
+    if (config.enabled && (!backendUrl || !UUID.test(workspaceId) || !UUID.test(siteId))) throw new Error('La configuración pública de Pantallas está incompleta.')
+    if (backendUrl && new URL(backendUrl, 'https://index.invalid').protocol !== 'https:' && !/^http:\/\/(?:127\.0\.0\.1|localhost|\[::1\])(?::|\/)/.test(backendUrl)) throw new Error('El servicio de Pantallas debe usar HTTPS.')
+    return { enabled: config.enabled === true, backendUrl, workspaceId, siteId, allowedOrigins }
+  }
 
   function normalizeBaseUrl(value, currentOrigin, allowedOrigins) {
     const origin = currentOrigin || (typeof location !== 'undefined' ? location.origin : 'http://127.0.0.1')
@@ -48,6 +60,7 @@
     return {
       baseUrl,
       health: () => request('/health'),
+      runtime: () => request('/admin/runtime'),
       createPairing: () => request('/player/pairings', { method: 'POST' }),
       claimPairing: claimToken => request(`/player/pairings/${encodeURIComponent(claimToken)}`),
       pairDevice: input => request('/admin/pairings/claim', { method: 'POST', body: input }),
@@ -67,6 +80,16 @@
       signUpload: input => request('/admin/uploads/sign', { method: 'POST', body: input }),
       completeUpload: assetId => request(`/admin/uploads/${encodeURIComponent(assetId)}/complete`, { method: 'POST', body: {} }),
       upload: async file => {
+        const workspaceId = await workspaceProvider()
+        if (workspaceId) {
+          const bytes = await file.arrayBuffer()
+          const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(byte => byte.toString(16).padStart(2, '0')).join('')
+          const signed = await request('/admin/uploads/sign', { method: 'POST', body: { workspaceId, fileName: file.name, contentType: file.type, byteSize: file.size, sha256: hash } })
+          const sent = await fetchImpl(signed.upload.url, { method: 'PUT', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file })
+          if (!sent.ok) throw new Error(`No se pudo transferir el archivo (${sent.status}).`)
+          const completed = await request(`/admin/uploads/${encodeURIComponent(signed.assetId)}/complete`, { method: 'POST', body: { workspaceId } })
+          return { upload: { id: signed.assetId, url: completed.downloadUrl || '' }, asset: completed }
+        }
         const headers = new Headers({ 'Content-Type': file.type || 'application/octet-stream', 'X-Filename': file.name || 'archivo' })
         const token = await tokenProvider()
         if (token) headers.set('Authorization', `Bearer ${token}`)
@@ -112,5 +135,5 @@
     }
     return client
   }
-  return { normalizeBaseUrl, createClient, createPlayerClient }
+  return { normalizeBaseUrl, publicConfig, createClient, createPlayerClient }
 })

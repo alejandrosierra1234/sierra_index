@@ -1,5 +1,5 @@
 -- SIERRA Pantallas: operaciones atómicas para la API Edge.
--- Preparada para revisión; NO aplicar sin autorizar un proyecto no productivo.
+-- Preparada para revisión; NO aplicar sin autorizar proyecto, scripts y ventana.
 begin;
 
 create table public.signage_device_heartbeats(

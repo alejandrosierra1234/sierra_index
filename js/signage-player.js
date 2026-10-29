@@ -4,7 +4,8 @@
   const LAST_MANIFEST_KEY = 'sierra_pantallas_last_manifest_v1'
   const MEDIA_CACHE = 'sierra-pantallas-media-v1'
   const params = new URLSearchParams(location.search)
-  const baseUrl = params.get('backend') || '/api/signage'
+  const publicConfig = SignageBackendClient.publicConfig(window.SIERRA_SIGNAGE_CONFIG || {})
+  const baseUrl = params.get('backend') || publicConfig.backendUrl || '/api/signage'
   let pairingTimer = null
   let manifestTimer = null
   let credentials = loadCredentials()
@@ -12,6 +13,8 @@
   let liveReceiver = null
   let liveSessionId = null
   let currentObjectUrl = null
+  let lastHeartbeatAt = 0
+  const heartbeatInterval = Number(window.SIERRA_SIGNAGE_HEARTBEAT_INTERVAL) || 30000
 
   function loadCredentials() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) } catch { return null } }
   function loadLastManifest() { try { return JSON.parse(localStorage.getItem(LAST_MANIFEST_KEY)) } catch { return null } }
@@ -23,7 +26,7 @@
     await renderContent(null)
   }
   function setupStatus(message, retry) { document.getElementById('sp-setup-status').textContent = message; document.getElementById('sp-new-code').hidden = !retry }
-  const allowedOrigins = window.SIERRA_SIGNAGE_ALLOWED_BACKEND_ORIGINS || []
+  const allowedOrigins = publicConfig.allowedOrigins
   function mediaUrl(value) { return new URL(value, SignageBackendClient.normalizeBaseUrl(baseUrl, location.origin, allowedOrigins).replace(/\/api\/signage$/, '') + '/').href }
 
   async function beginPairing() {
@@ -76,8 +79,10 @@
     host.querySelectorAll('img,video').forEach(media => media.addEventListener('error', () => { if (lastManifest?.content) host.innerHTML = '<div class="sp-empty"><h1>No pudimos cargar este archivo</h1><p>Revisa la conexión o el formato desde SIERRA Index.</p></div>' }, { once: true }))
   }
 
-  function showLive(session, client) {
+  async function showLive(session, client) {
     if (liveSessionId === session.id) return
+    const runtime = await client.runtime()
+    if (!runtime.liveAvailable || !runtime.iceServers?.length) throw new Error('La transmisión en vivo no tiene una conexión ICE/TURN configurada.')
     liveReceiver?.stop(); liveSessionId = session.id
     const host = document.getElementById('sp-content')
     host.innerHTML = '<div class="sp-live"><span class="sp-live-label">PANTALLA COMPARTIDA EN VIVO</span><video id="sp-live-video" autoplay muted playsinline></video></div>'
@@ -85,6 +90,7 @@
       client,
       sessionId: session.id,
       video: document.getElementById('sp-live-video'),
+      iceServers: runtime.iceServers,
       onConnected: () => { document.getElementById('sp-connection').textContent = 'Transmisión en vivo' },
       onStop: () => { liveSessionId = null; liveReceiver = null; if (lastManifest) renderContent(lastManifest.content) },
       onError: () => { document.getElementById('sp-connection').textContent = 'Reconectando transmisión…' },
@@ -98,12 +104,17 @@
     try {
       const result = await client.manifest(credentials.deviceId)
       document.getElementById('sp-connection').textContent = 'Conectada · actualizado ahora'
-      if (result.liveSession) showLive(result.liveSession, client)
+      if (result.liveSession) await showLive(result.liveSession, client)
       else {
         if (liveReceiver) liveReceiver.stop()
         if (!lastManifest || result.revision !== lastManifest.revision || result.content?.id !== lastManifest.content?.id || lastManifest.liveSession) await renderContent(result.content)
       }
       saveLastManifest(result)
+      if (Date.now() - lastHeartbeatAt >= heartbeatInterval) {
+        lastHeartbeatAt = Date.now()
+        const estimate = await navigator.storage?.estimate?.().catch(() => null)
+        await client.heartbeat({ playerVersion: 'web-1', status: result.liveSession ? 'live' : result.content ? 'playing' : 'idle', lastManifestRevision: result.revision, storageFreeBytes: estimate?.quota && estimate?.usage ? Math.max(0, estimate.quota-estimate.usage) : null, errors: [] }).catch(() => {})
+      }
     } catch (error) {
       document.getElementById('sp-connection').textContent = error.status === 401 ? 'Vinculación revocada' : 'Sin conexión · mostrando lo último recibido'
       if (error.status === 401) { localStorage.removeItem(STORAGE_KEY); clearInterval(manifestTimer); await clearCachedPlayback() }

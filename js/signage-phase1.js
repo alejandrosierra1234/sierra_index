@@ -536,12 +536,14 @@ function signageFormatTime(value) {
   try { return new Intl.DateTimeFormat('es', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) } catch { return value }
 }
 function signageContentById(id) { return _signageState?.contents.find(item => item.id === id) || null }
+function signagePublicConfig() { return SignageBackendClient.publicConfig(window.SIERRA_SIGNAGE_CONFIG || {}) }
 function signageBackendClient() {
+  const config = signagePublicConfig()
   return SignageBackendClient.createClient({
-    baseUrl: window.SIERRA_SIGNAGE_BACKEND_URL || '/api/signage',
+    baseUrl: config.backendUrl || '/api/signage',
     currentOrigin: location.origin,
-    allowedOrigins: window.SIERRA_SIGNAGE_ALLOWED_BACKEND_ORIGINS || [],
-    workspaceProvider: async () => window.SIERRA_SIGNAGE_WORKSPACE_ID || '',
+    allowedOrigins: config.allowedOrigins,
+    workspaceProvider: async () => config.workspaceId,
     tokenProvider: async () => {
       if (window.SIERRA_SIGNAGE_LOCAL_ADMIN_TOKEN) return window.SIERRA_SIGNAGE_LOCAL_ADMIN_TOKEN
       const result = await sb.auth.getSession()
@@ -663,7 +665,9 @@ async function signageSubmitPairing(event) {
   if (!/^\d{6}$/.test(code) || name.length < 3 || plant.length < 2) { errorEl.textContent = 'Completa el código, el nombre y la ubicación.'; return }
   const submit = event.submitter; submit.disabled = true; submit.textContent = 'Vinculando…'
   try {
-    const paired = await signageBackendClient().pairDevice({ code, name, plant, workspaceId: window.SIERRA_SIGNAGE_WORKSPACE_ID || '', siteId: window.SIERRA_SIGNAGE_DEFAULT_SITE_ID || '', profile: 'Horizontal · 1920 × 1080' })
+    const config = signagePublicConfig()
+    if (!config.enabled) throw new Error('El servicio central de Pantallas todavía no está habilitado.')
+    const paired = await signageBackendClient().pairDevice({ code, name, plant, workspaceId: config.workspaceId, siteId: config.siteId, profile: 'Horizontal · 1920 × 1080' })
     const result = SignagePhase1.registerPairedScreen(_signageState, paired.device, signageContext())
     if (!signageSaveState(result.state)) return
     closeSideDrawer(); renderSignageHome(); toast('Pantalla vinculada. Ya puedes elegir qué mostrar.')
@@ -832,6 +836,8 @@ async function signageSubmitContent(event) {
     const result = SignagePhase1.createContent(_signageState, { type, title: title.value, body: body.value, theme, mediaUrl: localMediaUrl, alt: alt?.value, url: url?.value }, signageContext())
     if (remote) {
       result.content.backendContentId = remote.content.id
+      result.content.backendRevision = remote.content.revision
+      result.content.backendStatus = 'draft'
       result.content.backendAssetId = uploaded?.upload.id || null
       if (uploaded) result.content.mediaUrl = new URL(uploaded.upload.url, new URL(signageBackendClient().baseUrl).origin).href
     }
@@ -874,7 +880,7 @@ async function signageSubmitPlaylist(event) {
   try {
     const result = SignagePhase1.createPlaylist(_signageState, { name: document.getElementById('sg-playlist-name').value, entries }, signageContext())
     if (_signageState.screens.some(screen => screen.kind === 'paired')) {
-      const remoteEntries = entries.map(entry => ({ contentId: signageContentById(entry.contentId)?.backendContentId, durationSeconds: Number(entry.durationSeconds) }))
+      const remoteEntries = entries.map(entry => ({ contentId: signageContentById(entry.contentId)?.backendContentId, contentRevision: signageContentById(entry.contentId)?.backendRevision, durationSeconds: Number(entry.durationSeconds) }))
       if (remoteEntries.some(entry => !entry.contentId)) throw new Error('Para usar esta lista en una pantalla vinculada, primero guarda todos sus contenidos en el servicio.')
       const remote = await signageBackendClient().createPlaylist({ name: result.playlist.name, entries: remoteEntries })
       result.playlist.backendPlaylistId = remote.playlist.id
@@ -966,9 +972,13 @@ async function signagePublish(screenId, contentId) {
       let backendContentId = content?.backendContentId
       if (!backendContentId && content && (content.type === 'message' || content.type === 'link')) {
         const remote = await signageBackendClient().createContent({ type: content.type, title: content.title, body: content.body, url: content.url })
-        backendContentId = remote.content.id; content.backendContentId = backendContentId
+        backendContentId = remote.content.id; content.backendContentId = backendContentId; content.backendRevision = remote.content.revision; content.backendStatus = 'draft'
       }
       if (!backendContentId) throw new Error('Para mostrar esta imagen o video en una pantalla vinculada, vuelve a agregarlo usando “Archivo de imagen o video”.')
+      if (content.backendStatus !== 'approved') {
+        await signageBackendClient().approveContent(backendContentId, content.backendRevision)
+        content.backendStatus = 'approved'
+      }
       await signageBackendClient().publish(screen.id, backendContentId)
     }
     const result = SignagePhase1.publishContent(_signageState, screenId, contentId, signageContext())
@@ -995,9 +1005,13 @@ async function signageStartLive(screenId) {
   if (!screen || screen.kind !== 'paired') { toast('Primero vincula una pantalla con su código.'); return }
   if (_signageLiveSender) { toast('Ya estás compartiendo tu pantalla. Detén esa transmisión primero.'); return }
   try {
+    const client = signageBackendClient()
+    const runtime = await client.runtime()
+    if (!runtime.liveAvailable || !runtime.iceServers?.length) throw new Error('Compartir pantalla requiere configurar la conexión segura ICE/TURN.')
     const sender = SignageLiveShare.createSender({
-      client: signageBackendClient(),
+      client,
       deviceId: screen.id,
+      iceServers: runtime.iceServers,
       onStop: () => { _signageLiveSender = null; _signageLiveScreenId = null; renderSignageHome() },
     })
     _signageLiveSender = sender; _signageLiveScreenId = screen.id

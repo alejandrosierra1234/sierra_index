@@ -1,4 +1,4 @@
-# SIERRA Index — Pantallas, fase 4 local
+# SIERRA Index — Pantallas, integración local del contrato Edge
 
 ## Resultado comprobado
 
@@ -15,7 +15,10 @@ El corte local permite probar el recorrido completo con dos navegadores independ
 7. Revocar la pantalla invalida el secreto y el reproductor deja de sincronizar.
 8. El reproductor conserva el último manifiesto y una copia de los medios recibidos en Cache Storage; una revocación borra ambos.
 
-El backend de esta fase vive solo en memoria y escucha únicamente en `127.0.0.1`. No es un servicio cloud ni conserva datos al reiniciar.
+El arnés de prueba usa exactamente el mismo núcleo HTTP y normalizador de manifiestos
+que la función Edge desplegable. La persistencia del adaptador de prueba vive solo en
+memoria y escucha únicamente en `127.0.0.1`: no es un servicio cloud ni conserva
+datos al reiniciar.
 
 ## Compartir pantalla en vivo
 
@@ -45,20 +48,65 @@ Para operación por internet se debe configurar ICE/TURN. Sin TURN no se puede g
 - Los enlaces deben ser HTTPS y no pueden incluir credenciales.
 - Un enlace se muestra como tarjeta segura. No se inserta automáticamente en `iframe`, porque `X-Frame-Options`, CSP, cookies y autoplay dependen del sitio externo.
 
+## Decisión de alojamiento
+
+SIERRA Index se mantiene en GitHub Pages y el backend de Pantallas se prepara para
+Supabase Edge. No se desarrollará ni configurará una migración a Vercel.
+
+## Piloto mínimo: mensajes entre dos clientes
+
+El piloto mínimo no necesita verificador multimedia ni TURN: permite vincular un
+reproductor desde otro navegador, publicar únicamente mensajes de texto y comprobar
+su recepción. No habilita archivos, compartir pantalla ni prueba una televisión
+física.
+
+Target identificado por configuración pública del repositorio:
+`vhyddogeemohtqijohry` (`https://vhyddogeemohtqijohry.supabase.co`). Esta referencia
+no constituye autorización para modificar el proyecto.
+
+Acciones propuestas, todavía no ejecutadas:
+
+1. Ejecutar `supabase/signage-preflight.sql` en modo de solo lectura y revisar
+   colisiones, RLS, grants, bucket y migraciones existentes.
+2. Confirmar respaldo y ventana de cambio del proyecto activo.
+3. Aplicar, en orden, las versiones revisadas de `update59.sql`, `update60.sql` y
+   `update62.sql`. Los permisos de Pantallas viven en
+   `public.signage_access_grants`; no se reemplazan constraints compartidos ni
+   `set_index_access`.
+4. Crear un workspace y una sede de piloto con identificadores aprobados, sin datos
+   personales ni fixtures de producción.
+5. Desplegar `supabase/functions/signage-api` y configurar únicamente los orígenes
+   exactos de GitHub Pages y un `SIGNAGE_PAIRING_PEPPER` generado en el gestor de
+   secretos del proyecto. Las claves automáticas de Supabase permanecen en servidor.
+6. Publicar en `js/signage-config.js` solo la URL pública de la función y los UUID de
+   workspace/sede del piloto; nunca claves o secretos.
+7. Probar vinculación, publicación, recepción, revocación y aislamiento con dos
+   cuentas/clientes autorizados antes de habilitar archivos o vivo.
+
+Si el piloto debe detenerse, `supabase/signage-safe-disable.sql` revoca la ejecución
+administrativa, invalida credenciales de dispositivos y detiene sesiones en vivo sin
+borrar tablas, auditoría, publicaciones ni archivos. El rollback de esquema debe
+prepararse después del preflight para no eliminar objetos o datos preexistentes.
+
 ## Infraestructura real pendiente de autorización
 
 No existe un proyecto Supabase de prueba enlazado en `supabase/config.toml`. El frontend conoce un proyecto existente, pero esta fase no lo usa ni lo modifica.
 
-Antes de operar en cloud se requiere autorización explícita para un proyecto no productivo concreto y estos cambios:
+Solo existe el proyecto activo de Index. Operar en cloud requiere aprobación
+específica del target, scripts y ventana de cambio. El piloto de mensajes puede
+prescindir de servicios externos; las capacidades completas requieren además:
 
 1. Aplicar `update59.sql`, después de revisión y respaldo.
 2. Revisar y aplicar `update60.sql`, que prepara el bucket privado `signage-media`, activos, sesiones de vinculación, digest/vencimiento de credenciales y señalización WebRTC. No reutiliza `product-images`.
 3. Configurar la limpieza programada de sesiones y señales vencidas.
 4. Desplegar y probar la emisión y revocación de credenciales preparada en Edge; la rotación periódica sigue pendiente.
 5. Desplegar las funciones HTTP preparadas para vinculación, manifiesto, heartbeat, URLs firmadas y revocación. El `service_role` permanece solo en servidor.
-6. Conectar un verificador aprobado para hash, tipo, antivirus/cuarentena, retención y eliminación de medios.
-7. Desplegar la señalización WebRTC preparada y conectarla a credenciales ICE efímeras.
-8. Elegir/provisionar TURN y definir límite de gasto y egreso.
+6. Para archivos, conectar un verificador aprobado para hash, tipo,
+   antivirus/cuarentena, retención y eliminación de medios.
+7. Para compartir pantalla entre redes, desplegar la señalización WebRTC preparada y
+   conectarla a credenciales ICE efímeras.
+8. Para conectividad robusta entre redes NAT/corporativas, elegir/provisionar TURN y
+   definir límite de gasto y egreso.
 9. Configurar alertas, respaldo y recuperación.
 
 No se deben enviar claves por chat ni incluirlas en el repositorio.
@@ -83,7 +131,7 @@ desplegado ni conectado a un proyecto**. Su núcleo comprobable vive en
 `update62.sql` agrega las operaciones atómicas, heartbeat y rate limiting requeridos.
 Está preparado para revisión y no se ha aplicado.
 
-Configuración requerida al desplegar en un proyecto no productivo autorizado:
+Configuración requerida al desplegar en el proyecto autorizado:
 
 - automáticas de Supabase: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`;
 - `SIGNAGE_CORS_ORIGINS`: orígenes exactos permitidos, separados por coma;
@@ -112,16 +160,53 @@ Resultados del corte:
 - Multimedia/programación de fase 3: 44 aserciones.
 - Integración fase 4: 25 aserciones para vinculación, secreto, carga, enlace, publicación cruzada, lista/horario, señalización WebRTC, revocación y caché durable.
 - Migraciones `update60.sql` y `update62.sql`: 17 aserciones locales de bucket privado, rutas, digests, medios privados, sesión única, heartbeat y rate limiting.
-- Contrato Edge: 45 aserciones de autenticación separada, aislamiento, vinculación, administración, manifiesto, carga firmada, validación y denegaciones seguras.
-- E2E Chromium entre dos páginas: aprobado para vincular, cargar PNG, publicar, reproducir sin login y recuperar manifiesto/imagen con API y ruta de medios bloqueadas. La oferta/respuesta WebRTC pasó; el entorno no expuso candidatos ICE, por lo que el video RTP quedó explícitamente no verificado.
+- Contrato Edge estático: 49 aserciones de autenticación separada, aislamiento,
+  vinculación, administración, manifiesto, carga firmada, validación y denegaciones
+  seguras.
+- Handler Edge real con adaptador sintético: 20 aserciones para configuración
+  pública, vinculación, rechazo de borrador, aprobación/publicación, manifiesto
+  normalizado, imágenes/videos firmados, enlaces, horarios, heartbeat, denegación
+  segura de servicios ausentes y revocación transaccional.
+- Total estándar: 226 aserciones aprobadas en siete suites.
+- E2E Chromium entre dos páginas: aprobado para vincular, cargar PNG, publicar,
+  reproducir sin login, aplicar un horario y recuperar manifiesto/imagen con API y
+  ruta de medios bloqueadas. También comprobó el heartbeat periódico y el uso de la
+  configuración ICE del runtime. La oferta/respuesta WebRTC pasó; el entorno no
+  expuso candidatos ICE, por lo que el video RTP quedó explícitamente no verificado.
 
 ## Ejecución local reproducible
 
 ```bash
-SIGNAGE_LOCAL_PORT=8877 node tests/signage/local-backend.cjs
+SIGNAGE_LOCAL_PORT=8877 node tests/signage/edge-harness.mjs
 ```
 
 - Reproductor: `http://127.0.0.1:8877/signage-player.html`
 - Panel de integración local: `http://127.0.0.1:8877/tests/signage/phase1-visual.html?reset=1&backend=1`
 
-El token administrativo usado por ese arnés es fijo, sintético y limitado al proceso local. No representa una credencial válida para Supabase ni debe reutilizarse fuera de pruebas.
+El token administrativo usado por ese arnés es fijo, sintético y limitado al proceso
+local. No representa una credencial válida para Supabase ni debe reutilizarse fuera
+de pruebas. El adaptador de datos es sintético, pero las rutas HTTP, el núcleo del
+handler y la normalización del manifiesto son los mismos que usa la función Edge.
+
+## Estado de aceptación
+
+El porcentaje representa criterios funcionales aprobados, no tiempo ni operación en
+producción:
+
+1. Flujo comprensible agregar → elegir → mostrar: aprobado localmente.
+2. Vinculación segura y revocación: aprobado con el handler Edge real bajo arnés.
+3. Administración entre dos clientes: aprobada localmente.
+4. Imágenes y videos: contrato y validación aprobados localmente; falta verificador
+   desplegado.
+5. Listas y programación: aprobadas localmente.
+6. Enlaces HTTPS con fallback: aprobados localmente.
+7. Compartir pantalla: parcial; oferta/respuesta aprobada, video RTP no verificado y
+   TURN no desplegado.
+8. Recuperación con último contenido válido: aprobada en Chromium.
+9. Permisos y seguridad backend: parcial; SQL, handler y denegaciones pasan localmente,
+   pero no se han validado RLS ni funciones en el Supabase activo.
+10. Televisión física: no ejecutado.
+
+Resultado: 7 de 10 criterios aprobados localmente (70%). Backend live: no habilitado.
+Operación física: 0 de 3 comprobaciones (vinculación cloud, reproducción en TV y vivo
+entre redes).

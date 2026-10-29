@@ -64,14 +64,13 @@ await db.query(`insert into public.signage_device_credentials(id,device_id,works
 await expectSqlState(() => db.query(`insert into public.signage_devices(id,workspace_id,site_id,name,state)
  values('40000000-0000-4000-8000-000000000099',$1,$2,'Cruce sintético','active')`,
  [ids.workspaceA,ids.siteB]),'23503','composite foreign key rejects cross-workspace site')
-await db.query(`insert into public.capability_grants(user_id,domain,capability,resource_id,granted_by) values
- ($1,'platform','admin',null,$1),
- ($2,'signage','read',$7,$1),($2,'signage','write',$7,$1),
- ($3,'signage','read',$7,$1),($3,'signage','publish',$7,$1),
- ($4,'signage','read',$7,$1),($4,'signage','approve',$7,$1),
- ($5,'signage','read',$7,$1),($5,'signage','operate',$7,$1),($5,'signage','manage_devices',$7,$1),
- ($6,'signage','read',$8,$1)`,
- [ids.admin,ids.editor,ids.publisher,ids.approver,ids.operator,ids.outsider,ids.workspaceA,ids.workspaceB])
+await db.query(`insert into public.capability_grants(user_id,domain,capability,resource_id,granted_by) values($1,'platform','admin',null,$1)`,[ids.admin])
+await db.query(`insert into public.signage_access_grants(user_id,workspace_id,capability,granted_by) values
+ ($1,$7,'read',$6),($1,$7,'write',$6),
+ ($2,$7,'read',$6),($2,$7,'publish',$6),
+ ($3,$7,'read',$6),($3,$7,'approve',$6),
+ ($4,$7,'read',$6),($4,$7,'operate',$6),($4,$7,'manage_devices',$6),
+ ($5,$8,'read',$6)`,[ids.editor,ids.publisher,ids.approver,ids.operator,ids.outsider,ids.admin,ids.workspaceA,ids.workspaceB])
 
 await setActor(ids.editor)
 let saved = await db.query(`select public.signage_content_save($1,$2,$3::jsonb,0) result`,[
@@ -131,12 +130,12 @@ let link = await db.query(`select public.signage_content_save($1,$2,$3::jsonb,0)
  ids.workspaceA,ids.contentLink,JSON.stringify({type:'link',title:'Enlace seguro',body:'Tarjeta segura.',theme:'neutral',url:'https://example.invalid/pantallas'})])
 eq(link.rows[0].result.revision,1,'server accepts safe link card snapshot')
 let playlistResult = await db.query(`select public.signage_playlist_save($1,$2,'Lista SQL sintética',$3::jsonb,0) result`,[
- ids.workspaceA,ids.playlistA,JSON.stringify([{contentId:ids.contentA,durationSeconds:15},{contentId:ids.contentMedia,durationSeconds:20}])])
+ ids.workspaceA,ids.playlistA,JSON.stringify([{contentId:ids.contentA,contentRevision:1,durationSeconds:15},{contentId:ids.contentMedia,contentRevision:1,durationSeconds:20}])])
 eq(playlistResult.rows[0].result.revision,1,'playlist version 1 saved')
 await expectSqlState(() => db.query(`select public.signage_playlist_save($1,null,'Lista inválida',$2::jsonb,0)`,[
  ids.workspaceA,JSON.stringify({not:'an array'})]),'22023','server rejects non-array playlist cleanly')
 await expectSqlState(() => db.query(`select public.signage_playlist_save($1,$2,'Lista inválida',$3::jsonb,1)`,[
- ids.workspaceA,ids.playlistA,JSON.stringify([{contentId:ids.contentA,durationSeconds:2}])]),'22023','server rejects invalid playlist duration')
+ ids.workspaceA,ids.playlistA,JSON.stringify([{contentId:ids.contentA,contentRevision:1,durationSeconds:2}])]),'22023','server rejects invalid playlist duration')
 
 await setActor(ids.operator)
 let scheduled = await db.query(`select public.signage_schedule_save($1,$2,$3,$4,$5,$6,8,0) result`,[

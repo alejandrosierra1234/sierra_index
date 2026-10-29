@@ -17,7 +17,7 @@ const adapter={
   createPairing: async()=>({code:'123456',claimToken:'x'.repeat(48),expiresAt:'2030-01-01T00:00:00Z'}),
   deliverPairing: async token=>token==='x'.repeat(48)?{state:'pending'}:{state:'paired',device:{id:DEVICE},deviceToken:'secret'},
   claimPairing: async input=>({state:'claimed',device:{id:DEVICE,name:input.name,workspaceId:input.workspaceId}}),
-  revokeDevice: async input=>{ calls.push(['revoke',input.workspaceId,input.actorId]) },
+  revokeDevice: async input=>{ calls.push(['revoke',input.workspaceId,input.actor.id]) },
   listDevices:async input=>({devices:[{id:DEVICE,workspaceId:input.workspaceId}]}),
   listContent:async()=>({content:[]}), saveContent:async input=>({content:{id:ASSET,title:input.content.title}}), approveContent:async()=>({content:{status:'approved'}}),
   publish:async()=>({publication:{version:1}}), rollback:async()=>({publication:{version:2,kind:'rollback'}}), savePlaylist:async()=>({playlist:{id:ASSET}}), saveSchedule:async()=>({schedule:{id:SESSION}}),
@@ -26,7 +26,7 @@ const adapter={
   signUpload: async input=>({assetId:ASSET,path:`${input.workspaceId}/${ASSET}/test.png`,upload:{url:'https://storage.invalid/signed'}}),
   completeUpload: async()=>({id:ASSET,state:'ready'}),
   liveConfigured: async()=>false,
-  playerRuntime: async()=>({liveAvailable:false,iceServers:[]}),
+  playerRuntime: async()=>({liveAvailable:false,iceServers:[]}), adminRuntime:async()=>({liveAvailable:false,iceServers:[]}),
   startLive: async()=>({session:{id:SESSION}}), stopLive:async()=>({state:'stopped'}),
   sendSignal:async input=>({sequence:1,type:input.signal.type}), receiveSignals:async()=>({state:'active',signals:[]}),
 }
@@ -73,4 +73,9 @@ for(const required of ['signage_pairing_claim_service','signage_pairing_deliver_
   assert.match(edgeSource,new RegExp(required)); assertions+=1
 }
 assert.doesNotMatch(edgeSource,/product-images/); assertions+=1
+assert.match(edgeSource,/rpc\('signage_device_revoke'/); assertions+=1
+const migration59=await fs.readFile(path.join(root,'update59.sql'),'utf8')
+assert.doesNotMatch(migration59,/drop constraint if exists capability_grants/); assertions+=1
+assert.doesNotMatch(migration59,/create or replace function public\.set_index_access/); assertions+=1
+assert.match(migration59,/create table public\.signage_access_grants/); assertions+=1
 console.log(`Pantallas Edge contract: ${assertions} assertions passed`)

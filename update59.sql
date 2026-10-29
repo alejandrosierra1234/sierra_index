@@ -2,62 +2,9 @@
 -- Aplicar después de update58.sql. No contiene datos de producción ni secretos.
 begin;
 
-alter table public.capability_grants drop constraint if exists capability_grants_domain_check;
-alter table public.capability_grants add constraint capability_grants_domain_check check(domain in
- ('fiber','yarn','fabric','chemicals','garment','warehouse','warehouse_fiber','warehouse_yarn',
-  'warehouse_fabric','warehouse_chemicals','warehouse_garment','customer_service','talento_humano',
-  'communications','processes','academy','signage','platform'));
-
-alter table public.capability_grants drop constraint if exists capability_grants_capability_check;
-alter table public.capability_grants add constraint capability_grants_capability_check check(capability in
- ('read','write','delete','publish','dispatch','manage_status','approve','operate','manage_devices','grant','admin'));
-
-create or replace function public.set_index_access(p_user uuid,p_domain text,p_caps text[])
-returns void language plpgsql security definer set search_path=public,pg_temp as $$
-begin
-  if not public.authorize('platform','admin') then raise exception 'not authorized'; end if;
-  if p_user=auth.uid() then raise exception 'Use another administrator to change your access'; end if;
-  if not exists(select 1 from profiles where id=p_user) then raise exception 'Unknown account'; end if;
-  if p_domain is null or p_domain not in ('fiber','yarn','fabric','chemicals','garment','warehouse',
-    'warehouse_fiber','warehouse_yarn','warehouse_fabric','warehouse_chemicals','warehouse_garment',
-    'customer_service','talento_humano','communications','processes','academy','signage','platform') then
-    raise exception 'Invalid domain';
-  end if;
-  if p_caps is null or not p_caps <@ array['read','write','delete','publish','dispatch','manage_status',
-    'approve','operate','manage_devices','grant','admin']::text[]
-    or ('admin'=any(p_caps) and p_domain<>'platform') then raise exception 'Invalid capabilities'; end if;
-  if p_domain in ('communications','processes','academy') and (not p_caps <@ array['read','write']::text[]
-    or ('write'=any(p_caps) and not 'read'=any(p_caps))) then raise exception 'Invalid module access'; end if;
-  if p_domain='signage' and (not p_caps <@ array['read','write','approve','publish','operate','manage_devices']::text[]
-    or (p_caps && array['write','approve','publish','operate','manage_devices']::text[] and not 'read'=any(p_caps))) then
-    raise exception 'Invalid signage access';
-  end if;
-  perform pg_advisory_xact_lock(hashtext('index-access:'||p_user::text));
-  delete from capability_grants where user_id=p_user and domain=p_domain and resource_id is null;
-  insert into capability_grants(user_id,domain,capability,granted_by)
-    select p_user,p_domain,c,auth.uid() from (select distinct unnest(p_caps) c) q;
-end;
-$$;
-revoke all on function public.set_index_access(uuid,text,text[]) from public,anon;
-grant execute on function public.set_index_access(uuid,text,text[]) to authenticated;
-
-create or replace function public.set_signage_access(p_user uuid,p_workspace uuid,p_caps text[])
-returns void language plpgsql security definer set search_path=public,pg_temp as $$
-begin
-  if not public.authorize('platform','admin') then raise insufficient_privilege using message='Signage grant denied'; end if;
-  if p_user=auth.uid() then raise exception 'Use another administrator to change your access'; end if;
-  if not exists(select 1 from profiles where id=p_user) then raise exception 'Unknown account'; end if;
-  if not exists(select 1 from signage_workspaces where id=p_workspace) then raise exception 'Unknown signage workspace'; end if;
-  if p_caps is null or not p_caps <@ array['read','write','approve','publish','operate','manage_devices']::text[]
-    or (p_caps && array['write','approve','publish','operate','manage_devices']::text[] and not 'read'=any(p_caps)) then
-    raise exception 'Invalid signage access';
-  end if;
-  perform pg_advisory_xact_lock(hashtext('signage-access:'||p_user::text||':'||p_workspace::text));
-  delete from capability_grants where user_id=p_user and domain='signage' and resource_id=p_workspace;
-  insert into capability_grants(user_id,domain,capability,resource_id,granted_by)
-    select p_user,'signage',c,p_workspace,auth.uid() from (select distinct unnest(p_caps) c) q;
-end;
-$$;
+-- Pantallas usa concesiones dedicadas. No reemplaza constraints ni funciones
+-- compartidas de capability_grants/set_index_access con listas que puedan quedar
+-- obsoletas respecto del proyecto activo.
 
 create table public.signage_workspaces(
   id uuid primary key default gen_random_uuid(),
@@ -67,6 +14,31 @@ create table public.signage_workspaces(
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create table public.signage_access_grants(
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  workspace_id uuid not null references public.signage_workspaces(id) on delete cascade,
+  capability text not null check(capability in ('read','write','approve','publish','operate','manage_devices')),
+  granted_by uuid not null references public.profiles(id),
+  created_at timestamptz not null default now(),
+  primary key(user_id,workspace_id,capability)
+);
+
+create or replace function public.set_signage_access(p_user uuid,p_workspace uuid,p_caps text[])
+returns void language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+  if not public.authorize('platform','admin') then raise insufficient_privilege using message='Signage grant denied'; end if;
+  if p_user=auth.uid() then raise exception 'Use another administrator to change your access'; end if;
+  if not exists(select 1 from profiles where id=p_user) then raise exception 'Unknown account'; end if;
+  if not exists(select 1 from signage_workspaces where id=p_workspace) then raise exception 'Unknown signage workspace'; end if;
+  if p_caps is null or not p_caps <@ array['read','write','approve','publish','operate','manage_devices']::text[]
+    or (p_caps && array['write','approve','publish','operate','manage_devices']::text[] and not 'read'=any(p_caps)) then raise exception 'Invalid signage access'; end if;
+  perform pg_advisory_xact_lock(hashtext('signage-access:'||p_user::text||':'||p_workspace::text));
+  delete from public.signage_access_grants where user_id=p_user and workspace_id=p_workspace;
+  insert into public.signage_access_grants(user_id,workspace_id,capability,granted_by)
+    select p_user,p_workspace,c,auth.uid() from (select distinct unnest(p_caps) c) q;
+end;
+$$;
 
 create table public.signage_sites(
   id uuid primary key default gen_random_uuid(),
@@ -216,9 +188,13 @@ create index signage_audit_workspace_idx on public.signage_audit(workspace_id,cr
 
 create or replace function public.signage_can(p_workspace uuid,p_capability text)
 returns boolean language sql stable security definer set search_path=public,pg_temp as $$
- select coalesce(public.authorize('signage',p_capability,p_workspace),false)
+ select public.index_account_active() and (
+  coalesce(public.authorize('platform','admin'),false) or exists(
+   select 1 from public.signage_access_grants g where g.user_id=auth.uid()
+    and g.workspace_id=p_workspace and g.capability=p_capability))
 $$;
 
+alter table public.signage_access_grants enable row level security;
 alter table public.signage_workspaces enable row level security;
 alter table public.signage_sites enable row level security;
 alter table public.signage_content_items enable row level security;
@@ -253,7 +229,7 @@ create policy signage_audit_read on public.signage_audit for select to authentic
  using(public.signage_can(workspace_id,'read'));
 -- Las credenciales nunca son legibles por clientes autenticados; solo RPC de revocación y servicio de sincronización.
 
-revoke all on public.signage_workspaces,public.signage_sites,public.signage_content_items,
+revoke all on public.signage_access_grants,public.signage_workspaces,public.signage_sites,public.signage_content_items,
  public.signage_content_versions,public.signage_devices,public.signage_device_credentials,
  public.signage_playlists,public.signage_playlist_versions,public.signage_schedules,
  public.signage_publications,public.signage_audit from public,anon,authenticated;
@@ -355,6 +331,9 @@ begin
    or exists(select 1 from jsonb_array_elements(p_entries) e where jsonb_typeof(e)<>'object'
      or not case when coalesce(e->>'contentId','') ~ '^[0-9a-fA-F-]{36}$' then
        exists(select 1 from public.signage_content_items c where c.id=(e->>'contentId')::uuid and c.workspace_id=p_workspace) else false end
+     or not case when coalesce(e->>'contentRevision','') ~ '^[0-9]+$' then
+       exists(select 1 from public.signage_content_versions v where v.content_id=(e->>'contentId')::uuid
+        and v.workspace_id=p_workspace and v.revision=(e->>'contentRevision')::bigint) else false end
      or not case when coalesce(e->>'durationSeconds','') ~ '^[0-9]+$' then
        (e->>'durationSeconds')::integer between 5 and 3600 else false end) then
   raise exception 'Invalid playlist' using errcode='22023';

@@ -1,5 +1,5 @@
 -- SIERRA Pantallas: medios privados, vinculación, heartbeat y señalización WebRTC.
--- Aplicar después de update59.sql únicamente en el proyecto no productivo aprobado.
+-- Aplicar después de update59.sql únicamente en el proyecto y ventana aprobados.
 -- No genera secretos: las Edge Functions deben generar tokens, guardar solo digest SHA-256
 -- y entregar el valor original una sola vez al reproductor reclamante.
 begin;

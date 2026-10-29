@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { ApiError, createSignageHandler } from '../_shared/signage-api-core.mjs'
+import { normalizeSignageManifest } from '../_shared/signage-manifest.mjs'
 
 const env = (name: string, required = true) => {
   const value = Deno.env.get(name) || ''
@@ -82,12 +83,9 @@ const adapter = {
     return { state: 'paired', device: { id: result.data.device_id, workspaceId: result.data.workspace_id }, deviceToken }
   },
   async revokeDevice(input: any) {
-    const credentials = await service.from('signage_device_credentials').update({ revoked_at: new Date().toISOString(), revoke_reason: input.reason }).eq('workspace_id', input.workspaceId).eq('device_id', input.deviceId).is('revoked_at', null)
-    fail(credentials.error)
-    const device = await service.from('signage_devices').update({ state: 'revoked', updated_at: new Date().toISOString() }).eq('workspace_id', input.workspaceId).eq('id', input.deviceId).select('id').maybeSingle()
-    fail(device.error)
-    if (!device.data) throw new ApiError(404, 'DEVICE_NOT_FOUND', 'No se encontró la pantalla.')
-    await service.from('signage_audit').insert({ workspace_id: input.workspaceId, actor_id: input.actorId, event_type: 'device.revoked', entity_type: 'device', entity_id: input.deviceId, details: { reason: input.reason } })
+    const { client } = await userClient(input.actor.token)
+    const result = await client.rpc('signage_device_revoke', { p_workspace: input.workspaceId, p_device: input.deviceId, p_reason: input.reason })
+    fail(result.error, 'No se pudo revocar la pantalla.')
   },
   async listDevices(input: any) {
     const result = await service.from('signage_devices').select('id,workspace_id,site_id,name,state,revision,updated_at').eq('workspace_id', input.workspaceId).order('name')
@@ -154,23 +152,13 @@ const adapter = {
   async manifest(identity: any) {
     const result = await service.rpc('signage_device_manifest_service', { p_device: identity.deviceId, p_credential: identity.credentialId })
     fail(result.error, 'La pantalla no está autorizada.')
-    const clone = structuredClone(result.data), signed = new Map<string,string>()
-    const hydrate = async (value: any): Promise<void> => {
-      if (!value || typeof value !== 'object') return
-      if (typeof value.mediaAssetId === 'string') {
-        let url = signed.get(value.mediaAssetId)
-        if (!url) {
-          const asset = await service.from('signage_media_assets').select('storage_path').eq('id', value.mediaAssetId).eq('workspace_id', identity.workspaceId).eq('state', 'ready').maybeSingle()
-          fail(asset.error); if (!asset.data) throw new ApiError(409, 'MEDIA_NOT_READY', 'Un archivo publicado no está disponible.')
-          const link = await service.storage.from('signage-media').createSignedUrl(asset.data.storage_path, 15 * 60)
-          fail(link.error); url = link.data.signedUrl; signed.set(value.mediaAssetId, url)
-        }
-        value.mediaUrl = url
-      }
-      for (const child of Array.isArray(value) ? value : Object.values(value)) await hydrate(child)
-    }
-    await hydrate(clone)
-    return clone
+    const signed = new Map<string,string>()
+    return normalizeSignageManifest({ raw: result.data, workspaceId: identity.workspaceId, deviceId: identity.deviceId,
+      getCurrentRevision: async (contentId: string, workspaceId: string) => { const row=await service.from('signage_content_items').select('current_revision').eq('id',contentId).eq('workspace_id',workspaceId).maybeSingle(); fail(row.error); return row.data?.current_revision },
+      getContentVersion: async (contentId: string, revision: number, workspaceId: string) => { const row=await service.from('signage_content_versions').select('snapshot').eq('content_id',contentId).eq('workspace_id',workspaceId).eq('revision',revision).maybeSingle(); fail(row.error); return row.data?.snapshot || null },
+      getLiveSession: async (deviceId: string, workspaceId: string) => { const row=await service.from('signage_live_sessions').select('id,started_at,expires_at').eq('device_id',deviceId).eq('workspace_id',workspaceId).eq('state','active').gt('expires_at',new Date().toISOString()).order('started_at',{ascending:false}).limit(1).maybeSingle(); fail(row.error); return row.data },
+      signMedia: async (assetId: string, workspaceId: string) => { let url=signed.get(assetId); if(url)return url; const asset=await service.from('signage_media_assets').select('storage_path').eq('id',assetId).eq('workspace_id',workspaceId).eq('state','ready').maybeSingle(); fail(asset.error); if(!asset.data)throw new ApiError(409,'MEDIA_NOT_READY','Un archivo publicado no está disponible.'); const link=await service.storage.from('signage-media').createSignedUrl(asset.data.storage_path,15*60); fail(link.error); url=link.data.signedUrl; signed.set(assetId,url); return url },
+    })
   },
   async heartbeat(identity: any, payload: any) {
     const result = await service.from('signage_device_heartbeats').upsert({ device_id: identity.deviceId, workspace_id: identity.workspaceId, credential_id: identity.credentialId, player_version: payload.playerVersion || null, status: payload.status || null, last_manifest_revision: payload.lastManifestRevision, storage_free_bytes: payload.storageFreeBytes, errors: payload.errors, received_at: new Date().toISOString() }, { onConflict: 'device_id' })
@@ -195,7 +183,10 @@ const adapter = {
     const verdict = await verification.json().catch(() => ({}))
     if (!verification.ok || !['ready', 'quarantined'].includes(verdict.state)) throw new ApiError(503, 'MEDIA_VERIFICATION_FAILED', 'No fue posible verificar el archivo.')
     const updated = await service.from('signage_media_assets').update({ state: verdict.state }).eq('id', input.assetId).eq('workspace_id', input.workspaceId).select('id,state').single()
-    fail(updated.error); return updated.data
+    fail(updated.error)
+    if (updated.data.state !== 'ready') return { assetId: updated.data.id, state: updated.data.state }
+    const link = await service.storage.from('signage-media').createSignedUrl(asset.data.storage_path, 5 * 60)
+    fail(link.error); return { assetId: updated.data.id, state: updated.data.state, downloadUrl: link.data.signedUrl }
   },
   async liveConfigured() { return Boolean(env('SIGNAGE_ICE_CONFIG_URL', false) && env('SIGNAGE_ICE_CONFIG_TOKEN', false)) },
   async playerRuntime() {
@@ -204,6 +195,7 @@ const adapter = {
     if (!result.ok) throw new ApiError(503, 'ICE_UNAVAILABLE', 'No se pudo preparar la transmisión en vivo.')
     const body = await result.json(); return { liveAvailable: true, iceServers: Array.isArray(body.iceServers) ? body.iceServers : [] }
   },
+  async adminRuntime() { return this.playerRuntime() },
   async startLive(input: any) {
     const device = await service.from('signage_devices').select('id').eq('id', input.deviceId).eq('workspace_id', input.workspaceId).eq('state', 'active').maybeSingle()
     fail(device.error); if (!device.data) throw new ApiError(404, 'DEVICE_NOT_FOUND', 'No se encontró la pantalla activa.')

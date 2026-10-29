@@ -74,6 +74,10 @@ export function createSignageHandler(adapter, options = {}) {
 
       if (req.method === 'GET' && path === '/health') return response({ ok: true, service: 'sierra-pantallas', storage: 'private', liveConfigured: await adapter.liveConfigured() }, 200, cors)
       if (req.method === 'GET' && path === '/player/runtime') return response(await adapter.playerRuntime(await device(req)), 200, cors)
+      if (req.method === 'GET' && path === '/admin/runtime') {
+        const workspaceId = workspace(req), actor = await admin(req, workspaceId, 'operate')
+        return response(await adapter.adminRuntime({ workspaceId, actor }), 200, cors)
+      }
 
       if (req.method === 'POST' && path === '/player/pairings') {
         await adapter.rateLimit(`pair-start:${clientIp(req)}`, 10, 60)
@@ -101,7 +105,7 @@ export function createSignageHandler(adapter, options = {}) {
         const actor = await admin(req, workspaceId, 'manage_devices')
         const reason = clean(body.reason, 500)
         if (reason.length < 3) throw new ApiError(400, 'REASON_REQUIRED', 'Explica brevemente por qué se revoca la pantalla.')
-        await adapter.revokeDevice({ workspaceId, deviceId: id(revoke[1], 'dispositivo'), reason, actorId: actor.id })
+        await adapter.revokeDevice({ workspaceId, deviceId: id(revoke[1], 'dispositivo'), reason, actor })
         return response({ state: 'revoked' }, 200, cors)
       }
       if (req.method === 'GET' && path === '/admin/devices') {
