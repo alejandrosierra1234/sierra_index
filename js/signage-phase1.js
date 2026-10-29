@@ -6,7 +6,10 @@
   'use strict'
 
   const STORAGE_KEY = 'sierra_signage_phase1_v1'
-  const SCHEMA_VERSION = 4
+  const SCHEMA_VERSION = 5
+  const LEGACY_FIXTURE_ORIGIN = 'sierra-pantallas-demo-v1'
+  const LEGACY_FIXTURE_SCREEN_IDS = new Set(['synthetic-screen-a', 'synthetic-screen-b'])
+  const LEGACY_FIXTURE_CONTENT_IDS = new Set(['synthetic-content-welcome', 'synthetic-content-safety'])
   const MAX_AUDIT_EVENTS = 100
   const THEMES = new Set(['neutral', 'teal', 'blue'])
   const CONTENT_TYPES = new Set(['message', 'image', 'video', 'link'])
@@ -33,6 +36,7 @@
       playlists: [],
       schedules: [],
       audit: [],
+      archivedLocalFixtures: { screens: [], contents: [], ambiguousScreens: [], ambiguousContents: [], archivedAt: null },
     }
   }
 
@@ -48,6 +52,7 @@
           kind: 'local-test',
           connectionState: 'not-linked',
           evidence: 'Sin telemetría',
+          fixtureOrigin: LEGACY_FIXTURE_ORIGIN,
           publishedContentId: 'synthetic-content-welcome',
           publicationVersion: 1,
           updatedAt: null,
@@ -63,6 +68,7 @@
           kind: 'local-test',
           connectionState: 'not-linked',
           evidence: 'Sin telemetría',
+          fixtureOrigin: LEGACY_FIXTURE_ORIGIN,
           publishedContentId: null,
           publicationVersion: 0,
           updatedAt: null,
@@ -80,6 +86,7 @@
           theme: 'teal',
           createdAt: null,
           createdBy: 'Sistema de prueba',
+          fixtureOrigin: LEGACY_FIXTURE_ORIGIN,
         },
         {
           id: 'synthetic-content-safety',
@@ -89,13 +96,14 @@
           theme: 'blue',
           createdAt: null,
           createdBy: 'Sistema de prueba',
+          fixtureOrigin: LEGACY_FIXTURE_ORIGIN,
         },
       ]
     return state
   }
 
   function normalizeState(input) {
-    if (!input || ![1, 3, 4].includes(input.schemaVersion) || !['local-synthetic-phase1', 'local-synthetic-phase3'].includes(input.mode)) return initialState()
+    if (!input || ![1, 3, 4, 5].includes(input.schemaVersion) || !['local-synthetic-phase1', 'local-synthetic-phase3'].includes(input.mode)) return initialState()
     const state = clone(input)
     state.schemaVersion = SCHEMA_VERSION
     state.mode = 'local-synthetic-phase3'
@@ -105,6 +113,14 @@
     state.playlists = Array.isArray(state.playlists) ? state.playlists : []
     state.schedules = Array.isArray(state.schedules) ? state.schedules : []
     state.audit = Array.isArray(state.audit) ? state.audit.slice(0, MAX_AUDIT_EVENTS) : []
+    const archive = state.archivedLocalFixtures || {}
+    state.archivedLocalFixtures = {
+      screens: Array.isArray(archive.screens) ? archive.screens : [],
+      contents: Array.isArray(archive.contents) ? archive.contents : [],
+      ambiguousScreens: Array.isArray(archive.ambiguousScreens) ? archive.ambiguousScreens : [],
+      ambiguousContents: Array.isArray(archive.ambiguousContents) ? archive.ambiguousContents : [],
+      archivedAt: archive.archivedAt || null,
+    }
     state.screens.forEach(screen => {
       screen.history = Array.isArray(screen.history) ? screen.history : []
       screen.lastValidContentId = screen.lastValidContentId || screen.publishedContentId || null
@@ -116,6 +132,66 @@
     })
     state.contents.forEach(content => { content.type = CONTENT_TYPES.has(content.type) ? content.type : 'message' })
     return state
+  }
+
+  function isKnownFixtureScreen(screen) {
+    if (!LEGACY_FIXTURE_SCREEN_IDS.has(screen?.id)) return false
+    return screen.fixtureOrigin === LEGACY_FIXTURE_ORIGIN || (screen.kind === 'local-test' && screen.evidence === 'Sin telemetría')
+  }
+
+  function isKnownFixtureContent(content) {
+    if (!LEGACY_FIXTURE_CONTENT_IDS.has(content?.id)) return false
+    return content.fixtureOrigin === LEGACY_FIXTURE_ORIGIN || content.createdBy === 'Sistema de prueba'
+  }
+
+  function separateLegacyFixtures(current, options = {}) {
+    const state = normalizeState(current)
+    if (!options.connected) return { state, changed: false, archivedCount: 0, ambiguousCount: 0 }
+    const archive = state.archivedLocalFixtures
+    const knownScreens = state.screens.filter(isKnownFixtureScreen)
+    const knownContents = state.contents.filter(isKnownFixtureContent)
+    const ambiguousScreens = state.screens.filter(screen => LEGACY_FIXTURE_SCREEN_IDS.has(screen.id) && !isKnownFixtureScreen(screen))
+    const ambiguousContents = state.contents.filter(content => LEGACY_FIXTURE_CONTENT_IDS.has(content.id) && !isKnownFixtureContent(content))
+    const movedScreens = [...knownScreens, ...ambiguousScreens]
+    const movedContents = [...knownContents, ...ambiguousContents]
+    if (!movedScreens.length && !movedContents.length) return { state, changed: false, archivedCount: 0, ambiguousCount: 0 }
+    const appendUnique = (target, items) => {
+      const ids = new Set(target.map(item => item.id))
+      items.forEach(item => { if (!ids.has(item.id)) target.push(clone(item)) })
+    }
+    appendUnique(archive.screens, knownScreens)
+    appendUnique(archive.contents, knownContents)
+    appendUnique(archive.ambiguousScreens, ambiguousScreens)
+    appendUnique(archive.ambiguousContents, ambiguousContents)
+    const screenIds = new Set(movedScreens.map(item => item.id))
+    const contentIds = new Set(movedContents.map(item => item.id))
+    state.screens = state.screens.filter(item => !screenIds.has(item.id))
+    state.contents = state.contents.filter(item => !contentIds.has(item.id))
+    state.testFixtures = false
+    archive.archivedAt = options.now ? nowIso(options.now) : archive.archivedAt || nowIso()
+    return { state, changed: true, archivedCount: knownScreens.length + knownContents.length, ambiguousCount: ambiguousScreens.length + ambiguousContents.length }
+  }
+
+  function recoverAmbiguousFixtures(current, options = {}) {
+    const state = normalizeState(current)
+    const archive = state.archivedLocalFixtures
+    const screenIdMap = new Map()
+    const contentIdMap = new Map()
+    const suffix = cleanText(options.suffix) || 'recuperado'
+    archive.ambiguousContents.forEach((content, index) => {
+      const id = `local-content-${suffix}-${index + 1}`
+      contentIdMap.set(content.id, id)
+      state.contents.push({ ...clone(content), id, fixtureOrigin: undefined, backendContentId: null, createdBy: content.createdBy || 'Borrador recuperado', recoveredFromLegacyFixture: true })
+    })
+    archive.ambiguousScreens.forEach((screen, index) => {
+      const id = `local-screen-${suffix}-${index + 1}`
+      screenIdMap.set(screen.id, id)
+      state.screens.push({ ...clone(screen), id, fixtureOrigin: undefined, kind: 'local-test', connectionState: 'not-linked', backendRevision: 0, activePublicationId: null, publishedContentId: contentIdMap.get(screen.publishedContentId) || null, lastValidContentId: contentIdMap.get(screen.lastValidContentId) || null, recoveredFromLegacyFixture: true })
+    })
+    const recoveredCount = archive.ambiguousScreens.length + archive.ambiguousContents.length
+    archive.ambiguousScreens = []
+    archive.ambiguousContents = []
+    return { state, recoveredCount, screenIdMap, contentIdMap }
   }
 
   function validateSpace(input, state, editingId) {
@@ -508,24 +584,15 @@
   function createRepository(storage) {
     const backupKey = STORAGE_KEY + '_backup'
     function parse(raw) { return raw ? normalizeState(JSON.parse(raw)) : null }
-    function removeLegacyDemo(state) {
-      if (!state || state.testFixtures) return state
-      const legacyScreenIds = new Set(['synthetic-screen-a','synthetic-screen-b'])
-      const legacyContentIds = new Set(['synthetic-content-welcome','synthetic-content-safety'])
-      state.screens = state.screens.filter(screen => !legacyScreenIds.has(screen.id) || screen.updatedAt || screen.history?.length)
-      const referenced = new Set(state.screens.flatMap(screen => [screen.publishedContentId,screen.lastValidContentId]).filter(Boolean))
-      state.contents = state.contents.filter(content => !legacyContentIds.has(content.id) || referenced.has(content.id) || content.createdAt)
-      return state
-    }
     return {
       load() {
         try {
           const raw = storage.getItem(STORAGE_KEY)
-          return { state: removeLegacyDemo(parse(raw)) || initialState(), recovered: false, recoveredFromBackup: false, error: null }
+          return { state: parse(raw) || initialState(), recovered: false, recoveredFromBackup: false, error: null }
         } catch (error) {
           try {
             const backup = parse(storage.getItem(backupKey))
-            if (backup) return { state: removeLegacyDemo(backup), recovered: true, recoveredFromBackup: true, error }
+            if (backup) return { state: backup, recovered: true, recoveredFromBackup: true, error }
           } catch {}
           return { state: initialState(), recovered: true, recoveredFromBackup: false, error }
         }
@@ -549,6 +616,8 @@
     initialState,
     demoState,
     normalizeState,
+    separateLegacyFixtures,
+    recoverAmbiguousFixtures,
     validateContent,
     validateScreen,
     validateSpace,
@@ -588,6 +657,7 @@ let _signageScreenQuery = ''
 let _signageContentQuery = ''
 let _signageManagementSyncTimer = null
 let _signageSyncState = { status: 'idle', at: null, error: '' }
+let _signageFixtureNotice = { archivedCount: 0, ambiguousCount: 0 }
 const _signageViewScroll = { spaces: 0, content: 0, activity: 0 }
 const _signageStopInFlight = new Set()
 const _signageSelectedScreenIds = new Set()
@@ -606,10 +676,33 @@ function signageContext() {
   }
 }
 function signageLoadState() {
-  const result = signageRepository().load()
-  _signageState = result.state
+  const repository = signageRepository()
+  const result = repository.load()
+  const separated = SignagePhase1.separateLegacyFixtures(result.state, { connected: signagePublicConfig().enabled })
+  _signageState = separated.changed ? repository.save(separated.state) : separated.state
+  _signageFixtureNotice = { archivedCount: separated.archivedCount, ambiguousCount: separated.ambiguousCount }
   _signageLoadWarning = result.recovered ? (result.recoveredFromBackup ? 'La copia principal guardada estaba dañada. Recuperamos la última copia válida.' : 'No pudimos leer los datos guardados. Empezamos con un espacio limpio.') : ''
   return _signageState
+}
+
+function signageLegacyFixtureNoticeHtml() {
+  const archived = Number(_signageFixtureNotice.archivedCount) || 0
+  const ambiguous = Number(_signageFixtureNotice.ambiguousCount) || 0
+  if (!archived && !ambiguous) return ''
+  const detail = ambiguous
+    ? `También apartamos ${ambiguous} borrador${ambiguous === 1 ? '' : 'es'} con identidad antigua para no mezclarlo${ambiguous === 1 ? '' : 's'} con las pantallas vinculadas.`
+    : 'No se borraron pantallas, contenido ni publicaciones de la cuenta central.'
+  return `<div class="sg-fixture-notice" role="status"><span class="sg-fixture-notice-icon">${siIcon('info',17)}</span><div><b>Se apartaron datos locales de demostración</b><span>${archived ? `${archived} registro${archived === 1 ? '' : 's'} de la demostración anterior. ` : ''}${detail}</span></div>${ambiguous ? '<button class="btn btn-secondary btn-sm" type="button" onclick="signageRecoverAmbiguousLocalDrafts(this)">Recuperar como borradores</button>' : ''}</div>`
+}
+
+function signageRecoverAmbiguousLocalDrafts(button) {
+  if (button) button.disabled = true
+  const result = SignagePhase1.recoverAmbiguousFixtures(_signageState, { suffix: Date.now().toString(36) })
+  if (!result.recoveredCount) { _signageFixtureNotice.ambiguousCount = 0; renderSignageHome(); return }
+  if (!signageSaveState(result.state)) { if (button) button.disabled = false; return }
+  _signageFixtureNotice.ambiguousCount = 0
+  renderSignageHome()
+  toast(`${result.recoveredCount} borrador${result.recoveredCount === 1 ? '' : 'es'} recuperado${result.recoveredCount === 1 ? '' : 's'} solo en este navegador.`)
 }
 function signageSaveState(next) {
   try {
@@ -864,14 +957,17 @@ function signageSpacesViewHtml() {
   const published = _signageState.screens.filter(screen => screen.publishedContentId && !screen.outputPaused).length
   return `<section class="sg-view" aria-labelledby="sg-spaces-title">
     <div class="sg-view-head"><div><span class="sg-kicker">Control por lugar</span><h2 id="sg-spaces-title">Espacios</h2><p>Selecciona pantallas de uno o varios espacios. Varias pantallas duplican la pieza completa; no crean un videowall.</p></div><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenSpaceDrawer()">${siIcon('plus',15)} Crear espacio</button><button class="btn btn-primary btn-sm" onclick="signageOpenScreenDrawer()">${siIcon('plus',15)} Agregar pantalla</button></div></div>
-    <div class="sg-view-toolbar"><label class="sg-search">${siIcon('search',15)}<input type="search" aria-label="Buscar pantallas o espacios" value="${escAttr(_signageScreenQuery)}" placeholder="Buscar pantalla o espacio" oninput="signageFilterScreens(this.value)"></label><div class="sg-overview" aria-label="Resumen de pantallas"><span><i class="sg-dot sg-dot-ok"></i><b>${connected}</b> conectadas</span><span><i class="sg-dot"></i><b>${published}</b> con contenido</span><span><i class="sg-dot sg-dot-warn"></i><b>${_signageState.screens.filter(screen => screen.outputPaused).length}</b> en reposo</span></div></div>
+    <div class="sg-view-toolbar"><label class="sg-search">${siIcon('search',15)}<input type="search" aria-label="Buscar pantallas o espacios" value="${escAttr(_signageScreenQuery)}" placeholder="Buscar pantalla o espacio" oninput="signageFilterScreens(this.value)"></label><div class="sg-overview" aria-label="Resumen de pantallas"><span><i class="sg-dot sg-dot-ok"></i><b>${connected}</b> conectada${connected === 1 ? '' : 's'}</span><span><i class="sg-dot"></i><b>${published}</b> con contenido</span><span><i class="sg-dot sg-dot-warn"></i><b>${_signageState.screens.filter(screen => screen.outputPaused).length}</b> en reposo</span></div></div>
     ${!_signageState.screens.length ? `<section class="sg-start" aria-labelledby="sg-start-title"><div><span class="sg-kicker">Empieza aquí</span><h3 id="sg-start-title">Conecta tu primera pantalla</h3><p>Abre el reproductor, identifica el código, ponle un nombre y asígnala a un espacio.</p></div><button class="btn btn-primary" onclick="signageOpenScreenDrawer()">${siIcon('plus',16)} Agregar pantalla</button></section>` : ''}
     ${signageSpacesHtml()}
   </section>`
 }
 
 function signageContentViewHtml() {
-  return `<section class="sg-view" aria-labelledby="sg-library-title"><div class="sg-view-head"><div><span class="sg-kicker">Control por contenido</span><h2 id="sg-library-title">Contenido</h2><p>Elige una pieza y usa el mismo panel “Mostrar en…” para uno o varios destinos.</p></div><button class="btn btn-primary btn-sm" onclick="signageOpenContentDrawer()">${siIcon('plus',15)} Agregar contenido</button></div><div class="sg-view-toolbar"><label class="sg-search">${siIcon('search',15)}<input type="search" aria-label="Buscar contenido" value="${escAttr(_signageContentQuery)}" placeholder="Buscar contenido" oninput="signageFilterContent(this.value)"></label><span class="sg-sub">Archivos propios y compartir computadora siguen deshabilitados hasta completar sus servicios.</span></div>${signageLibraryHtml()}</section>`
+  const mediaNote = signagePublicConfig().mediaEnabled
+    ? 'Imágenes PNG/JPEG y videos MP4 H.264 pasan validación antes de guardarse. Compartir computadora sigue deshabilitado.'
+    : 'La carga de archivos y compartir computadora siguen deshabilitados hasta completar sus servicios.'
+  return `<section class="sg-view" aria-labelledby="sg-library-title"><div class="sg-view-head"><div><span class="sg-kicker">Control por contenido</span><h2 id="sg-library-title">Contenido</h2><p>Elige una pieza y usa el mismo panel “Mostrar en…” para uno o varios destinos.</p></div><button class="btn btn-primary btn-sm" onclick="signageOpenContentDrawer()">${siIcon('plus',15)} Agregar contenido</button></div><div class="sg-view-toolbar"><label class="sg-search">${siIcon('search',15)}<input type="search" aria-label="Buscar contenido" value="${escAttr(_signageContentQuery)}" placeholder="Buscar contenido" oninput="signageFilterContent(this.value)"></label><span class="sg-sub">${mediaNote}</span></div>${signageLibraryHtml()}</section>`
 }
 
 function signageActivityLabel(event) {
@@ -898,7 +994,7 @@ function renderSignageHome() {
   const warning = _signageLoadWarning ? `<div class="sg-banner sg-banner-warning" role="alert">${esc(_signageLoadWarning)}</div>` : ''
   const centralEnabled = signagePublicConfig().enabled
   const view = _signageActiveView === 'content' ? signageContentViewHtml() : _signageActiveView === 'activity' ? signageActivityViewHtml() : signageSpacesViewHtml()
-  pg.innerHTML = `<div class="sg-phase">${_signageLiveSender ? `<div class="sg-live-active" role="status"><div><b>Estás compartiendo tu pantalla</b><span>Se muestra en ${esc(_signageState.screens.find(item => item.id === _signageLiveScreenId)?.name || 'la pantalla elegida')}.</span></div><button class="btn btn-secondary" onclick="signageStopLive()">Dejar de compartir</button></div>` : ''}${warning}<div class="sg-account-bar"><div><b>${centralEnabled ? 'Cuenta central de Pantallas' : 'Modo de prueba'}</b><span>${centralEnabled ? 'Datos compartidos entre administradores cuando están marcados como centrales.' : 'Nada de esta vista controla televisiones reales.'}</span></div>${signageSyncStatusHtml()}</div><div class="sg-app-shell">${signageModuleNavHtml()}<main class="sg-module-main" tabindex="-1">${view}</main></div><div id="sg-selection-slot">${signageSelectionBarHtml()}</div><p class="sg-physical-note">El estado proviene del reproductor. No comprueba que la televisión física esté encendida ni que la entrada de video sea la correcta.</p></div>`
+  pg.innerHTML = `<div class="sg-phase">${_signageLiveSender ? `<div class="sg-live-active" role="status"><div><b>Estás compartiendo tu pantalla</b><span>Se muestra en ${esc(_signageState.screens.find(item => item.id === _signageLiveScreenId)?.name || 'la pantalla elegida')}.</span></div><button class="btn btn-secondary" onclick="signageStopLive()">Dejar de compartir</button></div>` : ''}${warning}${signageLegacyFixtureNoticeHtml()}<div class="sg-account-bar"><div><b>${centralEnabled ? 'Cuenta central de Pantallas' : 'Modo de prueba'}</b><span>${centralEnabled ? 'Datos compartidos entre administradores cuando están marcados como centrales.' : 'Nada de esta vista controla televisiones reales.'}</span></div>${signageSyncStatusHtml()}</div><div class="sg-app-shell">${signageModuleNavHtml()}<main class="sg-module-main" tabindex="-1">${view}</main></div><div id="sg-selection-slot">${signageSelectionBarHtml()}</div><p class="sg-physical-note">El estado proviene del reproductor. No comprueba que la televisión física esté encendida ni que la entrada de video sea la correcta.</p></div>`
   signageApplyCurrentFilter()
 }
 
@@ -949,7 +1045,7 @@ function signageSpacesHtml() {
   return `<div class="sg-space-grid">${spaces.map(space => {
     const screens = _signageState.screens.filter(screen => (screen.spaceId || '') === space.id)
     if (!screens.length && !space.id) return ''
-    return `<section class="sg-space" data-sg-space><div class="sg-space-head"><div><span class="sg-space-icon">${siIcon('grid',16)}</span><span><b>${esc(space.name)}</b><small>${screens.length} pantalla${screens.length === 1 ? '' : 's'}</small></span></div>${screens.length ? `<button class="btn btn-ghost btn-sm" onclick="signageSelectSpace('${escAttr(space.id)}')">Seleccionar ${screens.length === 1 ? 'pantalla' : 'todas'}</button>` : ''}</div><div class="sg-screen-grid">${screens.map(screen => signageScreenTileHtml({ ...screen, plant: `${space.name} ${screen.plant || ''}` })).join('')}</div></section>`
+    return `<section class="sg-space${screens.length > 1 ? ' sg-space-wide' : ''}" data-sg-space><div class="sg-space-head"><div><span class="sg-space-icon">${siIcon('grid',16)}</span><span><b>${esc(space.name)}</b><small>${screens.length} pantalla${screens.length === 1 ? '' : 's'}</small></span></div>${screens.length ? `<button class="btn btn-ghost btn-sm" onclick="signageSelectSpace('${escAttr(space.id)}')">Seleccionar ${screens.length === 1 ? 'pantalla' : 'todas'}</button>` : ''}</div><div class="sg-screen-grid">${screens.map(screen => signageScreenTileHtml({ ...screen, plant: `${space.name} ${screen.plant || ''}` })).join('')}</div></section>`
   }).join('')}</div>`
 }
 

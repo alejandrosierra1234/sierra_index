@@ -10,7 +10,7 @@ function eq(actual, expected, message) { assert.equal(actual, expected, message)
 function ok(value, message) { assert.ok(value, message); assertions += 1 }
 
 let state = Signage.demoState()
-eq(state.schemaVersion, 4, 'current schema')
+eq(state.schemaVersion, Signage.SCHEMA_VERSION, 'current schema')
 eq(state.mode, 'local-synthetic-phase3', 'phase 3 mode')
 
 const screenCount = state.screens.length
@@ -81,7 +81,7 @@ eq(resolved.content.id, 'synthetic-content-welcome', 'last valid text recovered'
 eq(resolved.fallback, true, 'fallback is explicit')
 
 const migrated = Signage.normalizeState({ ...Signage.demoState(), schemaVersion: 1, mode: 'local-synthetic-phase1', playlists: undefined, schedules: undefined })
-eq(migrated.schemaVersion, 4, 'phase 1 state migrates')
+eq(migrated.schemaVersion, Signage.SCHEMA_VERSION, 'phase 1 state migrates')
 ok(Array.isArray(migrated.playlists) && Array.isArray(migrated.schedules), 'migration supplies phase 3 collections')
 
 const memory = new Map()
