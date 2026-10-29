@@ -20,7 +20,8 @@ function playwright() {
     },{origin,workspaceId:harness.state.workspaceId,siteId:harness.state.siteId})
     const player = await context.newPage(), admin = await context.newPage(), errors = []
     player.on('pageerror', error => errors.push(`player: ${error.message}`)); admin.on('pageerror', error => errors.push(`admin: ${error.message}`))
-    await player.goto(origin + '/signage-player.html')
+    await player.goto(origin + '/pantallas-diagnostico-20261029.html')
+    assert.equal(await player.locator('#sp-build').textContent(), 'DIAGNÓSTICO P-20261029-1')
     const code = (await player.locator('#sp-code').textContent()).trim(); assert.match(code, /^\d{6}$/)
     await admin.goto(origin + '/tests/signage/phase1-visual.html?reset=1')
     await admin.getByRole('button', { name: 'Agregar pantalla' }).first().click()
