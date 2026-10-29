@@ -124,7 +124,9 @@
   function startPlayer() {
     document.getElementById('sp-setup').hidden = true
     document.getElementById('sp-stage').hidden = false
+    document.getElementById('sp-connection').textContent = 'Pantalla vinculada · conectando…'
     if (lastManifest?.deviceId === credentials.deviceId) renderContent(lastManifest.content)
+    else renderContent(null)
     sync(); manifestTimer = setInterval(sync, 2000)
   }
   function escapeHtml(value) { const div = document.createElement('div'); div.textContent = String(value || ''); return div.innerHTML }

@@ -27,6 +27,11 @@ function playwright() {
     await admin.locator('#sg-pair-code').fill(code); await admin.locator('#sg-pair-name').fill('Comedor E2E'); await admin.locator('#sg-pair-plant').fill('Planta E2E')
     await admin.getByRole('button', { name: 'Vincular pantalla' }).click(); await admin.getByText('Comedor E2E', { exact: true }).waitFor()
     await player.locator('#sp-stage').waitFor({ state: 'visible', timeout: 5000 })
+    const pairingCount = harness.state.pairings.size
+    await player.reload()
+    await player.locator('#sp-stage').waitFor({ state: 'visible', timeout: 5000 })
+    await player.getByText('Listo para mostrar contenido', { exact: true }).waitFor({ timeout: 5000 })
+    assert.equal(harness.state.pairings.size, pairingCount, 'an already linked player does not request another pairing code')
     await admin.evaluate(async () => {
       localStorage.removeItem(SignagePhase1.STORAGE_KEY)
       signageLoadState(); renderSignageHome()
