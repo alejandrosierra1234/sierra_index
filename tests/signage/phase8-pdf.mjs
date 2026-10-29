@@ -25,6 +25,11 @@ function syntheticPdf() {
 
 const valid=syntheticPdf(),file=new File([valid],'presentacion.pdf',{type:'application/pdf'})
 Pdf.validateContainer(file,valid);assertions+=1
+// PDF.js touches DOMMatrix while evaluating its browser bundle, even though this
+// contract test only parses bytes and never renders a page. Node 22 (the Pages
+// runner) does not expose the browser class, so keep the test independent of an
+// optional native canvas package.
+if (typeof globalThis.DOMMatrix === 'undefined') globalThis.DOMMatrix=class DOMMatrix {}
 const pdfjs=await import(pathToFileURL(path.join(root,'vendor/pdfjs/pdf.mjs')).href)
 const parsed=await pdfjs.getDocument({data:valid.slice(),disableWorker:true,isEvalSupported:false}).promise
 assert.equal(parsed.numPages,1);assertions+=1;await parsed.destroy()
