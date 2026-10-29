@@ -20,7 +20,10 @@
   function loadCredentials() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) } catch (error) { return null } }
   function loadLastManifest() { try { return JSON.parse(localStorage.getItem(LAST_MANIFEST_KEY)) } catch (error) { return null } }
   function saveCredentials(value) { localStorage.setItem(STORAGE_KEY, JSON.stringify(value)); credentials = value }
-  function saveLastManifest(value) { localStorage.setItem(LAST_MANIFEST_KEY, JSON.stringify(value)); lastManifest = value }
+  function saveLastManifest(value) {
+    lastManifest = value
+    try { localStorage.setItem(LAST_MANIFEST_KEY, JSON.stringify(value)) } catch (error) {}
+  }
   async function clearCachedPlayback() {
     localStorage.removeItem(LAST_MANIFEST_KEY); lastManifest = null
     if ('caches' in window) await caches.delete(MEDIA_CACHE).catch(() => {})

@@ -11,11 +11,11 @@
   <main id="player" aria-live="polite">
     <section class="sp-setup" id="sp-setup">
       <div class="sp-logo">SIERRA</div>
-      <p class="sp-step">PASO 1 DE 2</p>
+      <p class="sp-step">PASO 1 DE 2 · <span id="sp-build">P-20261029-3</span></p>
       <h1>Vincula esta pantalla</h1>
       <p>En SIERRA Index abre <b>Pantallas</b>, elige <b>Agregar pantalla</b> y escribe este código:</p>
       <output id="sp-code" class="sp-code" aria-label="Código de vinculación">······</output>
-      <p id="sp-setup-status" class="sp-status">Generando un código seguro…</p>
+      <p id="sp-setup-status" class="sp-status">Comprobando este navegador…</p>
       <button id="sp-new-code" type="button" hidden>Generar otro código</button>
     </section>
     <section class="sp-stage" id="sp-stage" hidden>
@@ -25,26 +25,78 @@
   </main>
   <script>
     (function () {
+      var BUILD = 'P-20261029-3'
       window.__sierraPlayerBooted = false
       window.__sierraPlayerSettled = false
+      window.__sierraPlayerBootStage = 'inicio'
       var status = document.getElementById('sp-setup-status')
       var retry = document.getElementById('sp-new-code')
-      function showStartupError(message) {
-        if (window.__sierraPlayerSettled) return
+      var failed = false
+      var watchdog = null
+      function fail(message) {
+        if (failed || window.__sierraPlayerSettled) return
+        failed = true
+        if (watchdog) clearTimeout(watchdog)
         status.textContent = message
         retry.hidden = false
       }
-      retry.addEventListener('click', function () { if (!window.__sierraPlayerBooted) location.reload() })
+      function supportsPlayer() {
+        try {
+          if (!window.Promise || !window.fetch || !window.URL || !window.URLSearchParams || !window.Headers || !window.WeakMap) return false
+          new Function('const a={x:1}; const b={...a}; const f=async()=>await Promise.resolve(b.x); return f')
+          var probe = 'sierra_pantallas_boot_probe'
+          localStorage.setItem(probe, '1')
+          localStorage.removeItem(probe)
+          return true
+        } catch (error) { return false }
+      }
+      function loadScript(name, source, ready, next) {
+        if (failed) return
+        window.__sierraPlayerBootStage = name
+        status.textContent = 'Iniciando ' + name + '…'
+        var script = document.createElement('script')
+        script.src = source
+        script.async = false
+        script.onerror = function () { fail('No se pudo cargar ' + name + '. Toca “Intentar de nuevo”.') }
+        script.onload = function () {
+          setTimeout(function () {
+            if (failed) return
+            var valid = false
+            try { valid = ready() === true } catch (error) { valid = false }
+            if (!valid) return fail(name.charAt(0).toUpperCase() + name.slice(1) + ' no inició en este navegador. Toca “Intentar de nuevo”.')
+            next()
+          }, 0)
+        }
+        document.head.appendChild(script)
+      }
+      retry.textContent = 'Intentar de nuevo'
+      retry.addEventListener('click', function () { location.reload() })
       window.addEventListener('error', function (event) {
-        if (event.target && event.target.tagName === 'SCRIPT') showStartupError('No pudimos iniciar el reproductor en este navegador. Toca “Generar otro código” para intentar de nuevo.')
+        if (event.target && event.target.tagName === 'SCRIPT') return
+        fail('Ocurrió un error al iniciar ' + window.__sierraPlayerBootStage + '. Toca “Intentar de nuevo”.')
       }, true)
-      setTimeout(function () {
-        showStartupError('La conexión está tardando demasiado. Toca “Generar otro código” para intentar de nuevo.')
-      }, 15000)
+      window.addEventListener('unhandledrejection', function () {
+        fail('Ocurrió un error al iniciar ' + window.__sierraPlayerBootStage + '. Toca “Intentar de nuevo”.')
+      })
+      if (!supportsPlayer()) return fail('Este iPad necesita una versión más reciente de Safari y permitir almacenamiento local para usar Pantallas.')
+      watchdog = setTimeout(function () {
+        fail('El inicio se detuvo en ' + window.__sierraPlayerBootStage + '. Toca “Intentar de nuevo”.')
+      }, 20000)
+      loadScript('configuración', 'js/signage-config.js?v=' + BUILD, function () {
+        return !!window.SIERRA_SIGNAGE_CONFIG
+      }, function () {
+        loadScript('cliente', 'js/signage-backend-client.js?v=' + BUILD, function () {
+          return !!(window.SignageBackendClient && typeof window.SignageBackendClient.createClient === 'function')
+        }, function () {
+          loadScript('reproductor', 'js/signage-player.js?v=' + BUILD, function () {
+            return window.__sierraPlayerBooted === true
+          }, function () {
+            window.__sierraPlayerBootStage = 'solicitud de código'
+            if (!window.__sierraPlayerSettled) status.textContent = 'Solicitando un código seguro…'
+          })
+        })
+      })
     })()
   </script>
-  <script src="js/signage-config.js?v=20261029-3"></script>
-  <script src="js/signage-backend-client.js?v=20261029-3"></script>
-  <script src="js/signage-player.js?v=20261029-4"></script>
 </body>
 </html>
