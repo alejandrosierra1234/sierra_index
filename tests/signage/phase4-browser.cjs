@@ -14,7 +14,7 @@ function playwright() {
   try {
     const context = await browser.newContext()
     await context.addInitScript(({origin,workspaceId,siteId}) => {
-      window.SIERRA_SIGNAGE_CONFIG={enabled:true,backendUrl:origin+'/functions/v1/signage-api',allowedOrigins:[origin],workspaceId,siteId}
+      window.SIERRA_SIGNAGE_CONFIG={enabled:true,backendUrl:origin+'/functions/v1/signage-api',allowedOrigins:[origin],workspaceId,siteId,mediaEnabled:true,liveEnabled:true}
       window.SIERRA_SIGNAGE_LOCAL_ADMIN_TOKEN='synthetic-admin-token'
       window.SIERRA_SIGNAGE_HEARTBEAT_INTERVAL=500
     },{origin,workspaceId:harness.state.workspaceId,siteId:harness.state.siteId})

@@ -131,5 +131,9 @@
   function escapeAttr(value) { return escapeHtml(value).replace(/"/g, '&quot;') }
 
   document.getElementById('sp-new-code').addEventListener('click', beginPairing)
-  if (credentials?.deviceId && credentials?.deviceToken) startPlayer(); else beginPairing()
+  if (!publicConfig.enabled) {
+    document.getElementById('sp-code').textContent = '—'
+    setupStatus('El servicio central de Pantallas todavía no está habilitado.', false)
+  } else if (credentials?.deviceId && credentials?.deviceToken) startPlayer()
+  else beginPairing()
 })()

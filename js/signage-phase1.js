@@ -539,6 +539,7 @@ function signageContentById(id) { return _signageState?.contents.find(item => it
 function signagePublicConfig() { return SignageBackendClient.publicConfig(window.SIERRA_SIGNAGE_CONFIG || {}) }
 function signageBackendClient() {
   const config = signagePublicConfig()
+  if (!config.enabled) throw new Error('El servicio central de Pantallas todavía no está habilitado.')
   return SignageBackendClient.createClient({
     baseUrl: config.backendUrl || '/api/signage',
     currentOrigin: location.origin,
@@ -620,7 +621,8 @@ function signageScreensTableHtml() {
   return `<div class="erp-table-wrap"><table class="erp-table sg-table"><thead><tr><th>Pantalla</th><th>Planta</th><th>Perfil declarado</th><th>Publicación local</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${_signageState.screens.map(screen => {
     const content = signageContentById(screen.publishedContentId)
     const paired = screen.kind === 'paired'
-    return `<tr><td><b>${esc(screen.name)}</b><div class="sg-sub">${paired ? 'Vinculada mediante código' : 'Guardada en este navegador'}</div></td><td>${esc(screen.plant)}</td><td>${esc(screen.profile)}</td><td>${content ? `<b>${esc(content.title)}</b><div class="sg-sub">Actualizado ${screen.updatedAt ? esc(signageFormatTime(screen.updatedAt)) : 'en este navegador'}</div>` : '<span class="sg-muted">Nada todavía</span>'}</td><td><div class="sg-state-stack"><span class="sg-status ${paired ? 'sg-status-connected' : 'sg-status-local'}">${paired ? 'Vinculada' : 'Modo de prueba'}</span><span class="sg-sub">${paired ? 'Conexión pendiente de comprobar' : 'No conectada a una TV'}</span></div></td><td><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPublishDrawer('${escAttr(screen.id)}')">Elegir qué mostrar</button>${paired ? `<button class="btn btn-ghost btn-sm" onclick="signageStartLive('${escAttr(screen.id)}')">Compartir mi pantalla</button>` : `<button class="btn btn-ghost btn-sm" onclick="signageShowPlayer('${escAttr(screen.id)}')">Ver pantalla</button>`}${screen.history.length ? `<button class="btn btn-ghost btn-sm" onclick="signageRollback('${escAttr(screen.id)}')">Deshacer cambio</button>` : ''}</div></td></tr>`
+    const liveEnabled = signagePublicConfig().liveEnabled
+    return `<tr><td><b>${esc(screen.name)}</b><div class="sg-sub">${paired ? 'Vinculada mediante código' : 'Guardada en este navegador'}</div></td><td>${esc(screen.plant)}</td><td>${esc(screen.profile)}</td><td>${content ? `<b>${esc(content.title)}</b><div class="sg-sub">Actualizado ${screen.updatedAt ? esc(signageFormatTime(screen.updatedAt)) : 'en este navegador'}</div>` : '<span class="sg-muted">Nada todavía</span>'}</td><td><div class="sg-state-stack"><span class="sg-status ${paired ? 'sg-status-connected' : 'sg-status-local'}">${paired ? 'Vinculada' : 'Modo de prueba'}</span><span class="sg-sub">${paired ? 'Conexión pendiente de comprobar' : 'No conectada a una TV'}</span></div></td><td><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPublishDrawer('${escAttr(screen.id)}')">Elegir qué mostrar</button>${paired ? liveEnabled ? `<button class="btn btn-ghost btn-sm" onclick="signageStartLive('${escAttr(screen.id)}')">Compartir mi pantalla</button>` : '<button class="btn btn-ghost btn-sm" disabled>Compartir pantalla · Próximamente</button>' : `<button class="btn btn-ghost btn-sm" onclick="signageShowPlayer('${escAttr(screen.id)}')">Ver pantalla</button>`}${screen.history.length ? `<button class="btn btn-ghost btn-sm" onclick="signageRollback('${escAttr(screen.id)}')">Deshacer cambio</button>` : ''}</div></td></tr>`
   }).join('')}</tbody></table></div>`
 }
 
@@ -647,6 +649,7 @@ async function signageCheckBackendAvailability() {
   const host = document.getElementById('sg-pair-ready')
   const submit = document.getElementById('sg-pair-submit')
   try {
+    if (!signagePublicConfig().enabled) throw new Error('Pantallas no está habilitado.')
     await signageBackendClient().health()
     if (host) host.innerHTML = '<b>En la televisión o reproductor:</b> abre <a href="signage-player.html" target="_blank" rel="noopener">el reproductor de Pantallas</a>. Verás un código de 6 números.'
     if (submit) submit.disabled = false
@@ -752,10 +755,11 @@ function signageAuditHtml() {
 
 function signageOpenContentDrawer() {
   if (!signageContext().canManage) { toast('No tienes permiso para crear contenido.'); return }
+  const mediaEnabled = signagePublicConfig().mediaEnabled
   openSideDrawer({ eyebrow: 'Pantallas · Contenido', title: 'Agregar contenido', onTab: () => {
     document.getElementById('sd-body').innerHTML = `<form class="sg-form" onsubmit="signageSubmitContent(event)" novalidate>
-      <div class="sg-form-note">Si vinculaste una pantalla, puedes subir un archivo. En modo de prueba también puedes usar una URL HTTPS.</div>
-      <fieldset class="sg-theme-field"><legend>¿Qué quieres mostrar?</legend><div class="sg-type-options" role="radiogroup">${['message','image','video','link'].map((type,index)=>`<button type="button" class="sg-type-option${index===0?' selected':''}" data-content-type="${type}" role="radio" aria-checked="${index===0}" onclick="signageChooseContentType(this)">${esc(signageTypeLabel(type))}</button>`).join('')}</div></fieldset>
+      <div class="sg-form-note">${mediaEnabled ? 'Si vinculaste una pantalla, puedes subir un archivo. En modo de prueba también puedes usar una URL HTTPS.' : 'Este piloto permite mensajes y enlaces. Las imágenes y videos se habilitarán después de configurar su verificación segura.'}</div>
+      <fieldset class="sg-theme-field"><legend>¿Qué quieres mostrar?</legend><div class="sg-type-options" role="radiogroup">${['message','image','video','link'].map((type,index)=>{ const unavailable=!mediaEnabled&&(type==='image'||type==='video'); return `<button type="button" class="sg-type-option${index===0?' selected':''}" data-content-type="${type}" role="radio" aria-checked="${index===0}" ${unavailable?'disabled aria-disabled="true"':''} onclick="signageChooseContentType(this)">${esc(signageTypeLabel(type))}${unavailable?' · Próximamente':''}</button>` }).join('')}</div></fieldset>
       <label class="sg-field" for="sg-content-title"><span>Título <b aria-hidden="true">*</b></span><input class="control-input" id="sg-content-title" maxlength="80" required aria-describedby="sg-content-title-error"><small id="sg-content-title-error" class="sg-error"></small></label>
       <label class="sg-field" for="sg-content-body"><span id="sg-body-label">Mensaje <b aria-hidden="true">*</b></span><textarea class="control-input sg-textarea" id="sg-content-body" maxlength="240" required aria-describedby="sg-content-body-error"></textarea><small id="sg-content-body-error" class="sg-error"></small></label>
       <div id="sg-media-fields" hidden><label class="sg-field" for="sg-content-file"><span>Archivo de imagen o video</span><input class="control-input sg-file-input" id="sg-content-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" onchange="signagePreviewUpload(this)"><small class="sg-muted">Máximo propuesto: 10 MB por imagen y 50 MB por video.</small></label><div id="sg-upload-preview" class="sg-upload-preview" hidden></div><div class="sg-or"><span>o, en modo de prueba</span></div><label class="sg-field" for="sg-content-mediaUrl"><span>URL HTTPS del archivo</span><input class="control-input" id="sg-content-mediaUrl" inputmode="url" maxlength="2048" aria-describedby="sg-content-mediaUrl-error"><small id="sg-content-mediaUrl-error" class="sg-error"></small></label><label class="sg-field" for="sg-content-alt"><span>Descripción accesible <b aria-hidden="true">*</b></span><input class="control-input" id="sg-content-alt" maxlength="180" aria-describedby="sg-content-alt-error"><small id="sg-content-alt-error" class="sg-error"></small></label></div>
@@ -824,6 +828,7 @@ async function signageSubmitContent(event) {
     const validation = SignagePhase1.validateContent({ type, title: title.value, body: body.value, theme, mediaUrl: candidateMediaUrl, alt: alt?.value, url: url?.value })
     if (!validation.ok) { const validationError = new Error('Corrige los campos marcados.'); validationError.fields = validation.errors; throw validationError }
     if (file) {
+      if (!signagePublicConfig().mediaEnabled) throw new Error('Las imágenes y videos todavía no están habilitados en este piloto.')
       const expected = type === 'image' ? 'image/' : type === 'video' ? 'video/' : ''
       if (!expected || !file.type.startsWith(expected)) throw new Error('El archivo elegido no coincide con el tipo de contenido.')
       const client = signageBackendClient()
@@ -1003,6 +1008,7 @@ function signageRollback(screenId) {
 async function signageStartLive(screenId) {
   const screen = _signageState.screens.find(item => item.id === screenId)
   if (!screen || screen.kind !== 'paired') { toast('Primero vincula una pantalla con su código.'); return }
+  if (!signagePublicConfig().liveEnabled) { toast('Compartir pantalla todavía no está habilitado en este piloto.'); return }
   if (_signageLiveSender) { toast('Ya estás compartiendo tu pantalla. Detén esa transmisión primero.'); return }
   try {
     const client = signageBackendClient()

@@ -14,7 +14,7 @@
     const allowedOrigins = Array.isArray(config.allowedOrigins) ? config.allowedOrigins.map(String) : []
     if (config.enabled && (!backendUrl || !UUID.test(workspaceId) || !UUID.test(siteId))) throw new Error('La configuración pública de Pantallas está incompleta.')
     if (backendUrl && new URL(backendUrl, 'https://index.invalid').protocol !== 'https:' && !/^http:\/\/(?:127\.0\.0\.1|localhost|\[::1\])(?::|\/)/.test(backendUrl)) throw new Error('El servicio de Pantallas debe usar HTTPS.')
-    return { enabled: config.enabled === true, backendUrl, workspaceId, siteId, allowedOrigins }
+    return { enabled: config.enabled === true, backendUrl, workspaceId, siteId, allowedOrigins, mediaEnabled: config.mediaEnabled === true, liveEnabled: config.liveEnabled === true }
   }
 
   function normalizeBaseUrl(value, currentOrigin, allowedOrigins) {
