@@ -6,7 +6,7 @@
   'use strict'
 
   const STORAGE_KEY = 'sierra_signage_phase1_v1'
-  const SCHEMA_VERSION = 3
+  const SCHEMA_VERSION = 4
   const MAX_AUDIT_EVENTS = 100
   const THEMES = new Set(['neutral', 'teal', 'blue'])
   const CONTENT_TYPES = new Set(['message', 'image', 'video', 'link'])
@@ -27,6 +27,7 @@
     return {
       schemaVersion: SCHEMA_VERSION,
       mode: 'local-synthetic-phase3',
+      spaces: [],
       screens: [],
       contents: [],
       playlists: [],
@@ -94,10 +95,11 @@
   }
 
   function normalizeState(input) {
-    if (!input || ![1, 3].includes(input.schemaVersion) || !['local-synthetic-phase1', 'local-synthetic-phase3'].includes(input.mode)) return initialState()
+    if (!input || ![1, 3, 4].includes(input.schemaVersion) || !['local-synthetic-phase1', 'local-synthetic-phase3'].includes(input.mode)) return initialState()
     const state = clone(input)
     state.schemaVersion = SCHEMA_VERSION
     state.mode = 'local-synthetic-phase3'
+    state.spaces = Array.isArray(state.spaces) ? state.spaces : []
     state.screens = Array.isArray(state.screens) ? state.screens : []
     state.contents = Array.isArray(state.contents) ? state.contents : []
     state.playlists = Array.isArray(state.playlists) ? state.playlists : []
@@ -110,9 +112,18 @@
       screen.kind = screen.kind || 'local-test'
       screen.connectionState = screen.connectionState || 'not-linked'
       screen.outputPaused = screen.outputPaused === true
+      screen.spaceId = screen.spaceId || null
     })
     state.contents.forEach(content => { content.type = CONTENT_TYPES.has(content.type) ? content.type : 'message' })
     return state
+  }
+
+  function validateSpace(input, state, editingId) {
+    const name = cleanText(input?.name)
+    const errors = {}
+    if (name.length < 2 || name.length > 80) errors.name = 'Usa un nombre de 2 a 80 caracteres.'
+    if (state?.spaces?.some(space => space.id !== editingId && cleanText(space.name).toLocaleLowerCase('es') === name.toLocaleLowerCase('es'))) errors.name = 'Ya existe un espacio con ese nombre.'
+    return { ok: !Object.keys(errors).length, errors, value: { name } }
   }
 
   function validateScreen(input, state) {
@@ -260,9 +271,42 @@
       lastValidAt: null,
       createdAt: nowIso(options?.now),
       createdBy: actorName(context.actor),
+      spaceId: cleanText(input?.spaceId) || null,
     }
     state.screens.unshift(screen)
     appendAudit(state, { type: 'screen.created', actor: actorName(context.actor), screenId: screen.id, summary: `Registró la pantalla de prueba “${screen.name}” · no vinculada`, now: options?.now })
+    return { state, screen }
+  }
+
+  function createSpace(current, input, context, options) {
+    requireManage(context)
+    const state = normalizeState(current)
+    const validation = validateSpace(input, state)
+    if (!validation.ok) {
+      const error = new Error('Corrige el nombre del espacio.')
+      error.code = 'SIGNAGE_VALIDATION'; error.fields = validation.errors; throw error
+    }
+    const space = { id: makeId('space'), name: validation.value.name, kind: 'local-test', createdAt: nowIso(options?.now), createdBy: actorName(context.actor) }
+    state.spaces.push(space)
+    appendAudit(state, { type: 'space.created', actor: actorName(context.actor), summary: `Creó el espacio “${space.name}”`, now: options?.now })
+    return { state, space }
+  }
+
+  function updateScreen(current, screenId, input, context, options) {
+    requireManage(context)
+    const state = normalizeState(current)
+    const screen = state.screens.find(item => item.id === screenId)
+    if (!screen) { const error = new Error('La pantalla ya no está disponible.'); error.code = 'SIGNAGE_NOT_FOUND'; throw error }
+    const name = cleanText(input?.name)
+    const spaceId = cleanText(input?.spaceId) || null
+    const errors = {}
+    if (name.length < 3 || name.length > 80) errors.name = 'Usa un nombre de 3 a 80 caracteres.'
+    if (state.screens.some(item => item.id !== screenId && cleanText(item.name).toLocaleLowerCase('es') === name.toLocaleLowerCase('es'))) errors.name = 'Ya existe una pantalla con ese nombre.'
+    if (spaceId && !state.spaces.some(space => space.id === spaceId)) errors.spaceId = 'El espacio elegido ya no está disponible.'
+    if (Object.keys(errors).length) { const error = new Error('Corrige los datos de la pantalla.'); error.code = 'SIGNAGE_VALIDATION'; error.fields = errors; throw error }
+    const previousName = screen.name
+    screen.name = name; screen.spaceId = spaceId; screen.plant = state.spaces.find(space => space.id === spaceId)?.name || screen.plant || 'Sin espacio'; screen.updatedAt = nowIso(options?.now)
+    appendAudit(state, { type: 'screen.updated', actor: actorName(context.actor), screenId, summary: `Actualizó “${previousName}” como “${name}”`, now: options?.now })
     return { state, screen }
   }
 
@@ -276,7 +320,7 @@
       throw error
     }
     if (state.screens.some(screen => screen.id === id)) return { state, screen: state.screens.find(screen => screen.id === id) }
-    const screen = { id, name, plant, profile, kind: 'paired', connectionState: 'paired', evidence: 'Esperando primera conexión', outputPaused: device?.outputPaused === true, publishedContentId: null, publicationVersion: 0, updatedAt: null, history: [], lastValidContentId: null, lastValidAt: null }
+    const screen = { id, name, plant, profile, spaceId: device?.spaceId || null, kind: 'paired', connectionState: device?.connectionState || 'paired', evidence: 'Esperando primera conexión', lastSeenAt: device?.lastSeenAt || null, playbackStatus: device?.playbackStatus || null, lastManifestRevision: device?.lastManifestRevision ?? null, outputPaused: device?.outputPaused === true, backendRevision: Number(device?.backendRevision) || 0, publishedContentId: null, publicationVersion: 0, updatedAt: null, history: [], lastValidContentId: null, lastValidAt: null }
     state.screens.unshift(screen)
     appendAudit(state, { type: 'screen.paired', actor: actorName(context.actor), screenId: id, summary: `Vinculó “${name}” mediante código` })
     return { state, screen }
@@ -507,10 +551,13 @@
     normalizeState,
     validateContent,
     validateScreen,
+    validateSpace,
     validatePlaylist,
     validateSchedule,
     createContent,
     createTestScreen,
+    createSpace,
+    updateScreen,
     registerPairedScreen,
     createPlaylist,
     createSchedule,
@@ -536,6 +583,13 @@ let _signageLiveScreenId = null
 let _signagePairingInFlight = false
 let _signageRemoteSyncPromise = null
 const _signageStopInFlight = new Set()
+const _signageSelectedScreenIds = new Set()
+let _signageBatchInFlight = false
+const SIERRA_CURATED_CONTENT = Object.freeze([
+  { id: 'sierra-industrial-loop', type: 'video', title: 'Proceso SIERRA', body: 'Loop industrial publicado por SIERRA.', alt: 'Proceso industrial de hilatura y maquinaria SIERRA.', theme: 'neutral', mediaUrl: 'https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F67448935dfb12aa5cb9c86e9_video-cortado-transcode.mp4', poster: 'https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F67448935dfb12aa5cb9c86e9_video-cortado-poster-00001.jpg', sourceUrl: 'https://www.sierratextiles.com/' },
+  { id: 'sierra-campus-loop', type: 'video', title: 'Campus y energía', body: 'Loop del campus publicado por SIERRA.', alt: 'Vista aérea del campus y parque solar SIERRA.', theme: 'neutral', mediaUrl: 'https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F673f497adb654923cf8ff63e_homepage2%20%281%29-transcode.mp4', poster: 'https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F673f497adb654923cf8ff63e_homepage2%20%281%29-poster-00001.jpg', sourceUrl: 'https://www.sierratextiles.com/' },
+  { id: 'sierra-people-solar', type: 'image', title: 'Personas y energía', body: 'Fotografía publicada en el sitio de SIERRA.', alt: 'Grupo de personas en el parque de paneles solares SIERRA.', theme: 'neutral', mediaUrl: 'https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3/673f7b62650c2610524db19f_DSC09322-Enhanced-NR%20(1).jpg', sourceUrl: 'https://www.sierratextiles.com/' },
+])
 
 function signageRepository() { return SignagePhase1.createRepository(window.localStorage) }
 function signageContext() {
@@ -586,11 +640,19 @@ function signageBackendClient() {
 }
 
 function signageRemoteScreen(device, fallback = {}) {
+  const heartbeat = Array.isArray(device?.signage_device_heartbeats) ? device.signage_device_heartbeats[0] : device?.signage_device_heartbeats
+  const lastSeenAt = heartbeat?.received_at || null
+  const connected = lastSeenAt && Date.now() - new Date(lastSeenAt).getTime() < 90000
   return {
     id: device?.id,
     name: device?.name,
     plant: fallback.plant || 'Sede vinculada',
     profile: fallback.profile || 'Perfil sin declarar',
+    spaceId: device?.space_id || null,
+    connectionState: connected ? 'connected' : 'offline',
+    lastSeenAt,
+    playbackStatus: heartbeat?.status || null,
+    lastManifestRevision: heartbeat?.last_manifest_revision ?? null,
     outputPaused: device?.output_paused === true || device?.outputPaused === true,
     backendRevision: Number(device?.revision) || 0,
   }
@@ -602,22 +664,33 @@ async function signageSyncRemoteDevices(options = {}) {
   if (!config.enabled || !signageContext().canManage) return { added: [] }
   _signageRemoteSyncPromise = (async () => {
     try {
-      const result = await signageBackendClient().listDevices()
+      const client = signageBackendClient()
+      const [result, spacesResult] = await Promise.all([client.listDevices(), client.listSpaces().catch(() => ({ spaces: [] }))])
       const added = []
       let changed = false
       let next = _signageState
+      for (const remoteSpace of spacesResult?.spaces || []) {
+        const normalized = { id: remoteSpace.id, name: remoteSpace.name, kind: 'paired', siteId: remoteSpace.site_id || remoteSpace.siteId, updatedAt: remoteSpace.updated_at || remoteSpace.updatedAt }
+        const existingSpace = next.spaces.find(space => space.id === normalized.id)
+        if (existingSpace) {
+          if (existingSpace.name !== normalized.name || existingSpace.updatedAt !== normalized.updatedAt) changed = true
+          Object.assign(existingSpace, normalized)
+        } else { next.spaces.push(normalized); changed = true }
+      }
       for (const device of result?.devices || []) {
         if (device?.state && device.state !== 'active') continue
         const existing = next.screens.find(screen => screen.id === device.id)
         if (existing) {
+          const remote = signageRemoteScreen(device, existing)
           const paused = device?.output_paused === true || device?.outputPaused === true
           const revision = Number(device?.revision) || existing.backendRevision || 0
-          if (existing.outputPaused !== paused || existing.backendRevision !== revision) changed = true
-          existing.outputPaused = paused
-          existing.backendRevision = revision
+          if (existing.outputPaused !== paused || existing.backendRevision !== revision || existing.name !== remote.name || existing.spaceId !== remote.spaceId || existing.connectionState !== remote.connectionState || existing.lastSeenAt !== remote.lastSeenAt || existing.playbackStatus !== remote.playbackStatus) changed = true
+          Object.assign(existing, remote, { outputPaused: paused, backendRevision: revision })
           continue
         }
-        const registered = SignagePhase1.registerPairedScreen(next, signageRemoteScreen(device), signageContext())
+        const remote = signageRemoteScreen(device)
+        remote.plant = next.spaces.find(space => space.id === remote.spaceId)?.name || 'Sin espacio'
+        const registered = SignagePhase1.registerPairedScreen(next, remote, signageContext())
         next = registered.state
         added.push(registered.screen)
         changed = true
@@ -644,13 +717,14 @@ function showSignage() {
   _navLeaf = 'signage|_|control'
   sessionStorage.setItem('sierra_route', 'module:signage')
   leaveView()
+  document.getElementById('content').classList.add('signage-active')
   renderSidebarTree()
   document.getElementById('tb-section').textContent = 'Pantallas'
   document.getElementById('sec-title').textContent = 'Pantallas'
   document.getElementById('sec-sub').textContent = 'Agrega una pantalla, elige contenido y muéstralo'
   const controls = document.getElementById('product-controls')
   controls.style.display = 'flex'
-  controls.innerHTML = `<button class="btn btn-secondary" onclick="signageOpenContentDrawer()">Agregar contenido</button><button class="btn btn-secondary" onclick="signageOpenPlaylistDrawer()">Nueva lista</button><button class="btn btn-secondary" onclick="signageOpenScheduleDrawer()">Crear horario</button><button class="btn btn-primary" onclick="signageOpenScreenDrawer()">${siIcon('plus',16)} Agregar pantalla</button>`
+  controls.innerHTML = `<button class="btn btn-secondary" onclick="signageOpenSpaceDrawer()">${siIcon('plus',16)} Crear espacio</button><button class="btn btn-secondary" onclick="signageOpenContentDrawer()">Agregar contenido</button><button class="btn btn-primary" onclick="signageOpenScreenDrawer()">${siIcon('plus',16)} Agregar pantalla</button>`
   signageLoadState()
   renderSignageHome()
   void signageSyncRemoteDevices({ silent: true })
@@ -663,32 +737,24 @@ function renderSignageHome() {
     pg.innerHTML = emptyStateHtml({ title: 'Acceso restringido', desc: 'No tienes permiso para administrar Pantallas.' })
     return
   }
-  const published = _signageState.screens.filter(screen => screen.publishedContentId && !screen.outputPaused).length
+  for (const id of [..._signageSelectedScreenIds]) if (!_signageState.screens.some(screen => screen.id === id)) _signageSelectedScreenIds.delete(id)
+  const published = _signageState.screens.filter(screen => (screen.publishedContentId || screen.playbackStatus === 'playing') && !screen.outputPaused).length
+  const connected = _signageState.screens.filter(screen => screen.kind === 'paired' && screen.connectionState === 'connected').length
   const warning = _signageLoadWarning ? `<div class="sg-banner sg-banner-warning" role="alert">${esc(_signageLoadWarning)}</div>` : ''
   const centralEnabled = signagePublicConfig().enabled
   pg.innerHTML = `<div class="sg-phase">
     ${_signageLiveSender ? `<div class="sg-live-active" role="status"><div><b>Estás compartiendo tu pantalla</b><span>Se muestra en ${esc(_signageState.screens.find(item => item.id === _signageLiveScreenId)?.name || 'la pantalla elegida')}.</span></div><button class="btn btn-secondary" onclick="signageStopLive()">Dejar de compartir</button></div>` : ''}
-    <div class="sg-banner" role="note">${centralEnabled ? '<b>Servicio central conectado.</b> Las pantallas vinculadas y los mensajes se sincronizan entre equipos. Los datos de prueba locales permanecen solo en este navegador.' : '<b>Modo de prueba en este navegador.</b> Puedes aprender el flujo sin afectar televisiones reales. Lo que agregues aquí no aparecerá en otro equipo hasta conectar el servicio central.'}</div>
+    <div class="sg-banner" role="note">${centralEnabled ? '<b>Servicio central conectado.</b> “Conectada” significa que el reproductor reportó actividad reciente; no comprueba que el panel físico esté encendido o mostrando imagen.' : '<b>Modo de prueba en este navegador.</b> Puedes aprender el flujo sin afectar televisiones reales.'}</div>
     ${warning}
-    <div class="page-metrics sg-metrics" aria-label="Resumen local">
-      <div class="sg-metric"><b>${_signageState.screens.length}</b><span>Pantallas agregadas</span></div>
-      <div class="sg-metric"><b>${_signageState.contents.length}</b><span>Contenidos</span></div>
-      <div class="sg-metric"><b>${published}</b><span>Mostrando contenido</span></div>
-      <div class="sg-metric"><b>${_signageState.playlists.length}</b><span>Listas</span></div>
-      <div class="sg-metric"><b>${_signageState.schedules.length}</b><span>Horarios</span></div>
-    </div>
-    <section class="sg-start" aria-labelledby="sg-start-title">
-      <div><span class="sg-kicker">Empieza aquí</span><h3 id="sg-start-title">Tres pasos para mostrar contenido</h3><p>${centralEnabled ? 'Las pantallas vinculadas y los mensajes se guardan en el servicio central.' : 'Cada paso te indica qué hacer. En este modo se guarda únicamente en tu navegador.'}</p></div>
-      <ol class="sg-steps"><li><b>1</b><span><strong>Agrega una pantalla</strong><small>Ponle un nombre fácil de reconocer.</small></span></li><li><b>2</b><span><strong>Elige contenido</strong><small>Mensaje, imagen, video o enlace.</small></span></li><li><b>3</b><span><strong>Muéstralo</strong><small>Publica ahora o programa una hora.</small></span></li></ol>
-      <button class="btn btn-primary" onclick="signageOpenScreenDrawer()">${siIcon('plus',16)} Agregar pantalla</button>
-      <p class="sg-real-tv-note"><b>Vincular una TV real:</b> ${centralEnabled ? 'abre el reproductor en la TV o equipo receptor y usa el código de seis dígitos. El estado confirma el reproductor, no que el panel físico esté encendido.' : 'todavía no disponible. Esa función requerirá servicio central, identidad de dispositivo y emparejamiento seguro.'}</p>
+    <div class="sg-overview" aria-label="Resumen de pantallas"><span><i class="sg-dot sg-dot-ok"></i><b>${connected}</b> conectadas</span><span><i class="sg-dot"></i><b>${published}</b> mostrando</span><span><i class="sg-dot sg-dot-warn"></i><b>${_signageState.screens.filter(screen => screen.outputPaused).length}</b> en reposo</span></div>
+    ${!_signageState.screens.length ? `<section class="sg-start" aria-labelledby="sg-start-title"><div><span class="sg-kicker">Empieza aquí</span><h3 id="sg-start-title">Conecta tu primera pantalla</h3><p>Abre el reproductor, identifica el código, ponle un nombre y asígnala a un espacio.</p></div><button class="btn btn-primary" onclick="signageOpenScreenDrawer()">${siIcon('plus',16)} Agregar pantalla</button></section>` : ''}
+    <section aria-labelledby="sg-spaces-title">
+      <div class="sg-section-head"><div><h3 id="sg-spaces-title">Espacios</h3><p>Selecciona una o varias pantallas, incluso de lugares distintos.</p></div><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenSpaceDrawer()">${siIcon('plus',15)} Crear espacio</button><button class="btn btn-secondary btn-sm" onclick="signageOpenScreenDrawer()">${siIcon('plus',15)} Agregar pantalla</button></div></div>
+      ${signageSpacesHtml()}
     </section>
-    <section aria-labelledby="sg-screens-title">
-      <div class="sg-section-head"><div><h3 id="sg-screens-title">Tus pantallas</h3><p>Aquí ves qué está mostrando cada una.</p></div><button class="btn btn-secondary btn-sm" onclick="signageOpenScreenDrawer()">${siIcon('plus',15)} Agregar pantalla</button></div>
-      ${signageScreensTableHtml()}
-    </section>
+    ${signageSelectionBarHtml()}
     <section aria-labelledby="sg-library-title">
-      <div class="sg-section-head"><div><h3 id="sg-library-title">Contenido</h3><p>Mensajes, imágenes, videos y enlaces listos para mostrar.</p></div><button class="btn btn-secondary btn-sm" onclick="signageOpenContentDrawer()">${siIcon('plus',15)} Agregar contenido</button></div>
+      <div class="sg-section-head"><div><h3 id="sg-library-title">Contenido</h3><p>Empieza por una pieza y elige después dónde mostrarla.</p></div><button class="btn btn-secondary btn-sm" onclick="signageOpenContentDrawer()">${siIcon('plus',15)} Agregar contenido</button></div>
       ${signageLibraryHtml()}
     </section>
     <section aria-labelledby="sg-program-title">
@@ -702,17 +768,71 @@ function renderSignageHome() {
   </div>`
 }
 
-function signageScreensTableHtml() {
-  if (!_signageState.screens.length) return emptyStateHtml({ title: 'Aún no agregas una pantalla', desc: 'Agrega una pantalla para empezar. En modo de prueba podrás verla en este mismo navegador.', actionLabel: 'Agregar pantalla', actionOnClick: 'signageOpenScreenDrawer()' })
-  return `<div class="erp-table-wrap"><table class="erp-table sg-table"><thead><tr><th>Pantalla</th><th>Planta</th><th>Perfil declarado</th><th>Contenido actual</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${_signageState.screens.map(screen => {
-    const content = signageContentById(screen.publishedContentId)
-    const paired = screen.kind === 'paired'
-    const liveEnabled = signagePublicConfig().liveEnabled
-    const stopLabel = paired ? 'Dejar de transmitir' : 'Dejar de mostrar'
-    const output = screen.outputPaused ? '<b>En reposo</b><div class="sg-sub">El contenido se conserva</div>' : content ? `<b>${esc(content.title)}</b><div class="sg-sub">Actualizado ${screen.updatedAt ? esc(signageFormatTime(screen.updatedAt)) : 'en este navegador'}</div>` : '<span class="sg-muted">Nada todavía</span>'
-    return `<tr><td><b>${esc(screen.name)}</b><div class="sg-sub">${paired ? 'Vinculada mediante código' : 'Guardada en este navegador'}</div></td><td>${esc(screen.plant)}</td><td>${esc(screen.profile)}</td><td>${output}</td><td><div class="sg-state-stack"><span class="sg-status ${screen.outputPaused ? 'sg-status-unknown' : paired ? 'sg-status-connected' : 'sg-status-local'}">${screen.outputPaused ? 'En reposo' : paired ? 'Vinculada' : 'Modo de prueba'}</span><span class="sg-sub">${screen.outputPaused ? 'Sigue vinculada y no muestra contenido' : paired ? 'Conexión pendiente de comprobar' : 'No conectada a una TV'}</span></div></td><td><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPublishDrawer('${escAttr(screen.id)}')">Elegir qué mostrar</button>${!screen.outputPaused && (screen.publishedContentId || paired) ? `<button class="btn btn-ghost btn-sm" onclick="signageStopOutput('${escAttr(screen.id)}')"${_signageStopInFlight.has(screen.id) ? ' disabled' : ''}>${_signageStopInFlight.has(screen.id) ? 'Deteniendo…' : stopLabel}</button>` : ''}${paired ? liveEnabled ? `<button class="btn btn-ghost btn-sm" onclick="signageStartLive('${escAttr(screen.id)}')">Compartir mi pantalla</button>` : '<button class="btn btn-ghost btn-sm" disabled>Compartir pantalla · Próximamente</button>' : `<button class="btn btn-ghost btn-sm" onclick="signageShowPlayer('${escAttr(screen.id)}')">Ver pantalla</button>`}${screen.history.length ? `<button class="btn btn-ghost btn-sm" onclick="signageRollback('${escAttr(screen.id)}')">Deshacer cambio</button>` : ''}</div></td></tr>`
-  }).join('')}</tbody></table></div>`
+function signageScreenState(screen) {
+  if (screen.outputPaused) return { label: 'En reposo', detail: 'Muestra la pantalla de descanso', cls: 'warn' }
+  if (screen.kind !== 'paired') return { label: 'Modo de prueba', detail: 'No conectada a una TV', cls: 'local' }
+  if (screen.connectionState === 'connected') return { label: screen.playbackStatus === 'playing' ? 'Reproducción reportada' : 'Reproductor conectado', detail: screen.lastSeenAt ? `Actualizado ${signageFormatTime(screen.lastSeenAt)}` : 'Heartbeat reciente', cls: 'ok' }
+  return { label: 'Sin señal reciente', detail: screen.lastSeenAt ? `Último reporte ${signageFormatTime(screen.lastSeenAt)}` : 'Aún no reporta actividad', cls: 'off' }
 }
+
+function signageScreenTileHtml(screen) {
+  const content = signageContentById(screen.publishedContentId)
+  const state = signageScreenState(screen)
+  const selected = _signageSelectedScreenIds.has(screen.id)
+  const preview = screen.outputPaused ? '<div class="sg-screen-preview sg-screen-rest"><img src="SIERRA_Primary_Blue02.svg" alt=""><span>Descanso SIERRA</span></div>' : content ? `<div class="sg-screen-preview sg-theme-${escAttr(content.theme)}"><small>${esc(signageTypeLabel(content.type))}</small><b>${esc(content.title)}</b></div>` : '<div class="sg-screen-preview sg-screen-rest"><img src="SIERRA_Primary_Blue02.svg" alt=""><span>Listo para mostrar</span></div>'
+  return `<article class="sg-screen-tile${selected ? ' selected' : ''}">${preview}<button class="sg-screen-select" type="button" aria-pressed="${selected}" aria-label="${selected ? 'Quitar' : 'Seleccionar'} ${escAttr(screen.name)}" onclick="signageToggleScreenSelection('${escAttr(screen.id)}')">${selected ? siIcon('check',16) : ''}</button><div class="sg-screen-copy"><div class="sg-screen-title"><b>${esc(screen.name)}</b><span class="sg-state sg-state-${state.cls}"><i></i>${esc(state.label)}</span></div><span>${esc(state.detail)}</span></div><div class="sg-screen-actions"><button class="btn btn-ghost btn-sm" onclick="signageOpenEditScreenDrawer('${escAttr(screen.id)}')">Configurar</button><button class="btn btn-secondary btn-sm" onclick="signageOpenPublishDrawer('${escAttr(screen.id)}')">Mostrar</button>${!screen.outputPaused ? `<button class="btn btn-ghost btn-sm" onclick="signageStopOutput('${escAttr(screen.id)}')">Reposo</button>` : ''}</div></article>`
+}
+
+function signageSpacesHtml() {
+  if (!_signageState.screens.length) return emptyStateHtml({ title: 'Aún no agregas una pantalla', desc: 'Agrega una pantalla para empezar.', actionLabel: 'Agregar pantalla', actionOnClick: 'signageOpenScreenDrawer()' })
+  const spaces = [..._signageState.spaces, { id: '', name: 'Sin espacio' }]
+  return `<div class="sg-space-grid">${spaces.map(space => {
+    const screens = _signageState.screens.filter(screen => (screen.spaceId || '') === space.id)
+    if (!screens.length && !space.id) return ''
+    return `<section class="sg-space"><div class="sg-space-head"><div><span class="sg-space-icon">${siIcon('grid',16)}</span><span><b>${esc(space.name)}</b><small>${screens.length} pantalla${screens.length === 1 ? '' : 's'}</small></span></div>${screens.length ? `<button class="btn btn-ghost btn-sm" onclick="signageSelectSpace('${escAttr(space.id)}')">Seleccionar ${screens.length === 1 ? 'pantalla' : 'todas'}</button>` : ''}</div><div class="sg-screen-grid">${screens.map(signageScreenTileHtml).join('')}</div></section>`
+  }).join('')}</div>`
+}
+
+function signageSelectionBarHtml() {
+  const screens = _signageState.screens.filter(screen => _signageSelectedScreenIds.has(screen.id))
+  if (!screens.length) return ''
+  return `<div class="sg-selection-bar" role="region" aria-label="Pantallas seleccionadas"><div><b>${screens.length} pantalla${screens.length === 1 ? '' : 's'} seleccionada${screens.length === 1 ? '' : 's'}</b><span>${screens.map(screen => esc(screen.name)).join(', ')}</span></div><div class="sg-actions"><button class="btn btn-ghost btn-sm" onclick="signageClearSelection()">Cancelar</button><button class="btn btn-secondary btn-sm" onclick="signageStopSelected()">Pantalla de descanso</button><button class="btn btn-primary btn-sm" onclick="signageOpenPublishDrawer()">Mostrar contenido</button></div></div>`
+}
+
+function signageToggleScreenSelection(screenId) {
+  if (_signageSelectedScreenIds.has(screenId)) _signageSelectedScreenIds.delete(screenId); else _signageSelectedScreenIds.add(screenId)
+  renderSignageHome()
+}
+function signageClearSelection() { _signageSelectedScreenIds.clear(); renderSignageHome() }
+function signageSelectSpace(spaceId) { _signageState.screens.filter(screen => (screen.spaceId || '') === spaceId).forEach(screen => _signageSelectedScreenIds.add(screen.id)); renderSignageHome() }
+function signageStopSelected() { return signageStopMany([..._signageSelectedScreenIds]) }
+
+function signageSpaceChoicesHtml(selectedId = '') {
+  return `<div class="sg-space-choices" role="radiogroup" aria-label="Espacio"><button type="button" class="sg-choice${selectedId ? '' : ' selected'}" data-space-id="" aria-pressed="${!selectedId}" onclick="signageChooseSpace(this)">Sin espacio</button>${_signageState.spaces.map(space => `<button type="button" class="sg-choice${selectedId === space.id ? ' selected' : ''}" data-space-id="${escAttr(space.id)}" aria-pressed="${selectedId === space.id}" onclick="signageChooseSpace(this)">${esc(space.name)}</button>`).join('')}</div>`
+}
+function signageChooseSpace(button) { button.closest('.sg-space-choices').querySelectorAll('[data-space-id]').forEach(option=>{const selected=option===button;option.classList.toggle('selected',selected);option.setAttribute('aria-pressed',String(selected))}) }
+
+function signageOpenSpaceDrawer() {
+  openSideDrawer({ eyebrow:'Pantallas · Organización', title:'Crear espacio', onTab:()=>{
+    document.getElementById('sd-body').innerHTML=`<form class="sg-form" onsubmit="signageSubmitSpace(event)" novalidate><div class="sg-form-note"><b>Un espacio organiza pantallas.</b> No cambia credenciales ni transmite contenido.</div><label class="sg-field" for="sg-space-name"><span>Nombre del espacio</span><input class="control-input" id="sg-space-name" maxlength="80" placeholder="Ej. Sala de coordinación"><small id="sg-space-name-error" class="sg-error"></small></label><div class="sg-form-actions"><button type="button" class="btn btn-secondary" onclick="closeSideDrawer()">Cancelar</button><button class="btn btn-primary" type="submit">Crear espacio</button></div></form>`;requestAnimationFrame(()=>document.getElementById('sg-space-name')?.focus())
+  } })
+}
+
+async function signageSubmitSpace(event) {
+  event.preventDefault();const name=document.getElementById('sg-space-name').value.trim();const errorEl=document.getElementById('sg-space-name-error');errorEl.textContent=''
+  try {
+    const result=SignagePhase1.createSpace(_signageState,{name},signageContext())
+    if(signagePublicConfig().enabled){const config=signagePublicConfig();const remote=await signageBackendClient().saveSpace({name,siteId:config.siteId});result.space.id=remote.space.id;result.space.kind='paired';result.space.siteId=remote.space.site_id;result.space.updatedAt=remote.space.updated_at}
+    if(!signageSaveState(result.state))return;closeSideDrawer();renderSignageHome();toast(`Espacio “${result.space.name}” creado.`)
+  } catch(error){if(error.fields?.name)errorEl.textContent=error.fields.name;else errorEl.textContent=error.message||'No se pudo crear el espacio.'}
+}
+
+function signageOpenEditScreenDrawer(screenId) {
+  const screen=_signageState.screens.find(item=>item.id===screenId);if(!screen)return
+  openSideDrawer({eyebrow:'Pantallas · Configuración',title:screen.name,onTab:()=>{document.getElementById('sd-body').innerHTML=`<form class="sg-form" onsubmit="signageSubmitScreenUpdate(event,'${escAttr(screen.id)}')" novalidate><label class="sg-field" for="sg-edit-screen-name"><span>Nombre visible</span><input class="control-input" id="sg-edit-screen-name" maxlength="80" value="${escAttr(screen.name)}"><small id="sg-edit-screen-name-error" class="sg-error"></small></label><fieldset class="sg-theme-field"><legend>Espacio</legend>${signageSpaceChoicesHtml(screen.spaceId||'')}<small id="sg-edit-screen-spaceId-error" class="sg-error"></small></fieldset><div class="sg-form-note"><b>Estado real:</b> ${esc(signageScreenState(screen).label)}. Renombrar o mover no revoca la vinculación.</div><div class="sg-form-actions"><button type="button" class="btn btn-secondary" onclick="closeSideDrawer()">Cancelar</button><button class="btn btn-primary" type="submit">Guardar cambios</button></div></form>`}})
+}
+
+async function signageSubmitScreenUpdate(event,screenId){event.preventDefault();const screen=_signageState.screens.find(item=>item.id===screenId);if(!screen)return;const input={name:document.getElementById('sg-edit-screen-name').value,spaceId:document.querySelector('.sg-space-choices .selected')?.dataset.spaceId||null};try{if(screen.kind==='paired'){const remote=await signageBackendClient().updateDevice(screen.id,{name:input.name,spaceId:input.spaceId,expectedRevision:screen.backendRevision});screen.backendRevision=Number(remote.device.revision)||screen.backendRevision}const result=SignagePhase1.updateScreen(_signageState,screenId,input,signageContext());if(!signageSaveState(result.state))return;closeSideDrawer();renderSignageHome();toast('Pantalla actualizada. Su vinculación se conserva.')}catch(error){const errorEl=document.getElementById('sg-edit-screen-'+(error.fields?.name?'name':'spaceId')+'-error');if(errorEl)errorEl.textContent=error.fields?.name||error.fields?.spaceId||error.message||'No se pudo actualizar la pantalla.'}}
 
 function signageOpenScreenDrawer() {
   if (!signageContext().canManage) { toast('No tienes permiso para agregar pantallas.'); return }
@@ -722,7 +842,7 @@ function signageOpenScreenDrawer() {
       <form class="sg-form" onsubmit="signageSubmitPairing(event)" novalidate>
         <label class="sg-field" for="sg-pair-code"><span>Código de la pantalla <b aria-hidden="true">*</b></span><input class="control-input sg-code-input" id="sg-pair-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000"><small id="sg-pair-code-error" class="sg-error"></small></label>
         <label class="sg-field" for="sg-pair-name"><span>¿Cómo quieres llamarla?</span><input class="control-input" id="sg-pair-name" maxlength="80" placeholder="Ej. Comedor planta 1"><small id="sg-pair-name-error" class="sg-error"></small></label>
-        <label class="sg-field" for="sg-pair-plant"><span>¿Dónde está?</span><input class="control-input" id="sg-pair-plant" maxlength="80" placeholder="Ej. Planta 1"><small id="sg-pair-plant-error" class="sg-error"></small></label>
+        <fieldset class="sg-theme-field"><legend>Espacio</legend>${signageSpaceChoicesHtml()}<small class="sg-muted">Puedes asignarla después sin volver a vincularla.</small></fieldset>
         <small id="sg-pair-service-error" class="sg-error" role="alert"></small>
         <div class="sg-form-actions"><button id="sg-pair-submit" type="submit" class="btn btn-primary" disabled>Vincular pantalla</button></div>
       </form>
@@ -739,7 +859,7 @@ async function signageCheckBackendAvailability() {
   try {
     if (!signagePublicConfig().enabled) throw new Error('Pantallas no está habilitado.')
     await signageBackendClient().health()
-    if (host) host.innerHTML = '<b>En la televisión o reproductor:</b> abre <a href="signage-player.html?build=P-20261029-6" target="_blank" rel="noopener">el reproductor de Pantallas</a>. Verás un código de 6 números.'
+    if (host) host.innerHTML = '<b>En la televisión o reproductor:</b> abre <a href="signage-player.html?build=P-20261029-7" target="_blank" rel="noopener">el reproductor de Pantallas</a>. Verás un código de 6 números.'
     if (submit) submit.disabled = false
     document.getElementById('sg-pair-code')?.focus()
   } catch {
@@ -752,9 +872,10 @@ async function signageSubmitPairing(event) {
   if (_signagePairingInFlight) return
   const code = document.getElementById('sg-pair-code').value.trim()
   const name = document.getElementById('sg-pair-name').value.trim()
-  const plant = document.getElementById('sg-pair-plant').value.trim()
+  const spaceId = document.querySelector('.sg-space-choices .selected')?.dataset.spaceId || null
+  const plant = _signageState.spaces.find(space => space.id === spaceId)?.name || 'Sin espacio'
   const errorEl = document.getElementById('sg-pair-service-error'); errorEl.textContent = ''
-  if (!/^\d{6}$/.test(code) || name.length < 3 || plant.length < 2) { errorEl.textContent = 'Completa el código, el nombre y la ubicación.'; return }
+  if (!/^\d{6}$/.test(code) || name.length < 3) { errorEl.textContent = 'Completa el código y el nombre.'; return }
   const submit = event.submitter || event.currentTarget?.querySelector('[type="submit"]')
   _signagePairingInFlight = true
   if (submit) { submit.disabled = true; submit.textContent = 'Vinculando…' }
@@ -762,6 +883,7 @@ async function signageSubmitPairing(event) {
     const config = signagePublicConfig()
     if (!config.enabled) throw new Error('El servicio central de Pantallas todavía no está habilitado.')
     const paired = await signageBackendClient().pairDevice({ code, name, plant, workspaceId: config.workspaceId, siteId: config.siteId, profile: 'Horizontal · 1920 × 1080' })
+    if (spaceId) paired.device = (await signageBackendClient().updateDevice(paired.device.id, { name, spaceId, expectedRevision: 0 })).device
     const device = signageRemoteScreen(paired.device, { plant, profile: 'Horizontal · 1920 × 1080' })
     const result = SignagePhase1.registerPairedScreen(_signageState, device, signageContext())
     if (!signageSaveState(result.state)) return
@@ -786,7 +908,7 @@ function signageOpenLocalScreenDrawer() {
     document.getElementById('sd-body').innerHTML = `<form class="sg-form" onsubmit="signageSubmitScreen(event)" novalidate>
       <div class="sg-form-note"><b>Estás en modo de prueba.</b> Esta pantalla se verá únicamente en este navegador. Para conectar una TV real se necesita el servicio central.</div>
       <label class="sg-field" for="sg-screen-name"><span>Nombre de la pantalla <b aria-hidden="true">*</b></span><input class="control-input" id="sg-screen-name" maxlength="80" placeholder="Ej. Comedor de prueba" aria-describedby="sg-screen-name-error"><small id="sg-screen-name-error" class="sg-error"></small></label>
-      <label class="sg-field" for="sg-screen-plant"><span>Planta o ubicación <b aria-hidden="true">*</b></span><input class="control-input" id="sg-screen-plant" maxlength="80" placeholder="Ej. Planta de prueba" aria-describedby="sg-screen-plant-error"><small id="sg-screen-plant-error" class="sg-error"></small></label>
+      <fieldset class="sg-theme-field"><legend>Espacio</legend>${signageSpaceChoicesHtml()}<small id="sg-screen-spaceId-error" class="sg-error"></small></fieldset>
       <fieldset class="sg-theme-field"><legend>Orientación declarada</legend><div class="sg-type-options" role="radiogroup"><button type="button" class="sg-type-option selected" data-screen-orientation="horizontal" role="radio" aria-checked="true" onclick="signageChooseScreenOrientation(this)">Horizontal</button><button type="button" class="sg-type-option" data-screen-orientation="vertical" role="radio" aria-checked="false" onclick="signageChooseScreenOrientation(this)">Vertical</button></div><small id="sg-screen-orientation-error" class="sg-error"></small></fieldset>
       <div class="sg-dimensions"><label class="sg-field" for="sg-screen-width"><span>Ancho declarado (px)</span><input class="control-input" id="sg-screen-width" type="number" min="320" max="7680" step="1" value="1920" aria-describedby="sg-screen-width-error"><small id="sg-screen-width-error" class="sg-error"></small></label><label class="sg-field" for="sg-screen-height"><span>Alto declarado (px)</span><input class="control-input" id="sg-screen-height" type="number" min="320" max="7680" step="1" value="1080" aria-describedby="sg-screen-height-error"><small id="sg-screen-height-error" class="sg-error"></small></label></div>
       <div class="sg-form-actions"><button type="button" class="btn btn-secondary" onclick="closeSideDrawer()">Cancelar</button><button type="submit" class="btn btn-primary">Agregar pantalla</button></div>
@@ -812,7 +934,8 @@ function signageSubmitScreen(event) {
   document.querySelectorAll('.sg-error').forEach(el => { el.textContent = '' })
   const input = {
     name: document.getElementById('sg-screen-name').value,
-    plant: document.getElementById('sg-screen-plant').value,
+    spaceId: document.querySelector('.sg-space-choices .selected')?.dataset.spaceId || null,
+    plant: _signageState.spaces.find(space => space.id === document.querySelector('.sg-space-choices .selected')?.dataset.spaceId)?.name || 'Sin espacio',
     orientation: document.querySelector('[data-screen-orientation].selected')?.dataset.screenOrientation,
     width: document.getElementById('sg-screen-width').value,
     height: document.getElementById('sg-screen-height').value,
@@ -835,9 +958,37 @@ function signageSubmitScreen(event) {
 }
 
 function signageLibraryHtml() {
-  if (!_signageState.contents.length) return emptyStateHtml({ title: 'Aún no agregas contenido', desc: 'Agrega un mensaje, imagen, video o enlace y después elige dónde mostrarlo.', actionLabel: 'Agregar contenido', actionOnClick: 'signageOpenContentDrawer()' })
-  return `<div class="sg-library">${_signageState.contents.map(content => `<article class="panel sg-content-card"><div class="sg-content-preview sg-theme-${escAttr(content.theme)}" aria-hidden="true"><span>${content.type === 'image' ? 'IMAGEN' : content.type === 'video' ? 'VIDEO' : content.type === 'link' ? 'ENLACE' : esc(content.title)}</span></div><div class="sg-content-copy"><div><h4>${esc(content.title)}</h4><p>${esc(content.body || content.alt || content.url || '')}</p></div><div class="sg-sub">${esc(signageTypeLabel(content.type))} · ${esc(signageThemeLabel(content.theme))} · ${esc(content.createdBy)}</div></div></article>`).join('')}</div>`
+  const curated = `<div class="sg-curated-note"><b>SIERRA para comenzar</b><span>Medios públicos del sitio oficial, verificados el 29 oct 2026. Se reproducen desde su URL pública; la cadena completa de licencias no está documentada.</span></div><div class="sg-library sg-library-curated">${SIERRA_CURATED_CONTENT.map(item => `<article class="panel sg-content-card sg-curated-card"><div class="sg-content-preview sg-curated-preview">${item.poster || item.type === 'image' ? `<img src="${escAttr(item.poster || item.mediaUrl)}" alt="" onerror="this.hidden=true;this.parentNode.classList.add('fallback')">` : ''}<span>${item.type === 'video' ? 'VIDEO SIERRA' : 'IMAGEN SIERRA'}</span></div><div class="sg-content-copy"><div><h4>${esc(item.title)}</h4><p>${esc(item.body)}</p></div><div class="sg-content-footer"><span class="sg-sub">${esc(signageTypeLabel(item.type))} · fuente pública SIERRA</span><button class="btn btn-secondary btn-sm" onclick="signageOpenCuratedDestinations('${escAttr(item.id)}')">Mostrar en…</button></div></div></article>`).join('')}</div>`
+  const personal = _signageState.contents.length ? `<h4 class="sg-library-title">Tu contenido</h4><div class="sg-library">${_signageState.contents.map(content => `<article class="panel sg-content-card"><div class="sg-content-preview sg-theme-${escAttr(content.theme)}" aria-hidden="true"><span>${content.type === 'image' ? 'IMAGEN' : content.type === 'video' ? 'VIDEO' : content.type === 'link' ? 'ENLACE' : esc(content.title)}</span></div><div class="sg-content-copy"><div><h4>${esc(content.title)}</h4><p>${esc(content.body || content.alt || content.url || '')}</p></div><div class="sg-content-footer"><span class="sg-sub">${esc(signageTypeLabel(content.type))} · ${esc(signageThemeLabel(content.theme))} · ${esc(content.createdBy)}</span><button class="btn btn-secondary btn-sm" onclick="signageOpenContentDestinations('${escAttr(content.id)}')">Mostrar en…</button></div></div></article>`).join('')}</div>` : `<div class="sg-empty-inline"><b>Aún no agregas contenido propio</b><span>Puedes usar la selección SIERRA o agregar un mensaje o enlace.</span></div>`
+  return curated + personal
 }
+
+function signageEnsureCuratedContent(curatedId) {
+  const item = SIERRA_CURATED_CONTENT.find(entry => entry.id === curatedId)
+  if (!item) throw new Error('Este contenido SIERRA ya no está disponible.')
+  const existing = _signageState.contents.find(content => content.curatedId === curatedId)
+  if (existing) return existing
+  const result = SignagePhase1.createContent(_signageState, item, signageContext())
+  result.content.curated = true; result.content.curatedId = item.id; result.content.poster = item.poster || ''; result.content.sourceUrl = item.sourceUrl
+  if (!signageSaveState(result.state)) throw new Error('No se pudo guardar la selección SIERRA en este navegador.')
+  return result.content
+}
+
+function signageOpenCuratedDestinations(curatedId) {
+  try { signageOpenContentDestinations(signageEnsureCuratedContent(curatedId).id) } catch (error) { toast(error.message || 'No se pudo preparar el contenido SIERRA.') }
+}
+
+function signageOpenContentDestinations(contentId) {
+  const content = signageContentById(contentId)
+  if (!content) { toast('El contenido ya no está disponible.'); return }
+  if (!_signageState.screens.length) { toast('Agrega una pantalla antes de elegir dónde mostrar.'); return }
+  openSideDrawer({ eyebrow: 'Pantallas · Destinos', title: content.title, onTab: () => {
+    document.getElementById('sd-body').innerHTML = `<div class="sg-publish"><div class="sg-form-note"><b>Duplicar</b> muestra la pieza completa en cada pantalla elegida. No crea un videowall.</div><p>Elige uno o varios destinos.</p><div class="sg-destination-list">${_signageState.spaces.concat([{ id:'', name:'Sin espacio' }]).map(space => { const screens=_signageState.screens.filter(screen=>(screen.spaceId||'')===space.id); return screens.length?`<div><b>${esc(space.name)}</b>${screens.map(screen=>`<button type="button" class="sg-destination" data-screen-id="${escAttr(screen.id)}" aria-pressed="false" onclick="signageToggleDrawerDestination(this)"><span class="sg-destination-check"></span><span><strong>${esc(screen.name)}</strong><small>${esc(signageScreenState(screen).label)}</small></span></button>`).join('')}</div>`:'' }).join('')}</div><div class="sg-form-actions"><button class="btn btn-secondary" onclick="closeSideDrawer()">Cancelar</button><button class="btn btn-primary" onclick="signagePublishDrawerSelection('${escAttr(content.id)}')">Revisar y mostrar</button></div></div>`
+  } })
+}
+
+function signageToggleDrawerDestination(button) { const selected=!button.classList.contains('selected');button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));button.querySelector('.sg-destination-check').innerHTML=selected?siIcon('check',14):'' }
+function signagePublishDrawerSelection(contentId) { const ids=[...document.querySelectorAll('.sg-destination.selected')].map(button=>button.dataset.screenId);if(!ids.length){toast('Selecciona al menos una pantalla.');return}signageOpenPublishDrawer(ids,contentId) }
 
 function signageProgrammingHtml() {
   if (!_signageState.playlists.length && !_signageState.schedules.length) return emptyStateHtml({ title: 'Aún no creas listas ni horarios', desc: 'Cuando tengas contenido, puedes combinarlo en una lista y elegir cuándo mostrarlo.' })
@@ -1061,41 +1212,82 @@ async function signageSubmitSchedule(event) {
   }
 }
 
-function signageOpenPublishDrawer(screenId) {
+function signageTargetIds(input) {
+  const values = Array.isArray(input) ? input : input ? [input] : [..._signageSelectedScreenIds]
+  return [...new Set(values)].filter(id => _signageState.screens.some(screen => screen.id === id))
+}
+
+function signageOpenPublishDrawer(screenIds, preferredContentId) {
   if (!signageContext().canManage) { toast('No tienes permiso para publicar.'); return }
-  const screen = _signageState.screens.find(item => item.id === screenId)
-  if (!screen) { toast('La pantalla ya no está disponible.'); return }
-  openSideDrawer({ eyebrow: screen.kind === 'paired' ? 'Pantalla vinculada' : 'Modo de prueba', title: screen.name, onTab: () => {
-    const scope = screen.kind === 'paired' ? '<b>Alcance:</b> el contenido se enviará únicamente a esta pantalla vinculada.' : '<b>Alcance:</b> solo cambia el reproductor local de prueba. No hay sincronización con una televisión.'
-    document.getElementById('sd-body').innerHTML = `<div class="sg-publish"><div class="sg-form-note">${scope}</div><p>Selecciona la pieza que debe quedar activa.${screen.outputPaused ? ' Esto reanudará la pantalla.' : ''}</p><div class="sg-publish-list">${_signageState.contents.map(content => `<button type="button" class="sg-publish-item${!screen.outputPaused && screen.publishedContentId === content.id ? ' current' : ''}" onclick="signagePublish('${escAttr(screen.id)}','${escAttr(content.id)}')"><span class="sg-theme-swatch sg-theme-${escAttr(content.theme)}"></span><span><b>${esc(content.title)}</b><small>${esc(content.body)}</small></span>${!screen.outputPaused && screen.publishedContentId === content.id ? '<em>Actual</em>' : ''}</button>`).join('')}</div></div>`
+  const ids = signageTargetIds(screenIds)
+  const screens = _signageState.screens.filter(screen => ids.includes(screen.id))
+  if (!screens.length) { toast('Selecciona al menos una pantalla.'); return }
+  const preferred = preferredContentId ? signageContentById(preferredContentId) : null
+  if (preferredContentId && !preferred) { toast('El contenido ya no está disponible.'); return }
+  openSideDrawer({ eyebrow: 'Pantallas · Mostrar', title: preferred ? 'Revisar envío' : 'Elegir contenido', onTab: () => {
+    const targets = screens.map(screen => `<li><b>${esc(screen.name)}</b><span>${esc(_signageState.spaces.find(space => space.id === screen.spaceId)?.name || 'Sin espacio')}</span></li>`).join('')
+    const scope = `<div class="sg-form-note"><b>Duplicar en ${screens.length} pantalla${screens.length === 1 ? '' : 's'}.</b> Cada destino mostrará la pieza completa. Esto no crea un videowall.</div><ul class="sg-target-summary">${targets}</ul>`
+    const contents = preferred ? [preferred] : _signageState.contents
+    document.getElementById('sd-body').innerHTML = `<div class="sg-publish">${scope}<p>${preferred ? 'Confirma qué se reemplazará en estos destinos.' : 'Selecciona la pieza que debe quedar activa.'}</p><div class="sg-publish-list">${contents.map(content => `<button type="button" class="sg-publish-item" onclick="signagePublishMany(${escAttr(JSON.stringify(ids))},'${escAttr(content.id)}')"><span class="sg-theme-swatch sg-theme-${escAttr(content.theme)}"></span><span><b>${esc(content.title)}</b><small>${esc(content.body || content.alt || content.url || '')}</small></span><em>${preferred ? 'Mostrar ahora' : 'Elegir'}</em></button>`).join('') || '<div class="sg-empty-inline"><b>No hay contenido disponible</b><span>Agrega contenido o elige una pieza de la selección SIERRA.</span></div>'}</div><button type="button" class="sg-rest-action" onclick="signageStopMany(${escAttr(JSON.stringify(ids))})"><span><b>Pantalla de descanso</b><small>Deja estos destinos en reposo sin desvincularlos.</small></span><span aria-hidden="true">→</span></button></div>`
   } })
 }
 
-async function signagePublish(screenId, contentId) {
+async function signageEnsureRemoteContent(content) {
+  if (content.backendContentId) return content.backendContentId
+  const isCurated = content.curated === true && SIERRA_CURATED_CONTENT.some(item => item.id === content.curatedId && item.mediaUrl === content.mediaUrl)
+  if ((content.type === 'image' || content.type === 'video') && !isCurated) throw new Error('Este archivo todavía no está guardado en el servicio de Pantallas.')
+  const remote = await signageBackendClient().createContent({ type: content.type, title: content.title, body: content.body, alt: content.alt, url: content.url, mediaUrl: isCurated ? content.mediaUrl : undefined })
+  content.backendContentId = remote.content.id
+  content.backendRevision = remote.content.revision
+  content.backendStatus = 'draft'
+  return content.backendContentId
+}
+
+function signageBatchResultHtml(title, successes, failures) {
+  return `<div class="sg-batch-result" role="status"><h3>${esc(title)}</h3>${successes.length ? `<div class="sg-result-ok"><b>${successes.length} completada${successes.length === 1 ? '' : 's'}</b><ul>${successes.map(item => `<li>${esc(item.name)}</li>`).join('')}</ul></div>` : ''}${failures.length ? `<div class="sg-result-fail" role="alert"><b>${failures.length} no se pudo${failures.length === 1 ? '' : 'ieron'} actualizar</b><ul>${failures.map(item => `<li><span>${esc(item.name)}</span><small>${esc(item.message)}</small></li>`).join('')}</ul><p>Puedes cerrar y volver a intentar solo los destinos fallidos.</p></div>` : ''}<div class="sg-form-actions"><button class="btn btn-primary" onclick="closeSideDrawer()">Listo</button></div></div>`
+}
+
+async function signagePublishMany(screenIds, contentId) {
+  if (_signageBatchInFlight) return
+  const ids = signageTargetIds(screenIds)
+  const content = signageContentById(contentId)
+  if (!ids.length || !content) { toast('El contenido o los destinos ya no están disponibles.'); return }
+  _signageBatchInFlight = true
+  const successes = [], failures = []
   try {
-    const screen = _signageState.screens.find(item => item.id === screenId)
-    const content = signageContentById(contentId)
-    if (screen?.kind === 'paired') {
-      let backendContentId = content?.backendContentId
-      if (!backendContentId && content && (content.type === 'message' || content.type === 'link')) {
-        const remote = await signageBackendClient().createContent({ type: content.type, title: content.title, body: content.body, url: content.url })
-        backendContentId = remote.content.id; content.backendContentId = backendContentId; content.backendRevision = remote.content.revision; content.backendStatus = 'draft'
-      }
-      if (!backendContentId) throw new Error('Para mostrar esta imagen o video en una pantalla vinculada, vuelve a agregarlo usando “Archivo de imagen o video”.')
+    const paired = _signageState.screens.filter(screen => ids.includes(screen.id) && screen.kind === 'paired')
+    let backendContentId = null
+    if (paired.length) {
+      backendContentId = await signageEnsureRemoteContent(content)
       if (content.backendStatus !== 'approved') {
         await signageBackendClient().approveContent(backendContentId, content.backendRevision)
         content.backendStatus = 'approved'
       }
-      const remotePublication = await signageBackendClient().publish(screen.id, backendContentId)
-      screen.backendRevision = Number(remotePublication?.publication?.device_revision) || screen.backendRevision || 0
     }
-    const result = SignagePhase1.publishContent(_signageState, screenId, contentId, signageContext())
-    if (!signageSaveState(result.state)) return
-    closeSideDrawer()
+    for (const id of ids) {
+      const screen = _signageState.screens.find(item => item.id === id)
+      if (!screen) continue
+      try {
+        if (screen.kind === 'paired') {
+          const remote = await signageBackendClient().publish(screen.id, backendContentId)
+          screen.backendRevision = Number(remote?.publication?.device_revision) || screen.backendRevision || 0
+        }
+        const result = SignagePhase1.publishContent(_signageState, screen.id, content.id, signageContext())
+        _signageState = result.state
+        successes.push({ id: screen.id, name: result.screen.name })
+      } catch (error) { failures.push({ id: screen.id, name: screen.name, message: error.message || 'No se pudo actualizar.' }) }
+    }
+    if (successes.length && !signageSaveState(_signageState)) return
+    _signageSelectedScreenIds.clear()
     renderSignageHome()
-    toast(screen?.kind === 'paired' ? `Contenido enviado a ${result.screen.name}.` : `Contenido mostrado en ${result.screen.name} dentro de este navegador.`)
-  } catch (error) { toast(error.message || 'No se pudo publicar localmente.') }
+    const body = document.getElementById('sd-body')
+    if (body) body.innerHTML = signageBatchResultHtml('Contenido enviado', successes, failures)
+    if (!failures.length) toast(`Contenido enviado a ${successes.length} pantalla${successes.length === 1 ? '' : 's'}.`)
+  } catch (error) { toast(error.message || 'No se pudo preparar el contenido para estas pantallas.') }
+  finally { _signageBatchInFlight = false }
 }
+
+function signagePublish(screenId, contentId) { return signagePublishMany([screenId], contentId) }
 
 function signageRollback(screenId) {
   const screen = _signageState.screens.find(item => item.id === screenId)
@@ -1108,29 +1300,40 @@ function signageRollback(screenId) {
   } catch (error) { toast(error.message || 'No se pudo restaurar la publicación.') }
 }
 
-async function signageStopOutput(screenId) {
-  const screen = _signageState.screens.find(item => item.id === screenId)
-  if (!screen || _signageStopInFlight.has(screenId)) return
-  const consequence = screen.kind === 'paired'
-    ? `¿Dejar de transmitir en ${screen.name}? La pantalla seguirá vinculada, conservará su contenido y quedará en reposo hasta que elijas qué mostrar.`
-    : `¿Dejar de mostrar contenido en ${screen.name}? La pantalla de prueba quedará en reposo hasta que elijas qué mostrar.`
-  if (!confirm(consequence)) return
-  _signageStopInFlight.add(screenId); renderSignageHome()
+async function signageStopMany(screenIds, options = {}) {
+  const ids = signageTargetIds(screenIds)
+  if (!ids.length || _signageBatchInFlight) return
+  const names = _signageState.screens.filter(screen => ids.includes(screen.id)).map(screen => screen.name)
+  if (!options.confirmed && !confirm(`¿Mostrar la pantalla de descanso en ${ids.length === 1 ? names[0] : `${ids.length} pantallas`}? Seguirán vinculadas y conservarán su contenido y horarios.`)) return
+  _signageBatchInFlight = true
+  const successes = [], failures = []
   try {
-    if (_signageLiveSender && _signageLiveScreenId === screenId) await _signageLiveSender.stop()
-    if (screen.kind === 'paired') {
-      const remote = await signageBackendClient().stopOutput(screen.id, screen.backendRevision)
-      screen.backendRevision = Number(remote?.device?.revision || remote?.device_revision) || screen.backendRevision || 0
+    for (const id of ids) {
+      const screen = _signageState.screens.find(item => item.id === id)
+      if (!screen || _signageStopInFlight.has(id)) continue
+      _signageStopInFlight.add(id)
+      try {
+        if (_signageLiveSender && _signageLiveScreenId === id) await _signageLiveSender.stop()
+        if (screen.kind === 'paired') {
+          const remote = await signageBackendClient().stopOutput(screen.id, screen.backendRevision)
+          screen.backendRevision = Number(remote?.device?.revision || remote?.device_revision) || screen.backendRevision || 0
+        }
+        const result = SignagePhase1.stopOutput(_signageState, id, signageContext())
+        _signageState = result.state
+        successes.push({ id, name: result.screen.name })
+      } catch (error) { failures.push({ id, name: screen.name, message: error.message || 'No se pudo dejar en reposo.' }) }
+      finally { _signageStopInFlight.delete(id) }
     }
-    const result = SignagePhase1.stopOutput(_signageState, screenId, signageContext())
-    if (!signageSaveState(result.state)) return
-    toast(screen.kind === 'paired' ? `${result.screen.name} quedó en reposo. Sigue vinculada y su contenido se conservó.` : `${result.screen.name} dejó de mostrar contenido en este navegador.`)
-  } catch (error) {
-    toast(error.message || 'No se pudo detener esta pantalla. Intenta de nuevo.')
-  } finally {
-    _signageStopInFlight.delete(screenId); renderSignageHome()
-  }
+    if (successes.length && !signageSaveState(_signageState)) return
+    ids.forEach(id => _signageSelectedScreenIds.delete(id))
+    renderSignageHome()
+    const body = document.getElementById('sd-body')
+    if (body && options.showResult !== false) body.innerHTML = signageBatchResultHtml('Pantalla de descanso', successes, failures)
+    if (!failures.length) toast(`${successes.length} pantalla${successes.length === 1 ? '' : 's'} en reposo.`)
+  } finally { _signageBatchInFlight = false; renderSignageHome() }
 }
+
+function signageStopOutput(screenId) { return signageStopMany([screenId]) }
 
 async function signageStartLive(screenId) {
   const screen = _signageState.screens.find(item => item.id === screenId)

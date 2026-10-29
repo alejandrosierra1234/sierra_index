@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ApiError, createSignageHandler } from '../../supabase/functions/_shared/signage-api-core.mjs'
+import { ApiError, createSignageHandler, isAllowedCuratedMedia } from '../../supabase/functions/_shared/signage-api-core.mjs'
 
 const WORKSPACE='20000000-0000-4000-8000-000000000001', OTHER='20000000-0000-4000-8000-000000000002'
 const SITE='30000000-0000-4000-8000-000000000001', DEVICE='40000000-0000-4000-8000-000000000001'
@@ -31,6 +31,13 @@ const adapter={
   sendSignal:async input=>({sequence:1,type:input.signal.type}), receiveSignals:async()=>({state:'active',signals:[]}),
 }
 const handler=createSignageHandler(adapter,{prefix:'/signage-api',corsOrigins:['https://index.example']})
+const curatedVideo='https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F67448935dfb12aa5cb9c86e9_video-cortado-transcode.mp4'
+const curatedImage='https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3/673f7b62650c2610524db19f_DSC09322-Enhanced-NR%20(1).jpg'
+equal(isAllowedCuratedMedia('video',curatedVideo),true)
+equal(isAllowedCuratedMedia('image',curatedImage),true)
+equal(isAllowedCuratedMedia('image',curatedVideo),false)
+equal(isAllowedCuratedMedia('video',curatedImage),false)
+equal(isAllowedCuratedMedia('video','https://example.invalid/arbitrary.mp4'),false)
 const request=async(method,route,{token,device,workspace=WORKSPACE,body,origin='https://index.example'}={})=>{
   const headers=new Headers({Origin:origin})
   if(token) headers.set('Authorization',`Bearer ${token}`)
@@ -87,6 +94,8 @@ assert.doesNotMatch(edgeSource,/product-images/); assertions+=1
 assert.match(edgeSource,/rpc\('signage_device_revoke'/); assertions+=1
 assert.match(edgeSource,/rpc\('signage_stop_output'/); assertions+=1
 assert.match(edgeSource,/contentRevision: Number\(item\.contentRevision\)/); assertions+=1
+assert.match(edgeSource,/isAllowedCuratedMedia/); assertions+=1
+assert.match(edgeSource,/MEDIA_SOURCE_DENIED/); assertions+=1
 const migration59=await fs.readFile(path.join(root,'update59.sql'),'utf8')
 assert.doesNotMatch(migration59,/drop constraint if exists capability_grants/); assertions+=1
 assert.doesNotMatch(migration59,/create or replace function public\.set_index_access/); assertions+=1

@@ -18,10 +18,19 @@ try{
   await assert.rejects(()=>admin.claimPairing(pairing.claimToken),error=>error.status===410);assertions+=1
   const player=Backend.createPlayerClient({baseUrl,currentOrigin:origin,allowedOrigins:[origin],deviceId:claimed.device.id,deviceToken:delivered.deviceToken})
 
+  const createdSpace=await admin.saveSpace({workspaceId,siteId,name:'Sala sintética'});eq(createdSpace.space.name,'Sala sintética','space is created through the real Edge contract')
+  const spaces=await admin.listSpaces();eq(spaces.spaces.length,1,'space list is scoped to the workspace')
+  const renamed=await admin.updateDevice(claimed.device.id,{name:'Pantalla norte',spaceId:createdSpace.space.id,expectedRevision:0});eq(renamed.device.space_id,createdSpace.space.id,'device is assigned to one explicit space')
+  const devices=await admin.listDevices();eq(devices.devices[0].name,'Pantalla norte','renamed device survives list contract')
+
   const draft=await admin.createContent({workspaceId,type:'message',title:'Mensaje aprobado',body:'Contenido sintético',theme:'neutral'})
   await assert.rejects(()=>admin.publish(claimed.device.id,draft.content.id),error=>error.status===409&&error.code==='APPROVAL_REQUIRED');assertions+=1
   await admin.approveContent(draft.content.id,draft.content.revision);await admin.publish(claimed.device.id,draft.content.id)
-  let manifest=await player.manifest(claimed.device.id);eq(manifest.content.title,'Mensaje aprobado','manifest uses player contract');eq(manifest.revision,1,'manifest revision is normalized')
+  let manifest=await player.manifest(claimed.device.id);eq(manifest.content.title,'Mensaje aprobado','manifest uses player contract');eq(manifest.revision,2,'manifest revision includes the prior device naming change')
+
+  const curatedUrl='https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F67448935dfb12aa5cb9c86e9_video-cortado-transcode.mp4'
+  const curated=await admin.createContent({workspaceId,type:'video',title:'Proceso SIERRA',body:'Fuente pública SIERRA',alt:'Proceso industrial SIERRA',mediaUrl:curatedUrl,theme:'neutral'})
+  await admin.approveContent(curated.content.id,curated.content.revision);await admin.publish(claimed.device.id,curated.content.id);manifest=await player.manifest(claimed.device.id);eq(manifest.content.mediaUrl,curatedUrl,'curated public SIERRA media survives the real Edge contract')
 
   const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=','base64')
   const file=new File([png],'cuadro.png',{type:'image/png'}),uploaded=await admin.upload(file);eq(uploaded.asset.state,'ready','signed upload is finalized')

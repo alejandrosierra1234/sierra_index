@@ -2,6 +2,13 @@ const JSON_HEADERS = { 'Content-Type': 'application/json; charset=utf-8', 'Cache
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const SHA256 = /^[0-9a-f]{64}$/
 const MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'])
+const CURATED_MEDIA_TYPES = new Map([
+  ['https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F67448935dfb12aa5cb9c86e9_video-cortado-transcode.mp4', 'video'],
+  ['https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F673f497adb654923cf8ff63e_homepage2%20%281%29-transcode.mp4', 'video'],
+  ['https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3/673f7b62650c2610524db19f_DSC09322-Enhanced-NR%20(1).jpg', 'image'],
+])
+
+export const isAllowedCuratedMedia = (type, value) => CURATED_MEDIA_TYPES.get(String(value || '')) === String(type || '')
 
 export class ApiError extends Error {
   constructor(status, code, message) { super(message); this.status = status; this.code = code }
@@ -119,6 +126,24 @@ export function createSignageHandler(adapter, options = {}) {
       if (req.method === 'GET' && path === '/admin/devices') {
         const workspaceId = workspace(req), actor = await admin(req, workspaceId, 'read')
         return response(await adapter.listDevices({ workspaceId, actor }), 200, cors)
+      }
+      if (path === '/admin/spaces') {
+        const body = req.method === 'POST' ? await jsonBody(req, 8192) : {}
+        const workspaceId = workspace(req, body)
+        const actor = await admin(req, workspaceId, req.method === 'POST' ? 'manage_devices' : 'read')
+        if (req.method === 'GET') return response(await adapter.listSpaces({ workspaceId, actor }), 200, cors)
+        if (req.method === 'POST') {
+          const name = clean(body.name, 80)
+          if (name.length < 2) throw new ApiError(400, 'INVALID_SPACE_NAME', 'Escribe un nombre para el espacio.')
+          return response(await adapter.saveSpace({ workspaceId, actor, space: { id: body.id ? id(body.id, 'espacio') : null, siteId: id(body.siteId, 'planta'), name, expectedUpdatedAt: body.expectedUpdatedAt || null } }), body.id ? 200 : 201, cors)
+        }
+      }
+      const updateDevice = path.match(/^\/admin\/devices\/([^/]+)\/update$/)
+      if (req.method === 'POST' && updateDevice) {
+        const body = await jsonBody(req, 8192), workspaceId = workspace(req, body), actor = await admin(req, workspaceId, 'manage_devices')
+        const name = clean(body.name, 80)
+        if (name.length < 3) throw new ApiError(400, 'INVALID_DEVICE_NAME', 'Escribe un nombre para la pantalla.')
+        return response(await adapter.updateDevice({ workspaceId, actor, deviceId: id(updateDevice[1], 'dispositivo'), name, spaceId: body.spaceId ? id(body.spaceId, 'espacio') : null, expectedRevision: body.expectedRevision }), 200, cors)
       }
       if (path === '/admin/content') {
         const body = req.method === 'POST' ? await jsonBody(req, 300000) : {}

@@ -10,7 +10,7 @@ function eq(actual, expected, message) { assert.equal(actual, expected, message)
 function ok(value, message) { assert.ok(value, message); assertions += 1 }
 
 let state = Signage.demoState()
-eq(state.schemaVersion, 3, 'phase 3 schema')
+eq(state.schemaVersion, 4, 'current schema')
 eq(state.mode, 'local-synthetic-phase3', 'phase 3 mode')
 
 const screenCount = state.screens.length
@@ -81,7 +81,7 @@ eq(resolved.content.id, 'synthetic-content-welcome', 'last valid text recovered'
 eq(resolved.fallback, true, 'fallback is explicit')
 
 const migrated = Signage.normalizeState({ ...Signage.demoState(), schemaVersion: 1, mode: 'local-synthetic-phase1', playlists: undefined, schedules: undefined })
-eq(migrated.schemaVersion, 3, 'phase 1 state migrates')
+eq(migrated.schemaVersion, 4, 'phase 1 state migrates')
 ok(Array.isArray(migrated.playlists) && Array.isArray(migrated.schedules), 'migration supplies phase 3 collections')
 
 const memory = new Map()
@@ -102,7 +102,7 @@ assert.doesNotMatch(source, /<select\b/i, 'no native visible dropdown introduced
 assertions += 1
 ok(source.includes('signageOpenScheduleDrawer'), 'schedule UI integrated')
 ok(source.includes('signageOpenScreenDrawer'), 'explicit test screen registration UI integrated')
-ok(source.includes('Vincular una TV real:'), 'real TV distinction is visible')
+ok(source.includes('En la televisión o reproductor:'), 'real TV distinction is visible')
 ok(source.includes('No se conectó ninguna TV real.'), 'screen creation confirmation does not imply pairing')
 ok(source.includes('signageRemoteScreen(paired.device, { plant, profile:'), 'successful claim is enriched with the presentation fields entered by the user')
 ok(source.includes('void signageSyncRemoteDevices({ silent: true })'), 'active remote devices are recovered when the module opens')

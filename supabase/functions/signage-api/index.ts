@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { ApiError, createSignageHandler } from '../_shared/signage-api-core.mjs'
+import { ApiError, createSignageHandler, isAllowedCuratedMedia } from '../_shared/signage-api-core.mjs'
 import { normalizeSignageManifest } from '../_shared/signage-manifest.mjs'
 
 const env = (name: string, required = true) => {
@@ -88,8 +88,32 @@ const adapter = {
     fail(result.error, 'No se pudo revocar la pantalla.')
   },
   async listDevices(input: any) {
-    const result = await service.from('signage_devices').select('id,workspace_id,site_id,name,state,revision,output_paused,active_publication_id,updated_at').eq('workspace_id', input.workspaceId).order('name')
+    const result = await service.from('signage_devices')
+      .select('id,workspace_id,site_id,space_id,name,state,revision,output_paused,active_publication_id,updated_at,signage_device_heartbeats(status,received_at,last_manifest_revision,player_version,errors)')
+      .eq('workspace_id', input.workspaceId)
+      .order('name')
+      .order('received_at', { referencedTable: 'signage_device_heartbeats', ascending: false })
+      .limit(1, { referencedTable: 'signage_device_heartbeats' })
     fail(result.error); return { devices: result.data || [] }
+  },
+  async listSpaces(input: any) {
+    const result = await service.from('signage_spaces').select('id,workspace_id,site_id,name,state,sort_order,created_at,updated_at').eq('workspace_id', input.workspaceId).eq('state', 'active').order('sort_order').order('name')
+    fail(result.error); return { spaces: result.data || [] }
+  },
+  async saveSpace(input: any) {
+    const { client } = await userClient(input.actor.token)
+    const result = await client.rpc('signage_space_save', { p_workspace: input.workspaceId, p_space: input.space?.id || null, p_site: input.space?.siteId, p_name: String(input.space?.name || ''), p_expected_updated_at: input.space?.expectedUpdatedAt || null })
+    fail(result.error, 'No se pudo guardar el espacio.'); return { space: result.data }
+  },
+  async updateDevice(input: any) {
+    let revision = Number(input.expectedRevision)
+    if (!Number.isSafeInteger(revision)) {
+      const current = await service.from('signage_devices').select('revision').eq('id', input.deviceId).eq('workspace_id', input.workspaceId).maybeSingle()
+      fail(current.error); if (!current.data) throw new ApiError(404, 'DEVICE_NOT_FOUND', 'No se encontró la pantalla.'); revision = current.data.revision
+    }
+    const { client } = await userClient(input.actor.token)
+    const result = await client.rpc('signage_device_update', { p_workspace: input.workspaceId, p_device: input.deviceId, p_name: String(input.name || ''), p_space: input.spaceId || null, p_expected_device_revision: revision })
+    fail(result.error, 'No se pudo actualizar la pantalla.'); return { device: result.data }
   },
   async listContent(input: any) {
     const result = await service.from('signage_content_items').select('id,title,status,current_revision,updated_at').eq('workspace_id', input.workspaceId).order('updated_at', { ascending: false }).limit(200)
@@ -99,7 +123,15 @@ const adapter = {
     const source = input.content || {}, type = String(source.type || 'message')
     const snapshot: any = { type, title: String(source.title || ''), body: String(source.body || ''), theme: String(source.theme || 'neutral') }
     if (type === 'link') snapshot.url = String(source.url || '')
-    if (type === 'image' || type === 'video') { snapshot.alt = String(source.alt || 'Contenido multimedia'); if (source.uploadId) snapshot.mediaAssetId = source.uploadId; else snapshot.mediaUrl = String(source.mediaUrl || '') }
+    if (type === 'image' || type === 'video') {
+      snapshot.alt = String(source.alt || 'Contenido multimedia')
+      if (source.uploadId) snapshot.mediaAssetId = source.uploadId
+      else {
+        const mediaUrl = String(source.mediaUrl || '')
+        if (!isAllowedCuratedMedia(type, mediaUrl)) throw new ApiError(400, 'MEDIA_SOURCE_DENIED', 'La fuente multimedia no está autorizada para este tipo de contenido.')
+        snapshot.mediaUrl = mediaUrl
+      }
+    }
     const { client } = await userClient(input.actor.token)
     const result = await client.rpc('signage_content_save', { p_workspace: input.workspaceId, p_content: source.id || null, p_snapshot: snapshot, p_expected_revision: Number(source.expectedRevision) || 0 })
     fail(result.error, 'No se pudo guardar el contenido.')

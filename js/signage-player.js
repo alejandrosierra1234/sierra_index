@@ -32,6 +32,13 @@
   function setupStatus(message, retry) { document.getElementById('sp-setup-status').textContent = message; document.getElementById('sp-new-code').hidden = !retry }
   const allowedOrigins = publicConfig.allowedOrigins
   function mediaUrl(value) { return new URL(value, SignageBackendClient.normalizeBaseUrl(baseUrl, location.origin, allowedOrigins).replace(/\/api\/signage$/, '') + '/').href }
+  function ambientTime() {
+    try { return new Intl.DateTimeFormat('es', { hour: '2-digit', minute: '2-digit' }).format(new Date()) } catch (error) { return '' }
+  }
+  function renderAmbient(note) {
+    const host = document.getElementById('sp-content')
+    host.innerHTML = `<div class="sp-ambient"><img src="SIERRA_Primary_Blue02.svg" alt="SIERRA"><div><span class="sp-ambient-kicker">SIERRA OS · AMBIENTE</span><h1>Materia, proceso<br>y personas.</h1><p>${escapeHtml(note || 'Elige qué mostrar desde SIERRA Index.')}</p></div><footer><span>SIERRA · Pantallas</span><time>${escapeHtml(ambientTime())}</time></footer></div>`
+  }
 
   async function beginPairing() {
     clearTimeout(pairingTimer)
@@ -80,12 +87,16 @@
 
   async function renderContent(content) {
     const host = document.getElementById('sp-content')
-    if (!content) { host.innerHTML = '<div class="sp-empty"><h1>Listo para mostrar contenido</h1><p>Elige qué mostrar desde SIERRA Index.</p></div>'; return }
+    if (!content) { renderAmbient(); return }
     if (content.type === 'image') host.innerHTML = `<div class="sp-media"><img src="${escapeAttr(await cachedMediaUrl(content))}" alt="${escapeAttr(content.alt)}"><div class="sp-caption"><b>${escapeHtml(content.title)}</b>${content.body ? `<span>${escapeHtml(content.body)}</span>` : ''}</div></div>`
-    else if (content.type === 'video') host.innerHTML = `<div class="sp-media"><video src="${escapeAttr(await cachedMediaUrl(content))}" aria-label="${escapeAttr(content.alt)}" autoplay muted loop playsinline></video><div class="sp-caption"><b>${escapeHtml(content.title)}</b>${content.body ? `<span>${escapeHtml(content.body)}</span>` : ''}</div></div>`
+    else if (content.type === 'video') {
+      host.innerHTML = `<div class="sp-media"><video src="${escapeAttr(await cachedMediaUrl(content))}" aria-label="${escapeAttr(content.alt)}" autoplay muted loop playsinline></video><div class="sp-caption"><b>${escapeHtml(content.title)}</b>${content.body ? `<span>${escapeHtml(content.body)}</span>` : ''}</div></div>`
+      const video = host.querySelector('video')
+      if (video && typeof video.play === 'function') video.play().catch(() => renderAmbient('El video no pudo iniciar automáticamente. Elige otra pieza desde SIERRA Index.'))
+    }
     else if (content.type === 'link') host.innerHTML = `<div class="sp-link"><div class="sp-link-icon" aria-hidden="true">↗</div><h1>${escapeHtml(content.title)}</h1><p>${escapeHtml(content.body || 'Abre este enlace desde un dispositivo autorizado.')}</p><a href="${escapeAttr(content.url)}" rel="noopener noreferrer">${escapeHtml(content.url)}</a></div>`
     else host.innerHTML = `<div class="sp-message"><h1>${escapeHtml(content.title)}</h1><p>${escapeHtml(content.body)}</p></div>`
-    host.querySelectorAll('img,video').forEach(media => media.addEventListener('error', () => { if (lastManifest && lastManifest.content) host.innerHTML = '<div class="sp-empty"><h1>No pudimos cargar este archivo</h1><p>Revisa la conexión o el formato desde SIERRA Index.</p></div>' }, { once: true }))
+    host.querySelectorAll('img,video').forEach(media => media.addEventListener('error', () => { if (lastManifest && lastManifest.content) renderAmbient('No pudimos cargar ese archivo. Revisa la conexión o el formato desde SIERRA Index.') }, { once: true }))
   }
 
   function loadLiveShare() {

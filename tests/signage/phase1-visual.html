@@ -15,13 +15,13 @@
   <link rel="stylesheet" href="../../css/signage-phase1.css">
 </head>
 <body>
-  <main class="shell">
+  <main class="shell" id="content">
     <header class="header"><div><div id="tb-section" hidden></div><h1 id="sec-title"></h1><p id="sec-sub"></p></div><div id="product-controls"></div></header>
     <div id="pg"></div>
   </main>
   <div id="toast" aria-live="polite"></div>
   <div id="sd-overlay"><div class="test-drawer"><div id="sd-eyebrow"></div><div id="sd-title"></div><div id="sd-tabs"></div><div id="sd-body"></div></div></div>
-  <div id="view-dashboard"></div><div id="view-styleguide"></div><div id="view-detail"></div><div id="view-samples"></div><div id="view-sample-detail"></div><div id="view-products"></div><div id="content"></div>
+  <div id="view-dashboard"></div><div id="view-styleguide"></div><div id="view-detail"></div><div id="view-samples"></div><div id="view-sample-detail"></div><div id="view-products"></div>
   <script>
     window.profile={full_name:'Persona sintética'};window.me={email:'synthetic@example.invalid'}
     if(new URLSearchParams(location.search).get('backend')==='1'){window.SIERRA_SIGNAGE_BACKEND_URL='/api/signage';window.SIERRA_SIGNAGE_LOCAL_ADMIN_TOKEN='local-admin-test-token'}

@@ -27,7 +27,13 @@ await db.query(`insert into public.capability_grants(user_id,domain,capability,r
 await db.query(`insert into public.signage_workspaces(id,name,timezone,created_by) values($1,'Prueba','UTC',$2)`,[workspace,admin])
 await db.query(`insert into public.signage_access_grants(user_id,workspace_id,capability,granted_by) select $1,$2,cap,$1 from unnest(array['read','write','approve','publish','operate','manage_devices']) cap`,[admin,workspace])
 await db.query(`insert into public.signage_sites(id,workspace_id,name,timezone) values($1,$2,'Planta','UTC')`,[site,workspace])
-await db.query(`insert into public.signage_devices(id,workspace_id,site_id,name,state) values($1,$2,$3,'Pantalla','active')`,[device,workspace,site])
+await db.query(`insert into public.signage_devices(id,workspace_id,site_id,name,state,revision,output_paused) values($1,$2,$3,'Pantalla','active',8,true)`,[device,workspace,site])
+await db.exec(await fs.readFile(path.join(root, 'update64.sql'), 'utf8'))
+const preservedInstallState=await db.query(`select revision,output_paused,space_id from public.signage_devices where id=$1`,[device])
+assert.equal(Number(preservedInstallState.rows[0].revision),8,'migration 64 preserves the existing device revision'); assertions += 1
+assert.equal(preservedInstallState.rows[0].output_paused,true,'migration 64 preserves an existing paused output'); assertions += 1
+assert.equal(preservedInstallState.rows[0].space_id,null,'migration 64 does not assign an existing device silently'); assertions += 1
+await db.query(`update public.signage_devices set revision=0,output_paused=false where id=$1`,[device])
 
 const bucket = await db.query(`select public,file_size_limit from storage.buckets where id='signage-media'`)
 assert.equal(bucket.rows[0].public,false); assertions += 1
@@ -42,6 +48,10 @@ await expectSqlState(() => db.query(`insert into public.signage_live_signals(ses
 ok((await db.query(`select exists(select 1 from public.index_security_migrations where version=60) applied`)).rows[0].applied,'migration 60 is recorded')
 ok((await db.query(`select exists(select 1 from public.index_security_migrations where version=62) applied`)).rows[0].applied,'migration 62 is recorded')
 ok((await db.query(`select exists(select 1 from public.index_security_migrations where version=63) applied`)).rows[0].applied,'migration 63 is recorded')
+ok((await db.query(`select exists(select 1 from public.index_security_migrations where version=64) applied`)).rows[0].applied,'migration 64 is recorded')
+assert.equal((await db.query(`select has_function_privilege('anon','public.signage_space_save(uuid,uuid,uuid,text,timestamptz)','execute') allowed`)).rows[0].allowed,false); assertions += 1
+assert.equal((await db.query(`select has_function_privilege('authenticated','public.signage_space_save(uuid,uuid,uuid,text,timestamptz)','execute') allowed`)).rows[0].allowed,true); assertions += 1
+assert.equal((await db.query(`select relrowsecurity from pg_class where oid='public.signage_spaces'::regclass`)).rows[0].relrowsecurity,true); assertions += 1
 assert.equal((await db.query(`select public.signage_rate_limit_service(repeat('c',64),2,60) allowed`)).rows[0].allowed,true); assertions += 1
 assert.equal((await db.query(`select public.signage_rate_limit_service(repeat('c',64),2,60) allowed`)).rows[0].allowed,true); assertions += 1
 assert.equal((await db.query(`select public.signage_rate_limit_service(repeat('c',64),2,60) allowed`)).rows[0].allowed,false); assertions += 1
@@ -57,14 +67,27 @@ await db.query(`insert into public.signage_device_heartbeats(device_id,workspace
 await expectSqlState(() => db.query(`insert into public.signage_device_heartbeats(device_id,workspace_id,credential_id,status,errors) values('40000000-0000-4000-8000-000000000099',$1,'70000000-0000-4000-8000-000000000001','playing','[]')`,[workspace]),'23503','heartbeat device must belong to workspace')
 await db.query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claim.role','authenticated',false)",[admin])
 await db.exec('set role authenticated')
+const spaceSaved=await db.query(`select public.signage_space_save($1,null,$2,'Sala sintética',null) result`,[workspace,site])
+const spaceId=spaceSaved.rows[0].result.id;assert.equal(spaceSaved.rows[0].result.name,'Sala sintética');assertions += 1
+const deviceUpdated=await db.query(`select public.signage_device_update($1,$2,'Pantalla norte',$3,0) result`,[workspace,device,spaceId])
+assert.equal(deviceUpdated.rows[0].result.space_id,spaceId);assertions += 1
+await expectSqlState(()=>db.query(`select public.signage_device_update($1,$2,'Pantalla repetida',$3,0)`,[workspace,device,spaceId]),'40001','device updates require the current revision')
 const savedPrivateMedia = await db.query(`select public.signage_content_save($1,null,$2::jsonb,0) result`,[workspace,JSON.stringify({type:'image',title:'Imagen privada',body:'',theme:'neutral',alt:'Imagen sintética',mediaAssetId:asset})])
 assert.equal(savedPrivateMedia.rows[0].result.snapshot.mediaAssetId,asset); assertions += 1
+const curatedMediaUrl='https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F67448935dfb12aa5cb9c86e9_video-cortado-transcode.mp4'
+const savedCuratedMedia=await db.query(`select public.signage_content_save($1,null,$2::jsonb,0) result`,[workspace,JSON.stringify({type:'video',title:'Proceso SIERRA',body:'',theme:'neutral',alt:'Proceso industrial SIERRA',mediaUrl:curatedMediaUrl})])
+assert.equal(savedCuratedMedia.rows[0].result.snapshot.mediaUrl,curatedMediaUrl); assertions += 1
+await expectSqlState(()=>db.query(`select public.signage_content_save($1,null,$2::jsonb,0)`,[workspace,JSON.stringify({type:'video',title:'Video externo',body:'',theme:'neutral',alt:'Fuente externa sintética',mediaUrl:'https://example.invalid/arbitrary.mp4'})]),'42501','direct RPC rejects arbitrary remote media outside the curated allowlist')
+await expectSqlState(()=>db.query(`select public.signage_content_save($1,null,$2::jsonb,0)`,[workspace,JSON.stringify({type:'image',title:'Video mal declarado',body:'',theme:'neutral',alt:'Tipo sintético incorrecto',mediaUrl:curatedMediaUrl})]),'42501','direct RPC rejects a curated video URL declared as an image')
+const curatedImageUrl='https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3/673f7b62650c2610524db19f_DSC09322-Enhanced-NR%20(1).jpg'
+await expectSqlState(()=>db.query(`select public.signage_content_save($1,null,$2::jsonb,0)`,[workspace,JSON.stringify({type:'video',title:'Imagen mal declarada',body:'',theme:'neutral',alt:'Tipo sintético incorrecto',mediaUrl:curatedImageUrl})]),'42501','direct RPC rejects a curated image URL declared as a video')
+await expectSqlState(()=>db.query(`select public.signage_content_save($1,null,$2::jsonb,0)`,[workspace,JSON.stringify({type:'image',title:'Referencia ambigua',body:'',theme:'neutral',alt:'Referencia sintética',mediaAssetId:asset,mediaUrl:'https://example.invalid/arbitrary.png'})]),'22023','direct RPC rejects snapshots that combine a private asset with a remote URL')
 const message = await db.query(`select public.signage_content_save($1,null,$2::jsonb,0) result`,[workspace,JSON.stringify({type:'message',title:'Mensaje de parada',body:'Contenido sintético',theme:'neutral'})])
 const contentId=message.rows[0].result.id
 await db.query(`select public.signage_content_approve($1,$2,1)`,[workspace,contentId])
-const published=await db.query(`select public.signage_publish($1,$2,$3,0) result`,[workspace,device,contentId])
+const published=await db.query(`select public.signage_publish($1,$2,$3,1) result`,[workspace,device,contentId])
 assert.equal(published.rows[0].result.output_paused,false); assertions += 1
-const stopped=await db.query(`select public.signage_stop_output($1,$2,1) result`,[workspace,device])
+const stopped=await db.query(`select public.signage_stop_output($1,$2,2) result`,[workspace,device])
 assert.equal(stopped.rows[0].result.output_paused,true); assertions += 1
 assert.equal(stopped.rows[0].result.live_sessions_stopped,1); assertions += 1
 await expectSqlState(()=>db.query(`select public.signage_stop_output($1,$2,1)`,[workspace,'40000000-0000-4000-8000-000000000099']),'42501','stop cannot cross device scope')
@@ -75,7 +98,7 @@ assert.equal(stoppedManifest.rows[0].result.state,'stopped'); assertions += 1
 assert.deepEqual(stoppedManifest.rows[0].result.schedules,[]); assertions += 1
 await db.exec('reset role')
 await db.exec('set role authenticated')
-const resumed=await db.query(`select public.signage_publish($1,$2,$3,2) result`,[workspace,device,contentId])
+const resumed=await db.query(`select public.signage_publish($1,$2,$3,3) result`,[workspace,device,contentId])
 assert.equal(resumed.rows[0].result.output_paused,false); assertions += 1
 await db.exec('reset role')
 const preserved=await db.query(`select d.state,d.output_paused,count(c.id) credentials,count(p.id) publications from public.signage_devices d left join public.signage_device_credentials c on c.device_id=d.id left join public.signage_publications p on p.device_id=d.id where d.id=$1 group by d.state,d.output_paused`,[device])
