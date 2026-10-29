@@ -695,7 +695,7 @@ async function signageCheckBackendAvailability() {
   try {
     if (!signagePublicConfig().enabled) throw new Error('Pantallas no está habilitado.')
     await signageBackendClient().health()
-    if (host) host.innerHTML = '<b>En la televisión o reproductor:</b> abre <a href="signage-player.html?build=P-20261029-3" target="_blank" rel="noopener">el reproductor de Pantallas</a>. Verás un código de 6 números.'
+    if (host) host.innerHTML = '<b>En la televisión o reproductor:</b> abre <a href="signage-player.html?build=P-20261029-4" target="_blank" rel="noopener">el reproductor de Pantallas</a>. Verás un código de 6 números.'
     if (submit) submit.disabled = false
     document.getElementById('sg-pair-code')?.focus()
   } catch {
