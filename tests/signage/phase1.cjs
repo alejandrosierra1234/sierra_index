@@ -131,7 +131,11 @@ assert.match(source, /client\.listProgramming\(\)/, 'la sincronización recupera
 assert.match(source, /function signageMergeRemoteProgramming\(/, 'listas y horarios centrales se reconstruyen sin borrar borradores locales')
 assert.doesNotMatch(source, /Todavía no son una fuente central/, 'la interfaz no presenta la programación vinculada como local')
 assert.match(source, /publish\(screen\.id, backendContentId, screen\.backendRevision\)/, 'los reintentos de publicación conservan la revisión esperada del destino')
+assert.match(source, /function signageValidateSelectedMedia\(/, 'la interfaz valida tipo, tamaño y decodificación antes de transferir')
+assert.match(source, /PNG o JPEG hasta 10 MB\. Video MP4 H\.264 hasta 50 MB/, 'la interfaz declara los formatos realmente soportados')
+assert.match(source, /id="sg-upload-progress"/, 'la carga informa progreso dentro de la página')
+assert.doesNotMatch(source, /accept="[^"]*(?:webp|webm|gif|pdf)/i, 'la selección no anuncia formatos sin verificación compatible')
 assert.match(css, /@media\(max-width:620px\)/)
 assert.match(css, /prefers-reduced-motion/)
 
-console.log('signage phase1: 68 assertions passed')
+console.log('signage phase1: 72 assertions passed')

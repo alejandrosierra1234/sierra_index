@@ -74,7 +74,10 @@ result=await request('GET','/player/manifest',{token:'device-token',device:DEVIC
 result=await request('GET','/player/manifest',{token:'wrong',device:DEVICE}); equal(result.response.status,401)
 result=await request('POST','/player/heartbeat',{token:'device-token',device:DEVICE,body:{status:'playing',errors:Array(25).fill('x')}}); equal(result.response.status,202); equal(result.payload.status,'playing')
 result=await request('POST','/admin/uploads/sign',{token:'admin-token',body:{workspaceId:WORKSPACE,fileName:'test.png',contentType:'image/png',byteSize:12,sha256:'a'.repeat(64)}}); equal(result.response.status,201); equal(result.payload.assetId,ASSET)
+result=await request('POST','/admin/uploads/sign',{token:'admin-token',workspace:OTHER,body:{workspaceId:OTHER,fileName:'test.png',contentType:'image/png',byteSize:12,sha256:'a'.repeat(64)}}); equal(result.response.status,403)
 result=await request('POST','/admin/uploads/sign',{token:'admin-token',body:{workspaceId:WORKSPACE,fileName:'bad.svg',contentType:'image/svg+xml',byteSize:12,sha256:'a'.repeat(64)}}); equal(result.response.status,415)
+result=await request('POST','/admin/uploads/sign',{token:'admin-token',body:{workspaceId:WORKSPACE,fileName:'trampa.jpg',contentType:'image/png',byteSize:12,sha256:'a'.repeat(64)}}); equal(result.response.status,400); equal(result.payload.code,'MEDIA_EXTENSION_MISMATCH')
+result=await request('POST','/admin/uploads/sign',{token:'admin-token',body:{workspaceId:WORKSPACE,fileName:'clip.webm',contentType:'video/webm',byteSize:12,sha256:'a'.repeat(64)}}); equal(result.response.status,415)
 result=await request('POST','/admin/uploads/sign',{token:'admin-token',body:{workspaceId:WORKSPACE,fileName:'big.mp4',contentType:'video/mp4',byteSize:52428801,sha256:'a'.repeat(64)}}); equal(result.response.status,413)
 result=await request('GET','/player/runtime',{token:'device-token',device:DEVICE}); equal(result.payload.liveAvailable,false)
 result=await request('GET','/player/runtime'); equal(result.response.status,401)
@@ -85,6 +88,7 @@ equal(calls.some(call=>call[0]==='admin'&&call[1]===WORKSPACE&&call[2]==='manage
 
 const here=path.dirname(fileURLToPath(import.meta.url)), root=path.resolve(here,'../..')
 const edgeSource=await fs.readFile(path.join(root,'supabase/functions/signage-api/index.ts'),'utf8')
+const mediaSource=await fs.readFile(path.join(root,'supabase/functions/_shared/signage-media-verify.mjs'),'utf8')
 const clientSource=await fs.readFile(path.join(root,'js/signage-backend-client.js'),'utf8')
 const playerSource=await fs.readFile(path.join(root,'js/signage-player.js'),'utf8')
 const liveSource=await fs.readFile(path.join(root,'js/signage-live-share.js'),'utf8')
@@ -92,15 +96,17 @@ assert.match(clientSource,/claimPairing: claimToken => request\('\/player\/pairi
 assert.doesNotMatch(clientSource,/pairings\/\$\{encodeURIComponent\(claimToken\)\}/); assertions+=1
 assert.doesNotMatch(clientSource+playerSource+liveSource,/\?\./); assertions+=1
 assert.doesNotMatch(clientSource,/globalThis\.fetch/); assertions+=1
-for(const required of ['signage_pairing_claim_service','signage_pairing_deliver_service','signage_device_manifest_service','signage_stop_output','createSignedUploadUrl','signage_device_heartbeats','SIGNAGE_MEDIA_VERIFIER_URL','SIGNAGE_ICE_CONFIG_URL','SIGNAGE_PAIRING_PEPPER','signage_playlist_save','signage_schedule_save']) {
+for(const required of ['signage_pairing_claim_service','signage_pairing_deliver_service','signage_device_manifest_service','signage_stop_output','createSignedUploadUrl','signage_device_heartbeats','inspectMedia','sha256Hex','SIGNAGE_ICE_CONFIG_URL','SIGNAGE_PAIRING_PEPPER','signage_playlist_save','signage_schedule_save']) {
   assert.match(edgeSource,new RegExp(required)); assertions+=1
 }
+assert.doesNotMatch(edgeSource,/SIGNAGE_MEDIA_VERIFIER_(?:URL|TOKEN)/); assertions+=1
 assert.doesNotMatch(edgeSource,/product-images/); assertions+=1
 assert.match(edgeSource,/rpc\('signage_device_revoke'/); assertions+=1
 assert.match(edgeSource,/rpc\('signage_stop_output'/); assertions+=1
 assert.match(edgeSource,/contentRevision: Number\(item\.contentRevision\)/); assertions+=1
 assert.match(edgeSource,/isAllowedCuratedMedia/); assertions+=1
 assert.match(edgeSource,/MEDIA_SOURCE_DENIED/); assertions+=1
+for(const required of ['inspectPng','inspectJpeg','inspectMp4','MEDIA_CODEC_DENIED','MEDIA_DIMENSIONS_DENIED']){assert.match(mediaSource,new RegExp(required));assertions+=1}
 const migration59=await fs.readFile(path.join(root,'update59.sql'),'utf8')
 assert.doesNotMatch(migration59,/drop constraint if exists capability_grants/); assertions+=1
 assert.doesNotMatch(migration59,/create or replace function public\.set_index_access/); assertions+=1

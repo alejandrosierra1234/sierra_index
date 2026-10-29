@@ -1133,10 +1133,15 @@ function signageSubmitScreen(event) {
   }
 }
 
+function signageContentPreviewHtml(content) {
+  if (content.type === 'image' && content.mediaUrl) return `<div class="sg-content-preview sg-media-thumb" aria-hidden="true"><img src="${escAttr(content.mediaUrl)}" alt="" loading="lazy" onerror="this.hidden=true;this.parentNode.classList.add('fallback')"><span>IMAGEN</span></div>`
+  return `<div class="sg-content-preview sg-theme-${escAttr(content.theme)}" aria-hidden="true"><span>${content.type === 'image' ? 'IMAGEN' : content.type === 'video' ? 'VIDEO MP4' : content.type === 'link' ? 'ENLACE' : esc(content.title)}</span></div>`
+}
+
 function signageLibraryHtml() {
   const curated = `<div class="sg-curated-note"><b>SIERRA para comenzar</b><span>Medios públicos del sitio oficial, verificados el 29 oct 2026. Se reproducen desde su URL pública; la cadena completa de licencias no está documentada.</span></div><div class="sg-library sg-library-curated">${SIERRA_CURATED_CONTENT.map(item => `<article class="panel sg-content-card sg-curated-card" data-sg-searchable="${escAttr(`${item.title} ${item.body} ${item.type}`.toLocaleLowerCase('es'))}"><div class="sg-content-preview sg-curated-preview">${item.poster || item.type === 'image' ? `<img src="${escAttr(item.poster || item.mediaUrl)}" alt="" onerror="this.hidden=true;this.parentNode.classList.add('fallback')">` : ''}<span>${item.type === 'video' ? 'VIDEO SIERRA' : 'IMAGEN SIERRA'}</span></div><div class="sg-content-copy"><div><h4>${esc(item.title)}</h4><p>${esc(item.body)}</p></div><div class="sg-content-footer"><span class="sg-sub">${esc(signageTypeLabel(item.type))} · Catálogo SIERRA</span><button class="btn btn-secondary btn-sm" onclick="signageOpenCuratedDestinations('${escAttr(item.id)}')">Mostrar en…</button></div></div></article>`).join('')}</div>`
   const personalContent = _signageState.contents.filter(content => !content.curated)
-  const personal = personalContent.length ? `<h4 class="sg-library-title">Contenido de la cuenta</h4><div class="sg-library">${personalContent.map(content => { const central=Boolean(content.backendContentId);return `<article class="panel sg-content-card" data-sg-searchable="${escAttr(`${content.title} ${content.body || content.alt || content.url || ''} ${content.type}`.toLocaleLowerCase('es'))}"><div class="sg-content-preview sg-theme-${escAttr(content.theme)}" aria-hidden="true"><span>${content.type === 'image' ? 'IMAGEN' : content.type === 'video' ? 'VIDEO' : content.type === 'link' ? 'ENLACE' : esc(content.title)}</span></div><div class="sg-content-copy"><div><div class="sg-content-heading"><h4>${esc(content.title)}</h4><span class="sg-source-badge ${central ? 'central' : 'local'}">${central ? 'Central' : 'Solo aquí'}</span></div><p>${esc(content.body || content.alt || content.url || '')}</p></div><div class="sg-content-footer"><span class="sg-sub">${esc(signageTypeLabel(content.type))} · ${esc(signageThemeLabel(content.theme))}</span><div class="sg-actions">${!central && signagePublicConfig().enabled && ['message','link'].includes(content.type) ? `<button class="btn btn-ghost btn-sm" onclick="signageMigrateLocalContent('${escAttr(content.id)}',this)">Guardar en cuenta</button>` : ''}<button class="btn btn-secondary btn-sm" onclick="signageOpenContentDestinations('${escAttr(content.id)}')">Mostrar en…</button></div></div></div></article>` }).join('')}</div>` : `<div class="sg-empty-inline"><b>Aún no agregas contenido propio</b><span>Puedes usar la selección SIERRA o agregar un mensaje o enlace.</span></div>`
+  const personal = personalContent.length ? `<h4 class="sg-library-title">Contenido de la cuenta</h4><div class="sg-library">${personalContent.map(content => { const central=Boolean(content.backendContentId);return `<article class="panel sg-content-card" data-sg-searchable="${escAttr(`${content.title} ${content.body || content.alt || content.url || ''} ${content.type}`.toLocaleLowerCase('es'))}">${signageContentPreviewHtml(content)}<div class="sg-content-copy"><div><div class="sg-content-heading"><h4>${esc(content.title)}</h4><span class="sg-source-badge ${central ? 'central' : 'local'}">${central ? 'Central' : 'Solo aquí'}</span></div><p>${esc(content.body || content.alt || content.url || '')}</p></div><div class="sg-content-footer"><span class="sg-sub">${esc(signageTypeLabel(content.type))} · ${esc(signageThemeLabel(content.theme))}</span><div class="sg-actions">${!central && signagePublicConfig().enabled && ['message','link'].includes(content.type) ? `<button class="btn btn-ghost btn-sm" onclick="signageMigrateLocalContent('${escAttr(content.id)}',this)">Guardar en cuenta</button>` : ''}<button class="btn btn-secondary btn-sm" onclick="signageOpenContentDestinations('${escAttr(content.id)}')">Mostrar en…</button></div></div></div></article>` }).join('')}</div>` : `<div class="sg-empty-inline"><b>Aún no agregas contenido propio</b><span>Puedes usar la selección SIERRA o agregar un mensaje o enlace.</span></div>`
   return curated + personal
 }
 
@@ -1212,11 +1217,11 @@ function signageOpenContentDrawer() {
   const mediaEnabled = signagePublicConfig().mediaEnabled
   openSideDrawer({ eyebrow: 'Pantallas · Contenido', title: 'Agregar contenido', onTab: () => {
     document.getElementById('sd-body').innerHTML = `<form class="sg-form" onsubmit="signageSubmitContent(event)" novalidate>
-      <div class="sg-form-note">${mediaEnabled ? 'Si vinculaste una pantalla, puedes subir un archivo. En modo de prueba también puedes usar una URL HTTPS.' : '<b>Crea un mensaje o enlace.</b> Las imágenes y videos SIERRA disponibles están en la biblioteca principal; cargar archivos propios llegará en una fase posterior.'}</div>
+      <div class="sg-form-note">${mediaEnabled ? '<b>Sube una imagen o un video a la biblioteca privada.</b> Se verifican los bytes antes de guardarlo y no se mostrará automáticamente en ninguna pantalla.' : '<b>Crea un mensaje o enlace.</b> Las imágenes y videos SIERRA disponibles están en la biblioteca principal; cargar archivos propios llegará en una fase posterior.'}</div>
       <fieldset class="sg-theme-field"><legend>¿Qué quieres mostrar?</legend><div class="sg-type-options" role="radiogroup">${(mediaEnabled ? ['message','image','video','link'] : ['message','link']).map((type,index)=>`<button type="button" class="sg-type-option${index===0?' selected':''}" data-content-type="${type}" role="radio" aria-checked="${index===0}" onclick="signageChooseContentType(this)">${esc(signageTypeLabel(type))}</button>`).join('')}</div></fieldset>
       <label class="sg-field" for="sg-content-title"><span>Título <b aria-hidden="true">*</b></span><input class="control-input" id="sg-content-title" maxlength="80" required aria-describedby="sg-content-title-error"><small id="sg-content-title-error" class="sg-error"></small></label>
       <label class="sg-field" for="sg-content-body"><span id="sg-body-label">Mensaje <b aria-hidden="true">*</b></span><textarea class="control-input sg-textarea" id="sg-content-body" maxlength="240" required aria-describedby="sg-content-body-error"></textarea><small id="sg-content-body-error" class="sg-error"></small></label>
-      <div id="sg-media-fields" hidden><label class="sg-field" for="sg-content-file"><span>Archivo de imagen o video</span><input class="control-input sg-file-input" id="sg-content-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm" onchange="signagePreviewUpload(this)"><small class="sg-muted">Máximo propuesto: 10 MB por imagen y 50 MB por video.</small></label><div id="sg-upload-preview" class="sg-upload-preview" hidden></div><div class="sg-or"><span>o, en modo de prueba</span></div><label class="sg-field" for="sg-content-mediaUrl"><span>URL HTTPS del archivo</span><input class="control-input" id="sg-content-mediaUrl" inputmode="url" maxlength="2048" aria-describedby="sg-content-mediaUrl-error"><small id="sg-content-mediaUrl-error" class="sg-error"></small></label><label class="sg-field" for="sg-content-alt"><span>Descripción accesible <b aria-hidden="true">*</b></span><input class="control-input" id="sg-content-alt" maxlength="180" aria-describedby="sg-content-alt-error"><small id="sg-content-alt-error" class="sg-error"></small></label></div>
+      <div id="sg-media-fields" hidden><label class="sg-field" for="sg-content-file"><span>Archivo de imagen o video <b aria-hidden="true">*</b></span><input class="control-input sg-file-input" id="sg-content-file" type="file" accept="image/png,image/jpeg,video/mp4,.png,.jpg,.jpeg,.mp4" onchange="signagePreviewUpload(this)" aria-describedby="sg-content-file-help sg-content-file-error"><small id="sg-content-file-help" class="sg-muted">PNG o JPEG hasta 10 MB. Video MP4 H.264 hasta 50 MB. PDF, presentaciones, GIF, WebP y WebM todavía no están disponibles.</small><small id="sg-content-file-error" class="sg-error"></small></label><div id="sg-upload-preview" class="sg-upload-preview" hidden></div><div id="sg-upload-state" class="sg-upload-state" hidden role="status" aria-live="polite"><progress id="sg-upload-progress" max="100" value="0"></progress><span id="sg-upload-status">Preparando archivo…</span></div><label class="sg-field" for="sg-content-alt"><span>Descripción accesible <b aria-hidden="true">*</b></span><input class="control-input" id="sg-content-alt" maxlength="180" aria-describedby="sg-content-alt-error"><small id="sg-content-alt-error" class="sg-error"></small></label></div>
       <div id="sg-link-fields" hidden><label class="sg-field" for="sg-content-url"><span>Enlace HTTPS <b aria-hidden="true">*</b></span><input class="control-input" id="sg-content-url" inputmode="url" maxlength="2048" placeholder="https://" aria-describedby="sg-content-url-error"><small id="sg-content-url-error" class="sg-error"></small></label><div class="sg-form-note">Se mostrará como una tarjeta segura. No todos los sitios permiten verse dentro de una pantalla y no se abrirán iframes arbitrarios.</div></div>
       <fieldset class="sg-theme-field"><legend>Estilo de contenido</legend><div class="sg-theme-options" role="radiogroup">${['neutral','teal','blue'].map((theme, index) => `<button type="button" class="sg-theme-option${index === 0 ? ' selected' : ''}" data-theme="${theme}" role="radio" aria-checked="${index === 0}" onclick="signageChooseTheme(this)"><span class="sg-theme-swatch sg-theme-${theme}"></span>${esc(signageThemeLabel(theme))}</button>`).join('')}</div></fieldset>
       <div class="sg-form-actions"><button type="button" class="btn btn-secondary" onclick="closeSideDrawer()">Cancelar</button><button type="submit" class="btn btn-primary">Guardar contenido</button></div>
@@ -1256,14 +1261,56 @@ function signagePreviewUpload(input) {
   const file = input.files?.[0]
   const host = document.getElementById('sg-upload-preview')
   if (!host) return
-  if (!file) { host.hidden = true; host.innerHTML = ''; return }
+  if (host.dataset.objectUrl) URL.revokeObjectURL(host.dataset.objectUrl)
+  if (!file) { host.hidden = true; host.innerHTML = ''; delete host.dataset.objectUrl; return }
   const url = URL.createObjectURL(file)
+  host.dataset.objectUrl = url
   host.hidden = false
-  host.innerHTML = file.type.startsWith('video/') ? `<video src="${escAttr(url)}" controls muted aria-label="Vista previa del video"></video><span>${esc(file.name)}</span>` : `<img src="${escAttr(url)}" alt="Vista previa del archivo seleccionado"><span>${esc(file.name)}</span>`
+  host.innerHTML = file.type === 'video/mp4' ? `<video src="${escAttr(url)}" controls muted playsinline preload="metadata" aria-label="Vista previa del video"></video><span>${esc(file.name)} · vista previa local</span>` : `<img src="${escAttr(url)}" alt="Vista previa local del archivo seleccionado"><span>${esc(file.name)} · vista previa local</span>`
+}
+
+function signageUploadProgress(update) {
+  const host = document.getElementById('sg-upload-state'), progress = document.getElementById('sg-upload-progress'), status = document.getElementById('sg-upload-status')
+  if (!host || !progress || !status) return
+  const labels = { hashing: 'Comprobando el archivo…', preparing: 'Preparando carga privada…', uploading: 'Subiendo archivo…', verifying: 'Verificando formato y seguridad…', complete: 'Archivo verificado.' }
+  host.hidden = false; progress.value = Math.max(0, Math.min(100, Number(update?.percent) || 0)); status.textContent = labels[update?.stage] || 'Procesando archivo…'
+}
+
+function signageWaitForMediaMetadata(file, type) {
+  const objectUrl = URL.createObjectURL(file)
+  return new Promise((resolve, reject) => {
+    const element = type === 'image' ? new Image() : document.createElement('video')
+    const timeout = setTimeout(() => finish(new Error('No se pudo leer el archivo en este navegador.')), 10000)
+    const finish = error => { clearTimeout(timeout); URL.revokeObjectURL(objectUrl); element.removeAttribute('src'); if (error) reject(error); else resolve() }
+    element.onerror = () => finish(new Error(type === 'image' ? 'La imagen está dañada o no es compatible.' : 'El video no se puede reproducir en este navegador. Exporta un MP4 H.264.'))
+    if (type === 'image') element.onload = () => {
+      const width = element.naturalWidth, height = element.naturalHeight
+      finish(width < 1 || height < 1 || width > 8192 || height > 8192 || width * height > 33177600 ? new Error('La imagen supera 8K o no contiene dimensiones válidas.') : null)
+    }
+    else {
+      element.preload = 'metadata'; element.muted = true; element.playsInline = true
+      element.onloadedmetadata = () => finish(!Number.isFinite(element.duration) || element.duration <= 0 || element.videoWidth < 1 || element.videoHeight < 1 ? new Error('El video no contiene duración o dimensiones válidas.') : null)
+    }
+    element.src = objectUrl
+  })
+}
+
+async function signageValidateSelectedMedia(file, type) {
+  if (!file) throw new Error('Selecciona un archivo.')
+  const expected = type === 'image' ? ['image/png','image/jpeg'] : type === 'video' ? ['video/mp4'] : []
+  if (!expected.includes(file.type)) throw new Error(type === 'image' ? 'Selecciona una imagen PNG o JPEG.' : 'Selecciona un video MP4 H.264.')
+  const extension = (file.name.toLowerCase().match(/\.[a-z0-9]+$/) || [''])[0]
+  const validExtension = file.type === 'image/png' ? extension === '.png' : file.type === 'image/jpeg' ? ['.jpg','.jpeg'].includes(extension) : extension === '.mp4'
+  if (!validExtension) throw new Error('La extensión no coincide con el formato declarado por el archivo.')
+  const limit = type === 'image' ? 10 * 1024 * 1024 : 50 * 1024 * 1024
+  if (file.size < 1 || file.size > limit) throw new Error(type === 'image' ? 'La imagen debe pesar 10 MB o menos.' : 'El video debe pesar 50 MB o menos.')
+  if (type === 'video' && !document.createElement('video').canPlayType('video/mp4')) throw new Error('Este navegador no puede validar video MP4.')
+  await signageWaitForMediaMetadata(file, type)
 }
 
 async function signageSubmitContent(event) {
   event.preventDefault()
+  const form = event.currentTarget, submit = form.querySelector('button[type="submit"]')
   const title = document.getElementById('sg-content-title')
   const body = document.getElementById('sg-content-body')
   const type = document.querySelector('.sg-type-option.selected')?.dataset.contentType || 'message'
@@ -1274,6 +1321,7 @@ async function signageSubmitContent(event) {
   const theme = document.querySelector('.sg-theme-option.selected')?.dataset.theme || 'neutral'
   document.querySelectorAll('.sg-error').forEach(el => { el.textContent = '' })
   ;[title, body, mediaUrl, alt, url].forEach(input => input?.removeAttribute('aria-invalid'))
+  if (submit) { submit.disabled = true; submit.textContent = 'Guardando…' }
   try {
     let remote = null
     let uploaded = null
@@ -1283,11 +1331,10 @@ async function signageSubmitContent(event) {
     if (!validation.ok) { const validationError = new Error('Corrige los campos marcados.'); validationError.fields = validation.errors; throw validationError }
     if (file) {
       if (!signagePublicConfig().mediaEnabled) throw new Error('Las imágenes y videos todavía no están habilitados en este piloto.')
-      const expected = type === 'image' ? 'image/' : type === 'video' ? 'video/' : ''
-      if (!expected || !file.type.startsWith(expected)) throw new Error('El archivo elegido no coincide con el tipo de contenido.')
+      await signageValidateSelectedMedia(file, type)
       const client = signageBackendClient()
-      uploaded = await client.upload(file)
-      remote = await client.createContent({ type, title: title.value, body: body.value, alt: alt?.value, uploadId: uploaded.upload.id })
+      uploaded = await client.upload(file, { onProgress: signageUploadProgress })
+      remote = await client.createContent({ type, title: title.value, body: body.value, theme, alt: alt?.value, uploadId: uploaded.upload.id })
     } else if (centralEnabled && (type === 'message' || type === 'link')) {
       remote = await signageBackendClient().createContent({ type, title: title.value, body: body.value, url: url?.value })
     }
@@ -1316,7 +1363,13 @@ async function signageSubmitContent(event) {
       ;(error.fields.title ? title : error.fields.body ? body : error.fields.mediaUrl ? mediaUrl : error.fields.alt ? alt : url)?.focus()
       return
     }
+    const fileError = document.getElementById('sg-content-file-error')
+    if (file && fileError) { fileError.textContent = error.message || 'No se pudo verificar el archivo.'; document.getElementById('sg-content-file')?.setAttribute('aria-invalid', 'true') }
+    const uploadStatus = document.getElementById('sg-upload-status')
+    if (uploadStatus) uploadStatus.textContent = `${error.message || 'La carga falló.'} Puedes intentar de nuevo.`
     toast(error.message || 'No se pudo agregar el contenido.')
+  } finally {
+    if (submit?.isConnected) { submit.disabled = false; submit.textContent = 'Guardar contenido' }
   }
 }
 

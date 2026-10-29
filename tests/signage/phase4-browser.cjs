@@ -149,8 +149,14 @@ function playwright() {
 
     await admin.locator('[data-sg-view="content"]').click(); await admin.getByRole('button', { name: 'Agregar contenido' }).click(); await admin.locator('[data-content-type="image"]').click(); await admin.locator('#sg-content-title').fill('Imagen cargada E2E'); await admin.locator('#sg-content-alt').fill('Cuadro sintético')
     const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
+    await admin.locator('#sg-content-file').setInputFiles({ name: 'trampa.jpg', mimeType: 'image/png', buffer: png }); await admin.getByRole('button', { name: 'Guardar contenido' }).click(); await admin.locator('#sg-content-file-error').getByText('La extensión no coincide con el formato declarado por el archivo.', { exact: true }).waitFor()
     await admin.locator('#sg-content-file').setInputFiles({ name: 'cuadro.png', mimeType: 'image/png', buffer: png }); await admin.locator('#sg-upload-preview img').waitFor(); await admin.getByRole('button', { name: 'Guardar contenido' }).click(); await admin.locator('[data-sg-view="spaces"]').click()
     await admin.locator('.sg-screen-tile').filter({ hasText: 'Comedor norte E2E' }).getByRole('button', { name: 'Mostrar', exact: true }).click(); await admin.locator('.sg-publish-item').filter({ hasText: 'Imagen cargada E2E' }).click(); await player.locator('img[alt="Cuadro sintético"]').waitFor({ timeout: 7000 }); await admin.getByRole('button', { name: 'Listo', exact: true }).click()
+    const mediaContext = await browser.newContext()
+    await mediaContext.addInitScript(({origin,workspaceId,siteId}) => { window.SIERRA_SIGNAGE_CONFIG={enabled:true,backendUrl:origin+'/functions/v1/signage-api',allowedOrigins:[origin],workspaceId,siteId,mediaEnabled:true,liveEnabled:false};window.SIERRA_SIGNAGE_LOCAL_ADMIN_TOKEN='synthetic-admin-token' },{origin,workspaceId:harness.state.workspaceId,siteId:harness.state.siteId})
+    const mediaAdmin=await mediaContext.newPage();await mediaAdmin.goto(origin+'/tests/signage/phase1-visual.html?reset=1');await mediaAdmin.locator('[data-sg-view="content"]').click()
+    const mediaCard=mediaAdmin.locator('.sg-content-card').filter({hasText:'Imagen cargada E2E'});await mediaCard.getByText('Central',{exact:true}).waitFor();await mediaCard.locator('img').waitFor();assert.equal(await mediaCard.locator('img').evaluate(image=>image.naturalWidth),1,'second browser receives a short-lived signed thumbnail')
+    await mediaContext.close()
 
     await player.route('**/functions/v1/signage-api/player/manifest', route => route.abort())
     await player.route('**/media/**', route => route.abort())

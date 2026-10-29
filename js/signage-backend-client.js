@@ -37,6 +37,8 @@
 
     async function request(path, init) {
       init = init || {}
+      const timeoutMs = Number(init.timeoutMs) > 0 ? Number(init.timeoutMs) : 12000
+      if (Object.prototype.hasOwnProperty.call(init, 'timeoutMs')) { init = { ...init }; delete init.timeoutMs }
       const token = await tokenProvider()
       const headers = new Headers(init.headers || {})
       if (token) headers.set('Authorization', `Bearer ${token}`)
@@ -47,7 +49,7 @@
         init = { ...init, body: JSON.stringify(init.body) }
       }
       const controller = typeof runtime.AbortController === 'function' && !init.signal ? new runtime.AbortController() : null
-      const timeout = controller ? setTimeout(() => controller.abort(), 12000) : null
+      const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null
       if (controller) init = { ...init, signal: controller.signal }
       try {
         const response = await fetchImpl(baseUrl + path, { ...init, headers, cache: 'no-store' })
@@ -71,6 +73,22 @@
       } finally {
         if (timeout) clearTimeout(timeout)
       }
+    }
+
+    function transferFile(url, file, onProgress) {
+      if (typeof runtime.XMLHttpRequest !== 'function') return fetchImpl(url, { method: 'PUT', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file })
+      return new Promise((resolve, reject) => {
+        const xhr = new runtime.XMLHttpRequest()
+        xhr.open('PUT', url, true)
+        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream')
+        xhr.upload.onprogress = event => {
+          if (event.lengthComputable && onProgress) onProgress({ stage: 'uploading', percent: 10 + Math.round((event.loaded / event.total) * 75) })
+        }
+        xhr.onerror = () => reject(Object.assign(new Error('La transferencia se interrumpió.'), { code: 'UPLOAD_INTERRUPTED' }))
+        xhr.onabort = xhr.onerror
+        xhr.onload = () => resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status })
+        xhr.send(file)
+      })
     }
 
     return {
@@ -100,16 +118,23 @@
       sendLiveSignal: (sessionId, signal) => request(`/admin/live-sessions/${encodeURIComponent(sessionId)}/signals`, { method: 'POST', body: signal }),
       receiveLiveSignals: (sessionId, after) => request(`/admin/live-sessions/${encodeURIComponent(sessionId)}/signals?after=${Number(after) || 0}`),
       signUpload: input => request('/admin/uploads/sign', { method: 'POST', body: input }),
-      completeUpload: assetId => request(`/admin/uploads/${encodeURIComponent(assetId)}/complete`, { method: 'POST', body: {} }),
-      upload: async file => {
+      completeUpload: assetId => request(`/admin/uploads/${encodeURIComponent(assetId)}/complete`, { method: 'POST', body: {}, timeoutMs: 60000 }),
+      upload: async (file, options) => {
+        options = options || {}
+        const progress = value => { if (typeof options.onProgress === 'function') options.onProgress(value) }
         const workspaceId = await workspaceProvider()
         if (workspaceId) {
+          progress({ stage: 'hashing', percent: 3 })
           const bytes = await file.arrayBuffer()
           const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(byte => byte.toString(16).padStart(2, '0')).join('')
+          progress({ stage: 'preparing', percent: 8 })
           const signed = await request('/admin/uploads/sign', { method: 'POST', body: { workspaceId, fileName: file.name, contentType: file.type, byteSize: file.size, sha256: hash } })
-          const sent = await fetchImpl(signed.upload.url, { method: 'PUT', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file })
+          progress({ stage: 'uploading', percent: 10 })
+          const sent = await transferFile(signed.upload.url, file, progress)
           if (!sent.ok) throw new Error(`No se pudo transferir el archivo (${sent.status}).`)
-          const completed = await request(`/admin/uploads/${encodeURIComponent(signed.assetId)}/complete`, { method: 'POST', body: { workspaceId } })
+          progress({ stage: 'verifying', percent: 90 })
+          const completed = await request(`/admin/uploads/${encodeURIComponent(signed.assetId)}/complete`, { method: 'POST', body: { workspaceId }, timeoutMs: 60000 })
+          progress({ stage: 'complete', percent: 100 })
           return { upload: { id: signed.assetId, url: completed.downloadUrl || '' }, asset: completed }
         }
         const headers = new Headers({ 'Content-Type': file.type || 'application/octet-stream', 'X-Filename': file.name || 'archivo' })

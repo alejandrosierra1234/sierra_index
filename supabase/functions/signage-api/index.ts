@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { ApiError, createSignageHandler, isAllowedCuratedMedia } from '../_shared/signage-api-core.mjs'
 import { normalizeSignageManifest } from '../_shared/signage-manifest.mjs'
+import { inspectMedia, MediaValidationError, sha256Hex } from '../_shared/signage-media-verify.mjs'
 
 const env = (name: string, required = true) => {
   const value = Deno.env.get(name) || ''
@@ -135,7 +136,23 @@ const adapter = {
       fail(versions.error); versionRows.push(...(versions.data || []))
     }
     const current = new Map(versionRows.map((version: any) => [`${version.content_id}:${version.revision}`, version]))
-    return { content: items.map(item => ({ ...item, revision: item.current_revision, snapshot: current.get(`${item.id}:${item.current_revision}`)?.snapshot || null })) }
+    const snapshots = items.map(item => ({ ...item, revision: item.current_revision, snapshot: current.get(`${item.id}:${item.current_revision}`)?.snapshot || null }))
+    const assetIds = [...new Set(snapshots.map(item => item.snapshot?.mediaAssetId).filter(Boolean))]
+    const previewUrls = new Map<string,string>()
+    if (assetIds.length) {
+      const assets = await service.from('signage_media_assets').select('id,storage_path').eq('workspace_id', input.workspaceId).eq('state', 'ready').in('id', assetIds)
+      fail(assets.error)
+      if (assets.data?.length) {
+        const links = await service.storage.from('signage-media').createSignedUrls(assets.data.map((asset: any) => asset.storage_path), 5 * 60)
+        fail(links.error)
+        const byPath = new Map((links.data || []).map((link: any) => [link.path, link.signedUrl]))
+        for (const asset of assets.data) if (byPath.get(asset.storage_path)) previewUrls.set(asset.id, byPath.get(asset.storage_path) as string)
+      }
+    }
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
+    return { content: snapshots.map(item => item.snapshot?.mediaAssetId && previewUrls.has(item.snapshot.mediaAssetId)
+      ? { ...item, snapshot: { ...item.snapshot, mediaUrl: previewUrls.get(item.snapshot.mediaAssetId), mediaUrlExpiresAt: expiresAt } }
+      : item) }
   },
   async listActivity(input: any) {
     const result = await service.from('signage_audit').select('id,event_type,entity_type,entity_id,actor_id,details,created_at').eq('workspace_id', input.workspaceId).order('created_at', { ascending: false }).limit(100)
@@ -257,18 +274,27 @@ const adapter = {
     return { assetId, path: storagePath, upload: { url: signed.data.signedUrl, token: signed.data.token }, state: 'pending' }
   },
   async completeUpload(input: any) {
-    const analyzer = env('SIGNAGE_MEDIA_VERIFIER_URL', false)
-    if (!analyzer) throw new ApiError(503, 'MEDIA_VERIFIER_NOT_CONFIGURED', 'La verificación de archivos todavía no está configurada.')
-    const asset = await service.from('signage_media_assets').select('*').eq('id', input.assetId).eq('workspace_id', input.workspaceId).eq('state', 'pending').maybeSingle()
-    fail(asset.error); if (!asset.data) throw new ApiError(404, 'MEDIA_NOT_FOUND', 'No se encontró el archivo pendiente.')
-    const verification = await fetch(analyzer, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env('SIGNAGE_MEDIA_VERIFIER_TOKEN')}` }, body: JSON.stringify({ bucket: 'signage-media', path: asset.data.storage_path, contentType: asset.data.content_type, byteSize: asset.data.byte_size, sha256: asset.data.sha256 }), signal: AbortSignal.timeout(15000) })
-    const verdict = await verification.json().catch(() => ({}))
-    if (!verification.ok || !['ready', 'quarantined'].includes(verdict.state)) throw new ApiError(503, 'MEDIA_VERIFICATION_FAILED', 'No fue posible verificar el archivo.')
-    const updated = await service.from('signage_media_assets').update({ state: verdict.state }).eq('id', input.assetId).eq('workspace_id', input.workspaceId).select('id,state').single()
-    fail(updated.error)
-    if (updated.data.state !== 'ready') return { assetId: updated.data.id, state: updated.data.state }
+    const asset = await service.from('signage_media_assets').select('*').eq('id', input.assetId).eq('workspace_id', input.workspaceId).maybeSingle()
+    fail(asset.error); if (!asset.data || asset.data.state === 'deleted') throw new ApiError(404, 'MEDIA_NOT_FOUND', 'No se encontró el archivo.')
+    if (asset.data.state === 'quarantined') throw new ApiError(422, 'MEDIA_QUARANTINED', 'El archivo fue rechazado por la verificación de seguridad.')
+    if (asset.data.state === 'pending') {
+      const stored = await service.storage.from('signage-media').download(asset.data.storage_path)
+      if (stored.error || !stored.data) throw new ApiError(409, 'UPLOAD_INCOMPLETE', 'La transferencia no terminó. Intenta subir el archivo nuevamente.')
+      const payload = new Uint8Array(await stored.data.arrayBuffer())
+      try {
+        if (payload.byteLength !== Number(asset.data.byte_size)) throw new MediaValidationError('MEDIA_SIZE_MISMATCH', 'El tamaño recibido no coincide con el archivo seleccionado.')
+        if (await sha256Hex(payload) !== asset.data.sha256) throw new MediaValidationError('MEDIA_HASH_MISMATCH', 'El archivo recibido no coincide con el original.')
+        inspectMedia(payload, asset.data.content_type)
+      } catch (error) {
+        if (!(error instanceof MediaValidationError)) throw error
+        await service.from('signage_media_assets').update({ state: 'quarantined' }).eq('id', input.assetId).eq('workspace_id', input.workspaceId).eq('state', 'pending')
+        throw new ApiError(422, error.code, error.message)
+      }
+      const updated = await service.from('signage_media_assets').update({ state: 'ready' }).eq('id', input.assetId).eq('workspace_id', input.workspaceId).eq('state', 'pending').select('id,state').maybeSingle()
+      fail(updated.error); if (!updated.data) throw new ApiError(409, 'MEDIA_STATE_CHANGED', 'El archivo cambió mientras se verificaba. Actualiza la biblioteca.')
+    }
     const link = await service.storage.from('signage-media').createSignedUrl(asset.data.storage_path, 5 * 60)
-    fail(link.error); return { assetId: updated.data.id, state: updated.data.state, downloadUrl: link.data.signedUrl }
+    fail(link.error); return { assetId: asset.data.id, state: 'ready', downloadUrl: link.data.signedUrl, expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString() }
   },
   async liveConfigured() { return Boolean(env('SIGNAGE_ICE_CONFIG_URL', false) && env('SIGNAGE_ICE_CONFIG_TOKEN', false)) },
   async playerRuntime() {

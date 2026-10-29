@@ -3,6 +3,9 @@ import { createRequire } from 'node:module'
 import { createEdgeHarness } from './edge-harness.mjs'
 const require=createRequire(import.meta.url),Backend=require('../../js/signage-backend-client.js')
 let assertions=0;const eq=(actual,expected,message)=>{assert.deepEqual(actual,expected,message);assertions+=1}
+const box=(type,payload=Buffer.alloc(0))=>{const result=Buffer.alloc(8+payload.length);result.writeUInt32BE(result.length,0);result.write(type,4,4,'ascii');payload.copy(result,8);return result}
+const container=(type,...children)=>box(type,Buffer.concat(children))
+const h264Mp4=()=>{const ftyp=box('ftyp',Buffer.concat([Buffer.from('isom'),Buffer.alloc(4),Buffer.from('isommp42')])),sample=box('avc1',Buffer.alloc(78)),stsd=box('stsd',Buffer.concat([Buffer.alloc(4),Buffer.from([0,0,0,1]),sample]));return Buffer.concat([ftyp,container('moov',container('trak',container('mdia',container('minf',container('stbl',stsd))))),box('mdat',Buffer.alloc(32,7))])}
 const harness=createEdgeHarness({liveConfigured:false}),origin=await harness.start()
 try{
   const baseUrl=origin+'/functions/v1/signage-api',workspaceId=harness.state.workspaceId,siteId=harness.state.siteId
@@ -36,15 +39,23 @@ try{
   await admin.approveContent(curated.content.id,curated.content.revision);await admin.publish(claimed.device.id,curated.content.id);manifest=await player.manifest(claimed.device.id);eq(manifest.content.mediaUrl,curatedUrl,'curated public SIERRA media survives the real Edge contract')
 
   const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=','base64')
-  const file=new File([png],'cuadro.png',{type:'image/png'}),uploaded=await admin.upload(file);eq(uploaded.asset.state,'ready','signed upload is finalized')
-  harness.state.verifierConfigured=false
-  await assert.rejects(()=>admin.upload(new File([png],'sin-verificador.png',{type:'image/png'})),error=>error.status===503&&error.code==='MEDIA_VERIFIER_NOT_CONFIGURED');assertions+=1
-  harness.state.verifierConfigured=true
+  const file=new File([png],'cuadro.png',{type:'image/png'}),progress=[];let interruptTransfer=true
+  const retryFetch=async(url,options)=>{if(String(url).includes('/signed-upload/')&&interruptTransfer){interruptTransfer=false;throw Object.assign(new Error('interrupción sintética'),{code:'UPLOAD_INTERRUPTED'})}return fetch(url,options)}
+  const retryAdmin=Backend.createClient({baseUrl,currentOrigin:origin,allowedOrigins:[origin],workspaceProvider:async()=>workspaceId,tokenProvider:async()=>'synthetic-admin-token',fetchImpl:retryFetch})
+  await assert.rejects(()=>retryAdmin.upload(file,{onProgress:update=>progress.push(update.stage)}),error=>error.code==='UPLOAD_INTERRUPTED');assertions+=1
+  const uploaded=await retryAdmin.upload(file,{onProgress:update=>progress.push(update.stage)});eq(uploaded.asset.state,'ready','interrupted upload can be retried safely');eq(progress.includes('verifying')&&progress.at(-1)==='complete',true,'upload reports verification and completion progress')
+  await assert.rejects(()=>admin.upload(new File([Buffer.from('not a png')],'corrupto.png',{type:'image/png'})),error=>error.status===422);assertions+=1
+  const interrupted=await admin.signUpload({workspaceId,fileName:'interrumpido.png',contentType:'image/png',byteSize:png.length,sha256:'a'.repeat(64)})
+  await assert.rejects(()=>admin.completeUpload(interrupted.assetId),error=>error.status===409&&error.code==='UPLOAD_INCOMPLETE');assertions+=1
+  await assert.rejects(()=>admin.signUpload({workspaceId,fileName:'enorme.png',contentType:'image/png',byteSize:10*1024*1024+1,sha256:'a'.repeat(64)}),error=>error.status===413);assertions+=1
+  await assert.rejects(()=>admin.signUpload({workspaceId,fileName:'trampa.jpg',contentType:'image/png',byteSize:png.length,sha256:'a'.repeat(64)}),error=>error.status===400&&error.code==='MEDIA_EXTENSION_MISMATCH');assertions+=1
   const image=await admin.createContent({workspaceId,type:'image',title:'Imagen privada',alt:'Cuadro sintético',uploadId:uploaded.upload.id,theme:'neutral'})
   await admin.approveContent(image.content.id,image.content.revision);await admin.publish(claimed.device.id,image.content.id)
-  manifest=await player.manifest(claimed.device.id);assert.match(manifest.content.mediaUrl,/\/media\//);assertions+=1
+  manifest=await player.manifest(claimed.device.id);assert.match(manifest.content.mediaUrl,/\/media\/.*token=/);assertions+=1
+  const unsignedMedia=new URL(manifest.content.mediaUrl);unsignedMedia.search='';eq((await fetch(unsignedMedia)).status,404,'private media cannot be fetched without its signed token')
   await assert.rejects(()=>admin.upload(new File([Buffer.from('not png')],'falso.png',{type:'image/png'})),error=>error.status===422);assertions+=1
-  const webm=await admin.upload(new File([Buffer.from([0x1a,0x45,0xdf,0xa3,0x01,0x00,0x00,0x00])],'clip.webm',{type:'video/webm'}));eq(webm.asset.state,'ready','video follows signed verification contract')
+  const video=await admin.upload(new File([h264Mp4()],'clip.mp4',{type:'video/mp4'}));eq(video.asset.state,'ready','H.264 MP4 follows signed byte verification contract')
+  await assert.rejects(()=>admin.upload(new File([h264Mp4()],'clip.webm',{type:'video/webm'})),error=>error.status===415&&error.code==='MEDIA_TYPE_DENIED');assertions+=1
   const link=await admin.createContent({workspaceId,type:'link',title:'Enlace seguro',body:'Destino público',url:'https://example.invalid/pantallas',theme:'neutral'});await admin.approveContent(link.content.id,link.content.revision);await admin.publish(claimed.device.id,link.content.id);manifest=await player.manifest(claimed.device.id);eq(manifest.content.url,'https://example.invalid/pantallas','HTTPS link survives real Edge contract')
 
   const playlist=await admin.createPlaylist({workspaceId,name:'Horario real',entries:[{contentId:draft.content.id,contentRevision:draft.content.revision,durationSeconds:30}]})

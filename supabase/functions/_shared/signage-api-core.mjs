@@ -1,7 +1,8 @@
+import { MEDIA_RULES } from './signage-media-verify.mjs'
+
 const JSON_HEADERS = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const SHA256 = /^[0-9a-f]{64}$/
-const MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'])
 const CURATED_MEDIA_TYPES = new Map([
   ['https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F67448935dfb12aa5cb9c86e9_video-cortado-transcode.mp4', 'video'],
   ['https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F673f497adb654923cf8ff63e_homepage2%20%281%29-transcode.mp4', 'video'],
@@ -205,10 +206,14 @@ export function createSignageHandler(adapter, options = {}) {
       if (req.method === 'POST' && path === '/admin/uploads/sign') {
         const body = await jsonBody(req), workspaceId = workspace(req, body), actor = await admin(req, workspaceId, 'write')
         const type = clean(body.contentType, 100), size = Number(body.byteSize), sha256 = clean(body.sha256, 64).toLowerCase(), name = clean(body.fileName, 180)
-        if (!MIME.has(type)) throw new ApiError(415, 'MEDIA_TYPE_DENIED', 'Ese formato de archivo no está permitido.')
-        if (!Number.isSafeInteger(size) || size < 1 || size > 52428800) throw new ApiError(413, 'MEDIA_SIZE_DENIED', 'El archivo debe pesar entre 1 byte y 50 MB.')
+        const mediaRule = MEDIA_RULES[type]
+        if (!mediaRule) throw new ApiError(415, 'MEDIA_TYPE_DENIED', 'Solo se admiten imágenes PNG/JPEG y video MP4 H.264.')
+        if (!Number.isSafeInteger(size) || size < 1 || size > mediaRule.maxBytes) throw new ApiError(413, 'MEDIA_SIZE_DENIED', mediaRule.kind === 'image' ? 'La imagen debe pesar 10 MB o menos.' : 'El video debe pesar 50 MB o menos.')
         if (!SHA256.test(sha256)) throw new ApiError(400, 'MEDIA_HASH_REQUIRED', 'Se requiere el SHA-256 del archivo.')
         if (!name || /[\\/\0]/.test(name)) throw new ApiError(400, 'INVALID_FILE_NAME', 'El nombre del archivo no es válido.')
+        const extension = name.toLowerCase().match(/\.[a-z0-9]+$/)?.[0] || ''
+        const extensions = type === 'image/png' ? ['.png'] : type === 'image/jpeg' ? ['.jpg','.jpeg'] : ['.mp4']
+        if (!extensions.includes(extension)) throw new ApiError(400, 'MEDIA_EXTENSION_MISMATCH', 'La extensión del archivo no coincide con el formato declarado.')
         return response(await adapter.signUpload({ workspaceId, actorId: actor.id, name, type, size, sha256 }), 201, cors)
       }
       const completeUpload = path.match(/^\/admin\/uploads\/([^/]+)\/complete$/)
