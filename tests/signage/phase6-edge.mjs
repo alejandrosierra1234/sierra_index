@@ -20,7 +20,7 @@ const adapter={
   revokeDevice: async input=>{ calls.push(['revoke',input.workspaceId,input.actor.id]) },
   listDevices:async input=>({devices:[{id:DEVICE,workspaceId:input.workspaceId}]}),
   listContent:async()=>({content:[]}), saveContent:async input=>({content:{id:ASSET,title:input.content.title}}), approveContent:async()=>({content:{status:'approved'}}),
-  publish:async()=>({publication:{version:1}}), rollback:async()=>({publication:{version:2,kind:'rollback'}}), savePlaylist:async()=>({playlist:{id:ASSET}}), saveSchedule:async()=>({schedule:{id:SESSION}}),
+  publish:async()=>({publication:{version:1}}), stopOutput:async input=>({state:'stopped',device:{id:input.deviceId,output_paused:true,revision:2}}), rollback:async()=>({publication:{version:2,kind:'rollback'}}), savePlaylist:async()=>({playlist:{id:ASSET}}), saveSchedule:async()=>({schedule:{id:SESSION}}),
   manifest: async()=>({schema_version:1,device_id:DEVICE,device_revision:7,state:'ready',snapshot:{type:'message',title:'Prueba'}}),
   heartbeat: async(_identity,payload)=>({accepted:true,status:payload.status}),
   signUpload: async input=>({assetId:ASSET,path:`${input.workspaceId}/${ASSET}/test.png`,upload:{url:'https://storage.invalid/signed'}}),
@@ -53,6 +53,8 @@ result=await request('GET','/admin/devices',{token:'admin-token'}); equal(result
 result=await request('POST','/admin/content',{token:'admin-token',body:{workspaceId:WORKSPACE,type:'message',title:'Aviso',body:'Prueba'}}); equal(result.response.status,201)
 result=await request('POST',`/admin/content/${ASSET}/approve`,{token:'admin-token',body:{workspaceId:WORKSPACE,expectedRevision:1}}); equal(result.payload.content.status,'approved')
 result=await request('POST',`/admin/devices/${DEVICE}/publish`,{token:'admin-token',body:{workspaceId:WORKSPACE,contentId:ASSET}}); equal(result.payload.publication.version,1)
+result=await request('POST',`/admin/devices/${DEVICE}/stop`,{token:'admin-token',body:{workspaceId:WORKSPACE,expectedRevision:1}}); equal(result.payload.device.output_paused,true)
+result=await request('POST',`/admin/devices/${DEVICE}/stop`,{body:{workspaceId:WORKSPACE}}); equal(result.response.status,401)
 result=await request('POST',`/admin/devices/${DEVICE}/rollback`,{token:'admin-token',body:{workspaceId:WORKSPACE,publicationId:ASSET}}); equal(result.payload.publication.kind,'rollback')
 result=await request('POST','/admin/playlists',{token:'admin-token',body:{workspaceId:WORKSPACE,name:'Lista',entries:[{contentId:ASSET,durationSeconds:15}]}}); equal(result.response.status,201)
 result=await request('POST','/admin/schedules',{token:'admin-token',body:{workspaceId:WORKSPACE,deviceId:DEVICE,playlistId:ASSET,startsAt:'2030-01-01T00:00:00Z',endsAt:'2030-01-01T01:00:00Z'}}); equal(result.response.status,201)
@@ -78,11 +80,12 @@ assert.match(clientSource,/claimPairing: claimToken => request\('\/player\/pairi
 assert.doesNotMatch(clientSource,/pairings\/\$\{encodeURIComponent\(claimToken\)\}/); assertions+=1
 assert.doesNotMatch(clientSource+playerSource+liveSource,/\?\./); assertions+=1
 assert.doesNotMatch(clientSource,/globalThis\.fetch/); assertions+=1
-for(const required of ['signage_pairing_claim_service','signage_pairing_deliver_service','signage_device_manifest_service','createSignedUploadUrl','signage_device_heartbeats','SIGNAGE_MEDIA_VERIFIER_URL','SIGNAGE_ICE_CONFIG_URL','SIGNAGE_PAIRING_PEPPER','signage_playlist_save','signage_schedule_save']) {
+for(const required of ['signage_pairing_claim_service','signage_pairing_deliver_service','signage_device_manifest_service','signage_stop_output','createSignedUploadUrl','signage_device_heartbeats','SIGNAGE_MEDIA_VERIFIER_URL','SIGNAGE_ICE_CONFIG_URL','SIGNAGE_PAIRING_PEPPER','signage_playlist_save','signage_schedule_save']) {
   assert.match(edgeSource,new RegExp(required)); assertions+=1
 }
 assert.doesNotMatch(edgeSource,/product-images/); assertions+=1
 assert.match(edgeSource,/rpc\('signage_device_revoke'/); assertions+=1
+assert.match(edgeSource,/rpc\('signage_stop_output'/); assertions+=1
 assert.match(edgeSource,/contentRevision: Number\(item\.contentRevision\)/); assertions+=1
 const migration59=await fs.readFile(path.join(root,'update59.sql'),'utf8')
 assert.doesNotMatch(migration59,/drop constraint if exists capability_grants/); assertions+=1

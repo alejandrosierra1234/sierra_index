@@ -42,7 +42,7 @@ function playwright() {
     const player = await context.newPage(), admin = await context.newPage(), errors = []
     player.on('pageerror', error => errors.push(`player: ${error.message}`)); admin.on('pageerror', error => errors.push(`admin: ${error.message}`))
     await player.goto(origin + '/signage-player.html')
-    assert.equal(await player.locator('#sp-build').textContent(), 'P-20261029-5')
+    assert.equal(await player.locator('#sp-build').textContent(), 'P-20261029-6')
     assert.equal(await player.locator('#sp-setup').isVisible(), true, 'pairing setup is the only visible pane before enrollment')
     assert.equal(await player.locator('#sp-stage').isHidden(), true, 'playback pane stays hidden before enrollment')
     const code = (await player.locator('#sp-code').textContent()).trim(); assert.match(code, /^\d{6}$/)
@@ -71,6 +71,17 @@ function playwright() {
     await admin.getByRole('button', { name: 'Agregar contenido' }).first().click(); await admin.locator('#sg-content-title').fill('Mensaje cruzado E2E'); await admin.locator('#sg-content-body').fill('Publicado desde otro navegador.'); await admin.getByRole('button', { name: 'Guardar contenido' }).click()
     await admin.getByRole('button', { name: 'Elegir qué mostrar' }).click(); await admin.locator('.sg-publish-item').filter({ hasText: 'Mensaje cruzado E2E' }).click()
     await player.getByText('Mensaje cruzado E2E', { exact: true }).waitFor({ timeout: 7000 })
+
+    admin.once('dialog', dialog => dialog.accept())
+    await admin.getByRole('button', { name: 'Dejar de transmitir' }).click()
+    await admin.getByText('En reposo', { exact: true }).first().waitFor()
+    await player.getByText('Listo para mostrar contenido', { exact: true }).waitFor({ timeout: 7000 })
+    assert.equal([...harness.state.contents.values()].length > 0, true, 'stopping output preserves content')
+    await player.reload()
+    await player.getByText('Listo para mostrar contenido', { exact: true }).waitFor({ timeout: 7000 })
+    await admin.getByRole('button', { name: 'Elegir qué mostrar' }).click()
+    await admin.locator('.sg-publish-item').filter({ hasText: 'Mensaje cruzado E2E' }).click()
+    await player.getByText('Mensaje cruzado E2E', { exact: true }).waitFor({ timeout: 7000 })
     assert.equal([...harness.state.contents.values()].find(item => item.snapshot.title === 'Mensaje cruzado E2E').status, 'approved')
 
     await admin.getByRole('button', { name: 'Agregar contenido' }).first().click(); await admin.locator('[data-content-type="image"]').click(); await admin.locator('#sg-content-title').fill('Imagen cargada E2E'); await admin.locator('#sg-content-alt').fill('Cuadro sintético')
@@ -90,6 +101,14 @@ function playwright() {
       const playlist=await client.createPlaylist({name:'Lista programada E2E',entries:[{contentId:message.backendContentId,contentRevision:message.backendRevision,durationSeconds:30}]})
       await client.createSchedule({deviceId:screen.id,playlistId:playlist.playlist.id,startsAt:new Date(Date.now()-60000).toISOString(),endsAt:new Date(Date.now()+3600000).toISOString(),priority:9})
     })
+    await player.getByText('Mensaje cruzado E2E', { exact: true }).waitFor({ timeout: 7000 })
+
+    admin.once('dialog', dialog => dialog.accept())
+    await admin.getByRole('button', { name: 'Dejar de transmitir' }).click()
+    await player.getByText('Listo para mostrar contenido', { exact: true }).waitFor({ timeout: 7000 })
+    assert.equal([...harness.state.schedules.values()].length, 1, 'stopping output preserves schedules')
+    await admin.getByRole('button', { name: 'Elegir qué mostrar' }).click()
+    await admin.locator('.sg-publish-item').filter({ hasText: 'Mensaje cruzado E2E' }).click()
     await player.getByText('Mensaje cruzado E2E', { exact: true }).waitFor({ timeout: 7000 })
 
     await admin.evaluate(async () => {

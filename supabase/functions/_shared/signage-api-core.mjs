@@ -137,6 +137,11 @@ export function createSignageHandler(adapter, options = {}) {
         const body = await jsonBody(req), workspaceId = workspace(req, body), actor = await admin(req, workspaceId, 'publish')
         return response(await adapter.publish({ workspaceId, actor, deviceId: id(publish[1], 'dispositivo'), contentId: id(body.contentId, 'contenido'), expectedRevision: body.expectedRevision }), 201, cors)
       }
+      const stopOutput = path.match(/^\/admin\/devices\/([^/]+)\/stop$/)
+      if (req.method === 'POST' && stopOutput) {
+        const body = await jsonBody(req), workspaceId = workspace(req, body), actor = await admin(req, workspaceId, 'publish')
+        return response(await adapter.stopOutput({ workspaceId, actor, deviceId: id(stopOutput[1], 'dispositivo'), expectedRevision: body.expectedRevision }), 200, cors)
+      }
       const rollback = path.match(/^\/admin\/devices\/([^/]+)\/rollback$/)
       if (req.method === 'POST' && rollback) {
         const body = await jsonBody(req), workspaceId = workspace(req, body), actor = await admin(req, workspaceId, 'publish')

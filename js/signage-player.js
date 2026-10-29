@@ -132,7 +132,7 @@
     const client = SignageBackendClient.createPlayerClient({ baseUrl, currentOrigin: location.origin, allowedOrigins, deviceToken: credentials.deviceToken, deviceId: credentials.deviceId })
     try {
       const result = await client.manifest(credentials.deviceId)
-      document.getElementById('sp-connection').textContent = 'Conectada · actualizado ahora'
+      document.getElementById('sp-connection').textContent = result.state === 'stopped' ? 'Conectada · en reposo' : 'Conectada · actualizado ahora'
       if (result.liveSession) await showLive(result.liveSession, client)
       else {
         if (liveReceiver) liveReceiver.stop()

@@ -86,6 +86,7 @@
       createContent: input => request('/admin/content', { method: 'POST', body: input }),
       approveContent: (contentId, expectedRevision) => request(`/admin/content/${encodeURIComponent(contentId)}/approve`, { method: 'POST', body: { expectedRevision } }),
       publish: (deviceId, contentId) => request(`/admin/devices/${encodeURIComponent(deviceId)}/publish`, { method: 'POST', body: { contentId } }),
+      stopOutput: (deviceId, expectedRevision) => request(`/admin/devices/${encodeURIComponent(deviceId)}/stop`, { method: 'POST', body: { expectedRevision } }),
       rollback: (deviceId, publicationId, expectedRevision) => request(`/admin/devices/${encodeURIComponent(deviceId)}/rollback`, { method: 'POST', body: { publicationId, expectedRevision } }),
       createPlaylist: input => request('/admin/playlists', { method: 'POST', body: input }),
       createSchedule: input => request('/admin/schedules', { method: 'POST', body: input }),

@@ -109,6 +109,7 @@
       screen.lastValidAt = screen.lastValidAt || null
       screen.kind = screen.kind || 'local-test'
       screen.connectionState = screen.connectionState || 'not-linked'
+      screen.outputPaused = screen.outputPaused === true
     })
     state.contents.forEach(content => { content.type = CONTENT_TYPES.has(content.type) ? content.type : 'message' })
     return state
@@ -250,6 +251,7 @@
       kind: 'local-test',
       connectionState: 'not-linked',
       evidence: 'Sin telemetría',
+      outputPaused: false,
       publishedContentId: null,
       publicationVersion: 0,
       updatedAt: null,
@@ -274,7 +276,7 @@
       throw error
     }
     if (state.screens.some(screen => screen.id === id)) return { state, screen: state.screens.find(screen => screen.id === id) }
-    const screen = { id, name, plant, profile, kind: 'paired', connectionState: 'paired', evidence: 'Esperando primera conexión', publishedContentId: null, publicationVersion: 0, updatedAt: null, history: [], lastValidContentId: null, lastValidAt: null }
+    const screen = { id, name, plant, profile, kind: 'paired', connectionState: 'paired', evidence: 'Esperando primera conexión', outputPaused: device?.outputPaused === true, publishedContentId: null, publicationVersion: 0, updatedAt: null, history: [], lastValidContentId: null, lastValidAt: null }
     state.screens.unshift(screen)
     appendAudit(state, { type: 'screen.paired', actor: actorName(context.actor), screenId: id, summary: `Vinculó “${name}” mediante código` })
     return { state, screen }
@@ -340,6 +342,7 @@
     const state = normalizeState(current)
     const screen = state.screens.find(item => item.id === screenId) || null
     if (!screen) return { screen: null, content: null, source: 'missing-screen', schedule: null, playlist: null, conflictCount: 0, fallback: false }
+    if (screen.outputPaused) return { screen, content: null, source: 'stopped', schedule: null, playlist: null, conflictCount: 0, fallback: false }
     const excluded = new Set(options?.excludeContentIds || [])
     const schedules = activeSchedules(state, screenId, options?.now)
     const schedule = schedules[0] || null
@@ -389,6 +392,7 @@
     })
     screen.history = screen.history.slice(0, 10)
     screen.publishedContentId = content.id
+    screen.outputPaused = false
     screen.publicationVersion = Number(screen.publicationVersion || 0) + 1
     screen.updatedAt = nowIso(options?.now)
     appendAudit(state, {
@@ -415,6 +419,7 @@
     const currentContentId = screen.publishedContentId || null
     screen.history.unshift({ contentId: currentContentId, version: screen.publicationVersion, at: screen.updatedAt })
     screen.publishedContentId = previous.contentId
+    screen.outputPaused = false
     screen.publicationVersion = Number(screen.publicationVersion || 0) + 1
     screen.updatedAt = nowIso(options?.now)
     const content = state.contents.find(item => item.id === previous.contentId)
@@ -427,6 +432,29 @@
       now: options?.now,
     })
     return { state, screen, content: content || null }
+  }
+
+  function stopOutput(current, screenId, context, options) {
+    requireManage(context)
+    const state = normalizeState(current)
+    const screen = state.screens.find(item => item.id === screenId)
+    if (!screen) {
+      const error = new Error('La pantalla ya no está disponible.')
+      error.code = 'SIGNAGE_NOT_FOUND'
+      throw error
+    }
+    screen.outputPaused = true
+    screen.publicationVersion = Number(screen.publicationVersion || 0) + 1
+    screen.updatedAt = nowIso(options?.now)
+    appendAudit(state, {
+      type: 'screen.output_stopped',
+      actor: actorName(context.actor),
+      screenId: screen.id,
+      contentId: screen.publishedContentId || null,
+      summary: `Dejó ${screen.name} en reposo · el contenido se conservó`,
+      now: options?.now,
+    })
+    return { state, screen }
   }
 
   function contentForScreen(state, screenId) {
@@ -491,6 +519,7 @@
     markPlaybackSuccess,
     publishContent,
     rollbackScreen,
+    stopOutput,
     contentForScreen,
     createRepository,
   }
@@ -506,6 +535,7 @@ let _signageLiveSender = null
 let _signageLiveScreenId = null
 let _signagePairingInFlight = false
 let _signageRemoteSyncPromise = null
+const _signageStopInFlight = new Set()
 
 function signageRepository() { return SignagePhase1.createRepository(window.localStorage) }
 function signageContext() {
@@ -561,6 +591,8 @@ function signageRemoteScreen(device, fallback = {}) {
     name: device?.name,
     plant: fallback.plant || 'Sede vinculada',
     profile: fallback.profile || 'Perfil sin declarar',
+    outputPaused: device?.output_paused === true || device?.outputPaused === true,
+    backendRevision: Number(device?.revision) || 0,
   }
 }
 
@@ -572,15 +604,25 @@ async function signageSyncRemoteDevices(options = {}) {
     try {
       const result = await signageBackendClient().listDevices()
       const added = []
+      let changed = false
       let next = _signageState
       for (const device of result?.devices || []) {
         if (device?.state && device.state !== 'active') continue
-        if (next.screens.some(screen => screen.id === device.id)) continue
+        const existing = next.screens.find(screen => screen.id === device.id)
+        if (existing) {
+          const paused = device?.output_paused === true || device?.outputPaused === true
+          const revision = Number(device?.revision) || existing.backendRevision || 0
+          if (existing.outputPaused !== paused || existing.backendRevision !== revision) changed = true
+          existing.outputPaused = paused
+          existing.backendRevision = revision
+          continue
+        }
         const registered = SignagePhase1.registerPairedScreen(next, signageRemoteScreen(device), signageContext())
         next = registered.state
         added.push(registered.screen)
+        changed = true
       }
-      if (added.length) {
+      if (changed) {
         if (!signageSaveState(next)) return { added: [], error: new Error('No se pudo guardar la sincronización local.') }
         renderSignageHome()
       }
@@ -621,7 +663,7 @@ function renderSignageHome() {
     pg.innerHTML = emptyStateHtml({ title: 'Acceso restringido', desc: 'No tienes permiso para administrar Pantallas.' })
     return
   }
-  const published = _signageState.screens.filter(screen => screen.publishedContentId).length
+  const published = _signageState.screens.filter(screen => screen.publishedContentId && !screen.outputPaused).length
   const warning = _signageLoadWarning ? `<div class="sg-banner sg-banner-warning" role="alert">${esc(_signageLoadWarning)}</div>` : ''
   const centralEnabled = signagePublicConfig().enabled
   pg.innerHTML = `<div class="sg-phase">
@@ -662,11 +704,13 @@ function renderSignageHome() {
 
 function signageScreensTableHtml() {
   if (!_signageState.screens.length) return emptyStateHtml({ title: 'Aún no agregas una pantalla', desc: 'Agrega una pantalla para empezar. En modo de prueba podrás verla en este mismo navegador.', actionLabel: 'Agregar pantalla', actionOnClick: 'signageOpenScreenDrawer()' })
-  return `<div class="erp-table-wrap"><table class="erp-table sg-table"><thead><tr><th>Pantalla</th><th>Planta</th><th>Perfil declarado</th><th>Publicación local</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${_signageState.screens.map(screen => {
+  return `<div class="erp-table-wrap"><table class="erp-table sg-table"><thead><tr><th>Pantalla</th><th>Planta</th><th>Perfil declarado</th><th>Contenido actual</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>${_signageState.screens.map(screen => {
     const content = signageContentById(screen.publishedContentId)
     const paired = screen.kind === 'paired'
     const liveEnabled = signagePublicConfig().liveEnabled
-    return `<tr><td><b>${esc(screen.name)}</b><div class="sg-sub">${paired ? 'Vinculada mediante código' : 'Guardada en este navegador'}</div></td><td>${esc(screen.plant)}</td><td>${esc(screen.profile)}</td><td>${content ? `<b>${esc(content.title)}</b><div class="sg-sub">Actualizado ${screen.updatedAt ? esc(signageFormatTime(screen.updatedAt)) : 'en este navegador'}</div>` : '<span class="sg-muted">Nada todavía</span>'}</td><td><div class="sg-state-stack"><span class="sg-status ${paired ? 'sg-status-connected' : 'sg-status-local'}">${paired ? 'Vinculada' : 'Modo de prueba'}</span><span class="sg-sub">${paired ? 'Conexión pendiente de comprobar' : 'No conectada a una TV'}</span></div></td><td><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPublishDrawer('${escAttr(screen.id)}')">Elegir qué mostrar</button>${paired ? liveEnabled ? `<button class="btn btn-ghost btn-sm" onclick="signageStartLive('${escAttr(screen.id)}')">Compartir mi pantalla</button>` : '<button class="btn btn-ghost btn-sm" disabled>Compartir pantalla · Próximamente</button>' : `<button class="btn btn-ghost btn-sm" onclick="signageShowPlayer('${escAttr(screen.id)}')">Ver pantalla</button>`}${screen.history.length ? `<button class="btn btn-ghost btn-sm" onclick="signageRollback('${escAttr(screen.id)}')">Deshacer cambio</button>` : ''}</div></td></tr>`
+    const stopLabel = paired ? 'Dejar de transmitir' : 'Dejar de mostrar'
+    const output = screen.outputPaused ? '<b>En reposo</b><div class="sg-sub">El contenido se conserva</div>' : content ? `<b>${esc(content.title)}</b><div class="sg-sub">Actualizado ${screen.updatedAt ? esc(signageFormatTime(screen.updatedAt)) : 'en este navegador'}</div>` : '<span class="sg-muted">Nada todavía</span>'
+    return `<tr><td><b>${esc(screen.name)}</b><div class="sg-sub">${paired ? 'Vinculada mediante código' : 'Guardada en este navegador'}</div></td><td>${esc(screen.plant)}</td><td>${esc(screen.profile)}</td><td>${output}</td><td><div class="sg-state-stack"><span class="sg-status ${screen.outputPaused ? 'sg-status-unknown' : paired ? 'sg-status-connected' : 'sg-status-local'}">${screen.outputPaused ? 'En reposo' : paired ? 'Vinculada' : 'Modo de prueba'}</span><span class="sg-sub">${screen.outputPaused ? 'Sigue vinculada y no muestra contenido' : paired ? 'Conexión pendiente de comprobar' : 'No conectada a una TV'}</span></div></td><td><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPublishDrawer('${escAttr(screen.id)}')">Elegir qué mostrar</button>${!screen.outputPaused && (screen.publishedContentId || paired) ? `<button class="btn btn-ghost btn-sm" onclick="signageStopOutput('${escAttr(screen.id)}')"${_signageStopInFlight.has(screen.id) ? ' disabled' : ''}>${_signageStopInFlight.has(screen.id) ? 'Deteniendo…' : stopLabel}</button>` : ''}${paired ? liveEnabled ? `<button class="btn btn-ghost btn-sm" onclick="signageStartLive('${escAttr(screen.id)}')">Compartir mi pantalla</button>` : '<button class="btn btn-ghost btn-sm" disabled>Compartir pantalla · Próximamente</button>' : `<button class="btn btn-ghost btn-sm" onclick="signageShowPlayer('${escAttr(screen.id)}')">Ver pantalla</button>`}${screen.history.length ? `<button class="btn btn-ghost btn-sm" onclick="signageRollback('${escAttr(screen.id)}')">Deshacer cambio</button>` : ''}</div></td></tr>`
   }).join('')}</tbody></table></div>`
 }
 
@@ -695,7 +739,7 @@ async function signageCheckBackendAvailability() {
   try {
     if (!signagePublicConfig().enabled) throw new Error('Pantallas no está habilitado.')
     await signageBackendClient().health()
-    if (host) host.innerHTML = '<b>En la televisión o reproductor:</b> abre <a href="signage-player.html?build=P-20261029-5" target="_blank" rel="noopener">el reproductor de Pantallas</a>. Verás un código de 6 números.'
+    if (host) host.innerHTML = '<b>En la televisión o reproductor:</b> abre <a href="signage-player.html?build=P-20261029-6" target="_blank" rel="noopener">el reproductor de Pantallas</a>. Verás un código de 6 números.'
     if (submit) submit.disabled = false
     document.getElementById('sg-pair-code')?.focus()
   } catch {
@@ -1021,8 +1065,9 @@ function signageOpenPublishDrawer(screenId) {
   if (!signageContext().canManage) { toast('No tienes permiso para publicar.'); return }
   const screen = _signageState.screens.find(item => item.id === screenId)
   if (!screen) { toast('La pantalla ya no está disponible.'); return }
-  openSideDrawer({ eyebrow: 'Publicación local', title: screen.name, onTab: () => {
-    document.getElementById('sd-body').innerHTML = `<div class="sg-publish"><div class="sg-form-note"><b>Alcance:</b> solo cambia el reproductor local de prueba. No hay sincronización con una televisión.</div><p>Selecciona la pieza que debe quedar activa.</p><div class="sg-publish-list">${_signageState.contents.map(content => `<button type="button" class="sg-publish-item${screen.publishedContentId === content.id ? ' current' : ''}" onclick="signagePublish('${escAttr(screen.id)}','${escAttr(content.id)}')"><span class="sg-theme-swatch sg-theme-${escAttr(content.theme)}"></span><span><b>${esc(content.title)}</b><small>${esc(content.body)}</small></span>${screen.publishedContentId === content.id ? '<em>Actual</em>' : ''}</button>`).join('')}</div></div>`
+  openSideDrawer({ eyebrow: screen.kind === 'paired' ? 'Pantalla vinculada' : 'Modo de prueba', title: screen.name, onTab: () => {
+    const scope = screen.kind === 'paired' ? '<b>Alcance:</b> el contenido se enviará únicamente a esta pantalla vinculada.' : '<b>Alcance:</b> solo cambia el reproductor local de prueba. No hay sincronización con una televisión.'
+    document.getElementById('sd-body').innerHTML = `<div class="sg-publish"><div class="sg-form-note">${scope}</div><p>Selecciona la pieza que debe quedar activa.${screen.outputPaused ? ' Esto reanudará la pantalla.' : ''}</p><div class="sg-publish-list">${_signageState.contents.map(content => `<button type="button" class="sg-publish-item${!screen.outputPaused && screen.publishedContentId === content.id ? ' current' : ''}" onclick="signagePublish('${escAttr(screen.id)}','${escAttr(content.id)}')"><span class="sg-theme-swatch sg-theme-${escAttr(content.theme)}"></span><span><b>${esc(content.title)}</b><small>${esc(content.body)}</small></span>${!screen.outputPaused && screen.publishedContentId === content.id ? '<em>Actual</em>' : ''}</button>`).join('')}</div></div>`
   } })
 }
 
@@ -1041,7 +1086,8 @@ async function signagePublish(screenId, contentId) {
         await signageBackendClient().approveContent(backendContentId, content.backendRevision)
         content.backendStatus = 'approved'
       }
-      await signageBackendClient().publish(screen.id, backendContentId)
+      const remotePublication = await signageBackendClient().publish(screen.id, backendContentId)
+      screen.backendRevision = Number(remotePublication?.publication?.device_revision) || screen.backendRevision || 0
     }
     const result = SignagePhase1.publishContent(_signageState, screenId, contentId, signageContext())
     if (!signageSaveState(result.state)) return
@@ -1060,6 +1106,30 @@ function signageRollback(screenId) {
     renderSignageHome()
     toast('Se restauró la publicación local anterior.')
   } catch (error) { toast(error.message || 'No se pudo restaurar la publicación.') }
+}
+
+async function signageStopOutput(screenId) {
+  const screen = _signageState.screens.find(item => item.id === screenId)
+  if (!screen || _signageStopInFlight.has(screenId)) return
+  const consequence = screen.kind === 'paired'
+    ? `¿Dejar de transmitir en ${screen.name}? La pantalla seguirá vinculada, conservará su contenido y quedará en reposo hasta que elijas qué mostrar.`
+    : `¿Dejar de mostrar contenido en ${screen.name}? La pantalla de prueba quedará en reposo hasta que elijas qué mostrar.`
+  if (!confirm(consequence)) return
+  _signageStopInFlight.add(screenId); renderSignageHome()
+  try {
+    if (_signageLiveSender && _signageLiveScreenId === screenId) await _signageLiveSender.stop()
+    if (screen.kind === 'paired') {
+      const remote = await signageBackendClient().stopOutput(screen.id, screen.backendRevision)
+      screen.backendRevision = Number(remote?.device?.revision || remote?.device_revision) || screen.backendRevision || 0
+    }
+    const result = SignagePhase1.stopOutput(_signageState, screenId, signageContext())
+    if (!signageSaveState(result.state)) return
+    toast(screen.kind === 'paired' ? `${result.screen.name} quedó en reposo. Sigue vinculada y su contenido se conservó.` : `${result.screen.name} dejó de mostrar contenido en este navegador.`)
+  } catch (error) {
+    toast(error.message || 'No se pudo detener esta pantalla. Intenta de nuevo.')
+  } finally {
+    _signageStopInFlight.delete(screenId); renderSignageHome()
+  }
 }
 
 async function signageStartLive(screenId) {

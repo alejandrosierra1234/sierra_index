@@ -25,6 +25,7 @@
       if (stopped || !session) return
       try {
         const result = await options.client.receiveLiveSignals(session.id, sequence)
+        if (result.state === 'stopped') return stop()
         for (const signal of result.signals || []) {
           sequence = Math.max(sequence, signal.sequence)
           if (signal.type === 'answer' && !peer.currentRemoteDescription) await peer.setRemoteDescription(signal.payload)

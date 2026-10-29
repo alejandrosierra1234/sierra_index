@@ -88,7 +88,7 @@ const adapter = {
     fail(result.error, 'No se pudo revocar la pantalla.')
   },
   async listDevices(input: any) {
-    const result = await service.from('signage_devices').select('id,workspace_id,site_id,name,state,revision,updated_at').eq('workspace_id', input.workspaceId).order('name')
+    const result = await service.from('signage_devices').select('id,workspace_id,site_id,name,state,revision,output_paused,active_publication_id,updated_at').eq('workspace_id', input.workspaceId).order('name')
     fail(result.error); return { devices: result.data || [] }
   },
   async listContent(input: any) {
@@ -124,6 +124,16 @@ const adapter = {
     const { client } = await userClient(input.actor.token)
     const result = await client.rpc('signage_publish', { p_workspace: input.workspaceId, p_device: input.deviceId, p_content: input.contentId, p_expected_device_revision: revision })
     fail(result.error, 'No se pudo publicar el contenido.'); return { publication: result.data }
+  },
+  async stopOutput(input: any) {
+    let revision = Number(input.expectedRevision)
+    if (!Number.isSafeInteger(revision)) {
+      const current = await service.from('signage_devices').select('revision').eq('id', input.deviceId).eq('workspace_id', input.workspaceId).maybeSingle()
+      fail(current.error); if (!current.data) throw new ApiError(404, 'DEVICE_NOT_FOUND', 'No se encontró la pantalla.'); revision = current.data.revision
+    }
+    const { client } = await userClient(input.actor.token)
+    const result = await client.rpc('signage_stop_output', { p_workspace: input.workspaceId, p_device: input.deviceId, p_expected_device_revision: revision })
+    fail(result.error, 'No se pudo detener la pantalla.'); return { state: 'stopped', device: result.data }
   },
   async rollback(input: any) {
     let revision = Number(input.expectedRevision)

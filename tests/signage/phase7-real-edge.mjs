@@ -38,6 +38,10 @@ try{
   const playlist=await admin.createPlaylist({workspaceId,name:'Horario real',entries:[{contentId:draft.content.id,contentRevision:draft.content.revision,durationSeconds:30}]})
   await admin.createSchedule({workspaceId,deviceId:claimed.device.id,playlistId:playlist.playlist.id,startsAt:new Date(Date.now()-60000).toISOString(),endsAt:new Date(Date.now()+3600000).toISOString(),priority:9})
   manifest=await player.manifest(claimed.device.id);eq(manifest.content.title,'Mensaje aprobado','active schedule overrides direct publication');eq(manifest.schedule.priority,9,'schedule priority survives contract')
+  const stopped=await admin.stopOutput(claimed.device.id,manifest.revision);eq(stopped.device.output_paused,true,'stop targets the selected device')
+  manifest=await player.manifest(claimed.device.id);eq(manifest.state,'stopped','stop persists in the real Edge contract');eq(manifest.content,null,'stopped output hides scheduled and direct content');eq(manifest.schedule,null,'an active schedule cannot immediately restart a stopped screen')
+  await admin.publish(claimed.device.id,draft.content.id)
+  manifest=await player.manifest(claimed.device.id);eq(manifest.state,'ready','an intentional publication resumes a stopped screen')
   await player.heartbeat({playerVersion:'test',status:'playing',lastManifestRevision:manifest.revision,errors:[]});eq(harness.state.heartbeats.length,1,'heartbeat reaches Edge handler')
   const runtime=await player.runtime();eq(runtime.liveAvailable,false,'runtime denies unconfigured live video')
   await assert.rejects(()=>admin.startLive(claimed.device.id),error=>error.status===503&&error.code==='LIVE_NOT_CONFIGURED');assertions+=1
