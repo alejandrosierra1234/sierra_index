@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Pantallas · Diagnóstico SIERRA</title>
+  <link rel="stylesheet" href="css/signage-player.css?v=diag-20261029-2">
+</head>
+<body>
+  <main id="player" aria-live="polite">
+    <section class="sp-setup" id="sp-setup">
+      <div class="sp-logo">SIERRA</div>
+      <p class="sp-step" id="sp-build">DIAGNÓSTICO P-20261029-2</p>
+      <h1>Comprobando esta pantalla</h1>
+      <p>Esta página identifica en qué etapa se detiene el reproductor. No muestra ni registra credenciales.</p>
+      <output id="sp-code" class="sp-code" aria-label="Código de vinculación">······</output>
+      <p id="sp-setup-status" class="sp-status">Etapa 1/4 · HTML e inicio local cargados</p>
+      <button id="sp-new-code" type="button" hidden>Intentar de nuevo</button>
+    </section>
+    <section class="sp-stage" id="sp-stage" hidden>
+      <div class="sp-connection" id="sp-connection">Pantalla vinculada · conectando…</div>
+      <div id="sp-content" class="sp-content"></div>
+    </section>
+  </main>
+  <script>
+    (function () {
+      var status = document.getElementById('sp-setup-status')
+      var retry = document.getElementById('sp-new-code')
+      window.__sierraPlayerBooted = false
+      window.__sierraPlayerSettled = false
+      window.__sierraDiagnosticStage = 'inline'
+      window.__sierraDiagnostic = function (stage, message) {
+        window.__sierraDiagnosticStage = stage
+        if (!window.__sierraPlayerSettled) status.textContent = message
+      }
+      window.__sierraDiagnosticError = function (resource) {
+        window.__sierraDiagnosticStage = 'resource-error'
+        status.textContent = 'Etapa detenida · no cargó ' + resource
+        retry.hidden = false
+      }
+      retry.addEventListener('click', function () { location.reload() })
+      window.onerror = function (message, source, line) {
+        if (window.__sierraPlayerSettled) return false
+        var file = String(source || 'script').split('/').pop().split('?')[0]
+        status.textContent = 'Etapa detenida · error en ' + file + ' línea ' + String(line || '?')
+        retry.hidden = false
+        return false
+      }
+      setTimeout(function () {
+        if (!window.__sierraPlayerSettled) {
+          status.textContent = 'Etapa detenida · ' + window.__sierraDiagnosticStage + ' no terminó en 15 segundos'
+          retry.hidden = false
+        }
+      }, 15000)
+    })()
+  </script>
+  <script src="js/signage-config.js?v=diag-20261029-2" onload="__sierraDiagnostic('config','Etapa 2/4 · configuración cargada')" onerror="__sierraDiagnosticError('configuración')"></script>
+  <script src="js/signage-backend-client.js?v=diag-20261029-2" onload="__sierraDiagnostic('client','Etapa 3/4 · cliente cargado')" onerror="__sierraDiagnosticError('cliente')"></script>
+  <script src="js/signage-player.js?v=diag-20261029-2" onload="__sierraDiagnostic('player','Etapa 4/4 · reproductor iniciado')" onerror="__sierraDiagnosticError('reproductor')"></script>
+</body>
+</html>

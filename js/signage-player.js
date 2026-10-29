@@ -14,6 +14,7 @@
   let liveSessionId = null
   let currentObjectUrl = null
   let lastHeartbeatAt = 0
+  let liveShareLoad = null
   const heartbeatInterval = Number(window.SIERRA_SIGNAGE_HEARTBEAT_INTERVAL) || 30000
 
   function loadCredentials() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) } catch (error) { return null } }
@@ -84,14 +85,34 @@
     host.querySelectorAll('img,video').forEach(media => media.addEventListener('error', () => { if (lastManifest && lastManifest.content) host.innerHTML = '<div class="sp-empty"><h1>No pudimos cargar este archivo</h1><p>Revisa la conexión o el formato desde SIERRA Index.</p></div>' }, { once: true }))
   }
 
+  function loadLiveShare() {
+    if (window.SignageLiveShare) return Promise.resolve(window.SignageLiveShare)
+    if (liveShareLoad) return liveShareLoad
+    liveShareLoad = new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      const timeout = setTimeout(() => reject(new Error('La transmisión en vivo tardó demasiado en cargar.')), 12000)
+      script.src = 'js/signage-live-share.js?v=20261029-4'
+      script.async = true
+      script.onload = () => {
+        clearTimeout(timeout)
+        if (window.SignageLiveShare) resolve(window.SignageLiveShare)
+        else reject(new Error('No se pudo iniciar la transmisión en vivo.'))
+      }
+      script.onerror = () => { clearTimeout(timeout); reject(new Error('No se pudo cargar la transmisión en vivo.')) }
+      document.head.appendChild(script)
+    }).catch(error => { liveShareLoad = null; throw error })
+    return liveShareLoad
+  }
+
   async function showLive(session, client) {
     if (liveSessionId === session.id) return
     const runtime = await client.runtime()
     if (!runtime.liveAvailable || !runtime.iceServers || !runtime.iceServers.length) throw new Error('La transmisión en vivo no tiene una conexión ICE/TURN configurada.')
+    const liveShare = await loadLiveShare()
     if (liveReceiver) liveReceiver.stop(); liveSessionId = session.id
     const host = document.getElementById('sp-content')
     host.innerHTML = '<div class="sp-live"><span class="sp-live-label">PANTALLA COMPARTIDA EN VIVO</span><video id="sp-live-video" autoplay muted playsinline></video></div>'
-    liveReceiver = SignageLiveShare.createReceiver({
+    liveReceiver = liveShare.createReceiver({
       client,
       sessionId: session.id,
       video: document.getElementById('sp-live-video'),

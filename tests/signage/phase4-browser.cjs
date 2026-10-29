@@ -18,10 +18,15 @@ function playwright() {
       window.SIERRA_SIGNAGE_LOCAL_ADMIN_TOKEN='synthetic-admin-token'
       window.SIERRA_SIGNAGE_HEARTBEAT_INTERVAL=500
     },{origin,workspaceId:harness.state.workspaceId,siteId:harness.state.siteId})
+    const bootFailure = await context.newPage()
+    await bootFailure.route('**/js/signage-player.js*', route => route.abort())
+    await bootFailure.goto(origin + '/pantallas-diagnostico-player-20261029-2.html')
+    await bootFailure.getByText('Etapa detenida · no cargó reproductor', { exact: true }).waitFor({ timeout: 5000 })
+    await bootFailure.close()
     const player = await context.newPage(), admin = await context.newPage(), errors = []
     player.on('pageerror', error => errors.push(`player: ${error.message}`)); admin.on('pageerror', error => errors.push(`admin: ${error.message}`))
-    await player.goto(origin + '/pantallas-diagnostico-20261029.html')
-    assert.equal(await player.locator('#sp-build').textContent(), 'DIAGNÓSTICO P-20261029-1')
+    await player.goto(origin + '/pantallas-diagnostico-player-20261029-2.html')
+    assert.equal(await player.locator('#sp-build').textContent(), 'DIAGNÓSTICO P-20261029-2')
     const code = (await player.locator('#sp-code').textContent()).trim(); assert.match(code, /^\d{6}$/)
     await admin.goto(origin + '/tests/signage/phase1-visual.html?reset=1')
     await admin.getByRole('button', { name: 'Agregar pantalla' }).first().click()
@@ -33,6 +38,7 @@ function playwright() {
     await player.locator('#sp-stage').waitFor({ state: 'visible', timeout: 5000 })
     await player.getByText('Listo para mostrar contenido', { exact: true }).waitFor({ timeout: 5000 })
     assert.equal(harness.state.pairings.size, pairingCount, 'an already linked player does not request another pairing code')
+    assert.equal(await player.evaluate(() => typeof SignageLiveShare), 'undefined', 'live component is not part of the player boot path')
     await admin.evaluate(async () => {
       localStorage.removeItem(SignagePhase1.STORAGE_KEY)
       signageLoadState(); renderSignageHome()
@@ -76,7 +82,12 @@ function playwright() {
       window.__signageE2ESender = SignageLiveShare.createSender({ client, deviceId: _signageState.screens.find(item => item.kind === 'paired').id, iceServers:runtime.iceServers, captureProvider: async () => stream })
       await window.__signageE2ESender.start()
     })
-    await player.locator('#sp-live-video').waitFor({ timeout: 10000 })
+    try { await player.locator('#sp-live-video').waitFor({ timeout: 10000 }) }
+    catch (error) {
+      console.error('Live bootstrap diagnostics', await player.evaluate(() => ({ component: typeof SignageLiveShare, connection: document.getElementById('sp-connection')?.textContent, content: document.getElementById('sp-content')?.textContent })), [...harness.state.live.values()], errors)
+      throw error
+    }
+    assert.equal(await player.evaluate(() => typeof SignageLiveShare), 'object', 'live component loads on demand after a live session is assigned')
     let webrtcVideo = true
     try { await player.waitForFunction(() => document.getElementById('sp-live-video')?.readyState >= 2, null, { timeout: 10000 }) }
     catch (error) {
