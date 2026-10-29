@@ -88,7 +88,7 @@
         loadScript('cliente', 'js/signage-backend-client.js?v=' + BUILD, function () {
           return !!(window.SignageBackendClient && typeof window.SignageBackendClient.createClient === 'function')
         }, function () {
-          loadScript('reproductor', 'js/signage-player.js?v=' + BUILD, function () {
+          loadScript('reproductor', 'js/pantallas-runtime.js?v=' + BUILD, function () {
             return window.__sierraPlayerBooted === true
           }, function () {
             window.__sierraPlayerBootStage = 'solicitud de código'

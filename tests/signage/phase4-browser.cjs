@@ -35,7 +35,7 @@ function playwright() {
     await parseFailure.getByText('Ocurrió un error al iniciar cliente. Toca “Intentar de nuevo”.', { exact: true }).waitFor({ timeout: 5000 })
     await parseFailure.close()
     const bootFailure = await context.newPage()
-    await bootFailure.route('**/js/signage-player.js*', route => route.abort())
+    await bootFailure.route('**/js/pantallas-runtime.js*', route => route.abort())
     await bootFailure.goto(origin + '/signage-player.html')
     await bootFailure.getByText('No se pudo cargar reproductor. Toca “Intentar de nuevo”.', { exact: true }).waitFor({ timeout: 5000 })
     await bootFailure.close()
