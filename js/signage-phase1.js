@@ -504,6 +504,8 @@ let _signagePlayerTimer = null
 let _signagePlayerFailure = null
 let _signageLiveSender = null
 let _signageLiveScreenId = null
+let _signagePairingInFlight = false
+let _signageRemoteSyncPromise = null
 
 function signageRepository() { return SignagePhase1.createRepository(window.localStorage) }
 function signageContext() {
@@ -553,6 +555,46 @@ function signageBackendClient() {
   })
 }
 
+function signageRemoteScreen(device, fallback = {}) {
+  return {
+    id: device?.id,
+    name: device?.name,
+    plant: fallback.plant || 'Sede vinculada',
+    profile: fallback.profile || 'Perfil sin declarar',
+  }
+}
+
+async function signageSyncRemoteDevices(options = {}) {
+  if (_signageRemoteSyncPromise) return _signageRemoteSyncPromise
+  const config = signagePublicConfig()
+  if (!config.enabled || !signageContext().canManage) return { added: [] }
+  _signageRemoteSyncPromise = (async () => {
+    try {
+      const result = await signageBackendClient().listDevices()
+      const added = []
+      let next = _signageState
+      for (const device of result?.devices || []) {
+        if (device?.state && device.state !== 'active') continue
+        if (next.screens.some(screen => screen.id === device.id)) continue
+        const registered = SignagePhase1.registerPairedScreen(next, signageRemoteScreen(device), signageContext())
+        next = registered.state
+        added.push(registered.screen)
+      }
+      if (added.length) {
+        if (!signageSaveState(next)) return { added: [], error: new Error('No se pudo guardar la sincronización local.') }
+        renderSignageHome()
+      }
+      return { added }
+    } catch (error) {
+      if (!options.silent) throw error
+      return { added: [], error }
+    } finally {
+      _signageRemoteSyncPromise = null
+    }
+  })()
+  return _signageRemoteSyncPromise
+}
+
 function showSignage() {
   if (_signagePlayerTimer) { clearInterval(_signagePlayerTimer); _signagePlayerTimer = null }
   _signagePlayerFailure = null
@@ -569,6 +611,7 @@ function showSignage() {
   controls.innerHTML = `<button class="btn btn-secondary" onclick="signageOpenContentDrawer()">Agregar contenido</button><button class="btn btn-secondary" onclick="signageOpenPlaylistDrawer()">Nueva lista</button><button class="btn btn-secondary" onclick="signageOpenScheduleDrawer()">Crear horario</button><button class="btn btn-primary" onclick="signageOpenScreenDrawer()">${siIcon('plus',16)} Agregar pantalla</button>`
   signageLoadState()
   renderSignageHome()
+  void signageSyncRemoteDevices({ silent: true })
 }
 
 function renderSignageHome() {
@@ -580,9 +623,10 @@ function renderSignageHome() {
   }
   const published = _signageState.screens.filter(screen => screen.publishedContentId).length
   const warning = _signageLoadWarning ? `<div class="sg-banner sg-banner-warning" role="alert">${esc(_signageLoadWarning)}</div>` : ''
+  const centralEnabled = signagePublicConfig().enabled
   pg.innerHTML = `<div class="sg-phase">
     ${_signageLiveSender ? `<div class="sg-live-active" role="status"><div><b>Estás compartiendo tu pantalla</b><span>Se muestra en ${esc(_signageState.screens.find(item => item.id === _signageLiveScreenId)?.name || 'la pantalla elegida')}.</span></div><button class="btn btn-secondary" onclick="signageStopLive()">Dejar de compartir</button></div>` : ''}
-    <div class="sg-banner" role="note"><b>Modo de prueba en este navegador.</b> Puedes aprender el flujo sin afectar televisiones reales. Lo que agregues aquí no aparecerá en otro equipo hasta conectar el servicio central.</div>
+    <div class="sg-banner" role="note">${centralEnabled ? '<b>Servicio central conectado.</b> Las pantallas vinculadas y los mensajes se sincronizan entre equipos. Los datos de prueba locales permanecen solo en este navegador.' : '<b>Modo de prueba en este navegador.</b> Puedes aprender el flujo sin afectar televisiones reales. Lo que agregues aquí no aparecerá en otro equipo hasta conectar el servicio central.'}</div>
     ${warning}
     <div class="page-metrics sg-metrics" aria-label="Resumen local">
       <div class="sg-metric"><b>${_signageState.screens.length}</b><span>Pantallas agregadas</span></div>
@@ -592,10 +636,10 @@ function renderSignageHome() {
       <div class="sg-metric"><b>${_signageState.schedules.length}</b><span>Horarios</span></div>
     </div>
     <section class="sg-start" aria-labelledby="sg-start-title">
-      <div><span class="sg-kicker">Empieza aquí</span><h3 id="sg-start-title">Tres pasos para mostrar contenido</h3><p>Cada paso te indica qué hacer. En este modo se guarda únicamente en tu navegador.</p></div>
+      <div><span class="sg-kicker">Empieza aquí</span><h3 id="sg-start-title">Tres pasos para mostrar contenido</h3><p>${centralEnabled ? 'Las pantallas vinculadas y los mensajes se guardan en el servicio central.' : 'Cada paso te indica qué hacer. En este modo se guarda únicamente en tu navegador.'}</p></div>
       <ol class="sg-steps"><li><b>1</b><span><strong>Agrega una pantalla</strong><small>Ponle un nombre fácil de reconocer.</small></span></li><li><b>2</b><span><strong>Elige contenido</strong><small>Mensaje, imagen, video o enlace.</small></span></li><li><b>3</b><span><strong>Muéstralo</strong><small>Publica ahora o programa una hora.</small></span></li></ol>
       <button class="btn btn-primary" onclick="signageOpenScreenDrawer()">${siIcon('plus',16)} Agregar pantalla</button>
-      <p class="sg-real-tv-note"><b>Vincular una TV real:</b> todavía no disponible. Esa función requerirá servicio central, identidad de dispositivo y emparejamiento seguro.</p>
+      <p class="sg-real-tv-note"><b>Vincular una TV real:</b> ${centralEnabled ? 'abre el reproductor en la TV o equipo receptor y usa el código de seis dígitos. El estado confirma el reproductor, no que el panel físico esté encendido.' : 'todavía no disponible. Esa función requerirá servicio central, identidad de dispositivo y emparejamiento seguro.'}</p>
     </section>
     <section aria-labelledby="sg-screens-title">
       <div class="sg-section-head"><div><h3 id="sg-screens-title">Tus pantallas</h3><p>Aquí ves qué está mostrando cada una.</p></div><button class="btn btn-secondary btn-sm" onclick="signageOpenScreenDrawer()">${siIcon('plus',15)} Agregar pantalla</button></div>
@@ -661,22 +705,35 @@ async function signageCheckBackendAvailability() {
 
 async function signageSubmitPairing(event) {
   event.preventDefault()
+  if (_signagePairingInFlight) return
   const code = document.getElementById('sg-pair-code').value.trim()
   const name = document.getElementById('sg-pair-name').value.trim()
   const plant = document.getElementById('sg-pair-plant').value.trim()
   const errorEl = document.getElementById('sg-pair-service-error'); errorEl.textContent = ''
   if (!/^\d{6}$/.test(code) || name.length < 3 || plant.length < 2) { errorEl.textContent = 'Completa el código, el nombre y la ubicación.'; return }
-  const submit = event.submitter; submit.disabled = true; submit.textContent = 'Vinculando…'
+  const submit = event.submitter || event.currentTarget?.querySelector('[type="submit"]')
+  _signagePairingInFlight = true
+  if (submit) { submit.disabled = true; submit.textContent = 'Vinculando…' }
   try {
     const config = signagePublicConfig()
     if (!config.enabled) throw new Error('El servicio central de Pantallas todavía no está habilitado.')
     const paired = await signageBackendClient().pairDevice({ code, name, plant, workspaceId: config.workspaceId, siteId: config.siteId, profile: 'Horizontal · 1920 × 1080' })
-    const result = SignagePhase1.registerPairedScreen(_signageState, paired.device, signageContext())
+    const device = signageRemoteScreen(paired.device, { plant, profile: 'Horizontal · 1920 × 1080' })
+    const result = SignagePhase1.registerPairedScreen(_signageState, device, signageContext())
     if (!signageSaveState(result.state)) return
     closeSideDrawer(); renderSignageHome(); toast('Pantalla vinculada. Ya puedes elegir qué mostrar.')
   } catch (error) {
+    const recovered = await signageSyncRemoteDevices({ silent: true })
+    const sameDevice = recovered.added.find(screen => screen.name.toLocaleLowerCase('es') === name.toLocaleLowerCase('es'))
+    if (sameDevice) {
+      closeSideDrawer(); renderSignageHome(); toast('La pantalla ya había quedado vinculada y fue recuperada.')
+      return
+    }
     errorEl.textContent = error.status === 404 ? 'El código no existe o ya venció. Genera uno nuevo en la pantalla.' : error.message || 'No se pudo conectar con el servicio de Pantallas.'
-  } finally { submit.disabled = false; submit.textContent = 'Vincular pantalla' }
+  } finally {
+    _signagePairingInFlight = false
+    if (submit) { submit.disabled = false; submit.textContent = 'Vincular pantalla' }
+  }
 }
 
 function signageOpenLocalScreenDrawer() {

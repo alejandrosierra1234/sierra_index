@@ -42,6 +42,13 @@ ok((await db.query(`select exists(select 1 from public.index_security_migrations
 assert.equal((await db.query(`select public.signage_rate_limit_service(repeat('c',64),2,60) allowed`)).rows[0].allowed,true); assertions += 1
 assert.equal((await db.query(`select public.signage_rate_limit_service(repeat('c',64),2,60) allowed`)).rows[0].allowed,true); assertions += 1
 assert.equal((await db.query(`select public.signage_rate_limit_service(repeat('c',64),2,60) allowed`)).rows[0].allowed,false); assertions += 1
+await db.query(`insert into public.signage_pairing_sessions(code_digest,claim_digest,expires_at) values(repeat('c',64),repeat('d',64),now()+interval '5 minutes')`)
+const paired = await db.query(`select public.signage_pairing_claim_service(repeat('c',64),$1,$2,'Pantalla vinculada',$3) result`,[workspace,site,admin])
+assert.equal(paired.rows[0].result.state,'claimed'); assertions += 1
+await expectSqlState(() => db.query(`select public.signage_pairing_claim_service(repeat('c',64),$1,$2,'Pantalla repetida',$3)`,[workspace,site,admin]),'42501','a pairing code is claimed only once')
+const delivered = await db.query(`select public.signage_pairing_deliver_service(repeat('d',64),repeat('e',64),'fingerprint-synthetic-0001',now()+interval '1 year') result`)
+assert.equal(delivered.rows[0].result.state,'paired'); assertions += 1
+await expectSqlState(() => db.query(`select public.signage_pairing_deliver_service(repeat('d',64),repeat('f',64),'fingerprint-synthetic-0002',now()+interval '1 year')`),'42501','pairing credentials are delivered only once')
 await db.query(`insert into public.signage_device_credentials(id,device_id,workspace_id,fingerprint) values('70000000-0000-4000-8000-000000000001',$1,$2,'pending-test-credential')`,[device,workspace])
 await db.query(`insert into public.signage_device_heartbeats(device_id,workspace_id,credential_id,status,errors) values($1,$2,'70000000-0000-4000-8000-000000000001','playing','[]')`,[device,workspace]); assertions += 1
 await expectSqlState(() => db.query(`insert into public.signage_device_heartbeats(device_id,workspace_id,credential_id,status,errors) values('40000000-0000-4000-8000-000000000099',$1,'70000000-0000-4000-8000-000000000001','playing','[]')`,[workspace]),'23503','heartbeat device must belong to workspace')

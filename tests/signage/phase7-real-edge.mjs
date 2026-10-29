@@ -9,8 +9,13 @@ try{
   const config=Backend.publicConfig({enabled:true,backendUrl:baseUrl,allowedOrigins:[origin],workspaceId,siteId});eq(config.enabled,true,'public config is complete')
   assert.throws(()=>Backend.publicConfig({enabled:true,backendUrl:baseUrl,workspaceId:'bad',siteId}),/incompleta/);assertions+=1
   const admin=Backend.createClient({baseUrl,currentOrigin:origin,allowedOrigins:[origin],workspaceProvider:async()=>workspaceId,tokenProvider:async()=>'synthetic-admin-token'})
-  const pairing=await admin.createPairing(),claimed=await admin.pairDevice({workspaceId,siteId,code:pairing.code,name:'Pantalla contrato'})
-  const delivered=await admin.claimPairing(pairing.claimToken);eq(delivered.state,'paired','pairing is delivered once')
+  const requestedUrls=[]
+  const recordingFetch=async(url,options)=>{requestedUrls.push(String(url));return fetch(url,options)}
+  const recordedAdmin=Backend.createClient({baseUrl,currentOrigin:origin,allowedOrigins:[origin],workspaceProvider:async()=>workspaceId,tokenProvider:async()=>'synthetic-admin-token',fetchImpl:recordingFetch})
+  const pairing=await recordedAdmin.createPairing(),claimed=await recordedAdmin.pairDevice({workspaceId,siteId,code:pairing.code,name:'Pantalla contrato'})
+  const delivered=await recordedAdmin.claimPairing(pairing.claimToken);eq(requestedUrls.some(url=>url.includes(pairing.claimToken)),false,'pairing claim token never enters a request URL')
+  eq(delivered.state,'paired','pairing is delivered once')
+  await assert.rejects(()=>admin.claimPairing(pairing.claimToken),error=>error.status===410);assertions+=1
   const player=Backend.createPlayerClient({baseUrl,currentOrigin:origin,allowedOrigins:[origin],deviceId:claimed.device.id,deviceToken:delivered.deviceToken})
 
   const draft=await admin.createContent({workspaceId,type:'message',title:'Mensaje aprobado',body:'Contenido sintético',theme:'neutral'})

@@ -43,7 +43,9 @@ const request=async(method,route,{token,device,workspace=WORKSPACE,body,origin='
 
 let result=await request('GET','/health'); equal(result.response.status,200); equal(result.payload.liveConfigured,false)
 result=await request('POST','/player/pairings'); equal(result.response.status,201); equal(result.payload.code,'123456')
-result=await request('GET',`/player/pairings/${'x'.repeat(48)}`); equal(result.payload.state,'pending')
+const claimToken='x'.repeat(48)
+result=await request('POST','/player/pairings/status',{body:{claimToken}}); equal(result.payload.state,'pending')
+result=await request('GET',`/player/pairings/${claimToken}`); equal(result.payload.state,'pending')
 result=await request('POST','/admin/pairings/claim',{token:'admin-token',body:{workspaceId:WORKSPACE,siteId:SITE,code:'123456',name:'Comedor'}}); equal(result.response.status,201); equal(result.payload.device.workspaceId,WORKSPACE)
 result=await request('POST','/admin/pairings/claim',{token:'admin-token',workspace:OTHER,body:{workspaceId:OTHER,siteId:SITE,code:'123456',name:'Comedor'}}); equal(result.response.status,403)
 result=await request('POST',`/admin/devices/${DEVICE}/revoke`,{token:'admin-token',body:{workspaceId:WORKSPACE,reason:'Equipo retirado'}}); equal(result.payload.state,'revoked'); equal(calls.at(-1)[2],'10000000-0000-4000-8000-000000000001')
@@ -69,6 +71,9 @@ equal(calls.some(call=>call[0]==='admin'&&call[1]===WORKSPACE&&call[2]==='manage
 
 const here=path.dirname(fileURLToPath(import.meta.url)), root=path.resolve(here,'../..')
 const edgeSource=await fs.readFile(path.join(root,'supabase/functions/signage-api/index.ts'),'utf8')
+const clientSource=await fs.readFile(path.join(root,'js/signage-backend-client.js'),'utf8')
+assert.match(clientSource,/claimPairing: claimToken => request\('\/player\/pairings\/status'/); assertions+=1
+assert.doesNotMatch(clientSource,/pairings\/\$\{encodeURIComponent\(claimToken\)\}/); assertions+=1
 for(const required of ['signage_pairing_claim_service','signage_pairing_deliver_service','signage_device_manifest_service','createSignedUploadUrl','signage_device_heartbeats','SIGNAGE_MEDIA_VERIFIER_URL','SIGNAGE_ICE_CONFIG_URL','SIGNAGE_PAIRING_PEPPER','signage_playlist_save','signage_schedule_save']) {
   assert.match(edgeSource,new RegExp(required)); assertions+=1
 }

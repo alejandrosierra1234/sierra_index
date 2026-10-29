@@ -62,7 +62,7 @@
       health: () => request('/health'),
       runtime: () => request('/admin/runtime'),
       createPairing: () => request('/player/pairings', { method: 'POST' }),
-      claimPairing: claimToken => request(`/player/pairings/${encodeURIComponent(claimToken)}`),
+      claimPairing: claimToken => request('/player/pairings/status', { method: 'POST', body: { claimToken } }),
       pairDevice: input => request('/admin/pairings/claim', { method: 'POST', body: input }),
       listDevices: () => request('/admin/devices'),
       revokeDevice: (deviceId, reason) => request(`/admin/devices/${encodeURIComponent(deviceId)}/revoke`, { method: 'POST', body: { reason } }),

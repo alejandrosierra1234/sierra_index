@@ -27,6 +27,13 @@ function playwright() {
     await admin.locator('#sg-pair-code').fill(code); await admin.locator('#sg-pair-name').fill('Comedor E2E'); await admin.locator('#sg-pair-plant').fill('Planta E2E')
     await admin.getByRole('button', { name: 'Vincular pantalla' }).click(); await admin.getByText('Comedor E2E', { exact: true }).waitFor()
     await player.locator('#sp-stage').waitFor({ state: 'visible', timeout: 5000 })
+    await admin.evaluate(async () => {
+      localStorage.removeItem(SignagePhase1.STORAGE_KEY)
+      signageLoadState(); renderSignageHome()
+      await signageSyncRemoteDevices({ silent: false })
+    })
+    await admin.getByText('Comedor E2E', { exact: true }).waitFor()
+    assert.equal(await admin.locator('.sg-status-connected').first().textContent(), 'Vinculada')
 
     await admin.getByRole('button', { name: 'Agregar contenido' }).first().click(); await admin.locator('#sg-content-title').fill('Mensaje cruzado E2E'); await admin.locator('#sg-content-body').fill('Publicado desde otro navegador.'); await admin.getByRole('button', { name: 'Guardar contenido' }).click()
     await admin.getByRole('button', { name: 'Elegir qué mostrar' }).click(); await admin.locator('.sg-publish-item').filter({ hasText: 'Mensaje cruzado E2E' }).click()

@@ -98,9 +98,9 @@ function createServer(options = {}) {
         state.pairings.set(hash(claimToken), { codeHash: hash(code), expiresAt: now() + PAIRING_TTL_MS, attempts: 0, result: null, delivered: false })
         return json(res, 201, { code, claimToken, expiresAt: new Date(now() + PAIRING_TTL_MS).toISOString() })
       }
-      const claimMatch = route.match(/^\/api\/signage\/player\/pairings\/([^/]+)$/)
-      if (req.method === 'GET' && claimMatch) {
-        const pairing = state.pairings.get(hash(decodeURIComponent(claimMatch[1])))
+      if (req.method === 'POST' && route === '/api/signage/player/pairings/status') {
+        const input = await jsonBody(req)
+        const pairing = state.pairings.get(hash(String(input.claimToken || '')))
         if (!pairing || pairing.expiresAt <= now()) return fail(res, 410, 'El código expiró. Genera uno nuevo.', 'PAIRING_EXPIRED')
         if (!pairing.result) return json(res, 200, { state: 'pending', expiresAt: new Date(pairing.expiresAt).toISOString() })
         if (pairing.delivered) return fail(res, 410, 'Las credenciales ya fueron entregadas.', 'PAIRING_CONSUMED')

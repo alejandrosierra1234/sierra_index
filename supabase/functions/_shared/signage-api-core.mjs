@@ -83,10 +83,18 @@ export function createSignageHandler(adapter, options = {}) {
         await adapter.rateLimit(`pair-start:${clientIp(req)}`, 10, 60)
         return response(await adapter.createPairing(), 201, cors)
       }
-      const pairingPoll = path.match(/^\/player\/pairings\/([^/]+)$/)
-      if (req.method === 'GET' && pairingPoll) {
+      if (req.method === 'POST' && path === '/player/pairings/status') {
         await adapter.rateLimit(`pair-poll:${clientIp(req)}`, 120, 60)
-        return response(await adapter.deliverPairing(clean(decodeURIComponent(pairingPoll[1]), 256)), 200, cors)
+        const body = await jsonBody(req, 2048)
+        return response(await adapter.deliverPairing(clean(body.claimToken, 256)), 200, cors)
+      }
+      // Temporary rollout compatibility for players loaded before the POST
+      // transport shipped. New clients never place the claim token in a URL;
+      // remove this route after the Pages rollout has aged out.
+      const legacyPairingPoll = path.match(/^\/player\/pairings\/([^/]+)$/)
+      if (req.method === 'GET' && legacyPairingPoll) {
+        await adapter.rateLimit(`pair-poll:${clientIp(req)}`, 120, 60)
+        return response(await adapter.deliverPairing(clean(decodeURIComponent(legacyPairingPoll[1]), 256)), 200, cors)
       }
       if (req.method === 'POST' && path === '/admin/pairings/claim') {
         const body = await jsonBody(req)
