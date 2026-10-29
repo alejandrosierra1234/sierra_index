@@ -176,6 +176,28 @@ const adapter = {
       schedules: schedules.data || [],
     }
   },
+  async listExperiences(input: any) {
+    const experiences = await service.from('signage_experiences').select('id,kind,name,snapshot,state,created_at,updated_at').eq('workspace_id', input.workspaceId).neq('state','archived').order('updated_at',{ascending:false}).limit(100)
+    fail(experiences.error)
+    const sessions = await service.from('signage_experience_sessions').select('id,experience_id,state,starts_at,expires_at,ended_at,created_at,signage_experience_destinations(device_id,accepted_at)').eq('workspace_id', input.workspaceId).order('created_at',{ascending:false}).limit(100)
+    fail(sessions.error)
+    return { experiences: experiences.data || [], sessions: sessions.data || [], serverTime: new Date().toISOString() }
+  },
+  async saveExperience(input: any) {
+    const source = input.experience || {}, { client } = await userClient(input.actor.token)
+    const result = await client.rpc('signage_experience_save', { p_workspace: input.workspaceId, p_experience: source.id || null, p_name: source.name, p_snapshot: { template: source.template, displayName: source.displayName, subtitle: source.subtitle }, p_expected_updated_at: source.expectedUpdatedAt || null })
+    fail(result.error, 'No se pudo guardar la bienvenida.'); return { experience: result.data }
+  },
+  async startExperience(input: any) {
+    const { client } = await userClient(input.actor.token)
+    const result = await client.rpc('signage_experience_start', { p_workspace: input.workspaceId, p_experience: input.experienceId, p_devices: input.deviceIds, p_duration_minutes: input.durationMinutes })
+    fail(result.error, 'No se pudo iniciar la bienvenida.'); return result.data
+  },
+  async finishExperience(input: any) {
+    const { client } = await userClient(input.actor.token)
+    const result = await client.rpc('signage_experience_finish', { p_workspace: input.workspaceId, p_session: input.sessionId })
+    fail(result.error, 'No se pudo finalizar la bienvenida.'); return result.data
+  },
   async saveContent(input: any) {
     const source = input.content || {}, type = String(source.type || 'message')
     const snapshot: any = { type, title: String(source.title || ''), body: String(source.body || ''), theme: String(source.theme || 'neutral') }

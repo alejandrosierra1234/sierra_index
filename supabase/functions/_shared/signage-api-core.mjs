@@ -161,6 +161,27 @@ export function createSignageHandler(adapter, options = {}) {
         const workspaceId = workspace(req), actor = await admin(req, workspaceId, 'read')
         return response(await adapter.listProgramming({ workspaceId, actor }), 200, cors)
       }
+      if (path === '/admin/experiences') {
+        const body = req.method === 'POST' ? await jsonBody(req, 16384) : {}
+        const workspaceId = workspace(req, body), actor = await admin(req, workspaceId, req.method === 'POST' ? 'write' : 'read')
+        if (req.method === 'GET') return response(await adapter.listExperiences({ workspaceId, actor }), 200, cors)
+        if (req.method === 'POST') {
+          const name = clean(body.name, 100), displayName = clean(body.displayName, 60), subtitle = clean(body.subtitle, 90), template = clean(body.template, 20) || 'essential'
+          if (name.length < 2 || !displayName || !['essential','event'].includes(template)) throw new ApiError(400, 'INVALID_EXPERIENCE', 'Completa la bienvenida antes de guardarla.')
+          return response(await adapter.saveExperience({ workspaceId, actor, experience: { id: body.id ? id(body.id, 'experiencia') : null, name, displayName, subtitle, template, expectedUpdatedAt: body.expectedUpdatedAt || null } }), body.id ? 200 : 201, cors)
+        }
+      }
+      const experienceStart = path.match(/^\/admin\/experiences\/([^/]+)\/start$/)
+      if (req.method === 'POST' && experienceStart) {
+        const body = await jsonBody(req, 16384), workspaceId = workspace(req, body), actor = await admin(req, workspaceId, 'publish')
+        const deviceIds = Array.isArray(body.deviceIds) ? body.deviceIds.map(value => id(value, 'dispositivo')) : []
+        return response(await adapter.startExperience({ workspaceId, actor, experienceId: id(experienceStart[1], 'experiencia'), deviceIds, durationMinutes: Number(body.durationMinutes) }), 201, cors)
+      }
+      const experienceFinish = path.match(/^\/admin\/experience-sessions\/([^/]+)\/finish$/)
+      if (req.method === 'POST' && experienceFinish) {
+        const body = await jsonBody(req, 4096), workspaceId = workspace(req, body), actor = await admin(req, workspaceId, 'publish')
+        return response(await adapter.finishExperience({ workspaceId, actor, sessionId: id(experienceFinish[1], 'sesión') }), 200, cors)
+      }
       const approve = path.match(/^\/admin\/content\/([^/]+)\/approve$/)
       if (req.method === 'POST' && approve) {
         const body = await jsonBody(req), workspaceId = workspace(req, body), actor = await admin(req, workspaceId, 'approve')

@@ -21,6 +21,7 @@ const adapter={
   listDevices:async input=>({devices:[{id:DEVICE,workspaceId:input.workspaceId}]}),
   listActivity:async()=>({activity:[{id:1,event_type:'content.saved'}]}),
   listProgramming:async()=>({playlists:[{id:ASSET,name:'Lista',current_revision:1,entries:[]}],schedules:[{id:SESSION,device_id:DEVICE,playlist_id:ASSET,revision:1}]}),
+  listExperiences:async()=>({experiences:[{id:ASSET,name:'Bienvenida'}],sessions:[]}), saveExperience:async input=>({experience:{id:ASSET,name:input.experience.name}}), startExperience:async input=>({session:{id:SESSION,state:'active'},destinations:input.deviceIds}), finishExperience:async()=>({session:{id:SESSION,state:'ended'},destinations:[DEVICE]}),
   listContent:async()=>({content:[]}), saveContent:async input=>({content:{id:ASSET,title:input.content.title}}), approveContent:async()=>({content:{status:'approved'}}),
   publish:async()=>({publication:{version:1}}), stopOutput:async input=>({state:'stopped',device:{id:input.deviceId,output_paused:true,revision:2}}), rollback:async()=>({publication:{version:2,kind:'rollback'}}), savePlaylist:async()=>({playlist:{id:ASSET}}), saveSchedule:async()=>({schedule:{id:SESSION}}),
   manifest: async()=>({schema_version:1,device_id:DEVICE,device_revision:7,state:'ready',snapshot:{type:'message',title:'Prueba'}}),
@@ -62,6 +63,10 @@ result=await request('GET','/admin/devices',{token:'admin-token'}); equal(result
 result=await request('GET','/admin/activity',{token:'admin-token'}); equal(result.payload.activity[0].event_type,'content.saved')
 result=await request('GET','/admin/programming',{token:'admin-token'}); equal(result.payload.playlists[0].name,'Lista'); equal(result.payload.schedules[0].device_id,DEVICE)
 result=await request('GET','/admin/programming'); equal(result.response.status,401)
+result=await request('GET','/admin/experiences',{token:'admin-token'}); equal(result.payload.experiences[0].name,'Bienvenida')
+result=await request('POST','/admin/experiences',{token:'admin-token',body:{workspaceId:WORKSPACE,name:'Visita',displayName:'Invitado de muestra',subtitle:'Recorrido',template:'essential'}}); equal(result.response.status,201)
+result=await request('POST',`/admin/experiences/${ASSET}/start`,{token:'admin-token',body:{workspaceId:WORKSPACE,deviceIds:[DEVICE],durationMinutes:60}}); equal(result.response.status,201); equal(result.payload.destinations[0],DEVICE)
+result=await request('POST',`/admin/experience-sessions/${SESSION}/finish`,{token:'admin-token',body:{workspaceId:WORKSPACE}}); equal(result.payload.session.state,'ended')
 result=await request('POST','/admin/content',{token:'admin-token',body:{workspaceId:WORKSPACE,type:'message',title:'Aviso',body:'Prueba'}}); equal(result.response.status,201)
 result=await request('POST',`/admin/content/${ASSET}/approve`,{token:'admin-token',body:{workspaceId:WORKSPACE,expectedRevision:1}}); equal(result.payload.content.status,'approved')
 result=await request('POST',`/admin/devices/${DEVICE}/publish`,{token:'admin-token',body:{workspaceId:WORKSPACE,contentId:ASSET}}); equal(result.payload.publication.version,1)

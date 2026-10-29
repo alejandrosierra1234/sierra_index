@@ -652,16 +652,21 @@ let _signageLiveScreenId = null
 let _signagePairingInFlight = false
 let _signageRemoteSyncPromise = null
 let _signageRemoteActivity = []
+let _signageRemoteExperiences = []
+let _signageRemoteSessions = []
 let _signageActiveView = 'spaces'
 let _signageScreenQuery = ''
 let _signageContentQuery = ''
 let _signageManagementSyncTimer = null
 let _signageSyncState = { status: 'idle', at: null, error: '' }
 let _signageFixtureNotice = { archivedCount: 0, ambiguousCount: 0 }
-const _signageViewScroll = { spaces: 0, content: 0, activity: 0 }
+const _signageViewScroll = { spaces: 0, content: 0, sessions: 0 }
 const _signageStopInFlight = new Set()
 const _signageSelectedScreenIds = new Set()
 let _signageBatchInFlight = false
+const SIERRA_SIGNAGE_LOGO_URL = typeof document === 'undefined'
+  ? 'SIERRA_Primary_Blue02.svg'
+  : new URL('../SIERRA_Primary_Blue02.svg', document.currentScript?.src || window.location.href).href
 const SIERRA_CURATED_CONTENT = Object.freeze([
   { id: 'sierra-industrial-loop', type: 'video', title: 'Proceso SIERRA', body: 'Loop industrial publicado por SIERRA.', alt: 'Proceso industrial de hilatura y maquinaria SIERRA.', theme: 'neutral', mediaUrl: 'https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F67448935dfb12aa5cb9c86e9_video-cortado-transcode.mp4', poster: 'https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F67448935dfb12aa5cb9c86e9_video-cortado-poster-00001.jpg', sourceUrl: 'https://www.sierratextiles.com/' },
   { id: 'sierra-campus-loop', type: 'video', title: 'Campus y energía', body: 'Loop del campus publicado por SIERRA.', alt: 'Vista aérea del campus y parque solar SIERRA.', theme: 'neutral', mediaUrl: 'https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F673f497adb654923cf8ff63e_homepage2%20%281%29-transcode.mp4', poster: 'https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F673f497adb654923cf8ff63e_homepage2%20%281%29-poster-00001.jpg', sourceUrl: 'https://www.sierratextiles.com/' },
@@ -838,12 +843,13 @@ async function signageSyncRemoteDevices(options = {}) {
     try {
       const client = signageBackendClient()
       _signageSyncState = { status: 'loading', at: _signageSyncState.at, error: '' }
-      const [result, spacesResult, contentResult, activityResult, programmingResult] = await Promise.all([
+      const [result, spacesResult, contentResult, activityResult, programmingResult, experienceResult] = await Promise.all([
         client.listDevices(),
         client.listSpaces().catch(() => ({ spaces: [] })),
         client.listContent(),
         client.listActivity().catch(() => ({ activity: [] })),
         client.listProgramming(),
+        client.listExperiences().catch(() => ({ experiences: [], sessions: [] })),
       ])
       const added = []
       let changed = false
@@ -862,6 +868,8 @@ async function signageSyncRemoteDevices(options = {}) {
         }
       }
       _signageRemoteActivity = Array.isArray(activityResult?.activity) ? activityResult.activity : []
+      _signageRemoteExperiences = Array.isArray(experienceResult?.experiences) ? experienceResult.experiences : []
+      _signageRemoteSessions = Array.isArray(experienceResult?.sessions) ? experienceResult.sessions : []
       const beforeProgramming = JSON.stringify({ playlists: next.playlists, schedules: next.schedules })
       signageMergeRemoteProgramming(next, programmingResult, remoteContentIds)
       if (beforeProgramming !== JSON.stringify({ playlists: next.playlists, schedules: next.schedules })) changed = true
@@ -927,7 +935,7 @@ function showSignage() {
   controls.innerHTML = ''
   signageLoadState()
   _signageActiveView = sessionStorage.getItem('sierra_signage_view') || 'spaces'
-  if (!['spaces','content','activity'].includes(_signageActiveView)) _signageActiveView = 'spaces'
+  if (!['spaces','content','sessions'].includes(_signageActiveView)) _signageActiveView = 'spaces'
   renderSignageHome()
   void signageSyncRemoteDevices({ silent: true })
   if (_signageManagementSyncTimer) clearInterval(_signageManagementSyncTimer)
@@ -947,7 +955,7 @@ function signageModuleNavHtml() {
   const items = [
     ['spaces', 'grid', 'Espacios', `${_signageState.screens.length} pantalla${_signageState.screens.length === 1 ? '' : 's'}`],
     ['content', 'image', 'Contenido', `${_signageState.contents.filter(item => !item.curated).length} pieza${_signageState.contents.filter(item => !item.curated).length === 1 ? '' : 's'}`],
-    ['activity', 'clock', 'Actividad', _signageRemoteActivity.length ? `${_signageRemoteActivity.length} eventos` : 'Estado y programación'],
+    ['sessions', 'clock', 'Sesiones', _signageRemoteSessions.some(item => item.state === 'active' && new Date(item.expires_at) > new Date()) ? 'Experiencia activa' : 'Bienvenidas y actividad'],
   ]
   return `<nav class="sg-module-nav" aria-label="Secciones de Pantallas">${items.map(([id, icon, label, detail]) => `<button type="button" data-sg-view="${id}" class="sg-module-nav-item${_signageActiveView === id ? ' active' : ''}" aria-current="${_signageActiveView === id ? 'page' : 'false'}" onclick="signageNavigate('${id}',this)">${siIcon(icon,17)}<span><b>${label}</b><small>${detail}</small></span></button>`).join('')}</nav>`
 }
@@ -956,7 +964,7 @@ function signageSpacesViewHtml() {
   const connected = _signageState.screens.filter(screen => screen.kind === 'paired' && screen.connectionState === 'connected').length
   const published = _signageState.screens.filter(screen => screen.publishedContentId && !screen.outputPaused).length
   return `<section class="sg-view" aria-labelledby="sg-spaces-title">
-    <div class="sg-view-head"><div><span class="sg-kicker">Control por lugar</span><h2 id="sg-spaces-title">Espacios</h2><p>Selecciona pantallas de uno o varios espacios. Varias pantallas duplican la pieza completa; no crean un videowall.</p></div><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenSpaceDrawer()">${siIcon('plus',15)} Crear espacio</button><button class="btn btn-primary btn-sm" onclick="signageOpenScreenDrawer()">${siIcon('plus',15)} Agregar pantalla</button></div></div>
+    <div class="sg-view-head"><div><span class="sg-kicker">Control por lugar</span><h2 id="sg-spaces-title">Espacios</h2><p>Selecciona pantallas de uno o varios espacios. Varias pantallas duplican la pieza completa; no crean un videowall.</p></div><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenSpaceDrawer()">${siIcon('plus',15)} Crear espacio</button><button class="btn btn-secondary btn-sm" onclick="signageOpenScreenDrawer()">${siIcon('plus',15)} Agregar pantalla</button><button class="btn btn-primary btn-sm" onclick="signageOpenWelcomeDrawer()">Preparar bienvenida</button></div></div>
     <div class="sg-view-toolbar"><label class="sg-search">${siIcon('search',15)}<input type="search" aria-label="Buscar pantallas o espacios" value="${escAttr(_signageScreenQuery)}" placeholder="Buscar pantalla o espacio" oninput="signageFilterScreens(this.value)"></label><div class="sg-overview" aria-label="Resumen de pantallas"><span><i class="sg-dot sg-dot-ok"></i><b>${connected}</b> conectada${connected === 1 ? '' : 's'}</span><span><i class="sg-dot"></i><b>${published}</b> con contenido</span><span><i class="sg-dot sg-dot-warn"></i><b>${_signageState.screens.filter(screen => screen.outputPaused).length}</b> en reposo</span></div></div>
     ${!_signageState.screens.length ? `<section class="sg-start" aria-labelledby="sg-start-title"><div><span class="sg-kicker">Empieza aquí</span><h3 id="sg-start-title">Conecta tu primera pantalla</h3><p>Abre el reproductor, identifica el código, ponle un nombre y asígnala a un espacio.</p></div><button class="btn btn-primary" onclick="signageOpenScreenDrawer()">${siIcon('plus',16)} Agregar pantalla</button></section>` : ''}
     ${signageSpacesHtml()}
@@ -986,6 +994,19 @@ function signageActivityViewHtml() {
   return `<section class="sg-view" aria-labelledby="sg-activity-title"><div class="sg-view-head"><div><span class="sg-kicker">Estado operacional</span><h2 id="sg-activity-title">Actividad</h2><p>Órdenes aceptadas por el servicio central. “Reproducción reportada” no confirma que el panel físico esté encendido.</p></div><button class="btn btn-secondary btn-sm" onclick="signageRefreshCentral()">${siIcon('refresh',15)} Actualizar</button></div>${signageCentralActivityHtml()}<details class="sg-local-section"><summary>Listas, horarios y registro local</summary><div class="sg-local-warning"><b>La programación vinculada se sincroniza con la cuenta.</b><span>Los borradores marcados “Solo aquí” permanecen en este navegador hasta que todos sus contenidos estén guardados centralmente.</span></div><div class="sg-section-head"><div><h3>Listas y horarios</h3></div><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPlaylistDrawer()">Nueva lista</button><button class="btn btn-secondary btn-sm" onclick="signageOpenScheduleDrawer()">Crear horario</button></div></div>${signageProgrammingHtml()}<div class="sg-section-head"><div><h3>Registro de este navegador</h3></div></div>${signageAuditHtml()}</details></section>`
 }
 
+function signageSessionDestinations(session) {
+  const rows = Array.isArray(session?.signage_experience_destinations) ? session.signage_experience_destinations : []
+  return rows.map(row => _signageState.screens.find(screen => screen.id === row.device_id)?.name || 'Pantalla vinculada')
+}
+
+function signageSessionsViewHtml() {
+  const now = Date.now()
+  const experienceById = new Map(_signageRemoteExperiences.map(item => [item.id, item]))
+  const sessions = _signageRemoteSessions.map(session => ({ ...session, experience: experienceById.get(session.experience_id), activeNow: session.state === 'active' && Date.parse(session.expires_at) > now }))
+  const cards = sessions.length ? sessions.map(session => `<article class="sg-session-card"><div><span class="sg-state ${session.activeNow ? 'sg-state-ok' : 'sg-state-local'}"><i></i>${session.activeNow ? 'Activa' : session.state === 'ended' ? 'Finalizada' : 'Vencida'}</span><h3>${esc(session.experience?.name || 'Bienvenida')}</h3><p>${esc(signageSessionDestinations(session).join(', ') || 'Sin destinos')} · ${session.activeNow ? `termina ${esc(signageFormatTime(session.expires_at))}` : `inició ${esc(signageFormatTime(session.starts_at))}`}</p></div>${session.activeNow ? `<button class="btn btn-secondary btn-sm" onclick="signageFinishExperience('${escAttr(session.id)}')">Finalizar y regresar</button>` : ''}</article>`).join('') : '<div class="sg-empty-inline"><b>Aún no hay sesiones</b><span>Prepara una bienvenida y revísala antes de mostrarla.</span></div>'
+  return `<section class="sg-view" aria-labelledby="sg-sessions-title"><div class="sg-view-head"><div><span class="sg-kicker">Experiencias temporales</span><h2 id="sg-sessions-title">Sesiones</h2><p>Prepara sin publicar. Al finalizar o vencer, cada pantalla regresa a su salida anterior.</p></div><button class="btn btn-primary btn-sm" onclick="signageOpenWelcomeDrawer()">${siIcon('plus',15)} Preparar bienvenida</button></div><div class="sg-session-list">${cards}</div><details class="sg-local-section"><summary>Actividad y programación</summary>${signageCentralActivityHtml()}<div class="sg-section-head"><div><h3>Listas y horarios</h3></div><div class="sg-actions"><button class="btn btn-secondary btn-sm" onclick="signageOpenPlaylistDrawer()">Nueva lista</button><button class="btn btn-secondary btn-sm" onclick="signageOpenScheduleDrawer()">Crear horario</button></div></div>${signageProgrammingHtml()}</details></section>`
+}
+
 function renderSignageHome() {
   if (!_signageState) signageLoadState()
   const pg = document.getElementById('pg')
@@ -993,13 +1014,13 @@ function renderSignageHome() {
   for (const id of [..._signageSelectedScreenIds]) if (!_signageState.screens.some(screen => screen.id === id)) _signageSelectedScreenIds.delete(id)
   const warning = _signageLoadWarning ? `<div class="sg-banner sg-banner-warning" role="alert">${esc(_signageLoadWarning)}</div>` : ''
   const centralEnabled = signagePublicConfig().enabled
-  const view = _signageActiveView === 'content' ? signageContentViewHtml() : _signageActiveView === 'activity' ? signageActivityViewHtml() : signageSpacesViewHtml()
+  const view = _signageActiveView === 'content' ? signageContentViewHtml() : _signageActiveView === 'sessions' ? signageSessionsViewHtml() : signageSpacesViewHtml()
   pg.innerHTML = `<div class="sg-phase">${_signageLiveSender ? `<div class="sg-live-active" role="status"><div><b>Estás compartiendo tu pantalla</b><span>Se muestra en ${esc(_signageState.screens.find(item => item.id === _signageLiveScreenId)?.name || 'la pantalla elegida')}.</span></div><button class="btn btn-secondary" onclick="signageStopLive()">Dejar de compartir</button></div>` : ''}${warning}${signageLegacyFixtureNoticeHtml()}<div class="sg-account-bar"><div><b>${centralEnabled ? 'Cuenta central de Pantallas' : 'Modo de prueba'}</b><span>${centralEnabled ? 'Datos compartidos entre administradores cuando están marcados como centrales.' : 'Nada de esta vista controla televisiones reales.'}</span></div>${signageSyncStatusHtml()}</div><div class="sg-app-shell">${signageModuleNavHtml()}<main class="sg-module-main" tabindex="-1">${view}</main></div><div id="sg-selection-slot">${signageSelectionBarHtml()}</div><p class="sg-physical-note">El estado proviene del reproductor. No comprueba que la televisión física esté encendida ni que la entrada de video sea la correcta.</p></div>`
   signageApplyCurrentFilter()
 }
 
 function signageNavigate(view, trigger) {
-  if (!['spaces','content','activity'].includes(view) || view === _signageActiveView) return
+  if (!['spaces','content','sessions'].includes(view) || view === _signageActiveView) return
   _signageViewScroll[_signageActiveView] = window.scrollY
   _signageActiveView = view
   sessionStorage.setItem('sierra_signage_view', view)
@@ -1083,6 +1104,41 @@ function signageSpaceChoicesHtml(selectedId = '') {
   return `<div class="sg-space-choices" role="radiogroup" aria-label="Espacio"><button type="button" class="sg-choice${selectedId ? '' : ' selected'}" data-space-id="" aria-pressed="${!selectedId}" onclick="signageChooseSpace(this)">Sin espacio</button>${_signageState.spaces.map(space => `<button type="button" class="sg-choice${selectedId === space.id ? ' selected' : ''}" data-space-id="${escAttr(space.id)}" aria-pressed="${selectedId === space.id}" onclick="signageChooseSpace(this)">${esc(space.name)}</button>`).join('')}</div>`
 }
 function signageChooseSpace(button) { button.closest('.sg-space-choices').querySelectorAll('[data-space-id]').forEach(option=>{const selected=option===button;option.classList.toggle('selected',selected);option.setAttribute('aria-pressed',String(selected))}) }
+
+function signageWelcomePreview() {
+  const name = document.getElementById('sg-welcome-display')?.value.trim() || 'Invitado de muestra'
+  const subtitle = document.getElementById('sg-welcome-subtitle')?.value.trim() || 'Bienvenidos a SIERRA'
+  const title = document.querySelector('.sg-welcome-preview h3'), copy = document.querySelector('.sg-welcome-preview p')
+  if (title) title.textContent = name
+  if (copy) copy.textContent = subtitle
+}
+
+function signageOpenWelcomeDrawer() {
+  const selected = new Set(_signageSelectedScreenIds)
+  openSideDrawer({ eyebrow:'Pantallas · Experiencias', title:'Preparar bienvenida', onTab:()=>{
+    document.getElementById('sd-body').innerHTML=`<form class="sg-form" onsubmit="signageSubmitWelcome(event,'prepare')" novalidate><div class="sg-form-note"><b>Preparar no publica.</b> Revisa la salida y los destinos. Solo “Mostrar ahora” enviará una orden.</div><div class="sg-welcome-layout"><div><label class="sg-field" for="sg-welcome-name"><span>Nombre de la sesión</span><input class="control-input" id="sg-welcome-name" maxlength="100" value="Bienvenida de muestra"><small class="sg-muted">Visible únicamente en el centro de control.</small></label><label class="sg-field" for="sg-welcome-display"><span>Nombre visible</span><input class="control-input" id="sg-welcome-display" maxlength="60" value="Invitado de muestra" oninput="signageWelcomePreview()"></label><label class="sg-field" for="sg-welcome-subtitle"><span>Motivo o mensaje breve</span><input class="control-input" id="sg-welcome-subtitle" maxlength="90" value="Visita a nuestras instalaciones" oninput="signageWelcomePreview()"></label><fieldset class="sg-theme-field"><legend>Regresar automáticamente</legend><div class="sg-choice-list" role="radiogroup"><button type="button" class="sg-choice" data-welcome-duration="30" aria-pressed="false" onclick="signageChooseOne(this,'.sg-choice[data-welcome-duration]')">30 minutos</button><button type="button" class="sg-choice selected" data-welcome-duration="60" aria-pressed="true" onclick="signageChooseOne(this,'.sg-choice[data-welcome-duration]')">1 hora</button><button type="button" class="sg-choice" data-welcome-duration="240" aria-pressed="false" onclick="signageChooseOne(this,'.sg-choice[data-welcome-duration]')">4 horas</button><button type="button" class="sg-choice" data-welcome-duration="480" aria-pressed="false" onclick="signageChooseOne(this,'.sg-choice[data-welcome-duration]')">Jornada</button></div></fieldset></div><div class="sg-welcome-preview" aria-label="Previsualización de salida"><img src="${escAttr(SIERRA_SIGNAGE_LOGO_URL)}" alt="SIERRA"><span>BIENVENIDA · SIERRA</span><h3>Invitado de muestra</h3><p>Visita a nuestras instalaciones</p><footer>SIERRA tvOS · vista previa</footer></div></div><fieldset class="sg-theme-field"><legend>Destinos</legend><div class="sg-destination-list">${_signageState.screens.filter(screen=>screen.kind==='paired').map(screen=>`<label class="sg-destination"><input type="checkbox" name="welcome-device" value="${escAttr(screen.id)}"${selected.has(screen.id)?' checked':''}><span><strong>${esc(screen.name)}</strong><small>${esc(_signageState.spaces.find(space=>space.id===screen.spaceId)?.name||'Sin espacio')} · ${esc(signageScreenState(screen).label)}</small></span></label>`).join('')||'<div class="sg-empty-inline"><b>No hay pantallas vinculadas</b><span>Agrega una pantalla antes de mostrar la bienvenida.</span></div>'}</div><small id="sg-welcome-error" class="sg-error"></small></fieldset><div class="sg-form-note"><b>Al finalizar o vencer</b><span>La sesión deja de tener prioridad y cada pantalla regresa a la publicación, horario o reposo que ya tenía.</span></div><div class="sg-form-actions sg-drawer-actions"><button type="button" class="btn btn-secondary" onclick="closeSideDrawer()">Cancelar</button><button class="btn btn-secondary" type="submit">Guardar preparada</button><button class="btn btn-primary" type="button" onclick="signageSubmitWelcome(event,'start')">Mostrar ahora</button></div></form>`
+    requestAnimationFrame(()=>document.getElementById('sg-welcome-display')?.focus())
+  } })
+}
+
+async function signageSubmitWelcome(event, mode) {
+  event.preventDefault()
+  const form = event.currentTarget?.closest?.('form') || document.querySelector('#sd-body form')
+  const buttons = [...form.querySelectorAll('button')], error = document.getElementById('sg-welcome-error')
+  const deviceIds = [...form.querySelectorAll('input[name="welcome-device"]:checked')].map(input=>input.value)
+  if (mode === 'start' && !deviceIds.length) { error.textContent='Elige al menos una pantalla.'; return }
+  error.textContent=''; buttons.forEach(button=>button.disabled=true)
+  try {
+    const saved = await signageBackendClient().saveExperience({ name:document.getElementById('sg-welcome-name').value.trim(), displayName:document.getElementById('sg-welcome-display').value.trim(), subtitle:document.getElementById('sg-welcome-subtitle').value.trim(), template:'essential' })
+    if (mode === 'start') await signageBackendClient().startExperience(saved.experience.id,{ deviceIds, durationMinutes:Number(form.querySelector('.sg-choice[data-welcome-duration].selected')?.dataset.welcomeDuration || 60) })
+    closeSideDrawer(); _signageActiveView='sessions'; sessionStorage.setItem('sierra_signage_view','sessions'); await signageSyncRemoteDevices({silent:true}); toast(mode==='start'?'Bienvenida enviada. Revisa el resultado por pantalla.':'Bienvenida guardada como preparada.')
+  } catch (failure) { error.textContent=failure.message||'No se pudo guardar la bienvenida.'; buttons.forEach(button=>button.disabled=false) }
+}
+
+async function signageFinishExperience(sessionId) {
+  try { await signageBackendClient().finishExperience(sessionId); await signageSyncRemoteDevices({silent:true}); toast('Sesión finalizada. Las pantallas regresan a su salida anterior.') }
+  catch (error) { toast(error.message||'No se pudo finalizar la sesión.') }
+}
 
 function signageOpenSpaceDrawer() {
   openSideDrawer({ eyebrow:'Pantallas · Organización', title:'Crear espacio', onTab:()=>{

@@ -33,6 +33,13 @@ try{
   const centralDevices=await admin.listDevices();eq(centralDevices.devices[0].active_publication.content_id,draft.content.id,'device list carries desired central content')
   const centralActivity=await admin.listActivity();eq(Array.isArray(centralActivity.activity),true,'central activity uses the authenticated Edge contract')
   let manifest=await player.manifest(claimed.device.id);eq(manifest.content.title,'Mensaje aprobado','manifest uses player contract');eq(manifest.revision,2,'manifest revision includes the prior device naming change')
+  const prepared=await admin.saveExperience({workspaceId,name:'Bienvenida sintética',displayName:'Invitado de muestra',subtitle:'Visita de prueba',template:'essential'})
+  let experienceList=await admin.listExperiences();eq(experienceList.experiences[0].snapshot.displayName,'Invitado de muestra','prepared welcome is central and does not publish itself')
+  const started=await admin.startExperience(prepared.experience.id,{workspaceId,deviceIds:[claimed.device.id],durationMinutes:30})
+  manifest=await player.manifest(claimed.device.id);eq(manifest.state,'experience','active experience overrides the base output');eq(manifest.content.type,'welcome','player receives a dedicated welcome contract');eq(manifest.content.displayName,'Invitado de muestra','welcome preview and output use the same field')
+  await admin.finishExperience(started.session.id);manifest=await player.manifest(claimed.device.id);eq(manifest.content.title,'Mensaje aprobado','finishing restores the prior publication without republishing it')
+  const expiring=await admin.startExperience(prepared.experience.id,{workspaceId,deviceIds:[claimed.device.id],durationMinutes:30});harness.state.experienceSessions.get(expiring.session.id).expires_at=new Date(Date.now()-1000).toISOString()
+  manifest=await player.manifest(claimed.device.id);eq(manifest.content.title,'Mensaje aprobado','server expiry restores the prior output with no controller present')
 
   const curatedUrl='https://cdn.prod.website-files.com/673e5aab9ab2686aa6660ed3%2F67448935dfb12aa5cb9c86e9_video-cortado-transcode.mp4'
   const curated=await admin.createContent({workspaceId,type:'video',title:'Proceso SIERRA',body:'Fuente pública SIERRA',alt:'Proceso industrial SIERRA',mediaUrl:curatedUrl,theme:'neutral'})
