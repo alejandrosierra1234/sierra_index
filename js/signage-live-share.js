@@ -47,6 +47,25 @@
     return Number.isSafeInteger(value) && value > 0 ? value : 1
   }
 
+  function rtcDescription(payload) {
+    return { type:payload && payload.type, sdp:payload && payload.sdp }
+  }
+
+  function rtcCandidate(payload) {
+    if (!payload) return payload
+    const candidate = { candidate:payload.candidate || '' }
+    if (payload.sdpMid != null) candidate.sdpMid = payload.sdpMid
+    if (payload.sdpMLineIndex != null) candidate.sdpMLineIndex = payload.sdpMLineIndex
+    if (payload.usernameFragment != null) candidate.usernameFragment = payload.usernameFragment
+    return candidate
+  }
+
+  function codedError(code, message) {
+    const error = new Error(message)
+    error.code = code
+    return error
+  }
+
   function receiverIdentity(runtime, supplied) {
     if (supplied) return String(supplied)
     if (runtime.crypto && typeof runtime.crypto.randomUUID === 'function') return runtime.crypto.randomUUID()
@@ -154,13 +173,13 @@
           if (signal.type === 'answer' && signalGeneration === generation) {
             const nextReceiverId = signal.payload && signal.payload.receiverId || null
             if (remoteGeneration !== generation) {
-              await peer.setRemoteDescription(signal.payload); remoteGeneration = generation; receiverId = nextReceiverId || receiverId
+              await peer.setRemoteDescription(rtcDescription(signal.payload)); remoteGeneration = generation; receiverId = nextReceiverId || receiverId
               if (recoveries && connected(peer)) { emit('reconnected', { attempts:recoveries }); void confirmRecoveredMedia() }
             } else if (nextReceiverId && receiverId && nextReceiverId !== receiverId) {
               receiverId = nextReceiverId; void recover('receiver-refreshed', true)
             }
           }
-          if (signal.type === 'candidate' && signal.payload && signalGeneration === generation) await peer.addIceCandidate(signal.payload)
+          if (signal.type === 'candidate' && signal.payload && signalGeneration === generation) await peer.addIceCandidate(rtcCandidate(signal.payload))
           if (signal.type === 'media' && signalGeneration === generation && (!receiverId || signal.payload.receiverId === receiverId) && Number(signal.payload.bytesReceived) > 0 && Number(signal.payload.framesDecoded) > 0) {
             receiverId = signal.payload.receiverId; receiverMediaGeneration = signalGeneration; receiverMediaStats = { bytesReceived:Number(signal.payload.bytesReceived), framesDecoded:Number(signal.payload.framesDecoded) }
           }
@@ -219,7 +238,10 @@
         }
         await new Promise(resolve => setTimeout(resolve, 250))
       }
-      throw new Error(stopped ? 'La transmisión fue detenida.' : 'La conexión abrió, pero no confirmó el envío de video.')
+      if (stopped) throw new Error('La transmisión fue detenida.')
+      if (!remoteGeneration) throw codedError('RECEIVER_SIGNALING_MISSING', 'La pantalla vinculada no respondió a la oferta de video.')
+      if (!receiverId) throw codedError('RECEIVER_UPDATE_REQUIRED', 'La pantalla vinculada usa un reproductor anterior que no confirma el video.')
+      throw codedError('RECEIVER_MEDIA_UNCONFIRMED', 'La pantalla respondió, pero no confirmó imágenes decodificadas.')
     }
     async function stop(reason = 'user', stopOptions = {}) {
       if (stopped) return { remoteStopped: true, reason }; stopped = true; clearTimeout(timer); clearTimeout(failureTimer)
@@ -296,8 +318,8 @@
           if (signal.type === 'offer') {
             if (signalGeneration < generation || (signalGeneration === generation && answered)) { sequence = Math.max(sequence, signal.sequence); continue }
             if (signalGeneration > generation || !peer) { if (generation) emit('recovering', { reason:'new-offer' }); attachPeer(signalGeneration) }
-            await peer.setRemoteDescription(signal.payload)
-            for (const candidate of queuedCandidates.get(signalGeneration) || []) await peer.addIceCandidate(candidate)
+            await peer.setRemoteDescription(rtcDescription(signal.payload))
+            for (const candidate of queuedCandidates.get(signalGeneration) || []) await peer.addIceCandidate(rtcCandidate(candidate))
             queuedCandidates.delete(signalGeneration)
             await peer.setLocalDescription(await peer.createAnswer()); await waitIce(peer)
             pendingAnswer = { type:'answer', payload:{ ...peer.localDescription, generation, receiverId } }
@@ -306,7 +328,7 @@
             if (signalGeneration < generation) { sequence = Math.max(sequence, signal.sequence); continue }
             if (!peer || signalGeneration > generation || !peer.remoteDescription) {
               const pending = queuedCandidates.get(signalGeneration) || []; pending.push(signal.payload); queuedCandidates.set(signalGeneration, pending)
-            } else await peer.addIceCandidate(signal.payload)
+            } else await peer.addIceCandidate(rtcCandidate(signal.payload))
           }
           sequence = Math.max(sequence, signal.sequence)
         }

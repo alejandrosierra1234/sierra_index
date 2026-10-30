@@ -133,7 +133,7 @@
     liveShareLoad = new Promise((resolve, reject) => {
       const script = document.createElement('script')
       const timeout = setTimeout(() => reject(new Error('La transmisión en vivo tardó demasiado en cargar.')), 12000)
-      script.src = 'js/signage-live-share.js?v=20261029-5'
+      script.src = 'js/signage-live-share.js?v=20261030-6'
       script.async = true
       script.onload = () => {
         clearTimeout(timeout)
@@ -169,7 +169,10 @@
         if (event.state === 'signal-interrupted') document.getElementById('sp-connection').textContent = 'Sincronización interrumpida · el video puede continuar'
         if (event.state === 'media-flowing') window.__sierraSignageLiveMetrics = event.detail
       },
-      onSignalError: () => {},
+      onSignalError: () => {
+        const status = document.getElementById('sp-connection')
+        if (status) status.textContent = 'No se pudo preparar la transmisión · esperando una nueva señal'
+      },
       onConnected: () => {
         document.getElementById('sp-connection').textContent = 'Transmisión en vivo · imagen recibida'
         const label = document.getElementById('sp-live-label'); if (label) label.textContent = 'PANTALLA COMPARTIDA EN VIVO'

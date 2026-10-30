@@ -18,8 +18,8 @@ class FakePeer {
   async createOffer(options){this.lastOfferOptions=options||null;return{type:'offer',sdp:'v=0'}}
   async createAnswer(){return{type:'answer',sdp:'v=0'}}
   async setLocalDescription(value){this.localDescription=value}
-  async setRemoteDescription(value){this.remoteDescription=value;this.currentRemoteDescription=value;this.connectionState='connected';this.iceConnectionState='connected';emit(this.events,'connectionstatechange');emit(this.events,'iceconnectionstatechange');if(value.type==='offer'&&FakePeer.remoteStream)emit(this.events,'track',{streams:[FakePeer.remoteStream]})}
-  async addIceCandidate(){}
+  async setRemoteDescription(value){assert.deepEqual(Object.keys(value).sort(),['sdp','type'],'signaling metadata is stripped before WebRTC receives a description');this.remoteDescription=value;this.currentRemoteDescription=value;this.connectionState='connected';this.iceConnectionState='connected';emit(this.events,'connectionstatechange');emit(this.events,'iceconnectionstatechange');if(value.type==='offer'&&FakePeer.remoteStream)emit(this.events,'track',{streams:[FakePeer.remoteStream]})}
+  async addIceCandidate(value){assert.ok(Object.keys(value).every(key=>['candidate','sdpMid','sdpMLineIndex','usernameFragment'].includes(key)),'signaling metadata is stripped before WebRTC receives a candidate')}
   async getStats(){this.statsCalls=(this.statsCalls||0)+1;return this.remoteDescription&&this.remoteDescription.type==='offer'?new Map([['video-in',{type:'inbound-rtp',kind:'video',bytesReceived:4096*this.statsCalls,framesDecoded:2*this.statsCalls,packetsLost:0,isRemote:false}]]):new Map([['video-out',{type:'outbound-rtp',kind:'video',bytesSent:2048*this.statsCalls,framesEncoded:2*this.statsCalls,isRemote:false}]])}
   restartIce(){this.restartIceCalls=(this.restartIceCalls||0)+1}
   close(){this.connectionState='closed';this.iceConnectionState='closed'}
@@ -127,7 +127,7 @@ function stream(){const video=track();return{video,getTracks:()=>[video],getVide
   assert.equal(answerSignals[0].payload.receiverId,'receiver-refresh');assert.equal(answerSignals[0].payload.generation,2,'answer identifies the refreshed receiver without exposing device data');assertions+=2
   assert.equal(answerSignals.length,1,'duplicate and stale offers cannot create extra answers');assertions+=1
   assert.equal(mediaSignals[0].payload.generation,2);assert.ok(mediaSignals[0].payload.bytesReceived>0&&mediaSignals[0].payload.framesDecoded>0,'receiver confirms decoded media for the active generation');assertions+=2
-  assert.equal(FakePeer.instances.at(-1).remoteDescription.generation,2);assertions+=1
+  assert.equal(FakePeer.instances.at(-1).remoteDescription.generation,undefined);assertions+=1
   receiver.stop();FakePeer.remoteStream=null
 }
 
@@ -156,8 +156,20 @@ function stream(){const video=track();return{video,getTracks:()=>[video],getVide
   }
   const sender=Live.createSender({client,deviceId:'device-no-receiver-media',captureProvider:async()=>captured,onState:event=>states.push(event.state)})
   await sender.start();await sender.waitConnected(100)
-  await assert.rejects(()=>sender.waitMediaFlow(20),/no confirmó el envío/);assertions+=1
+  await assert.rejects(()=>sender.waitMediaFlow(20),error=>error.code==='RECEIVER_MEDIA_UNCONFIRMED'&&/no confirmó imágenes/.test(error.message));assertions+=1
   assert.equal(states.includes('media-flowing'),false,'outbound bytes alone cannot confirm delivery without receiver decoded frames');assertions+=1
+  await sender.stop('user')
+}
+
+{
+  const captured=stream()
+  const client={
+    startLive:async()=>({session:{id:'session-legacy-receiver'}}),sendLiveSignal:async()=>{},
+    receiveLiveSignals:async()=>({state:'active',signals:[{sequence:1,type:'answer',payload:{type:'answer',sdp:'v=0'}}]}),stopLive:async()=>({state:'stopped'}),
+  }
+  const sender=Live.createSender({client,deviceId:'device-legacy-receiver',captureProvider:async()=>captured,pollIntervalMs:1})
+  await sender.start();await sender.waitConnected(100)
+  await assert.rejects(()=>sender.waitMediaFlow(20),error=>error.code==='RECEIVER_UPDATE_REQUIRED'&&/reproductor anterior/.test(error.message));assertions+=1
   await sender.stop('user')
 }
 

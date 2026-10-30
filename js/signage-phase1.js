@@ -1273,7 +1273,7 @@ async function signageCheckBackendAvailability() {
   try {
     if (!signagePublicConfig().enabled) throw new Error('Pantallas no está habilitado.')
     await signageBackendClient().health()
-    if (host) host.innerHTML = '<b>En la televisión o reproductor:</b> abre <a href="signage-player.html?build=P-20261029-9" target="_blank" rel="noopener">el reproductor de Pantallas</a>. Verás un código de 6 números.'
+    if (host) host.innerHTML = '<b>En la televisión o reproductor:</b> abre <a href="signage-player.html?build=P-20261030-10" target="_blank" rel="noopener">el reproductor de Pantallas</a>. Verás un código de 6 números.'
     if (submit) submit.disabled = false
     document.getElementById('sg-pair-code')?.focus()
   } catch {
@@ -1897,6 +1897,15 @@ function signageLiveRouteDiagnostic(debug) {
   return ` Diagnóstico seguro: ${local} ruta${local === 1 ? '' : 's'} del emisor y ${remote} del receptor; no se guardaron direcciones IP.`
 }
 
+function signageLiveFailureMessage(error, debug, direct) {
+  if (error?.name === 'NotAllowedError') return 'No se compartió nada. Tú decides qué ventana o pantalla permitir.'
+  if (direct && !debug?.remote) return 'La pantalla vinculada no respondió a la oferta de video. Mantén abierto el reproductor de Pantallas y recárgalo una vez para actualizarlo.' + signageLiveRouteDiagnostic(debug)
+  if (direct && error?.code === 'RECEIVER_UPDATE_REQUIRED') return 'La pantalla vinculada usa una versión anterior del reproductor. Recarga el reproductor una vez y vuelve a intentar.' + signageLiveRouteDiagnostic(debug)
+  if (direct && error?.code === 'RECEIVER_MEDIA_UNCONFIRMED') return 'La pantalla respondió, pero no confirmó imágenes visibles. La captura se detuvo de forma segura.' + signageLiveRouteDiagnostic(debug)
+  if (direct && /rechazada por la red|no respondió a tiempo/.test(error?.message || '')) return 'No se estableció una ruta directa de video. La captura se detuvo; esta red podría requerir un relay TURN.' + signageLiveRouteDiagnostic(debug)
+  return error?.message || 'No se pudo iniciar la transmisión.'
+}
+
 function signageLiveStatusCopy() {
   const name = _signageState?.screens?.find(item => item.id === _signageLiveScreenId)?.name || 'la pantalla elegida'
   if (_signageLiveStopping) return { title:'Deteniendo transmisión…', detail:'La captura ya se cerró; confirmando el regreso del contenido anterior.' }
@@ -1964,15 +1973,11 @@ async function signageStartLive(screenId, actionButton) {
     await sender.waitMediaFlow(Number(window.SIERRA_SIGNAGE_MEDIA_TIMEOUT_MS)||8000)
     _signageLiveState = 'media-flowing'; closeSideDrawer(); renderSignageHome(); toast('Video confirmado. Usa “Dejar de compartir” para terminar.')
   } catch (error) {
-    const routeDiagnostic = sender ? signageLiveRouteDiagnostic(sender.debugState) : ''
+    const liveDebug = sender?.debugState
     await sender?.stop('start-failed').catch(()=>{})
     if (!sender) capture?.getTracks?.().forEach(track=>track.stop())
     _signageLiveSender = null; _signageLiveScreenId = null; _signageLiveState = 'idle'; _signageLiveStopping = false
-    const message = error.name === 'NotAllowedError'
-      ? 'No se compartió nada. Tú decides qué ventana o pantalla permitir.'
-      : direct && /no respondió a tiempo|rechazada por la red|no confirmó el envío/.test(error.message||'')
-        ? 'No se confirmó video directo. La captura se detuvo; esta red puede requerir un relay TURN.' + routeDiagnostic
-        : error.message || 'No se pudo iniciar la transmisión.'
+    const message = signageLiveFailureMessage(error, liveDebug, direct)
     if (document.getElementById('sg-live-feedback')) { signageLiveFeedback(message,true); if(actionButton)actionButton.disabled=false }
     else toast(message)
   }
