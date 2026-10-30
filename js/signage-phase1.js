@@ -731,6 +731,14 @@ function signageFormatTime(value) {
 }
 function signageContentById(id) { return _signageState?.contents.find(item => item.id === id) || null }
 function signagePublicConfig() { return SignageBackendClient.publicConfig(window.SIERRA_SIGNAGE_CONFIG || {}) }
+
+function signageLiveAccess() {
+  const config = signagePublicConfig()
+  if (config.liveEnabled) return { allowed:true, pilot:false }
+  let requested = false
+  try { requested = new URLSearchParams(window.location.search).get('pantallasLivePilot') === 'direct' } catch {}
+  return { allowed:config.livePilotEnabled && requested, pilot:config.livePilotEnabled && requested }
+}
 function signageBackendClient() {
   const config = signagePublicConfig()
   if (!config.enabled) throw new Error('El servicio central de Pantallas todavía no está habilitado.')
@@ -975,8 +983,9 @@ function signageSpacesViewHtml() {
 }
 
 function signageContentViewHtml() {
+  const liveAccess = signageLiveAccess()
   const mediaNote = signagePublicConfig().mediaEnabled
-    ? `Imágenes PNG/JPEG y videos MP4 H.264 pasan validación antes de guardarse. ${signagePublicConfig().liveEnabled ? 'Compartir computadora está disponible para una pantalla a la vez.' : 'Compartir computadora sigue deshabilitado.'}`
+    ? `Imágenes PNG/JPEG y videos MP4 H.264 pasan validación antes de guardarse. ${liveAccess.allowed ? (liveAccess.pilot ? 'El piloto directo de compartir computadora está activo para una pantalla.' : 'Compartir computadora está disponible para una pantalla a la vez.') : 'Compartir computadora sigue deshabilitado.'}`
     : 'La carga de archivos y compartir computadora siguen deshabilitados hasta completar sus servicios.'
   return `<section class="sg-view" aria-labelledby="sg-library-title"><div class="sg-view-head"><div><span class="sg-kicker">Control por contenido</span><h2 id="sg-library-title">Contenido</h2><p>Elige una pieza y usa el mismo panel “Mostrar en…” para uno o varios destinos.</p></div><button class="btn btn-primary btn-sm" onclick="signageOpenContentDrawer()">${siIcon('plus',15)} Agregar contenido</button></div><div class="sg-view-toolbar"><label class="sg-search">${siIcon('search',15)}<input type="search" aria-label="Buscar contenido" value="${escAttr(_signageContentQuery)}" placeholder="Buscar contenido" oninput="signageFilterContent(this.value)"></label><span class="sg-sub">${mediaNote}</span></div>${signageLibraryHtml()}</section>`
 }
@@ -1070,7 +1079,8 @@ function signageScreenTileHtml(screen) {
   const selected = _signageSelectedScreenIds.has(screen.id)
   const preview = screen.outputPaused ? '<div class="sg-screen-preview sg-screen-rest"><img src="SIERRA_Primary_Blue02.svg" alt=""><span>Descanso SIERRA</span></div>' : content ? `<div class="sg-screen-preview sg-theme-${escAttr(content.theme)}"><small>${esc(signageTypeLabel(content.type))}</small><b>${esc(content.title)}</b></div>` : '<div class="sg-screen-preview sg-screen-rest"><img src="SIERRA_Primary_Blue02.svg" alt=""><span>Listo para mostrar</span></div>'
   const search = `${screen.name} ${screen.plant || ''} ${content?.title || ''}`.toLocaleLowerCase('es')
-  const liveAction = signagePublicConfig().liveEnabled && screen.kind === 'paired' ? `<button class="btn btn-secondary btn-sm" onclick="signageOpenLiveDrawer('${escAttr(screen.id)}')">Compartir computadora</button>` : ''
+  const liveAccess = signageLiveAccess()
+  const liveAction = liveAccess.allowed && screen.kind === 'paired' ? `<button class="btn btn-secondary btn-sm" onclick="signageOpenLiveDrawer('${escAttr(screen.id)}')">${liveAccess.pilot ? 'Probar compartir computadora' : 'Compartir computadora'}</button>` : ''
   return `<article class="sg-screen-tile${selected ? ' selected' : ''}" data-sg-searchable="${escAttr(search)}">${preview}<button class="sg-screen-select" type="button" data-screen-id="${escAttr(screen.id)}" aria-pressed="${selected}" aria-label="${selected ? 'Quitar' : 'Seleccionar'} ${escAttr(screen.name)}" onclick="signageToggleScreenSelection('${escAttr(screen.id)}')">${selected ? siIcon('check',16) : ''}</button><div class="sg-screen-copy"><div class="sg-screen-title"><b>${esc(screen.name)}</b><span class="sg-state sg-state-${state.cls}"><i></i>${esc(state.label)}</span></div><span>${esc(state.detail)}</span></div><div class="sg-screen-actions"><button class="btn btn-ghost btn-sm" onclick="signageOpenEditScreenDrawer('${escAttr(screen.id)}')">Configurar</button><button class="btn btn-secondary btn-sm" onclick="signageOpenPublishDrawer('${escAttr(screen.id)}')">Mostrar</button>${liveAction}${!screen.outputPaused ? `<button class="btn btn-ghost btn-sm" onclick="signageStopOutput('${escAttr(screen.id)}')">Dejar en reposo</button>` : ''}</div></article>`
 }
 
@@ -1087,7 +1097,8 @@ function signageSpacesHtml() {
 function signageSelectionBarHtml() {
   const screens = _signageState.screens.filter(screen => _signageSelectedScreenIds.has(screen.id))
   if (!screens.length) return ''
-  const liveAction = signagePublicConfig().liveEnabled && screens.length === 1 && screens[0].kind === 'paired' ? `<button class="btn btn-secondary btn-sm" onclick="signageOpenLiveDrawer('${escAttr(screens[0].id)}')">Compartir computadora</button>` : ''
+  const liveAccess = signageLiveAccess()
+  const liveAction = liveAccess.allowed && screens.length === 1 && screens[0].kind === 'paired' ? `<button class="btn btn-secondary btn-sm" onclick="signageOpenLiveDrawer('${escAttr(screens[0].id)}')">${liveAccess.pilot ? 'Probar compartir computadora' : 'Compartir computadora'}</button>` : ''
   return `<div class="sg-selection-bar" role="region" aria-label="Pantallas seleccionadas"><div><b>${screens.length} pantalla${screens.length === 1 ? '' : 's'} seleccionada${screens.length === 1 ? '' : 's'}</b><span>${screens.map(screen => esc(screen.name)).join(', ')}</span></div><div class="sg-actions"><button class="btn btn-ghost btn-sm" onclick="signageClearSelection()">Cancelar</button>${liveAction}<button class="btn btn-secondary btn-sm" onclick="signageStopSelected()">Pantalla de descanso</button><button class="btn btn-primary btn-sm" onclick="signageOpenPublishDrawer()">Mostrar contenido</button></div></div>`
 }
 
@@ -1882,11 +1893,12 @@ function signageLiveFeedback(message, isError = false) {
 function signageOpenLiveDrawer(screenId) {
   const screen = _signageState.screens.find(item => item.id === screenId)
   if (!screen || screen.kind !== 'paired') { toast('Primero vincula una pantalla con su código.'); return }
-  if (!signagePublicConfig().liveEnabled) { toast('Compartir pantalla todavía no está habilitado en este piloto.'); return }
+  const liveAccess = signageLiveAccess()
+  if (!liveAccess.allowed) { toast('Compartir computadora no está habilitado en esta sesión.'); return }
   if (_signageLiveSender) { toast('Ya estás compartiendo tu pantalla. Detén esa transmisión primero.'); return }
   const supported = Boolean(window.isSecureContext && navigator.mediaDevices && typeof navigator.mediaDevices.getDisplayMedia === 'function')
-  openSideDrawer({ eyebrow:'Pantallas · Sesiones', title:'Compartir computadora', onTab:()=>{
-    document.getElementById('sd-body').innerHTML=`<div class="sg-live-setup"><div class="sg-live-destination"><span>${siIcon('screen',20)}</span><div><small>Se mostrará únicamente en</small><b>${esc(screen.name)}</b><span>${esc(_signageState.spaces.find(space=>space.id===screen.spaceId)?.name||'Sin espacio')}</span></div></div><div class="sg-form-note"><b>Tu navegador pedirá permiso.</b><span>Elige una pantalla, ventana o pestaña en el selector del sistema. SIERRA no puede reemplazar ni omitir esa confirmación.</span></div><ul class="sg-live-notes"><li>La prueba directa usa la red actual y una pantalla a la vez.</li><li>No es videowall ni duplica automáticamente hacia varias pantallas.</li><li>Al detener, cancelar o cerrar la captura, el destino regresa a su contenido anterior.</li></ul><div id="sg-live-feedback" class="sg-inline-feedback" role="status" aria-live="polite">${supported?'Nada se captura hasta que elijas “Elegir ventana o pantalla”.':'Este navegador no ofrece el permiso seguro para compartir pantalla.'}</div><div class="sg-form-actions sg-drawer-actions"><button type="button" class="btn btn-secondary" onclick="closeSideDrawer()">Cancelar</button><button type="button" class="btn btn-primary" data-sg-live-start ${supported?'':'disabled'} onclick="signageStartLive('${escAttr(screen.id)}',this)">Elegir ventana o pantalla</button></div></div>`
+  openSideDrawer({ eyebrow:liveAccess.pilot?'Pantallas · Piloto directo':'Pantallas · Sesiones', title:liveAccess.pilot?'Probar compartir computadora':'Compartir computadora', onTab:()=>{
+    document.getElementById('sd-body').innerHTML=`<div class="sg-live-setup">${liveAccess.pilot?'<div class="sg-banner sg-banner-warning" role="note"><b>Prueba experimental</b><span>Esta red todavía no ha confirmado video real. La sesión se cerrará si no detecta imagen.</span></div>':''}<div class="sg-live-destination"><span>${siIcon('screen',20)}</span><div><small>Se mostrará únicamente en</small><b>${esc(screen.name)}</b><span>${esc(_signageState.spaces.find(space=>space.id===screen.spaceId)?.name||'Sin espacio')}</span></div></div><div class="sg-form-note"><b>Tu navegador pedirá permiso.</b><span>Elige una pantalla, ventana o pestaña en el selector del sistema. SIERRA no puede reemplazar ni omitir esa confirmación.</span></div><ul class="sg-live-notes"><li>La prueba directa usa la red actual y una pantalla a la vez.</li><li>No es videowall ni duplica automáticamente hacia varias pantallas.</li><li>Al detener, cancelar o cerrar la captura, el destino regresa a su contenido anterior.</li></ul><div id="sg-live-feedback" class="sg-inline-feedback" role="status" aria-live="polite">${supported?'Nada se captura hasta que elijas “Elegir ventana o pantalla”.':'Este navegador no ofrece el permiso seguro para compartir pantalla.'}</div><div class="sg-form-actions sg-drawer-actions"><button type="button" class="btn btn-secondary" onclick="closeSideDrawer()">Cancelar</button><button type="button" class="btn btn-primary" data-sg-live-start ${supported?'':'disabled'} onclick="signageStartLive('${escAttr(screen.id)}',this)">Elegir ventana o pantalla</button></div></div>`
     requestAnimationFrame(()=>document.querySelector('[data-sg-live-start]')?.focus({preventScroll:true}))
   } })
 }
@@ -1894,7 +1906,7 @@ function signageOpenLiveDrawer(screenId) {
 async function signageStartLive(screenId, actionButton) {
   const screen = _signageState.screens.find(item => item.id === screenId)
   if (!screen || screen.kind !== 'paired') { toast('Primero vincula una pantalla con su código.'); return }
-  if (!signagePublicConfig().liveEnabled) { toast('Compartir pantalla todavía no está habilitado en este piloto.'); return }
+  if (!signageLiveAccess().allowed) { toast('Compartir computadora no está habilitado en esta sesión.'); return }
   if (_signageLiveSender) { toast('Ya estás compartiendo tu pantalla. Detén esa transmisión primero.'); return }
   let sender = null, capture = null, direct = false
   if (actionButton) actionButton.disabled = true

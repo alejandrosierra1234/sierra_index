@@ -314,6 +314,17 @@ function playwright() {
     }
     await admin.evaluate(() => { clearInterval(window.__signageE2EFrames); return window.__signageE2ESender.stop() })
     await player.getByText('Mensaje cruzado E2E', { exact: true }).waitFor({ timeout: 7000 })
+    await admin.evaluate(() => {
+      window.SIERRA_SIGNAGE_CONFIG={...window.SIERRA_SIGNAGE_CONFIG,liveEnabled:false,livePilotEnabled:true}
+      history.replaceState(null,'',location.pathname);renderSignageHome()
+    })
+    assert.equal(await admin.getByRole('button',{name:'Probar compartir computadora',exact:true}).count(),0,'the regular Pantallas route hides the unverified pilot')
+    await admin.evaluate(() => { history.replaceState(null,'',location.pathname+'?pantallasLivePilot=direct');renderSignageHome() })
+    assert.equal(await admin.getByRole('button',{name:'Probar compartir computadora',exact:true}).count(),1,'the explicit pilot route exposes one bounded action')
+    await admin.getByRole('button',{name:'Probar compartir computadora',exact:true}).click()
+    await admin.getByText('Prueba experimental',{exact:true}).waitFor()
+    await admin.getByRole('button',{name:'Cancelar',exact:true}).click()
+    await admin.evaluate(() => { window.SIERRA_SIGNAGE_CONFIG={...window.SIERRA_SIGNAGE_CONFIG,liveEnabled:true};history.replaceState(null,'',location.pathname);renderSignageHome() })
     const liveTile = admin.locator('.sg-screen-tile').filter({ hasText: 'Comedor norte E2E' })
     assert.equal(await liveTile.getByRole('button', { name: 'Compartir computadora', exact: true }).count(),1,'screen sharing is an explicit action for one paired destination')
     const sessionsBeforeCancel=harness.state.live.size

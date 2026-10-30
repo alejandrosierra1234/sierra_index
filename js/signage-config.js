@@ -12,6 +12,10 @@
     workspaceId: '6157f870-089b-40c9-8169-93feae5e3bf9',
     siteId: 'dfe2bb9b-1bae-42c2-984d-7741612e4888',
     mediaEnabled: true,
+    // The direct-share pilot is only exposed when an authenticated operator
+    // deliberately opens Index with ?pantallasLivePilot=direct. Normal
+    // Pantallas navigation continues to hide the unverified capability.
+    livePilotEnabled: true,
     liveEnabled: false,
   })
 })(typeof globalThis !== 'undefined' ? globalThis : this)

@@ -1,6 +1,6 @@
 # Pantallas — revisión del corte local «Compartir computadora»
 
-Estado: **implementado y probado localmente; deshabilitado en producción**.  
+Estado: **implementado y probado localmente; deshabilitado en producción**. La experiencia normal conserva `liveEnabled: false`; el paquete añade una entrada de piloto separada que exige `?pantallasLivePilot=direct`.
 Base: `6a13e42951de24caacf3268646f5f37821b66749`.  
 Fecha de revisión: 2026-10-30.
 
@@ -44,12 +44,22 @@ Una oferta/respuesta SDP por sí sola ya no se presenta como transmisión exitos
 - QA visual: panel revisado en 1440×900, 1024×900, 390×844 y `prefers-reduced-motion: reduce`.
 - Transporte real en este executor: **no verificado**. Chromium produjo cero candidatos ICE en todas las variantes probadas; oferta y respuesta se intercambiaron, pero no hubo RTP. Esto es una limitación del entorno de ejecución y no demuestra que TURN sea obligatorio en las redes de SIERRA.
 
-## Prueba física mínima antes de activar
+## Entrada ejecutable del piloto
+
+Desplegar solamente Edge no permite probar el recorrido: también se necesita el frontend de este paquete. Una vez revisados y publicados ambos, el operador debe iniciar sesión normalmente y abrir explícitamente:
+
+`https://alejandrosierra1234.github.io/sierra_index/?pantallasLivePilot=direct`
+
+Después entra a **Pantallas → Espacios**. Solo las pantallas vinculadas muestran `Probar compartir computadora`. La navegación normal, sin ese parámetro exacto, no muestra la función. El parámetro no concede permisos: el backend sigue exigiendo el JWT del administrador, la capacidad `operate`, el workspace configurado y la credencial limitada del reproductor.
+
+El panel identifica por nombre un único destino, marca la prueba como experimental y exige el gesto `Elegir ventana o pantalla`. No inicia captura al abrir el enlace o el panel. El consentimiento continúa siendo el selector nativo del navegador.
+
+## Prueba física mínima antes de habilitación general
 
 La activación debe conservar `liveEnabled: false` hasta completar esta prueba controlada:
 
 1. Desplegar primero el Edge revisado, sin modificar SQL, secretos ni permisos.
-2. Habilitar el control solo para el piloto revisado.
+2. Publicar el frontend con `livePilotEnabled: true` y `liveEnabled: false`.
 3. En la misma red, abrir SIERRA Index en una Mac compatible y el reproductor ya vinculado en el iPad/TV.
 4. Elegir una ventana con movimiento visible. Confirmar en el emisor `Video confirmado` y verificar visualmente movimiento en el receptor; no basta con ver `Conectada`.
 5. Detener desde `Dejar de compartir` y comprobar que el receptor vuelve al contenido previo.
@@ -62,8 +72,9 @@ No deben usarse contenidos, sesiones o pantallas reales ajenos al piloto para es
 
 1. Revisar y desplegar `signage-api` con sus cuatro archivos importados: `index.ts`, `signage-api-core.mjs`, `signage-manifest.mjs` y `signage-media-verify.mjs`; `verify_jwt=false` se conserva porque el reproductor usa token opaco y la función autoriza internamente.
 2. Verificar `/health`, CORS, denegación sin credenciales y creación/señalización/parada con identidad piloto autorizada.
-3. Publicar el frontend todavía con la función oculta si no hay prueba física disponible.
-4. Cambiar `liveEnabled` a `true` únicamente tras la prueba Mac→iPad/TV.
+3. Publicar el frontend con la experiencia normal oculta y únicamente la URL explícita de piloto disponible.
+4. Si el piloto falla, volver al Edge y frontend anteriores; no hay datos que revertir ni migración que deshacer.
+5. Cambiar `liveEnabled` a `true` y retirar la entrada experimental únicamente tras la prueba Mac→iPad/TV.
 
 El cambio Edge amplía la disponibilidad de sesiones autorizadas al modo directo sin TURN; no amplía roles, RLS, grants, tablas, buckets ni CORS. La función sigue exigiendo la capacidad `operate` del workspace y el token limitado del dispositivo.
 
@@ -78,6 +89,7 @@ El cambio Edge amplía la disponibilidad de sesiones autorizadas al modo directo
 - [x] Cerrar o abandonar la página intenta una parada central con `keepalive`.
 - [x] Fallos directos explican que la red puede requerir relay sin venderlo como certeza.
 - [x] Flujo y errores pasan pruebas sintéticas y E2E local.
+- [x] La ruta normal oculta el piloto y el parámetro exacto muestra una acción marcada como experimental.
 - [ ] RTP real Mac→iPad/TV confirmado en la red de SIERRA.
 - [ ] Operación en redes distintas confirmada o necesidad de TURN demostrada.
 

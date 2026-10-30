@@ -9,7 +9,7 @@ const h264Mp4=()=>{const ftyp=box('ftyp',Buffer.concat([Buffer.from('isom'),Buff
 const harness=createEdgeHarness({liveConfigured:false}),origin=await harness.start()
 try{
   const baseUrl=origin+'/functions/v1/signage-api',workspaceId=harness.state.workspaceId,siteId=harness.state.siteId
-  const config=Backend.publicConfig({enabled:true,backendUrl:baseUrl,allowedOrigins:[origin],workspaceId,siteId});eq(config.enabled,true,'public config is complete')
+  const config=Backend.publicConfig({enabled:true,backendUrl:baseUrl,allowedOrigins:[origin],workspaceId,siteId,livePilotEnabled:true,liveEnabled:false});eq(config.enabled,true,'public config is complete');eq(config.livePilotEnabled,true,'the explicit direct pilot survives public-config validation');eq(config.liveEnabled,false,'the normal live control remains disabled')
   assert.throws(()=>Backend.publicConfig({enabled:true,backendUrl:baseUrl,workspaceId:'bad',siteId}),/incompleta/);assertions+=1
   const admin=Backend.createClient({baseUrl,currentOrigin:origin,allowedOrigins:[origin],workspaceProvider:async()=>workspaceId,tokenProvider:async()=>'synthetic-admin-token'})
   const requestedUrls=[]
