@@ -51,6 +51,11 @@
     return { type:payload && payload.type, sdp:payload && payload.sdp }
   }
 
+  function signalDescription(description, metadata) {
+    if (!description || !description.type || typeof description.sdp !== 'string') throw codedError('INVALID_LOCAL_DESCRIPTION', 'El navegador no preparó una descripción WebRTC válida.')
+    return { type:description.type, sdp:description.sdp, ...(metadata || {}) }
+  }
+
   function rtcCandidate(payload) {
     if (!payload) return payload
     const candidate = { candidate:payload.candidate || '' }
@@ -119,7 +124,7 @@
       descriptionSent = false
       if (restart && typeof peer.restartIce === 'function') peer.restartIce()
       await peer.setLocalDescription(await peer.createOffer(restart ? { iceRestart:true } : undefined)); await waitIce(peer)
-      await options.client.sendLiveSignal(session.id, { type:'offer', payload:{ ...peer.localDescription, generation } })
+      await options.client.sendLiveSignal(session.id, { type:'offer', payload:signalDescription(peer.localDescription, { generation }) })
       descriptionSent = true
     }
     async function recover(reason, force) {
@@ -322,7 +327,7 @@
             for (const candidate of queuedCandidates.get(signalGeneration) || []) await peer.addIceCandidate(rtcCandidate(candidate))
             queuedCandidates.delete(signalGeneration)
             await peer.setLocalDescription(await peer.createAnswer()); await waitIce(peer)
-            pendingAnswer = { type:'answer', payload:{ ...peer.localDescription, generation, receiverId } }
+            pendingAnswer = { type:'answer', payload:signalDescription(peer.localDescription, { generation, receiverId }) }
             await options.client.sendLiveSignal(options.sessionId, pendingAnswer); pendingAnswer = null; descriptionSent = true; answered = true; void confirmMedia()
           } else if (signal.type === 'candidate' && signal.payload) {
             if (signalGeneration < generation) { sequence = Math.max(sequence, signal.sequence); continue }

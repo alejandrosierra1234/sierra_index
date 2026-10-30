@@ -17,7 +17,7 @@ class FakePeer {
   addTrack(){}
   async createOffer(options){this.lastOfferOptions=options||null;return{type:'offer',sdp:'v=0'}}
   async createAnswer(){return{type:'answer',sdp:'v=0'}}
-  async setLocalDescription(value){this.localDescription=value}
+  async setLocalDescription(value){const description={};Object.defineProperties(description,{type:{value:value.type,enumerable:false},sdp:{value:value.sdp,enumerable:false}});this.localDescription=description}
   async setRemoteDescription(value){assert.deepEqual(Object.keys(value).sort(),['sdp','type'],'signaling metadata is stripped before WebRTC receives a description');this.remoteDescription=value;this.currentRemoteDescription=value;this.connectionState='connected';this.iceConnectionState='connected';emit(this.events,'connectionstatechange');emit(this.events,'iceconnectionstatechange');if(value.type==='offer'&&FakePeer.remoteStream)emit(this.events,'track',{streams:[FakePeer.remoteStream]})}
   async addIceCandidate(value){assert.ok(Object.keys(value).every(key=>['candidate','sdpMid','sdpMLineIndex','usernameFragment'].includes(key)),'signaling metadata is stripped before WebRTC receives a candidate')}
   async getStats(){this.statsCalls=(this.statsCalls||0)+1;return this.remoteDescription&&this.remoteDescription.type==='offer'?new Map([['video-in',{type:'inbound-rtp',kind:'video',bytesReceived:4096*this.statsCalls,framesDecoded:2*this.statsCalls,packetsLost:0,isRemote:false}]]):new Map([['video-out',{type:'outbound-rtp',kind:'video',bytesSent:2048*this.statsCalls,framesEncoded:2*this.statsCalls,isRemote:false}]])}
@@ -39,6 +39,7 @@ function stream(){const video=track();return{video,getTracks:()=>[video],getVide
   await sender.start();await sender.waitConnected(100);await sender.waitMediaFlow(100)
   assert.equal(sender.state,'media-flowing');assertions+=1
   assert.equal(signals[0][1].type,'offer');assertions+=1
+  assert.deepEqual({type:signals[0][1].payload.type,sdp:signals[0][1].payload.sdp,generation:signals[0][1].payload.generation},{type:'offer',sdp:'v=0',generation:1},'Safari-like non-enumerable localDescription is serialized explicitly');assertions+=1
   assert.ok(states.includes('connected')&&states.includes('media-flowing'));assertions+=1
   assert.deepEqual(sender.debugState.localRoutes,{total:0,host:0,srflx:0,prflx:0,relay:0},'diagnostics summarize routes without exposing candidate addresses');assertions+=1
   const stopped=await sender.stop('user',{keepalive:true})
@@ -125,6 +126,7 @@ function stream(){const video=track();return{video,getTracks:()=>[video],getVide
   assert.equal(receiver.generation,2,'receiver refresh joins the latest offer generation');assertions+=1
   const answerSignals=answers.filter(signal=>signal.type==='answer'),mediaSignals=answers.filter(signal=>signal.type==='media')
   assert.equal(answerSignals[0].payload.receiverId,'receiver-refresh');assert.equal(answerSignals[0].payload.generation,2,'answer identifies the refreshed receiver without exposing device data');assertions+=2
+  assert.equal(answerSignals[0].payload.type,'answer');assert.equal(answerSignals[0].payload.sdp,'v=0','Safari-like answer retains its SDP');assertions+=2
   assert.equal(answerSignals.length,1,'duplicate and stale offers cannot create extra answers');assertions+=1
   assert.equal(mediaSignals[0].payload.generation,2);assert.ok(mediaSignals[0].payload.bytesReceived>0&&mediaSignals[0].payload.framesDecoded>0,'receiver confirms decoded media for the active generation');assertions+=2
   assert.equal(FakePeer.instances.at(-1).remoteDescription.generation,undefined);assertions+=1
