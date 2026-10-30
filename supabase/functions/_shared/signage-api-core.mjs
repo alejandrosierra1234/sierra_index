@@ -43,8 +43,13 @@ function clientIp(req) {
 }
 async function signalBody(req) {
   const signal = await jsonBody(req)
-  if (!['offer', 'answer', 'candidate'].includes(signal?.type) || !signal?.payload || typeof signal.payload !== 'object') {
+  if (!['offer', 'answer', 'candidate', 'media'].includes(signal?.type) || !signal?.payload || typeof signal.payload !== 'object') {
     throw new ApiError(400, 'INVALID_SIGNAL', 'La señal WebRTC no es válida.')
+  }
+  if (signal.type === 'media') {
+    const generation = Number(signal.payload.generation), bytesReceived = Number(signal.payload.bytesReceived), framesDecoded = Number(signal.payload.framesDecoded), receiverId = clean(signal.payload.receiverId, 100)
+    if (!Number.isSafeInteger(generation) || generation < 1 || !receiverId || !Number.isSafeInteger(bytesReceived) || bytesReceived < 1 || !Number.isSafeInteger(framesDecoded) || framesDecoded < 1) throw new ApiError(400, 'INVALID_SIGNAL', 'La confirmación de video no es válida.')
+    return { type:'media', payload:{ generation, receiverId, bytesReceived, framesDecoded } }
   }
   return signal
 }

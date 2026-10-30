@@ -368,7 +368,7 @@ const adapter = {
     return { state: 'stopped' }
   },
   async sendSignal(input: any) {
-    if (!['offer', 'answer', 'candidate'].includes(input.signal?.type) || !input.signal?.payload || JSON.stringify(input.signal.payload).length > 65536) throw new ApiError(400, 'INVALID_SIGNAL', 'La señal WebRTC no es válida.')
+    if (!['offer', 'answer', 'candidate', 'media'].includes(input.signal?.type) || !input.signal?.payload || JSON.stringify(input.signal.payload).length > 65536) throw new ApiError(400, 'INVALID_SIGNAL', 'La señal WebRTC no es válida.')
     let session = service.from('signage_live_sessions').select('id,workspace_id,device_id,state,expires_at').eq('id', input.sessionId)
     if (input.identity) session = session.eq('device_id', input.identity.deviceId).eq('workspace_id', input.identity.workspaceId)
     else session = session.eq('workspace_id', input.workspaceId)

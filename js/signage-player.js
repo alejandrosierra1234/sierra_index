@@ -163,8 +163,13 @@
       iceServers: runtime.iceServers,
       onState: event => {
         if (event.state === 'connected') document.getElementById('sp-connection').textContent = 'Conexión de video establecida · esperando imagen'
+        if (event.state === 'interrupted') document.getElementById('sp-connection').textContent = 'Transmisión interrumpida · esperando recuperación'
+        if (event.state === 'recovering') document.getElementById('sp-connection').textContent = 'Recuperando transmisión · manteniendo el contenido anterior'
+        if (event.state === 'recovered') document.getElementById('sp-connection').textContent = 'Conexión recuperada · confirmando imagen'
+        if (event.state === 'signal-interrupted') document.getElementById('sp-connection').textContent = 'Sincronización interrumpida · el video puede continuar'
         if (event.state === 'media-flowing') window.__sierraSignageLiveMetrics = event.detail
       },
+      onSignalError: () => {},
       onConnected: () => {
         document.getElementById('sp-connection').textContent = 'Transmisión en vivo · imagen recibida'
         const label = document.getElementById('sp-live-label'); if (label) label.textContent = 'PANTALLA COMPARTIDA EN VIVO'

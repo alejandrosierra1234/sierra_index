@@ -322,7 +322,7 @@ function playwright() {
     await admin.evaluate(() => { history.replaceState(null,'',location.pathname+'?pantallasLivePilot=direct');renderSignageHome() })
     assert.equal(await admin.getByRole('button',{name:'Probar compartir computadora',exact:true}).count(),1,'the explicit pilot route exposes one bounded action')
     await admin.getByRole('button',{name:'Probar compartir computadora',exact:true}).click()
-    await admin.getByText('Prueba experimental',{exact:true}).waitFor()
+    await admin.getByText('Piloto directo',{exact:true}).waitFor()
     await admin.getByRole('button',{name:'Cancelar',exact:true}).click()
     await admin.evaluate(() => { window.SIERRA_SIGNAGE_CONFIG={...window.SIERRA_SIGNAGE_CONFIG,liveEnabled:true};history.replaceState(null,'',location.pathname);renderSignageHome() })
     const liveTile = admin.locator('.sg-screen-tile').filter({ hasText: 'Comedor norte E2E' })

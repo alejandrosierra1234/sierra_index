@@ -94,6 +94,8 @@ const directResponse=await directHandler(new Request('https://edge.example/funct
 equal(directResponse.status,201,'direct mode may create an authorized signaling session without TURN')
 result=await request('GET','/health',{origin:'https://evil.example'}); equal(result.response.status,403); equal(result.payload.code,'ORIGIN_DENIED')
 result=await request('POST',`/admin/live-sessions/${SESSION}/signals`,{token:'admin-token',body:{type:'script',payload:{}}}); equal(result.response.status,400)
+result=await request('POST',`/player/live-sessions/${SESSION}/signals`,{token:'device-token',device:DEVICE,body:{type:'media',payload:{generation:2,receiverId:'receiver-safe',bytesReceived:4096,framesDecoded:3}}}); equal(result.response.status,201); equal(result.payload.type,'media')
+result=await request('POST',`/player/live-sessions/${SESSION}/signals`,{token:'device-token',device:DEVICE,body:{type:'media',payload:{generation:2,receiverId:'receiver-safe',bytesReceived:4096,framesDecoded:0}}}); equal(result.response.status,400); equal(result.payload.code,'INVALID_SIGNAL')
 equal(calls.some(call=>call[0]==='admin'&&call[1]===WORKSPACE&&call[2]==='manage_devices'),true)
 
 const here=path.dirname(fileURLToPath(import.meta.url)), root=path.resolve(here,'../..')
