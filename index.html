@@ -19,7 +19,7 @@
   <script src="https://cdn.jsdelivr.net/npm/monday-sdk-js@0.5.9/dist/main.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1/dist/jsQR.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js" defer></script>
-  <link rel="stylesheet" href="css/infographic-builder.css?v=20261030-1">
+  <link rel="stylesheet" href="css/infographic-builder.css?v=20261030-2">
   <link rel="stylesheet" href="css/new-hire-builder.css?v=20261007-21">
   <link rel="stylesheet" href="css/signage-phase1.css?v=20261029-10">
   <style>
@@ -24997,8 +24997,7 @@ function fitBadgeNameLines(firstName, lastName, maxWidthPx = BADGE_NAME_MAX_WIDT
       const heightOk = maxHeightPx == null || heightPx <= maxHeightPx
       if (widthOk && heightOk) {
         return { fontSize: tier.size, lineHeight: tier.lineHeight, firstLines: [line], lastLines: [], fits: true }
-      }
-      continue
+      }      continue
     }
     const firstLines = badgeWrapNameWordsBalanced(firstWords, tier.size, maxWidthPx)
     const lastLines = badgeWrapNameWordsBalanced(lastWords, tier.size, maxWidthPx)
@@ -29997,8 +29996,7 @@ function orgCenterChart() {
 // while no drag is in progress.
 let _orgPanState = null
 function orgCanvasPointerDown(e) {
-  if (e.button !== 0 || e.target.closest('.orgc-card')) return
-  _orgPanState = { startX: e.clientX, startY: e.clientY, startLeft: e.currentTarget.scrollLeft, startTop: e.currentTarget.scrollTop, viewport: e.currentTarget }
+  if (e.button !== 0 || e.target.closest('.orgc-card'))  _orgPanState = { startX: e.clientX, startY: e.clientY, startLeft: e.currentTarget.scrollLeft, startTop: e.currentTarget.scrollTop, viewport: e.currentTarget }
   e.currentTarget.classList.add('orgc-panning')
 }
 document.addEventListener('mousemove', e => {
@@ -37649,7 +37647,7 @@ function commsMondayRender(dialog,state='loading',message=''){
 async function commsOpenMondayRequests(){
   const previous=document.activeElement,dialog=document.createElement('dialog');dialog.className='modal-content comms-confirm comms-monday-dialog';dialog.setAttribute('aria-label','Solicitudes de comunicados en Monday');dialog.innerHTML=`<div class="modal-header"><h2>Solicitudes Monday</h2><button type="button" class="icon-btn" aria-label="Cerrar">${siIcon('x',16)}</button></div><p class="memo-rich-help">Importa la información enviada por el formulario y úsala como punto de partida para crear el comunicado.</p><div data-monday-body></div><div class="modal-footer"><button type="button" class="btn btn-secondary">Cerrar</button><button type="button" class="btn btn-secondary" data-refresh>${siIcon('refresh',16)} Actualizar</button></div>`;const load=async()=>{commsMondayRender(dialog);try{const data=await commsMondayInvoke({action:'list',limit:80});_commsMondayRows=data.requests||[];commsMondayRender(dialog,'ready')}catch(error){commsMondayRender(dialog,'error',error.message)}};dialog.querySelector('.modal-header button').onclick=()=>dialog.close();dialog.querySelector('.modal-footer button').onclick=()=>dialog.close();dialog.querySelector('[data-refresh]').onclick=load;dialog.addEventListener('close',()=>{dialog.remove();if(previous?.isConnected)previous.focus()},{once:true});document.body.append(dialog);dialog.showModal();load()}
 function commsCreateOption(menu,icon,title,description,action){const button=document.createElement('button');button.type='button';button.className='pop-menu-item comms-create-option';button.setAttribute('role','menuitem');button.innerHTML=`<span class="comms-create-option-icon" aria-hidden="true">${siIcon(icon,18)}</span><span class="comms-create-option-copy"><strong>${esc(title)}</strong><small>${esc(description)}</small></span>`;button.onclick=e=>{e.stopPropagation();commsCloseMenu(false);action()};menu.appendChild(button)}
-function commsOpenCreateMenu(event){commsPopover(event,menu=>{menu.classList.add('comms-create-menu');menu.style.width='320px';menu.setAttribute('aria-label','Crear comunicado');const head=document.createElement('div');head.className='comms-create-menu-head';head.innerHTML='<strong>Crear comunicado</strong><span>Elige el formato que necesitas.</span>';menu.appendChild(head);commsCreateOption(menu,'file','Memorándum','Información formal o instrucción interna.',newCommunicationDraft);commsCreateOption(menu,'calendar','Convocatoria','Invitación con fecha, lugar y acceso.',newInvitationDraft);commsCreateOption(menu,'text-size','Circular informativa','Contenido editorial con imágenes y secciones.',newNewsDraft);commsCreateOption(menu,'bell','Aviso','Mensaje breve y directo para el equipo.',newNoticeDraft);const divider=document.createElement('div');divider.className='pop-menu-sep';menu.appendChild(divider);commsCreateOption(menu,'columns','Importar solicitud de Monday','Convierte una solicitud del tablero en un borrador editable.',commsOpenMondayRequests)})}
+function commsOpenCreateMenu(event){commsPopover(event,menu=>{menu.classList.add('comms-create-menu');menu.style.width='320px';menu.setAttribute('aria-label','Crear comunicado');const head=document.createElement('div');head.className='comms-create-menu-head';head.innerHTML='<strong>Crear comunicado</strong><span>Elige el formato que necesitas.</span>';menu.appendChild(head);commsCreateOption(menu,'file','Memorándum','Información formal o instrucción interna.',newCommunicationDraft);commsCreateOption(menu,'calendar','Convocatoria','Invitación con fecha, lugar y acceso.',newInvitationDraft);commsCreateOption(menu,'text-size','Circular informativa','Contenido editorial con imágenes y secciones.',newNewsDraft);commsCreateOption(menu,'bell','Aviso','Mensaje breve y directo para el equipo.',newNoticeDraft);commsCreateOption(menu,'columns','Infografía','Pieza visual modular con paleta SIERRA.',showInfographics);const divider=document.createElement('div');divider.className='pop-menu-sep';menu.appendChild(divider);commsCreateOption(menu,'columns','Importar solicitud de Monday','Convierte una solicitud del tablero en un borrador editable.',commsOpenMondayRequests)})}
 function commsActiveFilterCount(){return ['type','department','status'].filter(key=>_commsFilters[key]).length+(_commsFilters.sort!=='updated'?1:0)}
 function commsToggleFilters(){_commsFiltersOpen=!_commsFiltersOpen;renderCommunicationsHome()}
 function commsClearFilters(){_commsQuery='';_commsKind='';_commsFilters={type:'',department:'',status:'',sort:'updated'};_commsFiltersOpen=false;renderCommunicationsHome()}
@@ -38742,10 +38740,10 @@ window.addEventListener('resize',()=>{if(_policyCurrent)policyFitPreview()});
 @media(max-width:720px){.memo-editor-page-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}.memo-editor-page-actions .memo-online-state,.memo-editor-page-actions .comms-collab-bar{grid-column:span 1}.memo-editor-page-actions .comms-header-actions{display:contents}.memo-editor-page-actions>.pd-select{width:100%}.memo-editor-page-actions>.icon-btn{justify-self:end}.memo-editor-page-actions .btn{min-width:0;padding-inline:10px}.memo-online-state{justify-content:center}.memo-customizer .memo-outline-head{padding-inline:4px;gap:2px}.memo-customizer .memo-outline-toggle{grid-template-columns:36px minmax(0,1fr) 16px;gap:8px}.memo-customizer .memo-outline-toggle>.memo-insert-icon{width:36px;height:36px;min-width:36px;flex-basis:36px}}
 </style>
 <link rel="stylesheet" href="css/communications-collaboration.css?v=20261030-3">
-<script src="js/communications-collaboration.js?v=20261030-3"></script>
-<script src="js/communications-collaboration-integration.js?v=20261030-3"></script>
+<script src="js/communications-collaboration.js?v=20261030-4"></script>
+<script src="js/communications-collaboration-integration.js?v=20261030-4"></script>
 <script src="js/communications-access.js?v=20261026-2"></script>
-<script src="js/infographic-builder.js?v=20261030-1"></script>
+<script src="js/infographic-builder.js?v=20261030-2"></script>
 <script src="js/new-hire-builder.js?v=20261007-21"></script>
 <script src="js/sample-workflow.js?v=20260911-13"></script>
 <script src="js/sample-development.js?v=20260911-8"></script>
