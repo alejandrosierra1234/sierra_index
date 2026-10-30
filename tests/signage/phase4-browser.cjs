@@ -353,7 +353,7 @@ function playwright() {
     await admin.getByRole('button',{name:'Elegir ventana o pantalla',exact:true}).click()
     await admin.waitForFunction(() => /captura se detuvo|pantalla vinculada|pantalla respondió/i.test(document.getElementById('sg-live-feedback')?.textContent || ''), null, { timeout:5000 })
     const directFailureText=await admin.locator('#sg-live-feedback').textContent()
-    assert.match(directFailureText,/La pantalla (?:vinculada no respondió a la oferta de video|respondió, pero no confirmó imágenes visibles)/)
+    assert.match(directFailureText,/(?:La pantalla (?:vinculada no respondió a la oferta de video|respondió, pero no confirmó imágenes visibles)|No se estableció una ruta directa de video)/)
     assert.match(directFailureText,/Diagnóstico seguro: 0 rutas del emisor y 0 del receptor; no se guardaron direcciones IP\./)
     assert.equal(await admin.evaluate(()=>_signageLiveSender===null&&window.__signageDirectStream.getTracks().every(track=>track.readyState==='ended')),true,'direct failure stops every captured track and clears the sender')
     assert.equal([...harness.state.live.values()].at(-1).state,'stopped','direct failure closes its central signaling session and restores prior content')

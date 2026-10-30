@@ -48,7 +48,8 @@
   }
 
   function rtcDescription(payload) {
-    return { type:payload && payload.type, sdp:payload && payload.sdp }
+    if (!payload || !['offer','answer'].includes(payload.type) || typeof payload.sdp !== 'string' || !payload.sdp) throw codedError('INVALID_REMOTE_DESCRIPTION', 'La señal de video recibida está incompleta.')
+    return { type:payload.type, sdp:payload.sdp }
   }
 
   function signalDescription(description, metadata) {
@@ -63,6 +64,12 @@
     if (payload.sdpMLineIndex != null) candidate.sdpMLineIndex = payload.sdpMLineIndex
     if (payload.usernameFragment != null) candidate.usernameFragment = payload.usernameFragment
     return candidate
+  }
+
+  function signalCandidate(value, metadata) {
+    const candidate = value && typeof value.toJSON === 'function' ? value.toJSON() : value
+    if (!candidate || typeof candidate.candidate !== 'string') throw codedError('INVALID_LOCAL_CANDIDATE', 'El navegador no preparó una ruta WebRTC válida.')
+    return { ...rtcCandidate(candidate), ...(metadata || {}) }
   }
 
   function codedError(code, message) {
@@ -219,7 +226,7 @@
           } else if (failed(peer)) void recover('connection-failed')
         })
         peer.addEventListener('icecandidate', event => {
-          if (descriptionSent && event.candidate) options.client.sendLiveSignal(session.id, { type:'candidate', payload:{ ...event.candidate.toJSON(), generation } }).catch(options.onError || (() => {}))
+          if (descriptionSent && event.candidate) options.client.sendLiveSignal(session.id, { type:'candidate', payload:signalCandidate(event.candidate, { generation }) }).catch(options.onError || (() => {}))
         })
         stream.getTracks().forEach(track => { peer.addTrack(track, stream); track.addEventListener('ended', () => stop('capture-ended'), { once: true }) })
         await sendOffer(false)
@@ -308,7 +315,7 @@
         options.video.play().then(confirmMedia).catch(error => { if (options.onPlayBlocked) options.onPlayBlocked(error) })
       }, { once:true })
       peer.addEventListener('icecandidate', event => {
-        if (descriptionSent && event.candidate) options.client.sendLiveSignal(options.sessionId, { type:'candidate', payload:{ ...event.candidate.toJSON(), generation, receiverId } }).catch(options.onError || (() => {}))
+        if (descriptionSent && event.candidate) options.client.sendLiveSignal(options.sessionId, { type:'candidate', payload:signalCandidate(event.candidate, { generation, receiverId }) }).catch(options.onError || (() => {}))
       })
     }
     async function poll() {
@@ -319,23 +326,29 @@
         const result = await options.client.receiveLiveSignals(options.sessionId, sequence)
         if (result.state === 'stopped') return stop()
         for (const signal of result.signals || []) {
-          const signalGeneration = generationOf(signal.payload)
-          if (signal.type === 'offer') {
-            if (signalGeneration < generation || (signalGeneration === generation && answered)) { sequence = Math.max(sequence, signal.sequence); continue }
-            if (signalGeneration > generation || !peer) { if (generation) emit('recovering', { reason:'new-offer' }); attachPeer(signalGeneration) }
-            await peer.setRemoteDescription(rtcDescription(signal.payload))
-            for (const candidate of queuedCandidates.get(signalGeneration) || []) await peer.addIceCandidate(rtcCandidate(candidate))
-            queuedCandidates.delete(signalGeneration)
-            await peer.setLocalDescription(await peer.createAnswer()); await waitIce(peer)
-            pendingAnswer = { type:'answer', payload:signalDescription(peer.localDescription, { generation, receiverId }) }
-            await options.client.sendLiveSignal(options.sessionId, pendingAnswer); pendingAnswer = null; descriptionSent = true; answered = true; void confirmMedia()
-          } else if (signal.type === 'candidate' && signal.payload) {
-            if (signalGeneration < generation) { sequence = Math.max(sequence, signal.sequence); continue }
-            if (!peer || signalGeneration > generation || !peer.remoteDescription) {
-              const pending = queuedCandidates.get(signalGeneration) || []; pending.push(signal.payload); queuedCandidates.set(signalGeneration, pending)
-            } else await peer.addIceCandidate(rtcCandidate(signal.payload))
-          }
           sequence = Math.max(sequence, signal.sequence)
+          try {
+            const signalGeneration = generationOf(signal.payload)
+            if (signal.type === 'offer') {
+              if (signalGeneration < generation || (signalGeneration === generation && answered)) continue
+              const description = rtcDescription(signal.payload)
+              if (signalGeneration > generation || !peer) { if (generation) emit('recovering', { reason:'new-offer' }); attachPeer(signalGeneration) }
+              await peer.setRemoteDescription(description)
+              for (const candidate of queuedCandidates.get(signalGeneration) || []) await peer.addIceCandidate(rtcCandidate(candidate))
+              queuedCandidates.delete(signalGeneration)
+              await peer.setLocalDescription(await peer.createAnswer()); await waitIce(peer)
+              pendingAnswer = { type:'answer', payload:signalDescription(peer.localDescription, { generation, receiverId }) }
+              await options.client.sendLiveSignal(options.sessionId, pendingAnswer); pendingAnswer = null; descriptionSent = true; answered = true; void confirmMedia()
+            } else if (signal.type === 'candidate' && signal.payload) {
+              if (signalGeneration < generation) continue
+              if (!peer || signalGeneration > generation || !peer.remoteDescription) {
+                const pending = queuedCandidates.get(signalGeneration) || []; pending.push(signal.payload); queuedCandidates.set(signalGeneration, pending)
+              } else await peer.addIceCandidate(rtcCandidate(signal.payload))
+            }
+          } catch (error) {
+            emit(pendingAnswer ? 'signal-interrupted' : 'signal-rejected', { type:signal.type, code:error.code || 'SIGNAL_PROCESSING_FAILED' })
+            if (options.onSignalError) options.onSignalError(error)
+          }
         }
       } catch (error) { emit('signal-interrupted', { message:error.message }); if (options.onSignalError) options.onSignalError(error) }
       if (!stopped) timer = setTimeout(poll, Number(options.pollIntervalMs) || 1000)

@@ -31,6 +31,7 @@ const Live=require(path.join(root,'js/signage-live-share.js'))
 
 function track(){const events=listeners();return{readyState:'live',addEventListener(type,callback){on(events,type,callback)},stop(){this.readyState='ended'},end(){this.readyState='ended';emit(events,'ended')}}}
 function stream(){const video=track();return{video,getTracks:()=>[video],getVideoTracks:()=>[video]}}
+function nativeCandidate(){const value={};Object.defineProperties(value,{candidate:{value:'candidate:synthetic',enumerable:false},sdpMid:{value:'0',enumerable:false},sdpMLineIndex:{value:0,enumerable:false},usernameFragment:{value:'synthetic',enumerable:false}});return{toJSON:()=>value}}
 
 {
   const captured=stream(),states=[],signals=[],stops=[]
@@ -40,6 +41,8 @@ function stream(){const video=track();return{video,getTracks:()=>[video],getVide
   assert.equal(sender.state,'media-flowing');assertions+=1
   assert.equal(signals[0][1].type,'offer');assertions+=1
   assert.deepEqual({type:signals[0][1].payload.type,sdp:signals[0][1].payload.sdp,generation:signals[0][1].payload.generation},{type:'offer',sdp:'v=0',generation:1},'Safari-like non-enumerable localDescription is serialized explicitly');assertions+=1
+  emit(FakePeer.instances.at(-1).events,'icecandidate',{candidate:nativeCandidate()});await new Promise(resolve=>setTimeout(resolve,0))
+  assert.deepEqual(signals.at(-1)[1].payload,{candidate:'candidate:synthetic',sdpMid:'0',sdpMLineIndex:0,usernameFragment:'synthetic',generation:1},'Safari-like non-enumerable ICE candidate is serialized explicitly');assertions+=1
   assert.ok(states.includes('connected')&&states.includes('media-flowing'));assertions+=1
   assert.deepEqual(sender.debugState.localRoutes,{total:0,host:0,srflx:0,prflx:0,relay:0},'diagnostics summarize routes without exposing candidate addresses');assertions+=1
   const stopped=await sender.stop('user',{keepalive:true})
@@ -129,8 +132,25 @@ function stream(){const video=track();return{video,getTracks:()=>[video],getVide
   assert.equal(answerSignals[0].payload.type,'answer');assert.equal(answerSignals[0].payload.sdp,'v=0','Safari-like answer retains its SDP');assertions+=2
   assert.equal(answerSignals.length,1,'duplicate and stale offers cannot create extra answers');assertions+=1
   assert.equal(mediaSignals[0].payload.generation,2);assert.ok(mediaSignals[0].payload.bytesReceived>0&&mediaSignals[0].payload.framesDecoded>0,'receiver confirms decoded media for the active generation');assertions+=2
+  emit(FakePeer.instances.at(-1).events,'icecandidate',{candidate:nativeCandidate()});await new Promise(resolve=>setTimeout(resolve,0))
+  const receiverCandidate=answers.find(signal=>signal.type==='candidate')
+  assert.deepEqual(receiverCandidate.payload,{candidate:'candidate:synthetic',sdpMid:'0',sdpMLineIndex:0,usernameFragment:'synthetic',generation:2,receiverId:'receiver-refresh'},'receiver serializes native ICE fields and keeps only safe signaling metadata');assertions+=1
   assert.equal(FakePeer.instances.at(-1).remoteDescription.generation,undefined);assertions+=1
   receiver.stop();FakePeer.remoteStream=null
+}
+
+{
+  const states=[];let failures=0,polls=0
+  const video={readyState:0,srcObject:null,addEventListener(){},play:async()=>{}}
+  const client={
+    receiveLiveSignals:async(_id,after)=>{polls+=1;return{state:'active',signals:after<1?[{sequence:1,type:'offer',payload:{generation:1}}]:[]}},
+    sendLiveSignal:async()=>{throw new Error('an invalid offer must never produce an answer')},
+  }
+  const receiver=Live.createReceiver({client,sessionId:'session-invalid-offer',video,pollIntervalMs:1,onState:event=>states.push(event),onSignalError:error=>{failures+=1;assert.equal(error.code,'INVALID_REMOTE_DESCRIPTION')}})
+  receiver.start();await new Promise(resolve=>setTimeout(resolve,15))
+  assert.equal(failures,1,'an incomplete offer is diagnosed once instead of being processed forever');assertions+=1
+  assert.ok(polls>1&&states.some(event=>event.state==='signal-rejected'&&event.detail.code==='INVALID_REMOTE_DESCRIPTION'));assertions+=1
+  receiver.stop()
 }
 
 {
