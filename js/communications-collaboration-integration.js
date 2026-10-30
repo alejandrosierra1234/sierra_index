@@ -37,7 +37,7 @@
     },
     current:function(value){if(arguments.length)_commsCurrent=value;return _commsCurrent;},
     persistLocal:()=>originals.commsPersist(),
-    render:()=>renderCommunicationEditor(),preview:()=>renderMemoPreview(),
+    render:()=>renderCommunicationEditor(),preview:()=>renderMemoPreview(),previewHtml:d=>memoPageHtml(d,true),
     richHtml:b=>commsRichHtml(b),noticeHtml:d=>noticeMessageHtml(d),icon:siIcon,validate,select,clearSelectors:()=>selectors.clear(),
     clearPage:message=>{const pg=document.getElementById('pg');pg.replaceChildren();const p=document.createElement('p');p.textContent=message;pg.append(p);}
   });

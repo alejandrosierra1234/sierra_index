@@ -1,4 +1,4 @@
-import {CommunicationModel,Y,toBase64} from './model.js';
+import {CommunicationModel,Y,toBase64,fromBase64} from './model.js';
 import {CommunicationTransport} from './transport.js';
 import {Awareness} from 'y-protocols/awareness';
 import {bindRich,readRich,seedRich,richCommand,addCommentMark} from './rich-text.js';
@@ -51,8 +51,9 @@ function controlKey(element,index=0) {
 }
 
 function install(api) {
-  let session=null, rendering=false, deferred=false, sharing=false,homeRequest=0;
+  let session=null, rendering=false, deferred=false, sharing=false,homeRequest=0,homeObserver=null,previewActive=0;
   const views=new Map(),inputCleanups=[],lockedElements=new Map();
+  const previewCache=new Map(),previewPending=new Map(),previewQueue=[];
   const getAccount=() => api.account()?.id;
   const rpc=async(name,args={}) => {
     const account=getAccount();
@@ -68,12 +69,13 @@ function install(api) {
   };
   const editable=() => active() && !session.blocked && ['owner','editor'].includes(session.transport.role);
   const destroyViews=() => {views.forEach(view=>view.destroy());views.clear();inputCleanups.splice(0).forEach(clean=>clean());};
-  const read=() => {
-    const d=session.model.read();
-    richBlocks(d).forEach(b => Object.assign(b,readRich(session.model.doc.getXmlFragment('rich:'+b.id))));
-    if(d.kind==='aviso'){const rich=readRich(session.model.doc.getXmlFragment('rich:notice-message'),true);d.noticeRichHtml=rich.richHtml;d.noticeMessage=rich.content;}
+  const readModel=model => {
+    const d=model.read();
+    richBlocks(d).forEach(b => Object.assign(b,readRich(model.doc.getXmlFragment('rich:'+b.id))));
+    if(d.kind==='aviso'){const rich=readRich(model.doc.getXmlFragment('rich:notice-message'),true);d.noticeRichHtml=rich.richHtml;d.noticeMessage=rich.content;}
     return d;
   };
+  const read=() => readModel(session.model);
   const prepareRich=(model,d) => {
     richBlocks(d).forEach(b => seedRich(model.doc.getXmlFragment('rich:'+b.id),api.richHtml(b)));
     if(d.kind==='aviso')seedRich(model.doc.getXmlFragment('rich:notice-message'),api.noticeHtml(d));
@@ -388,13 +390,49 @@ function install(api) {
       row.onclick=async()=>{row.disabled=true;try{await open(record.id);}catch(error){row.disabled=false;message(dialog('Biblioteca del equipo'),error.message||'No se pudo abrir el comunicado.',true);}};
       if(grid){
         const card=document.createElement('article');card.className='comms-shared-library-card';card.dataset.kind=record.kind||'memo';
-        const preview=document.createElement('span'),sheet=document.createElement('span'),previewKind=document.createElement('span');preview.className='comms-shared-card-preview';preview.setAttribute('aria-hidden','true');sheet.className='comms-shared-card-sheet';sheet.innerHTML=api.icon('file',28);previewKind.textContent=kindName(record.kind);sheet.append(previewKind);preview.append(sheet);row.prepend(preview);card.append(row);list.append(card);
+        const preview=document.createElement('span'),loading=document.createElement('span');preview.className='comms-card-preview comms-shared-card-preview';preview.dataset.sharedPreview=record.id;preview.setAttribute('aria-hidden','true');loading.className='comms-shared-preview-loading';loading.innerHTML=api.icon('file',28)+'<span>Cargando vista previa…</span>';preview.append(loading);row.prepend(preview);card.append(row);list.append(card);
       }else list.append(row);
     }
     section.append(list);const head=results.querySelector('.comms-results-head');if(head)head.after(section);else results.prepend(section);
+    if(grid)observeSharedPreviews(section,records);
+  }
+  const runPreviewQueue=()=>{while(previewActive<2&&previewQueue.length){const job=previewQueue.shift();previewActive++;Promise.resolve().then(job.task).then(job.resolve,job.reject).finally(()=>{previewActive--;runPreviewQueue();});}};
+  const enqueuePreview=task=>new Promise((resolve,reject)=>{previewQueue.push({task,resolve,reject});runPreviewQueue();});
+  async function sharedPreviewHtml(record) {
+    const key=`${record.id}:${record.updated_at||''}`;
+    if(previewCache.has(key))return previewCache.get(key);
+    if(previewPending.has(key))return previewPending.get(key);
+    const pending=enqueuePreview(async()=>{
+      const data=await rpc('communication_sync',{p_id:record.id,p_after:-1,p_nonce:null,p_update:null,p_session:null,p_awareness:null});
+      const model=new CommunicationModel();
+      try{
+        model.doc.transact(()=>{if(data?.snapshot)Y.applyUpdate(model.doc,fromBase64(data.snapshot),'remote');for(const update of data?.updates||[])Y.applyUpdate(model.doc,fromBase64(update.payload),'remote');},'remote');
+        const draft=readModel(model);api.validate(draft);return api.previewHtml(draft);
+      }finally{model.doc.destroy();}
+    });
+    previewPending.set(key,pending);
+    try{const html=await pending;previewCache.set(key,html);while(previewCache.size>24)previewCache.delete(previewCache.keys().next().value);return html;}
+    finally{previewPending.delete(key);}
+  }
+  function observeSharedPreviews(section,records) {
+    const byId=new Map(records.map(record=>[record.id,record])),request=homeRequest;
+    const load=async host=>{
+      if(host.dataset.previewState)return;host.dataset.previewState='loading';
+      try{
+        const html=await sharedPreviewHtml(byId.get(host.dataset.sharedPreview));
+        if(request!==homeRequest||!host.isConnected)return;
+        const sheet=document.createElement('span');sheet.className='comms-card-preview-sheet';sheet.innerHTML=html;host.replaceChildren(sheet);host.dataset.previewState='ready';
+      }catch(error){
+        if(request!==homeRequest||!host.isConnected)return;
+        const fallback=document.createElement('span');fallback.className='comms-shared-preview-loading is-error';fallback.innerHTML=api.icon('file',28)+'<span>Vista previa no disponible</span>';host.replaceChildren(fallback);host.dataset.previewState='error';
+      }
+    };
+    const hosts=[...section.querySelectorAll('[data-shared-preview]')];
+    if('IntersectionObserver'in window){homeObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){homeObserver?.unobserve(entry.target);load(entry.target);}}),{rootMargin:'240px 0px'});hosts.forEach(host=>homeObserver.observe(host));}
+    else hosts.forEach(load);
   }
   async function loadSharedHome() {
-    const request=++homeRequest,results=document.getElementById('comms-results');if(!results||!document.querySelector('.comms-home'))return;
+    const request=++homeRequest,results=document.getElementById('comms-results');homeObserver?.disconnect();homeObserver=null;if(!results||!document.querySelector('.comms-home'))return;
     results.querySelector('[data-shared-home]')?.remove();
     if(typeof _commsView!=='undefined'&&_commsView!=='active')return;
     const loading=document.createElement('p');loading.dataset.sharedHome='';loading.className='comms-shared-library-loading';loading.textContent='Cargando biblioteca del equipo…';results.querySelector('.comms-results-head')?.after(loading);
@@ -482,7 +520,7 @@ function install(api) {
       const draft=await optimizeSharingImages({src:source},{valid:()=>session===current&&editable()});
       return draft.src;
     },
-    accountChanged:id=>{if(session&&session.account!==id){stop();api.current(null);api.clearPage('La sesión cambió.');}},
+    accountChanged:id=>{previewCache.clear();previewPending.clear();if(session&&session.account!==id){stop();api.current(null);api.clearPage('La sesión cambió.');}},
     beforeRender:()=>{if(active()&&!rendering)capture();destroyViews();},
     persist:()=>{if(!active())return null;capture();session.transport.sync().catch(()=>{});return !session.blocked;},
     command:(control,command,value)=>{const element=control.closest('.memo-rich-toolbar')?.nextElementSibling,view=views.get(element);if(!view)return false;if(editable())richCommand(view,command,value);return true;},

@@ -74,6 +74,8 @@ test('real editor promotes communications to the team, keeps cloud writes out of
     await until(()=>w.document.querySelector('[data-shared-home].is-grid .comms-shared-library-card'));
     assert.equal(w.document.querySelector('[aria-label="Vista de mosaico"]').getAttribute('aria-pressed'),'true');
     assert.ok(w.document.querySelector('.comms-shared-card-preview'),'team documents use cards in mosaic view');
+    await until(()=>w.document.querySelector('.comms-shared-card-preview .memo-page'));
+    assert.match(w.document.querySelector('.comms-shared-card-preview').textContent,/Team collaborative change/);
     w.commsSetLayout('list');
     await until(()=>w.document.querySelector('[data-shared-home]:not(.is-grid) .comms-shared-library-row'));
     w.document.querySelector('[data-shared-library]').click();
