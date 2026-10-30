@@ -649,6 +649,8 @@ let _signagePlayerTimer = null
 let _signagePlayerFailure = null
 let _signageLiveSender = null
 let _signageLiveScreenId = null
+let _signageLiveState = 'idle'
+let _signageLiveStopping = false
 let _signagePairingInFlight = false
 let _signageRemoteSyncPromise = null
 let _signageRemoteActivity = []
@@ -974,7 +976,7 @@ function signageSpacesViewHtml() {
 
 function signageContentViewHtml() {
   const mediaNote = signagePublicConfig().mediaEnabled
-    ? 'Imágenes PNG/JPEG y videos MP4 H.264 pasan validación antes de guardarse. Compartir computadora sigue deshabilitado.'
+    ? `Imágenes PNG/JPEG y videos MP4 H.264 pasan validación antes de guardarse. ${signagePublicConfig().liveEnabled ? 'Compartir computadora está disponible para una pantalla a la vez.' : 'Compartir computadora sigue deshabilitado.'}`
     : 'La carga de archivos y compartir computadora siguen deshabilitados hasta completar sus servicios.'
   return `<section class="sg-view" aria-labelledby="sg-library-title"><div class="sg-view-head"><div><span class="sg-kicker">Control por contenido</span><h2 id="sg-library-title">Contenido</h2><p>Elige una pieza y usa el mismo panel “Mostrar en…” para uno o varios destinos.</p></div><button class="btn btn-primary btn-sm" onclick="signageOpenContentDrawer()">${siIcon('plus',15)} Agregar contenido</button></div><div class="sg-view-toolbar"><label class="sg-search">${siIcon('search',15)}<input type="search" aria-label="Buscar contenido" value="${escAttr(_signageContentQuery)}" placeholder="Buscar contenido" oninput="signageFilterContent(this.value)"></label><span class="sg-sub">${mediaNote}</span></div>${signageLibraryHtml()}</section>`
 }
@@ -1026,7 +1028,7 @@ function renderSignageHome() {
   const warning = _signageLoadWarning ? `<div class="sg-banner sg-banner-warning" role="alert">${esc(_signageLoadWarning)}</div>` : ''
   const centralEnabled = signagePublicConfig().enabled
   const view = _signageActiveView === 'content' ? signageContentViewHtml() : _signageActiveView === 'sessions' ? signageSessionsViewHtml() : signageSpacesViewHtml()
-  pg.innerHTML = `<div class="sg-phase">${_signageLiveSender ? `<div class="sg-live-active" role="status"><div><b>Estás compartiendo tu pantalla</b><span>Se muestra en ${esc(_signageState.screens.find(item => item.id === _signageLiveScreenId)?.name || 'la pantalla elegida')}.</span></div><button class="btn btn-secondary" onclick="signageStopLive()">Dejar de compartir</button></div>` : ''}${warning}${signageLegacyFixtureNoticeHtml()}<div class="sg-account-bar"><div><b>${centralEnabled ? 'Cuenta central de Pantallas' : 'Modo de prueba'}</b><span>${centralEnabled ? 'Datos compartidos entre administradores cuando están marcados como centrales.' : 'Nada de esta vista controla televisiones reales.'}</span></div>${signageSyncStatusHtml()}</div><div class="sg-app-shell">${signageModuleNavHtml()}<main class="sg-module-main" tabindex="-1">${view}</main></div><div id="sg-selection-slot">${signageSelectionBarHtml()}</div><p class="sg-physical-note">El estado proviene del reproductor. No comprueba que la televisión física esté encendida ni que la entrada de video sea la correcta.</p></div>`
+  pg.innerHTML = `<div class="sg-phase">${_signageLiveSender ? `<div class="sg-live-active" role="status"><div><b>${_signageLiveState === 'media-flowing' ? 'Estás compartiendo tu computadora' : 'Conectando la pantalla…'}</b><span>${_signageLiveState === 'media-flowing' ? `Video confirmado hacia ${esc(_signageState.screens.find(item => item.id === _signageLiveScreenId)?.name || 'la pantalla elegida')}.` : 'La captura está activa, pero todavía no confirmamos el envío de video.'}</span></div><button class="btn btn-secondary" ${_signageLiveStopping ? 'disabled' : ''} onclick="signageStopLive()">${_signageLiveStopping ? 'Deteniendo…' : 'Dejar de compartir'}</button></div>` : ''}${warning}${signageLegacyFixtureNoticeHtml()}<div class="sg-account-bar"><div><b>${centralEnabled ? 'Cuenta central de Pantallas' : 'Modo de prueba'}</b><span>${centralEnabled ? 'Datos compartidos entre administradores cuando están marcados como centrales.' : 'Nada de esta vista controla televisiones reales.'}</span></div>${signageSyncStatusHtml()}</div><div class="sg-app-shell">${signageModuleNavHtml()}<main class="sg-module-main" tabindex="-1">${view}</main></div><div id="sg-selection-slot">${signageSelectionBarHtml()}</div><p class="sg-physical-note">El estado proviene del reproductor. No comprueba que la televisión física esté encendida ni que la entrada de video sea la correcta.</p></div>`
   signageApplyCurrentFilter()
 }
 
@@ -1068,7 +1070,8 @@ function signageScreenTileHtml(screen) {
   const selected = _signageSelectedScreenIds.has(screen.id)
   const preview = screen.outputPaused ? '<div class="sg-screen-preview sg-screen-rest"><img src="SIERRA_Primary_Blue02.svg" alt=""><span>Descanso SIERRA</span></div>' : content ? `<div class="sg-screen-preview sg-theme-${escAttr(content.theme)}"><small>${esc(signageTypeLabel(content.type))}</small><b>${esc(content.title)}</b></div>` : '<div class="sg-screen-preview sg-screen-rest"><img src="SIERRA_Primary_Blue02.svg" alt=""><span>Listo para mostrar</span></div>'
   const search = `${screen.name} ${screen.plant || ''} ${content?.title || ''}`.toLocaleLowerCase('es')
-  return `<article class="sg-screen-tile${selected ? ' selected' : ''}" data-sg-searchable="${escAttr(search)}">${preview}<button class="sg-screen-select" type="button" data-screen-id="${escAttr(screen.id)}" aria-pressed="${selected}" aria-label="${selected ? 'Quitar' : 'Seleccionar'} ${escAttr(screen.name)}" onclick="signageToggleScreenSelection('${escAttr(screen.id)}')">${selected ? siIcon('check',16) : ''}</button><div class="sg-screen-copy"><div class="sg-screen-title"><b>${esc(screen.name)}</b><span class="sg-state sg-state-${state.cls}"><i></i>${esc(state.label)}</span></div><span>${esc(state.detail)}</span></div><div class="sg-screen-actions"><button class="btn btn-ghost btn-sm" onclick="signageOpenEditScreenDrawer('${escAttr(screen.id)}')">Configurar</button><button class="btn btn-secondary btn-sm" onclick="signageOpenPublishDrawer('${escAttr(screen.id)}')">Mostrar</button>${!screen.outputPaused ? `<button class="btn btn-ghost btn-sm" onclick="signageStopOutput('${escAttr(screen.id)}')">Dejar en reposo</button>` : ''}</div></article>`
+  const liveAction = signagePublicConfig().liveEnabled && screen.kind === 'paired' ? `<button class="btn btn-secondary btn-sm" onclick="signageOpenLiveDrawer('${escAttr(screen.id)}')">Compartir computadora</button>` : ''
+  return `<article class="sg-screen-tile${selected ? ' selected' : ''}" data-sg-searchable="${escAttr(search)}">${preview}<button class="sg-screen-select" type="button" data-screen-id="${escAttr(screen.id)}" aria-pressed="${selected}" aria-label="${selected ? 'Quitar' : 'Seleccionar'} ${escAttr(screen.name)}" onclick="signageToggleScreenSelection('${escAttr(screen.id)}')">${selected ? siIcon('check',16) : ''}</button><div class="sg-screen-copy"><div class="sg-screen-title"><b>${esc(screen.name)}</b><span class="sg-state sg-state-${state.cls}"><i></i>${esc(state.label)}</span></div><span>${esc(state.detail)}</span></div><div class="sg-screen-actions"><button class="btn btn-ghost btn-sm" onclick="signageOpenEditScreenDrawer('${escAttr(screen.id)}')">Configurar</button><button class="btn btn-secondary btn-sm" onclick="signageOpenPublishDrawer('${escAttr(screen.id)}')">Mostrar</button>${liveAction}${!screen.outputPaused ? `<button class="btn btn-ghost btn-sm" onclick="signageStopOutput('${escAttr(screen.id)}')">Dejar en reposo</button>` : ''}</div></article>`
 }
 
 function signageSpacesHtml() {
@@ -1084,7 +1087,8 @@ function signageSpacesHtml() {
 function signageSelectionBarHtml() {
   const screens = _signageState.screens.filter(screen => _signageSelectedScreenIds.has(screen.id))
   if (!screens.length) return ''
-  return `<div class="sg-selection-bar" role="region" aria-label="Pantallas seleccionadas"><div><b>${screens.length} pantalla${screens.length === 1 ? '' : 's'} seleccionada${screens.length === 1 ? '' : 's'}</b><span>${screens.map(screen => esc(screen.name)).join(', ')}</span></div><div class="sg-actions"><button class="btn btn-ghost btn-sm" onclick="signageClearSelection()">Cancelar</button><button class="btn btn-secondary btn-sm" onclick="signageStopSelected()">Pantalla de descanso</button><button class="btn btn-primary btn-sm" onclick="signageOpenPublishDrawer()">Mostrar contenido</button></div></div>`
+  const liveAction = signagePublicConfig().liveEnabled && screens.length === 1 && screens[0].kind === 'paired' ? `<button class="btn btn-secondary btn-sm" onclick="signageOpenLiveDrawer('${escAttr(screens[0].id)}')">Compartir computadora</button>` : ''
+  return `<div class="sg-selection-bar" role="region" aria-label="Pantallas seleccionadas"><div><b>${screens.length} pantalla${screens.length === 1 ? '' : 's'} seleccionada${screens.length === 1 ? '' : 's'}</b><span>${screens.map(screen => esc(screen.name)).join(', ')}</span></div><div class="sg-actions"><button class="btn btn-ghost btn-sm" onclick="signageClearSelection()">Cancelar</button>${liveAction}<button class="btn btn-secondary btn-sm" onclick="signageStopSelected()">Pantalla de descanso</button><button class="btn btn-primary btn-sm" onclick="signageOpenPublishDrawer()">Mostrar contenido</button></div></div>`
 }
 
 function signageRefreshSelectionUi(focusScreenId = '') {
@@ -1257,7 +1261,7 @@ async function signageCheckBackendAvailability() {
   try {
     if (!signagePublicConfig().enabled) throw new Error('Pantallas no está habilitado.')
     await signageBackendClient().health()
-    if (host) host.innerHTML = '<b>En la televisión o reproductor:</b> abre <a href="signage-player.html?build=P-20261029-8" target="_blank" rel="noopener">el reproductor de Pantallas</a>. Verás un código de 6 números.'
+    if (host) host.innerHTML = '<b>En la televisión o reproductor:</b> abre <a href="signage-player.html?build=P-20261029-9" target="_blank" rel="noopener">el reproductor de Pantallas</a>. Verás un código de 6 números.'
     if (submit) submit.disabled = false
     document.getElementById('sg-pair-code')?.focus()
   } catch {
@@ -1867,35 +1871,97 @@ async function signageStopMany(screenIds, options = {}) {
 
 function signageStopOutput(screenId) { return signageStopMany([screenId]) }
 
-async function signageStartLive(screenId) {
+function signageLiveFeedback(message, isError = false) {
+  const feedback = document.getElementById('sg-live-feedback')
+  if (!feedback) return
+  feedback.textContent = message || ''
+  feedback.classList.toggle('error', isError)
+  feedback.setAttribute('role', isError ? 'alert' : 'status')
+}
+
+function signageOpenLiveDrawer(screenId) {
   const screen = _signageState.screens.find(item => item.id === screenId)
   if (!screen || screen.kind !== 'paired') { toast('Primero vincula una pantalla con su código.'); return }
   if (!signagePublicConfig().liveEnabled) { toast('Compartir pantalla todavía no está habilitado en este piloto.'); return }
   if (_signageLiveSender) { toast('Ya estás compartiendo tu pantalla. Detén esa transmisión primero.'); return }
+  const supported = Boolean(window.isSecureContext && navigator.mediaDevices && typeof navigator.mediaDevices.getDisplayMedia === 'function')
+  openSideDrawer({ eyebrow:'Pantallas · Sesiones', title:'Compartir computadora', onTab:()=>{
+    document.getElementById('sd-body').innerHTML=`<div class="sg-live-setup"><div class="sg-live-destination"><span>${siIcon('screen',20)}</span><div><small>Se mostrará únicamente en</small><b>${esc(screen.name)}</b><span>${esc(_signageState.spaces.find(space=>space.id===screen.spaceId)?.name||'Sin espacio')}</span></div></div><div class="sg-form-note"><b>Tu navegador pedirá permiso.</b><span>Elige una pantalla, ventana o pestaña en el selector del sistema. SIERRA no puede reemplazar ni omitir esa confirmación.</span></div><ul class="sg-live-notes"><li>La prueba directa usa la red actual y una pantalla a la vez.</li><li>No es videowall ni duplica automáticamente hacia varias pantallas.</li><li>Al detener, cancelar o cerrar la captura, el destino regresa a su contenido anterior.</li></ul><div id="sg-live-feedback" class="sg-inline-feedback" role="status" aria-live="polite">${supported?'Nada se captura hasta que elijas “Elegir ventana o pantalla”.':'Este navegador no ofrece el permiso seguro para compartir pantalla.'}</div><div class="sg-form-actions sg-drawer-actions"><button type="button" class="btn btn-secondary" onclick="closeSideDrawer()">Cancelar</button><button type="button" class="btn btn-primary" data-sg-live-start ${supported?'':'disabled'} onclick="signageStartLive('${escAttr(screen.id)}',this)">Elegir ventana o pantalla</button></div></div>`
+    requestAnimationFrame(()=>document.querySelector('[data-sg-live-start]')?.focus({preventScroll:true}))
+  } })
+}
+
+async function signageStartLive(screenId, actionButton) {
+  const screen = _signageState.screens.find(item => item.id === screenId)
+  if (!screen || screen.kind !== 'paired') { toast('Primero vincula una pantalla con su código.'); return }
+  if (!signagePublicConfig().liveEnabled) { toast('Compartir pantalla todavía no está habilitado en este piloto.'); return }
+  if (_signageLiveSender) { toast('Ya estás compartiendo tu pantalla. Detén esa transmisión primero.'); return }
+  let sender = null, capture = null, direct = false
+  if (actionButton) actionButton.disabled = true
   try {
+    if (!window.isSecureContext || !navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== 'function') throw new Error('Este navegador no permite compartir pantalla de forma segura.')
+    _signageLiveState = 'requesting-capture'; signageLiveFeedback('Elige qué quieres compartir en el selector de tu navegador…')
+    capture = await navigator.mediaDevices.getDisplayMedia({ video:{ frameRate:{ ideal:15,max:30 } }, audio:false })
+    if (!capture?.getVideoTracks?.().length) throw new Error('No se recibió video de la pantalla elegida.')
+    _signageLiveState = 'preparing'; signageLiveFeedback('Permiso concedido. Preparando una conexión privada con la pantalla…')
     const client = signageBackendClient()
     const runtime = await client.runtime()
-    if (!runtime.liveAvailable || !runtime.iceServers?.length) throw new Error('Compartir pantalla requiere configurar la conexión segura ICE/TURN.')
-    const sender = SignageLiveShare.createSender({
+    if (!runtime.liveAvailable) throw new Error('Compartir pantalla todavía no está disponible.')
+    direct = runtime.connectionMode === 'direct'
+    if (!direct && !runtime.iceServers?.length) throw new Error('Compartir pantalla requiere una conexión ICE/TURN configurada.')
+    sender = SignageLiveShare.createSender({
       client,
       deviceId: screen.id,
       iceServers: runtime.iceServers,
-      onStop: () => { _signageLiveSender = null; _signageLiveScreenId = null; renderSignageHome() },
+      captureProvider: async()=>capture,
+      onState: event => {
+        _signageLiveState = event.state
+        if (event.state === 'connected') signageLiveFeedback('Conexión establecida. Confirmando que el video está saliendo…')
+        if (event.state === 'media-flowing') signageLiveFeedback('Video confirmado.')
+      },
+      onStop: result => {
+        if (_signageLiveSender === sender) { _signageLiveSender = null; _signageLiveScreenId = null; _signageLiveState = 'idle'; _signageLiveStopping = false; renderSignageHome() }
+        if (!result.remoteStopped) toast('La captura se detuvo aquí, pero no pudimos confirmar el regreso de la pantalla. Revisa su estado y reintenta.')
+      },
     })
     _signageLiveSender = sender; _signageLiveScreenId = screen.id
     await sender.start()
-    renderSignageHome(); toast('Tu pantalla se está compartiendo. Usa “Dejar de compartir” para terminar.')
+    signageLiveFeedback(direct ? 'Buscando una ruta directa hacia la pantalla…' : 'Conectando mediante el relay configurado…')
+    await sender.waitConnected(Number(window.SIERRA_SIGNAGE_LIVE_TIMEOUT_MS)||20000)
+    await sender.waitMediaFlow(Number(window.SIERRA_SIGNAGE_MEDIA_TIMEOUT_MS)||8000)
+    _signageLiveState = 'media-flowing'; closeSideDrawer(); renderSignageHome(); toast('Video confirmado. Usa “Dejar de compartir” para terminar.')
   } catch (error) {
-    _signageLiveSender = null; _signageLiveScreenId = null
-    toast(error.name === 'NotAllowedError' ? 'No se compartió nada. Tú decides qué ventana o pantalla permitir.' : error.message || 'No se pudo iniciar la transmisión.')
+    await sender?.stop('start-failed').catch(()=>{})
+    if (!sender) capture?.getTracks?.().forEach(track=>track.stop())
+    _signageLiveSender = null; _signageLiveScreenId = null; _signageLiveState = 'idle'; _signageLiveStopping = false
+    const message = error.name === 'NotAllowedError'
+      ? 'No se compartió nada. Tú decides qué ventana o pantalla permitir.'
+      : direct && /no respondió a tiempo|rechazada por la red|no confirmó el envío/.test(error.message||'')
+        ? 'No se confirmó video directo. La captura se detuvo; esta red puede requerir un relay TURN.'
+        : error.message || 'No se pudo iniciar la transmisión.'
+    if (document.getElementById('sg-live-feedback')) { signageLiveFeedback(message,true); if(actionButton)actionButton.disabled=false }
+    else toast(message)
   }
 }
 
 async function signageStopLive() {
+  if (_signageLiveStopping) return
   const sender = _signageLiveSender
-  _signageLiveSender = null; _signageLiveScreenId = null
-  await sender?.stop()
-  renderSignageHome(); toast('Dejaste de compartir. La pantalla volvió a su contenido programado.')
+  if (!sender) return
+  _signageLiveStopping = true; renderSignageHome()
+  const result = await sender.stop('user')
+  _signageLiveSender = null; _signageLiveScreenId = null; _signageLiveState = 'idle'; _signageLiveStopping = false
+  renderSignageHome()
+  toast(result.remoteStopped ? 'Dejaste de compartir. La pantalla volvió a su contenido anterior.' : 'La captura se detuvo aquí. No pudimos confirmar el regreso de la pantalla; revisa su estado.')
+}
+
+if (typeof window !== 'undefined' && !window.__sierraSignageLivePagehideBound) {
+  window.__sierraSignageLivePagehideBound = true
+  window.addEventListener('pagehide', () => {
+    const sender = _signageLiveSender
+    _signageLiveSender = null; _signageLiveScreenId = null; _signageLiveState = 'idle'
+    if (sender) void sender.stop('pagehide', { keepalive:true })
+  })
 }
 
 function signageShowPlayer(screenId) {

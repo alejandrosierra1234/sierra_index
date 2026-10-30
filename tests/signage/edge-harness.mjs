@@ -13,15 +13,15 @@ const mime=file=>({'.html':'text/html','.js':'text/javascript','.mjs':'text/java
 
 export function createEdgeHarness(options={}) {
   const workspaceId=options.workspaceId||'20000000-0000-4000-8000-000000000001', siteId=options.siteId||'30000000-0000-4000-8000-000000000001'
-  const state={workspaceId,siteId,pairings:new Map(),spaces:new Map(),devices:new Map(),credentials:new Map(),contents:new Map(),playlists:new Map(),schedules:new Map(),experiences:new Map(),experienceSessions:new Map(),assets:new Map(),live:new Map(),signals:[],heartbeats:[],audit:[],revokeFailure:false,verifierConfigured:options.verifierConfigured!==false,liveConfigured:options.liveConfigured===true,origin:''}
+  const state={workspaceId,siteId,pairings:new Map(),spaces:new Map(),devices:new Map(),credentials:new Map(),contents:new Map(),playlists:new Map(),schedules:new Map(),experiences:new Map(),experienceSessions:new Map(),assets:new Map(),live:new Map(),signals:[],heartbeats:[],audit:[],revokeFailure:false,verifierConfigured:options.verifierConfigured!==false,liveConfigured:options.liveConfigured===true,directLiveAvailable:options.directLiveAvailable===true,origin:''}
   let sequence=0
   const adminCaps=new Set(['read','write','approve','publish','operate','manage_devices'])
   const requireWorkspace=value=>{if(value!==workspaceId)throw new ApiError(403,'WORKSPACE_DENIED','Espacio denegado.')}
   const adapter={
     authorizeAdmin:async(token,workspace,capability)=>{requireWorkspace(workspace);if(token!=='synthetic-admin-token'||!adminCaps.has(capability))throw new ApiError(403,'CAPABILITY_DENIED','Permiso denegado.');return{id:'10000000-0000-4000-8000-000000000001',token}},
     authorizeDevice:async(deviceId,token)=>{const credential=state.credentials.get(deviceId),device=state.devices.get(deviceId);if(!credential||credential.token!==token||credential.revoked||device?.state!=='active')throw new ApiError(401,'DEVICE_CREDENTIAL_DENIED','Credencial inválida.');return{deviceId,workspaceId,credentialId:credential.id}},
-    rateLimit:async()=>{}, liveConfigured:async()=>state.liveConfigured,
-    playerRuntime:async()=>state.liveConfigured?{liveAvailable:true,iceServers:[{urls:'turn:synthetic.invalid:3478',username:'ephemeral',credential:'synthetic'}]}:{liveAvailable:false,iceServers:[]},
+    rateLimit:async()=>{}, liveConfigured:async()=>state.liveConfigured, liveAvailable:async()=>state.liveConfigured||state.directLiveAvailable,
+    playerRuntime:async()=>state.liveConfigured?{liveAvailable:true,connectionMode:'relay',iceServers:[{urls:'turn:synthetic.invalid:3478',username:'ephemeral',credential:'synthetic'}]}:state.directLiveAvailable?{liveAvailable:true,connectionMode:'direct',iceServers:[]}:{liveAvailable:false,connectionMode:'unavailable',iceServers:[]},
     async adminRuntime(){return this.playerRuntime()},
     createPairing:async()=>{const code=String(100000+state.pairings.size),claimToken=crypto.randomBytes(32).toString('base64url'),expiresAt=new Date(Date.now()+600000).toISOString();state.pairings.set(claimToken,{code,expiresAt});return{code,claimToken,expiresAt}},
     claimPairing:async input=>{requireWorkspace(input.workspaceId);if(input.siteId!==siteId)throw new ApiError(403,'SITE_DENIED','Planta denegada.');const pair=[...state.pairings.entries()].find(([,item])=>item.code===input.code&&!item.deviceId);if(!pair)throw new ApiError(404,'PAIRING_NOT_FOUND','Código inválido.');const device={id:uuid(),workspaceId,siteId,name:input.name,plant:'Planta E2E',profile:'Horizontal · 1920 × 1080',state:'active',revision:0,contentId:null};pair[1].deviceId=device.id;state.devices.set(device.id,device);return{state:'claimed',device}},

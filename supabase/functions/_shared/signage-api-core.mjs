@@ -80,7 +80,7 @@ export function createSignageHandler(adapter, options = {}) {
       const marker = path.indexOf(prefix)
       if (marker >= 0) path = path.slice(marker + prefix.length) || '/'
 
-      if (req.method === 'GET' && path === '/health') return response({ ok: true, service: 'sierra-pantallas', storage: 'private', liveConfigured: await adapter.liveConfigured() }, 200, cors)
+      if (req.method === 'GET' && path === '/health') return response({ ok: true, service: 'sierra-pantallas', storage: 'private', liveConfigured: await adapter.liveConfigured(), liveDirectAvailable: typeof adapter.liveAvailable === 'function' ? await adapter.liveAvailable() : await adapter.liveConfigured() }, 200, cors)
       if (req.method === 'GET' && path === '/player/runtime') return response(await adapter.playerRuntime(await device(req)), 200, cors)
       if (req.method === 'GET' && path === '/admin/runtime') {
         const workspaceId = workspace(req), actor = await admin(req, workspaceId, 'operate')
@@ -264,7 +264,8 @@ export function createSignageHandler(adapter, options = {}) {
 
       if (req.method === 'POST' && path === '/admin/live-sessions') {
         const body = await jsonBody(req), workspaceId = workspace(req, body), actor = await admin(req, workspaceId, 'operate')
-        if (!(await adapter.liveConfigured())) throw new ApiError(503, 'LIVE_NOT_CONFIGURED', 'La transmisión en vivo requiere configurar ICE/TURN.')
+        const available = typeof adapter.liveAvailable === 'function' ? await adapter.liveAvailable() : await adapter.liveConfigured()
+        if (!available) throw new ApiError(503, 'LIVE_NOT_CONFIGURED', 'La transmisión en vivo no está disponible.')
         return response(await adapter.startLive({ workspaceId, deviceId: id(body.deviceId, 'dispositivo'), actorId: actor.id }), 201, cors)
       }
       const liveStop = path.match(/^\/admin\/live-sessions\/([^/]+)\/stop$/)

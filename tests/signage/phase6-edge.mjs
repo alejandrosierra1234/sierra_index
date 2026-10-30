@@ -29,6 +29,7 @@ const adapter={
   signUpload: async input=>({assetId:ASSET,path:`${input.workspaceId}/${ASSET}/test.png`,upload:{url:'https://storage.invalid/signed'}}),
   completeUpload: async()=>({id:ASSET,state:'ready'}),
   liveConfigured: async()=>false,
+  liveAvailable: async()=>false,
   playerRuntime: async()=>({liveAvailable:false,iceServers:[]}), adminRuntime:async()=>({liveAvailable:false,iceServers:[]}),
   startLive: async()=>({session:{id:SESSION}}), stopLive:async()=>({state:'stopped'}),
   sendSignal:async input=>({sequence:1,type:input.signal.type}), receiveSignals:async()=>({state:'active',signals:[]}),
@@ -51,7 +52,7 @@ const request=async(method,route,{token,device,workspace=WORKSPACE,body,origin='
   return {response,payload:response.status===204?null:await response.json()}
 }
 
-let result=await request('GET','/health'); equal(result.response.status,200); equal(result.payload.liveConfigured,false)
+let result=await request('GET','/health'); equal(result.response.status,200); equal(result.payload.liveConfigured,false); equal(result.payload.liveDirectAvailable,false)
 result=await request('POST','/player/pairings'); equal(result.response.status,201); equal(result.payload.code,'123456')
 const claimToken='x'.repeat(48)
 result=await request('POST','/player/pairings/status',{body:{claimToken}}); equal(result.payload.state,'pending')
@@ -87,6 +88,10 @@ result=await request('POST','/admin/uploads/sign',{token:'admin-token',body:{wor
 result=await request('GET','/player/runtime',{token:'device-token',device:DEVICE}); equal(result.payload.liveAvailable,false)
 result=await request('GET','/player/runtime'); equal(result.response.status,401)
 result=await request('POST','/admin/live-sessions',{token:'admin-token',body:{workspaceId:WORKSPACE,deviceId:DEVICE}}); equal(result.response.status,503); equal(result.payload.code,'LIVE_NOT_CONFIGURED')
+const directHandler=createSignageHandler({...adapter,liveAvailable:async()=>true,playerRuntime:async()=>({liveAvailable:true,connectionMode:'direct',iceServers:[]}),adminRuntime:async()=>({liveAvailable:true,connectionMode:'direct',iceServers:[]})},{prefix:'/signage-api',corsOrigins:['https://index.example']})
+const directHeaders=new Headers({Origin:'https://index.example',Authorization:'Bearer admin-token','Content-Type':'application/json','X-Signage-Workspace':WORKSPACE})
+const directResponse=await directHandler(new Request('https://edge.example/functions/v1/signage-api/admin/live-sessions',{method:'POST',headers:directHeaders,body:JSON.stringify({workspaceId:WORKSPACE,deviceId:DEVICE})}))
+equal(directResponse.status,201,'direct mode may create an authorized signaling session without TURN')
 result=await request('GET','/health',{origin:'https://evil.example'}); equal(result.response.status,403); equal(result.payload.code,'ORIGIN_DENIED')
 result=await request('POST',`/admin/live-sessions/${SESSION}/signals`,{token:'admin-token',body:{type:'script',payload:{}}}); equal(result.response.status,400)
 equal(calls.some(call=>call[0]==='admin'&&call[1]===WORKSPACE&&call[2]==='manage_devices'),true)
@@ -100,8 +105,9 @@ const liveSource=await fs.readFile(path.join(root,'js/signage-live-share.js'),'u
 assert.match(clientSource,/claimPairing: claimToken => request\('\/player\/pairings\/status'/); assertions+=1
 assert.doesNotMatch(clientSource,/pairings\/\$\{encodeURIComponent\(claimToken\)\}/); assertions+=1
 assert.doesNotMatch(clientSource+playerSource+liveSource,/\?\./); assertions+=1
-assert.match(liveSource,/catch \(error\) \{\s*await stop\(\)\s*throw error/s); assertions+=1
-assert.match(liveSource,/addEventListener\('track',[\s\S]*options\.onConnected\(\)/); assertions+=1
+assert.match(liveSource,/catch \(error\) \{\s*await stop\('start-failed'\)\s*throw error/s); assertions+=1
+assert.match(liveSource,/const confirmMedia = \(\) => \{[\s\S]*options\.onConnected\(\)/); assertions+=1
+assert.match(liveSource,/addEventListener\('track',[\s\S]*addEventListener\('loadeddata', confirmMedia/); assertions+=1
 assert.doesNotMatch(clientSource,/globalThis\.fetch/); assertions+=1
 for(const required of ['signage_pairing_claim_service','signage_pairing_deliver_service','signage_device_manifest_service','signage_stop_output','createSignedUploadUrl','signage_device_heartbeats','inspectMedia','sha256Hex','SIGNAGE_ICE_CONFIG_URL','SIGNAGE_PAIRING_PEPPER','signage_playlist_save','signage_schedule_save']) {
   assert.match(edgeSource,new RegExp(required)); assertions+=1

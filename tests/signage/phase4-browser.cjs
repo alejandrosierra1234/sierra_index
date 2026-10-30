@@ -58,7 +58,7 @@ function playwright() {
     const player = await context.newPage(), admin = await context.newPage(), errors = []
     player.on('pageerror', error => errors.push(`player: ${error.message}`)); admin.on('pageerror', error => errors.push(`admin: ${error.message}`))
     await player.goto(origin + '/signage-player.html')
-    assert.equal(await player.locator('#sp-build').textContent(), 'P-20261029-8')
+    assert.equal(await player.locator('#sp-build').textContent(), 'P-20261029-9')
     assert.equal(await player.locator('#sp-setup').isVisible(), true, 'pairing setup is the only visible pane before enrollment')
     assert.equal(await player.locator('#sp-stage').isHidden(), true, 'playback pane stays hidden before enrollment')
     const code = (await player.locator('#sp-code').textContent()).trim(); assert.match(code, /^\d{6}$/)
@@ -295,7 +295,7 @@ function playwright() {
       draw(); window.__signageE2EFrames = setInterval(draw,100)
       const stream = canvas.captureStream(10)
       const client=signageBackendClient(),runtime=await client.runtime()
-      if(!runtime.liveAvailable||!runtime.iceServers.length)throw new Error('ICE runtime missing')
+      if(!runtime.liveAvailable||runtime.connectionMode!=='relay'||!runtime.iceServers.length)throw new Error('ICE runtime missing')
       window.__signageE2ESender = SignageLiveShare.createSender({ client, deviceId: _signageState.screens.find(item => item.kind === 'paired').id, iceServers:runtime.iceServers, captureProvider: async () => stream })
       await window.__signageE2ESender.start()
     })
@@ -314,9 +314,37 @@ function playwright() {
     }
     await admin.evaluate(() => { clearInterval(window.__signageE2EFrames); return window.__signageE2ESender.stop() })
     await player.getByText('Mensaje cruzado E2E', { exact: true }).waitFor({ timeout: 7000 })
-    harness.state.liveConfigured=false
-    await admin.evaluate(() => signageStartLive(_signageState.screens.find(item => item.kind === 'paired').id))
-    await admin.getByText('Compartir pantalla requiere configurar la conexión segura ICE/TURN.').waitFor({timeout:3000})
+    const liveTile = admin.locator('.sg-screen-tile').filter({ hasText: 'Comedor norte E2E' })
+    assert.equal(await liveTile.getByRole('button', { name: 'Compartir computadora', exact: true }).count(),1,'screen sharing is an explicit action for one paired destination')
+    const sessionsBeforeCancel=harness.state.live.size
+    await admin.evaluate(() => Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>{throw new DOMException('synthetic cancel','NotAllowedError')}}))
+    await liveTile.getByRole('button',{name:'Compartir computadora',exact:true}).click()
+    if(process.env.SIGNAGE_SCREENSHOT_DIR){
+      await admin.setViewportSize({width:1440,height:900});await admin.screenshot({path:process.env.SIGNAGE_SCREENSHOT_DIR+'/pantallas-live-desktop.png',fullPage:true})
+      await admin.setViewportSize({width:1024,height:900});await admin.screenshot({path:process.env.SIGNAGE_SCREENSHOT_DIR+'/pantallas-live-tablet.png',fullPage:true})
+      await admin.setViewportSize({width:390,height:844});await admin.screenshot({path:process.env.SIGNAGE_SCREENSHOT_DIR+'/pantallas-live-mobile.png',fullPage:true})
+      await admin.emulateMedia({reducedMotion:'reduce'});await admin.screenshot({path:process.env.SIGNAGE_SCREENSHOT_DIR+'/pantallas-live-reduced-motion.png',fullPage:true});await admin.emulateMedia({reducedMotion:'no-preference'});await admin.setViewportSize({width:1440,height:900})
+    }
+    await admin.getByRole('button',{name:'Elegir ventana o pantalla',exact:true}).click()
+    await admin.getByText('No se compartió nada. Tú decides qué ventana o pantalla permitir.',{exact:true}).waitFor({timeout:3000})
+    assert.equal(harness.state.live.size,sessionsBeforeCancel,'canceling the native picker never creates a server session')
+    assert.equal(await admin.evaluate(()=>_signageLiveSender===null),true,'canceling capture leaves no sender running')
+    await admin.getByRole('button',{name:'Cancelar',exact:true}).click()
+
+    harness.state.liveConfigured=false;harness.state.directLiveAvailable=true
+    await admin.evaluate(() => {
+      const canvas=document.createElement('canvas');canvas.width=160;canvas.height=90;const context=canvas.getContext('2d');context.fillStyle='#007d73';context.fillRect(0,0,160,90)
+      window.SIERRA_SIGNAGE_LIVE_TIMEOUT_MS=1200;window.SIERRA_SIGNAGE_MEDIA_TIMEOUT_MS=500
+      window.__signageDirectStream=canvas.captureStream(5)
+      Object.defineProperty(navigator.mediaDevices,'getDisplayMedia',{configurable:true,value:async()=>window.__signageDirectStream})
+    })
+    await liveTile.getByRole('button',{name:'Compartir computadora',exact:true}).click()
+    await admin.getByRole('button',{name:'Elegir ventana o pantalla',exact:true}).click()
+    await admin.getByText('No se confirmó video directo. La captura se detuvo; esta red puede requerir un relay TURN.',{exact:true}).waitFor({timeout:5000})
+    assert.equal(await admin.evaluate(()=>_signageLiveSender===null&&window.__signageDirectStream.getTracks().every(track=>track.readyState==='ended')),true,'direct failure stops every captured track and clears the sender')
+    assert.equal([...harness.state.live.values()].at(-1).state,'stopped','direct failure closes its central signaling session and restores prior content')
+    await player.getByText('Mensaje cruzado E2E',{exact:true}).waitFor({timeout:7000})
+    harness.state.directLiveAvailable=false
     await new Promise(resolve=>setTimeout(resolve,700)); assert.ok(harness.state.heartbeats.length>0,'player sends heartbeat through Edge handler')
     assert.equal(errors.length, 0, errors.join('\n'))
     console.log(`Pantallas browser E2E: pairing, upload, cross-client playback and durable recovery passed; WebRTC video ${webrtcVideo ? 'passed' : 'not verified'}`)

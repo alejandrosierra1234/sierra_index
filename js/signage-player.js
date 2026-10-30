@@ -133,7 +133,7 @@
     liveShareLoad = new Promise((resolve, reject) => {
       const script = document.createElement('script')
       const timeout = setTimeout(() => reject(new Error('La transmisión en vivo tardó demasiado en cargar.')), 12000)
-      script.src = 'js/signage-live-share.js?v=20261029-4'
+      script.src = 'js/signage-live-share.js?v=20261029-5'
       script.async = true
       script.onload = () => {
         clearTimeout(timeout)
@@ -149,19 +149,29 @@
   async function showLive(session, client) {
     if (liveSessionId === session.id) return
     const runtime = await client.runtime()
-    if (!runtime.liveAvailable || !runtime.iceServers || !runtime.iceServers.length) throw new Error('La transmisión en vivo no tiene una conexión ICE/TURN configurada.')
+    if (!runtime.liveAvailable) throw new Error('La transmisión en vivo no está disponible.')
+    if (runtime.connectionMode !== 'direct' && (!runtime.iceServers || !runtime.iceServers.length)) throw new Error('La transmisión en vivo no tiene una conexión ICE/TURN configurada.')
     const liveShare = await loadLiveShare()
     if (liveReceiver) liveReceiver.stop(); liveSessionId = session.id
     const host = document.getElementById('sp-content')
-    host.innerHTML = '<div class="sp-live"><span class="sp-live-label">PANTALLA COMPARTIDA EN VIVO</span><video id="sp-live-video" autoplay muted playsinline></video></div>'
+    host.innerHTML = '<div class="sp-live"><span class="sp-live-label" id="sp-live-label">CONECTANDO PANTALLA…</span><video id="sp-live-video" autoplay muted playsinline></video></div>'
     liveReceiver = liveShare.createReceiver({
       client,
       sessionId: session.id,
       video: document.getElementById('sp-live-video'),
       iceServers: runtime.iceServers,
-      onConnected: () => { document.getElementById('sp-connection').textContent = 'Transmisión en vivo' },
+      onState: event => {
+        if (event.state === 'connected') document.getElementById('sp-connection').textContent = 'Conexión de video establecida · esperando imagen'
+      },
+      onConnected: () => {
+        document.getElementById('sp-connection').textContent = 'Transmisión en vivo · imagen recibida'
+        const label = document.getElementById('sp-live-label'); if (label) label.textContent = 'PANTALLA COMPARTIDA EN VIVO'
+      },
       onStop: () => { liveSessionId = null; liveReceiver = null; if (lastManifest) renderContent(lastManifest.content, { state: lastManifest.state }) },
-      onError: () => { document.getElementById('sp-connection').textContent = 'Transmisión interrumpida' },
+      onError: () => {
+        document.getElementById('sp-connection').textContent = 'Transmisión interrumpida · reintentando'
+        const failedReceiver = liveReceiver; liveReceiver = null; liveSessionId = null; if (failedReceiver) failedReceiver.stop('connection-failed')
+      },
     })
     window.__signageLiveReceiver = liveReceiver
     liveReceiver.start()

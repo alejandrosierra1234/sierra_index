@@ -347,11 +347,12 @@ const adapter = {
     fail(link.error); return { assetId: asset.data.id, state: 'ready', downloadUrl: link.data.signedUrl, expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString() }
   },
   async liveConfigured() { return Boolean(env('SIGNAGE_ICE_CONFIG_URL', false) && env('SIGNAGE_ICE_CONFIG_TOKEN', false)) },
+  async liveAvailable() { return true },
   async playerRuntime() {
-    if (!(await this.liveConfigured())) return { liveAvailable: false, iceServers: [] }
+    if (!(await this.liveConfigured())) return { liveAvailable: true, connectionMode: 'direct', iceServers: [] }
     const result = await fetch(env('SIGNAGE_ICE_CONFIG_URL'), { headers: { Authorization: `Bearer ${env('SIGNAGE_ICE_CONFIG_TOKEN')}` }, signal: AbortSignal.timeout(5000) })
     if (!result.ok) throw new ApiError(503, 'ICE_UNAVAILABLE', 'No se pudo preparar la transmisión en vivo.')
-    const body = await result.json(); return { liveAvailable: true, iceServers: Array.isArray(body.iceServers) ? body.iceServers : [] }
+    const body = await result.json(); return { liveAvailable: true, connectionMode: 'relay', iceServers: Array.isArray(body.iceServers) ? body.iceServers : [] }
   },
   async adminRuntime() { return this.playerRuntime() },
   async startLive(input: any) {

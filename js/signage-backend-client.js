@@ -121,7 +121,7 @@
       stepExperience: (sessionId, input) => request(`/admin/experience-sessions/${encodeURIComponent(sessionId)}/step`, { method: 'POST', body: input }),
       finishExperience: sessionId => request(`/admin/experience-sessions/${encodeURIComponent(sessionId)}/finish`, { method: 'POST', body: {} }),
       startLive: deviceId => request('/admin/live-sessions', { method: 'POST', body: { deviceId } }),
-      stopLive: sessionId => request(`/admin/live-sessions/${encodeURIComponent(sessionId)}/stop`, { method: 'POST' }),
+      stopLive: (sessionId, options) => request(`/admin/live-sessions/${encodeURIComponent(sessionId)}/stop`, { method: 'POST', keepalive: options && options.keepalive === true }),
       sendLiveSignal: (sessionId, signal) => request(`/admin/live-sessions/${encodeURIComponent(sessionId)}/signals`, { method: 'POST', body: signal }),
       receiveLiveSignals: (sessionId, after) => request(`/admin/live-sessions/${encodeURIComponent(sessionId)}/signals?after=${Number(after) || 0}`),
       signUpload: input => request('/admin/uploads/sign', { method: 'POST', body: input }),
