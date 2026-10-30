@@ -154,18 +154,26 @@
     const liveShare = await loadLiveShare()
     if (liveReceiver) liveReceiver.stop(); liveSessionId = session.id
     const host = document.getElementById('sp-content')
-    host.innerHTML = '<div class="sp-live"><span class="sp-live-label" id="sp-live-label">CONECTANDO PANTALLA…</span><video id="sp-live-video" autoplay muted playsinline></video></div>'
+    host.innerHTML = '<div class="sp-live"><span class="sp-live-label" id="sp-live-label">CONECTANDO PANTALLA…</span><video id="sp-live-video" autoplay muted playsinline></video><button id="sp-live-play" class="sp-live-play" type="button" hidden>Mostrar pantalla compartida</button></div>'
+    const liveVideo = document.getElementById('sp-live-video')
     liveReceiver = liveShare.createReceiver({
       client,
       sessionId: session.id,
-      video: document.getElementById('sp-live-video'),
+      video: liveVideo,
       iceServers: runtime.iceServers,
       onState: event => {
         if (event.state === 'connected') document.getElementById('sp-connection').textContent = 'Conexión de video establecida · esperando imagen'
+        if (event.state === 'media-flowing') window.__sierraSignageLiveMetrics = event.detail
       },
       onConnected: () => {
         document.getElementById('sp-connection').textContent = 'Transmisión en vivo · imagen recibida'
         const label = document.getElementById('sp-live-label'); if (label) label.textContent = 'PANTALLA COMPARTIDA EN VIVO'
+      },
+      onPlayBlocked: () => {
+        const action = document.getElementById('sp-live-play')
+        if (!action) return
+        action.hidden = false
+        action.onclick = () => liveVideo.play().then(() => { action.hidden = true }).catch(() => { document.getElementById('sp-connection').textContent = 'El navegador sigue bloqueando el video · toca de nuevo' })
       },
       onStop: () => { liveSessionId = null; liveReceiver = null; if (lastManifest) renderContent(lastManifest.content, { state: lastManifest.state }) },
       onError: () => {

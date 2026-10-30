@@ -351,7 +351,7 @@ function playwright() {
     })
     await liveTile.getByRole('button',{name:'Compartir computadora',exact:true}).click()
     await admin.getByRole('button',{name:'Elegir ventana o pantalla',exact:true}).click()
-    await admin.getByText('No se confirmó video directo. La captura se detuvo; esta red puede requerir un relay TURN.',{exact:true}).waitFor({timeout:5000})
+    await admin.getByText(/No se confirmó video directo.*Diagnóstico seguro: 0 rutas del emisor y 0 del receptor; no se guardaron direcciones IP\./).waitFor({timeout:5000})
     assert.equal(await admin.evaluate(()=>_signageLiveSender===null&&window.__signageDirectStream.getTracks().every(track=>track.readyState==='ended')),true,'direct failure stops every captured track and clears the sender')
     assert.equal([...harness.state.live.values()].at(-1).state,'stopped','direct failure closes its central signaling session and restores prior content')
     await player.getByText('Mensaje cruzado E2E',{exact:true}).waitFor({timeout:7000})

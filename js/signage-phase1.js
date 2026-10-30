@@ -1890,6 +1890,12 @@ function signageLiveFeedback(message, isError = false) {
   feedback.setAttribute('role', isError ? 'alert' : 'status')
 }
 
+function signageLiveRouteDiagnostic(debug) {
+  const local = Number(debug && debug.localRoutes && debug.localRoutes.total) || 0
+  const remote = Number(debug && debug.remoteRoutes && debug.remoteRoutes.total) || 0
+  return ` Diagnóstico seguro: ${local} ruta${local === 1 ? '' : 's'} del emisor y ${remote} del receptor; no se guardaron direcciones IP.`
+}
+
 function signageOpenLiveDrawer(screenId) {
   const screen = _signageState.screens.find(item => item.id === screenId)
   if (!screen || screen.kind !== 'paired') { toast('Primero vincula una pantalla con su código.'); return }
@@ -1943,13 +1949,14 @@ async function signageStartLive(screenId, actionButton) {
     await sender.waitMediaFlow(Number(window.SIERRA_SIGNAGE_MEDIA_TIMEOUT_MS)||8000)
     _signageLiveState = 'media-flowing'; closeSideDrawer(); renderSignageHome(); toast('Video confirmado. Usa “Dejar de compartir” para terminar.')
   } catch (error) {
+    const routeDiagnostic = sender ? signageLiveRouteDiagnostic(sender.debugState) : ''
     await sender?.stop('start-failed').catch(()=>{})
     if (!sender) capture?.getTracks?.().forEach(track=>track.stop())
     _signageLiveSender = null; _signageLiveScreenId = null; _signageLiveState = 'idle'; _signageLiveStopping = false
     const message = error.name === 'NotAllowedError'
       ? 'No se compartió nada. Tú decides qué ventana o pantalla permitir.'
       : direct && /no respondió a tiempo|rechazada por la red|no confirmó el envío/.test(error.message||'')
-        ? 'No se confirmó video directo. La captura se detuvo; esta red puede requerir un relay TURN.'
+        ? 'No se confirmó video directo. La captura se detuvo; esta red puede requerir un relay TURN.' + routeDiagnostic
         : error.message || 'No se pudo iniciar la transmisión.'
     if (document.getElementById('sg-live-feedback')) { signageLiveFeedback(message,true); if(actionButton)actionButton.disabled=false }
     else toast(message)

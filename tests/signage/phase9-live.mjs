@@ -20,7 +20,7 @@ class FakePeer {
   async setLocalDescription(value){this.localDescription=value}
   async setRemoteDescription(value){this.remoteDescription=value;this.currentRemoteDescription=value;this.connectionState='connected';this.iceConnectionState='connected';emit(this.events,'connectionstatechange');emit(this.events,'iceconnectionstatechange');if(value.type==='offer'&&FakePeer.remoteStream)emit(this.events,'track',{streams:[FakePeer.remoteStream]})}
   async addIceCandidate(){}
-  async getStats(){return new Map([['video',{type:'outbound-rtp',kind:'video',bytesSent:2048,isRemote:false}]])}
+  async getStats(){return this.remoteDescription&&this.remoteDescription.type==='offer'?new Map([['video-in',{type:'inbound-rtp',kind:'video',bytesReceived:4096,framesDecoded:2,packetsLost:0,isRemote:false}]]):new Map([['video-out',{type:'outbound-rtp',kind:'video',bytesSent:2048,framesEncoded:2,isRemote:false}]])}
   close(){this.connectionState='closed';this.iceConnectionState='closed'}
 }
 FakePeer.instances=[]
@@ -39,6 +39,7 @@ function stream(){const video=track();return{video,getTracks:()=>[video],getVide
   assert.equal(sender.state,'media-flowing');assertions+=1
   assert.equal(signals[0][1].type,'offer');assertions+=1
   assert.ok(states.includes('connected')&&states.includes('media-flowing'));assertions+=1
+  assert.deepEqual(sender.debugState.localRoutes,{total:0,host:0,srflx:0,prflx:0,relay:0},'diagnostics summarize routes without exposing candidate addresses');assertions+=1
   const stopped=await sender.stop('user',{keepalive:true})
   assert.equal(stopped.remoteStopped,true);assertions+=1
   assert.equal(captured.video.readyState,'ended');assertions+=1
@@ -65,20 +66,23 @@ function stream(){const video=track();return{video,getTracks:()=>[video],getVide
 {
   const remote=stream(),videoEvents=listeners(),states=[]
   FakePeer.remoteStream=remote
-  const video={readyState:0,srcObject:null,addEventListener(type,callback){on(videoEvents,type,callback)},play:async()=>{}}
+  let blocked=0
+  const video={readyState:0,srcObject:null,addEventListener(type,callback){on(videoEvents,type,callback)},play:async()=>{throw new DOMException('autoplay','NotAllowedError')}}
   const client={
     receiveLiveSignals:async()=>({state:'active',signals:[{sequence:1,type:'offer',payload:{type:'offer',sdp:'v=0'}}]}),
     sendLiveSignal:async()=>{},
   }
   let confirmed=0,errors=0
-  const receiver=Live.createReceiver({client,sessionId:'session-receiver',iceServers:[],video,disconnectGraceMs:5,onState:event=>states.push(event.state),onConnected:()=>{confirmed+=1},onError:()=>{errors+=1}})
+  const receiver=Live.createReceiver({client,sessionId:'session-receiver',iceServers:[],video,disconnectGraceMs:5,onState:event=>states.push(event.state),onConnected:()=>{confirmed+=1},onPlayBlocked:()=>{blocked+=1},onError:()=>{errors+=1}})
   await receiver.start()
   await new Promise(resolve=>setTimeout(resolve,0))
   assert.equal(confirmed,0,'the track event alone must not claim visible video');assertions+=1
-  video.readyState=2;emit(videoEvents,'loadeddata')
+  assert.equal(blocked,1,'autoplay rejection requests an explicit receiver action instead of claiming failure');assertions+=1
+  video.readyState=2;emit(videoEvents,'loadeddata');await new Promise(resolve=>setTimeout(resolve,0))
   assert.equal(confirmed,1);assertions+=1
   assert.equal(video.srcObject,remote);assertions+=1
   assert.ok(states.includes('connected')&&states.includes('media-flowing'));assertions+=1
+  assert.deepEqual(receiver.mediaStats,{bytesSent:0,framesEncoded:0,bytesReceived:4096,framesDecoded:2,packetsLost:0,roundTripTime:null,localCandidateType:null,remoteCandidateType:null});assertions+=1
   const peer=FakePeer.instances.at(-1);peer.connectionState='disconnected';emit(peer.events,'connectionstatechange');await new Promise(resolve=>setTimeout(resolve,10))
   assert.equal(errors,1,'a sustained receiver disconnect becomes an actionable error');assertions+=1
   receiver.stop();FakePeer.remoteStream=null

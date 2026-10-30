@@ -106,8 +106,10 @@ assert.match(clientSource,/claimPairing: claimToken => request\('\/player\/pairi
 assert.doesNotMatch(clientSource,/pairings\/\$\{encodeURIComponent\(claimToken\)\}/); assertions+=1
 assert.doesNotMatch(clientSource+playerSource+liveSource,/\?\./); assertions+=1
 assert.match(liveSource,/catch \(error\) \{\s*await stop\('start-failed'\)\s*throw error/s); assertions+=1
-assert.match(liveSource,/const confirmMedia = \(\) => \{[\s\S]*options\.onConnected\(\)/); assertions+=1
+assert.match(liveSource,/const confirmMedia = async \(\) => \{[\s\S]*options\.onConnected\(lastMediaStats\)/); assertions+=1
 assert.match(liveSource,/addEventListener\('track',[\s\S]*addEventListener\('loadeddata', confirmMedia/); assertions+=1
+assert.match(playerSource,/sp-live-play[\s\S]*onPlayBlocked/); assertions+=1
+assert.match(liveSource,/iceTransportPolicy:'all'/); assertions+=1
 assert.doesNotMatch(clientSource,/globalThis\.fetch/); assertions+=1
 for(const required of ['signage_pairing_claim_service','signage_pairing_deliver_service','signage_device_manifest_service','signage_stop_output','createSignedUploadUrl','signage_device_heartbeats','inspectMedia','sha256Hex','SIGNAGE_ICE_CONFIG_URL','SIGNAGE_PAIRING_PEPPER','signage_playlist_save','signage_schedule_save']) {
   assert.match(edgeSource,new RegExp(required)); assertions+=1

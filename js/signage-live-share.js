@@ -12,11 +12,24 @@
       const timer = setTimeout(done, timeout); peer.addEventListener('icegatheringstatechange', check)
     })
   }
-  function peerConfig(iceServers) { return { iceServers: Array.isArray(iceServers) ? iceServers : [] } }
+  function peerConfig(iceServers) { return { iceServers: Array.isArray(iceServers) ? iceServers : [], iceTransportPolicy:'all' } }
+  function candidateSummary(description) {
+    const summary = { total:0, host:0, srflx:0, prflx:0, relay:0 }
+    const sdp = description && description.sdp
+    if (!sdp) return summary
+    const candidates = sdp.match(/^a=candidate:.*$/gm) || []
+    summary.total = candidates.length
+    candidates.forEach(line => {
+      const match = line.match(/\styp\s(host|srflx|prflx|relay)(?:\s|$)/)
+      if (match) summary[match[1]] += 1
+    })
+    return summary
+  }
   function debugState(peer) {
     const local = peer && peer.localDescription
     const remote = peer && peer.remoteDescription
-    return { connection:peer && peer.connectionState,ice:peer && peer.iceConnectionState,gathering:peer && peer.iceGatheringState,signaling:peer && peer.signalingState,local:local && local.type,remote:remote && remote.type,candidates:((local && local.sdp && local.sdp.match(/a=candidate:/g))||[]).length }
+    const localRoutes = candidateSummary(local), remoteRoutes = candidateSummary(remote)
+    return { connection:peer && peer.connectionState,ice:peer && peer.iceConnectionState,gathering:peer && peer.iceGatheringState,signaling:peer && peer.signalingState,local:local && local.type,remote:remote && remote.type,candidates:localRoutes.total,localRoutes,remoteRoutes }
   }
 
   function connected(peer) {
@@ -50,18 +63,25 @@
     })
   }
 
-  async function videoBytes(peer) {
-    if (!peer || typeof peer.getStats !== 'function') return 0
+  async function mediaStats(peer) {
+    const summary = { bytesSent:0, framesEncoded:0, bytesReceived:0, framesDecoded:0, packetsLost:0, roundTripTime:null, localCandidateType:null, remoteCandidateType:null }
+    if (!peer || typeof peer.getStats !== 'function') return summary
     const stats = await peer.getStats()
-    let bytes = 0
     stats.forEach(report => {
-      if (report.type === 'outbound-rtp' && report.kind === 'video' && !report.isRemote) bytes += Number(report.bytesSent || report.framesEncoded || 0)
+      if (report.type === 'outbound-rtp' && report.kind === 'video' && !report.isRemote) { summary.bytesSent += Number(report.bytesSent || 0); summary.framesEncoded += Number(report.framesEncoded || 0) }
+      if (report.type === 'inbound-rtp' && report.kind === 'video' && !report.isRemote) { summary.bytesReceived += Number(report.bytesReceived || 0); summary.framesDecoded += Number(report.framesDecoded || 0); summary.packetsLost += Number(report.packetsLost || 0) }
+      if (report.type === 'candidate-pair' && (report.selected || report.nominated) && report.state === 'succeeded') {
+        summary.roundTripTime = Number.isFinite(report.currentRoundTripTime) ? report.currentRoundTripTime : null
+        const local = stats.get(report.localCandidateId), remote = stats.get(report.remoteCandidateId)
+        summary.localCandidateType = local && local.candidateType || null
+        summary.remoteCandidateType = remote && remote.candidateType || null
+      }
     })
-    return bytes
+    return summary
   }
 
   function createSender(options) {
-    let peer = null, stream = null, timer = null, session = null, sequence = 0, stopped = false, descriptionSent = false, state = 'idle', failureTimer = null
+    let peer = null, stream = null, timer = null, session = null, sequence = 0, stopped = false, descriptionSent = false, state = 'idle', failureTimer = null, lastMediaStats = null
     const emit = (next, detail) => { state = next; if (options.onState) options.onState({ state: next, detail: detail || null, debug: debugState(peer) }) }
     async function poll() {
       if (stopped || !session) return
@@ -118,7 +138,10 @@
       const startedAt = Date.now()
       while (!stopped && Date.now() - startedAt < timeout) {
         if (failed(peer)) throw new Error('La conexión de video fue rechazada por la red.')
-        if (connected(peer) && await videoBytes(peer) > 0) { emit('media-flowing'); return }
+        if (connected(peer)) {
+          lastMediaStats = await mediaStats(peer)
+          if (lastMediaStats.bytesSent > 0) { emit('media-flowing', lastMediaStats); return lastMediaStats }
+        }
         await new Promise(resolve => setTimeout(resolve, 250))
       }
       throw new Error(stopped ? 'La transmisión fue detenida.' : 'La conexión abrió, pero no confirmó el envío de video.')
@@ -134,15 +157,20 @@
       if (options.onStop) options.onStop(result)
       return result
     }
-    return { start, stop, waitConnected, waitMediaFlow, get session() { return session }, get stream() { return stream }, get state() { return state }, get connectionState() { return peer ? peer.connectionState : 'new' }, get debugState() { return debugState(peer) } }
+    return { start, stop, waitConnected, waitMediaFlow, get session() { return session }, get stream() { return stream }, get state() { return state }, get mediaStats() { return lastMediaStats }, get connectionState() { return peer ? peer.connectionState : 'new' }, get debugState() { return debugState(peer) } }
   }
 
   function createReceiver(options) {
-    let peer = null, timer = null, sequence = 0, stopped = false, answered = false, descriptionSent = false, mediaConfirmed = false, failureTimer = null
+    let peer = null, timer = null, sequence = 0, stopped = false, answered = false, descriptionSent = false, mediaConfirmed = false, mediaChecking = false, failureTimer = null, mediaTimer = null, lastMediaStats = null
     const emit = (state, detail) => { if (options.onState) options.onState({ state, detail: detail || null, debug: debugState(peer) }) }
-    const confirmMedia = () => {
-      if (mediaConfirmed || !options.video || options.video.readyState < 2) return
-      mediaConfirmed = true; emit('media-flowing'); if (options.onConnected) options.onConnected()
+    const confirmMedia = async () => {
+      if (mediaConfirmed || mediaChecking || !options.video || options.video.readyState < 2) return
+      mediaChecking = true
+      try {
+        lastMediaStats = await mediaStats(peer)
+        if (lastMediaStats.bytesReceived <= 0 || lastMediaStats.framesDecoded <= 0) { clearTimeout(mediaTimer); mediaTimer = setTimeout(confirmMedia, 250); return }
+        mediaConfirmed = true; clearTimeout(mediaTimer); emit('media-flowing', lastMediaStats); if (options.onConnected) options.onConnected(lastMediaStats)
+      } finally { mediaChecking = false }
     }
     async function poll() {
       if (stopped) return
@@ -164,7 +192,7 @@
               options.video.srcObject = event.streams[0]
               options.video.addEventListener('loadeddata', confirmMedia, { once: true })
               options.video.addEventListener('playing', confirmMedia, { once: true })
-              options.video.play().then(confirmMedia).catch(error => { if (options.onError) options.onError(error) })
+              options.video.play().then(confirmMedia).catch(error => { if (options.onPlayBlocked) options.onPlayBlocked(error) })
             }, { once: true })
             peer.addEventListener('icecandidate', event => {
               if (descriptionSent && event.candidate) options.client.sendLiveSignal(options.sessionId, { type: 'candidate', payload: event.candidate.toJSON() }).catch(options.onError || (() => {}))
@@ -177,8 +205,8 @@
       if (!stopped) timer = setTimeout(poll, 1000)
     }
     function start() { emit('waiting-offer'); poll() }
-    function stop(reason = 'remote') { if (stopped) return; stopped = true; clearTimeout(timer); clearTimeout(failureTimer); if (peer) peer.close(); if (options.video) options.video.srcObject = null; emit('stopped', reason); if (options.onStop) options.onStop({ reason }) }
-    return { start, stop, get connectionState() { return peer ? peer.connectionState : 'new' }, get debugState() { return debugState(peer) } }
+    function stop(reason = 'remote') { if (stopped) return; stopped = true; clearTimeout(timer); clearTimeout(failureTimer); clearTimeout(mediaTimer); if (peer) peer.close(); if (options.video) options.video.srcObject = null; emit('stopped', reason); if (options.onStop) options.onStop({ reason }) }
+    return { start, stop, get mediaStats() { return lastMediaStats }, get connectionState() { return peer ? peer.connectionState : 'new' }, get debugState() { return debugState(peer) } }
   }
   return { createSender, createReceiver, waitIce }
 })

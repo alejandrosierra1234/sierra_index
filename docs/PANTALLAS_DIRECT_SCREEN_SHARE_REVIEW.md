@@ -11,7 +11,7 @@ Este corte integra una sesión WebRTC directa entre un navegador administrador y
 La interfaz solo declara éxito después de dos comprobaciones diferentes:
 
 1. El emisor alcanza un estado WebRTC conectado y `getStats()` reporta bytes o cuadros de video salientes.
-2. El reproductor recibe una pista, el elemento de video carga datos (`readyState >= 2`) y puede reproducirlos.
+2. El reproductor recibe una pista, el elemento de video carga datos (`readyState >= 2`) y WebRTC reporta bytes recibidos y cuadros decodificados.
 
 Una oferta/respuesta SDP por sí sola ya no se presenta como transmisión exitosa.
 
@@ -29,7 +29,7 @@ Una oferta/respuesta SDP por sí sola ya no se presenta como transmisión exitos
 ## Compatibilidad y límites reales
 
 - Emisor: navegador de escritorio en contexto HTTPS con `navigator.mediaDevices.getDisplayMedia`. El selector y las superficies disponibles dependen del sistema operativo y el navegador.
-- Receptor: reproductor Pantallas en un navegador con WebRTC y video `playsinline`. Un iPad puede actuar como receptor; este corte no promete captura de pantalla desde iPad/iPhone.
+- Receptor: reproductor Pantallas en un navegador con WebRTC y video `playsinline`. Si el autoplay silencioso es rechazado, aparece una acción real para iniciar la reproducción; no se declara error ni éxito antes del gesto. Un iPad puede actuar como receptor; este corte no promete captura de pantalla desde iPad/iPhone.
 - Modo directo: usa candidatos ICE que los dos navegadores puedan intercambiar sin relay. Puede funcionar en ciertas redes y fallar en otras por NAT, firewall o políticas corporativas.
 - Un destino: una sesión, una pantalla. Varios destinos requerirían fan-out del emisor o SFU; no se habilitan en este corte.
 - Videowall: es una función espacial diferente y no se implementa aquí.
@@ -41,8 +41,13 @@ Una oferta/respuesta SDP por sí sola ya no se presenta como transmisión exitos
 - Estado del emisor: conexión, bytes de video, cancelación, parada `keepalive` y fallo de parada remota cubiertos con dobles deterministas.
 - Estado del receptor: el evento `track` no basta; la prueba confirma que no se anuncia video hasta `loadeddata`.
 - E2E Chromium: vinculación, contenido previo, sesión directa fallida, limpieza de todas las pistas, cierre de la sesión de señalización y regreso al contenido anterior.
+- El error directo resume cantidades y tipos de rutas ICE locales/remotas, sin conservar direcciones IP, SDP, tokens ni candidatos crudos. La sesión conserva solo métricas sanitizadas de bytes, cuadros, pérdida, RTT y tipos de candidato seleccionados.
 - QA visual: panel revisado en 1440×900, 1024×900, 390×844 y `prefers-reduced-motion: reduce`.
 - Transporte real en este executor: **no verificado**. Chromium produjo cero candidatos ICE en todas las variantes probadas; oferta y respuesta se intercambiaron, pero no hubo RTP. Esto es una limitación del entorno de ejecución y no demuestra que TURN sea obligatorio en las redes de SIERRA.
+
+La configuración declara `iceTransportPolicy: all`, agrega la pista antes de negociar, registra eventos antes de `setLocalDescription` y conserva únicamente estado de gathering y conteos sanitizados. Por tanto, el resultado de cero rutas en el executor está aislado de un modo `relay-only` accidental.
+
+Vercel no es una dependencia de este corte. Aunque su plataforma admite servidores WebSocket, eso duplicaría la señalización que ya ofrece Supabase y no aporta TURN/SFU por sí mismo. Además, Vercel Hobby está limitado a uso personal no comercial, por lo que no se presupone como solución gratuita corporativa para SIERRA.
 
 ## Entrada ejecutable del piloto
 
