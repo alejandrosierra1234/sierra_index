@@ -63,9 +63,13 @@ test('real editor promotes communications to the team, keeps cloud writes out of
     w.commsSet('subject','Team collaborative change');w.commsPersist();
     await until(()=>revision>0);
     assert.equal(w.localStorage.getItem('sierra_communications_v1:'+w.me.id),local);
+    sharedDocuments=[{id:'00000000-0000-4000-8000-000000000099',source_id:'remote-source',title:'Memo de prueba',kind:'memo',role:'editor',owner_id:'00000000-0000-4000-8000-000000000077',owner_name:'Ana Prueba',updated_at:new Date().toISOString(),presence:[{user_id:'00000000-0000-4000-8000-000000000077',session_id:'00000000-0000-4000-8000-000000000078',name:'Ana Prueba',seen_at:new Date().toISOString(),awareness:JSON.stringify({area:'Asunto'})}]}];
     await w.commsBack();assert.equal(w.eval('_commsCurrent'),null);assert.ok(leaveRequests>0,'leaving closes presence immediately');
     assert.ok(w.document.querySelector('[data-shared-library]'));
-    sharedDocuments=[{id:'00000000-0000-4000-8000-000000000099',title:'Memo de prueba',kind:'memo',role:'owner',presence:[{user_id:'00000000-0000-4000-8000-000000000077',session_id:'00000000-0000-4000-8000-000000000078',name:'Ana Prueba',seen_at:new Date().toISOString(),awareness:JSON.stringify({area:'Asunto'})}]}];
+    await until(()=>w.document.querySelector('[data-shared-communication]'));
+    assert.match(w.document.querySelector('[data-shared-home]').textContent,/Memo de prueba/);
+    assert.match(w.document.querySelector('[data-shared-home]').textContent,/Ana Prueba/);
+    assert.match(w.document.querySelector('[data-shared-home]').textContent,/Puede editar/);
     w.document.querySelector('[data-shared-library]').click();
     await until(()=>/Ana Prueba/.test(w.document.querySelector('#comms-sharing')?.textContent||''));
     assert.match(w.document.querySelector('#comms-sharing').textContent,/Memo de prueba/);

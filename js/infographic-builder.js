@@ -16,16 +16,18 @@ const INFO_PRESETS={
   custom:{label:'Medida personalizada'}
 }
 const INFO_COLOR_FAMILIES=[
-  {id:'teal',name:'Turquesa SIERRA',light:'#cffffb',base:'#16cdbe',dark:'#007d73'},
-  {id:'olive',name:'Oliva',light:'#efefaf',base:'#c4c412',dark:'#827e00'},
-  {id:'green',name:'Verde',light:'#d1ffbe',base:'#3ed600',dark:'#2a9200'},
-  {id:'blue',name:'Azul',light:'#c5e9ff',base:'#009fff',dark:'#004a86'},
-  {id:'purple',name:'Morado',light:'#f6d8ff',base:'#9e00cb',dark:'#670084'},
-  {id:'yellow',name:'Amarillo',light:'#fff0af',base:'#ffc529',dark:'#bb9800'},
-  {id:'orange',name:'Naranja',light:'#ffe3d2',base:'#ff7824',dark:'#cd4f00'},
-  {id:'red',name:'Rojo',light:'#ffc7c7',base:'#e80000',dark:'#b40b0b'}
+  {id:'teal',name:'Teal SIERRA',usage:'Corporativo',light:'#cffffb',base:'#16cdbe',dark:'#007d73'},
+  {id:'olive',name:'Lima',usage:'Contextual',light:'#efefaf',base:'#c4c412',dark:'#827e00'},
+  {id:'green',name:'Verde',usage:'Sostenibilidad',light:'#d1ffbe',base:'#3ed600',dark:'#2a9200'},
+  {id:'blue',name:'Azul',usage:'Contextual',light:'#c5e9ff',base:'#009fff',dark:'#004a86'},
+  {id:'purple',name:'Violeta',usage:'Contextual',light:'#f6d8ff',base:'#9e00cb',dark:'#670084'},
+  {id:'yellow',name:'Amarillo',usage:'Contextual',light:'#fff0af',base:'#ffc529',dark:'#bb9800'},
+  {id:'orange',name:'Naranja',usage:'Talento Humano',light:'#ffe3d2',base:'#ff7824',dark:'#cd4f00'},
+  {id:'red',name:'Rojo',usage:'Alerta',light:'#ffc7c7',base:'#e80000',dark:'#b40b0b'}
 ]
-const INFO_ITEM_FAMILIES=['teal','olive','green','purple']
+// New compositions stay quiet by default. Additional families are available
+// only when the content has a real semantic reason for using them.
+const INFO_ITEM_FAMILIES=['teal','teal','teal','teal']
 const INFO_LEGACY_COLOR_MAP={
   '#e8f8f6':'#cffffb','#d9f7f3':'#cffffb','#dff4ff':'#c5e9ff','#fff3c4':'#efefaf',
   '#fff0b8':'#efefaf','#f7e2ff':'#f6d8ff','#f3dcff':'#f6d8ff','#ffe7d5':'#ffe3d2',
@@ -74,6 +76,7 @@ function infoSierraColor(value){const color=String(value||'').toLowerCase();retu
 function infoFamily(id){return INFO_COLOR_FAMILIES.find(family=>family.id===id)||INFO_COLOR_FAMILIES[0]}
 function infoColorDistance(a,b){const parse=value=>{const v=String(value||'').replace('#','');return/^[0-9a-f]{6}$/i.test(v)?[0,2,4].map(i=>parseInt(v.slice(i,i+2),16)):null},x=parse(a),y=parse(b);return!x||!y?Infinity:x.reduce((sum,value,index)=>sum+(value-y[index])**2,0)}
 function infoNearestFamily(...values){const colors=values.map(infoSierraColor).filter(value=>/^#[0-9a-f]{6}$/i.test(value||''));if(!colors.length)return'teal';return INFO_COLOR_FAMILIES.reduce((best,family)=>{const distance=Math.min(...colors.flatMap(color=>[family.light,family.base,family.dark].map(shade=>infoColorDistance(color,shade))));return distance<best.distance?{id:family.id,distance}:best},{id:'teal',distance:Infinity}).id}
+function infoDepartmentFamily(name,fallback='teal'){const value=String(name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');if(/talento|recursos humanos|people|cultura/.test(value))return'orange';if(/sostenibilidad|sustentabilidad|ambiente/.test(value))return'green';return fallback}
 function infoUnitToPx(value,unit){const amount=Number(value)||0;if(unit==='mm')return amount/25.4*96;if(unit==='cm')return amount/2.54*96;if(unit==='in')return amount*96;return amount}
 function infoPxToUnit(value,unit){const px=Number(value)||0;if(unit==='mm')return px/96*25.4;if(unit==='cm')return px/96*2.54;if(unit==='in')return px/96;return px}
 function infoRoundDimension(value,unit){return Number(value).toFixed(unit==='px'?0:unit==='in'?2:1).replace(/\.0$/,'')}
@@ -86,14 +89,14 @@ function infoSanitize(html){
   return root.innerHTML
 }
 function infoBlock(type,seed={}){
-  const base={id:infoId('art'),type,span:12,colorFamily:'teal',surfaceStyle:'tint',textTone:'family',heightMode:'content',hidden:false}
+  const base={id:infoId('art'),type,span:12,colorFamily:'teal',surfaceStyle:'gray',textTone:'black',heightMode:'content',hidden:false}
   const byType={
     text:{heading:'Un mensaje claro',html:'<p>Escribe aquí la información que quieres comunicar. Puedes usar <strong>negritas</strong>, <u>subrayado</u> y listas.</p>',span:6},
-    image:{src:'',alt:'',fit:'cover',position:50,span:6,colorFamily:'blue',heightMode:'fill'},
-    callout:{heading:'Información importante',html:'<p>Resume aquí una idea que deba destacar.</p>',icon:'info',colorFamily:'olive',span:12},
-    features:{heading:'Puntos clave',items:[['shield','Primer punto','Explica la idea en una frase breve.'],['bulb','Segundo punto','Usa palabras sencillas y accionables.'],['leaf','Tercer punto','Mantén una jerarquía visual clara.'],['check','Cuarto punto','Cierra con una acción concreta.']].map(([icon,title,text],index)=>({id:infoId('item'),icon,title,text,colorFamily:INFO_ITEM_FAMILIES[index],surfaceStyle:'tint',textTone:'family'})),colorFamily:'purple',span:12},
-    stat:{value:'85%',heading:'Indicador principal',html:'<p>Agrega contexto para que el dato sea fácil de entender.</p>',icon:'chart-pie',colorFamily:'green',span:6},
-    cta:{heading:'¿Listo para actuar?',html:'<p>Explica brevemente el siguiente paso.</p>',label:'Abrir enlace',url:'https://',colorFamily:'orange',span:12}
+    image:{src:'',alt:'',fit:'cover',position:50,span:6,colorFamily:'teal',heightMode:'fill'},
+    callout:{heading:'Información importante',html:'<p>Resume aquí una idea que deba destacar.</p>',icon:'info',colorFamily:'teal',span:12},
+    features:{heading:'Puntos clave',items:[['shield','Primer punto','Explica la idea en una frase breve.'],['bulb','Segundo punto','Usa palabras sencillas y accionables.'],['leaf','Tercer punto','Mantén una jerarquía visual clara.'],['check','Cuarto punto','Cierra con una acción concreta.']].map(([icon,title,text],index)=>({id:infoId('item'),icon,title,text,colorFamily:INFO_ITEM_FAMILIES[index],surfaceStyle:'gray',textTone:'black'})),colorFamily:'teal',span:12},
+    stat:{value:'85%',heading:'Indicador principal',html:'<p>Agrega contexto para que el dato sea fácil de entender.</p>',icon:'chart-pie',colorFamily:'teal',span:6},
+    cta:{heading:'¿Listo para actuar?',html:'<p>Explica brevemente el siguiente paso.</p>',label:'Abrir enlace',url:'https://',colorFamily:'teal',span:12}
   }
   return Object.assign(base,byType[type]||byType.text,seed)
 }
@@ -102,7 +105,7 @@ function infoCreateDraft(seed={}){
   return Object.assign({
     id:infoId('infographic'),title:'Título de la infografía',subtitle:'Agrega una breve introducción que prepare al lector.',showSubtitle:true,eyebrow:'Comunicaciones SIERRA',
     preset:'letter',width:816,height:1056,dimensionUnit:'mm',physicalWidth:215.9,physicalHeight:279.4,canvasTone:'white',colorFamily:'teal',gap:14,
-    department:'Comunicaciones Corporativas',footerColorFamily:'orange',createdAt:now,updatedAt:now,
+    department:'Comunicaciones Corporativas',footerColorFamily:'teal',styleVersion:2,createdAt:now,updatedAt:now,
     blocks:[
       infoBlock('text',{heading:'¿Qué necesitas comunicar?',html:'<p>Presenta el tema con una explicación breve, directa y fácil de recordar.</p>'}),
       infoBlock('image'),
@@ -121,6 +124,19 @@ function infoNormalizeDraft(raw){
   d.colorFamily=INFO_COLOR_FAMILIES.some(f=>f.id===d.colorFamily)?d.colorFamily:infoNearestFamily(d.accent)
   d.footerColorFamily=INFO_COLOR_FAMILIES.some(f=>f.id===d.footerColorFamily)?d.footerColorFamily:infoNearestFamily(d.departmentColor,'#ff7824')
   d.blocks.forEach(block=>{block.colorFamily=INFO_COLOR_FAMILIES.some(f=>f.id===block.colorFamily)?block.colorFamily:infoNearestFamily(block.iconColor,block.buttonBackground,block.background);block.surfaceStyle=['tint','gray','outline'].includes(block.surfaceStyle)?block.surfaceStyle:'tint';block.textTone=block.textTone==='black'?'black':'family';block.heightMode=block.heightMode==='fill'?'fill':'content';block.items?.forEach((item,index)=>{item.colorFamily=INFO_COLOR_FAMILIES.some(f=>f.id===item.colorFamily)?item.colorFamily:infoNearestFamily(item.iconColor,item.iconBackground,infoFamily(INFO_ITEM_FAMILIES[index%INFO_ITEM_FAMILIES.length]).base);item.surfaceStyle=['tint','gray','outline'].includes(item.surfaceStyle)?item.surfaceStyle:'tint';item.textTone=item.textTone==='black'?'black':'family'})})
+  if(Number(raw?.styleVersion||1)<2){
+    const semanticFamily=infoDepartmentFamily(d.department,d.colorFamily||'teal')
+    d.blocks.forEach(block=>{
+      if(block.type==='features'){block.colorFamily=semanticFamily;(block.items||[]).forEach(item=>{item.colorFamily=semanticFamily;item.surfaceStyle='gray';item.textTone='black'})}
+      else if(block.surfaceStyle==='tint'){block.surfaceStyle='gray';block.textTone='black'}
+      if(block.type==='image')block.colorFamily='teal'
+      if(block.type==='callout'&&block.colorFamily==='olive')block.colorFamily=d.colorFamily||'teal'
+      if(block.type==='stat'&&block.colorFamily==='green'&&semanticFamily!=='green')block.colorFamily=d.colorFamily||'teal'
+      if(block.type==='cta'&&block.colorFamily==='orange'&&semanticFamily!=='orange')block.colorFamily=d.colorFamily||'teal'
+    })
+    if(infoDepartmentFamily(d.department)==='teal'&&d.footerColorFamily==='orange')d.footerColorFamily='teal'
+  }
+  d.styleVersion=2
   return d
 }
 function infoLoad(){
@@ -203,7 +219,7 @@ function infoIconLabel(key){const known=INFO_ICONS.find(([name])=>name===key)?.[
 function infoIconTrigger(value,blockId,itemId=''){const count=infoIconCatalog?Object.keys(infoIconCatalog).length.toLocaleString('es-GT'):'5,130';return`<button type="button" class="info-icon-trigger" onclick="infoOpenIconPicker('${blockId}','${itemId}')"><span class="info-icon-trigger-preview" data-info-icon-preview="${infoAttr(value)}">${infoIcon(value,23)||infoIcon('sparkle',23)}</span><span><b>${infoEscape(infoIconLabel(value))}</b><small>Buscar entre <span data-info-icon-count>${count} iconos</span></small></span>${infoIcon('chevron-right',17)}</button>`}
 function infoFamilyControl(label,value,scope,id='',itemId=''){
   const selected=infoFamily(value).id
-  return`<div class="info-family-field" role="radiogroup" aria-label="${infoAttr(label)}"><span class="info-color-label">${infoEscape(label)} <small>Familias SIERRA</small></span><div class="info-family-grid">${INFO_COLOR_FAMILIES.map(family=>`<button type="button" class="info-family-option" role="radio" aria-checked="${selected===family.id}" onclick="infoSetFamily('${scope}','${infoAttr(id)}','${infoAttr(itemId)}','${family.id}')"><span class="info-family-swatches" aria-hidden="true"><i style="background:${family.light}"></i><i style="background:${family.base}"></i><i style="background:${family.dark}"></i></span><span>${infoEscape(family.name)}</span>${selected===family.id?infoIcon('check',14):''}</button>`).join('')}</div><small class="info-family-help">Claro para superficies · medio para acentos · oscuro para texto y acciones.</small></div>`
+  return`<div class="info-family-field" role="radiogroup" aria-label="${infoAttr(label)}"><span class="info-color-label">${infoEscape(label)} <small>Familias SIERRA</small></span><div class="info-family-grid">${INFO_COLOR_FAMILIES.map(family=>`<button type="button" class="info-family-option" role="radio" aria-checked="${selected===family.id}" onclick="infoSetFamily('${scope}','${infoAttr(id)}','${infoAttr(itemId)}','${family.id}')"><span class="info-family-swatches" aria-hidden="true"><i style="background:${family.light}"></i><i style="background:${family.base}"></i><i style="background:${family.dark}"></i></span><span><b>${infoEscape(family.name)}</b><small>${infoEscape(family.usage)}</small></span>${selected===family.id?infoIcon('check',14):''}</button>`).join('')}</div><small class="info-family-help">Teal es corporativo; verde identifica sostenibilidad y naranja, Talento Humano. Usa las demás familias solo cuando el contenido justifique su significado.</small></div>`
 }
 function infoAppearanceControls(value,scope,id='',itemId=''){
   const surface=['tint','gray','outline'].includes(value?.surfaceStyle)?value.surfaceStyle:'tint',textTone=value?.textTone==='black'?'black':'family',set=(key,next)=>`infoSetAppearance('${scope}','${infoAttr(id)}','${infoAttr(itemId)}','${key}','${next}')`
@@ -289,9 +305,9 @@ window.infoDeleteBlock=function(id){const remove=()=>{infoDraft.blocks=infoDraft
 window.infoRichCommand=function(id,command){const editor=document.querySelector(`[data-info-rich="${id}"]`);if(!editor)return;editor.focus();document.execCommand(command,false,null);window.infoRichInput(id,editor)}
 window.infoRichInput=function(id,editor){const b=infoDraft.blocks.find(x=>x.id===id);if(!b)return;b.html=infoSanitize(editor.innerHTML);document.querySelectorAll(`[data-info-output="${id}"]`).forEach(el=>el.innerHTML=b.html);infoScheduleSave()}
 window.infoFeatureSet=function(blockId,itemId,key,value){const item=infoDraft.blocks.find(b=>b.id===blockId)?.items?.find(x=>x.id===itemId);if(!item)return;item[key]=value;infoRenderCanvas();infoScheduleSave()}
-window.infoFeatureAdd=function(id){const b=infoDraft.blocks.find(x=>x.id===id);if(!b||b.items.length>=4)return;b.items.push({id:infoId('item'),icon:'check',title:'Nuevo punto',text:'Agrega una explicación breve.',colorFamily:INFO_ITEM_FAMILIES[b.items.length%INFO_ITEM_FAMILIES.length],surfaceStyle:'tint',textTone:'family'});infoRenderAll();infoScheduleSave()}
+window.infoFeatureAdd=function(id){const b=infoDraft.blocks.find(x=>x.id===id);if(!b||b.items.length>=4)return;b.items.push({id:infoId('item'),icon:'check',title:'Nuevo punto',text:'Agrega una explicación breve.',colorFamily:INFO_ITEM_FAMILIES[b.items.length%INFO_ITEM_FAMILIES.length],surfaceStyle:'gray',textTone:'black'});infoRenderAll();infoScheduleSave()}
 window.infoFeatureRemove=function(id,itemId){const b=infoDraft.blocks.find(x=>x.id===id);if(!b||b.items.length<=2)return;b.items=b.items.filter(x=>x.id!==itemId);infoRenderAll();infoScheduleSave()}
-function infoReadImage(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=reject;reader.onload=()=>{const img=new Image();img.onerror=reject;img.onload=()=>{const max=1800,scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);resolve(canvas.toDataURL(file.type==='image/png'?'image/png':'image/jpeg',.88))};img.src=reader.result};reader.readAsDataURL(file)})}
+function infoReadImage(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=reject;reader.onload=()=>{const img=new Image();img.onerror=reject;img.onload=()=>{const max=4096,canKeepOriginal=Math.max(img.width,img.height)<=max&&file.size<=3500000;if(canKeepOriginal){resolve(reader.result);return}const scale=Math.min(1,max/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));const context=canvas.getContext('2d');context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.drawImage(img,0,0,canvas.width,canvas.height);const type=file.type==='image/png'?'image/png':'image/jpeg',quality=type==='image/png'?undefined:.95;resolve(canvas.toDataURL(type,quality));canvas.width=canvas.height=1};img.src=reader.result};reader.readAsDataURL(file)})}
 window.infoUploadImage=async function(id,input){const file=input.files?.[0];if(!file)return;if(!file.type.startsWith('image/')){infoNotify('Elige un archivo de imagen.');return}try{const src=await infoReadImage(file),b=infoDraft.blocks.find(x=>x.id===id);if(!b)return;b.src=src;b.alt=b.alt||file.name.replace(/\.[^.]+$/,'');infoRenderAll();infoPersist(true)}catch{infoNotify('No se pudo preparar la imagen. Intenta con otro archivo.')}finally{input.value=''}}
 
 window.infoDragStart=function(event,id){infoDragId=id;event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',id);event.currentTarget.classList.add('info-dragging')}
@@ -305,10 +321,17 @@ window.infoOpenDesign=function(id){const d=infoState.designs.find(x=>x.id===id);
 window.infoDeleteDesign=function(){if(infoState.designs.length===1){infoNotify('Conserva al menos un diseño.');return}const remove=()=>{infoState.designs=infoState.designs.filter(d=>d.id!==infoDraft.id);infoDraft=infoState.designs[0];infoState.activeId=infoDraft.id;infoSelected='header';infoRenderAll();infoPersist(true)};if(typeof commsConfirm==='function')commsConfirm('Eliminar diseño',`Se eliminará «${infoDesignName(infoDraft)}» de este navegador.`,remove);else if(confirm('¿Eliminar este diseño?'))remove()}
 
 function infoFilename(ext){const base=infoDesignName(infoDraft).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()||'infografia-sierra';return base+'.'+ext}
+function infoPrepareExportImages(page,scale){
+  for(const image of page.querySelectorAll('.info-image-block img')){
+    if(!image.naturalWidth||!image.naturalHeight)throw Error('No se pudo leer una de las imágenes. Vuelve a cargarla antes de exportar.')
+    const box=image.getBoundingClientRect(),width=Math.max(1,Math.round(box.width*scale)),height=Math.max(1,Math.round(box.height*scale)),canvas=document.createElement('canvas'),context=canvas.getContext('2d'),fit=getComputedStyle(image).objectFit==='contain'?'contain':'cover',position=Math.min(100,Math.max(0,parseFloat(getComputedStyle(image).objectPosition)||50))/100,base=fit==='contain'?Math.min(width/image.naturalWidth,height/image.naturalHeight):Math.max(width/image.naturalWidth,height/image.naturalHeight),drawWidth=image.naturalWidth*base,drawHeight=image.naturalHeight*base
+    canvas.width=width;canvas.height=height;context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.drawImage(image,(width-drawWidth)*position,(height-drawHeight)/2,drawWidth,drawHeight);canvas.className='info-export-image';canvas.style.cssText='display:block;width:100%;height:100%';canvas.setAttribute('role','img');canvas.setAttribute('aria-label',image.alt||'Imagen de la infografía');image.replaceWith(canvas)
+  }
+}
 async function infoCapture(){
   if(typeof window.html2canvas!=='function')throw Error('El generador de imágenes no está disponible. Recarga la aplicación e inténtalo de nuevo.')
   const host=document.createElement('div');host.className='info-export-host';host.innerHTML=infoPageHtml(false);document.body.appendChild(host);const page=host.querySelector('.info-page');page.style.transform='none';page.style.margin='0';page.querySelector('.info-overflow-warning')?.remove()
-  try{await document.fonts?.ready;await Promise.all([...page.querySelectorAll('img')].map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.onload=img.onerror=resolve})));await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));const inner=page.querySelector('.info-page-inner');if(inner.scrollHeight>page.clientHeight+2)throw Error('El contenido excede el lienzo. Ajusta el alto o reduce los módulos antes de exportar.');const targetScale=infoDraft.dimensionUnit&&infoDraft.dimensionUnit!=='px'?300/96:2,scale=Math.min(targetScale,12000/Math.max(infoDraft.width,infoDraft.height),Math.sqrt(24000000/(infoDraft.width*infoDraft.height)));return await window.html2canvas(page,{scale,useCORS:true,allowTaint:false,backgroundColor:infoDraft.canvasTone==='smoke'?'#f5f5f5':'#ffffff',logging:false,width:infoDraft.width,height:infoDraft.height,windowWidth:infoDraft.width,windowHeight:infoDraft.height,scrollX:0,scrollY:0})}finally{host.remove()}
+  try{await document.fonts?.ready;await Promise.all([...page.querySelectorAll('.info-image-block img')].map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.onload=img.onerror=resolve})));await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));const inner=page.querySelector('.info-page-inner');if(inner.scrollHeight>page.clientHeight+2)throw Error('El contenido excede el lienzo. Ajusta el alto o reduce los módulos antes de exportar.');const targetScale=infoDraft.dimensionUnit&&infoDraft.dimensionUnit!=='px'?300/96:2,scale=Math.min(targetScale,12000/Math.max(infoDraft.width,infoDraft.height),Math.sqrt(24000000/(infoDraft.width*infoDraft.height)));infoPrepareExportImages(page,scale);return await window.html2canvas(page,{scale,useCORS:true,allowTaint:false,backgroundColor:infoDraft.canvasTone==='smoke'?'#f5f5f5':'#ffffff',logging:false,width:infoDraft.width,height:infoDraft.height,windowWidth:infoDraft.width,windowHeight:infoDraft.height,scrollX:0,scrollY:0})}finally{host.remove()}
 }
 function infoCanvasBlob(canvas,type,quality){return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(Error('No se pudo generar el archivo. Reduce las dimensiones e inténtalo de nuevo.')),type,quality))}
 function infoDownloadBlob(blob,name){const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;document.body.appendChild(link);try{link.click()}finally{link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}}
@@ -316,7 +339,7 @@ window.infoExport=async function(format){
   if(!String(infoDraft.title||'').trim()){infoSelected='header';infoRenderAll();infoNotify('Escribe el título antes de exportar.');return}
   if(!String(infoDraft.department||'').trim()){infoSelected='footer';infoRenderAll();infoNotify('Escribe el departamento del pie antes de exportar.');return}
   const buttons=[...document.querySelectorAll('.info-toolbar button')];buttons.forEach(b=>b.disabled=true);const state=document.getElementById('info-save-state');if(state)state.textContent='Preparando archivo…'
-  try{infoPersist(true);const canvas=await infoCapture();if(format==='png'){infoDownloadBlob(await infoCanvasBlob(canvas,'image/png'),infoFilename('png'))}else{if(!window.jspdf?.jsPDF)throw Error('El generador de PDF no está disponible. Recarga la aplicación e inténtalo de nuevo.');const [w,h]=infoPrintSizeMm(),pdf=new window.jspdf.jsPDF({orientation:w>h?'landscape':'portrait',unit:'mm',format:[w,h],compress:true}),pageW=pdf.internal.pageSize.getWidth(),pageH=pdf.internal.pageSize.getHeight();pdf.setProperties({title:infoDesignName(infoDraft),creator:'SIERRA Index'});pdf.addImage(canvas.toDataURL('image/jpeg',.96),'JPEG',0,0,pageW,pageH,undefined,'FAST');pdf.save(infoFilename('pdf'))}infoNotify(format==='png'?'Descarga PNG iniciada.':'Descarga PDF iniciada.')}catch(error){infoNotify(error?.message||'No se pudo exportar el arte.')}finally{buttons.forEach(b=>b.disabled=false);if(state)state.textContent='Guardado'}
+  try{infoPersist(true);const canvas=await infoCapture();if(format==='png'){infoDownloadBlob(await infoCanvasBlob(canvas,'image/png'),infoFilename('png'))}else{if(!window.jspdf?.jsPDF)throw Error('El generador de PDF no está disponible. Recarga la aplicación e inténtalo de nuevo.');const [w,h]=infoPrintSizeMm(),pdf=new window.jspdf.jsPDF({orientation:w>h?'landscape':'portrait',unit:'mm',format:[w,h],compress:true}),pageW=pdf.internal.pageSize.getWidth(),pageH=pdf.internal.pageSize.getHeight();pdf.setProperties({title:infoDesignName(infoDraft),creator:'SIERRA Index'});pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,pageW,pageH,undefined,'FAST');pdf.save(infoFilename('pdf'))}infoNotify(format==='png'?'Descarga PNG iniciada.':'Descarga PDF iniciada.')}catch(error){infoNotify(error?.message||'No se pudo exportar el arte.')}finally{buttons.forEach(b=>b.disabled=false);if(state)state.textContent='Guardado'}
 }
 
 document.addEventListener('keydown',event=>{if(_navLeaf!=='comunicaciones|_|infographics')return;if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='s'){event.preventDefault();infoPersist(true);infoNotify('Diseño guardado.');return}if(event.target.closest('input,textarea,[contenteditable="true"],select'))return;const b=infoSelectedBlock();if(!b)return;if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();window.infoDeleteBlock(b.id)}else if(event.altKey&&event.key==='ArrowUp'){event.preventDefault();window.infoMoveBlock(b.id,-1)}else if(event.altKey&&event.key==='ArrowDown'){event.preventDefault();window.infoMoveBlock(b.id,1)}})

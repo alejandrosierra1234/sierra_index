@@ -31,9 +31,10 @@ assert.match(w.document.querySelector('.info-title').textContent,/Título de la 
 assert.match(w.document.querySelector('.info-footer').textContent,/Comunicaciones Corporativas/)
 assert.match(w.document.querySelector('.info-footer').textContent,/SIERRA/)
 assert.equal(w.document.querySelectorAll('[data-info-block]').length,4)
-assert.equal(w.document.querySelector('.info-callout-layout').style.getPropertyValue('--info-card-bg'),'#efefaf')
-assert.equal(w.document.querySelector('.info-callout-layout').style.getPropertyValue('--info-family-base'),'#c4c412')
-assert.equal(w.document.querySelector('.info-callout-layout').style.getPropertyValue('--info-family-dark'),'#827e00')
+assert.equal(w.document.querySelector('.info-callout-layout').style.getPropertyValue('--info-card-bg'),'#f5f5f5')
+assert.equal(w.document.querySelector('.info-callout-layout').style.getPropertyValue('--info-family-base'),'#16cdbe')
+assert.equal(w.document.querySelector('.info-callout-layout').style.getPropertyValue('--info-family-dark'),'#007d73')
+assert.ok([...w.document.querySelectorAll('.info-feature-item')].every(item=>item.style.getPropertyValue('--info-family-base')==='#16cdbe'))
 console.log('PASS: infographic workspace opens with Letter art, title, modules and branded footer')
 
 w.infoAddBlock('cta')
@@ -84,6 +85,8 @@ assert.match(infographicCss,/grid-template-columns:repeat\(auto-fit,minmax\(min\
 assert.match(infographicCss,/@container \(max-width:620px\)/)
 assert.match(infographicCss,/background:var\(--info-family-base/)
 assert.doesNotMatch(infographicCss,/color-mix\(/)
+assert.match(w.document.getElementById('info-inspector').textContent,/Sostenibilidad/)
+assert.match(w.document.getElementById('info-inspector').textContent,/Talento Humano/)
 console.log('PASS: icon picker, linked SIERRA color families and responsive flat cards preserve the design system')
 
 w.infoSelect('header');w.infoSetMeta('title','Seguridad primero')
@@ -129,6 +132,7 @@ console.log('PASS: rich formatting survives while unsafe pasted markup is remove
 const saved=JSON.parse(w.localStorage.getItem('sierra_infographics_v1:info-test'))
 assert.ok(saved.designs.length)
 assert.equal(saved.activeId,saved.designs[0].id)
+assert.equal(saved.designs[0].styleVersion,2)
 console.log('PASS: infographic drafts persist per signed-in user')
 
 let downloaded='',pdfSaved='',captureOptions=null,pdfOptions=null
@@ -140,6 +144,7 @@ await w.infoExport('png');await w.infoExport('pdf')
 assert.match(downloaded,/\.png$/);assert.match(pdfSaved,/\.pdf$/)
 assert.equal(captureOptions.scale,300/96)
 assert.equal(Array.from(pdfOptions.format).join(','),'210,297')
+assert.match(w.infoExport.toString(),/toDataURL\('image\/png'\)/)
 console.log('PASS: PNG and PDF exports trigger downloads at print resolution and exact physical size')
 w.close()
 })().catch(error=>{console.error(error);process.exitCode=1})

@@ -1,6 +1,6 @@
 /* Communications-only bridge. Shared document bodies never enter localStorage. */
 (() => {
-  const originals={renderCommunicationEditor,renderCommunicationsHome,commsPersist,commsAutosave,commsBack,commsRichCommand,logout};
+  const originals={renderCommunicationEditor,renderCommunicationsHome,renderCommunicationsResults,commsPersist,commsAutosave,commsBack,commsRichCommand,logout};
   const selectors=new Map();
   window.commsShareSelectChanged=(value,id)=>selectors.get(id)?.(value);
   function select(label,options,value,change){
@@ -59,7 +59,8 @@
     try{return originals.renderCommunicationEditor(...args);}
     finally{depth--;if(outer)collab.rendered();}
   };
-  renderCommunicationsHome=function(...args){const result=originals.renderCommunicationsHome(...args);collab.homeRendered();return result;};
+  renderCommunicationsHome=function(...args){return originals.renderCommunicationsHome(...args);};
+  renderCommunicationsResults=function(...args){const result=originals.renderCommunicationsResults(...args);collab.homeRendered();return result;};
   commsPersist=function(){if(collab.active())return collab.persist();return originals.commsPersist();};
   commsAutosave=function(){if(collab.active()){clearTimeout(_commsSaveTimer);collab.capture();return;}return originals.commsAutosave();};
   commsBack=async function(){if(!collab.active())return originals.commsBack();if(!await collab.leave()){toast('Espera a que se guarden los cambios antes de salir.');return;}_commsCurrent=null;return originals.commsBack();};
