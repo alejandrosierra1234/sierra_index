@@ -70,6 +70,12 @@ test('real editor promotes communications to the team, keeps cloud writes out of
     assert.match(w.document.querySelector('[data-shared-home]').textContent,/Memo de prueba/);
     assert.match(w.document.querySelector('[data-shared-home]').textContent,/Ana Prueba/);
     assert.match(w.document.querySelector('[data-shared-home]').textContent,/Puede editar/);
+    w.commsSetLayout('grid');
+    await until(()=>w.document.querySelector('[data-shared-home].is-grid .comms-shared-library-card'));
+    assert.equal(w.document.querySelector('[aria-label="Vista de mosaico"]').getAttribute('aria-pressed'),'true');
+    assert.ok(w.document.querySelector('.comms-shared-card-preview'),'team documents use cards in mosaic view');
+    w.commsSetLayout('list');
+    await until(()=>w.document.querySelector('[data-shared-home]:not(.is-grid) .comms-shared-library-row'));
     w.document.querySelector('[data-shared-library]').click();
     await until(()=>/Ana Prueba/.test(w.document.querySelector('#comms-sharing')?.textContent||''));
     assert.match(w.document.querySelector('#comms-sharing').textContent,/Memo de prueba/);

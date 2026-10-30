@@ -373,19 +373,23 @@ function install(api) {
     results.querySelector('[data-shared-home]')?.remove();updateSharedCounts(documents);
     const records=sharedHomeRecords(documents);if(!records.length)return;
     results.querySelector('.memo-empty')?.setAttribute('hidden','');
-    const section=document.createElement('section');section.dataset.sharedHome='';section.className='comms-shared-library';section.setAttribute('aria-labelledby','comms-shared-library-title');
+    const grid=typeof _commsLayout!=='undefined'&&_commsLayout==='grid';
+    const section=document.createElement('section');section.dataset.sharedHome='';section.className='comms-shared-library'+(grid?' is-grid':'');section.setAttribute('aria-labelledby','comms-shared-library-title');
     const heading=document.createElement('div');heading.className='comms-shared-library-heading';
     const copy=document.createElement('span'),title=document.createElement('h2'),hint=document.createElement('p'),count=document.createElement('span');
     title.id='comms-shared-library-title';title.textContent='Biblioteca del equipo';hint.textContent='Comunicados creados por otras personas y documentos compartidos contigo.';copy.append(title,hint);count.textContent=String(records.length);count.setAttribute('aria-label',`${records.length} ${records.length===1?'comunicado compartido':'comunicados compartidos'}`);heading.append(copy,count);section.append(heading);
-    const list=document.createElement('div');list.className='comms-shared-library-rows';
+    const list=document.createElement('div');list.className=grid?'comms-library-grid comms-shared-library-grid':'comms-shared-library-rows';
     for(const record of records){
-      const row=document.createElement('button');row.type='button';row.className='comms-shared-library-row';row.dataset.sharedCommunication=record.id;
+      const row=document.createElement('button');row.type='button';row.className=grid?'comms-shared-card-open':'comms-shared-library-row';row.dataset.sharedCommunication=record.id;
       const body=document.createElement('span'),top=document.createElement('span'),kind=document.createElement('span'),recordTitle=document.createElement('strong'),meta=document.createElement('span'),access=document.createElement('span');
       body.className='comms-shared-library-copy';top.className='comms-shared-library-title';kind.className='comms-document-kind';kind.textContent=kindName(record.kind);recordTitle.textContent=record.title||'Comunicado sin título';top.append(kind,recordTitle);
       meta.className='comms-shared-library-meta';meta.textContent=`Por ${record.owner_name||'Equipo SIERRA'}${record.updated_at?' · '+new Date(record.updated_at).toLocaleDateString('es-GT',{day:'2-digit',month:'short',year:'numeric'}):''}`;body.append(top,meta);
       access.className='comms-shared-library-access';access.textContent=label(record.role);row.append(body,access);
       row.onclick=async()=>{row.disabled=true;try{await open(record.id);}catch(error){row.disabled=false;message(dialog('Biblioteca del equipo'),error.message||'No se pudo abrir el comunicado.',true);}};
-      list.append(row);
+      if(grid){
+        const card=document.createElement('article');card.className='comms-shared-library-card';card.dataset.kind=record.kind||'memo';
+        const preview=document.createElement('span'),sheet=document.createElement('span'),previewKind=document.createElement('span');preview.className='comms-shared-card-preview';preview.setAttribute('aria-hidden','true');sheet.className='comms-shared-card-sheet';sheet.innerHTML=api.icon('file',28);previewKind.textContent=kindName(record.kind);sheet.append(previewKind);preview.append(sheet);row.prepend(preview);card.append(row);list.append(card);
+      }else list.append(row);
     }
     section.append(list);const head=results.querySelector('.comms-results-head');if(head)head.after(section);else results.prepend(section);
   }
