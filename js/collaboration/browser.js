@@ -344,16 +344,18 @@ function install(api) {
   }
   async function library() {
     const el=dialog('Actividad del equipo');el.classList.add('comms-team-dialog');message(el,'Cargando actividad...');let stopped=false,loading=false,timer=0;
-    const load=async()=>{if(stopped||loading)return;loading=true;try{const documents=await rpc('communication_list');if(el.isConnected)renderTeamActivity(el,documents||[]);}catch(error){if(el.isConnected)message(el,'El espacio compartido no está disponible. No se modificaron tus documentos locales.',true);}finally{loading=false;}};
+    const load=async()=>{if(stopped||loading)return;loading=true;try{const documents=await rpc('communication_list');if(el.isConnected)renderTeamActivity(el,(documents||[]).filter(isCommunication));}catch(error){if(el.isConnected)message(el,'El espacio compartido no está disponible. No se modificaron tus documentos locales.',true);}finally{loading=false;}};
     el.addEventListener('close',()=>{stopped=true;clearInterval(timer)},{once:true});await load();if(!stopped)timer=setInterval(load,4000);
   }
   const kindName=kind=>({memo:'Memo',convocatoria:'Convocatoria',circular:'Circular informativa',aviso:'Aviso'}[kind]||'Comunicado');
+  const isCommunication=record=>['memo','convocatoria','circular','aviso'].includes(record?.kind||'memo');
   const sharedHomeRecords=documents=>{
     if(typeof _commsView!=='undefined'&&_commsView!=='active')return[];
     const localIds=new Set((typeof _commsDrafts==='undefined'?[]:_commsDrafts).map(d=>d.id));
     const account=getAccount(),kind=typeof _commsKind==='undefined'?'':_commsKind;
     const query=String(typeof _commsQuery==='undefined'?'':_commsQuery).trim().toLocaleLowerCase('es');
     return (documents||[]).filter(record=>{
+      if(!isCommunication(record))return false;
       if(record.owner_id===account&&record.source_id&&localIds.has(record.source_id))return false;
       if(kind&&(record.kind||'memo')!==kind)return false;
       return !query||[record.title,record.owner_name,kindName(record.kind),label(record.role)].join(' ').toLocaleLowerCase('es').includes(query);
@@ -362,7 +364,7 @@ function install(api) {
   function updateSharedCounts(documents) {
     if(typeof _commsDrafts==='undefined')return;
     const localIds=new Set(_commsDrafts.map(d=>d.id)),account=getAccount();
-    const shared=(documents||[]).filter(record=>!(record.owner_id===account&&record.source_id&&localIds.has(record.source_id)));
+    const shared=(documents||[]).filter(record=>isCommunication(record)&&!(record.owner_id===account&&record.source_id&&localIds.has(record.source_id)));
     document.querySelectorAll('.comms-kind-tab[data-kind]').forEach(button=>{
       const kind=button.dataset.kind,count=shared.filter(record=>!kind||(record.kind||'memo')===kind).length;
       const local=_commsDrafts.filter(d=>d.lifecycle==='active'&&(!kind||(d.kind||'memo')===kind)).length;
@@ -527,4 +529,28 @@ function install(api) {
     leave:async()=>{if(!active())return true;capture();try{const current=session;for(let attempt=0;current.transport.dirty&&attempt<3;attempt++)await current.transport.sync();if(current.transport.dirty)return false;await current.transport.leave();if(session===current)stop();return true;}catch{return false;}}
   };
 }
-window.SierraCollaboration={install};
+
+function installInfographics(api) {
+  let session=null;
+  const clone=value=>JSON.parse(JSON.stringify(value));
+  const account=()=>api.account()?.id;
+  const rpc=async(name,args={})=>{const owner=account();if(!owner)throw Error('Inicia sesión para continuar.');const {data,error}=await api.rpc(name,args);if(account()!==owner)throw Object.assign(Error('La sesión cambió.'),{code:'42501'});if(error)throw error;return data;};
+  const decode=data=>{const model=new CommunicationModel();model.doc.transact(()=>{if(data?.snapshot)Y.applyUpdate(model.doc,fromBase64(data.snapshot),'remote');for(const update of data?.updates||[])Y.applyUpdate(model.doc,fromBase64(update.payload),'remote');},'remote');return model;};
+  const snapshot=async id=>{const data=await rpc('communication_sync',{p_id:id,p_after:-1,p_nonce:null,p_update:null,p_session:null,p_awareness:null}),model=decode(data);try{const draft=model.read();api.validate(draft);return{draft,role:data.role};}finally{model.doc.destroy();}};
+  const leave=async()=>{if(!session)return true;const current=session;try{for(let attempt=0;current.transport.dirty&&attempt<3;attempt++)await current.transport.sync();if(current.transport.dirty)return false;await current.transport.leave();if(session===current){current.model.doc.destroy();session=null;}return true;}catch{return false;}};
+  const receive=()=>{if(!session?.ready)return;const draft=session.model.read();api.validate(draft);if(JSON.stringify(draft)!==JSON.stringify(session.baseline)){session.baseline=clone(draft);api.remote(draft,session.transport.role);}};
+  const open=async id=>{
+    if(session?.id===id)return{draft:clone(session.baseline),role:session.transport.role};
+    if(!await leave())throw Error('Todavía hay cambios pendientes.');
+    const owner=account(),model=new CommunicationModel(),current={id,owner,model,baseline:{},ready:false};
+    const transport=new CommunicationTransport({doc:model.doc,rpc:(name,args)=>rpc(name,{p_id:id,...args}),valid:()=>session===current&&account()===owner,presence:()=>({clientID:model.doc.clientID,field:'document',area:'Infografía',mode:'area'}),onChange:receive,onStatus:(text,blocked)=>api.status(text,blocked)});
+    current.transport=transport;session=current;
+    try{await transport.sync();if(session!==current)throw Error('La sesión cambió.');const draft=model.read();api.validate(draft);current.baseline=clone(draft);current.ready=true;transport.start();api.status('Guardado en línea',false);return{draft,role:transport.role};}
+    catch(error){transport.stop();model.doc.destroy();if(session===current)session=null;throw error;}
+  };
+  const create=async draft=>{api.validate(draft);const model=new CommunicationModel();let encoded;try{model.seed(draft);encoded=Y.encodeStateAsUpdate(model.doc);}finally{model.doc.destroy();}if(encoded.length>16777216)throw Error('La infografía contiene demasiadas imágenes para compartirla. Reduce su tamaño e inténtalo de nuevo.');const id=await rpc('communication_create',{p_source:draft.id,p_title:String(draft.title||'Infografía').slice(0,500),p_kind:'infographic',p_snapshot:toBase64(encoded)});return{id,...await open(id)};};
+  const capture=draft=>{if(!session?.ready)return false;api.validate(draft);session.model.apply(session.baseline,draft);session.baseline=clone(draft);session.transport.sync().catch(()=>{});return true;};
+  const list=async()=>((await rpc('communication_list'))||[]).filter(record=>record.kind==='infographic');
+  return{list,snapshot,open,create,capture,leave,active:()=>!!session,id:()=>session?.id||'',role:()=>session?.transport.role||'',accountChanged:id=>{if(session&&session.owner!==id)leave();}};
+}
+window.SierraCollaboration={install,installInfographics};

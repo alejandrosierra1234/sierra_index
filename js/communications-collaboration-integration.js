@@ -41,7 +41,18 @@
     richHtml:b=>commsRichHtml(b),noticeHtml:d=>noticeMessageHtml(d),icon:siIcon,validate,select,clearSelectors:()=>selectors.clear(),
     clearPage:message=>{const pg=document.getElementById('pg');pg.replaceChildren();const p=document.createElement('p');p.textContent=message;pg.append(p);}
   });
-  sb.auth.onAuthStateChange((_event,authSession)=>collab.accountChanged(authSession?.user?.id));
+  const infographicCollab=window.SierraCollaboration.installInfographics({
+    account:()=>me?.id?{id:me.id,name:profile?.full_name||me.email,email:me.email||''}:null,
+    rpc:(name,args)=>{
+      const writes=name==='communication_create'||(name==='communication_sync'&&args?.p_update!=null);
+      if(!me?.id||(writes&&!can('write','communications')))return Promise.resolve({error:{code:'42501',message:writes?'No tienes permiso para editar Comunicaciones.':'Inicia sesión para abrir esta infografía.'}});
+      return sb.rpc(name,args);
+    },
+    validate:d=>{if(!d||d.kind!=='infographic'||!Array.isArray(d.blocks)||typeof d.id!=='string')throw Error('Formato de infografía no válido.');},
+    remote:(draft,role)=>window.infoReceiveRemote?.(draft,role),status:(text,blocked)=>window.infoCloudStatus?.(text,blocked)
+  });
+  window.SierraInfographicTeam=infographicCollab;
+  sb.auth.onAuthStateChange((_event,authSession)=>{collab.accountChanged(authSession?.user?.id);infographicCollab.accountChanged(authSession?.user?.id);});
   const readImage=commsReadImage;
   commsReadImage=function(input,callback){
     const owner=me?.id,documentId=_commsCurrent?.id,shared=collab.active();
@@ -65,7 +76,7 @@
   commsAutosave=function(){if(collab.active()){clearTimeout(_commsSaveTimer);collab.capture();return;}return originals.commsAutosave();};
   commsBack=async function(){if(!collab.active())return originals.commsBack();if(!await collab.leave()){toast('Espera a que se guarden los cambios antes de salir.');return;}_commsCurrent=null;return originals.commsBack();};
   commsRichCommand=function(control,command,value=null){if(collab.command(control,command,value))return;return originals.commsRichCommand(control,command,value);};
-  logout=async function(...args){collab.stop();_commsCurrent=null;return originals.logout(...args);};
+  logout=async function(...args){collab.stop();await infographicCollab.leave();_commsCurrent=null;return originals.logout(...args);};
   for(const name of ['newCommunicationDraft','newNewsDraft','newNoticeDraft','newInvitationDraft','showCommunications']) {
     const original=window[name];
     window[name]=async function(...args){
