@@ -58,7 +58,7 @@ function playwright() {
     const player = await context.newPage(), admin = await context.newPage(), errors = []
     player.on('pageerror', error => errors.push(`player: ${error.message}`)); admin.on('pageerror', error => errors.push(`admin: ${error.message}`))
     await player.goto(origin + '/signage-player.html')
-    assert.equal(await player.locator('#sp-build').textContent(), 'P-20261030-11')
+    assert.equal(await player.locator('#sp-build').textContent(), 'P-20261030-12')
     assert.equal(await player.locator('#sp-setup').isVisible(), true, 'pairing setup is the only visible pane before enrollment')
     assert.equal(await player.locator('#sp-stage').isHidden(), true, 'playback pane stays hidden before enrollment')
     const code = (await player.locator('#sp-code').textContent()).trim(); assert.match(code, /^\d{6}$/)

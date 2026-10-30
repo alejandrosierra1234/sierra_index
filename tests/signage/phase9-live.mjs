@@ -20,11 +20,12 @@ class FakePeer {
   async setLocalDescription(value){const description={};Object.defineProperties(description,{type:{value:value.type,enumerable:false},sdp:{value:value.sdp,enumerable:false}});this.localDescription=description}
   async setRemoteDescription(value){assert.deepEqual(Object.keys(value).sort(),['sdp','type'],'signaling metadata is stripped before WebRTC receives a description');this.remoteDescription=value;this.currentRemoteDescription=value;this.connectionState='connected';this.iceConnectionState='connected';emit(this.events,'connectionstatechange');emit(this.events,'iceconnectionstatechange');if(value.type==='offer'&&FakePeer.remoteStream)emit(this.events,'track',{streams:[FakePeer.remoteStream]})}
   async addIceCandidate(value){assert.ok(Object.keys(value).every(key=>['candidate','sdpMid','sdpMLineIndex','usernameFragment'].includes(key)),'signaling metadata is stripped before WebRTC receives a candidate')}
-  async getStats(){this.statsCalls=(this.statsCalls||0)+1;return this.remoteDescription&&this.remoteDescription.type==='offer'?new Map([['video-in',{type:'inbound-rtp',kind:'video',bytesReceived:4096*this.statsCalls,framesDecoded:2*this.statsCalls,packetsLost:0,isRemote:false}]]):new Map([['video-out',{type:'outbound-rtp',kind:'video',bytesSent:2048*this.statsCalls,framesEncoded:2*this.statsCalls,isRemote:false}]])}
+  async getStats(){this.statsCalls=(this.statsCalls||0)+1;if(this.remoteDescription&&this.remoteDescription.type==='offer'&&FakePeer.inboundStatsFactory)return FakePeer.inboundStatsFactory(this.statsCalls);return this.remoteDescription&&this.remoteDescription.type==='offer'?new Map([['video-in',{type:'inbound-rtp',kind:'video',bytesReceived:4096*this.statsCalls,framesDecoded:2*this.statsCalls,packetsLost:0,isRemote:false}]]):new Map([['video-out',{type:'outbound-rtp',kind:'video',bytesSent:2048*this.statsCalls,framesEncoded:2*this.statsCalls,isRemote:false}]])}
   restartIce(){this.restartIceCalls=(this.restartIceCalls||0)+1}
   close(){this.connectionState='closed';this.iceConnectionState='closed'}
 }
 FakePeer.instances=[]
+FakePeer.inboundStatsFactory=null
 
 globalThis.RTCPeerConnection=FakePeer
 const Live=require(path.join(root,'js/signage-live-share.js'))
@@ -137,6 +138,24 @@ function nativeCandidate(){const value={};Object.defineProperties(value,{candida
   assert.deepEqual(receiverCandidate.payload,{candidate:'candidate:synthetic',sdpMid:'0',sdpMLineIndex:0,usernameFragment:'synthetic',generation:2,receiverId:'receiver-refresh'},'receiver serializes native ICE fields and keeps only safe signaling metadata');assertions+=1
   assert.equal(FakePeer.instances.at(-1).remoteDescription.generation,undefined);assertions+=1
   receiver.stop();FakePeer.remoteStream=null
+}
+
+{
+  const remote=stream(),videoEvents=listeners(),signals=[]
+  FakePeer.remoteStream=remote
+  FakePeer.inboundStatsFactory=calls=>new Map([['video-in',{type:'inbound-rtp',mediaType:'video',bytesReceived:4096*calls,packetsLost:0,isRemote:false}]])
+  const video={readyState:2,srcObject:null,addEventListener(type,callback){on(videoEvents,type,callback)},play:async()=>{},requestVideoFrameCallback(callback){queueMicrotask(()=>callback(0,{presentedFrames:1}));return 41},cancelVideoFrameCallback(){}}
+  const client={
+    receiveLiveSignals:async()=>({state:'active',signals:[{sequence:1,type:'offer',payload:{type:'offer',sdp:'v=0',generation:1}}]}),
+    sendLiveSignal:async(_id,signal)=>signals.push(signal),
+  }
+  const receiver=Live.createReceiver({client,sessionId:'session-webkit-stats',receiverId:'receiver-webkit',video,pollIntervalMs:1})
+  receiver.start();await new Promise(resolve=>setTimeout(resolve,15))
+  const mediaSignal=signals.find(signal=>signal.type==='media')
+  assert.ok(mediaSignal,'a rendered video frame is confirmed when Safari exposes mediaType and omits framesDecoded');assertions+=1
+  assert.ok(mediaSignal.payload.bytesReceived>0&&mediaSignal.payload.framesDecoded>0,'the compatibility proof still requires received bytes and a rendered frame');assertions+=1
+  assert.equal(receiver.mediaStats.framesDecoded,1,'rendered-frame evidence fills only the unavailable Safari frame counter');assertions+=1
+  receiver.stop();FakePeer.remoteStream=null;FakePeer.inboundStatsFactory=null
 }
 
 {

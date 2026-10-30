@@ -133,7 +133,7 @@
     liveShareLoad = new Promise((resolve, reject) => {
       const script = document.createElement('script')
       const timeout = setTimeout(() => reject(new Error('La transmisión en vivo tardó demasiado en cargar.')), 12000)
-      script.src = 'js/signage-live-share.js?v=20261030-7'
+      script.src = 'js/signage-live-share.js?v=20261030-8'
       script.async = true
       script.onload = () => {
         clearTimeout(timeout)

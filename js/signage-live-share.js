@@ -110,8 +110,9 @@
     if (!peer || typeof peer.getStats !== 'function') return summary
     const stats = await peer.getStats()
     stats.forEach(report => {
-      if (report.type === 'outbound-rtp' && report.kind === 'video' && !report.isRemote) { summary.bytesSent += Number(report.bytesSent || 0); summary.framesEncoded += Number(report.framesEncoded || 0) }
-      if (report.type === 'inbound-rtp' && report.kind === 'video' && !report.isRemote) { summary.bytesReceived += Number(report.bytesReceived || 0); summary.framesDecoded += Number(report.framesDecoded || 0); summary.packetsLost += Number(report.packetsLost || 0) }
+      const mediaKind = report.kind || report.mediaType
+      if (report.type === 'outbound-rtp' && mediaKind === 'video' && !report.isRemote) { summary.bytesSent += Number(report.bytesSent || 0); summary.framesEncoded += Number(report.framesEncoded || 0) }
+      if (report.type === 'inbound-rtp' && mediaKind === 'video' && !report.isRemote) { summary.bytesReceived += Number(report.bytesReceived || 0); summary.framesDecoded += Number(report.framesDecoded || 0); summary.packetsLost += Number(report.packetsLost || 0) }
       if (report.type === 'candidate-pair' && (report.selected || report.nominated) && report.state === 'succeeded') {
         summary.roundTripTime = Number.isFinite(report.currentRoundTripTime) ? report.currentRoundTripTime : null
         const local = stats.get(report.localCandidateId), remote = stats.get(report.remoteCandidateId)
@@ -270,7 +271,7 @@
   }
 
   function createReceiver(options) {
-    let peer = null, timer = null, sequence = 0, stopped = false, answered = false, descriptionSent = false, mediaConfirmed = false, mediaChecking = false, failureTimer = null, recoveryTimer = null, mediaTimer = null, lastMediaStats = null, generation = 0, pendingAnswer = null, pendingMediaAck = null
+    let peer = null, timer = null, sequence = 0, stopped = false, answered = false, descriptionSent = false, mediaConfirmed = false, mediaChecking = false, failureTimer = null, recoveryTimer = null, mediaTimer = null, lastMediaStats = null, generation = 0, pendingAnswer = null, pendingMediaAck = null, renderedFrames = 0, frameCallbackId = null
     const receiverId = receiverIdentity(typeof globalThis !== 'undefined' ? globalThis : {}, options.receiverId)
     const queuedCandidates = new Map()
     const emit = (state, detail) => { if (options.onState) options.onState({ state, detail: detail || null, debug: debugState(peer) }) }
@@ -280,7 +281,12 @@
       mediaChecking = true
       try {
         lastMediaStats = await mediaStats(peer)
-        if (lastMediaStats.bytesReceived <= 0 || lastMediaStats.framesDecoded <= 0) { clearTimeout(mediaTimer); mediaTimer = setTimeout(confirmMedia, 250); return }
+        let qualityFrames = 0, webkitFrames = 0
+        try { if (typeof options.video.getVideoPlaybackQuality === 'function') { const quality = options.video.getVideoPlaybackQuality(); qualityFrames = Number(quality && quality.totalVideoFrames || 0) } } catch {}
+        try { webkitFrames = Number(options.video.webkitDecodedFrameCount || 0) } catch {}
+        const visibleFrames = Math.max(lastMediaStats.framesDecoded, renderedFrames, qualityFrames, webkitFrames)
+        if (lastMediaStats.bytesReceived <= 0 || visibleFrames <= 0) { clearTimeout(mediaTimer); mediaTimer = setTimeout(confirmMedia, 250); return }
+        lastMediaStats.framesDecoded = visibleFrames
         mediaConfirmed = true; clearTimeout(mediaTimer)
         pendingMediaAck = { type:'media', payload:{ generation, receiverId, bytesReceived:Math.trunc(lastMediaStats.bytesReceived), framesDecoded:Math.trunc(lastMediaStats.framesDecoded) } }
         try { await options.client.sendLiveSignal(options.sessionId, pendingMediaAck); pendingMediaAck = null }
@@ -299,6 +305,8 @@
     }
     function attachPeer(nextGeneration) {
       if (peer) peer.close()
+      if (frameCallbackId != null && options.video && typeof options.video.cancelVideoFrameCallback === 'function') options.video.cancelVideoFrameCallback(frameCallbackId)
+      frameCallbackId = null; renderedFrames = 0
       generation = nextGeneration; answered = false; descriptionSent = false; mediaConfirmed = false; mediaChecking = false; pendingMediaAck = null
       peer = new RTCPeerConnection(peerConfig(options.iceServers))
       peer.addEventListener('connectionstatechange', () => {
@@ -310,6 +318,9 @@
       })
       peer.addEventListener('track', event => {
         options.video.srcObject = event.streams[0]
+        if (typeof options.video.requestVideoFrameCallback === 'function') {
+          try { frameCallbackId = options.video.requestVideoFrameCallback(() => { frameCallbackId = null; renderedFrames += 1; void confirmMedia() }) } catch { frameCallbackId = null }
+        }
         options.video.addEventListener('loadeddata', confirmMedia, { once:true })
         options.video.addEventListener('playing', confirmMedia, { once:true })
         options.video.play().then(confirmMedia).catch(error => { if (options.onPlayBlocked) options.onPlayBlocked(error) })
@@ -354,7 +365,7 @@
       if (!stopped) timer = setTimeout(poll, Number(options.pollIntervalMs) || 1000)
     }
     function start() { emit('waiting-offer'); poll() }
-    function stop(reason = 'remote') { if (stopped) return; stopped = true; pendingAnswer = null; pendingMediaAck = null; clearTimeout(timer); clearTimeout(failureTimer); clearTimeout(recoveryTimer); clearTimeout(mediaTimer); queuedCandidates.clear(); if (peer) peer.close(); if (options.video) options.video.srcObject = null; emit('stopped', reason); if (options.onStop) options.onStop({ reason }) }
+    function stop(reason = 'remote') { if (stopped) return; stopped = true; pendingAnswer = null; pendingMediaAck = null; clearTimeout(timer); clearTimeout(failureTimer); clearTimeout(recoveryTimer); clearTimeout(mediaTimer); queuedCandidates.clear(); if (frameCallbackId != null && options.video && typeof options.video.cancelVideoFrameCallback === 'function') options.video.cancelVideoFrameCallback(frameCallbackId); frameCallbackId = null; if (peer) peer.close(); if (options.video) options.video.srcObject = null; emit('stopped', reason); if (options.onStop) options.onStop({ reason }) }
     return { start, stop, get mediaStats() { return lastMediaStats }, get connectionState() { return peer ? peer.connectionState : 'new' }, get generation() { return generation }, get debugState() { return { ...debugState(peer), generation } } }
   }
   return { createSender, createReceiver, waitIce }
