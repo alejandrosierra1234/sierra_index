@@ -530,7 +530,8 @@ function install(api) {
   };
 }
 
-function installInfographics(api) {
+function installArtifacts(api,options={}) {
+  const kind=String(options.kind||'infographic'),label=String(options.label||'Infografía'),area=String(options.area||label);
   let session=null;
   const clone=value=>JSON.parse(JSON.stringify(value));
   const account=()=>api.account()?.id;
@@ -543,14 +544,16 @@ function installInfographics(api) {
     if(session?.id===id)return{draft:clone(session.baseline),role:session.transport.role};
     if(!await leave())throw Error('Todavía hay cambios pendientes.');
     const owner=account(),model=new CommunicationModel(),current={id,owner,model,baseline:{},ready:false};
-    const transport=new CommunicationTransport({doc:model.doc,rpc:(name,args)=>rpc(name,{p_id:id,...args}),valid:()=>session===current&&account()===owner,presence:()=>({clientID:model.doc.clientID,field:'document',area:'Infografía',mode:'area'}),onChange:receive,onStatus:(text,blocked)=>api.status(text,blocked)});
+    const transport=new CommunicationTransport({doc:model.doc,rpc:(name,args)=>rpc(name,{p_id:id,...args}),valid:()=>session===current&&account()===owner,presence:()=>({clientID:model.doc.clientID,field:'document',area,mode:'area'}),onChange:receive,onStatus:(text,blocked)=>api.status(text,blocked)});
     current.transport=transport;session=current;
     try{await transport.sync();if(session!==current)throw Error('La sesión cambió.');const draft=model.read();api.validate(draft);current.baseline=clone(draft);current.ready=true;transport.start();api.status('Guardado en línea',false);return{draft,role:transport.role};}
     catch(error){transport.stop();model.doc.destroy();if(session===current)session=null;throw error;}
   };
-  const create=async draft=>{api.validate(draft);const model=new CommunicationModel();let encoded;try{model.seed(draft);encoded=Y.encodeStateAsUpdate(model.doc);}finally{model.doc.destroy();}if(encoded.length>16777216)throw Error('La infografía contiene demasiadas imágenes para compartirla. Reduce su tamaño e inténtalo de nuevo.');const id=await rpc('communication_create',{p_source:draft.id,p_title:String(draft.title||'Infografía').slice(0,500),p_kind:'infographic',p_snapshot:toBase64(encoded)});return{id,...await open(id)};};
+  const create=async draft=>{api.validate(draft);const model=new CommunicationModel();let encoded;try{model.seed(draft);encoded=Y.encodeStateAsUpdate(model.doc);}finally{model.doc.destroy();}if(encoded.length>16777216)throw Error(`El ${label.toLowerCase()} contiene demasiadas imágenes para compartirlo. Reduce su tamaño e inténtalo de nuevo.`);const id=await rpc('communication_create',{p_source:draft.id,p_title:String(draft.title||label).slice(0,500),p_kind:kind,p_snapshot:toBase64(encoded)});return{id,...await open(id)};};
   const capture=draft=>{if(!session?.ready)return false;api.validate(draft);session.model.apply(session.baseline,draft);session.baseline=clone(draft);session.transport.sync().catch(()=>{});return true;};
-  const list=async()=>((await rpc('communication_list'))||[]).filter(record=>record.kind==='infographic');
+  const list=async()=>((await rpc('communication_list'))||[]).filter(record=>record.kind===kind);
   return{list,snapshot,open,create,capture,leave,active:()=>!!session,id:()=>session?.id||'',role:()=>session?.transport.role||'',accountChanged:id=>{if(session&&session.owner!==id)leave();}};
 }
-window.SierraCollaboration={install,installInfographics};
+const installInfographics=api=>installArtifacts(api,{kind:'infographic',label:'Infografía',area:'Infografía'});
+const installOrgCharts=api=>installArtifacts(api,{kind:'orgchart',label:'Organigrama',area:'Organigrama'});
+window.SierraCollaboration={install,installInfographics,installOrgCharts};

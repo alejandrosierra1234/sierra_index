@@ -28094,7 +28094,8 @@ ${err.toString()}`);
       }
     };
   }
-  function installInfographics(api) {
+  function installArtifacts(api, options = {}) {
+    const kind = String(options.kind || "infographic"), label2 = String(options.label || "Infograf\xEDa"), area = String(options.area || label2);
     let session = null;
     const clone = (value) => JSON.parse(JSON.stringify(value));
     const account = () => api.account()?.id;
@@ -28153,7 +28154,7 @@ ${err.toString()}`);
       if (session?.id === id2) return { draft: clone(session.baseline), role: session.transport.role };
       if (!await leave()) throw Error("Todav\xEDa hay cambios pendientes.");
       const owner = account(), model = new CommunicationModel(), current = { id: id2, owner, model, baseline: {}, ready: false };
-      const transport = new CommunicationTransport({ doc: model.doc, rpc: (name, args2) => rpc(name, { p_id: id2, ...args2 }), valid: () => session === current && account() === owner, presence: () => ({ clientID: model.doc.clientID, field: "document", area: "Infograf\xEDa", mode: "area" }), onChange: receive, onStatus: (text2, blocked) => api.status(text2, blocked) });
+      const transport = new CommunicationTransport({ doc: model.doc, rpc: (name, args2) => rpc(name, { p_id: id2, ...args2 }), valid: () => session === current && account() === owner, presence: () => ({ clientID: model.doc.clientID, field: "document", area, mode: "area" }), onChange: receive, onStatus: (text2, blocked) => api.status(text2, blocked) });
       current.transport = transport;
       session = current;
       try {
@@ -28183,8 +28184,8 @@ ${err.toString()}`);
       } finally {
         model.doc.destroy();
       }
-      if (encoded.length > 16777216) throw Error("La infograf\xEDa contiene demasiadas im\xE1genes para compartirla. Reduce su tama\xF1o e int\xE9ntalo de nuevo.");
-      const id2 = await rpc("communication_create", { p_source: draft.id, p_title: String(draft.title || "Infograf\xEDa").slice(0, 500), p_kind: "infographic", p_snapshot: toBase642(encoded) });
+      if (encoded.length > 16777216) throw Error(`El ${label2.toLowerCase()} contiene demasiadas im\xE1genes para compartirlo. Reduce su tama\xF1o e int\xE9ntalo de nuevo.`);
+      const id2 = await rpc("communication_create", { p_source: draft.id, p_title: String(draft.title || label2).slice(0, 500), p_kind: kind, p_snapshot: toBase642(encoded) });
       return { id: id2, ...await open(id2) };
     };
     const capture = (draft) => {
@@ -28196,10 +28197,12 @@ ${err.toString()}`);
       });
       return true;
     };
-    const list = async () => (await rpc("communication_list") || []).filter((record) => record.kind === "infographic");
+    const list = async () => (await rpc("communication_list") || []).filter((record) => record.kind === kind);
     return { list, snapshot: snapshot2, open, create: create7, capture, leave, active: () => !!session, id: () => session?.id || "", role: () => session?.transport.role || "", accountChanged: (id2) => {
       if (session && session.owner !== id2) leave();
     } };
   }
-  window.SierraCollaboration = { install, installInfographics };
+  var installInfographics = (api) => installArtifacts(api, { kind: "infographic", label: "Infograf\xEDa", area: "Infograf\xEDa" });
+  var installOrgCharts = (api) => installArtifacts(api, { kind: "orgchart", label: "Organigrama", area: "Organigrama" });
+  window.SierraCollaboration = { install, installInfographics, installOrgCharts };
 })();
