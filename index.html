@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="css/infographic-builder.css?v=20261030-2">
   <link rel="stylesheet" href="css/new-hire-builder.css?v=20261007-21">
   <link rel="stylesheet" href="css/signage-phase1.css?v=20261029-10">
+  <link rel="stylesheet" href="css/sierra-times.css?v=20261030-1">
   <style>
     /* ── FONTS ──
        Per SIERRA_DESIGN_SYSTEM.md §19: Aeonik is the interface typeface
@@ -10608,6 +10609,7 @@ async function enterApp(user) {
     if (key === 'comunicaciones:infographics') { showInfographics(); return }
     if (key === 'comunicaciones:new-hires') { showNewHireCreator(); return }
     if (key === 'comunicaciones:stamps') { showStampCreator(); return }
+    if (key === 'comunicaciones:sierra-times') { showSierraTimes(); return }
     if (key === 'comunicaciones') { showCommunications(); return }
     if (key === 'academia') { showAcademy(); return }
     if (key === 'procesos:companies') { showProcessCompanies(); return }
@@ -17239,6 +17241,11 @@ const MODULES = {
     color: '#ff7824', light: '#ffe1cc', accent: '#a93d00',
     icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M4 3.5h12v13H4z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 7h6M7 10h6M7 13h3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
     tools: [{
+      id: 'sierra-times', label: 'SIERRA Times',
+      desc: 'Compone el boletín mensual y expórtalo para correo, lectura, imprenta y pantallas',
+      icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 4.5h14v11H3z" stroke="currentColor" stroke-width="1.4"/><path d="M6 7h5M6 10h8M6 13h4M13 7h1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+      run: 'showSierraTimes',
+    },{
       id: 'memos', label: 'Memorándums',
       desc: 'Crea, revisa, firma y exporta comunicados corporativos',
       icon: '<svg viewBox="0 0 20 20" fill="none"><path d="M4 3.5h12v13H4z" stroke="currentColor" stroke-width="1.4"/><path d="M7 7h6M7 10h6M7 13h3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
@@ -38745,6 +38752,7 @@ window.addEventListener('resize',()=>{if(_policyCurrent)policyFitPreview()});
 <script src="js/communications-access.js?v=20261026-2"></script>
 <script src="js/infographic-builder.js?v=20261030-2"></script>
 <script src="js/new-hire-builder.js?v=20261007-21"></script>
+<script src="js/sierra-times.js?v=20261030-1"></script>
 <script src="js/sample-workflow.js?v=20260911-13"></script>
 <script src="js/sample-development.js?v=20260911-8"></script>
 <script src="js/sample-stock.js?v=20260911-8"></script>
