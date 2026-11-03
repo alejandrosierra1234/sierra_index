@@ -157,7 +157,7 @@ export async function createJustifiedAbsencePdf(pdfLib, data, assets = {}) {
     const half = innerWidth / 2
     cell(innerX, cursor, half, mm(9), 'Fecha de solicitud', data.requestDate); cell(innerX + half, cursor, half, mm(9), 'Área / departamento', data.department); cursor += mm(9)
     cell(innerX, cursor, innerWidth, mm(9.8), 'Nombre del colaborador', data.employeeName); cursor += mm(9.8)
-    cell(innerX, cursor, half, mm(9), 'Número de DPI', data.identification, { mono:true }); cell(innerX + half, cursor, half, mm(9), 'Correo electrónico', data.email, { valueSize:6.8 }); cursor += mm(9)
+    cell(innerX, cursor, half, mm(9), 'Número de DNI', data.identification, { mono:true }); cell(innerX + half, cursor, half, mm(9), 'Correo electrónico', data.email, { valueSize:6.8 }); cursor += mm(9)
 
     cursor += mm(1.8); cursor = section(cursor, 'Detalle de la inasistencia')
     cell(innerX, cursor, innerWidth, mm(11), 'Concepto', data.reason, { wrap:true, maxLines:2, valueSize:7.1 }); cursor += mm(11)

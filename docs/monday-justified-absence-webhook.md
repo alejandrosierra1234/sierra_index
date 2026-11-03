@@ -47,7 +47,7 @@ En Monday, configurar un webhook `change_status_column_value` para `estado8`, li
 | Dato | Columna |
 | --- | --- |
 | Nombre | `name` |
-| DPI | `n_mero__1` |
+| DNI | `n_mero__1` |
 | Correo | `correo_electr_nico_mkmvqc1m` |
 | Constancia | `cargar_archivo__1` |
 | Fecha de solicitud | `fecha__1` |
