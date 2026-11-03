@@ -73,7 +73,7 @@ En Monday, configurar un webhook `change_status_column_value` para `estado8`, li
 
 - El creador manual y la función `monday-justified-absence-webhook` están listos.
 - La función está desplegada en el proyecto Supabase `vhyddogeemohtqijohry` con validación propia del secreto del webhook.
-- El webhook de Monday está activo con el ID `662236187`: escucha `change_status_column_value` en `estado8` y se limita a la etiqueta `Finalizado` (índice `5`).
+- El webhook de Monday está activo con el ID `662236876`: escucha `change_status_column_value` en `estado8` y se limita a la etiqueta `Finalizado` mediante su ID estable `7` (la posición visual es `5`).
 
 ## Pendientes operativos
 
