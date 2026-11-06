@@ -3,8 +3,8 @@ import {Y, toBase64, fromBase64} from './model.js';
 // Every exchange goes through an authenticated RPC, including cursor updates.
 // No private payload is broadcast on a channel with cached membership checks.
 export class CommunicationTransport {
-  constructor({doc, rpc, valid, presence, onChange, onStatus}) {
-    Object.assign(this, {doc, rpc, valid, presence, onChange, onStatus});
+  constructor({doc, rpc, valid, presence, catalog=()=>null, onChange, onStatus}) {
+    Object.assign(this, {doc, rpc, valid, presence, catalog, onChange, onStatus});
     this.session = crypto.randomUUID(); this.revision = -1; this.pending = [];
     this.stopped = false; this.role = 'viewer'; this.failures = 0; this.accessFailures = 0;
     this.writeBlocked = false;
@@ -22,9 +22,11 @@ export class CommunicationTransport {
     const count = this.pending.length;
     if (!this.batch && count && !this.writeBlocked) this.batch = {count, nonce:crypto.randomUUID(), update:toBase64(Y.mergeUpdates(this.pending.slice(0, count)))};
     try {
+      const catalog=this.batch ? this.catalog() : null;
       const data = await this.rpc('communication_sync', {
         p_after:this.revision, p_nonce:this.batch?.nonce || null, p_update:this.batch?.update || null,
-        p_session:this.session, p_awareness:JSON.stringify(this.presence())
+        p_session:this.session, p_awareness:JSON.stringify(this.presence()),
+        p_title:catalog?.title || null,p_kind:catalog?.kind || null,p_metadata:catalog?.metadata || null
       });
       if (this.stopped || !this.valid()) return;
       this.role = data.role;

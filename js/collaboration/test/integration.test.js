@@ -23,6 +23,8 @@ test('real editor promotes communications to the team, keeps cloud writes out of
     w.jsStr=v=>String(v??'').replaceAll("'","\\'");w.toast=value=>notices.push(value);w.logout=async()=>{w.me=null;};
     w.sb={auth:{onAuthStateChange:callback=>{authCallback=callback;}},rpc:async(name,args)=>{
       if(name==='communication_create'){snapshot=args.p_snapshot;return{data:'00000000-0000-4000-8000-000000000099'};}
+      if(name==='communication_catalog')return{data:true};
+      if(name==='communication_import')return{data:{id:'00000000-0000-4000-8000-000000000097',created:false}};
       if(name==='communication_sync'){
         if(args.p_awareness===null)leaveRequests++;
         if(args.p_update && !updates.some(x=>x.nonce===args.p_nonce))updates.push({revision:++revision,payload:args.p_update,nonce:args.p_nonce});
@@ -63,11 +65,17 @@ test('real editor promotes communications to the team, keeps cloud writes out of
     w.commsSet('subject','Team collaborative change');w.commsPersist();
     await until(()=>revision>0);
     assert.equal(w.localStorage.getItem('sierra_communications_v1:'+w.me.id),local);
-    sharedDocuments=[{id:'00000000-0000-4000-8000-000000000099',source_id:'remote-source',title:'Memo de prueba',kind:'memo',role:'editor',owner_id:'00000000-0000-4000-8000-000000000077',owner_name:'Ana Prueba',updated_at:new Date().toISOString(),presence:[{user_id:'00000000-0000-4000-8000-000000000077',session_id:'00000000-0000-4000-8000-000000000078',name:'Ana Prueba',seen_at:new Date().toISOString(),awareness:JSON.stringify({area:'Asunto'})}]}];
+    const localId=w.eval('_commsDrafts[0].id');
+    sharedDocuments=[
+      {id:'00000000-0000-4000-8000-000000000099',source_id:localId,title:'Team collaborative change',kind:'memo',metadata:{lifecycle:'active'},role:'owner',owner_id:w.me.id,owner_name:'Owner',updated_at:new Date().toISOString(),presence:[]},
+      {id:'00000000-0000-4000-8000-000000000098',source_id:'remote-source',title:'Memo de prueba',kind:'memo',metadata:{lifecycle:'active'},role:'editor',owner_id:'00000000-0000-4000-8000-000000000077',owner_name:'Ana Prueba',updated_at:new Date().toISOString(),presence:[{user_id:'00000000-0000-4000-8000-000000000077',session_id:'00000000-0000-4000-8000-000000000078',name:'Ana Prueba',seen_at:new Date().toISOString(),awareness:JSON.stringify({area:'Asunto'})}]}
+    ];
     await w.commsBack();assert.equal(w.eval('_commsCurrent'),null);assert.ok(leaveRequests>0,'leaving closes presence immediately');
     assert.ok(w.document.querySelector('[data-shared-library]'));
     await until(()=>w.document.querySelector('[data-shared-communication]'));
     assert.match(w.document.querySelector('[data-shared-home]').textContent,/Memo de prueba/);
+    assert.match(w.document.querySelector('[data-shared-home]').textContent,/Team collaborative change/,'the owner sees the same cloud record as everyone else');
+    assert.equal(w.document.querySelector(`[data-local-communication-id="${localId}"]`),null,'the stale local recovery copy is not rendered over the cloud record');
     assert.match(w.document.querySelector('[data-shared-home]').textContent,/Ana Prueba/);
     assert.match(w.document.querySelector('[data-shared-home]').textContent,/Puede editar/);
     w.commsSetLayout('grid');

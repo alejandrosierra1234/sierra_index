@@ -37,3 +37,10 @@ test('leave removes the current presence session explicitly',async()=>{
   let last;const{model,transport}=make(async(_name,args)=>{last=args;return response;});
   await transport.leave();assert.equal(last.p_session,transport.session);assert.equal(last.p_awareness,null);assert.equal(transport.stopped,true);model.doc.destroy();
 });
+test('acknowledged updates carry current catalog metadata',async()=>{
+  let request;const catalog={title:'Circular vigente',kind:'circular',metadata:{lifecycle:'active',department:'Comunicaciones'}};
+  const{model,transport}=make(async(_name,args)=>{request=args;return response;},{catalog:()=>catalog});
+  model.seed({subject:'Circular vigente'});await transport.sync();
+  assert.equal(request.p_title,catalog.title);assert.equal(request.p_kind,catalog.kind);assert.deepEqual(request.p_metadata,catalog.metadata);
+  transport.stop();model.doc.destroy();
+});

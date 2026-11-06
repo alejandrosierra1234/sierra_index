@@ -7,7 +7,7 @@ HR and commercial-card storage. It does not change the public media bucket.
 
 1. Run `npm ci --ignore-scripts` in this directory, then `npm run build` and `npm test`.
 2. Run the existing communications and security regression tests.
-3. Apply `update41.sql` after `update40.sql`, then `update55.sql` and `update56.sql` after the later numbered migrations.
+3. Apply the numbered migrations in order through `update71.sql`.
 4. Publish the generated bundle, integration bridge, stylesheet and `index.html`.
 5. Verify with two distinct authenticated accounts, including a viewer and a revoked member.
 
@@ -16,8 +16,8 @@ service-role key is required in the browser. The integration reuses Index's clie
 
 ## Access Boundary
 
-Cloud documents form one team library for every active Index account. Any active
-account can inspect and export; Communications editors can change content and add
+Cloud documents form one team library for every active Index account with
+Communications read access. Communications editors can change content and add
 comments. Ownership is retained for provenance, not visibility.
 
 The five collaboration tables have RLS enabled and no direct privileges for
@@ -53,10 +53,15 @@ Updates and cursors currently poll every 650 ms with failure backoff; this trade
 WebSocket efficiency for per-request access checks. There are no AI calls or AI-token
 charges in this feature. Database, bandwidth and request usage still apply.
 
-Images are included in the private Yjs state, with a 16 MiB snapshot/update limit.
-This avoids publishing private files but is intended for modest internal documents,
-not a media library. A dedicated private asset store and traffic/load testing are
-needed before high-volume rollout. Missing local assets prevent initial sharing.
+Images are stored in the private `product-images` bucket under content-addressed
+`communications/` paths. Documents keep durable private references rather than large
+data URIs. The same Communications permissions protect both the document and its
+media. The 16 MiB snapshot/update limit remains as a last-resort safety boundary.
+
+On first library load after deployment, local browser drafts that do not yet have a
+cloud record are imported idempotently. Existing cloud records are never overwritten
+by this recovery path. Once imported, the cloud record is authoritative and the local
+draft remains only as a recovery copy.
 
 ## Tests
 
@@ -72,5 +77,6 @@ photos are processed once per pass, and the smaller result is used. Original loc
 images, signatures, logos, QR codes and small graphics are retained unchanged.
 The dialog reports progress and cancellation/account changes stop preparation.
 Photos added while collaborating are prepared before entering the shared model.
-The server's 16 MiB payload safety limit still applies after preparation; no public
-storage bucket or anonymous media link is introduced by this workflow.
+The server's 16 MiB payload safety limit still applies after preparation. The bucket
+remains private; browser URLs are canonicalized and resolved through Index's signed
+asset layer.

@@ -14,6 +14,15 @@ const stripped = d => {
   if(value.kind==='aviso'){delete value.noticeRichHtml;delete value.noticeMessage;}
   return value;
 };
+const catalogOf = d => ({
+  title:String(d?.subject||d?.title||'Comunicado').trim().slice(0,500)||'Comunicado',
+  kind:d?.kind||'memo',
+  metadata:{
+    lifecycle:d?.lifecycle||'active',status:d?.status||'Borrador',department:d?.department||d?.newsDepartment||'',
+    date:d?.date||'',communicationNumber:d?.communicationNumber||null,sender:d?.sender||d?.author||'',
+    category:d?.category||'',tags:Array.isArray(d?.tags)?d.tags.slice(0,30):[]
+  }
+});
 
 function dialog(title) {
   document.getElementById('comms-sharing')?.remove();
@@ -51,7 +60,7 @@ function controlKey(element,index=0) {
 }
 
 function install(api) {
-  let session=null, rendering=false, deferred=false, sharing=false,homeRequest=0,homeObserver=null,previewActive=0;
+  let session=null, rendering=false, deferred=false, sharing=false,homeRequest=0,homeObserver=null,previewActive=0,migrationAccount='',migrationPromise=null;
   const views=new Map(),inputCleanups=[],lockedElements=new Map();
   const previewCache=new Map(),previewPending=new Map(),previewQueue=[];
   const getAccount=() => api.account()?.id;
@@ -76,6 +85,8 @@ function install(api) {
     return d;
   };
   const read=() => readModel(session.model);
+  const prepareCloud=async(draft,progress=()=>{})=>api.prepareCloud?api.prepareCloud(draft,progress):copy(draft);
+  const encodeDraft=draft=>{const model=new CommunicationModel();try{model.seed(stripped(draft));prepareRich(model,draft);return Y.encodeStateAsUpdate(model.doc);}finally{model.doc.destroy();}};
   const prepareRich=(model,d) => {
     richBlocks(d).forEach(b => seedRich(model.doc.getXmlFragment('rich:'+b.id),api.richHtml(b)));
     if(d.kind==='aviso')seedRich(model.doc.getXmlFragment('rich:notice-message'),api.noticeHtml(d));
@@ -248,11 +259,13 @@ function install(api) {
     const transport=new CommunicationTransport({doc:model.doc,
       rpc:(name,args)=>rpc(name,{p_id:id,...args}),valid:()=>session===current&&getAccount()===account,
       presence:()=>({clientID:model.doc.clientID,...awareness.getLocalState()}),
+      catalog:()=>catalogOf(readModel(model)),
       onChange:data=>{if(current.source)applyRemote(data);},onStatus:status});
     current.transport=transport;session=current;
     try {
       await transport.sync();if(session!==current)return;
       const d=read();api.validate(d);current.source=d.id;current.baseline=stripped(d);current.blocked=false;
+      const catalog=catalogOf(d);rpc('communication_catalog',{p_id:id,p_title:catalog.title,p_kind:catalog.kind,p_metadata:catalog.metadata}).catch(()=>{});
       awareness.setLocalState({user:{name:api.account().name||'Colaborador',color:colors[model.doc.clientID%colors.length]},field:'document',area:'Documento',mode:'area'});
       api.current(d);api.render();transport.start();
     } catch(error){stop();throw error;}
@@ -260,13 +273,9 @@ function install(api) {
   async function publishCurrent() {
     if(active())return true;
     if(!api.current()||!api.persistLocal())throw Error('No se pudo guardar el comunicado antes de publicarlo al equipo.');
-    const draft=copy(api.current());
-    if(JSON.stringify(draft).includes('sierra-memo-asset:'))throw Error('Faltan imágenes locales. Usa “Guardar en equipo” para prepararlas.');
-    const model=new CommunicationModel();let snapshot;
-    try{model.seed(stripped(draft));prepareRich(model,draft);snapshot=Y.encodeStateAsUpdate(model.doc);}
-    finally{model.doc.destroy();}
-    if(snapshot.length>16777216)throw Error('El comunicado necesita preparar sus imágenes. Usa “Guardar en equipo”.');
-    const id=await rpc('communication_create',{p_source:draft.id,p_title:(draft.subject||'Comunicado').slice(0,500),p_kind:draft.kind||'memo',p_snapshot:toBase64(snapshot)});
+    const original=copy(api.current()),draft=await prepareCloud(original),snapshot=encodeDraft(draft),catalog=catalogOf(draft);
+    if(snapshot.length>16777216)throw Error('El comunicado supera el límite seguro incluso después de guardar sus imágenes.');
+    const id=await rpc('communication_create',{p_source:draft.id,p_title:catalog.title,p_kind:catalog.kind,p_snapshot:toBase64(snapshot),p_metadata:catalog.metadata});
     if(api.current()?.id!==draft.id)return false;
     await open(id);return true;
   }
@@ -279,14 +288,13 @@ function install(api) {
       if(!active()) {
         if(!api.current() || !api.persistLocal()) throw Error('Guarda el comunicado antes de compartirlo.');
         const original=copy(api.current()),account=getAccount();
-        let draft=original,snapshot;
+        let draft=await prepareCloud(original,(done,total)=>message(el,'Guardando recursos: '+done+' de '+total+'...')),snapshot;
         const valid=()=>el.isConnected&&getAccount()===account&&api.current()?.id===original.id;
         const encode=d=>{
           const model=new CommunicationModel();
           try{model.seed(stripped(d));prepareRich(model,d);return Y.encodeStateAsUpdate(model.doc);}
           finally{model.doc.destroy();}
         };
-        if(JSON.stringify(draft).includes('sierra-memo-asset:'))throw Error('Faltan imágenes locales. Recupéralas antes de compartir.');
         snapshot=encode(draft);
         if(snapshot.length>8*1024*1024) {
           message(el,'Preparando imágenes para compartir. El original se conserva...');
@@ -301,7 +309,7 @@ function install(api) {
         if(JSON.stringify(api.current())!==JSON.stringify(original))throw Error('El comunicado cambió durante la preparación. Vuelve a compartir la versión actual.');
         if(snapshot.length>16777216)throw Error('No se pudo preparar la copia compartida automáticamente. Tu comunicado original se conserva intacto.');
         message(el,'Guardando el comunicado en el espacio del equipo...');
-        const id=await rpc('communication_create',{p_source:draft.id,p_title:(draft.subject||'Comunicado').slice(0,500),p_kind:draft.kind||'memo',p_snapshot:toBase64(snapshot)});
+        const catalog=catalogOf(draft),id=await rpc('communication_create',{p_source:draft.id,p_title:catalog.title,p_kind:catalog.kind,p_snapshot:toBase64(snapshot),p_metadata:catalog.metadata});
         if(!valid())return;
         await open(id);
       }
@@ -349,39 +357,47 @@ function install(api) {
   }
   const kindName=kind=>({memo:'Memo',convocatoria:'Convocatoria',circular:'Circular informativa',aviso:'Aviso'}[kind]||'Comunicado');
   const isCommunication=record=>['memo','convocatoria','circular','aviso'].includes(record?.kind||'memo');
+  const lifecycleOf=record=>record?.metadata?.lifecycle||'active';
+  const localDrafts=()=>api.localDrafts?.()||[];
+  const cloudSourceIds=documents=>new Set((documents||[]).filter(record=>record.owner_id===getAccount()&&record.source_id).map(record=>record.source_id));
+  const unpublishedLocal=documents=>{const published=cloudSourceIds(documents);return localDrafts().filter(d=>!published.has(d.id));};
   const sharedHomeRecords=documents=>{
-    if(typeof _commsView!=='undefined'&&_commsView!=='active')return[];
-    const localIds=new Set((typeof _commsDrafts==='undefined'?[]:_commsDrafts).map(d=>d.id));
-    const account=getAccount(),kind=typeof _commsKind==='undefined'?'':_commsKind;
+    const view=typeof _commsView==='undefined'?'active':_commsView,kind=typeof _commsKind==='undefined'?'':_commsKind;
     const query=String(typeof _commsQuery==='undefined'?'':_commsQuery).trim().toLocaleLowerCase('es');
     return (documents||[]).filter(record=>{
       if(!isCommunication(record))return false;
-      if(record.owner_id===account&&record.source_id&&localIds.has(record.source_id))return false;
+      if(lifecycleOf(record)!==view)return false;
       if(kind&&(record.kind||'memo')!==kind)return false;
-      return !query||[record.title,record.owner_name,kindName(record.kind),label(record.role)].join(' ').toLocaleLowerCase('es').includes(query);
+      const metadata=record.metadata||{};
+      return !query||[record.title,record.owner_name,kindName(record.kind),label(record.role),metadata.department,metadata.sender,metadata.category,...(metadata.tags||[])].join(' ').toLocaleLowerCase('es').includes(query);
     });
   };
   function updateSharedCounts(documents) {
-    if(typeof _commsDrafts==='undefined')return;
-    const localIds=new Set(_commsDrafts.map(d=>d.id)),account=getAccount();
-    const shared=(documents||[]).filter(record=>isCommunication(record)&&!(record.owner_id===account&&record.source_id&&localIds.has(record.source_id)));
+    const drafts=unpublishedLocal(documents),shared=(documents||[]).filter(isCommunication);
     document.querySelectorAll('.comms-kind-tab[data-kind]').forEach(button=>{
-      const kind=button.dataset.kind,count=shared.filter(record=>!kind||(record.kind||'memo')===kind).length;
-      const local=_commsDrafts.filter(d=>d.lifecycle==='active'&&(!kind||(d.kind||'memo')===kind)).length;
+      const kind=button.dataset.kind,count=shared.filter(record=>lifecycleOf(record)==='active'&&(!kind||(record.kind||'memo')===kind)).length;
+      const local=drafts.filter(d=>d.lifecycle==='active'&&(!kind||(d.kind||'memo')===kind)).length;
       const badge=button.querySelector('.comms-kind-count');if(badge)badge.textContent=String(local+count);
     });
     const activeTab=document.querySelector('.comms-lifecycle-tabs button:first-child span');
-    if(activeTab)activeTab.textContent=String(_commsDrafts.filter(d=>d.lifecycle==='active').length+shared.length);
+    if(activeTab)activeTab.textContent=String(drafts.filter(d=>d.lifecycle==='active').length+shared.filter(record=>lifecycleOf(record)==='active').length);
+  }
+  function hidePublishedLocal(results,documents) {
+    const published=cloudSourceIds(documents);
+    results.querySelectorAll('[data-local-communication-id]').forEach(element=>{if(published.has(element.dataset.localCommunicationId))element.remove();});
+    const visibleLocal=results.querySelectorAll('[data-local-communication-id]').length,records=sharedHomeRecords(documents);
+    const count=results.querySelector('.comms-result-count');if(count){const total=visibleLocal+records.length;count.textContent=`${total} ${total===1?'documento':'documentos'}`;}
+    if(visibleLocal||records.length)results.querySelector('.memo-empty')?.setAttribute('hidden','');
   }
   function renderSharedHome(results,documents) {
-    results.querySelector('[data-shared-home]')?.remove();updateSharedCounts(documents);
+    results.querySelector('[data-shared-home]')?.remove();updateSharedCounts(documents);hidePublishedLocal(results,documents);
     const records=sharedHomeRecords(documents);if(!records.length)return;
     results.querySelector('.memo-empty')?.setAttribute('hidden','');
     const grid=typeof _commsLayout!=='undefined'&&_commsLayout==='grid';
     const section=document.createElement('section');section.dataset.sharedHome='';section.className='comms-shared-library'+(grid?' is-grid':'');section.setAttribute('aria-labelledby','comms-shared-library-title');
     const heading=document.createElement('div');heading.className='comms-shared-library-heading';
     const copy=document.createElement('span'),title=document.createElement('h2'),hint=document.createElement('p'),count=document.createElement('span');
-    title.id='comms-shared-library-title';title.textContent='Biblioteca del equipo';hint.textContent='Comunicados creados por otras personas y documentos compartidos contigo.';copy.append(title,hint);count.textContent=String(records.length);count.setAttribute('aria-label',`${records.length} ${records.length===1?'comunicado compartido':'comunicados compartidos'}`);heading.append(copy,count);section.append(heading);
+    title.id='comms-shared-library-title';title.textContent='Biblioteca del equipo';hint.textContent='Fuente compartida para todas las personas con permiso de Comunicaciones.';copy.append(title,hint);count.textContent=String(records.length);count.setAttribute('aria-label',`${records.length} ${records.length===1?'comunicado compartido':'comunicados compartidos'}`);heading.append(copy,count);section.append(heading);
     const list=document.createElement('div');list.className=grid?'comms-library-grid comms-shared-library-grid':'comms-shared-library-rows';
     for(const record of records){
       const row=document.createElement('button');row.type='button';row.className=grid?'comms-shared-card-open':'comms-shared-library-row';row.dataset.sharedCommunication=record.id;
@@ -397,6 +413,28 @@ function install(api) {
     }
     section.append(list);const head=results.querySelector('.comms-results-head');if(head)head.after(section);else results.prepend(section);
     if(grid)observeSharedPreviews(section,records);
+  }
+  async function migrateLocal(documents) {
+    const account=getAccount();
+    if(!account||api.canWrite?.()===false)return {documents,created:0,failed:0};
+    if(migrationAccount===account&&migrationPromise)return migrationPromise;
+    migrationAccount=account;
+    const task=(async()=>{
+      const existing=cloudSourceIds(documents),drafts=localDrafts().filter(d=>isCommunication(d)&&d.id&&!existing.has(d.id));let created=0,failed=0;
+      for(const original of drafts){
+        if(getAccount()!==account)break;
+        try{
+          const draft=await prepareCloud(copy(original)),snapshot=encodeDraft(draft),catalog=catalogOf(draft);
+          if(snapshot.length>16777216)throw Error('El comunicado supera el límite seguro.');
+          const result=await rpc('communication_import',{p_source:draft.id,p_title:catalog.title,p_kind:catalog.kind,p_snapshot:toBase64(snapshot),p_metadata:catalog.metadata});
+          if(result?.created)created++;
+        }catch(error){failed++;console.warn('No se pudo importar un comunicado local al equipo.',error);}
+      }
+      const refreshed=created?await rpc('communication_list'):documents;
+      return {documents:refreshed||documents,created,failed};
+    })();
+    migrationPromise=task;
+    try{return await task;}finally{if(migrationPromise===task){migrationPromise=null;migrationAccount='';}}
   }
   const runPreviewQueue=()=>{while(previewActive<2&&previewQueue.length){const job=previewQueue.shift();previewActive++;Promise.resolve().then(job.task).then(job.resolve,job.reject).finally(()=>{previewActive--;runPreviewQueue();});}};
   const enqueuePreview=task=>new Promise((resolve,reject)=>{previewQueue.push({task,resolve,reject});runPreviewQueue();});
@@ -436,12 +474,15 @@ function install(api) {
   async function loadSharedHome() {
     const request=++homeRequest,results=document.getElementById('comms-results');homeObserver?.disconnect();homeObserver=null;if(!results||!document.querySelector('.comms-home'))return;
     results.querySelector('[data-shared-home]')?.remove();
-    if(typeof _commsView!=='undefined'&&_commsView!=='active')return;
     const loading=document.createElement('p');loading.dataset.sharedHome='';loading.className='comms-shared-library-loading';loading.textContent='Cargando biblioteca del equipo…';results.querySelector('.comms-results-head')?.after(loading);
     try{
-      const documents=await rpc('communication_list');
+      let documents=await rpc('communication_list');
       if(request!==homeRequest||results!==document.getElementById('comms-results'))return;
       renderSharedHome(results,documents||[]);
+      const migrated=await migrateLocal(documents||[]);documents=migrated.documents;
+      if(request!==homeRequest||results!==document.getElementById('comms-results'))return;
+      renderSharedHome(results,documents||[]);
+      if(migrated.failed){const note=document.createElement('p');note.className='comms-shared-library-loading is-error';note.textContent=`${migrated.failed} comunicado${migrated.failed===1?'':'s'} local${migrated.failed===1?'':'es'} no se pudo guardar en el equipo. Conservamos la copia local para reintentar.`;results.querySelector('[data-shared-home]')?.after(note);}
     }catch(error){
       if(request!==homeRequest||results!==document.getElementById('comms-results'))return;
       loading.textContent='No se pudo cargar la biblioteca del equipo. Tus documentos locales siguen disponibles.';loading.classList.add('is-error');
@@ -520,9 +561,9 @@ function install(api) {
       const current=session;
       if(!editable())throw Error('No tienes permiso para editar este comunicado.');
       const draft=await optimizeSharingImages({src:source},{valid:()=>session===current&&editable()});
-      return draft.src;
+      return api.prepareAsset?api.prepareAsset(draft.src,api.current()?.id):draft.src;
     },
-    accountChanged:id=>{previewCache.clear();previewPending.clear();if(session&&session.account!==id){stop();api.current(null);api.clearPage('La sesión cambió.');}},
+    accountChanged:id=>{previewCache.clear();previewPending.clear();migrationAccount='';migrationPromise=null;if(session&&session.account!==id){stop();api.current(null);api.clearPage('La sesión cambió.');}},
     beforeRender:()=>{if(active()&&!rendering)capture();destroyViews();},
     persist:()=>{if(!active())return null;capture();session.transport.sync().catch(()=>{});return !session.blocked;},
     command:(control,command,value)=>{const element=control.closest('.memo-rich-toolbar')?.nextElementSibling,view=views.get(element);if(!view)return false;if(editable())richCommand(view,command,value);return true;},

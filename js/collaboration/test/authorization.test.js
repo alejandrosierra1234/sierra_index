@@ -110,6 +110,26 @@ test('database enforces private membership, read-only, revocation, suspension an
     assert.equal(JSON.parse(activity[0].presence[0].awareness).area,'Asunto');
     live=(await query('select communication_sync($1,-1,null,null,$2,null) as result',[id,presenceSession])).result;
     assert.equal(live.presence.length,0,'explicit leave removes presence immediately');
+    const durable=await readFile(new URL('../../../update71.sql',import.meta.url),'utf8');
+    await db.exec('reset role');await db.exec(durable.slice(0,durable.indexOf('-- Communication media'))+'commit;');
+    await db.exec(`delete from capability_grants where user_id='00000000-0000-4000-8000-000000000004';`);
+    await account(4);
+    assert.deepEqual((await query('select communication_list() as docs')).docs,[],'active accounts without Communications read cannot inspect the library');
+    await denied('select communication_sync($1)',[id]);
+    await db.exec(`reset role;insert into capability_grants(user_id,domain,capability) values
+      ('00000000-0000-4000-8000-000000000002','communications','read'),
+      ('00000000-0000-4000-8000-000000000002','communications','write') on conflict do nothing;`);
+    await account(2);
+    const imported=(await query("select communication_import('legacy-local','Recuperado','memo','AQ==',$1) as result",[{lifecycle:'active',department:'Comunicaciones'}])).result;
+    assert.equal(imported.created,true);
+    assert.equal((await query("select communication_import('legacy-local','No reemplazar','memo','Ag==','{}') as result")).result.created,false,'recovery import is idempotent');
+    const importedId=imported.id;
+    await query('select communication_catalog($1,$2,$3,$4)',[importedId,'Título vigente','memo',{lifecycle:'archived',department:'Comunicaciones'}]);
+    const catalog=(await query('select communication_list() as docs')).docs.find(document=>document.id===importedId);
+    assert.equal(catalog.title,'Título vigente');assert.equal(catalog.metadata.lifecycle,'archived');
+    const synced=(await query('select communication_sync($1,-1,$2,$3,null,null,$4,$5,$6) as result',[importedId,crypto.randomUUID(),'Aw==','Título sincronizado','memo',{lifecycle:'active'}])).result;
+    assert.equal(synced.revision,1);
+    assert.equal((await query('select communication_list() as docs')).docs.find(document=>document.id===importedId).title,'Título sincronizado');
     await db.exec("reset role;update profiles set account_status='suspended' where email='owner@test.local'");
     await account(1);await denied('select communication_sync($1)',[id]);
     await db.exec('reset role;set role anon');

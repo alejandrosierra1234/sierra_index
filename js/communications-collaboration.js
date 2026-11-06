@@ -9985,8 +9985,8 @@ ${err.toString()}`);
 
   // transport.js
   var CommunicationTransport = class {
-    constructor({ doc: doc5, rpc, valid, presence, onChange, onStatus }) {
-      Object.assign(this, { doc: doc5, rpc, valid, presence, onChange, onStatus });
+    constructor({ doc: doc5, rpc, valid, presence, catalog = () => null, onChange, onStatus }) {
+      Object.assign(this, { doc: doc5, rpc, valid, presence, catalog, onChange, onStatus });
       this.session = crypto.randomUUID();
       this.revision = -1;
       this.pending = [];
@@ -10017,12 +10017,16 @@ ${err.toString()}`);
       const count = this.pending.length;
       if (!this.batch && count && !this.writeBlocked) this.batch = { count, nonce: crypto.randomUUID(), update: toBase642(yjs_exports.mergeUpdates(this.pending.slice(0, count))) };
       try {
+        const catalog = this.batch ? this.catalog() : null;
         const data = await this.rpc("communication_sync", {
           p_after: this.revision,
           p_nonce: this.batch?.nonce || null,
           p_update: this.batch?.update || null,
           p_session: this.session,
-          p_awareness: JSON.stringify(this.presence())
+          p_awareness: JSON.stringify(this.presence()),
+          p_title: catalog?.title || null,
+          p_kind: catalog?.kind || null,
+          p_metadata: catalog?.metadata || null
         });
         if (this.stopped || !this.valid()) return;
         this.role = data.role;
@@ -27009,6 +27013,20 @@ ${err.toString()}`);
     }
     return value;
   };
+  var catalogOf = (d) => ({
+    title: String(d?.subject || d?.title || "Comunicado").trim().slice(0, 500) || "Comunicado",
+    kind: d?.kind || "memo",
+    metadata: {
+      lifecycle: d?.lifecycle || "active",
+      status: d?.status || "Borrador",
+      department: d?.department || d?.newsDepartment || "",
+      date: d?.date || "",
+      communicationNumber: d?.communicationNumber || null,
+      sender: d?.sender || d?.author || "",
+      category: d?.category || "",
+      tags: Array.isArray(d?.tags) ? d.tags.slice(0, 30) : []
+    }
+  });
   function dialog(title) {
     document.getElementById("comms-sharing")?.remove();
     const el = document.createElement("dialog");
@@ -27066,7 +27084,7 @@ ${err.toString()}`);
     return "control:" + stableKey(behavior + "|" + context + "|" + areaName(element2, index) + "|" + element2.tagName + "|" + (element2.getAttribute("type") || ""));
   }
   function install(api) {
-    let session = null, rendering = false, deferred = false, sharing = false, homeRequest = 0, homeObserver = null, previewActive = 0;
+    let session = null, rendering = false, deferred = false, sharing = false, homeRequest = 0, homeObserver = null, previewActive = 0, migrationAccount = "", migrationPromise = null;
     const views = /* @__PURE__ */ new Map(), inputCleanups = [], lockedElements = /* @__PURE__ */ new Map();
     const previewCache = /* @__PURE__ */ new Map(), previewPending = /* @__PURE__ */ new Map(), previewQueue = [];
     const getAccount = () => api.account()?.id;
@@ -27103,6 +27121,18 @@ ${err.toString()}`);
       return d;
     };
     const read = () => readModel(session.model);
+    const prepareCloud = async (draft, progress = () => {
+    }) => api.prepareCloud ? api.prepareCloud(draft, progress) : copy4(draft);
+    const encodeDraft = (draft) => {
+      const model = new CommunicationModel();
+      try {
+        model.seed(stripped(draft));
+        prepareRich(model, draft);
+        return yjs_exports.encodeStateAsUpdate(model.doc);
+      } finally {
+        model.doc.destroy();
+      }
+    };
     const prepareRich = (model, d) => {
       richBlocks(d).forEach((b) => seedRich(model.doc.getXmlFragment("rich:" + b.id), api.richHtml(b)));
       if (d.kind === "aviso") seedRich(model.doc.getXmlFragment("rich:notice-message"), api.noticeHtml(d));
@@ -27457,6 +27487,7 @@ ${err.toString()}`);
         rpc: (name, args2) => rpc(name, { p_id: id2, ...args2 }),
         valid: () => session === current && getAccount() === account,
         presence: () => ({ clientID: model.doc.clientID, ...awareness.getLocalState() }),
+        catalog: () => catalogOf(readModel(model)),
         onChange: (data) => {
           if (current.source) applyRemote(data);
         },
@@ -27472,6 +27503,9 @@ ${err.toString()}`);
         current.source = d.id;
         current.baseline = stripped(d);
         current.blocked = false;
+        const catalog = catalogOf(d);
+        rpc("communication_catalog", { p_id: id2, p_title: catalog.title, p_kind: catalog.kind, p_metadata: catalog.metadata }).catch(() => {
+        });
         awareness.setLocalState({ user: { name: api.account().name || "Colaborador", color: colors[model.doc.clientID % colors.length] }, field: "document", area: "Documento", mode: "area" });
         api.current(d);
         api.render();
@@ -27484,19 +27518,9 @@ ${err.toString()}`);
     async function publishCurrent() {
       if (active()) return true;
       if (!api.current() || !api.persistLocal()) throw Error("No se pudo guardar el comunicado antes de publicarlo al equipo.");
-      const draft = copy4(api.current());
-      if (JSON.stringify(draft).includes("sierra-memo-asset:")) throw Error("Faltan im\xE1genes locales. Usa \u201CGuardar en equipo\u201D para prepararlas.");
-      const model = new CommunicationModel();
-      let snapshot2;
-      try {
-        model.seed(stripped(draft));
-        prepareRich(model, draft);
-        snapshot2 = yjs_exports.encodeStateAsUpdate(model.doc);
-      } finally {
-        model.doc.destroy();
-      }
-      if (snapshot2.length > 16777216) throw Error("El comunicado necesita preparar sus im\xE1genes. Usa \u201CGuardar en equipo\u201D.");
-      const id2 = await rpc("communication_create", { p_source: draft.id, p_title: (draft.subject || "Comunicado").slice(0, 500), p_kind: draft.kind || "memo", p_snapshot: toBase642(snapshot2) });
+      const original = copy4(api.current()), draft = await prepareCloud(original), snapshot2 = encodeDraft(draft), catalog = catalogOf(draft);
+      if (snapshot2.length > 16777216) throw Error("El comunicado supera el l\xEDmite seguro incluso despu\xE9s de guardar sus im\xE1genes.");
+      const id2 = await rpc("communication_create", { p_source: draft.id, p_title: catalog.title, p_kind: catalog.kind, p_snapshot: toBase642(snapshot2), p_metadata: catalog.metadata });
       if (api.current()?.id !== draft.id) return false;
       await open(id2);
       return true;
@@ -27511,7 +27535,7 @@ ${err.toString()}`);
         if (!active()) {
           if (!api.current() || !api.persistLocal()) throw Error("Guarda el comunicado antes de compartirlo.");
           const original = copy4(api.current()), account = getAccount();
-          let draft = original, snapshot2;
+          let draft = await prepareCloud(original, (done, total) => message(el, "Guardando recursos: " + done + " de " + total + "...")), snapshot2;
           const valid = () => el.isConnected && getAccount() === account && api.current()?.id === original.id;
           const encode3 = (d) => {
             const model = new CommunicationModel();
@@ -27523,7 +27547,6 @@ ${err.toString()}`);
               model.doc.destroy();
             }
           };
-          if (JSON.stringify(draft).includes("sierra-memo-asset:")) throw Error("Faltan im\xE1genes locales. Recup\xE9ralas antes de compartir.");
           snapshot2 = encode3(draft);
           if (snapshot2.length > 8 * 1024 * 1024) {
             message(el, "Preparando im\xE1genes para compartir. El original se conserva...");
@@ -27542,7 +27565,7 @@ ${err.toString()}`);
           if (JSON.stringify(api.current()) !== JSON.stringify(original)) throw Error("El comunicado cambi\xF3 durante la preparaci\xF3n. Vuelve a compartir la versi\xF3n actual.");
           if (snapshot2.length > 16777216) throw Error("No se pudo preparar la copia compartida autom\xE1ticamente. Tu comunicado original se conserva intacto.");
           message(el, "Guardando el comunicado en el espacio del equipo...");
-          const id2 = await rpc("communication_create", { p_source: draft.id, p_title: (draft.subject || "Comunicado").slice(0, 500), p_kind: draft.kind || "memo", p_snapshot: toBase642(snapshot2) });
+          const catalog = catalogOf(draft), id2 = await rpc("communication_create", { p_source: draft.id, p_title: catalog.title, p_kind: catalog.kind, p_snapshot: toBase642(snapshot2), p_metadata: catalog.metadata });
           if (!valid()) return;
           await open(id2);
         }
@@ -27706,34 +27729,52 @@ ${err.toString()}`);
     }
     const kindName = (kind) => ({ memo: "Memo", convocatoria: "Convocatoria", circular: "Circular informativa", aviso: "Aviso" })[kind] || "Comunicado";
     const isCommunication = (record) => ["memo", "convocatoria", "circular", "aviso"].includes(record?.kind || "memo");
+    const lifecycleOf = (record) => record?.metadata?.lifecycle || "active";
+    const localDrafts = () => api.localDrafts?.() || [];
+    const cloudSourceIds = (documents) => new Set((documents || []).filter((record) => record.owner_id === getAccount() && record.source_id).map((record) => record.source_id));
+    const unpublishedLocal = (documents) => {
+      const published = cloudSourceIds(documents);
+      return localDrafts().filter((d) => !published.has(d.id));
+    };
     const sharedHomeRecords = (documents) => {
-      if (typeof _commsView !== "undefined" && _commsView !== "active") return [];
-      const localIds = new Set((typeof _commsDrafts === "undefined" ? [] : _commsDrafts).map((d) => d.id));
-      const account = getAccount(), kind = typeof _commsKind === "undefined" ? "" : _commsKind;
+      const view = typeof _commsView === "undefined" ? "active" : _commsView, kind = typeof _commsKind === "undefined" ? "" : _commsKind;
       const query = String(typeof _commsQuery === "undefined" ? "" : _commsQuery).trim().toLocaleLowerCase("es");
       return (documents || []).filter((record) => {
         if (!isCommunication(record)) return false;
-        if (record.owner_id === account && record.source_id && localIds.has(record.source_id)) return false;
+        if (lifecycleOf(record) !== view) return false;
         if (kind && (record.kind || "memo") !== kind) return false;
-        return !query || [record.title, record.owner_name, kindName(record.kind), label(record.role)].join(" ").toLocaleLowerCase("es").includes(query);
+        const metadata = record.metadata || {};
+        return !query || [record.title, record.owner_name, kindName(record.kind), label(record.role), metadata.department, metadata.sender, metadata.category, ...metadata.tags || []].join(" ").toLocaleLowerCase("es").includes(query);
       });
     };
     function updateSharedCounts(documents) {
-      if (typeof _commsDrafts === "undefined") return;
-      const localIds = new Set(_commsDrafts.map((d) => d.id)), account = getAccount();
-      const shared = (documents || []).filter((record) => isCommunication(record) && !(record.owner_id === account && record.source_id && localIds.has(record.source_id)));
+      const drafts = unpublishedLocal(documents), shared = (documents || []).filter(isCommunication);
       document.querySelectorAll(".comms-kind-tab[data-kind]").forEach((button) => {
-        const kind = button.dataset.kind, count = shared.filter((record) => !kind || (record.kind || "memo") === kind).length;
-        const local = _commsDrafts.filter((d) => d.lifecycle === "active" && (!kind || (d.kind || "memo") === kind)).length;
+        const kind = button.dataset.kind, count = shared.filter((record) => lifecycleOf(record) === "active" && (!kind || (record.kind || "memo") === kind)).length;
+        const local = drafts.filter((d) => d.lifecycle === "active" && (!kind || (d.kind || "memo") === kind)).length;
         const badge = button.querySelector(".comms-kind-count");
         if (badge) badge.textContent = String(local + count);
       });
       const activeTab = document.querySelector(".comms-lifecycle-tabs button:first-child span");
-      if (activeTab) activeTab.textContent = String(_commsDrafts.filter((d) => d.lifecycle === "active").length + shared.length);
+      if (activeTab) activeTab.textContent = String(drafts.filter((d) => d.lifecycle === "active").length + shared.filter((record) => lifecycleOf(record) === "active").length);
+    }
+    function hidePublishedLocal(results, documents) {
+      const published = cloudSourceIds(documents);
+      results.querySelectorAll("[data-local-communication-id]").forEach((element2) => {
+        if (published.has(element2.dataset.localCommunicationId)) element2.remove();
+      });
+      const visibleLocal = results.querySelectorAll("[data-local-communication-id]").length, records = sharedHomeRecords(documents);
+      const count = results.querySelector(".comms-result-count");
+      if (count) {
+        const total = visibleLocal + records.length;
+        count.textContent = `${total} ${total === 1 ? "documento" : "documentos"}`;
+      }
+      if (visibleLocal || records.length) results.querySelector(".memo-empty")?.setAttribute("hidden", "");
     }
     function renderSharedHome(results, documents) {
       results.querySelector("[data-shared-home]")?.remove();
       updateSharedCounts(documents);
+      hidePublishedLocal(results, documents);
       const records = sharedHomeRecords(documents);
       if (!records.length) return;
       results.querySelector(".memo-empty")?.setAttribute("hidden", "");
@@ -27747,7 +27788,7 @@ ${err.toString()}`);
       const copy5 = document.createElement("span"), title = document.createElement("h2"), hint = document.createElement("p"), count = document.createElement("span");
       title.id = "comms-shared-library-title";
       title.textContent = "Biblioteca del equipo";
-      hint.textContent = "Comunicados creados por otras personas y documentos compartidos contigo.";
+      hint.textContent = "Fuente compartida para todas las personas con permiso de Comunicaciones.";
       copy5.append(title, hint);
       count.textContent = String(records.length);
       count.setAttribute("aria-label", `${records.length} ${records.length === 1 ? "comunicado compartido" : "comunicados compartidos"}`);
@@ -27803,6 +27844,39 @@ ${err.toString()}`);
       if (head) head.after(section);
       else results.prepend(section);
       if (grid) observeSharedPreviews(section, records);
+    }
+    async function migrateLocal(documents) {
+      const account = getAccount();
+      if (!account || api.canWrite?.() === false) return { documents, created: 0, failed: 0 };
+      if (migrationAccount === account && migrationPromise) return migrationPromise;
+      migrationAccount = account;
+      const task = (async () => {
+        const existing = cloudSourceIds(documents), drafts = localDrafts().filter((d) => isCommunication(d) && d.id && !existing.has(d.id));
+        let created = 0, failed = 0;
+        for (const original of drafts) {
+          if (getAccount() !== account) break;
+          try {
+            const draft = await prepareCloud(copy4(original)), snapshot2 = encodeDraft(draft), catalog = catalogOf(draft);
+            if (snapshot2.length > 16777216) throw Error("El comunicado supera el l\xEDmite seguro.");
+            const result = await rpc("communication_import", { p_source: draft.id, p_title: catalog.title, p_kind: catalog.kind, p_snapshot: toBase642(snapshot2), p_metadata: catalog.metadata });
+            if (result?.created) created++;
+          } catch (error) {
+            failed++;
+            console.warn("No se pudo importar un comunicado local al equipo.", error);
+          }
+        }
+        const refreshed = created ? await rpc("communication_list") : documents;
+        return { documents: refreshed || documents, created, failed };
+      })();
+      migrationPromise = task;
+      try {
+        return await task;
+      } finally {
+        if (migrationPromise === task) {
+          migrationPromise = null;
+          migrationAccount = "";
+        }
+      }
     }
     const runPreviewQueue = () => {
       while (previewActive < 2 && previewQueue.length) {
@@ -27886,16 +27960,25 @@ ${err.toString()}`);
       homeObserver = null;
       if (!results || !document.querySelector(".comms-home")) return;
       results.querySelector("[data-shared-home]")?.remove();
-      if (typeof _commsView !== "undefined" && _commsView !== "active") return;
       const loading = document.createElement("p");
       loading.dataset.sharedHome = "";
       loading.className = "comms-shared-library-loading";
       loading.textContent = "Cargando biblioteca del equipo\u2026";
       results.querySelector(".comms-results-head")?.after(loading);
       try {
-        const documents = await rpc("communication_list");
+        let documents = await rpc("communication_list");
         if (request !== homeRequest || results !== document.getElementById("comms-results")) return;
         renderSharedHome(results, documents || []);
+        const migrated = await migrateLocal(documents || []);
+        documents = migrated.documents;
+        if (request !== homeRequest || results !== document.getElementById("comms-results")) return;
+        renderSharedHome(results, documents || []);
+        if (migrated.failed) {
+          const note = document.createElement("p");
+          note.className = "comms-shared-library-loading is-error";
+          note.textContent = `${migrated.failed} comunicado${migrated.failed === 1 ? "" : "s"} local${migrated.failed === 1 ? "" : "es"} no se pudo guardar en el equipo. Conservamos la copia local para reintentar.`;
+          results.querySelector("[data-shared-home]")?.after(note);
+        }
       } catch (error) {
         if (request !== homeRequest || results !== document.getElementById("comms-results")) return;
         loading.textContent = "No se pudo cargar la biblioteca del equipo. Tus documentos locales siguen disponibles.";
@@ -28050,11 +28133,13 @@ ${err.toString()}`);
         const current = session;
         if (!editable()) throw Error("No tienes permiso para editar este comunicado.");
         const draft = await optimizeSharingImages({ src: source }, { valid: () => session === current && editable() });
-        return draft.src;
+        return api.prepareAsset ? api.prepareAsset(draft.src, api.current()?.id) : draft.src;
       },
       accountChanged: (id2) => {
         previewCache.clear();
         previewPending.clear();
+        migrationAccount = "";
+        migrationPromise = null;
         if (session && session.account !== id2) {
           stop();
           api.current(null);

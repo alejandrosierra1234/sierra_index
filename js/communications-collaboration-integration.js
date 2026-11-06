@@ -26,16 +26,52 @@
     }
     walk(d);
   }
+  const durableAssets=new Map();
+  const durableUrl=value=>typeof indexAssets!=='undefined'&&typeof indexAssets.canonical==='function'?indexAssets.canonical(String(value||'')):String(value||'');
+  const assetExtension=type=>type==='image/png'?'png':type==='image/jpeg'?'jpg':type==='image/gif'?'gif':type==='image/svg+xml'?'svg':'webp';
+  async function prepareAsset(source,draftId='communication') {
+    let value=String(source||'');
+    if(!value)return value;
+    if(value.startsWith('sierra-memo-asset:'))value=await commsAssetRead(value);
+    if(!/^data:image\//i.test(value))return durableUrl(value);
+    if(durableAssets.has(value))return durableAssets.get(value);
+    const owner=me?.id;
+    const task=(async()=>{
+      if(!owner||!can('write','communications'))throw Error('No tienes permiso para guardar imágenes en Comunicaciones.');
+      const response=await fetch(value),blob=await response.blob();
+      if(!blob.type.startsWith('image/'))throw Error('La imagen no tiene un formato válido.');
+      const hash=[...new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))].map(byte=>byte.toString(16).padStart(2,'0')).join('');
+      const safeId=String(draftId||'communication').replace(/[^a-zA-Z0-9_-]/g,'-').slice(0,120)||'communication';
+      const path=`communications/${safeId}/${hash}.${assetExtension(blob.type)}`;
+      const {error}=await sb.storage.from('product-images').upload(path,blob,{contentType:blob.type,upsert:false,cacheControl:'31536000'});
+      if(error&&!/already exists|duplicate|conflict|resource exists/i.test(error.message||''))throw Error('No se pudo guardar una imagen del comunicado. '+error.message);
+      if(me?.id!==owner)throw Error('La sesión cambió mientras se guardaban las imágenes.');
+      return durableUrl(sb.storage.from('product-images').getPublicUrl(path).data.publicUrl);
+    })();
+    durableAssets.set(value,task);
+    try{return await task}catch(error){durableAssets.delete(value);throw error;}
+  }
+  async function prepareCloud(draft,progress=()=>{}) {
+    const copy=JSON.parse(JSON.stringify(draft)),refs=[];
+    const collect=value=>{if(typeof value==='string'&&(value.startsWith('sierra-memo-asset:')||/^data:image\//i.test(value)))refs.push(value);else if(Array.isArray(value))value.forEach(collect);else if(value&&typeof value==='object')Object.values(value).forEach(collect);};
+    collect(copy);const unique=[...new Set(refs)],resolved=new Map();let done=0;
+    for(const source of unique){resolved.set(source,await prepareAsset(source,copy.id));progress(++done,unique.length);}
+    const replace=value=>{if(typeof value==='string')return resolved.get(value)||value;if(Array.isArray(value))return value.map(replace);if(value&&typeof value==='object')for(const key of Object.keys(value))value[key]=replace(value[key]);return value;};
+    return replace(copy);
+  }
   const collab=window.SierraCollaboration.install({
     account:()=>me?.id ? {id:me.id,name:profile?.full_name||me.email,email:me.email||'',avatar:profile?.avatar_url||''} : null,
     rpc:(name,args)=>{
-      const writes=['communication_create','communication_share','communication_checkpoint'].includes(name)
+      const writes=['communication_create','communication_import','communication_catalog','communication_share','communication_checkpoint'].includes(name)
         || (name==='communication_sync'&&args?.p_update!=null);
       if(!me?.id||(writes&&!can('write','communications')))
         return Promise.resolve({error:{code:'42501',message:writes?'No tienes permiso para editar Comunicaciones.':'Inicia sesión para abrir este comunicado.'}});
       return sb.rpc(name,args);
     },
     current:function(value){if(arguments.length)_commsCurrent=value;return _commsCurrent;},
+    localDrafts:()=>_commsDrafts,
+    canWrite:()=>can('write','communications'),
+    prepareCloud,prepareAsset,
     persistLocal:()=>originals.commsPersist(),
     render:()=>renderCommunicationEditor(),preview:()=>renderMemoPreview(),previewHtml:d=>memoPageHtml(d,true),
     richHtml:b=>commsRichHtml(b),noticeHtml:d=>noticeMessageHtml(d),icon:siIcon,validate,select,clearSelectors:()=>selectors.clear(),
