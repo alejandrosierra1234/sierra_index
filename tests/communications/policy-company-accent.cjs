@@ -3,7 +3,7 @@ const assert = require('node:assert/strict')
 
 const html = fs.readFileSync('index.html', 'utf8')
 
-assert.match(html, /function policyCompanyAccent\(p\)\{[^}]*_policyCompanies[^}]*companyColor\(company\?\.brand_color\|\|company\?\.brandColor\|\|p\?\.companyColor\)/)
+assert.match(html, /function policyCompanyAccent\(p\)\{const company=policyCompanyRecord\(p\);return companyColor\(company\?\.brand_color\|\|company\?\.brandColor\|\|p\?\.companyColor\)\}/)
 assert.match(html, /class="policy-page" onpointerdown="policyPreviewMediaPointerDown\(event,this\)" onmouseup="policyOfferSelectionComment\(event,this\)" onclick="policyPreviewEdit\(event,this\)" style="--policy-company-accent:\$\{companyAccent\}"/)
 assert.match(html, /class="policy-card" style="[^"\n]*--policy-company-accent:\$\{companyAccent\}/)
 assert.match(html, /\.policy-index h2,\.policy-document-section h2\{[^}]*border-left:\.8mm solid var\(--policy-company-accent\)/)

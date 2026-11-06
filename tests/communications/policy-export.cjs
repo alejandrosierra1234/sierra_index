@@ -40,6 +40,7 @@ function fixture({ tainted = false, storage = false, status = 200 } = {}) {
     document,
     Blob,
     Image: TestImage,
+    policyResolvedCompany: policy => policy,
     URL: {
       createObjectURL: () => 'blob:policy-logo',
       revokeObjectURL: value => { revoked = value },
@@ -53,8 +54,8 @@ function fixture({ tainted = false, storage = false, status = 200 } = {}) {
       }
     },
     indexAssets: {
-      path: value => storage && value === source ? 'company.svg' : null,
-      resolve: async value => { resolved = value; return fresh },
+      path: value => storage && /\/storage\/v1\/object\//.test(value) ? 'company' : null,
+      resolve: async value => { resolved = value; return /\.png(?:[?#]|$)/.test(value) ? fresh.replace('.svg', '.png') : fresh },
     },
   })
   vm.runInContext(html.slice(start, end), context)
@@ -79,6 +80,9 @@ function fixture({ tainted = false, storage = false, status = 200 } = {}) {
 
   const png = { companyLogo: 'https://example.test/company.png' }
   assert.equal(await loaded.context.policyRasterizeSvgLogo(png), png, 'PNG logos pass through unchanged')
+  const privatePng = fixture({ storage: true })
+  const authorizedPng = await privatePng.context.policyRasterizeSvgLogo({ companyLogo: privatePng.source.replace('.svg', '.png') })
+  assert.equal(authorizedPng.companyLogo, privatePng.fresh.replace('.svg', '.png'), 'private raster logos are authorized for the active user before PDF rendering')
   const failure = fixture({ tainted: true })
   await assert.rejects(failure.context.policyRasterizeSvgLogo({ companyLogo: failure.source }), /No se pudo preparar el logo para el PDF/)
   const unavailable = fixture({ status: 400 })
