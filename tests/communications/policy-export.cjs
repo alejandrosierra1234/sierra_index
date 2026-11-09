@@ -118,7 +118,7 @@ function fixture({ tainted = false, storage = false, status = 200 } = {}) {
   assert.match(local, /await writer\.write\(blob\)/)
   assert.match(local, /error\?\.name===['"]AbortError['"]/)
   assert.match(local, /legacyPolicySave\(blob,name\)/)
-  assert.match(index, /policy-pdf-local\\.js\\?v=20261109-edge-save-1/)
+  assert.match(index, /policy-pdf-local\.js\?v=20261109-edge-save-1/)
   assert.doesNotMatch(local, /splitTextToSize|Authorization|policy-export-config/)
   assert.doesNotMatch(pdfSource, /policyDisplayDate/)
   assert.doesNotMatch(pdfSource, /html2canvas/)
