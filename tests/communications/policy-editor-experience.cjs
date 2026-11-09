@@ -40,6 +40,9 @@ for (const field of ['company', 'department', 'code', 'version', 'status', 'conf
 }
 const decodeAt = review.indexOf("await Promise.all([...next.querySelectorAll('img')]")
 const swapAt = review.indexOf('sheet.replaceWith(next)')
+const firstPaintAt = review.indexOf("if(!sheet.querySelector('.policy-page'))")
+assert.ok(firstPaintAt > -1 && firstPaintAt < decodeAt, 'the empty preview must paint a source page before async pagination')
+assert.match(review, /sheet\.innerHTML=policyPageHtml\(policyActivePreviewDocument\(\)\);stamp\(sheet\)/)
 assert.ok(decodeAt > -1 && swapAt > decodeAt, 'the visible preview must only swap after replacement logos decode')
 assert.match(review, /document\.body\.append\(next\)/)
 assert.match(review, /paintedImages\.findIndex\(image=>image\.currentSrc===replacement\.currentSrc\|\|image\.src===replacement\.src\)/)
