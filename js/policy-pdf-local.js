@@ -98,9 +98,9 @@
    pdf.setProperties({title:policies.length===1?policies[0].title:'Políticas seleccionadas',creator:'SIERRA Index'});
    for(let i=0;i<pages.length;i++){
     onProgress('Generando PDF',`Página ${i+1} de ${pages.length} · Conservando todo el contenido.`,25+70*i/pages.length);await pause();
-    if(i)pdf.addPage();doc.body.replaceChildren(pages[i]);await doc.fonts.ready;
-    const pageWidth=pages[i].offsetWidth,pageHeight=pages[i].offsetHeight;
-    const canvas=await window.html2canvas(pages[i],{scale:2.5,backgroundColor:'#ffffff',logging:false,useCORS:true,width:pageWidth,height:pageHeight,x:0,y:0,windowWidth:1100,windowHeight:1400,scrollX:0,scrollY:0}),pageBlob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(Error('No se pudo preparar una página del PDF.')),'image/png')),pageImage=new Uint8Array(await pageBlob.arrayBuffer());
+    if(i)pdf.addPage();const renderPage=pages[i].cloneNode(true);doc.body.replaceChildren(renderPage);doc.defaultView.scrollTo(0,0);await doc.fonts.ready;
+    const pageWidth=renderPage.offsetWidth,pageHeight=renderPage.offsetHeight;
+    const canvas=await window.html2canvas(renderPage,{scale:2.5,backgroundColor:'#ffffff',logging:false,useCORS:true,width:pageWidth,height:pageHeight,windowWidth:1100,windowHeight:1400,scrollX:0,scrollY:0}),pageBlob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(Error('No se pudo preparar una página del PDF.')),'image/png')),pageImage=new Uint8Array(await pageBlob.arrayBuffer());
     pdf.addImage(pageImage,'PNG',0,0,pageWidth,pageHeight,`policy-page-${i+1}`,'FAST');canvas.width=canvas.height=1;
    }
    if(pdf.getNumberOfPages()!==pages.length)throw Error('La paginación del PDF no coincide con la vista previa.');

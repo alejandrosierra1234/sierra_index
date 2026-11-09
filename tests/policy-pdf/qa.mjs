@@ -28,8 +28,8 @@ try{
   let failedLogo='';try{await PolicyLocalPdf.generate({...policy,companyLogo:'https://policy-render.invalid/missing.png'})}catch(error){failedLogo=error.message}
   const unicode=await PolicyLocalPdf.generate({...policy,title:'PRUEBA 🧵',companyLogo:''});
   const batch=await PolicyLocalPdf.generate([policy,{...policy,confidential:false,companyLogo:''}]);
-  const renderedPages=[...root.querySelectorAll('.policy-page')],pageTexts=renderedPages.map(node=>node.innerText),overflowingPages=renderedPages.filter(node=>{const area=node.querySelector('.policy-page-content');return area.scrollHeight>area.clientHeight+1}).length;
-  return {pdf:Array.from(new Uint8Array(await blob.arrayBuffer())),batch:Array.from(new Uint8Array(await batch.arrayBuffer())),unicode:Array.from(new Uint8Array(await unicode.arrayBuffer())),pages:pageTexts.length,pageTexts,text:root.innerText,contentImages:root.querySelectorAll('.policy-section-body figure img').length,overflowingPages,progress,elapsed,concurrent,failedLogo,unchanged:before===JSON.stringify(policy),leakedFrames:document.querySelectorAll('iframe').length};
+  const renderedPages=[...root.querySelectorAll('.policy-page')],pageTexts=renderedPages.map(node=>node.innerText),overflowingPages=renderedPages.filter(node=>{const area=node.querySelector('.policy-page-content');return area.scrollHeight>area.clientHeight+1}).length,pageChrome=renderedPages.map(node=>({headers:node.querySelectorAll('.policy-document-header').length,footers:node.querySelectorAll('.policy-footer').length}));
+  return {pdf:Array.from(new Uint8Array(await blob.arrayBuffer())),batch:Array.from(new Uint8Array(await batch.arrayBuffer())),unicode:Array.from(new Uint8Array(await unicode.arrayBuffer())),pages:pageTexts.length,pageTexts,pageChrome,text:root.innerText,contentImages:root.querySelectorAll('.policy-section-body figure img').length,overflowingPages,progress,elapsed,concurrent,failedLogo,unchanged:before===JSON.stringify(policy),leakedFrames:document.querySelectorAll('iframe').length};
  },samplePolicy);
  assert.match(result.concurrent,/Ya se está generando/);assert.match(result.failedLogo,/logotipo/);
  assert.equal(result.unchanged,true);assert.equal(result.leakedFrames,0);assert.deepEqual(errors,[]);
@@ -45,6 +45,7 @@ try{
  for(let i=1;i<=9;i++)assert.match(result.text,new RegExp(`FILA-MEDIA-${i}(?:\\s|$)`),`Table row ${i} must survive pagination`);
  assert.equal(result.contentImages,2,'Image blocks survive in normal text and inside a table cell');
  assert.equal(result.overflowingPages,0,'No page may clip content outside its printable area');
+ result.pageChrome.forEach((page,index)=>{assert.equal(page.headers,1,`Page ${index+1} must keep its header`);assert.equal(page.footers,1,`Page ${index+1} must keep its footer`)});
  const pdfSource=Buffer.from(result.pdf).toString('latin1'),pageImages=(pdfSource.match(/\/Subtype\s*\/Image/g)||[]).length;
  assert(pageImages>=result.pages,`Every PDF page must contain a rendered page image; found ${pageImages} for ${result.pages} pages`);
  assert(Buffer.from(result.unicode).toString('latin1').includes('/Subtype /Image'),'Unicode PDF must render through the browser image pipeline');
