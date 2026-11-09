@@ -26,12 +26,12 @@ try{
   let concurrent='';try{await PolicyLocalPdf.generate(policy)}catch(error){concurrent=error.message}
   const blob=await pending,elapsed=performance.now()-start;
   let failedLogo='';try{await PolicyLocalPdf.generate({...policy,companyLogo:'https://policy-render.invalid/missing.png'})}catch(error){failedLogo=error.message}
-  let failedGlyph='';try{await PolicyLocalPdf.generate({...policy,title:'PRUEBA 🧵',companyLogo:''})}catch(error){failedGlyph=error.message}
+  const unicode=await PolicyLocalPdf.generate({...policy,title:'PRUEBA 🧵',companyLogo:''});
   const batch=await PolicyLocalPdf.generate([policy,{...policy,confidential:false,companyLogo:''}]);
   const renderedPages=[...root.querySelectorAll('.policy-page')],pageTexts=renderedPages.map(node=>node.innerText),overflowingPages=renderedPages.filter(node=>{const area=node.querySelector('.policy-page-content');return area.scrollHeight>area.clientHeight+1}).length;
-  return {pdf:Array.from(new Uint8Array(await blob.arrayBuffer())),batch:Array.from(new Uint8Array(await batch.arrayBuffer())),pages:pageTexts.length,pageTexts,text:root.innerText,contentImages:root.querySelectorAll('.policy-section-body figure img').length,overflowingPages,progress,elapsed,concurrent,failedLogo,failedGlyph,unchanged:before===JSON.stringify(policy),leakedFrames:document.querySelectorAll('iframe').length};
+  return {pdf:Array.from(new Uint8Array(await blob.arrayBuffer())),batch:Array.from(new Uint8Array(await batch.arrayBuffer())),unicode:Array.from(new Uint8Array(await unicode.arrayBuffer())),pages:pageTexts.length,pageTexts,text:root.innerText,contentImages:root.querySelectorAll('.policy-section-body figure img').length,overflowingPages,progress,elapsed,concurrent,failedLogo,unchanged:before===JSON.stringify(policy),leakedFrames:document.querySelectorAll('iframe').length};
  },samplePolicy);
- assert.match(result.concurrent,/Ya se está generando/);assert.match(result.failedLogo,/logotipo/);assert.match(result.failedGlyph,/carácter/);
+ assert.match(result.concurrent,/Ya se está generando/);assert.match(result.failedLogo,/logotipo/);
  assert.equal(result.unchanged,true);assert.equal(result.leakedFrames,0);assert.deepEqual(errors,[]);
  assert.equal(requests.some(r=>r.method!=='GET'||r.host!=='policy-render.invalid'),false,'No snapshots/tokens sent anywhere');
  assert.match(result.pageTexts[0],/03\s+LINEAMIENTOS GENERALES/,'A long section should use the remaining space on the current page');
@@ -45,9 +45,12 @@ try{
  for(let i=1;i<=9;i++)assert.match(result.text,new RegExp(`FILA-MEDIA-${i}(?:\\s|$)`),`Table row ${i} must survive pagination`);
  assert.equal(result.contentImages,2,'Image blocks survive in normal text and inside a table cell');
  assert.equal(result.overflowingPages,0,'No page may clip content outside its printable area');
+ const pdfSource=Buffer.from(result.pdf).toString('latin1'),pageImages=(pdfSource.match(/\/Subtype\s*\/Image/g)||[]).length;
+ assert(pageImages>=result.pages,`Every PDF page must contain a rendered page image; found ${pageImages} for ${result.pages} pages`);
+ assert(Buffer.from(result.unicode).toString('latin1').includes('/Subtype /Image'),'Unicode PDF must render through the browser image pipeline');
  assert(result.progress.every((value,i)=>!i||value>=result.progress[i-1]));
  await writeFile(new URL('policy.pdf',out),Buffer.from(result.pdf));await writeFile(new URL('batch.pdf',out),Buffer.from(result.batch));
- const metrics={...result,pdf:undefined,batch:undefined};await writeFile(new URL('metrics.json',out),JSON.stringify(metrics,null,2));
+ const metrics={...result,pdf:undefined,batch:undefined,unicode:undefined,pageImages};await writeFile(new URL('metrics.json',out),JSON.stringify(metrics,null,2));
  for(let i=0;i<result.pages;i++)await page.locator('.policy-page').nth(i).screenshot({path:new URL(`preview-${i+1}.png`,out).pathname});
  console.log(JSON.stringify({pages:result.pages,bytes:result.pdf.length,milliseconds:Math.round(result.elapsed),checks:['batch','concurrent','missing logo','missing glyph','cleanup','no mutation','no external requests']}));
 }finally{await browser.close()}
