@@ -131,5 +131,7 @@ function fixture({ tainted = false, storage = false, status = 200 } = {}) {
   assert.match(html, /if\(!_policyCurrent\|\|_policyPdfBusy\)return/)
   assert.match(local, /Página \$\{i\+1\} de \$\{pages\.length\}/)
   assert.match(html, /policyExportProgress\(true,'PDF listo'/)
+  assert.match(html, /PDF guardado: \$\{name\}\. Revisa Descargas o la ubicación elegida\./)
+  assert.doesNotMatch(html, /PDF listo\. La descarga ha comenzado\./)
   console.log('PASS: SVG logo and PDF boxes preserve intrinsic aspect ratio')
 })().catch(error => { console.error(error); process.exitCode = 1 })
