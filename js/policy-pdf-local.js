@@ -17,6 +17,32 @@
   if(head!=='%PDF-'||!tail.includes('%%EOF'))throw Error('El PDF quedó incompleto. No se descargó el archivo; vuelve a intentarlo.');
   return new Blob([buffer],{type:'application/pdf'});
  }
+ let reservedDownload=null;
+ const edgeFilePicker=()=>/Edg\//.test(navigator.userAgent)&&typeof window.showSaveFilePicker==='function';
+ function reservedFileName(button){
+  if(button.matches('[data-policy-pdf]')&&typeof _policyCurrent!=='undefined'&&_policyCurrent)return policyFileName(_policyCurrent);
+  if(button.matches('[data-policy-bulk-pdf]'))return `Politicas-seleccionadas-${policyLocalDate()}.pdf`;
+  const id=button.getAttribute('onclick')?.match(/policyDownloadFromLibrary\('([^']+)'/)?.[1],policy=typeof _policies!=='undefined'?_policies.find(item=>item.id===id):null;
+  return policy?policyFileName(policy):'politica-sierra.pdf';
+ }
+ document.addEventListener('click',event=>{
+  const button=event.target.closest?.('[data-policy-pdf],[data-policy-bulk-pdf],button[onclick*="policyDownloadFromLibrary"]');
+  if(!button||!edgeFilePicker()||button.disabled)return;
+  const name=reservedFileName(button);
+  try{reservedDownload=window.showSaveFilePicker({suggestedName:name,types:[{description:'Documento PDF',accept:{'application/pdf':['.pdf']}}]}).then(handle=>({handle})).catch(error=>({error}));}
+  catch(error){reservedDownload=Promise.resolve({error});}
+ },true);
+ const legacyPolicySave=window.policySavePdfBlob;
+ window.policySavePdfBlob=function(blob,name){
+  const reservation=reservedDownload;reservedDownload=null;
+  if(!reservation)return legacyPolicySave(blob,name);
+  reservation.then(async({handle,error})=>{
+   if(error?.name==='AbortError'){toast?.('Descarga cancelada.');return}
+   if(!handle){legacyPolicySave(blob,name);return}
+   try{const writer=await handle.createWritable();await writer.write(blob);await writer.close();toast?.('PDF guardado correctamente.');}
+   catch(writeError){console.error('No se pudo guardar el PDF con el selector de Edge:',writeError);legacyPolicySave(blob,name)}
+  }).catch(error=>{console.error('No se pudo reservar el destino del PDF:',error);legacyPolicySave(blob,name)});
+ };
  async function decodedImage(image){try{if(!image.complete||!image.naturalWidth)await image.decode()}catch{}if(!image.naturalWidth||!image.naturalHeight)throw Error('Una imagen de la política no se pudo preparar. Vuelve a cargarla y reintenta la descarga.')}
  async function portableImages(doc,host){
   if(typeof indexAssets!=='undefined')await indexAssets.images(host);
