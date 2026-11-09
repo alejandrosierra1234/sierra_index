@@ -15,7 +15,7 @@ const window = {
 }
 const context = vm.createContext({
   window,
-  navigator: { userAgent: 'Mozilla/5.0 Edg/154.0.0.0' },
+  navigator: { userAgent: 'Mozilla/5.0 Chrome/154.0.0.0' },
   document: {
     currentScript: { src: 'https://index.test/js/policy-pdf-local.js' },
     addEventListener: (name, listener, capture) => {
@@ -44,19 +44,18 @@ const button = {
 ;(async () => {
   clickListener({ target: { closest: () => button } })
   const blob = new Blob(['%PDF-', 'content', '%%EOF'], { type: 'application/pdf' })
-  window.policySavePdfBlob(blob, 'policy.pdf')
-  await new Promise(resolve => setImmediate(resolve))
+  const saved = await window.policySavePdfBlob(blob, 'policy.pdf')
   assert.equal(pickerCalls, 1)
   assert.equal(written, blob)
   assert.equal(closed, true)
   assert.equal(legacyCalls, 0)
-  assert.equal(message, 'PDF guardado correctamente.')
+  assert.equal(saved, true)
 
   window.showSaveFilePicker = async () => { const error = Error('cancelled'); error.name = 'AbortError'; throw error }
   clickListener({ target: { closest: () => button } })
-  window.policySavePdfBlob(blob, 'policy.pdf')
-  await new Promise(resolve => setImmediate(resolve))
+  const cancelled = await window.policySavePdfBlob(blob, 'policy.pdf')
   assert.equal(legacyCalls, 0, 'cancelling the native picker must not start a fallback download')
+  assert.equal(cancelled, false)
   assert.equal(message, 'Descarga cancelada.')
-  console.log('PASS: Edge reserves a native PDF destination before asynchronous generation')
+  console.log('PASS: Chromium reserves a native PDF destination before asynchronous generation')
 })().catch(error => { console.error(error); process.exitCode = 1 })
