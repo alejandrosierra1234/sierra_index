@@ -12,7 +12,6 @@
   return new Blob([buffer],{type:'application/pdf'});
  }
  let reservedDownload=null;
- const nativeFilePicker=()=>typeof window.showSaveFilePicker==='function';
  function downloadWindow(name){
   const popup=window.open?.('','_blank');if(!popup)return null;
   const doc=popup.document;doc.open();doc.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Preparando PDF · SIERRA Index</title><style>html{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f5f5f5;color:#2b2b2b}body{min-height:100vh;margin:0;display:grid;place-items:center}.card{width:min(440px,calc(100% - 48px));box-sizing:border-box;padding:32px;background:#fff;border:1px solid #e5e5e5;border-radius:12px;text-align:center}.mark{color:#007d73;font-weight:700;letter-spacing:.08em}.file{display:block;margin:12px 0 24px;overflow-wrap:anywhere;color:#444}.download{display:inline-flex;min-height:48px;align-items:center;justify-content:center;padding:0 24px;border-radius:8px;background:#2b2b2b;color:#fff;text-decoration:none;font-weight:650}.download[hidden]{display:none}.meta{margin:12px 0 0;color:#666;font-size:14px}@media(prefers-reduced-motion:no-preference){.working{animation:pulse 1.2s ease-in-out infinite alternate}@keyframes pulse{to{opacity:.45}}}</style></head><body><main class="card"><div class="mark">SIERRA INDEX</div><h1 id="download-title" class="working">Preparando PDF…</h1><strong id="download-file" class="file"></strong><a id="download-link" class="download" hidden>Descargar PDF</a><p id="download-meta" class="meta">Esta pestaña mantendrá disponible el archivo aunque el navegador bloquee la descarga automática.</p></main></body></html>`);doc.close();doc.getElementById('download-file').textContent=name;return popup;
@@ -31,22 +30,17 @@
   const button=event.target.closest?.('[data-policy-pdf],[data-policy-bulk-pdf],button[onclick*="policyDownloadFromLibrary"]');
   if(!button||button.disabled)return;
   const name=reservedFileName(button);
-  if(nativeFilePicker()){
-   try{reservedDownload=window.showSaveFilePicker({suggestedName:name,types:[{description:'Documento PDF',accept:{'application/pdf':['.pdf']}}]}).then(handle=>({handle})).catch(error=>({error}));}
-   catch(error){reservedDownload=Promise.resolve({error});}
-  }else reservedDownload=Promise.resolve({popup:downloadWindow(name)});
+  reservedDownload=Promise.resolve({popup:downloadWindow(name)});
  },true);
  const legacyPolicySave=window.policySavePdfBlob;
  window.policySavePdfBlob=async function(blob,name){
   const reservation=reservedDownload;reservedDownload=null;
   if(!reservation){legacyPolicySave(blob,name);return true}
   try{
-   const {handle,error,popup}=await reservation;
-   if(error?.name==='AbortError'){toast?.('Descarga cancelada.');return false}
+   const {popup}=await reservation;
    if(popup){const ready=completeDownloadWindow(popup,blob,name);if(ready)return {pendingUser:true};legacyPolicySave(blob,name);return true}
-   if(!handle){legacyPolicySave(blob,name);return true}
-   const writer=await handle.createWritable();await writer.write(blob);await writer.close();return true;
-  }catch(error){console.error('No se pudo guardar el PDF con el selector del navegador:',error);legacyPolicySave(blob,name);return true}
+   legacyPolicySave(blob,name);return true;
+  }catch(error){console.error('No se pudo preparar la pestaña de descarga:',error);legacyPolicySave(blob,name);return true}
  };
  async function decodedImage(image){try{if(!image.complete||!image.naturalWidth)await image.decode()}catch{}if(!image.naturalWidth||!image.naturalHeight)throw Error('Una imagen de la política no se pudo preparar. Vuelve a cargarla y reintenta la descarga.')}
  async function portableImages(doc,host){
