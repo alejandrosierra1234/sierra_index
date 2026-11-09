@@ -10,6 +10,13 @@
  ];
  let fontData, busy=false;
  const pause=()=>new Promise(resolve=>setTimeout(resolve,0));
+ function completedPdfBlob(pdf){
+  const buffer=pdf.output('arraybuffer');
+  if(!(buffer instanceof ArrayBuffer)||buffer.byteLength<1024)throw Error('El PDF no terminó de generarse. No se descargó un archivo vacío. Inténtalo nuevamente.');
+  const bytes=new Uint8Array(buffer),head=String.fromCharCode(...bytes.subarray(0,5)),tail=new TextDecoder('latin1').decode(bytes.subarray(Math.max(0,bytes.length-2048)));
+  if(head!=='%PDF-'||!tail.includes('%%EOF'))throw Error('El PDF quedó incompleto. No se descargó el archivo; vuelve a intentarlo.');
+  return new Blob([buffer],{type:'application/pdf'});
+ }
  async function decodedImage(image){try{if(!image.complete||!image.naturalWidth)await image.decode()}catch{}if(!image.naturalWidth||!image.naturalHeight)throw Error('Una imagen de la política no se pudo preparar. Vuelve a cargarla y reintenta la descarga.')}
  async function portableImages(doc,host){
   if(typeof indexAssets!=='undefined')await indexAssets.images(host);
@@ -130,7 +137,7 @@
     const pageBox=pages[i].getBoundingClientRect();for(const placeholder of pages[i].querySelectorAll('[data-policy-export-image]')){const item=media.get(placeholder.dataset.policyExportImage);if(!item)continue;const box=placeholder.getBoundingClientRect();pdf.saveGraphicsState();try{pdf.addImage(item.bytes,item.format,box.left-pageBox.left,box.top-pageBox.top,box.width,box.height,placeholder.dataset.policyExportImage,'FAST')}finally{pdf.restoreGraphicsState()}}
    }
    if(pdf.getNumberOfPages()!==pages.length)throw Error('La paginación del PDF no coincide con la vista previa.');
-   onProgress('Finalizando descarga','Preparando el archivo…',98);await pause();return pdf.output('blob');
+   onProgress('Finalizando descarga','Verificando el archivo completo…',98);await pause();return completedPdfBlob(pdf);
   }catch(error){
    if(error.name==='TimeoutError')throw Error('La carga de una fuente o logotipo tardó demasiado. Vuelve a intentar la descarga.');
    throw error;
