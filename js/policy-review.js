@@ -212,6 +212,12 @@
  policyRenderPreview=function(){
    clearTimeout(_policyPreviewTimer);_policyPreviewTimer=null;
    const sheet=$('policy-preview-sheet');if(!sheet||!current())return;
+   // The editor creates an empty sheet. Paint its source page synchronously so
+   // the first frame is useful while the fully paginated replacement is built.
+   if(!sheet.querySelector('.policy-page')){
+     sheet.innerHTML=policyPageHtml(policyActivePreviewDocument());stamp(sheet);
+     sheet.setAttribute('aria-busy','true');
+   }
    const token=++renderEpoch,next=document.createElement('div');
    policyPlaceEditorStatus();policyPrepareZoomControls();
    // Compose and paginate off-screen. The current preview (and its already painted
