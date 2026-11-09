@@ -112,7 +112,7 @@ function fixture({ tainted = false, storage = false, status = 200 } = {}) {
   assert.match(local, /pdf\.output\('arraybuffer'\)/)
   assert.match(local, /head!==['"]%PDF-['"]/)
   assert.match(local, /tail\.includes\(['"]%%EOF['"]\)/)
-  assert.match(local, /\/Edg\\\/\/\.test\(navigator\.userAgent\)/)
+  assert.match(local, /typeof window\.showSaveFilePicker===['"]function['"]/)
   assert.match(local, /window\.showSaveFilePicker/)
   assert.match(local, /await handle\.createWritable\(\)/)
   assert.match(local, /await writer\.write\(blob\)/)
