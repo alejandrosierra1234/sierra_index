@@ -57,5 +57,16 @@ const button = {
   assert.equal(legacyCalls, 0, 'cancelling the native picker must not start a fallback download')
   assert.equal(cancelled, false)
   assert.equal(message, 'Descarga cancelada.')
-  console.log('PASS: Chromium reserves a native PDF destination before asynchronous generation')
+
+  const elements = new Map(), makeElement = id => ({ id, classList: { remove() {} }, addEventListener() {}, click() { this.clicked = true } })
+  for (const id of ['download-title', 'download-file', 'download-link', 'download-meta']) elements.set(id, makeElement(id))
+  const popup = { closed: false, document: { open() {}, write() {}, close() {}, getElementById: id => elements.get(id) } }
+  window.showSaveFilePicker = undefined
+  window.open = () => popup
+  clickListener({ target: { closest: () => button } })
+  const fallback = await window.policySavePdfBlob(blob, 'policy.pdf')
+  assert.equal(fallback.pendingUser, true)
+  assert.equal(elements.get('download-link').download, 'policy.pdf')
+  assert.equal(elements.get('download-link').clicked, true)
+  console.log('PASS: Chromium reserves a native destination or a durable download tab before generation')
 })().catch(error => { console.error(error); process.exitCode = 1 })
