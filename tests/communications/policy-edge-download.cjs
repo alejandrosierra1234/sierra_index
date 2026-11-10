@@ -4,39 +4,34 @@ const path = require('node:path')
 const vm = require('node:vm')
 
 const source = fs.readFileSync(path.join(__dirname, '../../js/policy-pdf-local.js'), 'utf8')
-let clickListener, legacyCalls = 0
-const elements = new Map()
-const makeElement = id => ({
-  id,
-  classList: { remove() {} },
-  addEventListener() {},
-  click() { this.clicked = true },
-})
-for (const id of ['download-title', 'download-file', 'download-link', 'download-meta']) elements.set(id, makeElement(id))
-const popup = {
-  closed: false,
-  document: {
-    open() {},
-    write() {},
-    close() {},
-    getElementById: id => elements.get(id),
-  },
-}
+let clickListener, legacyCalls = 0, reservedLink
 const window = {
   policySavePdfBlob: () => { legacyCalls++ },
   showSaveFilePicker: () => { throw Error('The native picker must never be used') },
-  open: () => popup,
+  open: () => { throw Error('Policy downloads must never open a new tab') },
+}
+const document = {
+  currentScript: { src: 'https://index.test/js/policy-pdf-local.js' },
+  body: { append(link) { link.isConnected = true; reservedLink = link } },
+  createElement: tag => {
+    assert.equal(tag, 'a')
+    return {
+      hidden: false,
+      isConnected: false,
+      setAttribute(name, value) { this[name] = value },
+      click() { this.clicked = true },
+      remove() { this.isConnected = false },
+    }
+  },
+  addEventListener: (name, listener, capture) => {
+    assert.equal(name, 'click')
+    assert.equal(capture, true)
+    clickListener = listener
+  },
 }
 const context = vm.createContext({
   window,
-  document: {
-    currentScript: { src: 'https://index.test/js/policy-pdf-local.js' },
-    addEventListener: (name, listener, capture) => {
-      assert.equal(name, 'click')
-      assert.equal(capture, true)
-      clickListener = listener
-    },
-  },
+  document,
   URL,
   Blob,
   TextDecoder,
@@ -55,13 +50,16 @@ const button = {
 
 ;(async () => {
   clickListener({ target: { closest: () => button } })
-  assert.equal(elements.get('download-file').textContent, 'politica-sierra.pdf')
+  assert.equal(reservedLink.download, 'politica-sierra.pdf')
+  assert.equal(reservedLink.hidden, true)
+  assert.equal(reservedLink['aria-hidden'], 'true')
 
   const blob = new Blob(['%PDF-', 'content', '%%EOF'], { type: 'application/pdf' })
   const saved = await window.policySavePdfBlob(blob, 'policy.pdf')
-  assert.equal(saved.pendingUser, true)
-  assert.equal(elements.get('download-link').download, 'policy.pdf')
-  assert.equal(elements.get('download-link').clicked, true)
+  assert.equal(saved, true)
+  assert.equal(reservedLink.download, 'policy.pdf')
+  assert.match(reservedLink.href, /^blob:/)
+  assert.equal(reservedLink.clicked, true)
   assert.equal(legacyCalls, 0)
-  console.log('PASS: every browser receives a durable PDF download tab before generation')
+  console.log('PASS: policy PDFs download in the current tab without a popup or native picker')
 })().catch(error => { console.error(error); process.exitCode = 1 })
