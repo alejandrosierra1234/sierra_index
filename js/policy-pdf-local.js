@@ -2,8 +2,15 @@
 (function(){
  'use strict';
  const root=new URL('../',document.currentScript.src);
+ const EXPORT_VERSION='2026.11.09.6';
+ const TIMEOUT={asset:30000,font:30000,layout:45000,page:60000,total:240000};
+ const STAGES=Object.freeze({IDLE:'idle',ASSETS:'preparing-assets',LAYOUT:'layout',RENDER:'rendering',VALIDATE:'validating',DOWNLOAD:'downloading',COMPLETE:'complete',ERROR:'error'});
  let busy=false;
+ let diagnostics=[];
  const pause=()=>new Promise(resolve=>setTimeout(resolve,0));
+ class PolicyPdfError extends Error{constructor(code,stage,message,cause){super(message,{cause});this.name='PolicyPdfError';this.code=code;this.stage=stage}}
+ function timeout(promise,milliseconds,code,stage,message){let timer;return Promise.race([Promise.resolve(promise),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new PolicyPdfError(code,stage,message)),milliseconds)})]).finally(()=>clearTimeout(timer))}
+ function diagnostic(entry){const safe={at:new Date().toISOString(),version:EXPORT_VERSION,stage:entry.stage,code:entry.code||'',duration:Math.round(entry.duration||0),pages:Number(entry.pages||0),documents:Number(entry.documents||0),browser:navigator.userAgent.slice(0,160)};diagnostics=[...diagnostics.slice(-9),safe];try{const key='sierra:policy-pdf-diagnostics',prior=JSON.parse(localStorage.getItem(key)||'[]');localStorage.setItem(key,JSON.stringify([...prior.slice(-9),safe]))}catch{}}
  function completedPdfBlob(pdf){
   const buffer=pdf.output('arraybuffer');
   if(!(buffer instanceof ArrayBuffer)||buffer.byteLength<1024)throw Error('El PDF no terminó de generarse. No se descargó un archivo vacío. Inténtalo nuevamente.');
@@ -26,7 +33,7 @@
  }
  document.addEventListener('click',event=>{
   const button=event.target.closest?.('[data-policy-pdf],[data-policy-bulk-pdf],button[onclick*="policyDownloadFromLibrary"]');
-  if(!button||button.disabled)return;
+  if(!button||button.disabled||busy)return;
   const name=reservedFileName(button);
   reservedDownload=reservedDownloadLink(name);
  },true);
@@ -39,13 +46,13 @@
    legacyPolicySave(blob,name);return true;
   }catch(error){console.error('No se pudo completar la descarga reservada:',error);reservation?.remove?.();legacyPolicySave(blob,name);return true}
  };
- async function decodedImage(image){try{if(!image.complete||!image.naturalWidth)await image.decode()}catch{}if(!image.naturalWidth||!image.naturalHeight)throw Error('Una imagen de la política no se pudo preparar. Vuelve a cargarla y reintenta la descarga.')}
+ async function decodedImage(image){try{if(!image.complete||!image.naturalWidth)await timeout(image.decode(),TIMEOUT.asset,'IMAGE_DECODE_TIMEOUT',STAGES.ASSETS,'Una imagen tardó demasiado en cargar. No se descargó un PDF incompleto.')}catch(error){if(error instanceof PolicyPdfError)throw error}if(!image.naturalWidth||!image.naturalHeight)throw new PolicyPdfError('IMAGE_INVALID',STAGES.ASSETS,'Una imagen de la política no se pudo preparar. Vuelve a cargarla y reintenta la descarga.')}
  async function portableImages(doc,host){
   if(typeof indexAssets!=='undefined')await indexAssets.images(host);
   for(const image of host.querySelectorAll('img')){
    await decodedImage(image);
    if(/^data:/i.test(image.src))continue;
-   const response=await fetch(image.src,{mode:'cors',credentials:'omit',signal:AbortSignal.timeout(30000)});
+   const response=await fetch(image.src,{mode:'cors',credentials:'omit',signal:AbortSignal.timeout(TIMEOUT.asset)});
    if(!response.ok)throw Error('No se pudo cargar una imagen del contenido. No se descargó un PDF incompleto.');
    const blob=await response.blob(),data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)});
    image.removeAttribute('crossorigin');image.src=data;await decodedImage(image);
@@ -67,9 +74,12 @@
   const policies=JSON.parse(JSON.stringify((Array.isArray(value)?value:[value]).filter(Boolean)));
   if(!policies.length)throw Error('Selecciona una política para descargar.');
   if(policies.length>10)throw Error('Selecciona hasta 10 políticas por descarga.');
-  busy=true;let frame;
+  busy=true;let frame,totalTimer,stage=STAGES.IDLE,pageCount=0;const started=performance.now();
+  const report=(next,title,detail,percent)=>{stage=next;onProgress(title,detail,percent)};
   try{
-   onProgress('Preparando PDF','Cargando el diseño y las tipografías…',5);await pause();
+   const totalGuard=new Promise((_,reject)=>{totalTimer=setTimeout(()=>reject(new PolicyPdfError('EXPORT_TIMEOUT',stage,'La preparación completa tardó demasiado. No se descargó un archivo incompleto.')),TIMEOUT.total)});
+   const work=(async()=>{
+   report(STAGES.ASSETS,'Preparando PDF','Cargando el diseño, los logos y las tipografías…',5);await pause();
    const pdf=new window.jspdf.jsPDF({unit:'px',format:[216*96/25.4,279.4*96/25.4],hotfixes:['px_scaling'],compress:true,floatPrecision:8});
    frame=document.createElement('iframe');frame.title='Preparación privada del PDF';frame.setAttribute('aria-hidden','true');frame.tabIndex=-1;
    frame.style.cssText='position:fixed;left:-20000px;top:0;width:1100px;height:1400px;border:0;pointer-events:none';document.body.append(frame);
@@ -79,38 +89,34 @@
    const reset=doc.createElement('style');reset.textContent='html,body{display:block!important;margin:0!important;padding:0!important;min-height:0!important;height:auto!important;overflow:visible!important;background:white!important;color-scheme:light}.policy-page-set{display:block!important;gap:0!important}.policy-page{margin:0!important;box-shadow:none!important}.policy-comment-marker,.policy-comment-rail,[data-policy-comment-marker]{display:none!important}';doc.head.append(reset);
    const pages=[];
    for(let i=0;i<policies.length;i++){
-    onProgress('Preparando páginas',`Documento ${i+1} de ${policies.length}: conservando el diseño…`,10+15*i/policies.length);
+    report(STAGES.ASSETS,'Preparando recursos',`Documento ${i+1} de ${policies.length}: incorporando logos e imágenes…`,8+12*i/policies.length);
     let p={...policies[i],comments:[]};
-    if(p.companyLogo){
-     if(/\.svg(?:[?#]|$)|^data:image\/svg\+xml/i.test(p.companyLogo))p=await policyRasterizeSvgLogo(p);
-     else if(!/^data:/i.test(p.companyLogo)){
-      const url=typeof indexAssets!=='undefined'&&indexAssets.path(p.companyLogo)!==null?await indexAssets.resolve(p.companyLogo):p.companyLogo;
-      const response=await fetch(url,{mode:'cors',credentials:'omit',signal:AbortSignal.timeout(30000)});if(!response.ok)throw Error('No se pudo cargar el logotipo. No se descargó un PDF incompleto.');
-      p.companyLogo=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;response.blob().then(blob=>reader.readAsDataURL(blob),reject)});
-     }
-    }
+    if(p.companyLogo)p=await timeout(policyPrepareExportLogo(p),TIMEOUT.asset,'LOGO_TIMEOUT',STAGES.ASSETS,'El logotipo tardó demasiado en prepararse. No se descargó un PDF incompleto.');
     const host=doc.createElement('div');host.innerHTML=policyPageHtml(p);doc.body.replaceChildren(host);
-    await doc.fonts.ready;await portableImages(doc,host);
+    await timeout(doc.fonts.ready,TIMEOUT.font,'FONT_TIMEOUT',STAGES.ASSETS,'Las tipografías tardaron demasiado en cargar. Vuelve a intentarlo.');
+    await timeout(portableImages(doc,host),TIMEOUT.asset,'ASSET_TIMEOUT',STAGES.ASSETS,'Las imágenes tardaron demasiado en prepararse. No se descargó un PDF incompleto.');
     if([...doc.fonts].some(face=>face.status==='error'))throw Error('Falta una tipografía. Recarga la aplicación antes de descargar.');
-    policyPaginateDom(doc,host);policyFitExportLogos(host);
+    report(STAGES.LAYOUT,'Organizando páginas',`Documento ${i+1} de ${policies.length}: validando la paginación…`,20+10*i/policies.length);
+    await timeout(Promise.resolve().then(()=>{policyPaginateDom(doc,host);policyFitExportLogos(host)}),TIMEOUT.layout,'LAYOUT_TIMEOUT',STAGES.LAYOUT,'La paginación tardó demasiado. Revisa el contenido e inténtalo de nuevo.');
     for(const content of host.querySelectorAll('.policy-page-content'))if(content.scrollHeight>content.clientHeight+2)throw Error('Hay contenido que no cabe en una página. Revisa la sección antes de descargar.');
     pages.push(...host.querySelectorAll('.policy-page'));await pause();
    }
    if(pages.length>150)throw Error('Descarga hasta 150 páginas por archivo.');
-   pdf.setProperties({title:policies.length===1?policies[0].title:'Políticas seleccionadas',creator:'SIERRA Index'});
+   pageCount=pages.length;pdf.setProperties({title:policies.length===1?policies[0].title:'Políticas seleccionadas',creator:'SIERRA Index',subject:`SIERRA Index Policy Export ${EXPORT_VERSION}`});
    for(let i=0;i<pages.length;i++){
-    onProgress('Generando PDF',`Página ${i+1} de ${pages.length} · Conservando todo el contenido.`,25+70*i/pages.length);await pause();
-    if(i)pdf.addPage();const renderPage=pages[i].cloneNode(true);doc.body.replaceChildren(renderPage);doc.defaultView.scrollTo(0,0);await doc.fonts.ready;
+    report(STAGES.RENDER,'Generando PDF',`Página ${i+1} de ${pages.length} · Conservando todo el contenido.`,30+65*i/pages.length);await pause();
+    if(i)pdf.addPage();const renderPage=pages[i].cloneNode(true);doc.body.replaceChildren(renderPage);doc.defaultView.scrollTo(0,0);await timeout(doc.fonts.ready,TIMEOUT.font,'FONT_TIMEOUT',STAGES.RENDER,'Las tipografías tardaron demasiado en cargar. Vuelve a intentarlo.');
     const pageWidth=renderPage.offsetWidth,pageHeight=renderPage.offsetHeight;
-    const canvas=await window.html2canvas(renderPage,{scale:2.5,backgroundColor:'#ffffff',logging:false,useCORS:true,width:pageWidth,height:pageHeight,windowWidth:1100,windowHeight:1400,scrollX:0,scrollY:0}),pageBlob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(Error('No se pudo preparar una página del PDF.')),'image/png')),pageImage=new Uint8Array(await pageBlob.arrayBuffer());
+    const canvas=await timeout(window.html2canvas(renderPage,{scale:2.5,backgroundColor:'#ffffff',logging:false,useCORS:true,width:pageWidth,height:pageHeight,windowWidth:1100,windowHeight:1400,scrollX:0,scrollY:0}),TIMEOUT.page,'PAGE_TIMEOUT',STAGES.RENDER,`La página ${i+1} tardó demasiado en procesarse. No se descargó un PDF incompleto.`),pageBlob=await timeout(new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(Error('No se pudo preparar una página del PDF.')),'image/png')),TIMEOUT.page,'PAGE_BLOB_TIMEOUT',STAGES.RENDER,'No se pudo finalizar una página del PDF.'),pageImage=new Uint8Array(await pageBlob.arrayBuffer());
     pdf.addImage(pageImage,'PNG',0,0,pageWidth,pageHeight,`policy-page-${i+1}`,'FAST');canvas.width=canvas.height=1;
    }
    if(pdf.getNumberOfPages()!==pages.length)throw Error('La paginación del PDF no coincide con la vista previa.');
-   onProgress('Finalizando descarga','Verificando el archivo completo…',98);await pause();return completedPdfBlob(pdf);
+   report(STAGES.VALIDATE,'Verificando PDF','Comprobando páginas, tamaño y cierre del archivo…',98);await pause();const blob=completedPdfBlob(pdf);report(STAGES.DOWNLOAD,'PDF listo','Entregando el archivo al navegador…',100);return blob;
+   })();
+   const blob=await Promise.race([work,totalGuard]);diagnostic({stage:STAGES.COMPLETE,duration:performance.now()-started,pages:pageCount,documents:policies.length});return blob;
   }catch(error){
-   if(error.name==='TimeoutError')throw Error('La carga de una fuente o logotipo tardó demasiado. Vuelve a intentar la descarga.');
-   throw error;
-  }finally{frame?.remove();busy=false}
+   const failure=error instanceof PolicyPdfError?error:new PolicyPdfError(error.name==='TimeoutError'?'ASSET_TIMEOUT':'EXPORT_FAILED',stage,error.message||'No se pudo generar el PDF.',error);diagnostic({stage:STAGES.ERROR,code:failure.code,duration:performance.now()-started,pages:pageCount,documents:policies.length});reservedDownload?.remove?.();reservedDownload=null;throw failure;
+  }finally{clearTimeout(totalTimer);frame?.remove();busy=false}
  }
- window.PolicyLocalPdf={generate:localPdf};
+ window.PolicyLocalPdf={generate:localPdf,stages:STAGES,version:EXPORT_VERSION,getDiagnostics(){try{return JSON.parse(localStorage.getItem('sierra:policy-pdf-diagnostics')||JSON.stringify(diagnostics))}catch{return diagnostics.slice()}}};
 })();

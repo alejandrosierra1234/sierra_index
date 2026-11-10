@@ -38665,29 +38665,31 @@ function policyZoomPage(){_policyPreviewZoom='page';policyFitPreview()}
 function policyZoomFit(){policyZoomWidth()}
 function policyTogglePreview(show){document.getElementById('policy-studio')?.classList.toggle('is-preview',show);if(show)requestAnimationFrame(policyFitPreview)}
 function policyFileName(p){const base=String(p.code||p.title||'politica').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9_-]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase();return`${base||'politica'}-rev-${String(p.version||'1').replace(/[^a-z0-9_-]+/gi,'-')}.pdf`}
-async function policyRasterizeSvgLogo(p){
+async function policyPrepareExportLogo(p){
   p=policyResolvedCompany(p);
   const durable=p.companyLogo||'',source=durable&&typeof indexAssets!=='undefined'&&indexAssets.path(durable)!==null?await indexAssets.resolve(durable):durable;
-  if(!/\.svg(?:[?#]|$)|^data:image\/svg\+xml/i.test(durable))return{...p,companyLogo:source,companyLogoExportReady:true};
+  if(!source)return{...p,companyLogo:'',companyLogoExportReady:true};
   let image,blobUrl='';
   try{
-    if(/^data:image\/svg\+xml/i.test(durable))image=await policyLoadExportImage(durable);
+    if(/^data:image\//i.test(source))image=await policyLoadExportImage(source);
     else{
-      const response=await fetch(source,{mode:'cors',credentials:'omit',cache:'no-store'});
+      const response=await fetch(source,{mode:'cors',credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(30000)});
       if(!response.ok)throw Error(`El servidor respondió ${response.status}.`);
-      const downloaded=await response.blob(),svgBlob=downloaded.type==='image/svg+xml'?downloaded:new Blob([await downloaded.arrayBuffer()],{type:'image/svg+xml'});
-      blobUrl=URL.createObjectURL(svgBlob);image=await policyLoadExportImage(blobUrl);
+      const downloaded=await response.blob();
+      if(!downloaded.type.startsWith('image/'))throw Error('El archivo del logo no es una imagen válida.');
+      blobUrl=URL.createObjectURL(downloaded);image=await policyLoadExportImage(blobUrl);
     }
     const width=image.naturalWidth,height=image.naturalHeight;
-    if(!width||!height)throw Error('El SVG no tiene dimensiones válidas.');
+    if(!width||!height||width*height>40000000)throw Error('El logo no tiene dimensiones válidas.');
     const scale=Math.min(8,1200/Math.max(width,height)),canvas=document.createElement('canvas');
     canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
-    canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
+    const context=canvas.getContext('2d');context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.clearRect(0,0,canvas.width,canvas.height);context.drawImage(image,0,0,canvas.width,canvas.height);
     return {...p,companyLogo:canvas.toDataURL('image/png'),companyLogoExportReady:true};
   }catch(error){throw Error('No se pudo preparar el logo para el PDF. Recarga la página e inténtalo de nuevo. '+(error?.message||''))}
   finally{if(blobUrl)URL.revokeObjectURL(blobUrl)}
 }
-function policyLoadExportImage(source){return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(Error('El archivo del logo no es un SVG válido.'));image.src=source})}
+const policyRasterizeSvgLogo=policyPrepareExportLogo;
+function policyLoadExportImage(source){return new Promise((resolve,reject)=>{const image=new Image(),timer=setTimeout(()=>reject(Error('El logo tardó demasiado en cargar.')),30000);image.onload=()=>{clearTimeout(timer);resolve(image)};image.onerror=()=>{clearTimeout(timer);reject(Error('El archivo del logo no es una imagen válida.'))};image.src=source})}
 function policyFitExportLogos(doc){
   doc.querySelectorAll('.policy-record-logo img').forEach(img=>{
     const width=img.naturalWidth,height=img.naturalHeight;
@@ -38766,7 +38768,7 @@ window.addEventListener('resize',()=>{if(_policyCurrent)policyFitPreview()});
 <script src="js/policy-review.js?v=20261022-1"></script>
 <script src="js/policy-catalog.js?v=20261010-1"></script>
 <script src="js/policy-numbering.js?v=20261015-1"></script>
-<script src="js/policy-pdf-local.js?v=20261109-same-tab-5"></script>
+<script src="js/policy-pdf-local.js?v=20261109-reliable-6"></script>
 <style id="simple-invitation-editor-styles"></style>
 <script id="simple-invitation-editor">
 const SIMPLE_INVITATION_CSS=`

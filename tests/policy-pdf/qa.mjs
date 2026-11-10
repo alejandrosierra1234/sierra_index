@@ -29,10 +29,13 @@ try{
   const unicode=await PolicyLocalPdf.generate({...policy,title:'PRUEBA 🧵',companyLogo:''});
   const batch=await PolicyLocalPdf.generate([policy,{...policy,confidential:false,companyLogo:''}]);
   const renderedPages=[...root.querySelectorAll('.policy-page')],pageTexts=renderedPages.map(node=>node.innerText),overflowingPages=renderedPages.filter(node=>{const area=node.querySelector('.policy-page-content');return area.scrollHeight>area.clientHeight+1}).length,pageChrome=renderedPages.map(node=>({headers:node.querySelectorAll('.policy-document-header').length,footers:node.querySelectorAll('.policy-footer').length}));
-  return {pdf:Array.from(new Uint8Array(await blob.arrayBuffer())),batch:Array.from(new Uint8Array(await batch.arrayBuffer())),unicode:Array.from(new Uint8Array(await unicode.arrayBuffer())),pages:pageTexts.length,pageTexts,pageChrome,text:root.innerText,contentImages:root.querySelectorAll('.policy-section-body figure img').length,overflowingPages,progress,elapsed,concurrent,failedLogo,unchanged:before===JSON.stringify(policy),leakedFrames:document.querySelectorAll('iframe').length};
+  return {pdf:Array.from(new Uint8Array(await blob.arrayBuffer())),batch:Array.from(new Uint8Array(await batch.arrayBuffer())),unicode:Array.from(new Uint8Array(await unicode.arrayBuffer())),pages:pageTexts.length,pageTexts,pageChrome,text:root.innerText,contentImages:root.querySelectorAll('.policy-section-body figure img').length,overflowingPages,progress,elapsed,concurrent,failedLogo,unchanged:before===JSON.stringify(policy),leakedFrames:document.querySelectorAll('iframe').length,exportVersion:PolicyLocalPdf.version,stages:PolicyLocalPdf.stages,diagnostics:PolicyLocalPdf.getDiagnostics()};
  },samplePolicy);
- assert.match(result.concurrent,/Ya se está generando/);assert.match(result.failedLogo,/logotipo/);
+ assert.match(result.concurrent,/Ya se está generando/);assert.match(result.failedLogo,/logo/i);
  assert.equal(result.unchanged,true);assert.equal(result.leakedFrames,0);assert.deepEqual(errors,[]);
+ assert.match(result.exportVersion,/^2026\.11\.09\./);assert.equal(result.stages.RENDER,'rendering');assert.equal(result.stages.VALIDATE,'validating');
+ assert(result.diagnostics.some(entry=>entry.stage==='complete'&&entry.pages===result.pages),'Successful exports leave content-free local diagnostics');
+ assert(result.diagnostics.some(entry=>entry.stage==='error'&&entry.code),'Failed exports record a stage and code');
  assert.equal(requests.some(r=>r.method!=='GET'||r.host!=='policy-render.invalid'),false,'No snapshots/tokens sent anywhere');
  assert.match(result.pageTexts[0],/03\s+LINEAMIENTOS GENERALES/,'A long section should use the remaining space on the current page');
  assert.match(result.pageTexts[1],/LINEAMIENTOS GENERALES · CONTINUACIÓN/,'A split section should continue with a clear repeated heading');
