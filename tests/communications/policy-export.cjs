@@ -4,9 +4,9 @@ const path = require('node:path')
 const vm = require('node:vm')
 
 const html = fs.readFileSync(path.join(__dirname, '../../index.html'), 'utf8')
-const start = html.indexOf('async function policyRasterizeSvgLogo(p)')
+const start = html.indexOf('async function policyPrepareExportLogo(p)')
 const end = html.indexOf('async function policyPdfBlob(p', start)
-assert(start >= 0 && end > start, 'SVG conversion helper is present')
+assert(start >= 0 && end > start, 'export logo normalization helper is present')
 
 function fixture({ tainted = false, storage = false, status = 200 } = {}) {
   const source = storage
@@ -27,7 +27,7 @@ function fixture({ tainted = false, storage = false, status = 200 } = {}) {
     createElement: type => {
       assert.equal(type, 'canvas')
       return {
-        getContext: () => ({ drawImage(value, x, y, width, height) {
+        getContext: () => ({ clearRect() {}, drawImage(value, x, y, width, height) {
           draws++
           assert(value instanceof TestImage)
           assert.deepEqual([x, y, width, height], [0, 0, 1000, 1200])
@@ -39,7 +39,10 @@ function fixture({ tainted = false, storage = false, status = 200 } = {}) {
   const context = vm.createContext({
     document,
     Blob,
+    AbortSignal,
     Image: TestImage,
+    setTimeout,
+    clearTimeout,
     policyResolvedCompany: policy => policy,
     URL: {
       createObjectURL: () => 'blob:policy-logo',
@@ -65,7 +68,7 @@ function fixture({ tainted = false, storage = false, status = 200 } = {}) {
 ;(async () => {
   const loaded = fixture()
   const draft = { companyLogo: loaded.source, title: 'Política' }
-  const result = await loaded.context.policyRasterizeSvgLogo(draft)
+  const result = await loaded.context.policyPrepareExportLogo(draft)
   assert.equal(result.companyLogo, 'data:image/png;base64,AA==')
   assert.equal(result.companyLogoExportReady, true)
   assert.equal(draft.companyLogo, loaded.source, 'saved draft keeps its SVG')
@@ -74,22 +77,22 @@ function fixture({ tainted = false, storage = false, status = 200 } = {}) {
   assert.equal(loaded.getRevoked(), 'blob:policy-logo')
 
   const expired = fixture({ storage: true })
-  const refreshed = await expired.context.policyRasterizeSvgLogo({ companyLogo: expired.source })
+  const refreshed = await expired.context.policyPrepareExportLogo({ companyLogo: expired.source })
   assert.equal(refreshed.companyLogo, 'data:image/png;base64,AA==')
   assert.equal(expired.getResolved(), expired.source, 'expired storage URL is refreshed through the active session')
   assert.equal(expired.getRequested(), expired.fresh, 'PDF fetches the refreshed signed URL')
 
   const png = { companyLogo: 'https://example.test/company.png' }
-  const readyPng = await loaded.context.policyRasterizeSvgLogo(png)
-  assert.equal(readyPng.companyLogo, png.companyLogo, 'PNG logos pass through unchanged')
-  assert.equal(readyPng.companyLogoExportReady, true, 'raster logos remain authoritative during PDF rendering')
+  const readyPng = await loaded.context.policyPrepareExportLogo(png)
+  assert.equal(readyPng.companyLogo, 'data:image/png;base64,AA==', 'PNG logos are normalized to local bytes')
+  assert.equal(readyPng.companyLogoExportReady, true, 'normalized raster logos remain authoritative during PDF rendering')
   const privatePng = fixture({ storage: true })
-  const authorizedPng = await privatePng.context.policyRasterizeSvgLogo({ companyLogo: privatePng.source.replace('.svg', '.png') })
-  assert.equal(authorizedPng.companyLogo, privatePng.fresh.replace('.svg', '.png'), 'private raster logos are authorized for the active user before PDF rendering')
+  const authorizedPng = await privatePng.context.policyPrepareExportLogo({ companyLogo: privatePng.source.replace('.svg', '.png') })
+  assert.equal(authorizedPng.companyLogo, 'data:image/png;base64,AA==', 'private raster logos are authorized and normalized before PDF rendering')
   const failure = fixture({ tainted: true })
-  await assert.rejects(failure.context.policyRasterizeSvgLogo({ companyLogo: failure.source }), /No se pudo preparar el logo para el PDF/)
+  await assert.rejects(failure.context.policyPrepareExportLogo({ companyLogo: failure.source }), /No se pudo preparar el logo para el PDF/)
   const unavailable = fixture({ status: 400 })
-  await assert.rejects(unavailable.context.policyRasterizeSvgLogo({ companyLogo: unavailable.source }), /El servidor respondió 400/)
+  await assert.rejects(unavailable.context.policyPrepareExportLogo({ companyLogo: unavailable.source }), /El servidor respondió 400/)
   const wide = (compact) => ({ naturalWidth: 300, naturalHeight: 65, style: {}, closest: () => compact ? {} : null })
   const first = wide(false), continued = wide(true), square = { naturalWidth: 100, naturalHeight: 100, style: {}, closest: () => ({}) }
   loaded.context.policyFitExportLogos({ querySelectorAll: () => [first, continued, square] })
@@ -123,7 +126,11 @@ function fixture({ tainted = false, storage = false, status = 200 } = {}) {
   assert.match(local, /link\.download=name/)
   assert.match(local, /link\.click\(\)/)
   assert.match(local, /legacyPolicySave\(blob,name\)/)
-  assert.match(index, /policy-pdf-local\.js\?v=20261109-same-tab-5/)
+  assert.match(index, /policy-pdf-local\.js\?v=20261109-reliable-6/)
+  assert.match(local, /preparing-assets/)
+  assert.match(local, /EXPORT_TIMEOUT/)
+  assert.match(local, /sierra:policy-pdf-diagnostics/)
+  assert.match(local, /policyPrepareExportLogo\(p\)/)
   assert.doesNotMatch(local, /splitTextToSize|Authorization|policy-export-config/)
   assert.doesNotMatch(pdfSource, /policyDisplayDate/)
   assert.doesNotMatch(pdfSource, /html2canvas/)
