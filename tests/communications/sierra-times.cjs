@@ -112,9 +112,13 @@ assert.match(w.document.querySelector('.st-cover-edition time').textContent,/Nov
 const coverPage=w.document.querySelectorAll('.st-page-thumb')[0].getAttribute('onclick').match(/'([^']+)'/)[1]
 const page3=w.document.querySelectorAll('.st-page-thumb')[2].getAttribute('onclick').match(/'([^']+)'/)[1]
 w.stPickPage(page3)
+assert.equal(w.document.querySelector('.st-section-opener h2').textContent,'Noticias SIERRA')
+assert.equal(w.document.querySelector('.st-folio b').textContent,'03')
 const storyId=w.document.querySelector('.st-story').getAttribute('onclick').match(/'([^']+)'/)[1]
 w.stPickBlock(storyId)
 assert.match(w.document.querySelector('.st-cover-toggle').textContent,/Mostrar en portada/)
+assert.equal(w.document.querySelectorAll('.st-story-media').length,1)
+assert.match(w.document.querySelector('.st-photo-placeholder').textContent,/Arrastra una imagen desde Recursos/)
 w.stStoryAdd('photo')
 w.stBlockSet('showOnCover',true)
 w.stPickPage(coverPage)
