@@ -56,8 +56,8 @@ const server=http.createServer((req,res)=>{
  assert.equal(result.width,2160);assert.equal(result.height,2700);assert.ok(result.circle[0]>60);assert.ok(Math.abs(result.circle[0]-result.circle[1])<=2,`${name}: distorted circle ${result.circle}`)
  for(const format of ['png','jpg','pdf'])fs.writeFileSync(path.join(out,`${name}.${format}`),Buffer.from(result[format].split(',')[1],'base64'))
  const exported=PNG.sync.read(Buffer.from(result.png.split(',')[1],'base64'))
- const [photoLeft,photoTop,photoRight,photoBottom]=result.photo,photoMidX=(photoLeft+photoRight)/2,photoMidY=(photoTop+photoBottom)/2,corners=[0,0,0,0];for(let y=Math.floor(photoTop);y<Math.ceil(photoBottom);y++)for(let x=Math.floor(photoLeft);x<Math.ceil(photoRight);x++){const i=(y*2160+x)*4;if(exported.data[i]>230&&exported.data[i+1]<20&&exported.data[i+2]>230)corners[(y>=photoMidY?2:0)+(x>=photoMidX?1:0)]++}
- assert.ok(corners.every(count=>count>50),`${name}: missing original image corners: ${corners}`)
+ const [photoLeft,photoTop,photoRight,photoBottom]=result.photo,photoMidX=(photoLeft+photoRight)/2,photoMidY=(photoTop+photoBottom)/2,inset=18,edgePoints=[[photoMidX,photoTop+inset],[photoRight-inset,photoMidY],[photoMidX,photoBottom-inset],[photoLeft+inset,photoMidY]],edgePixels=edgePoints.map(([x,y])=>Array.from(exported.data.slice((Math.floor(y)*2160+Math.floor(x))*4,(Math.floor(y)*2160+Math.floor(x))*4+3)))
+ assert.ok(edgePixels.every(rgb=>rgb.every(value=>value>225&&value<243)),`${name}: photo must cover every edge: ${JSON.stringify(edgePixels)}`)
  if(name==='positioned')assert.deepEqual(exported.data,firstExport,'Saved crop/zoom must not alter the original photo');else firstExport=exported.data
  for(const [region,x1,y1,x2,y2] of [['title',0,100,1080,280],['portrait',51,300,480,1050],['details',504,380,1029,970],['footer',51,1100,1029,1320]]){
   let different=0,total=0
