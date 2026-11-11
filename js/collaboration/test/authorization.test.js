@@ -112,6 +112,8 @@ test('database enforces private membership, read-only, revocation, suspension an
     assert.equal(live.presence.length,0,'explicit leave removes presence immediately');
     const durable=await readFile(new URL('../../../update71.sql',import.meta.url),'utf8');
     await db.exec('reset role');await db.exec(durable.slice(0,durable.indexOf('-- Communication media'))+'commit;');
+    await db.exec(await readFile(new URL('../../../update73.sql',import.meta.url),'utf8'));
+    assert.equal((await query('select max(version) as version from index_security_migrations')).version,73);
     await db.exec(`delete from capability_grants where user_id='00000000-0000-4000-8000-000000000004';`);
     await account(4);
     assert.deepEqual((await query('select communication_list() as docs')).docs,[],'active accounts without Communications read cannot inspect the library');

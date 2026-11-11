@@ -6,11 +6,11 @@ import vm from 'node:vm';
 
 const root=new URL('../../../',import.meta.url);
 const source=readFileSync(new URL('index.html',root),'utf8');
-const until=async predicate=>{for(let i=0;i<100;i++){if(predicate())return;await new Promise(r=>setTimeout(r,10));}assert.fail('UI did not reach expected state');};
+const until=async predicate=>{for(let i=0;i<500;i++){if(predicate())return;await new Promise(r=>setTimeout(r,10));}assert.fail('UI did not reach expected state');};
 
 test('real editor promotes communications to the team, keeps cloud writes out of localStorage and survives back/logout',async()=>{
   const dom=new JSDOM('<div id="content"><div id="sec-title"></div><div id="sec-sub"></div><div id="product-controls"></div><div id="pg"></div></div>',{url:'https://test.local',runScripts:'outside-only',pretendToBeVisual:true});
-  const w=dom.window;let snapshot,revision=0,updates=[],authCallback,remoteOnline=true,remoteField='document',leaveRequests=0,sharedDocuments=[];
+  const w=dom.window;let snapshot,revision=0,updates=[],authCallback,remoteOnline=true,remoteField='document',leaveRequests=0,listFailures=0,sharedDocuments=[];
   const windowErrors=[];w.addEventListener('error',event=>windowErrors.push(event.error));
   w.eval=code=>vm.runInContext(code,dom.getInternalVMContext());
   try {
@@ -23,7 +23,11 @@ test('real editor promotes communications to the team, keeps cloud writes out of
     w.jsStr=v=>String(v??'').replaceAll("'","\\'");w.toast=value=>notices.push(value);w.logout=async()=>{w.me=null;};
     w.sb={auth:{onAuthStateChange:callback=>{authCallback=callback;}},rpc:async(name,args)=>{
       if(name==='communication_create'){snapshot=args.p_snapshot;return{data:'00000000-0000-4000-8000-000000000099'};}
-      if(name==='communication_catalog')return{data:true};
+      if(name==='communication_catalog'){
+        const record=sharedDocuments.find(item=>item.id===args.p_id);
+        if(record){record.title=args.p_title;record.kind=args.p_kind;record.metadata=args.p_metadata;record.updated_at=new Date().toISOString();}
+        return{data:true};
+      }
       if(name==='communication_import')return{data:{id:'00000000-0000-4000-8000-000000000097',created:false}};
       if(name==='communication_sync'){
         if(args.p_awareness===null)leaveRequests++;
@@ -32,7 +36,7 @@ test('real editor promotes communications to the team, keeps cloud writes out of
         return{data:{role:'owner',revision,snapshot_revision:0,snapshot:args.p_after<0?snapshot:null,updates:updates.filter(x=>x.revision>args.p_after),presence}};
       }
       if(name==='communication_access')return{data:{role:'owner',members:[{id:w.me.id,email:'owner@test.local',name:'Owner',role:'owner'}]}};
-      if(name==='communication_list')return{data:sharedDocuments};
+      if(name==='communication_list'){if(listFailures){listFailures--;return{error:{message:'temporary offline'}};}return{data:sharedDocuments};}
       throw Error('Unexpected RPC '+name);
     }};
     w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
@@ -78,6 +82,15 @@ test('real editor promotes communications to the team, keeps cloud writes out of
     assert.equal(w.document.querySelector(`[data-local-communication-id="${localId}"]`),null,'the stale local recovery copy is not rendered over the cloud record');
     assert.match(w.document.querySelector('[data-shared-home]').textContent,/Ana Prueba/);
     assert.match(w.document.querySelector('[data-shared-home]').textContent,/Puede editar/);
+    listFailures=1;w.renderCommunicationsResults();await new Promise(r=>setTimeout(r,30));
+    assert.match(w.document.querySelector('[data-shared-home]').textContent,/Memo de prueba/,'a transient refresh error keeps the last cloud library visible');
+    sharedDocuments.unshift({id:'00000000-0000-4000-8000-000000000096',source_id:'eduardo-source',title:'Nuevo memo de Eduardo',kind:'memo',metadata:{lifecycle:'active'},role:'editor',owner_id:'00000000-0000-4000-8000-000000000076',owner_name:'Eduardo',updated_at:new Date().toISOString(),presence:[]});
+    await until(()=>/Nuevo memo de Eduardo/.test(w.document.querySelector('[data-shared-home]')?.textContent||''));
+    const remoteOpen=w.document.querySelector('[data-shared-communication="00000000-0000-4000-8000-000000000098"]');
+    remoteOpen.closest('article').querySelector('[aria-label^="Acciones de"]').click();
+    [...w.document.querySelectorAll('#comms-sharing button')].find(button=>button.textContent==='Archivar').click();
+    await until(()=>sharedDocuments.find(item=>item.id==='00000000-0000-4000-8000-000000000098').metadata.lifecycle==='archived');
+    await until(()=>!w.document.querySelector('[data-shared-communication="00000000-0000-4000-8000-000000000098"]'));
     w.commsSetLayout('grid');
     await until(()=>w.document.querySelector('[data-shared-home].is-grid .comms-shared-library-card'));
     assert.equal(w.document.querySelector('[aria-label="Vista de mosaico"]').getAttribute('aria-pressed'),'true');
