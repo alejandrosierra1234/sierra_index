@@ -2,6 +2,7 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),asse
 const {JSDOM}=require('jsdom')
 const newHireCss=fs.readFileSync(path.join(__dirname,'../../css/new-hire-builder.css'),'utf8')
 assert.match(newHireCss,/grid-template-rows:auto minmax\(0,1fr\) 208px;gap:24px/)
+assert.match(newHireCss,/\.new-hire-photo img\{[^}]*object-fit:cover/)
 const dom=new JSDOM('<!doctype html><div id="tb-section"></div><div id="product-controls"></div><div id="sec-title"></div><div id="sec-sub"></div><div id="pg"></div>',{url:'https://test.local',runScripts:'outside-only'})
 const w=dom.window
 Object.assign(w,{
