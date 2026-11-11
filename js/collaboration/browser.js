@@ -478,10 +478,15 @@ function install(api) {
     if(previewCache.has(key))return previewCache.get(key);
     if(previewPending.has(key))return previewPending.get(key);
     const pending=enqueuePreview(async()=>{
-      const data=await rpc('communication_sync',{p_id:record.id,p_after:-1,p_nonce:null,p_update:null,p_session:null,p_awareness:null});
       const model=new CommunicationModel();
       try{
-        model.doc.transact(()=>{if(data?.snapshot)Y.applyUpdate(model.doc,fromBase64(data.snapshot),'remote');for(const update of data?.updates||[])Y.applyUpdate(model.doc,fromBase64(update.payload),'remote');},'remote');
+        let after=-1,pages=0,data;
+        do {
+          data=await rpc('communication_sync',{p_id:record.id,p_after:after,p_nonce:null,p_update:null,p_session:null,p_awareness:null});
+          model.doc.transact(()=>{if(data?.snapshot)Y.applyUpdate(model.doc,fromBase64(data.snapshot),'remote');for(const update of data?.updates||[])Y.applyUpdate(model.doc,fromBase64(update.payload),'remote');},'remote');
+          after=data.revision;
+          if(++pages>128)throw Error('El historial supera el límite seguro de sincronización.');
+        } while(data?.has_more===true);
         const draft=readModel(model);api.validate(draft);return api.previewHtml(draft);
       }finally{model.doc.destroy();}
     });
@@ -621,8 +626,8 @@ function installArtifacts(api,options={}) {
   const clone=value=>JSON.parse(JSON.stringify(value));
   const account=()=>api.account()?.id;
   const rpc=async(name,args={})=>{const owner=account();if(!owner)throw Error('Inicia sesión para continuar.');const {data,error}=await api.rpc(name,args);if(account()!==owner)throw Object.assign(Error('La sesión cambió.'),{code:'42501'});if(error)throw error;return data;};
-  const decode=data=>{const model=new CommunicationModel();model.doc.transact(()=>{if(data?.snapshot)Y.applyUpdate(model.doc,fromBase64(data.snapshot),'remote');for(const update of data?.updates||[])Y.applyUpdate(model.doc,fromBase64(update.payload),'remote');},'remote');return model;};
-  const snapshot=async id=>{const data=await rpc('communication_sync',{p_id:id,p_after:-1,p_nonce:null,p_update:null,p_session:null,p_awareness:null}),model=decode(data);try{const draft=model.read();api.validate(draft);return{draft,role:data.role};}finally{model.doc.destroy();}};
+  const load=async id=>{const model=new CommunicationModel();let after=-1,pages=0,data;try{do{data=await rpc('communication_sync',{p_id:id,p_after:after,p_nonce:null,p_update:null,p_session:null,p_awareness:null});model.doc.transact(()=>{if(data?.snapshot)Y.applyUpdate(model.doc,fromBase64(data.snapshot),'remote');for(const update of data?.updates||[])Y.applyUpdate(model.doc,fromBase64(update.payload),'remote');},'remote');after=data.revision;if(++pages>128)throw Error('El historial supera el límite seguro de sincronización.');}while(data?.has_more===true);return{model,data};}catch(error){model.doc.destroy();throw error;}};
+  const snapshot=async id=>{const{model,data}=await load(id);try{const draft=model.read();api.validate(draft);return{draft,role:data.role};}finally{model.doc.destroy();}};
   const leave=async()=>{if(!session)return true;const current=session;try{for(let attempt=0;current.transport.dirty&&attempt<3;attempt++)await current.transport.sync();if(current.transport.dirty)return false;await current.transport.leave();if(session===current){current.model.doc.destroy();session=null;}return true;}catch{return false;}};
   const receive=()=>{if(!session?.ready)return;const draft=session.model.read();api.validate(draft);if(JSON.stringify(draft)!==JSON.stringify(session.baseline)){session.baseline=clone(draft);api.remote(draft,session.transport.role);}};
   const open=async id=>{

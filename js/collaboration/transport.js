@@ -15,8 +15,15 @@ export class CommunicationTransport {
   async sync() {
     if (this.stopped || !this.valid()) return;
     if (this.running) return this.running;
-    this.running = this.exchange();
+    this.running = this.drain();
     try { await this.running; } finally { this.running = null; }
+  }
+  async drain() {
+    let pages = 0;
+    do {
+      await this.exchange();
+      if (++pages > 128) throw Error('El historial del comunicado supera el límite seguro de sincronización.');
+    } while (this.hasMore && !this.stopped && this.valid());
   }
   async exchange() {
     const count = this.pending.length;
@@ -35,11 +42,13 @@ export class CommunicationTransport {
         if (data.snapshot) Y.applyUpdate(this.doc, fromBase64(data.snapshot), 'remote');
         for (const update of data.updates) Y.applyUpdate(this.doc, fromBase64(update.payload), 'remote');
       }, 'remote');
-      this.revision = data.revision; this.failures = 0; this.accessFailures = 0;
+      this.revision = data.revision; this.hasMore = data.has_more === true; this.failures = 0; this.accessFailures = 0;
       this.onChange(data);
-      this.onStatus(this.writeBlocked && this.dirty ? 'Solo lectura · cambios locales sin guardar' : this.dirty ? 'Guardando en línea…' : 'Guardado en línea', this.writeBlocked);
+      this.onStatus(this.writeBlocked && this.dirty ? 'Solo lectura · cambios locales sin guardar' : this.hasMore ? 'Sincronizando historial…' : this.dirty ? 'Guardando en línea…' : 'Guardado en línea', this.writeBlocked);
       // Compact only an acknowledged state. Concurrent writers make this a no-op.
-      if (!this.dirty && this.role !== 'viewer' && this.revision - data.snapshot_revision >= 50) {
+      const latest = Number.isSafeInteger(data.latest_revision) ? data.latest_revision : data.revision;
+      if (!this.hasMore && this.revision >= latest && !this.dirty && this.role !== 'viewer' &&
+          (data.checkpoint_recommended === true || this.revision - data.snapshot_revision >= 50)) {
         await this.rpc('communication_checkpoint', {
           p_revision:this.revision, p_snapshot:toBase64(Y.encodeStateAsUpdate(this.doc)),
           p_title:String(this.doc.getMap('communication').get('subject') || 'Comunicado').slice(0, 500)

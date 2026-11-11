@@ -113,7 +113,8 @@ test('database enforces private membership, read-only, revocation, suspension an
     const durable=await readFile(new URL('../../../update71.sql',import.meta.url),'utf8');
     await db.exec('reset role');await db.exec(durable.slice(0,durable.indexOf('-- Communication media'))+'commit;');
     await db.exec(await readFile(new URL('../../../update73.sql',import.meta.url),'utf8'));
-    assert.equal((await query('select max(version) as version from index_security_migrations')).version,73);
+    await db.exec(await readFile(new URL('../../../update74.sql',import.meta.url),'utf8'));
+    assert.equal((await query('select max(version) as version from index_security_migrations')).version,74);
     await db.exec(`delete from capability_grants where user_id='00000000-0000-4000-8000-000000000004';`);
     await account(4);
     assert.deepEqual((await query('select communication_list() as docs')).docs,[],'active accounts without Communications read cannot inspect the library');
@@ -130,7 +131,9 @@ test('database enforces private membership, read-only, revocation, suspension an
     const catalog=(await query('select communication_list() as docs')).docs.find(document=>document.id===importedId);
     assert.equal(catalog.title,'Título vigente');assert.equal(catalog.metadata.lifecycle,'archived');
     const synced=(await query('select communication_sync($1,-1,$2,$3,null,null,$4,$5,$6) as result',[importedId,crypto.randomUUID(),'Aw==','Título sincronizado','memo',{lifecycle:'active'}])).result;
-    assert.equal(synced.revision,1);
+    assert.equal(synced.revision,0);assert.equal(synced.latest_revision,1);assert.equal(synced.has_more,true);
+    const syncedPage=(await query('select communication_sync($1,$2) as result',[importedId,synced.revision])).result;
+    assert.equal(syncedPage.revision,1);assert.equal(syncedPage.has_more,false);
     assert.equal((await query('select communication_list() as docs')).docs.find(document=>document.id===importedId).title,'Título sincronizado');
     await db.exec("reset role;update profiles set account_status='suspended' where email='owner@test.local'");
     await account(1);await denied('select communication_sync($1)',[id]);

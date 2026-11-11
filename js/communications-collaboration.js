@@ -10006,12 +10006,19 @@ ${err.toString()}`);
     async sync() {
       if (this.stopped || !this.valid()) return;
       if (this.running) return this.running;
-      this.running = this.exchange();
+      this.running = this.drain();
       try {
         await this.running;
       } finally {
         this.running = null;
       }
+    }
+    async drain() {
+      let pages = 0;
+      do {
+        await this.exchange();
+        if (++pages > 128) throw Error("El historial del comunicado supera el l\xEDmite seguro de sincronizaci\xF3n.");
+      } while (this.hasMore && !this.stopped && this.valid());
     }
     async exchange() {
       const count = this.pending.length;
@@ -10039,11 +10046,13 @@ ${err.toString()}`);
           for (const update of data.updates) yjs_exports.applyUpdate(this.doc, fromBase64(update.payload), "remote");
         }, "remote");
         this.revision = data.revision;
+        this.hasMore = data.has_more === true;
         this.failures = 0;
         this.accessFailures = 0;
         this.onChange(data);
-        this.onStatus(this.writeBlocked && this.dirty ? "Solo lectura \xB7 cambios locales sin guardar" : this.dirty ? "Guardando en l\xEDnea\u2026" : "Guardado en l\xEDnea", this.writeBlocked);
-        if (!this.dirty && this.role !== "viewer" && this.revision - data.snapshot_revision >= 50) {
+        this.onStatus(this.writeBlocked && this.dirty ? "Solo lectura \xB7 cambios locales sin guardar" : this.hasMore ? "Sincronizando historial\u2026" : this.dirty ? "Guardando en l\xEDnea\u2026" : "Guardado en l\xEDnea", this.writeBlocked);
+        const latest = Number.isSafeInteger(data.latest_revision) ? data.latest_revision : data.revision;
+        if (!this.hasMore && this.revision >= latest && !this.dirty && this.role !== "viewer" && (data.checkpoint_recommended === true || this.revision - data.snapshot_revision >= 50)) {
           await this.rpc("communication_checkpoint", {
             p_revision: this.revision,
             p_snapshot: toBase642(yjs_exports.encodeStateAsUpdate(this.doc)),
@@ -27978,13 +27987,18 @@ ${err.toString()}`);
       if (previewCache.has(key)) return previewCache.get(key);
       if (previewPending.has(key)) return previewPending.get(key);
       const pending = enqueuePreview(async () => {
-        const data = await rpc("communication_sync", { p_id: record.id, p_after: -1, p_nonce: null, p_update: null, p_session: null, p_awareness: null });
         const model = new CommunicationModel();
         try {
-          model.doc.transact(() => {
-            if (data?.snapshot) yjs_exports.applyUpdate(model.doc, fromBase64(data.snapshot), "remote");
-            for (const update of data?.updates || []) yjs_exports.applyUpdate(model.doc, fromBase64(update.payload), "remote");
-          }, "remote");
+          let after = -1, pages = 0, data;
+          do {
+            data = await rpc("communication_sync", { p_id: record.id, p_after: after, p_nonce: null, p_update: null, p_session: null, p_awareness: null });
+            model.doc.transact(() => {
+              if (data?.snapshot) yjs_exports.applyUpdate(model.doc, fromBase64(data.snapshot), "remote");
+              for (const update of data?.updates || []) yjs_exports.applyUpdate(model.doc, fromBase64(update.payload), "remote");
+            }, "remote");
+            after = data.revision;
+            if (++pages > 128) throw Error("El historial supera el l\xEDmite seguro de sincronizaci\xF3n.");
+          } while (data?.has_more === true);
           const draft = readModel(model);
           api.validate(draft);
           return api.previewHtml(draft);
@@ -28302,16 +28316,27 @@ ${err.toString()}`);
       if (error) throw error;
       return data;
     };
-    const decode2 = (data) => {
+    const load = async (id2) => {
       const model = new CommunicationModel();
-      model.doc.transact(() => {
-        if (data?.snapshot) yjs_exports.applyUpdate(model.doc, fromBase64(data.snapshot), "remote");
-        for (const update of data?.updates || []) yjs_exports.applyUpdate(model.doc, fromBase64(update.payload), "remote");
-      }, "remote");
-      return model;
+      let after = -1, pages = 0, data;
+      try {
+        do {
+          data = await rpc("communication_sync", { p_id: id2, p_after: after, p_nonce: null, p_update: null, p_session: null, p_awareness: null });
+          model.doc.transact(() => {
+            if (data?.snapshot) yjs_exports.applyUpdate(model.doc, fromBase64(data.snapshot), "remote");
+            for (const update of data?.updates || []) yjs_exports.applyUpdate(model.doc, fromBase64(update.payload), "remote");
+          }, "remote");
+          after = data.revision;
+          if (++pages > 128) throw Error("El historial supera el l\xEDmite seguro de sincronizaci\xF3n.");
+        } while (data?.has_more === true);
+        return { model, data };
+      } catch (error) {
+        model.doc.destroy();
+        throw error;
+      }
     };
     const snapshot2 = async (id2) => {
-      const data = await rpc("communication_sync", { p_id: id2, p_after: -1, p_nonce: null, p_update: null, p_session: null, p_awareness: null }), model = decode2(data);
+      const { model, data } = await load(id2);
       try {
         const draft = model.read();
         api.validate(draft);
