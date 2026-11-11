@@ -60,7 +60,7 @@ function controlKey(element,index=0) {
 }
 
 function install(api) {
-  let session=null, rendering=false, deferred=false, sharing=false,homeRequest=0,homeObserver=null,previewActive=0,migrationAccount='',migrationPromise=null;
+  let session=null, rendering=false, deferred=false, sharing=false,homeRequest=0,homeObserver=null,homeTimer=0,homeDocuments=[],previewActive=0,migrationAccount='',migrationPromise=null;
   const views=new Map(),inputCleanups=[],lockedElements=new Map();
   const previewCache=new Map(),previewPending=new Map(),previewQueue=[];
   const getAccount=() => api.account()?.id;
@@ -115,6 +115,7 @@ function install(api) {
     views.forEach(view=>view.setProps({editable}));
   };
   function stop(closeDialog=true) {
+    clearTimeout(homeTimer);homeTimer=0;
     destroyViews();
     if(session){
       const current=session;
@@ -372,6 +373,36 @@ function install(api) {
       return !query||[record.title,record.owner_name,kindName(record.kind),label(record.role),metadata.department,metadata.sender,metadata.category,...(metadata.tags||[])].join(' ').toLocaleLowerCase('es').includes(query);
     });
   };
+  async function updateSharedLifecycle(record,action,button) {
+    if(!record||!['owner','editor'].includes(record.role))return;
+    const metadata={...(record.metadata||{})},previous=metadata.lifecycle||'active';
+    if(action==='trash'){metadata.previousLifecycle=previous;metadata.lifecycle='trashed';metadata.deletedAt=new Date().toISOString();}
+    else if(action==='restore'){metadata.lifecycle=metadata.previousLifecycle==='archived'?'archived':'active';delete metadata.previousLifecycle;delete metadata.deletedAt;}
+    else {metadata.lifecycle=action==='archive'?'archived':'active';metadata.archivedAt=action==='archive'?new Date().toISOString():null;}
+    if(button)button.disabled=true;
+    try{
+      await rpc('communication_catalog',{p_id:record.id,p_title:record.title||'Comunicado',p_kind:record.kind||'memo',p_metadata:metadata});
+      document.getElementById('comms-sharing')?.close();
+      await loadSharedHome();
+    }catch(error){
+      if(button)button.disabled=false;
+      message(document.getElementById('comms-sharing')||dialog('Acciones del comunicado'),error.message||'No se pudo actualizar el comunicado.',true);
+    }
+  }
+  function sharedActions(record) {
+    const el=dialog(record.title||'Comunicado'),lifecycle=lifecycleOf(record),editable=['owner','editor'].includes(record.role);
+    const intro=document.createElement('p');intro.className='comms-collab-lock';intro.textContent=`${kindName(record.kind)} · ${record.owner_name||'Equipo SIERRA'} · ${label(record.role)}`;el.append(intro);
+    const actions=document.createElement('div');actions.className='comms-shared-actions';
+    const add=(text,action,primary=false)=>{const button=document.createElement('button');button.type='button';button.className=primary?'btn btn-primary':'btn btn-secondary';button.textContent=text;button.onclick=action;actions.append(button);return button;};
+    add('Abrir y editar',async event=>{event.currentTarget.disabled=true;try{await open(record.id);el.close();}catch(error){event.currentTarget.disabled=false;message(el,error.message||'No se pudo abrir el comunicado.',true);}},true);
+    if(editable){
+      if(lifecycle==='active')add('Archivar',event=>updateSharedLifecycle(record,'archive',event.currentTarget));
+      if(lifecycle==='archived')add('Desarchivar',event=>updateSharedLifecycle(record,'active',event.currentTarget));
+      if(lifecycle!=='trashed')add('Mover a papelera',event=>updateSharedLifecycle(record,'trash',event.currentTarget));
+      else add('Restaurar',event=>updateSharedLifecycle(record,'restore',event.currentTarget));
+    }
+    el.append(actions);
+  }
   function updateSharedCounts(documents) {
     const drafts=unpublishedLocal(documents),shared=(documents||[]).filter(isCommunication);
     document.querySelectorAll('.comms-kind-tab[data-kind]').forEach(button=>{
@@ -409,7 +440,11 @@ function install(api) {
       if(grid){
         const card=document.createElement('article');card.className='comms-shared-library-card';card.dataset.kind=record.kind||'memo';
         const preview=document.createElement('span'),loading=document.createElement('span');preview.className='comms-card-preview comms-shared-card-preview';preview.dataset.sharedPreview=record.id;preview.setAttribute('aria-hidden','true');loading.className='comms-shared-preview-loading';loading.innerHTML=api.icon('file',28)+'<span>Cargando vista previa…</span>';preview.append(loading);row.prepend(preview);card.append(row);list.append(card);
-      }else list.append(row);
+        const actions=document.createElement('button');actions.type='button';actions.className='icon-btn icon-btn-quiet comms-shared-card-actions';actions.setAttribute('aria-label','Acciones de '+(record.title||'comunicado'));actions.innerHTML=api.icon('dots',16);actions.onclick=()=>sharedActions(record);card.append(actions);
+      }else {
+        const item=document.createElement('article');item.className='comms-shared-library-item';item.append(row);
+        const actions=document.createElement('button');actions.type='button';actions.className='icon-btn icon-btn-quiet comms-shared-row-actions';actions.setAttribute('aria-label','Acciones de '+(record.title||'comunicado'));actions.innerHTML=api.icon('dots',16);actions.onclick=()=>sharedActions(record);item.append(actions);list.append(item);
+      }
     }
     section.append(list);const head=results.querySelector('.comms-results-head');if(head)head.after(section);else results.prepend(section);
     if(grid)observeSharedPreviews(section,records);
@@ -471,22 +506,29 @@ function install(api) {
     if('IntersectionObserver'in window){homeObserver=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){homeObserver?.unobserve(entry.target);load(entry.target);}}),{rootMargin:'240px 0px'});hosts.forEach(host=>homeObserver.observe(host));}
     else hosts.forEach(load);
   }
-  async function loadSharedHome() {
+  async function loadSharedHome(background=false) {
     const request=++homeRequest,results=document.getElementById('comms-results');homeObserver?.disconnect();homeObserver=null;if(!results||!document.querySelector('.comms-home'))return;
-    results.querySelector('[data-shared-home]')?.remove();
-    const loading=document.createElement('p');loading.dataset.sharedHome='';loading.className='comms-shared-library-loading';loading.textContent='Cargando biblioteca del equipo…';results.querySelector('.comms-results-head')?.after(loading);
+    let loading=results.querySelector('[data-shared-loading]');
+    if(!background&&!results.querySelector('[data-shared-home]')){loading=document.createElement('p');loading.dataset.sharedLoading='';loading.className='comms-shared-library-loading';loading.textContent='Cargando biblioteca del equipo…';results.querySelector('.comms-results-head')?.after(loading);}
     try{
       let documents=await rpc('communication_list');
       if(request!==homeRequest||results!==document.getElementById('comms-results'))return;
-      renderSharedHome(results,documents||[]);
-      const migrated=await migrateLocal(documents||[]);documents=migrated.documents;
+      homeDocuments=documents||[];
+      loading?.remove();
+      renderSharedHome(results,homeDocuments);
+      const migrated=await migrateLocal(homeDocuments);documents=migrated.documents;
       if(request!==homeRequest||results!==document.getElementById('comms-results'))return;
-      renderSharedHome(results,documents||[]);
+      homeDocuments=documents||homeDocuments;renderSharedHome(results,homeDocuments);
       if(migrated.failed){const note=document.createElement('p');note.className='comms-shared-library-loading is-error';note.textContent=`${migrated.failed} comunicado${migrated.failed===1?'':'s'} local${migrated.failed===1?'':'es'} no se pudo guardar en el equipo. Conservamos la copia local para reintentar.`;results.querySelector('[data-shared-home]')?.after(note);}
     }catch(error){
       if(request!==homeRequest||results!==document.getElementById('comms-results'))return;
-      loading.textContent='No se pudo cargar la biblioteca del equipo. Tus documentos locales siguen disponibles.';loading.classList.add('is-error');
+      if(loading){loading.textContent='No se pudo actualizar la biblioteca del equipo. Tus documentos siguen visibles y volveremos a intentarlo.';loading.classList.add('is-error');}
     }
+  }
+  function scheduleHomeRefresh() {
+    clearTimeout(homeTimer);homeTimer=0;
+    if(document.hidden||!document.querySelector('.comms-home')||!getAccount())return;
+    homeTimer=setTimeout(async()=>{await loadSharedHome(true);scheduleHomeRefresh();},3000);
   }
   function rendered() {
     if(!api.current())return;
@@ -549,8 +591,10 @@ function install(api) {
   function homeRendered() {
     const header=document.querySelector('.comms-header-actions');if(!header)return;
     if(!header.querySelector('[data-shared-library]')){const button=document.createElement('button');button.className='btn btn-secondary';button.dataset.sharedLibrary='';button.innerHTML=api.icon('users',16)+' Actividad';button.onclick=library;header.prepend(button);}
-    loadSharedHome();
+    const results=document.getElementById('comms-results');if(results&&homeDocuments.length)renderSharedHome(results,homeDocuments);
+    clearTimeout(homeTimer);homeTimer=0;loadSharedHome().finally(scheduleHomeRefresh);
   }
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(homeTimer);homeTimer=0;}else if(document.querySelector('.comms-home')){loadSharedHome(true).finally(scheduleHomeRefresh);}});
   document.addEventListener('focusout',()=>setTimeout(()=>{
     if(active()&&deferred&&!document.activeElement?.closest('.memo-form')){deferred=false;api.render();}
   },0));
@@ -563,7 +607,7 @@ function install(api) {
       const draft=await optimizeSharingImages({src:source},{valid:()=>session===current&&editable()});
       return api.prepareAsset?api.prepareAsset(draft.src,api.current()?.id):draft.src;
     },
-    accountChanged:id=>{previewCache.clear();previewPending.clear();migrationAccount='';migrationPromise=null;if(session&&session.account!==id){stop();api.current(null);api.clearPage('La sesión cambió.');}},
+    accountChanged:id=>{previewCache.clear();previewPending.clear();homeDocuments=[];migrationAccount='';migrationPromise=null;if(session&&session.account!==id){stop();api.current(null);api.clearPage('La sesión cambió.');}},
     beforeRender:()=>{if(active()&&!rendering)capture();destroyViews();},
     persist:()=>{if(!active())return null;capture();session.transport.sync().catch(()=>{});return !session.blocked;},
     command:(control,command,value)=>{const element=control.closest('.memo-rich-toolbar')?.nextElementSibling,view=views.get(element);if(!view)return false;if(editable())richCommand(view,command,value);return true;},
