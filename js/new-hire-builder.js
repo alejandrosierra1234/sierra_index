@@ -8,11 +8,12 @@ const NEW_HIRE_DEFAULTS={
   country:'Honduras',
   company:'Northern Textiles',
   startDate:new Date().toISOString().slice(0,10),
-  message:'¡Bienvenida a SIERRA! Nos alegra que formes parte de nuestro equipo. Tu talento y experiencia suman a todo lo que construimos juntos.',
+  message:'Tu talento, experiencia y forma de ver el mundo ya forman parte de SIERRA. Comenzamos una nueva historia juntos.',
   photo:'',photoX:50,photoY:50,photoZoom:100,palette:'people'
 }
 const NEW_HIRE_LEGACY_MESSAGES=[
-  '¡Bienvenido a SIERRA! Estamos muy emocionados de que formes parte de nuestro equipo. Tu talento y experiencia aportarán un gran valor a nuestra organización.'
+  '¡Bienvenido a SIERRA! Estamos muy emocionados de que formes parte de nuestro equipo. Tu talento y experiencia aportarán un gran valor a nuestra organización.',
+  '¡Bienvenida a SIERRA! Nos alegra que formes parte de nuestro equipo. Tu talento y experiencia suman a todo lo que construimos juntos.'
 ]
 const NEW_HIRE_PALETTES={
   people:{label:'Personas y Cultura',primary:'#FF7824',accent:'#16CDBE',deep:'#2B2B2B',soft:'#F5F5F5',light:'#FFE3D2'}
@@ -109,7 +110,7 @@ function newHireArtHtml(){
         <h2 class="new-hire-name new-hire-single-line" data-min-font="15" data-nh-field="name" onclick="newHireFocusField('name')">${esc(_newHire.name||'Nombre del colaborador')}</h2><p class="new-hire-role" data-nh-field="role" onclick="newHireFocusField('role')">${esc(_newHire.role||'Puesto del colaborador')}</p>
         <dl class="new-hire-facts">${contact?`<div class="new-hire-fact new-hire-fact-contact"><dt>Contacto</dt><dd class="new-hire-contact-lines">${contact}</dd></div>`:''}${fact('department','Gerencia',_newHire.department,'new-hire-department','new-hire-fact-department')}${fact('country','País',_newHire.country)}${fact('company','Empresa',_newHire.company)}${fact('startDate','Fecha de ingreso',newHireDateLabel(_newHire.startDate),'','new-hire-fact-date')}</dl>
       </section></div>
-      <footer class="new-hire-message-card" style="align-self:stretch"><div class="new-hire-message-copy"><p class="new-hire-message-label">Nos alegra que estés aquí</p><p class="new-hire-message" data-nh-field="message" onclick="newHireFocusField('message')">${esc(_newHire.message)}</p></div><img class="new-hire-clay" src="marketing/assets/sierra-clay-welcome-team.png" alt="Equipo SIERRA con materiales textiles"></footer>
+      <footer class="new-hire-message-card" style="align-self:stretch"><div class="new-hire-message-copy"><p class="new-hire-message-eyebrow">Personas y Cultura</p><h2 class="new-hire-message-label">Nos alegra que estés aquí.</h2><p class="new-hire-message" data-nh-field="message" onclick="newHireFocusField('message')">${esc(_newHire.message)}</p></div><img class="new-hire-clay" src="marketing/assets/sierra-clay-welcome-team.png" alt="Equipo SIERRA con materiales textiles"></footer>
     </main>
   </article>`
 }
