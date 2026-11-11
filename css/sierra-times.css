@@ -1,5 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap');
-@font-face{font-family:"Manuskript Gothisch";src:url("../assets/fonts/Manuskript-Gothisch-UNZ1A.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600;1,8..60,700&display=swap');
+@font-face{font-family:Replica;src:url("../Replica Regular.otf") format("opentype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:Replica;src:url("../Replica Bold.otf") format("opentype");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:Aeonik;src:url("../Aeonik-Regular.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:Aeonik;src:url("../Aeonik-Medium.ttf") format("truetype");font-weight:500 600;font-style:normal;font-display:swap}
+@font-face{font-family:"Aeonik Mono";src:url("../AeonikMono-Regular.otf") format("opentype");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Aeonik Mono";src:url("../AeonikMono-Medium.otf") format("opentype");font-weight:500 700;font-style:normal;font-display:swap}
 
 :root{--st-paper:#fff;--st-ink:#171719;--st-muted:#6f6f73;--st-line:#deded8;--st-orange:#ff7824;--st-teal:#16cdbe;--st-blue:#009fff;--st-green:#3ed600;--st-violet:#9e00cb;--st-yellow:#ffc529}
 .st-app{height:calc(100vh - 150px);min-height:640px;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;border:1px solid var(--border);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-sm)}
@@ -69,3 +74,49 @@
 
 @media (prefers-reduced-motion:reduce){.st-image-tools{transition:none}}
 @media print{.st-image-tools,.st-layer-handle{display:none!important}.st-story-layer{outline:0!important}}
+
+/* SIERRA editorial print system: Replica identifies, Source Serif narrates, Aeonik reads. */
+.st-app{box-shadow:none;background:#fff}
+.st-topbar{min-height:72px;padding:12px 16px 12px 24px}
+.st-body{grid-template-columns:240px minmax(460px,1fr) 336px;background:#f5f5f5}
+.st-rail{padding:16px}.st-inspector{background:#fff}
+.st-stage{padding:32px 40px 64px;background:#f5f5f5;background-image:none}
+.st-stage-head{margin-bottom:16px}.st-stage-meta{display:grid;gap:4px}.st-stage-meta>span{font:500 10px/1.2 "Aeonik Mono",monospace;text-transform:uppercase;letter-spacing:.05em}.st-stage-meta>strong{font:600 10px/1.2 Aeonik,sans-serif}.st-stage-meta>strong.is-safe{color:#2a6f38}.st-stage-meta>strong.is-overflow{color:#b40b0b}
+.st-sheet{padding:32px;gap:20px;background:#fff;color:#2b2b2b;font-family:Aeonik,"DM Sans",system-ui,sans-serif;box-shadow:0 8px 24px rgba(43,43,43,.08),0 0 0 1px #d5d5d2}
+.st-stage>.st-sheet.has-overflow{outline:2px solid #b40b0b;outline-offset:4px}
+.st-stage>.st-sheet.has-overflow:after{content:"Contenido fuera del área imprimible";position:absolute;z-index:20;right:16px;bottom:16px;padding:8px 10px;border-radius:6px;background:#b40b0b;color:#fff;font:600 10px/1 Aeonik,sans-serif}
+.st-sheet-grid{gap:18px}.st-block,.st-story-layer,.st-story,.st-story p,.st-deck,.st-title{min-width:0;max-width:100%;overflow-wrap:anywhere;hyphens:auto}
+
+.st-masthead{min-height:44px;align-items:center;padding:0 0 12px;border-bottom:1px solid #a4a4a4}
+.st-masthead-logo{display:flex;align-items:center;gap:14px;font:400 22px/1 Replica,"DM Sans",sans-serif;letter-spacing:-.02em}
+.st-masthead-logo img{display:block;width:118px;height:auto}.st-masthead-logo strong{font-weight:400}
+.st-masthead-meta{color:#6f6f6f;font:500 8px/1.4 "Aeonik Mono",monospace;letter-spacing:.08em}
+.st-cover-masthead{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:24px;color:#2b2b2b}
+.st-cover-name{display:flex;min-width:0;align-items:end;gap:24px;padding:0;text-align:left;white-space:nowrap;font:400 58px/.8 Replica,"DM Sans",sans-serif;letter-spacing:-.035em}
+.st-cover-name img{display:block;width:196px;height:auto}.st-cover-name strong{font-weight:400}
+.st-cover-edition{display:grid;justify-items:end;gap:4px;padding-bottom:2px;text-align:right;text-transform:uppercase}.st-cover-edition span{color:#007d73;font:600 9px/1 "Aeonik Mono",monospace;letter-spacing:.1em}.st-cover-edition time{font:600 13px/1.2 Aeonik,sans-serif}.st-cover-edition b{color:#6f6f6f;font:500 8px/1 "Aeonik Mono",monospace;letter-spacing:.06em}
+.st-cover-rule{grid-column:1/-1;height:1px;background:#2b2b2b}.st-cover-double-rule,.st-cover-date{display:none}
+.st-section-kicker{margin-bottom:10px;color:#007d73;font:600 9px/1 "Aeonik Mono",monospace;letter-spacing:.1em}
+.st-title{font:600 38px/.96 "Source Serif 4",Georgia,serif;letter-spacing:-.035em;text-wrap:balance;font-optical-sizing:auto}
+.st-title.is-hero{max-width:100%;font-size:58px}.st-deck{max-width:90%;margin-top:12px;color:#444;font:400 15px/1.36 Aeonik,"DM Sans",sans-serif}.st-byline{margin-top:12px;color:#6f6f6f;font:500 8px/1.4 "Aeonik Mono",monospace}
+.st-story{gap:12px;padding:4px 0}.st-story p{margin-top:12px;font:400 12px/1.55 Aeonik,"DM Sans",sans-serif}.st-story.st-span-6 .st-title{font-size:30px}.st-story.st-span-4 .st-title{font-size:24px}.st-story.st-span-4 p{font-size:10px}
+.st-story-text{font:400 12px/1.55 Aeonik,"DM Sans",sans-serif}
+.st-quote,.st-insert,.st-note{border:1px solid #d5d5d2!important;border-radius:8px;background:#fff!important}.st-quote{padding:24px}.st-quote blockquote{font:600 28px/1.08 "Source Serif 4",Georgia,serif;font-optical-sizing:auto}.st-insert{padding:20px}.st-insert h2,.st-cta h2,.st-story-action strong,.st-story-event h3,.st-story-org h3{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-optical-sizing:auto}.st-note{padding:12px 16px}
+.st-photo,.st-story-media{background:#f5f5f5}.st-photo img,.st-story-media img,.st-person-photo img,.st-asset img{image-rendering:auto}
+
+.st-page-thumb{min-height:68px;padding:8px;border:1px solid transparent;border-radius:8px}.st-page-thumb.is-active{border-color:#d0f5f2;background:#f1fcfb}.st-thumb-sheet{box-shadow:none;border-color:#d5d5d2}.st-thumb-sheet:before{left:7px;right:7px;top:7px;height:1px;background:#2b2b2b}.st-thumb-sheet:after{top:13px;background:repeating-linear-gradient(#a4a4a4 0 1px,transparent 1px 5px)}
+.st-panel-tabs{gap:4px;padding:8px;border-bottom:1px solid #e5e5e5;background:#fff}.st-panel-tabs button{min-height:44px;padding:0 10px;border:1px solid transparent;border-radius:6px}.st-panel-tabs button.is-active{border-color:#2b2b2b;background:#2b2b2b;color:#fff}.st-panel{padding:20px}.st-form{gap:16px}.st-field{gap:8px}.st-field>label{color:#444;font-size:12px}.st-field input,.st-field textarea,.st-field select{min-height:44px;padding:10px 12px;border-color:#e5e5e5;background:#fff}.st-field textarea{min-height:112px}.st-char-count{justify-self:end;font-family:"Aeonik Mono",monospace;font-variant-numeric:tabular-nums}
+.st-avatar{width:32px;height:32px;margin-left:4px;border:1px solid #e5e5e5;border-radius:6px;background:#f1fcfb;color:#007d73;font-weight:600}.st-avatar:first-child{margin-left:0}.st-avatar.is-you{background:#ffe3d2;color:#8b3500}
+.st-section-presets{display:grid;gap:12px;padding:16px;border:1px solid #e5e5e5;border-radius:8px;background:#fff}.st-section-presets>div:first-child{display:grid;gap:4px}.st-section-presets small{color:#6f6f6f;font-size:10px;line-height:1.4}.st-section-presets>div:last-child{display:grid;grid-template-columns:1fr 1fr;gap:8px}.st-section-presets button{min-height:44px;padding:8px 10px;border:1px solid #e5e5e5;border-radius:6px;background:#fff;color:#2b2b2b;font:600 11px/1.2 Aeonik,sans-serif;text-align:left;cursor:pointer}.st-section-presets button:hover{background:#f5f5f5}.st-section-presets button.is-active{border-color:#2b2b2b;background:#2b2b2b;color:#fff}.st-section-presets button:focus-visible{outline:2px solid #007d73;outline-offset:2px}
+
+.st-preview-mast{display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid #2b2b2b}.st-preview-mast img{width:70px;height:auto}.st-preview-mast strong{font:400 16px/1 Replica,"DM Sans",sans-serif}.st-preview-cover>strong{font-family:Replica,"DM Sans",sans-serif;font-weight:400}.st-preview-cover article strong{font-family:"Source Serif 4",Georgia,serif;font-weight:600}.st-preview-month{border-bottom:0;color:#6f6f6f}
+.st-credit-wordmark{display:flex;align-items:center;gap:12px;margin:0;padding:0;border:0}.st-credit-wordmark img{width:112px;height:auto}.st-credit-wordmark strong{font:400 20px/1 Replica,"DM Sans",sans-serif}
+.st-credits-page{padding-top:4px}.st-credits-page>header{grid-template-columns:minmax(0,1fr) 250px;padding-bottom:20px;border-bottom:1px solid #2b2b2b}.st-credits-page>header h1,.st-special-header h1{font:600 48px/.94 "Source Serif 4",Georgia,serif;letter-spacing:-.035em;font-optical-sizing:auto}.st-edition-map{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(210px,.65fr);gap:28px;min-height:0;flex:1;padding-top:20px}.st-toc-list{display:grid;grid-template-columns:1fr 1fr;align-content:start;border-top:1px solid #2b2b2b}.st-toc-list>div{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:14px 12px 14px 0;border-bottom:1px solid #e5e5e5}.st-toc-list>div:nth-child(odd){padding-right:18px}.st-toc-list span{font:500 9px/1 "Aeonik Mono",monospace}.st-toc-list strong{font:600 14px/1.15 "Source Serif 4",Georgia,serif}.st-edition-map>.st-credits-list{display:grid;grid-template-columns:1fr;align-content:start;padding:16px;border:1px solid #e5e5e5;border-radius:8px}.st-edition-map>.st-credits-list>.st-special-label{margin-bottom:4px}.st-edition-map>.st-credits-list section{display:grid;grid-template-columns:1fr;gap:4px;min-height:0;padding:10px 0;border:0;border-bottom:1px solid #e5e5e5}.st-edition-map>.st-credits-list section:last-child{border-bottom:0}.st-edition-map>.st-credits-list small{color:#6f6f6f;font:500 7px/1.2 "Aeonik Mono",monospace;text-transform:uppercase}.st-edition-map>.st-credits-list strong{margin-top:0;font:500 10px/1.25 Aeonik,sans-serif;overflow-wrap:anywhere}
+.st-activity-list time{padding:10px;border:1px solid #e5e5e5;border-radius:6px;background:#f5f5f5}.st-activity-list h2{font:600 21px/1.05 "Source Serif 4",Georgia,serif}.st-activity-list article p{color:#444}
+.st-people-hero h1{font:600 32px/.94 "Source Serif 4",Georgia,serif}.st-roster-summary strong{font-family:"Source Serif 4",Georgia,serif;font-weight:600}
+.st-story-media figcaption,.st-caption{display:grid;gap:2px}.st-story-media figcaption small,.st-caption small{font:500 7px/1.3 "Aeonik Mono",monospace;text-transform:uppercase;letter-spacing:.05em;opacity:.82}
+.st-special-header{border-bottom:1px solid #2b2b2b}.st-credits-list strong{font-family:Aeonik,"DM Sans",sans-serif}.st-final-lock{border:1px solid #e5e5e5;background:#f5f5f5}
+
+@media(max-width:1180px){.st-body{grid-template-columns:200px minmax(420px,1fr) 300px}.st-stage{padding:24px}.st-title.is-hero{font-size:48px}.st-cover-name{font-size:48px}.st-cover-name img{width:168px}}
+@media(max-width:900px){.st-body{grid-template-columns:1fr}.st-stage{padding:20px;min-height:680px}.st-stage-head{align-items:flex-start;gap:16px}.st-stage-tools{flex-wrap:wrap;justify-content:flex-end}.st-inspector{max-height:none}.st-section-presets>div:last-child{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.st-topbar{padding:16px}.st-top-actions{display:grid;grid-template-columns:1fr 1fr}.st-top-actions .btn{width:100%}.st-stage{padding:16px 8px 40px}.st-stage-head{padding-inline:8px}.st-stage-tools .btn{min-height:44px}.st-section-presets>div:last-child{grid-template-columns:1fr}.st-field-row{grid-template-columns:1fr}}
