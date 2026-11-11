@@ -48,15 +48,15 @@ const server=http.createServer((req,res)=>{
  await page.evaluate(({x,y,zoom})=>{Object.assign(_newHire,{photoX:x,photoY:y,photoZoom:zoom});newHireRenderArt()},{x,y,zoom})
  const reference=PNG.sync.read(await page.locator('.new-hire-art').screenshot())
  const result=await page.evaluate(async({x,y,zoom})=>{
-  Object.assign(_newHire,{photoX:x,photoY:y,photoZoom:zoom});newHireRenderArt();const canvas=await newHireCapture();const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;let minX=Infinity,minY=Infinity,maxX=0,maxY=0;
-  for(let y=600;y<2100;y++)for(let x=104;x<960;x++){let i=(y*canvas.width+x)*4;if(pixels[i]<20&&pixels[i+1]>135&&pixels[i+1]<180&&pixels[i+2]>240){minX=Math.min(x,minX);maxX=Math.max(x,maxX);minY=Math.min(y,minY);maxY=Math.max(y,maxY)}}
+  Object.assign(_newHire,{photoX:x,photoY:y,photoZoom:zoom});newHireRenderArt();const imageRect=document.querySelector('.new-hire-photo img').getBoundingClientRect();const canvas=await newHireCapture();const scale=canvas.width/720,photo=[imageRect.left*scale,imageRect.top*scale,imageRect.right*scale,imageRect.bottom*scale];const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;let minX=Infinity,minY=Infinity,maxX=0,maxY=0;
+  for(let y=Math.floor(photo[1]);y<Math.ceil(photo[3]);y++)for(let x=Math.floor(photo[0]);x<Math.ceil(photo[2]);x++){let i=(y*canvas.width+x)*4;if(pixels[i]<20&&pixels[i+1]>135&&pixels[i+1]<180&&pixels[i+2]>240){minX=Math.min(x,minX);maxX=Math.max(x,maxX);minY=Math.min(y,minY);maxY=Math.max(y,maxY)}}
   const pdf=new jspdf.jsPDF({unit:'mm',format:[216,270]});pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,216,270)
-  return{width:canvas.width,height:canvas.height,circle:[maxX-minX+1,maxY-minY+1],png:canvas.toDataURL(),jpg:canvas.toDataURL('image/jpeg',.94),pdf:pdf.output('datauristring')}
+  return{width:canvas.width,height:canvas.height,photo,circle:[maxX-minX+1,maxY-minY+1],png:canvas.toDataURL(),jpg:canvas.toDataURL('image/jpeg',.94),pdf:pdf.output('datauristring')}
  },{x,y,zoom})
  assert.equal(result.width,2160);assert.equal(result.height,2700);assert.ok(result.circle[0]>60);assert.ok(Math.abs(result.circle[0]-result.circle[1])<=2,`${name}: distorted circle ${result.circle}`)
  for(const format of ['png','jpg','pdf'])fs.writeFileSync(path.join(out,`${name}.${format}`),Buffer.from(result[format].split(',')[1],'base64'))
  const exported=PNG.sync.read(Buffer.from(result.png.split(',')[1],'base64'))
- const corners=[0,0,0,0];for(let y=600;y<2100;y++)for(let x=102;x<962;x++){const i=(y*2160+x)*4;if(exported.data[i]>230&&exported.data[i+1]<20&&exported.data[i+2]>230)corners[(y>=1350?2:0)+(x>=532?1:0)]++}
+ const [photoLeft,photoTop,photoRight,photoBottom]=result.photo,photoMidX=(photoLeft+photoRight)/2,photoMidY=(photoTop+photoBottom)/2,corners=[0,0,0,0];for(let y=Math.floor(photoTop);y<Math.ceil(photoBottom);y++)for(let x=Math.floor(photoLeft);x<Math.ceil(photoRight);x++){const i=(y*2160+x)*4;if(exported.data[i]>230&&exported.data[i+1]<20&&exported.data[i+2]>230)corners[(y>=photoMidY?2:0)+(x>=photoMidX?1:0)]++}
  assert.ok(corners.every(count=>count>50),`${name}: missing original image corners: ${corners}`)
  if(name==='positioned')assert.deepEqual(exported.data,firstExport,'Saved crop/zoom must not alter the original photo');else firstExport=exported.data
  for(const [region,x1,y1,x2,y2] of [['title',0,100,1080,280],['portrait',51,300,480,1050],['details',504,380,1029,970],['footer',51,1100,1029,1320]]){
