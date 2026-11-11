@@ -49,3 +49,20 @@ test('lists affect only the selected paragraphs, toggle off cleanly and comments
     assert.equal(addCommentMark(view,'comment-1'),'Uno');assert.match(readRich(doc.getXmlFragment('body')).richHtml,/data-comment-id="comment-1"/);
   }finally{view?.destroy();awareness.destroy();doc.destroy();dom.window.close();}
 });
+
+test('real DOM typing is accepted instead of being rolled back by duplicate ProseMirror models',async()=>{
+  const dom=new JSDOM('<div id="editor"></div>',{pretendToBeVisual:true});
+  for(const key of ['window','document','MutationObserver','HTMLElement','Node','getComputedStyle'])globalThis[key]=key==='getComputedStyle'?dom.window.getComputedStyle.bind(dom.window):dom.window[key];
+  dom.window.Range.prototype.getClientRects=()=>[];dom.window.Range.prototype.getBoundingClientRect=()=>({left:0,right:0,top:0,bottom:0,width:0,height:0});
+  const {readRich,bindRich}=await import('../rich-text.js');
+  const doc=new Y.Doc(),awareness=new Awareness(doc),errors=[];let view;
+  dom.window.addEventListener('error',event=>errors.push(event.error));
+  try{
+    view=bindRich({element:document.getElementById('editor'),fragment:doc.getXmlFragment('body'),awareness,editable:()=>true,onChange:()=>{},field:'body'});
+    const paragraph=view.dom.querySelector('p');paragraph.append(document.createTextNode('Texto escrito'));
+    await new Promise(resolve=>setTimeout(resolve,30));
+    assert.equal(view.dom.textContent,'Texto escrito');
+    assert.equal(readRich(doc.getXmlFragment('body')).content,'Texto escrito');
+    assert.deepEqual(errors,[]);
+  }finally{view?.destroy();awareness.destroy();doc.destroy();dom.window.close();}
+});
