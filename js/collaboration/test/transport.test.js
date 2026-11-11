@@ -44,3 +44,16 @@ test('acknowledged updates carry current catalog metadata',async()=>{
   assert.equal(request.p_title,catalog.title);assert.equal(request.p_kind,catalog.kind);assert.deepEqual(request.p_metadata,catalog.metadata);
   transport.stop();model.doc.destroy();
 });
+test('large histories are drained page by page before editing starts',async()=>{
+  const pages=[
+    {...response,revision:0,latest_revision:2,has_more:true},
+    {...response,revision:1,latest_revision:2,has_more:true},
+    {...response,revision:2,latest_revision:2,has_more:false}
+  ];
+  const requests=[];const changes=[];
+  const{model,transport}=make(async(_name,args)=>{requests.push(args);return pages.shift();},{onChange:data=>changes.push(data.revision)});
+  await transport.sync();
+  assert.deepEqual(requests.map(request=>request.p_after),[-1,0,1]);
+  assert.deepEqual(changes,[0,1,2]);assert.equal(transport.revision,2);assert.equal(transport.hasMore,false);
+  transport.stop();model.doc.destroy();
+});
