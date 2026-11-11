@@ -18,6 +18,11 @@ const NEW_HIRE_LEGACY_MESSAGES=[
 const NEW_HIRE_PALETTES={
   people:{label:'Personas y Cultura',primary:'#FF7824',accent:'#16CDBE',deep:'#2B2B2B',soft:'#F5F5F5',light:'#FFE3D2'}
 }
+const NEW_HIRE_COUNTRY_CODES={
+  honduras:'HN',guatemala:'GT','el salvador':'SV',salvador:'SV',nicaragua:'NI','costa rica':'CR',panama:'PA',mexico:'MX',belice:'BZ',
+  'estados unidos':'US',eeuu:'US',usa:'US',canada:'CA','republica dominicana':'DO','puerto rico':'PR',colombia:'CO',peru:'PE',ecuador:'EC',
+  chile:'CL',argentina:'AR',brasil:'BR',bolivia:'BO',paraguay:'PY',uruguay:'UY',venezuela:'VE',espana:'ES'
+}
 let _newHire={...NEW_HIRE_DEFAULTS},_newHireScale=1,_newHireZoomMode='fit',_newHireTab='content',_newHireExporting=false
 
 function newHireStorageKey(){return`index_new_hire_v1:${typeof me!=='undefined'&&me?.id?me.id:'local'}`}
@@ -81,7 +86,7 @@ function newHireFormHtml(){
   </section>`
 }
 function newHireDesignFormHtml(){
-  return`<section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('photo',16)} Fotografía original</h3><p class="new-hire-design-note">La fotografía se muestra completa, sin recortes ni deformaciones. Se ajusta proporcionalmente al espacio disponible.</p><button type="button" class="btn btn-secondary" onclick="newHireFocusField('photo')">Cambiar fotografía</button>
+  return`<section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('photo',16)} Fotografía original</h3><p class="new-hire-design-note">La fotografía llena el marco sin deformarse. El excedente se recorta proporcionalmente desde el centro.</p><button type="button" class="btn btn-secondary" onclick="newHireFocusField('photo')">Cambiar fotografía</button>
   </section><section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('palette',16)} Sistema de color</h3><div class="new-hire-system-card"><div class="new-hire-system-heading"><span class="new-hire-system-icon">${siIcon('users',18)}</span><span><b>Personas y Cultura</b><small>Uso aprobado para altas de colaborador</small></span></div><dl class="new-hire-system-roles"><div><dt><i style="--swatch:#FF7824"></i>Contexto humano</dt><dd>Orange Base</dd></div><div><dt><i style="--swatch:#16CDBE"></i>Marca SIERRA</dt><dd>Teal Base</dd></div><div><dt><i style="--swatch:#2B2B2B"></i>Lectura y acciones</dt><dd>Neutral 900</dd></div></dl></div><p class="new-hire-design-note">El color identifica funciones; la composición permanece blanca, editorial y precisa.</p></section>`
 }
 function newHireOpenTab(tab){if(!['content','design'].includes(tab))return;_newHireTab=tab;document.querySelectorAll('.new-hire-tab').forEach(button=>{const selected=button.id===`new-hire-tab-${tab}`;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1});const form=document.getElementById('new-hire-form');if(form){form.setAttribute('aria-labelledby',`new-hire-tab-${tab}`);form.innerHTML=newHireFormHtml();form.scrollTop=0}}
@@ -97,9 +102,17 @@ function newHireDateLabel(value){
   const match=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!match)return String(value||'')
   return new Intl.DateTimeFormat('es-GT',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3]))))
 }
+function newHireCountryFlag(value){
+  const normalized=String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase(),typedCode=normalized.toUpperCase(),code=NEW_HIRE_COUNTRY_CODES[normalized]||((/^[A-Z]{2}$/.test(typedCode)&&Object.values(NEW_HIRE_COUNTRY_CODES).includes(typedCode))?typedCode:'')
+  return code?[...code].map(letter=>String.fromCodePoint(127397+letter.charCodeAt(0))).join(''):''
+}
+function newHireCountryHtml(value){
+  const flag=newHireCountryFlag(value)
+  return`<span class="new-hire-country">${flag?`<span class="new-hire-country-flag" aria-hidden="true">${flag}</span>`:''}<span>${esc(value)}</span></span>`
+}
 function newHireArtHtml(){
   const p=NEW_HIRE_PALETTES[_newHire.palette]||NEW_HIRE_PALETTES.people,logo=typeof memoLogoHtml==='function'?memoLogoHtml():'<strong>SIERRA</strong>'
-  const fact=(key,label,value,cls='',wrapCls='')=>value?`<div class="new-hire-fact ${wrapCls}" data-nh-field="${key}" onclick="newHireFocusField('${key}')"><dt>${esc(label)}</dt><dd class="${cls}">${key==='department'?sierraDepartmentHtml(value,p.primary):esc(value)}</dd></div>`:''
+  const fact=(key,label,value,cls='',wrapCls='')=>value?`<div class="new-hire-fact ${wrapCls}" data-nh-field="${key}" onclick="newHireFocusField('${key}')"><dt>${esc(label)}</dt><dd class="${cls}">${key==='department'?sierraDepartmentHtml(value,p.primary):key==='country'?newHireCountryHtml(value):esc(value)}</dd></div>`:''
   const contact=[_newHire.email?`<span class="new-hire-contact-line" data-nh-field="email" onclick="event.stopPropagation();newHireFocusField('email')">${siIcon('mail',14)}<span class="new-hire-contact-value new-hire-single-line" data-min-font="8">${esc(_newHire.email)}</span></span>`:'',_newHire.phone?`<span class="new-hire-contact-line" data-nh-field="phone" onclick="event.stopPropagation();newHireFocusField('phone')">${siIcon('phone',14)}<span class="new-hire-contact-value new-hire-single-line" data-min-font="9">${esc(_newHire.phone)}</span></span>`:''].filter(Boolean).join('')
   const photo=_newHire.photo?`<img src="${escAttr(_newHire.photo)}" alt="Retrato de ${escAttr(_newHire.name||'nuevo colaborador')}">`:`<div class="new-hire-photo-empty">${siIcon('user',64)}<b>Carga una fotografía</b></div>`
   return`<article class="new-hire-art" id="new-hire-art" style="--nh-primary:${p.primary};--nh-accent:${p.accent};--nh-deep:${p.deep};--nh-soft:${p.soft}">
