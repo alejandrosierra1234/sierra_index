@@ -33,7 +33,7 @@ const server=http.createServer((req,res)=>{
  await page.goto(`http://127.0.0.1:${server.address().port}`)
  await page.evaluate(async()=>{
   const c=document.createElement('canvas');c.width=800;c.height=600;const x=c.getContext('2d');x.fillStyle='#eeeeee';x.fillRect(0,0,800,600);x.fillStyle='#009fff';x.beginPath();x.arc(400,300,65,0,Math.PI*2);x.fill();x.fillStyle='#ff00ff';for(const [cx,cy] of [[0,0],[776,0],[0,576],[776,576]])x.fillRect(cx,cy,24,24)
-  Object.assign(_newHire,{name:'Andrea López',role:'Talent Acquisition Coordinator',email:'acquisition.coordinator@sierratextiles.com',phone:'3054 0720',department:'Talento Humano',country:'Guatemala',company:'Hilos y Algodón, S.A.',startDate:'2026-10-05',palette:'olive',photo:c.toDataURL()});newHireRenderArt();await document.fonts.ready;await Promise.all([...document.images].map(i=>i.decode()));newHireFitSingleLines()
+  Object.assign(_newHire,{name:'Andrea López',role:'Talent Acquisition Coordinator',email:'acquisition.coordinator@sierratextiles.com',phone:'3054 0720',department:'Talento Humano',country:'Guatemala',company:'Hilos y Algodón, S.A.',startDate:'2026-10-05',palette:'people',photo:c.toDataURL()});newHireRenderArt();await document.fonts.ready;await Promise.all([...document.images].map(i=>i.decode()));newHireFitSingleLines()
  })
  await page.locator('.new-hire-art').screenshot({path:path.join(out,'preview.png')})
  let firstExport
