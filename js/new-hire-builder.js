@@ -9,22 +9,19 @@ const NEW_HIRE_DEFAULTS={
   company:'Northern Textiles',
   startDate:new Date().toISOString().slice(0,10),
   message:'¡Bienvenida a SIERRA! Nos alegra que formes parte de nuestro equipo. Tu talento y experiencia suman a todo lo que construimos juntos.',
-  photo:'',photoX:50,photoY:50,photoZoom:100,palette:'teal'
+  photo:'',photoX:50,photoY:50,photoZoom:100,palette:'people'
 }
 const NEW_HIRE_LEGACY_MESSAGES=[
   '¡Bienvenido a SIERRA! Estamos muy emocionados de que formes parte de nuestro equipo. Tu talento y experiencia aportarán un gran valor a nuestra organización.'
 ]
 const NEW_HIRE_PALETTES={
-  teal:{label:'Turquesa institucional',primary:'#62b8b1',accent:'#62b8b1',deep:'#2d514e',soft:'#edf8f7'},
-  blue:{label:'Azul corporativo',primary:'#009fff',accent:'#009fff',deep:'#004a86',soft:'#eef8ff'},
-  olive:{label:'Oliva institucional',primary:'#b59e48',accent:'#b59e48',deep:'#625f02',soft:'#f7f5e9'},
-  orange:{label:'Naranja institucional',primary:'#dd6e28',accent:'#dd6e28',deep:'#8b3c12',soft:'#fff3ec'}
+  people:{label:'Personas y Cultura',primary:'#FF7824',accent:'#16CDBE',deep:'#2B2B2B',soft:'#F5F5F5',light:'#FFE3D2'}
 }
 let _newHire={...NEW_HIRE_DEFAULTS},_newHireScale=1,_newHireZoomMode='fit',_newHireTab='content',_newHireExporting=false
 
 function newHireStorageKey(){return`index_new_hire_v1:${typeof me!=='undefined'&&me?.id?me.id:'local'}`}
 function newHireLoad(){
-  try{const value=JSON.parse(localStorage.getItem(newHireStorageKey())||'null');_newHire={...NEW_HIRE_DEFAULTS,...(value&&typeof value==='object'?value:{})};if(NEW_HIRE_LEGACY_MESSAGES.includes(_newHire.message))_newHire.message=NEW_HIRE_DEFAULTS.message}
+  try{const value=JSON.parse(localStorage.getItem(newHireStorageKey())||'null');_newHire={...NEW_HIRE_DEFAULTS,...(value&&typeof value==='object'?value:{})};if(!NEW_HIRE_PALETTES[_newHire.palette])_newHire.palette='people';if(NEW_HIRE_LEGACY_MESSAGES.includes(_newHire.message))_newHire.message=NEW_HIRE_DEFAULTS.message}
   catch{_newHire={...NEW_HIRE_DEFAULTS}}
 }
 function newHireSave(){
@@ -51,8 +48,8 @@ function renderNewHireCreator(){
     </header>
     <div class="new-hire-workspace">
       <aside class="new-hire-editor" aria-label="Editor de bienvenida">
-        <div class="new-hire-tabs" role="tablist" aria-label="Secciones del editor"><button type="button" class="new-hire-tab" role="tab" aria-selected="${_newHireTab==='content'}" onclick="newHireOpenTab('content')">Contenido</button><button type="button" class="new-hire-tab" role="tab" aria-selected="${_newHireTab==='design'}" onclick="newHireOpenTab('design')">Diseño</button></div>
-        <div class="new-hire-form" id="new-hire-form">${newHireFormHtml()}</div>
+        <div class="new-hire-tabs" role="tablist" aria-label="Secciones del editor" onkeydown="newHireTabKey(event)"><button type="button" id="new-hire-tab-content" class="new-hire-tab" role="tab" aria-controls="new-hire-form" aria-selected="${_newHireTab==='content'}" tabindex="${_newHireTab==='content'?'0':'-1'}" onclick="newHireOpenTab('content')">Contenido</button><button type="button" id="new-hire-tab-design" class="new-hire-tab" role="tab" aria-controls="new-hire-form" aria-selected="${_newHireTab==='design'}" tabindex="${_newHireTab==='design'?'0':'-1'}" onclick="newHireOpenTab('design')">Sistema visual</button></div>
+        <div class="new-hire-form" id="new-hire-form" role="tabpanel" aria-labelledby="new-hire-tab-${_newHireTab}" tabindex="0">${newHireFormHtml()}</div>
       </aside>
       <section class="new-hire-preview" aria-label="Vista previa">
         <div class="new-hire-preview-bar"><b>Vista previa</b><span class="new-hire-preview-meta">La pieza se actualiza al escribir</span><div class="new-hire-preview-tools"><button type="button" class="new-hire-zoom-btn new-hire-fit-btn" onclick="newHireZoomFit()">Ajustar</button><button type="button" class="new-hire-zoom-btn" aria-label="Alejar" onclick="newHireZoom(-.1)">${siIcon('minus',16)}</button><span class="new-hire-zoom-value" id="new-hire-zoom-value">100%</span><button type="button" class="new-hire-zoom-btn" aria-label="Acercar" onclick="newHireZoom(.1)">${siIcon('plus',16)}</button></div></div>
@@ -83,11 +80,11 @@ function newHireFormHtml(){
   </section>`
 }
 function newHireDesignFormHtml(){
-  const palettes=Object.entries(NEW_HIRE_PALETTES).map(([key,value])=>`<button type="button" class="new-hire-palette" aria-label="Paleta ${escAttr(key)}" aria-pressed="${_newHire.palette===key}" onclick="newHirePalette('${key}')"><span class="new-hire-palette-swatches"><i style="--swatch:${value.soft}"></i><i style="--swatch:${value.primary}"></i><i style="--swatch:${value.deep}"></i></span><span>${esc(value.label)}</span><span class="new-hire-palette-check">${_newHire.palette===key?siIcon('check',16):''}</span></button>`).join('')
   return`<section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('photo',16)} Fotografía original</h3><p class="new-hire-design-note">La fotografía se muestra completa, sin recortes ni deformaciones. Se ajusta proporcionalmente al espacio disponible.</p><button type="button" class="btn btn-secondary" onclick="newHireFocusField('photo')">Cambiar fotografía</button>
-  </section><section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('palette',16)} Paleta SIERRA</h3><div class="new-hire-palettes">${palettes}</div></section>`
+  </section><section class="new-hire-section"><h3 class="new-hire-section-title">${siIcon('palette',16)} Sistema de color</h3><div class="new-hire-system-card"><div class="new-hire-system-heading"><span class="new-hire-system-icon">${siIcon('users',18)}</span><span><b>Personas y Cultura</b><small>Uso aprobado para altas de colaborador</small></span></div><dl class="new-hire-system-roles"><div><dt><i style="--swatch:#FF7824"></i>Contexto humano</dt><dd>Orange Base</dd></div><div><dt><i style="--swatch:#16CDBE"></i>Marca SIERRA</dt><dd>Teal Base</dd></div><div><dt><i style="--swatch:#2B2B2B"></i>Lectura y acciones</dt><dd>Neutral 900</dd></div></dl></div><p class="new-hire-design-note">El color identifica funciones; la composición permanece blanca, editorial y precisa.</p></section>`
 }
-function newHireOpenTab(tab){if(!['content','design'].includes(tab))return;_newHireTab=tab;document.querySelectorAll('.new-hire-tab').forEach((button,index)=>button.setAttribute('aria-selected',String((index===0)===(tab==='content'))));const form=document.getElementById('new-hire-form');if(form){form.innerHTML=newHireFormHtml();form.scrollTop=0}}
+function newHireOpenTab(tab){if(!['content','design'].includes(tab))return;_newHireTab=tab;document.querySelectorAll('.new-hire-tab').forEach(button=>{const selected=button.id===`new-hire-tab-${tab}`;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1});const form=document.getElementById('new-hire-form');if(form){form.setAttribute('aria-labelledby',`new-hire-tab-${tab}`);form.innerHTML=newHireFormHtml();form.scrollTop=0}}
+function newHireTabKey(event){if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const tabs=['content','design'],current=Math.max(0,tabs.indexOf(_newHireTab)),next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(current+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;newHireOpenTab(tabs[next]);document.getElementById(`new-hire-tab-${tabs[next]}`)?.focus()}
 function newHireSet(key,value){_newHire[key]=value;newHireRenderArt();newHireSave()}
 function newHireRange(key,value,outputId){_newHire[key]=Number(value);const output=document.getElementById(outputId);if(output)output.value=value+'%';newHireRenderArt();newHireSave()}
 function newHirePalette(key){if(!NEW_HIRE_PALETTES[key])return;_newHire.palette=key;newHireOpenTab('design');newHireRenderArt();newHireSave()}
@@ -100,14 +97,14 @@ function newHireDateLabel(value){
   return new Intl.DateTimeFormat('es-GT',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3]))))
 }
 function newHireArtHtml(){
-  const p=NEW_HIRE_PALETTES[_newHire.palette]||NEW_HIRE_PALETTES.teal,logo=typeof memoLogoHtml==='function'?memoLogoHtml():'<strong>SIERRA</strong>'
+  const p=NEW_HIRE_PALETTES[_newHire.palette]||NEW_HIRE_PALETTES.people,logo=typeof memoLogoHtml==='function'?memoLogoHtml():'<strong>SIERRA</strong>'
   const fact=(key,label,value,cls='',wrapCls='')=>value?`<div class="new-hire-fact ${wrapCls}" data-nh-field="${key}" onclick="newHireFocusField('${key}')"><dt>${esc(label)}</dt><dd class="${cls}">${key==='department'?sierraDepartmentHtml(value,p.primary):esc(value)}</dd></div>`:''
   const contact=[_newHire.email?`<span class="new-hire-contact-line" data-nh-field="email" onclick="event.stopPropagation();newHireFocusField('email')">${siIcon('mail',14)}<span class="new-hire-contact-value new-hire-single-line" data-min-font="8">${esc(_newHire.email)}</span></span>`:'',_newHire.phone?`<span class="new-hire-contact-line" data-nh-field="phone" onclick="event.stopPropagation();newHireFocusField('phone')">${siIcon('phone',14)}<span class="new-hire-contact-value new-hire-single-line" data-min-font="9">${esc(_newHire.phone)}</span></span>`:''].filter(Boolean).join('')
   const photo=_newHire.photo?`<img src="${escAttr(_newHire.photo)}" alt="Retrato de ${escAttr(_newHire.name||'nuevo colaborador')}">`:`<div class="new-hire-photo-empty">${siIcon('user',64)}<b>Carga una fotografía</b></div>`
   return`<article class="new-hire-art" id="new-hire-art" style="--nh-primary:${p.primary};--nh-accent:${p.accent};--nh-deep:${p.deep};--nh-soft:${p.soft}">
-    <header class="new-hire-art-header">${logo}<span class="new-hire-art-kicker">Nuevo colaborador</span></header>
+    <header class="new-hire-art-header">${logo}<span class="new-hire-art-kicker">ALTAS · PERSONAS Y CULTURA</span></header>
     <main class="new-hire-art-main">
-      <div class="new-hire-heading"><h1 class="new-hire-art-title">Te damos la bienvenida<br>al equipo <strong>SIERRA</strong></h1></div>
+      <div class="new-hire-heading"><p>Una nueva historia comienza</p><h1 class="new-hire-art-title">Te damos la bienvenida<br>al equipo <strong>SIERRA</strong></h1></div>
       <div class="new-hire-card-grid"><div class="new-hire-photo" data-nh-field="photo" onclick="newHireFocusField('photo')">${photo}</div><section class="new-hire-info">
         <h2 class="new-hire-name new-hire-single-line" data-min-font="15" data-nh-field="name" onclick="newHireFocusField('name')">${esc(_newHire.name||'Nombre del colaborador')}</h2><p class="new-hire-role" data-nh-field="role" onclick="newHireFocusField('role')">${esc(_newHire.role||'Puesto del colaborador')}</p>
         <dl class="new-hire-facts">${contact?`<div class="new-hire-fact new-hire-fact-contact"><dt>Contacto</dt><dd class="new-hire-contact-lines">${contact}</dd></div>`:''}${fact('department','Gerencia',_newHire.department,'new-hire-department','new-hire-fact-department')}${fact('country','País',_newHire.country)}${fact('company','Empresa',_newHire.company)}${fact('startDate','Fecha de ingreso',newHireDateLabel(_newHire.startDate),'','new-hire-fact-date')}</dl>
