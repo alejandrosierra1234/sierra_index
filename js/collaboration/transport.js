@@ -3,15 +3,30 @@ import {Y, toBase64, fromBase64} from './model.js';
 // Every exchange goes through an authenticated RPC, including cursor updates.
 // No private payload is broadcast on a channel with cached membership checks.
 export class CommunicationTransport {
-  constructor({doc, rpc, valid, presence, catalog=()=>null, onChange, onStatus}) {
-    Object.assign(this, {doc, rpc, valid, presence, catalog, onChange, onStatus});
+  constructor({doc, rpc, valid, presence, catalog=()=>null, outbox=null, onChange, onStatus}) {
+    Object.assign(this, {doc, rpc, valid, presence, catalog, outbox, onChange, onStatus});
     this.session = crypto.randomUUID(); this.revision = -1; this.pending = [];
     this.stopped = false; this.role = 'viewer'; this.failures = 0; this.accessFailures = 0;
     this.writeBlocked = false;
-    this.listener = (update, origin) => { if (origin !== 'remote') this.pending.push(update); };
+    this.journal=Promise.resolve();this.recovered=[];this.backupError=null;
+    this.listener = (update, origin) => { if (origin !== 'remote') {this.pending.push(update);this.persistPending();} };
     doc.on('update', this.listener);
   }
   get dirty() { return this.pending.length > 0; }
+  persistPending() {
+    if(!this.outbox)return;
+    const update=this.dirty?toBase64(Y.mergeUpdates(this.pending)):null;
+    this.journal=this.journal.then(()=>this.outbox.save(update)).then(()=>{this.backupError=null;}).catch(error=>{this.backupError=error;});
+  }
+  async restorePending() {
+    if(!this.outbox||this.stopped||!this.valid()||!['owner','editor'].includes(this.role))return;
+    try{this.recovered=await this.outbox.load();}catch(error){this.backupError=error;return;}
+    if(this.stopped||!this.valid())return;
+    for(const row of this.recovered)Y.applyUpdate(this.doc,fromBase64(row.update),'recovery');
+    // Replayed updates can already be present on the server after a lost reply.
+    if(!this.dirty){try{await this.outbox.remove(this.recovered);this.recovered=[];}catch(error){this.backupError=error;}}
+    await this.journal;
+  }
   async sync() {
     if (this.stopped || !this.valid()) return;
     if (this.running) return this.running;
@@ -26,6 +41,7 @@ export class CommunicationTransport {
     } while (this.hasMore && !this.stopped && this.valid());
   }
   async exchange() {
+    if(this.outbox)await this.journal;
     const count = this.pending.length;
     if (!this.batch && count && !this.writeBlocked) this.batch = {count, nonce:crypto.randomUUID(), update:toBase64(Y.mergeUpdates(this.pending.slice(0, count)))};
     try {
@@ -37,22 +53,23 @@ export class CommunicationTransport {
       });
       if (this.stopped || !this.valid()) return;
       this.role = data.role;
-      if (this.batch) { this.pending.splice(0, this.batch.count); this.batch = null; }
+      if (this.batch) { this.pending.splice(0, this.batch.count); this.batch = null;this.persistPending(); }
       this.doc.transact(() => {
         if (data.snapshot) Y.applyUpdate(this.doc, fromBase64(data.snapshot), 'remote');
         for (const update of data.updates) Y.applyUpdate(this.doc, fromBase64(update.payload), 'remote');
       }, 'remote');
       this.revision = data.revision; this.hasMore = data.has_more === true; this.failures = 0; this.accessFailures = 0;
+      if(!this.dirty&&this.outbox){await this.journal;if(this.recovered.length){try{await this.outbox.remove(this.recovered);this.recovered=[];}catch(error){this.backupError=error;}}}
       this.onChange(data);
       this.onStatus(this.writeBlocked && this.dirty ? 'Solo lectura · cambios locales sin guardar' : this.hasMore ? 'Sincronizando historial…' : this.dirty ? 'Guardando en línea…' : 'Guardado en línea', this.writeBlocked);
       // Compact only an acknowledged state. Concurrent writers make this a no-op.
       const latest = Number.isSafeInteger(data.latest_revision) ? data.latest_revision : data.revision;
       if (!this.hasMore && this.revision >= latest && !this.dirty && this.role !== 'viewer' &&
           (data.checkpoint_recommended === true || this.revision - data.snapshot_revision >= 50)) {
-        await this.rpc('communication_checkpoint', {
+        try{await this.rpc('communication_checkpoint', {
           p_revision:this.revision, p_snapshot:toBase64(Y.encodeStateAsUpdate(this.doc)),
-          p_title:String(this.doc.getMap('communication').get('subject') || 'Comunicado').slice(0, 500)
-        });
+          p_title:String(this.doc.getMap('communication').get('subject') || 'Comunicado').trim().slice(0,500)||'Comunicado'
+        });}catch(error){this.checkpointError=error;}
       }
     } catch (error) {
       if (this.stopped || !this.valid()) return;
@@ -70,7 +87,7 @@ export class CommunicationTransport {
           return this.exchange();
         }
         this.stop(); this.onStatus('No se pudo verificar el acceso. Vuelve a intentar sin cerrar esta página.', true);
-      } else this.onStatus('Sin sincronizar. Conserva esta ventana abierta.', true);
+      } else this.onStatus(this.outbox&&!this.backupError?'Sin conexión · cambios respaldados en este navegador. Se reenviarán al abrir el documento.':'Sin sincronizar. Conserva esta ventana abierta.', true);
       throw error;
     }
   }

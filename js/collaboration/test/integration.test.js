@@ -10,7 +10,7 @@ const until=async predicate=>{for(let i=0;i<500;i++){if(predicate())return;await
 
 test('real editor promotes communications to the team, keeps cloud writes out of localStorage and survives back/logout',async()=>{
   const dom=new JSDOM('<div id="content"><div id="sec-title"></div><div id="sec-sub"></div><div id="product-controls"></div><div id="pg"></div></div>',{url:'https://test.local',runScripts:'outside-only',pretendToBeVisual:true});
-  const w=dom.window;let snapshot,revision=0,updates=[],authCallback,remoteOnline=true,remoteField='document',leaveRequests=0,listFailures=0,sharedDocuments=[];
+  const w=dom.window;let snapshot,revision=0,updates=[],authCallback,remoteOnline=true,remoteField='document',leaveRequests=0,listFailures=0,sharedDocuments=[],syncFailure=false,releaseCreate=null;
   const windowErrors=[];w.addEventListener('error',event=>windowErrors.push(event.error));
   w.eval=code=>vm.runInContext(code,dom.getInternalVMContext());
   try {
@@ -22,7 +22,7 @@ test('real editor promotes communications to the team, keeps cloud writes out of
     const notices=[];
     w.jsStr=v=>String(v??'').replaceAll("'","\\'");w.toast=value=>notices.push(value);w.logout=async()=>{w.me=null;};
     w.sb={auth:{onAuthStateChange:callback=>{authCallback=callback;}},rpc:async(name,args)=>{
-      if(name==='communication_create'){snapshot=args.p_snapshot;return{data:'00000000-0000-4000-8000-000000000099'};}
+      if(name==='communication_create'){if(releaseCreate)await new Promise(resolve=>{releaseCreate=resolve;});snapshot=args.p_snapshot;return{data:'00000000-0000-4000-8000-000000000099'};}
       if(name==='communication_catalog'){
         const record=sharedDocuments.find(item=>item.id===args.p_id);
         if(record){record.title=args.p_title;record.kind=args.p_kind;record.metadata=args.p_metadata;record.updated_at=new Date().toISOString();}
@@ -30,6 +30,7 @@ test('real editor promotes communications to the team, keeps cloud writes out of
       }
       if(name==='communication_import')return{data:{id:'00000000-0000-4000-8000-000000000097',created:false}};
       if(name==='communication_sync'){
+        if(syncFailure)return{error:{message:'offline'}};
         if(args.p_awareness===null)leaveRequests++;
         if(args.p_update && !updates.some(x=>x.nonce===args.p_nonce))updates.push({revision:++revision,payload:args.p_update,nonce:args.p_nonce});
         const presence=remoteOnline?[{user_id:'00000000-0000-4000-8000-000000000077',session_id:'00000000-0000-4000-8000-000000000078',name:'Ana Prueba',seen_at:new Date().toISOString(),awareness:JSON.stringify({clientID:77,field:remoteField,area:'Asunto',mode:'field'})}]:[];
@@ -112,7 +113,10 @@ test('real editor promotes communications to the team, keeps cloud writes out of
     updates=[];revision=0;
     const style=w.document.createElement('style');style.id='simple-invitation-editor-styles';w.document.head.append(style);
     w.eval(source.match(/<script id="simple-invitation-editor">([\s\S]*?)<\/script>/)[1]);
-    await w.newInvitationDraft();
+    releaseCreate=true;const creating=w.newInvitationDraft();
+    await until(()=>typeof releaseCreate==='function');
+    assert.equal(w.document.querySelector('.memo-customizer').inert,true,'creation locks editing until server document is ready');
+    releaseCreate();await creating;releaseCreate=null;
     assert.ok(w.document.querySelector('.comms-collab-bar'),'simplified invitations show online presence and status');
     w.eval("invitationSimpleSet('subject','Convocatoria que sobrevive al regreso')");
     const beforeHide=leaveRequests;
@@ -123,9 +127,17 @@ test('real editor promotes communications to the team, keeps cloud writes out of
     w.eval("invitationSimpleSet('subject','Edición después de volver')");
     await until(()=>w.document.querySelector('#memo-save-state')?.textContent==='Guardado en línea');
     await until(()=>updates.length>0);
+    syncFailure=true;w.eval("invitationSimpleSet('subject','Pendiente antes de cerrar sesión')");
+    assert.equal(await w.logout(),false,'offline logout must retain pending changes');
+    assert.ok(w.me);assert.ok(w.eval('_commsCurrent'));
+    syncFailure=false;
     await w.invitationSimpleHistory();
     assert.equal(w.eval('_commsKind'),'convocatoria');
     assert.equal(w.eval('_commsCurrent'),null);
+    await w.newCommunicationDraft();
+    const beforeLogout=w.localStorage.getItem('sierra_communications_v1:'+w.me.id);
+    w.commsSet('subject','Saved before logout');w.commsPersist();
     await w.logout();assert.equal(w.eval('_commsCurrent'),null);
+    assert.equal(w.localStorage.getItem('sierra_communications_v1:00000000-0000-4000-8000-000000000001'),beforeLogout,'logout must not copy shared documents into localStorage');
   }finally{await w.logout?.();await new Promise(r=>setTimeout(r,30));dom.window.close();assert.deepEqual(windowErrors,[]);}
 });

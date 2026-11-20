@@ -1,5 +1,6 @@
 import {CommunicationModel,Y,toBase64,fromBase64} from './model.js';
 import {CommunicationTransport} from './transport.js';
+import {createOutbox} from './outbox.js';
 import {Awareness} from 'y-protocols/awareness';
 import {bindRich,readRich,seedRich,richCommand,addCommentMark} from './rich-text.js';
 import {optimizeSharingImages} from './images.js';
@@ -100,7 +101,7 @@ function install(api) {
   };
   const status=(text,blocked=false) => {
     if(!session)return;
-    session.blocked=blocked;
+    session.blocked=blocked;session.statusText=text;
     document.querySelectorAll('#memo-save-state,[data-collab-status]').forEach(el=>(el.querySelector('span')||el).textContent=text);
     if(session.transport.stopped) {
       document.querySelector('.memo-customizer')?.setAttribute('data-collab-disconnected','true');
@@ -112,6 +113,7 @@ function install(api) {
     }else document.querySelectorAll('.memo-form input,.memo-form textarea,.memo-form button,.memo-form select,.memo-panel-head .pd-select-btn').forEach(el=>{
       if(!el.closest('.memo-studio-actions')){if(!lockedElements.has(el))lockedElements.set(el,el.disabled);el.disabled=true;}
     });
+    document.querySelectorAll('[data-invitation-text]').forEach(el=>el.setAttribute('contenteditable',String(editable())));
     views.forEach(view=>view.setProps({editable}));
   };
   function stop(closeDialog=true) {
@@ -257,14 +259,14 @@ function install(api) {
     stop(false);
     const account=getAccount(),model=new CommunicationModel(),awareness=new Awareness(model.doc);
     const current={id,account,model,awareness,blocked:true,source:null,baseline:{},presenceReady:false,presenceSessions:new Map(),presenceRows:[],events:[],lastPresence:[]};
-    const transport=new CommunicationTransport({doc:model.doc,
+    const transport=new CommunicationTransport({doc:model.doc,outbox:createOutbox(account+':'+id),
       rpc:(name,args)=>rpc(name,{p_id:id,...args}),valid:()=>session===current&&getAccount()===account,
       presence:()=>({clientID:model.doc.clientID,...awareness.getLocalState()}),
       catalog:()=>catalogOf(readModel(model)),
       onChange:data=>{if(current.source)applyRemote(data);},onStatus:status});
     current.transport=transport;session=current;
     try {
-      await transport.sync();if(session!==current)return;
+      await transport.sync();await transport.restorePending();if(transport.dirty)await transport.sync();if(session!==current)return;
       const d=read();api.validate(d);current.source=d.id;current.baseline=stripped(d);current.blocked=false;
       const catalog=catalogOf(d);rpc('communication_catalog',{p_id:id,p_title:catalog.title,p_kind:catalog.kind,p_metadata:catalog.metadata}).catch(()=>{});
       awareness.setLocalState({user:{name:api.account().name||'Colaborador',color:colors[model.doc.clientID%colors.length]},field:'document',area:'Documento',mode:'area'});
@@ -274,11 +276,18 @@ function install(api) {
   async function publishCurrent() {
     if(active())return true;
     if(!api.current()||!api.persistLocal())throw Error('No se pudo guardar el comunicado antes de publicarlo al equipo.');
-    const original=copy(api.current()),draft=await prepareCloud(original),snapshot=encodeDraft(draft),catalog=catalogOf(draft);
-    if(snapshot.length>16777216)throw Error('El comunicado supera el límite seguro incluso después de guardar sus imágenes.');
-    const id=await rpc('communication_create',{p_source:draft.id,p_title:catalog.title,p_kind:catalog.kind,p_snapshot:toBase64(snapshot),p_metadata:catalog.metadata});
-    if(api.current()?.id!==draft.id)return false;
-    await open(id);return true;
+    // Do not allow edits to a temporary draft while replacing it with its
+    // authorized server document. Otherwise the initial response erases typing.
+    const panel=document.querySelector('.memo-customizer'),wasInert=panel?.inert;
+    if(panel){panel.inert=true;panel.setAttribute('aria-busy','true');}
+    const indicator=document.getElementById('memo-save-state');if(indicator)indicator.textContent='Conectando el documento con el servidor…';
+    try{
+      const original=copy(api.current()),draft=await prepareCloud(original),snapshot=encodeDraft(draft),catalog=catalogOf(draft);
+      if(snapshot.length>16777216)throw Error('El comunicado supera el límite seguro incluso después de guardar sus imágenes.');
+      const id=await rpc('communication_create',{p_source:draft.id,p_title:catalog.title,p_kind:catalog.kind,p_snapshot:toBase64(snapshot),p_metadata:catalog.metadata});
+      if(api.current()?.id!==draft.id)return false;
+      await open(id);return true;
+    }finally{if(panel){panel.inert=wasInert||false;panel.removeAttribute('aria-busy');}if(!active()&&indicator?.isConnected)indicator.textContent='Guardado en este navegador · pendiente de subir al equipo';}
   }
   async function share() {
     if(sharing)return;
@@ -591,7 +600,7 @@ function install(api) {
     header?.querySelectorAll('[aria-label="Acciones del comunicado"]').forEach(button=>button.disabled=true);
     if(header&&!header.querySelector('[data-comments-panel]')){const button=document.createElement('button');button.type='button';button.className='btn btn-secondary';button.dataset.commentsPanel='';button.innerHTML=api.icon('message',16)+' Comentarios '+activeComments().length;button.onclick=()=>commentsDialog();header.prepend(button);}
     paintPresence(session.lastPresence||[]);
-    status(session.transport.dirty?'Guardando en línea…':'Guardado en línea',session.blocked);
+    status(session.blocked?(session.statusText||'Sin sincronizar. Conserva esta ventana abierta.'):session.transport.dirty?'Guardando en línea…':(session.statusText||'Verificando guardado…'),session.blocked);
   }
   function homeRendered() {
     const header=document.querySelector('.comms-header-actions');if(!header)return;
