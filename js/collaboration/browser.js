@@ -96,7 +96,7 @@ function install(api) {
     const d=api.current();if(!d || d.id!==session.source) return false;
     prepareRich(session.model,d);
     const next=stripped(d);
-    session.model.apply(session.baseline,next);session.baseline=copy(next);return true;
+    session.model.apply(session.baseline,next);session.baseline=copy(next);if(session.transport.dirty)status('Guardando en línea…');return true;
   };
   const status=(text,blocked=false) => {
     if(!session)return;
@@ -599,12 +599,14 @@ function install(api) {
     const results=document.getElementById('comms-results');if(results&&homeDocuments.length)renderSharedHome(results,homeDocuments);
     clearTimeout(homeTimer);homeTimer=0;loadSharedHome().finally(scheduleHomeRefresh);
   }
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(homeTimer);homeTimer=0;}else if(document.querySelector('.comms-home')){loadSharedHome(true).finally(scheduleHomeRefresh);}});
+  document.addEventListener('visibilitychange',()=>{if(active()){capture();session.transport.sync().catch(()=>{});}if(document.hidden){clearTimeout(homeTimer);homeTimer=0;}else if(document.querySelector('.comms-home')){loadSharedHome(true).finally(scheduleHomeRefresh);}});
   document.addEventListener('focusout',()=>setTimeout(()=>{
     if(active()&&deferred&&!document.activeElement?.closest('.memo-form')){deferred=false;api.render();}
   },0));
   window.addEventListener('beforeunload',event=>{if(active()&&session.transport.dirty){event.preventDefault();event.returnValue='';}});
-  window.addEventListener('pagehide',()=>{if(active())session.transport.leave().catch(()=>{});});
+  // Do not stop the transport on pagehide: bfcache restores the same session.
+  window.addEventListener('pagehide',()=>{if(active()){capture();session.transport.sync().catch(()=>{});}});
+  window.addEventListener('pageshow',()=>{if(active())session.transport.sync().catch(()=>{});});
   return {active,editable,stop,capture,rendered,homeRendered,share,library,publishCurrent,
     prepareImage:async source=>{
       const current=session;

@@ -24415,6 +24415,7 @@ ${err.toString()}`);
       const next = stripped(d);
       session.model.apply(session.baseline, next);
       session.baseline = copy3(next);
+      if (session.transport.dirty) status("Guardando en l\xEDnea\u2026");
       return true;
     };
     const status = (text2, blocked = false) => {
@@ -25480,6 +25481,11 @@ ${err.toString()}`);
       loadSharedHome().finally(scheduleHomeRefresh);
     }
     document.addEventListener("visibilitychange", () => {
+      if (active()) {
+        capture();
+        session.transport.sync().catch(() => {
+        });
+      }
       if (document.hidden) {
         clearTimeout(homeTimer);
         homeTimer = 0;
@@ -25500,7 +25506,14 @@ ${err.toString()}`);
       }
     });
     window.addEventListener("pagehide", () => {
-      if (active()) session.transport.leave().catch(() => {
+      if (active()) {
+        capture();
+        session.transport.sync().catch(() => {
+        });
+      }
+    });
+    window.addEventListener("pageshow", () => {
+      if (active()) session.transport.sync().catch(() => {
       });
     });
     return {

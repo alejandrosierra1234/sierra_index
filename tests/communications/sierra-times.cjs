@@ -86,6 +86,9 @@ assert.match(html,/comunicaciones:sierra-times/)
 
 const dom=new JSDOM('<!doctype html><div id="tb-section"></div><div id="product-controls"></div><div id="sec-title"></div><div id="sec-sub"></div><div id="pg"></div>',{url:'https://test.local',runScripts:'outside-only'})
 const w=dom.window
+// Keep the edition expectation independent of the day/month running this test.
+const RealDate=w.Date
+w.Date=class extends RealDate{constructor(...args){super(...(args.length?args:['2026-11-01T12:00:00Z']))}static now(){return new RealDate('2026-11-01T12:00:00Z').getTime()}}
 w.crypto.randomUUID=(()=>{let n=0;return()=>`00000000-0000-4000-8000-${String(++n).padStart(12,'0')}`})()
 Object.assign(w,{me:{id:'editor',email:'editor@sierra.test'},profile:{full_name:'Ana Sierra'},_navLeaf:null,confirm:()=>true,alert(){},syncModule(){},leaveView(){},renderSidebarTree(){},clearSecCrumbs(){},toast(){},requestAnimationFrame:callback=>callback(),siIcon:name=>`<svg data-icon="${name}"></svg>`,QRCode:{toCanvas:()=>Promise.resolve()}})
 vm.runInContext(source,dom.getInternalVMContext())

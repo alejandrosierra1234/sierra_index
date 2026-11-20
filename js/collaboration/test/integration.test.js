@@ -108,6 +108,24 @@ test('real editor promotes communications to the team, keeps cloud writes out of
     await w.newNewsDraft();assert.equal(w.eval('_commsCurrent.kind'),'circular');
     assert.ok(w.document.querySelector('.comms-collab-bar'));
     w.commsSet('subject','Circular del equipo');w.commsPersist();
+    await w.commsBack();
+    updates=[];revision=0;
+    const style=w.document.createElement('style');style.id='simple-invitation-editor-styles';w.document.head.append(style);
+    w.eval(source.match(/<script id="simple-invitation-editor">([\s\S]*?)<\/script>/)[1]);
+    await w.newInvitationDraft();
+    assert.ok(w.document.querySelector('.comms-collab-bar'),'simplified invitations show online presence and status');
+    w.eval("invitationSimpleSet('subject','Convocatoria que sobrevive al regreso')");
+    const beforeHide=leaveRequests;
+    w.dispatchEvent(new w.PageTransitionEvent('pagehide',{persisted:true}));
+    await until(()=>w.document.querySelector('#memo-save-state')?.textContent==='Guardado en línea');
+    assert.equal(leaveRequests,beforeHide,'pagehide must not stop the session before pending writes are sent');
+    w.dispatchEvent(new w.PageTransitionEvent('pageshow',{persisted:true}));
+    w.eval("invitationSimpleSet('subject','Edición después de volver')");
+    await until(()=>w.document.querySelector('#memo-save-state')?.textContent==='Guardado en línea');
+    await until(()=>updates.length>0);
+    await w.invitationSimpleHistory();
+    assert.equal(w.eval('_commsKind'),'convocatoria');
+    assert.equal(w.eval('_commsCurrent'),null);
     await w.logout();assert.equal(w.eval('_commsCurrent'),null);
   }finally{await w.logout?.();await new Promise(r=>setTimeout(r,30));dom.window.close();assert.deepEqual(windowErrors,[]);}
 });
