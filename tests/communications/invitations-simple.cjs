@@ -23,13 +23,20 @@ w.invitationSimpleNameBlur(name);assert.equal(name.placeholder,'Ej. Reunión gen
 assert.equal(w.invitationSimpleRequireName(),false,'blank invitations cannot open the download menu');
 assert.equal(w.document.querySelector('label[for="simple-invite-time"]').textContent,'Hora de inicio');
 assert.equal(w.document.querySelector('#simple-invite-time').value,'10:00');
-assert.equal(w.document.querySelector('label[for="simple-invite-end-time"]').textContent,'Hora de finalización');
-assert.equal(w.document.querySelector('#simple-invite-end-time').value,'11:00');
+assert.equal(w.document.querySelector('label[for="simple-invite-end-time"]').textContent,'Hora de finalización Opcional');
+assert.equal(w.document.querySelector('#simple-invite-end-time').value,'');
 w.eval("invitationSimpleSet('endTime','12:30')");
 assert.equal(w.eval('_commsCurrent.endTime'),'12:30','the finish time is stored on the invitation');
 assert.equal(w.eval('_commsCurrent.dates[0].endTime'),'12:30','the finish time stays synchronized with the primary date');
 const scheduleBox=w.document.createElement('div');scheduleBox.innerHTML=w.invitationPageHtml(w.eval('_commsCurrent'));
 assert.match(scheduleBox.querySelector('.simple-invite-details').textContent,/10:00 a\.m\. a 12:30 p\.m\./,'the preview and exports show the complete schedule');
+
+w.eval("invitationSimpleSet('endTime','')");
+const withoutEnd=w.commsNormalize(JSON.parse(JSON.stringify(w.eval('_commsCurrent'))));
+assert.equal(w.createInvitationDraft(withoutEnd).endTime,'','copying preserves an omitted end time');
+scheduleBox.innerHTML=w.invitationPageHtml({...withoutEnd,dates:[{...withoutEnd.dates[0],endTime:'12:30'}]});
+assert.doesNotMatch(scheduleBox.querySelector('.simple-invite-details').textContent,/12:30/,'explicitly cleared end time overrides legacy date values');
+assert.match(scheduleBox.querySelector('.simple-invite-details').textContent,/10:00 a\.m\./);
 
 const bannerDraft={...draft,subject:'Encuentro SIERRA',sender:'Cultura y Talento',heroImage:'data:image/png;base64,AA',bannerHeight:82,bannerZoom:145,bannerFit:'contain',bannerFrame:'top-right'};
 const box=w.document.createElement('div');box.innerHTML=w.invitationPageHtml(bannerDraft);
