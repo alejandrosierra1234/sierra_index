@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {CommunicationModel} from '../model.js';
+import {CommunicationModel,Y,toBase64,fromBase64} from '../model.js';
 import {CommunicationTransport} from '../transport.js';
 const response={role:'editor',revision:0,snapshot_revision:0,updates:[],presence:[]};
 function make(rpc,options={}){const model=new CommunicationModel(),statuses=[];const transport=new CommunicationTransport({doc:model.doc,rpc,valid:()=>true,presence:()=>({}),onChange:()=>{},onStatus:(...args)=>statuses.push(args),...options});return{model,transport,statuses};}
@@ -56,4 +56,35 @@ test('large histories are drained page by page before editing starts',async()=>{
   assert.deepEqual(requests.map(request=>request.p_after),[-1,0,1]);
   assert.deepEqual(changes,[0,1,2]);assert.equal(transport.revision,2);assert.equal(transport.hasMore,false);
   transport.stop();model.doc.destroy();
+});
+
+function memoryOutbox(rows=new Map(),key=crypto.randomUUID()) {return {load:async()=>[...rows].map(([key,update])=>({key,update})),save:async update=>{if(update)rows.set(key,update);else rows.delete(key);},remove:async records=>{for(const row of records)if(rows.get(row.key)===row.update)rows.delete(row.key);}};}
+test('pending edits survive a destroyed client and replay only after authorization',async()=>{
+  const rows=new Map(),server=new Y.Doc();
+  let calls=0;
+  const first=make(async()=>{throw Error('offline');},{outbox:memoryOutbox(rows)});
+  first.model.seed({id:'invitation',subject:'Convocatoria recuperada',kind:'convocatoria',blocks:[]});
+  await assert.rejects(first.transport.sync());assert.equal(rows.size,1);
+  first.transport.stop();first.model.doc.destroy();
+  const second=make(async(_name,args)=>{calls++;if(args.p_update)Y.applyUpdate(server,fromBase64(args.p_update));return {...response,snapshot:toBase64(Y.encodeStateAsUpdate(server))};},{outbox:memoryOutbox(rows)});
+  await second.transport.restorePending();assert.equal(second.transport.dirty,false,'no replay before server authorization');
+  await second.transport.sync();await second.transport.restorePending();
+  assert.equal(second.model.read().subject,'Convocatoria recuperada');
+  await second.transport.sync();assert.equal(rows.size,0,'remove backup only after acknowledgement');
+  assert.equal(new CommunicationModel(server).read().subject,'Convocatoria recuperada');
+  second.transport.stop();second.model.doc.destroy();server.destroy();
+});
+test('failed checkpoint does not report acknowledged data as lost and titles are nonempty',async()=>{
+  let title;
+  const current=make(async(name,args)=>{if(name==='communication_checkpoint'){title=args.p_title;throw Error('maintenance offline');}return {...response,revision:50,checkpoint_recommended:true};});
+  current.model.seed({subject:'   '});await current.transport.sync();
+  assert.equal(title,'Comunicado');assert.equal(current.transport.dirty,false);assert.equal(current.statuses.at(-1)[0],'Guardado en línea');
+  current.transport.stop();current.model.doc.destroy();
+});
+test('backup errors do not prevent online saving or falsely claim offline protection',async()=>{
+  const outbox={load:async()=>{throw Error('denied');},save:async()=>{throw Error('quota');},remove:async()=>{}};
+  let online=true;const current=make(async()=>{if(!online)throw Error('offline');return response;},{outbox});
+  await current.transport.sync();await current.transport.restorePending();current.model.seed({subject:'Memo'});await current.transport.sync();assert.equal(current.transport.dirty,false);
+  online=false;current.model.apply(current.model.read(),{subject:'Pending'});await assert.rejects(current.transport.sync());assert.match(current.statuses.at(-1)[0],/Conserva esta ventana/);
+  current.transport.stop();current.model.doc.destroy();
 });

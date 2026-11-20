@@ -123,7 +123,7 @@
   commsAutosave=function(){if(collab.active()){clearTimeout(_commsSaveTimer);collab.capture();return;}return originals.commsAutosave();};
   commsBack=async function(){if(!collab.active())return originals.commsBack();if(!await collab.leave()){toast('Espera a que se guarden los cambios antes de salir.');return;}_commsCurrent=null;return originals.commsBack();};
   commsRichCommand=function(control,command,value=null){if(collab.command(control,command,value))return;return originals.commsRichCommand(control,command,value);};
-  logout=async function(...args){collab.stop();await infographicCollab.leave();await orgChartCollab.leave();_commsCurrent=null;return originals.logout(...args);};
+  logout=async function(...args){const hadShared=collab.active();if(hadShared&&!await collab.leave()){toast('No se cerró la sesión: hay cambios pendientes de guardar. Reintenta cuando vuelva la conexión.');return false;}if(!await infographicCollab.leave()||!await orgChartCollab.leave())return false;if(!hadShared&&_commsCurrent&&!originals.commsPersist())return false;_commsCurrent=null;return originals.logout(...args);};
   for(const name of ['newCommunicationDraft','newNewsDraft','newNoticeDraft','newInvitationDraft','showCommunications']) {
     const original=window[name];
     window[name]=async function(...args){
@@ -132,7 +132,7 @@
         _commsCurrent=null;
       }
       const result=await original(...args);
-      if(name!=='showCommunications'&&_commsCurrent&&!collab.active())try{await collab.publishCurrent();}catch(error){toast(error.message||'El comunicado se guardó localmente, pero todavía no está disponible para el equipo.');}
+      if(_commsCurrent&&!collab.active())try{await collab.publishCurrent();}catch(error){toast(error.message||'El comunicado se guardó localmente, pero todavía no está disponible para el equipo.');}
       return result;
     };
   }

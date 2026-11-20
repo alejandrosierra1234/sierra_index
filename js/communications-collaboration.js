@@ -9985,8 +9985,8 @@ ${err.toString()}`);
 
   // transport.js
   var CommunicationTransport = class {
-    constructor({ doc: doc4, rpc, valid, presence, catalog = () => null, onChange, onStatus }) {
-      Object.assign(this, { doc: doc4, rpc, valid, presence, catalog, onChange, onStatus });
+    constructor({ doc: doc4, rpc, valid, presence, catalog = () => null, outbox = null, onChange, onStatus }) {
+      Object.assign(this, { doc: doc4, rpc, valid, presence, catalog, outbox, onChange, onStatus });
       this.session = crypto.randomUUID();
       this.revision = -1;
       this.pending = [];
@@ -9995,13 +9995,48 @@ ${err.toString()}`);
       this.failures = 0;
       this.accessFailures = 0;
       this.writeBlocked = false;
+      this.journal = Promise.resolve();
+      this.recovered = [];
+      this.backupError = null;
       this.listener = (update, origin) => {
-        if (origin !== "remote") this.pending.push(update);
+        if (origin !== "remote") {
+          this.pending.push(update);
+          this.persistPending();
+        }
       };
       doc4.on("update", this.listener);
     }
     get dirty() {
       return this.pending.length > 0;
+    }
+    persistPending() {
+      if (!this.outbox) return;
+      const update = this.dirty ? toBase642(yjs_exports.mergeUpdates(this.pending)) : null;
+      this.journal = this.journal.then(() => this.outbox.save(update)).then(() => {
+        this.backupError = null;
+      }).catch((error) => {
+        this.backupError = error;
+      });
+    }
+    async restorePending() {
+      if (!this.outbox || this.stopped || !this.valid() || !["owner", "editor"].includes(this.role)) return;
+      try {
+        this.recovered = await this.outbox.load();
+      } catch (error) {
+        this.backupError = error;
+        return;
+      }
+      if (this.stopped || !this.valid()) return;
+      for (const row of this.recovered) yjs_exports.applyUpdate(this.doc, fromBase64(row.update), "recovery");
+      if (!this.dirty) {
+        try {
+          await this.outbox.remove(this.recovered);
+          this.recovered = [];
+        } catch (error) {
+          this.backupError = error;
+        }
+      }
+      await this.journal;
     }
     async sync() {
       if (this.stopped || !this.valid()) return;
@@ -10021,6 +10056,7 @@ ${err.toString()}`);
       } while (this.hasMore && !this.stopped && this.valid());
     }
     async exchange() {
+      if (this.outbox) await this.journal;
       const count = this.pending.length;
       if (!this.batch && count && !this.writeBlocked) this.batch = { count, nonce: crypto.randomUUID(), update: toBase642(yjs_exports.mergeUpdates(this.pending.slice(0, count))) };
       try {
@@ -10040,6 +10076,7 @@ ${err.toString()}`);
         if (this.batch) {
           this.pending.splice(0, this.batch.count);
           this.batch = null;
+          this.persistPending();
         }
         this.doc.transact(() => {
           if (data.snapshot) yjs_exports.applyUpdate(this.doc, fromBase64(data.snapshot), "remote");
@@ -10049,15 +10086,30 @@ ${err.toString()}`);
         this.hasMore = data.has_more === true;
         this.failures = 0;
         this.accessFailures = 0;
+        if (!this.dirty && this.outbox) {
+          await this.journal;
+          if (this.recovered.length) {
+            try {
+              await this.outbox.remove(this.recovered);
+              this.recovered = [];
+            } catch (error) {
+              this.backupError = error;
+            }
+          }
+        }
         this.onChange(data);
         this.onStatus(this.writeBlocked && this.dirty ? "Solo lectura \xB7 cambios locales sin guardar" : this.hasMore ? "Sincronizando historial\u2026" : this.dirty ? "Guardando en l\xEDnea\u2026" : "Guardado en l\xEDnea", this.writeBlocked);
         const latest = Number.isSafeInteger(data.latest_revision) ? data.latest_revision : data.revision;
         if (!this.hasMore && this.revision >= latest && !this.dirty && this.role !== "viewer" && (data.checkpoint_recommended === true || this.revision - data.snapshot_revision >= 50)) {
-          await this.rpc("communication_checkpoint", {
-            p_revision: this.revision,
-            p_snapshot: toBase642(yjs_exports.encodeStateAsUpdate(this.doc)),
-            p_title: String(this.doc.getMap("communication").get("subject") || "Comunicado").slice(0, 500)
-          });
+          try {
+            await this.rpc("communication_checkpoint", {
+              p_revision: this.revision,
+              p_snapshot: toBase642(yjs_exports.encodeStateAsUpdate(this.doc)),
+              p_title: String(this.doc.getMap("communication").get("subject") || "Comunicado").trim().slice(0, 500) || "Comunicado"
+            });
+          } catch (error) {
+            this.checkpointError = error;
+          }
         }
       } catch (error) {
         if (this.stopped || !this.valid()) return;
@@ -10078,7 +10130,7 @@ ${err.toString()}`);
           }
           this.stop();
           this.onStatus("No se pudo verificar el acceso. Vuelve a intentar sin cerrar esta p\xE1gina.", true);
-        } else this.onStatus("Sin sincronizar. Conserva esta ventana abierta.", true);
+        } else this.onStatus(this.outbox && !this.backupError ? "Sin conexi\xF3n \xB7 cambios respaldados en este navegador. Se reenviar\xE1n al abrir el documento." : "Sin sincronizar. Conserva esta ventana abierta.", true);
         throw error;
       }
     }
@@ -10112,6 +10164,49 @@ ${err.toString()}`);
       this.doc.off("update", this.listener);
     }
   };
+
+  // outbox.js
+  function createOutbox(scope, indexedDB = globalThis.indexedDB) {
+    const key = scope + ":" + crypto.randomUUID();
+    let database;
+    const db = () => database || (database = new Promise((resolve, reject) => {
+      if (!indexedDB) return reject(Error("No hay respaldo local disponible."));
+      const request = indexedDB.open("sierra-communication-outbox-v1", 1);
+      request.onupgradeneeded = () => request.result.createObjectStore("pending", { keyPath: "key" });
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    }));
+    const transaction = async (mode, run) => {
+      const connection = await db();
+      return new Promise((resolve, reject) => {
+        const tx = connection.transaction("pending", mode), store = tx.objectStore("pending");
+        let result;
+        run(store, (value) => {
+          result = value;
+        });
+        tx.oncomplete = () => resolve(result);
+        tx.onerror = tx.onabort = () => reject(tx.error || Error("No se pudo respaldar el cambio."));
+      });
+    };
+    return {
+      load: () => transaction("readonly", (store, done) => {
+        const request = store.getAll();
+        request.onsuccess = () => done(request.result.filter((row) => row.scope === scope));
+      }),
+      save: (update) => transaction("readwrite", (store) => {
+        if (update) store.put({ key, scope, update });
+        else store.delete(key);
+      }),
+      // A second tab may have extended an entry since it was read. Never remove
+      // that newer version; replaying the same Yjs update is harmless.
+      remove: (rows) => transaction("readwrite", (store) => rows.forEach((row) => {
+        const request = store.get(row.key);
+        request.onsuccess = () => {
+          if (request.result?.update === row.update) store.delete(row.key);
+        };
+      }))
+    };
+  }
 
   // node_modules/y-protocols/awareness.js
   var outdatedTimeout = 3e4;
@@ -24421,6 +24516,7 @@ ${err.toString()}`);
     const status = (text2, blocked = false) => {
       if (!session) return;
       session.blocked = blocked;
+      session.statusText = text2;
       document.querySelectorAll("#memo-save-state,[data-collab-status]").forEach((el) => (el.querySelector("span") || el).textContent = text2);
       if (session.transport.stopped) {
         document.querySelector(".memo-customizer")?.setAttribute("data-collab-disconnected", "true");
@@ -24438,6 +24534,7 @@ ${err.toString()}`);
           el.disabled = true;
         }
       });
+      document.querySelectorAll("[data-invitation-text]").forEach((el) => el.setAttribute("contenteditable", String(editable())));
       views.forEach((view) => view.setProps({ editable }));
     };
     function stop(closeDialog = true) {
@@ -24757,6 +24854,7 @@ ${err.toString()}`);
       const current = { id: id2, account, model, awareness, blocked: true, source: null, baseline: {}, presenceReady: false, presenceSessions: /* @__PURE__ */ new Map(), presenceRows: [], events: [], lastPresence: [] };
       const transport = new CommunicationTransport({
         doc: model.doc,
+        outbox: createOutbox(account + ":" + id2),
         rpc: (name, args2) => rpc(name, { p_id: id2, ...args2 }),
         valid: () => session === current && getAccount() === account,
         presence: () => ({ clientID: model.doc.clientID, ...awareness.getLocalState() }),
@@ -24770,6 +24868,8 @@ ${err.toString()}`);
       session = current;
       try {
         await transport.sync();
+        await transport.restorePending();
+        if (transport.dirty) await transport.sync();
         if (session !== current) return;
         const d = read();
         api.validate(d);
@@ -24791,12 +24891,27 @@ ${err.toString()}`);
     async function publishCurrent() {
       if (active()) return true;
       if (!api.current() || !api.persistLocal()) throw Error("No se pudo guardar el comunicado antes de publicarlo al equipo.");
-      const original = copy3(api.current()), draft = await prepareCloud(original), snapshot2 = encodeDraft(draft), catalog = catalogOf(draft);
-      if (snapshot2.length > 16777216) throw Error("El comunicado supera el l\xEDmite seguro incluso despu\xE9s de guardar sus im\xE1genes.");
-      const id2 = await rpc("communication_create", { p_source: draft.id, p_title: catalog.title, p_kind: catalog.kind, p_snapshot: toBase642(snapshot2), p_metadata: catalog.metadata });
-      if (api.current()?.id !== draft.id) return false;
-      await open(id2);
-      return true;
+      const panel = document.querySelector(".memo-customizer"), wasInert = panel?.inert;
+      if (panel) {
+        panel.inert = true;
+        panel.setAttribute("aria-busy", "true");
+      }
+      const indicator = document.getElementById("memo-save-state");
+      if (indicator) indicator.textContent = "Conectando el documento con el servidor\u2026";
+      try {
+        const original = copy3(api.current()), draft = await prepareCloud(original), snapshot2 = encodeDraft(draft), catalog = catalogOf(draft);
+        if (snapshot2.length > 16777216) throw Error("El comunicado supera el l\xEDmite seguro incluso despu\xE9s de guardar sus im\xE1genes.");
+        const id2 = await rpc("communication_create", { p_source: draft.id, p_title: catalog.title, p_kind: catalog.kind, p_snapshot: toBase642(snapshot2), p_metadata: catalog.metadata });
+        if (api.current()?.id !== draft.id) return false;
+        await open(id2);
+        return true;
+      } finally {
+        if (panel) {
+          panel.inert = wasInert || false;
+          panel.removeAttribute("aria-busy");
+        }
+        if (!active() && indicator?.isConnected) indicator.textContent = "Guardado en este navegador \xB7 pendiente de subir al equipo";
+      }
     }
     async function share() {
       if (sharing) return;
@@ -25461,7 +25576,7 @@ ${err.toString()}`);
         header.prepend(button);
       }
       paintPresence(session.lastPresence || []);
-      status(session.transport.dirty ? "Guardando en l\xEDnea\u2026" : "Guardado en l\xEDnea", session.blocked);
+      status(session.blocked ? session.statusText || "Sin sincronizar. Conserva esta ventana abierta." : session.transport.dirty ? "Guardando en l\xEDnea\u2026" : session.statusText || "Verificando guardado\u2026", session.blocked);
     }
     function homeRendered() {
       const header = document.querySelector(".comms-header-actions");
