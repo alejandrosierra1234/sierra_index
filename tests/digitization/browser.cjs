@@ -18,6 +18,40 @@ const root=path.resolve(__dirname,'../..');
  for(const width of [320,375,768,1024,1440]){await page.setViewportSize({width,height:1000});await page.evaluate(()=>sdCaptureView());assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'capture overflow '+width);await page.evaluate(()=>sdReview(job.id));await page.locator('#sd-field-0').focus();await page.waitForFunction(()=>document.querySelector('#sd-overlay polygon'));assert.equal(await page.locator('#sd-overlay polygon').count(),1);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'review overflow '+width);if(width===1440||width===375)await page.screenshot({path:path.join(root,`work/ocr-fixtures/review-${width}.png`),fullPage:true})}
  // Durable outbox remains scoped to the account and survives reopening the DB.
  assert.equal(await page.evaluate(async()=>{const box=await DigitizationCore.outbox('synthetic-test');await box.run('readwrite',s=>s.put({id:'one',file:new Blob(['x'])}));const reopened=await DigitizationCore.outbox('synthetic-test');return reopened.run('readonly',(s,set)=>{const r=s.count();r.onsuccess=()=>set(r.result)})}),1);
+ const recovery=await page.evaluate(async()=>{
+  await sdCaptureView();
+  const originalRPC=sb.rpc,originalStorage=sb.storage,owner=me.id;
+  let rejectBad=true,offline=false,uploads=0,downloads=0,switchAccount=false;
+  sb.rpc=async(name,args)=>{if(name==='digitization_enqueue'){if(switchAccount)me={id:'another-account'};return {data:{id:args.p_id,original_path:args.p_filename,revision:1,ready:false}}}return {data:null}};
+  sb.storage={from:()=>({upload:async(path)=>{if(offline)return {error:{statusCode:503,message:'Synthetic network failure'}};if(rejectBad&&path==='bad.png')return {error:{statusCode:403,message:'Synthetic rejected image'}};uploads++;return {error:null}},download:async()=>{downloads++;throw Error('Unexpected download')}})};
+  const put=async(id,name)=>sd.outbox.run('readwrite',store=>store.put({id,name,batch:batch.id,hash:'a'.repeat(64),file:new File(['synthetic'],name,{type:'image/png'})}));
+  await put('a','bad.png');await put('b','good.png');await sdPump();
+  const isolated=await sdLocalUploads();const validAdvanced=uploads===1&&isolated.failed===1&&isolated.pending===0&&downloads===0;
+  sd.outbox=await DigitizationCore.outbox(owner);await put('c','another-good.png');await sdPump();
+  const reopened=await sdLocalUploads();const survivedReload=reopened.failed===1&&uploads===2;
+  rejectBad=false;await sdRetryUploads();const retried=(await sdLocalUploads()).failed===0&&uploads===3;
+  offline=true;await put('d','network.png');await put('e','after-network.png');await sdPump();
+  const interrupted=await sdLocalUploads();offline=false;await sdPump();const recovered=interrupted.pending===2&&interrupted.failed===0&&(await sdLocalUploads()).pending===0;
+  switchAccount=true;const before=uploads;await put('f','account.png');await sdPump();const isolatedAccount=uploads===before;me={id:owner};switchAccount=false;await sdPump();
+  const originalBox=sd.outbox;let hashSwitchBlocked=false;
+  try{await sdQueue({name:'switch.png',size:1,arrayBuffer:async()=>{me={id:'hash-other'};sd.account='hash-other';sd.outbox=await DigitizationCore.outbox('hash-other');return new Uint8Array([1]).buffer}},batch.id,owner)}catch(error){hashSwitchBlocked=error.message==='Account changed'&&(await sdLocalUploads()).pending===0}
+  me={id:owner};sd.account=owner;sd.outbox=originalBox;
+  sb.rpc=originalRPC;sb.storage=originalStorage;
+  return {validAdvanced,survivedReload,retried,recovered,isolatedAccount,hashSwitchBlocked};
+ });
+ assert.deepEqual(recovery,{validAdvanced:true,survivedReload:true,retried:true,recovered:true,isolatedAccount:true,hashSwitchBlocked:true});
+ const bulk=await page.evaluate(async()=>{
+  const originalRPC=sb.rpc,originalStorage=sb.storage;let uploaded=0,maxPending=0,ticks=0;
+  const timer=setInterval(()=>ticks++,10);
+  sb.rpc=async(name,args)=>{if(name==='digitization_enqueue'){const counts=await sdLocalUploads();maxPending=Math.max(maxPending,counts.pending);return {data:{id:args.p_id,original_path:args.p_filename,revision:1,ready:false}}}return {data:null}};
+  sb.storage={from:()=>({upload:async()=>{uploaded++;return {error:null}}})};
+  const canvas=document.createElement('canvas');canvas.width=1;canvas.height=1;const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+  const files=Array.from({length:4001},(_,i)=>new File([blob,String(i)],`synthetic-${i}.png`,{type:'image/png'}));
+  try{await sdImport(files);while(sd.pumping)await new Promise(resolve=>setTimeout(resolve,10));return {uploaded,maxPending,ticks,remaining:await sdLocalUploads()}}
+  finally{clearInterval(timer);sb.rpc=originalRPC;sb.storage=originalStorage}
+ });
+ assert.equal(bulk.uploaded,4001);assert.ok(bulk.maxPending<=21,JSON.stringify(bulk));assert.ok(bulk.ticks>1);assert.equal(bulk.remaining.pending+bulk.remaining.failed,0);
+ console.log('PASS: per-file upload failures, retry after reopening, network recovery, account isolation, 4,001 synthetic browser uploads with bounded outbox');
  assert.deepEqual(errors,[]);console.log('PASS: browser capture/review at 320/375/768/1024/1440, field overlays, persistent outbox');
  }finally{await browser.close();server.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

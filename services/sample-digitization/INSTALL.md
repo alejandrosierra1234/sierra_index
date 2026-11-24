@@ -33,6 +33,7 @@ Los modelos usados son `PP-OCRv5_mobile_det`, `latin_PP-OCRv5_mobile_rec`, `PP-L
 ## Operación técnica y recuperación
 
 - PostgreSQL es la cola persistente. `FOR UPDATE SKIP LOCKED` y bloqueo de admisión aseguran asignaciones atómicas. Lease de 5 minutos, renovado cada 45 segundos; un reinicio recupera leases expirados. La finalización exige token y lease vigentes. Cancelar invalida el token; un worker tardío no revive el trabajo.
+- Los rechazos permanentes durante subida se aíslan por archivo en IndexedDB; un fallo temporal de red conserva la cola pendiente. El evento online reanuda pendientes y el botón de reintento reactiva los rechazados. Cambiar de cuenta interrumpe la importación sin trasladar imágenes a la nueva cuenta.
 - Una excepción de imagen crea `Failed` y el worker continúa. Interrupciones de red reintentan conexión; trabajo sin finalización vuelve a ser elegible al expirar su lease. Revisar fallos repetidos antes de reintentar masivamente.
 - Fotografías procesadas llevan el token del intento en su nombre. Intentos cancelados pueden dejar objetos huérfanos: revisar contra `original_path`/`processed_path` antes de una limpieza administrativa. No hay limpieza destructiva automática.
 - Desactivar: pausar lotes, parar el servicio y ocultar el enlace del cliente. No borrar tablas ni bucket para un rollback operativo. Las migraciones históricas de INDEX permanecen intactas.

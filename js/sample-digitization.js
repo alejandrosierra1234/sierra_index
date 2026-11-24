@@ -48,38 +48,89 @@ async function sdPause(){try{await sdRPC('digitization_pause',{p_batch:sd.batch.
 async function sdCaptureView(){
  sd.reviewRequest=(sd.reviewRequest||0)+1;
  try{sdNeedBatch();clearTimeout(sd.timer);sd.review=null;
- document.getElementById('sd-content').innerHTML=`<div class="sd"><h2>${esc(sd.batch.name)}</h2><div id="sd-drop" class="sd-drop"><p>${sdText('Arrastra fotografías o ZIP aquí. La importación procesa un archivo a la vez.','Drop photos or ZIP here. Import reads one file at a time.')}</p><div class="sd-actions"><label class="btn btn-secondary">${sdText('Elegir archivos','Choose files')}<input type="file" multiple accept=".jpg,.jpeg,.png,.webp,.heic,.heif,.zip" hidden onchange="sdImport(this.files)"></label><label class="btn btn-secondary">${sdText('Elegir carpeta','Choose folder')}<input type="file" webkitdirectory multiple hidden onchange="sdImport(this.files)"></label>${sdButton(sdText('Abrir cámara','Open camera'),'sdCamera()')}${sdButton(sdText('Reintentar envíos','Retry uploads'),'sdPump()')}</div></div><p id="sd-upload" role="status"></p><p id="sd-import-errors" class="sd-error" role="alert"></p><video id="sd-video" playsinline muted autoplay></video><div class="sd-actions">${sdButton(sdText('Capturar etiqueta','Capture label'),'sdSnap()',true)}${sdButton(sdText('Cerrar cámara','Close camera'),'sdStopCamera()')}<label><input type="checkbox" id="sd-auto" onchange="sdAuto(this.checked)">${sdText('Captura automática por estabilidad (experimental)','Stable-frame auto capture (experimental)')}</label></div><p>${sdText('Encuadra solo la etiqueta. Cambia de muestra después de la confirmación. Las imágenes pendientes se conservan en este navegador por cuenta; no borres sus datos hasta completar el envío.','Frame only the label. Change samples after confirmation. Pending images stay in this browser per account; do not clear browser data before upload completes.')}</p><p id="sd-quality" role="status"></p></div>`;
+ document.getElementById('sd-content').innerHTML=`<div class="sd"><h2>${esc(sd.batch.name)}</h2><div id="sd-drop" class="sd-drop"><p>${sdText('Arrastra fotografías o ZIP aquí. La importación procesa un archivo a la vez.','Drop photos or ZIP here. Import reads one file at a time.')}</p><div class="sd-actions"><label class="btn btn-secondary">${sdText('Elegir archivos','Choose files')}<input type="file" multiple accept=".jpg,.jpeg,.png,.webp,.heic,.heif,.zip" hidden onchange="sdImport(this.files)"></label><label class="btn btn-secondary">${sdText('Elegir carpeta','Choose folder')}<input type="file" webkitdirectory multiple hidden onchange="sdImport(this.files)"></label>${sdButton(sdText('Abrir cámara','Open camera'),'sdCamera()')}${sdButton(sdText('Reintentar envíos','Retry uploads'),'sdRetryUploads()')}</div></div><p id="sd-upload" role="status"></p><p id="sd-import-errors" class="sd-error" role="alert"></p><video id="sd-video" playsinline muted autoplay></video><div class="sd-actions">${sdButton(sdText('Capturar etiqueta','Capture label'),'sdSnap()',true)}${sdButton(sdText('Cerrar cámara','Close camera'),'sdStopCamera()')}<label><input type="checkbox" id="sd-auto" onchange="sdAuto(this.checked)">${sdText('Captura automática por estabilidad (experimental)','Stable-frame auto capture (experimental)')}</label></div><p>${sdText('Encuadra solo la etiqueta. Cambia de muestra después de la confirmación. Las imágenes pendientes se conservan en este navegador por cuenta; no borres sus datos hasta completar el envío.','Frame only the label. Change samples after confirmation. Pending images stay in this browser per account; do not clear browser data before upload completes.')}</p><p id="sd-quality" role="status"></p></div>`;
  const drop=document.getElementById('sd-drop');drop.ondragover=e=>e.preventDefault();drop.ondrop=e=>{e.preventDefault();sdImport(e.dataTransfer.files)};await sdUploadStatus();
  }catch(e){sdError(e)}
 }
-async function sdUploadStatus(message=''){const count=await sd.outbox.run('readonly',(s,set)=>{const r=s.count();r.onsuccess=()=>set(r.result)});const el=document.getElementById('sd-upload');if(el)el.textContent=`${message} ${sdText('Pendientes de envío local','Pending local uploads')}: ${count}`}
-async function sdQueue(file,targetBatch=sd.batch?.id){
- sdNeedBatch();if(me?.id!==sd.account)throw Error('Account changed');
+async function sdLocalUploads(box=sd.outbox){
+ return box.run('readonly',(store,set)=>{
+  const summary={pending:0,failed:0,failures:[]},request=store.openCursor();
+  request.onsuccess=()=>{const cursor=request.result;if(!cursor){set(summary);return}
+   const item=cursor.value;if(item.uploadFailed){summary.failed++;if(summary.failures.length<20)summary.failures.push({name:item.name,error:item.uploadFailure})}else summary.pending++;
+   cursor.continue();
+  };
+ });
+}
+async function sdUploadStatus(message=''){
+ const summary=await sdLocalUploads();const el=document.getElementById('sd-upload');
+ if(el)el.textContent=`${message} ${sdText('Pendientes de envío local','Pending local uploads')}: ${summary.pending} · ${sdText('Fallidos conservados para reintento','Failed uploads retained for retry')}: ${summary.failed}`;
+ let failures=document.getElementById('sd-upload-failures');
+ if(!failures&&el){failures=document.createElement('p');failures.id='sd-upload-failures';failures.className='sd-error';failures.setAttribute('role','alert');el.after(failures)}
+ if(failures)failures.textContent=summary.failures.map(f=>`${f.name}: ${f.error}`).join(' · ');
+ return summary;
+}
+async function sdRetryUploads(){
+ if(sd.pumping||!sd.outbox)return;
+ try{await sd.outbox.run('readwrite',store=>{const request=store.openCursor();request.onsuccess=()=>{const cursor=request.result;if(!cursor)return;const item=cursor.value;delete item.uploadFailed;delete item.uploadFailure;cursor.update(item);cursor.continue()}});await sdPump()}catch(e){sdError(e)}
+}
+function sdPermanentUploadError(error){
+ const status=Number(error.statusCode||error.status);
+ return error.code==='UPLOAD_HASH_MISMATCH'||error.code==='42501'||(status>=400&&status<500&&![401,408,409,425,429].includes(status));
+}
+async function sdQueue(file,targetBatch=sd.batch?.id,owner=sd.account){
+ const box=sd.outbox;sdNeedBatch();if(me?.id!==owner||sd.account!==owner)throw Error('Account changed');
  if(!/\.(jpe?g|png|webp|heic|heif)$/i.test(file.name)||file.size>DigitizationCore.MAX_IMAGE||!file.size)throw Error(file.name+': '+sdText('Formato o tamaño no permitido','Invalid format or size'));
- const count=await sd.outbox.run('readonly',(s,set)=>{const r=s.count();r.onsuccess=()=>set(r.result)});if(count>=100)throw Error(sdText('Cola local llena (100). Espera a que se envíen los archivos.','Local queue full (100). Wait for uploads.'));
+ const count=await box.run('readonly',(s,set)=>{const r=s.count();r.onsuccess=()=>set(r.result)});if(count>=100)throw Error(sdText('Cola local llena (100). Espera a que se envíen los archivos.','Local queue full (100). Wait for uploads.'));
  const raw=await file.arrayBuffer(),hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',raw)),b=>b.toString(16).padStart(2,'0')).join('');
- await sd.outbox.run('readwrite',s=>s.put({id:crypto.randomUUID(),batch:targetBatch,hash,file,name:file.name}));sdPump();await sdUploadStatus();
+ if(me?.id!==owner||sd.account!==owner)throw Error('Account changed');
+ await box.run('readwrite',s=>s.put({id:crypto.randomUUID(),batch:targetBatch,hash,file,name:file.name}));sdPump();await sdUploadStatus();
 }
 async function sdImport(files){
- if(sd.importing)return;sd.importing=true;const targetBatch=sd.batch?.id;let accepted=0,failed=0;const errors=[];
- try{for(const file of files){try{
-  if(/\.zip$/i.test(file.name)){for await(const image of DigitizationCore.unzip(file)){await sdWaitCapacity();await sdQueue(image,targetBatch);accepted++}}
-  else{await sdWaitCapacity();await sdQueue(file,targetBatch);accepted++}
+ if(sd.importing)return;sd.importing=true;const targetBatch=sd.batch?.id,owner=sd.account;let accepted=0,failed=0;const errors=[];
+ try{for(const file of files){if(me?.id!==owner||sd.account!==owner)break;try{
+  if(/\.zip$/i.test(file.name)){for await(const image of DigitizationCore.unzip(file)){await sdWaitCapacity(owner);await sdQueue(image,targetBatch,owner);accepted++}}
+  else{await sdWaitCapacity(owner);await sdQueue(file,targetBatch,owner);accepted++}
  }catch(e){failed++;if(errors.length<20)errors.push(e.message)}await sdUploadStatus(`${accepted} ${sdText('aceptadas','accepted')} · ${failed} ${sdText('errores','errors')}`);const el=document.getElementById('sd-import-errors');if(el)el.textContent=errors.join('\n');await new Promise(r=>setTimeout(r,0))}}
  finally{sd.importing=false}
 }
-async function sdWaitCapacity(){for(;;){if(me?.id!==sd.account)throw Error('Account changed');const n=await sd.outbox.run('readonly',(s,set)=>{const r=s.count();r.onsuccess=()=>set(r.result)});if(n<20)return;if(sd.uploadError)throw Error(sd.uploadError);await new Promise(r=>setTimeout(r,250))}}
+async function sdWaitCapacity(owner=sd.account){for(;;){
+ if(me?.id!==owner||sd.account!==owner)throw Error('Account changed');
+ const counts=await sdLocalUploads();if(counts.pending+counts.failed>=100)throw Error(sdText('Cola local llena. Reintenta los envíos fallidos.','Local queue full. Retry failed uploads.'));
+ if(counts.pending<20)return;if(sd.uploadError)throw Error(sd.uploadError);await new Promise(r=>setTimeout(r,250));
+}}
 async function sdPump(){
  if(sd.pumping||!sd.outbox)return;sd.pumping=true;sd.uploadError=null;const owner=sd.account,box=sd.outbox;
- try{while(me?.id===owner){const item=await box.run('readonly',(s,set)=>{const r=s.openCursor();r.onsuccess=()=>set(r.result?.value)});if(!item)break;
- const j=await sdRPC('digitization_enqueue',{p_id:item.id,p_batch:item.batch,p_hash:item.hash,p_filename:item.name});
- if(!j.ready){const {error}=await sb.storage.from('sample-digitization').upload(j.original_path,item.file,{contentType:item.file.type||'application/octet-stream',upsert:false});
-  if(error){const {data:existing,error:readError}=await sb.storage.from('sample-digitization').download(j.original_path);if(readError)throw error;const h=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await existing.arrayBuffer())),b=>b.toString(16).padStart(2,'0')).join('');if(h!==item.hash)throw Error('Uploaded hash mismatch')}
-  await sdRPC('digitization_action',{p_id:j.id,p_revision:j.revision,p_action:'ready'});
- }
- await box.run('readwrite',s=>s.delete(item.id));await sdUploadStatus(sdText('Envío confirmado.','Upload confirmed.'));
- }}catch(e){sd.uploadError=e.message;sdError(e)}finally{sd.pumping=false}
+ const sameOwner=()=>me?.id===owner&&sd.account===owner;
+ try{while(sameOwner()){
+  const item=await box.run('readonly',(store,set)=>{const r=store.openCursor();r.onsuccess=()=>{const cursor=r.result;if(cursor?.value.uploadFailed){cursor.continue();return}set(cursor?.value)}});
+  if(!item||!sameOwner())break;
+  try{
+   const j=await sdRPC('digitization_enqueue',{p_id:item.id,p_batch:item.batch,p_hash:item.hash,p_filename:item.name});
+   if(!sameOwner())break;
+   if(!j.ready){
+    const {error}=await sb.storage.from('sample-digitization').upload(j.original_path,item.file,{contentType:item.file.type||'application/octet-stream',upsert:false});
+    if(!sameOwner())break;
+    if(error){
+     // Only an existing-object conflict warrants downloading and verifying a prior upload.
+     if(![409,'409'].includes(error.statusCode)&&![409,'409'].includes(error.status)&&error.error!=='Duplicate'&&!/already exists/i.test(error.message||''))throw error;
+     const {data:existing,error:readError}=await sb.storage.from('sample-digitization').download(j.original_path);if(readError)throw readError;
+     const h=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await existing.arrayBuffer())),b=>b.toString(16).padStart(2,'0')).join('');
+     if(h!==item.hash){const mismatch=Error('Uploaded hash mismatch');mismatch.code='UPLOAD_HASH_MISMATCH';throw mismatch}
+    }
+    if(!sameOwner())break;
+    await sdRPC('digitization_action',{p_id:j.id,p_revision:j.revision,p_action:'ready'});
+   }
+   if(!sameOwner())break;
+   await box.run('readwrite',store=>store.delete(item.id));await sdUploadStatus(sdText('Envío confirmado.','Upload confirmed.'));
+  }catch(error){
+   if(!sameOwner())break;
+   if(!sdPermanentUploadError(error)){sd.uploadError=error.message||String(error);sdError(error);break}
+   item.uploadFailed=true;item.uploadFailure=String(error.message||error.code||'Upload rejected').slice(0,300);item.uploadAttempts=(item.uploadAttempts||0)+1;
+   await box.run('readwrite',store=>store.put(item));await sdUploadStatus();
+  }
+ }}catch(e){if(sameOwner()){sd.uploadError=e.message;sdError(e)}}finally{sd.pumping=false}
 }
+window.addEventListener('online',()=>{if(me?.id===sd.account)sdPump()});
 async function sdCamera(){try{sdStopCamera();sd.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});document.getElementById('sd-video').srcObject=sd.stream;sd.lastFrame=null;sd.captures=0}catch(e){sdError(e)}}
 function sdFrame(){const video=document.getElementById('sd-video');if(!video?.videoWidth)throw Error(sdText('La cámara no está lista.','Camera is not ready.'));const c=document.createElement('canvas');c.width=video.videoWidth;c.height=video.videoHeight;c.getContext('2d').drawImage(video,0,0);return c}
 function sdFrameQuality(canvas){const c=document.createElement('canvas');c.width=64;c.height=48;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(canvas,0,0,64,48);const a=ctx.getImageData(0,0,64,48).data,g=[];let light=0,edge=0;for(let i=0;i<a.length;i+=4){const v=(a[i]+a[i+1]+a[i+2])/3;g.push(v);if(v>250)light++}for(let i=65;i<g.length-65;i++)edge+=Math.abs(4*g[i]-g[i-1]-g[i+1]-g[i-64]-g[i+64]);return {g,glare:light/g.length,edge:edge/g.length}}
