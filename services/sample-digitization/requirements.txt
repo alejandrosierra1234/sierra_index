@@ -1,0 +1,6 @@
+-c requirements.lock.txt
+paddlepaddle==3.2.2
+paddleocr==3.3.2
+Pillow==11.3.0
+pillow-heif==1.1.1
+httpx==0.28.1

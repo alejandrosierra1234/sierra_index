@@ -1,0 +1,16 @@
+services:
+  ocr:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      OCR_CPU_THREADS: "4"
+    volumes:
+      - models:/home/ocr/.paddlex
+    mem_limit: 6g
+    cpus: 4
+    security_opt:
+      - no-new-privileges:true
+    # Outbound HTTPS only. Deliberately no ports.
+volumes:
+  models:
