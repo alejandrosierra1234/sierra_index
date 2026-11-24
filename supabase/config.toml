@@ -9,3 +9,7 @@ verify_jwt = false
 # inert until an approved non-production project deploys the function.
 [functions.signage-api]
 verify_jwt = false
+
+# Native OCR worker: independently authenticated by revocable hashed credentials.
+[functions.sample-digitization-worker]
+verify_jwt = false

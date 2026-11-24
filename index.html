@@ -10594,6 +10594,8 @@ async function enterApp(user) {
     showStyleGuide(); return
   } else if (savedRoute === 'dashboard') {
     showDashboard(); return
+  } else if (savedRoute === 'sample-digitization' && moduleAccessible(MODULES.samples)) {
+    showSampleDigitization(); return
   } else if (savedRoute?.startsWith('sample-center:') && moduleAccessible(MODULES.samples)) {
     showSampleCenter(savedRoute.slice(14)); return
   } else if (savedRoute === 'collections' && can('read', 'customer_service')) {
@@ -17536,6 +17538,7 @@ function navDivisionRowHtml(d, expanded, isCurrent) {
 // division. Data-first so the tree renderer below stays one generic loop.
 function samplesSharedTools() {
   const items = []
+  if(AUTH_DIVISIONS.some(d=>can('read',d)))items.push({key:'samples|_|digitization',id:'digitization',label:'Sample Digitization',icon:NAV_ICON_REQUESTS,fnExpr:'showSampleDigitization'})
   if(can('read','customer_service')||AUTH_DIVISIONS.some(d=>canDispatchDiv(d)))items.push({ key:'samples|_|requests',id:'requests',label:'Centro de muestras',icon:NAV_ICON_REQUESTS,fnExpr:'showSampleCenter' })
   if (can('read', 'customer_service')) {
     if(!sampleActiveSpace||sampleActiveSpace==='textiles')items.push({key:'samples|_|qrrequests',id:'qrrequests',label:'Solicitudes QR',icon:NAV_ICON_REQUESTS,fnExpr:'showSamplePublicRequests'})
@@ -38762,6 +38765,9 @@ window.addEventListener('resize',()=>{if(_policyCurrent)policyFitPreview()});
 <script src="js/sample-development.js?v=20260911-8"></script>
 <script src="js/sample-stock.js?v=20260911-8"></script>
 <script src="js/sample-experience.js?v=20260911-8"></script>
+<link rel="stylesheet" href="css/sample-digitization.css?v=1">
+<script src="js/digitization-core.js?v=1"></script>
+<script src="js/sample-digitization.js?v=1"></script>
 <script src="js/sample-center.js?v=20260911-8"></script>
 <link rel="stylesheet" href="css/policy-review.css?v=20261009-1">
 <script src="js/policy-review-core.js?v=20261009-2"></script>
