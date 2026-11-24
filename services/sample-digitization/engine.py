@@ -20,7 +20,7 @@ except ImportError: pass
 class Engine:
  def __init__(self):
   from paddleocr import PaddleOCR
-  self.ocr=PaddleOCR(lang='es',ocr_version='PP-OCRv5',text_detection_model_name='PP-OCRv5_mobile_det',device='cpu',use_doc_orientation_classify=True,use_doc_unwarping=False,use_textline_orientation=True,enable_mkldnn=False,cpu_threads=int(os.getenv('OCR_CPU_THREADS','4')))
+  self.ocr=PaddleOCR(text_detection_model_name='PP-OCRv5_mobile_det',text_recognition_model_name='latin_PP-OCRv5_mobile_rec',device='cpu',use_doc_orientation_classify=True,use_doc_unwarping=False,use_textline_orientation=True,enable_mkldnn=False,cpu_threads=int(os.getenv('OCR_CPU_THREADS','4')))
  def process(self,raw,config):
   start=time.monotonic()
   if len(raw)>min(config.get('max_bytes',20971520),20971520):raise ValueError('file_too_large')

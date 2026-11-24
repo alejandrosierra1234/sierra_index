@@ -1,0 +1,26 @@
+const assert=require('node:assert/strict');
+(async()=>{
+ const {createHandler}=await import('../../supabase/functions/sample-digitization-worker/handler.mjs');
+ const token='a'.repeat(43),hash=require('node:crypto').createHash('sha256').update(token).digest('hex');
+ const id='00000000-0000-0000-0000-000000000001',lease='00000000-0000-0000-0000-000000000002';
+ const job={id,batch_id:'batch',original_path:'batch/job/original',status:'Processing',ready:true,lease,lease_until:new Date(Date.now()+60000).toISOString()};
+ const credential={id:'worker',name:'test',bootstrap_job_id:null};let lastPath=null,calls=[];
+ const service={from(table){const filters={};const chain={select(){return chain},eq(k,v){filters[k]=v;return chain},maybeSingle:async()=>({data:table==='digitization_worker_credentials'?(filters.token_hash===hash?credential:null):job}),upsert:async()=>({error:null})};return chain},rpc:async(name,params)=>{calls.push([name,params]);return {data:name==='digitization_claim'?null:true}},storage:{from(bucket){assert.equal(bucket,'sample-digitization');return {createSignedUrl:async(path)=>{lastPath=path;return {data:{signedUrl:'https://example.supabase.co/storage/v1/signed'}}},createSignedUploadUrl:async(path,opts)=>{assert.equal(opts.upsert,false);lastPath=path;return {data:{signedUrl:'https://example.supabase.co/storage/v1/upload'}}}}}}};
+ const handler=createHandler(service);
+ const send=(body,auth=token,headers={})=>handler(new Request('https://example.test',{method:'POST',headers:{Authorization:'Bearer '+auth,...headers},body:JSON.stringify(body)}));
+ assert.equal((await send({action:'claim'},'b'.repeat(43))).status,401);
+ assert.equal((await send({action:'claim'},token,{Origin:'https://evil.test'})).status,403);
+ assert.equal((await send({action:'claim'})).status,200);
+ assert.equal((await send({action:'download',job_id:id,lease:id})).status,409);
+ assert.equal((await send({action:'download',job_id:id,lease,path:'other-secret'})).status,200);assert.equal(lastPath,job.original_path);
+ assert.equal((await send({action:'upload',job_id:id,lease,path:'overwrite-original'})).status,200);assert.equal(lastPath,`batch/${id}/processed-${lease}.jpg`);
+ assert.equal((await send({action:'finish',job_id:id,lease,result:{fields:{},lines:[]}})).status,200);assert.equal(calls.at(-1)[0],'digitization_finish');
+ assert.equal((await send({action:'finish',job_id:id,lease,result:null})).status,400);
+ assert.equal((await send({action:'bootstrap_upload',job_id:id})).status,403);
+ credential.bootstrap_job_id=id;job.status='Pending';job.ready=false;
+ assert.equal((await send({action:'bootstrap_upload',job_id:id})).status,200);assert.equal(lastPath,job.original_path);
+ credential.bootstrap_job_id=null;assert.equal((await send({action:'bootstrap_upload',job_id:id})).status,403);
+ job.status='Processing';job.lease_until=new Date(0).toISOString();assert.equal((await send({action:'renew',job_id:id,lease})).status,409);
+ assert.equal((await send({action:'claim',payload:'x'.repeat(2*1024*1024)})).status,400);
+ console.log('PASS: scoped gateway authentication, browser rejection, lease fencing, fixed storage paths, temporary bootstrap scope and payload limits');
+})().catch(e=>{console.error(e);process.exit(1)});

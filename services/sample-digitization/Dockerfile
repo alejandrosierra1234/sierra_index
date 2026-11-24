@@ -6,5 +6,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY *.py ./
 RUN useradd -m -u 10001 ocr
 USER ocr
-ENV PADDLE_PDX_MODEL_SOURCE=BOS DISABLE_MODEL_SOURCE_CHECK=True
+ENV PADDLE_PDX_MODEL_SOURCE=BOS PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
 CMD ["python", "worker.py"]

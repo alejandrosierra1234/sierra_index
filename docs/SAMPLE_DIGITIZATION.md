@@ -1,10 +1,10 @@
 # Sample Digitization — arquitectura, alcance y evidencia
 
-Implementación nativa en el módulo Muestras de INDEX, en rama independiente. Estado: ensayo local verificado, despliegue de staging y piloto real pendientes. No se declara apta para digitalizar las 4,000 muestras todavía.
+Implementación nativa en el módulo Muestras de INDEX, en rama independiente. Estado: Supabase y worker macOS desplegados con autorización; piloto real pendiente. No se declara apta para digitalizar las 4,000 muestras todavía.
 
 ## Inspección y reutilización
 
-Base inspeccionada: `8f6c4e5`, rama predeterminada `claude/basic-website-html-qexj5j`. Se leyeron AGENTS.md, contrato AUTHORIZATION V2, estructura de index.html, módulos sample-center/workflow/stock/development/experience, esquema inicial y migraciones de muestras/permisos, integraciones y pruebas existentes. Se consultó el inventario de tablas del proyecto INDEX en modo de lectura; no se modificó producción.
+Base inspeccionada: `8f6c4e5`, rama predeterminada `claude/basic-website-html-qexj5j`. Se leyeron AGENTS.md, contrato AUTHORIZATION V2, estructura de index.html, módulos sample-center/workflow/stock/development/experience, esquema inicial y migraciones de muestras/permisos, integraciones y pruebas existentes. Tras inspección y pruebas, se aplicaron dos migraciones aditivas y una Edge Function al proyecto INDEX con autorización explícita.
 
 El frontend es HTML/JS estático con Supabase JS y shell común. Se reutilizan `showSampleTool`, Muestras, `samplesSharedTools`, `can`, `sb`, `esc`, notificaciones y botones/tipografías de INDEX, así como `appLang` para español/inglés. No se agrega framework, aplicación independiente ni servicio de reconocimiento de pago.
 
@@ -22,7 +22,7 @@ El frontend es HTML/JS estático con Supabase JS y shell común. Se reutilizan `
 
 ## Seguridad y recuperación
 
-La sesión y capacidades existentes gobiernan cada RPC. SELECT tiene RLS por división. Clientes no tienen UPDATE/INSERT directo sobre registros ni capacidad de reclamar trabajos/finalizar OCR. La clave service_role queda en host corporativo; su amplitud es un riesgo operativo explícito y no debe distribuirse a colaboradores. Las políticas restrictivas de Storage impiden que políticas antiguas de otro bucket expongan o muten evidencia. Se usan descargas autenticadas y URLs blob revocables, no URLs públicas persistentes.
+La sesión y capacidades existentes gobiernan cada RPC. SELECT tiene RLS por división. Clientes no tienen UPDATE/INSERT directo sobre registros ni capacidad de reclamar trabajos/finalizar OCR. La clave service_role permanece en el entorno interno de la Edge Function. El Mac utiliza un token revocable limitado al protocolo del worker, guardado localmente con permisos 0600. Las políticas restrictivas de Storage impiden que políticas antiguas de otro bucket expongan o muten evidencia. Se usan descargas autenticadas y URLs blob revocables, no URLs públicas persistentes.
 
 Un hash por lote evita trabajos repetidos. Creación -> carga -> `ready` evita reclamar objetos inexistentes. Un cierre entre esos pasos se recupera desde IndexedDB y comprobación de hash. Los rechazos permanentes de subida se conservan con error por archivo y no bloquean las demás imágenes; los fallos transitorios detienen el envío sin descartar la cola. Se puede reintentar tras reabrir INDEX y se intenta continuar al recuperar conexión. Un cambio de cuenta interrumpe la importación y conserva los pendientes en la cuenta original. Cuota local acotada a 100 entradas; importación espera al llegar a 20. Solo se lee un archivo a la vez. La selección de 4,000 nombres no decodifica 4,000 imágenes. ZIP valida límites, métodos, tamaños declarados/efectivos, CRC, rutas y enlaces simbólicos; rechaza archivos no imagen, ZIP64, multipart y cifrados. Máximo ZIP 256 MiB y expansión 512 MiB: dividir archivos grandes en grupos o seleccionar carpeta.
 
@@ -40,12 +40,12 @@ Auditoría append-only desde cliente: cambios de campos, notas, actor, fecha y r
 - Playwright con fixture sintético y CSS real de INDEX: captura/revisión a 320, 375, 768, 1024 y 1440 px; foco resalta la evidencia; outbox permanece al reabrir IndexedDB; sin overflow horizontal. No equivale a probar teléfonos físicos ni la integración remota.
 - Regresión: workflow, centro, catálogo, quickview, etiquetas y privacidad pasan. `tests/samples/experience.cjs` falla `Hanger !== Yardas` tanto en esta rama como en el checkout limpio de la base; no lo introduce este cambio. `tests/security/access.cjs` pasa.
 - Auditoría visual SIERRA sin patrones de acento adherido al borde.
-- PaddleOCR real en macOS ARM64: siete imágenes sintéticas (limpia, rotada, pequeña, iluminación reducida, desenfocada, dañada, español). Sin excepciones. Código de desarrollo: 6/7 coincidencias exactas; composición, GSM, ancho y color: 7/7 cada uno. Latencias de la corrida móvil: aproximadamente 1.3–3.0 segundos por imagen, sin incluir instalación/carga inicial/subida. Detector servidor: 11.8 s y móvil: 2.0 s en una comparación de una imagen. Esto **no mide la precisión en etiquetas de SIERRA** ni justifica extrapolar productividad al lote real.
+- PaddleOCR real en macOS ARM64: siete imágenes sintéticas (limpia, rotada, pequeña, iluminación reducida, desenfocada, dañada, español). Sin excepciones. Código de desarrollo: 6/7 coincidencias exactas; composición, GSM, ancho y color: 7/7 cada uno. Estos resultados históricos comparaban detectores con reconocimiento por defecto; el despliegue fija explícitamente el reconocedor latino móvil y debe recalibrarse en el piloto. Latencias históricas de la corrida con detector móvil: aproximadamente 1.3–3.0 segundos por imagen, sin incluir instalación/carga inicial/subida. Detector servidor: 11.8 s y móvil: 2.0 s en una comparación de una imagen. Esto **no mide la precisión en etiquetas de SIERRA** ni justifica extrapolar productividad al lote real.
 
-## Pendientes antes de producción
+## Pendientes antes de la carga masiva
 
-1. Aplicar y ensayar migración en Supabase de staging; confirmar comportamiento con políticas e integración Auth/Storage desplegadas. PGlite prueba contratos aislados, no reproduce toda la infraestructura remota.
-2. Probar instalación nativa/servicio y contenedor en equipos corporativos Windows/Linux; macOS tiene inferencia local real comprobada, pero el instalador de servicio no fue ejecutado en el equipo del usuario.
+1. Integración remota comprobada con una imagen sintética: carga privada, reclamación, OCR real, imagen procesada y resultado Needs Review. Ampliar pruebas con cuentas operativas y dispositivos reales.
+2. Probar instalación nativa/servicio y contenedor en equipos corporativos Windows/Linux; macOS tiene instalación nativa launchd e inferencia real comprobadas.
 3. Piloto de 100 etiquetas reales con verdad de referencia independiente; calibrar OCR, interpretación, perspectiva, nomenclaturas, reflejos, desenfoque y similitud visual. Ensayar al menos 4,001 trabajos sintéticos/fotografías de prueba con cierres de navegador y caídas de worker antes de la carga real.
 4. Validar cámara y permisos de iOS/Android; comprobar lectura de HEIC y comportamiento de carpetas/ZIP por navegador.
 5. Medir RSS/CPU/disco/red y tiempos de captura/corrección. El dashboard mide segundos OCR y productividad por lote/actor; no mide tiempo activo exacto del colaborador. No hay métricas ficticias para esos datos.

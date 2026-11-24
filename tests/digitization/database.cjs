@@ -11,10 +11,12 @@ const fs=require('node:fs');const assert=require('node:assert/strict');
  grant usage on schema public,auth,storage to authenticated,anon,service_role;grant select,insert on storage.objects to authenticated;grant execute on all functions in schema auth to authenticated,anon,service_role;
  insert into auth.users values('${id(1)}'),('${id(2)}');`);
  const migration=fs.readdirSync('../../supabase/migrations'.replace('../..',require('path').join(__dirname,'../..'))).find(x=>x.endsWith('_sample_digitization.sql'));
+ await db.exec('alter default privileges in schema public grant all on tables to anon,authenticated');
  await db.exec(fs.readFileSync(require('path').join(__dirname,'../../supabase/migrations',migration),'utf8'));
+ await db.exec(fs.readFileSync(require('path').join(__dirname,'../../supabase/migrations/20261124225636_digitization_worker_gateway.sql'),'utf8'));
  async function as(user,division='fabric',cap='write',active='yes'){await db.exec('reset role');await db.query("select set_config('test.uid',$1,false),set_config('test.div',$2,false),set_config('test.cap',$3,false),set_config('test.active',$4,false)",[user,division,cap,active]);await db.exec('set role authenticated')}
  async function rpc(name,args=[]){return (await db.query(`select to_jsonb(${name}(${args.map((_,i)=>'$'+(i+1)).join(',')})) as v`,args)).rows[0].v}
- await as(id(1));const batch=await rpc('digitization_batch',['Pilot','fabric']);
+ await as(id(1));await assert.rejects(db.exec('select * from digitization_worker_credentials'),/permission denied/);const batch=await rpc('digitization_batch',['Pilot','fabric']);
  const j=await rpc('digitization_enqueue',[id(10),batch,'a'.repeat(64),'synthetic.png']);assert.equal(j.status,'Pending');
  const same=await rpc('digitization_enqueue',[id(11),batch,'a'.repeat(64),'same.png']);assert.equal(same.id,j.id);
  await assert.rejects(rpc('digitization_action',[j.id,1,'ready']),/Upload missing/);

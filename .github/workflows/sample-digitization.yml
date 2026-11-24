@@ -5,6 +5,7 @@ on:
       - 'js/*digitization*.js'
       - 'css/sample-digitization.css'
       - 'services/sample-digitization/**'
+      - 'supabase/functions/sample-digitization-worker/**'
       - 'supabase/migrations/**'
       - 'tests/digitization/**'
       - '.github/workflows/sample-digitization.yml'
@@ -23,7 +24,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: npm ci --prefix tests/samples
-      - run: node tests/digitization/database.cjs && node tests/digitization/core.cjs
+      - run: node tests/digitization/database.cjs && node tests/digitization/core.cjs && node tests/digitization/gateway.cjs
       - run: python tests/digitization/extraction_test.py
       - run: node --check js/sample-digitization.js && node --check js/digitization-core.js
       - run: npm ci --prefix tests/policy-pdf
