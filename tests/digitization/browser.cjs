@@ -15,7 +15,23 @@ const root=path.resolve(__dirname,'../..');
  fs.writeFileSync(path.join(root,'work/ocr-fixtures/browser-fixture.html'),fixture);
  const server=http.createServer((req,res)=>{if(req.url==='/fixture'){res.setHeader('Content-Type','text/html');res.end(fixture);return}const name=path.join(root,decodeURIComponent(req.url.split('?')[0]));if(!name.startsWith(root+path.sep)){res.writeHead(403).end();return}fs.readFile(name,(err,data)=>{if(err){res.writeHead(404).end();return}res.setHeader('Content-Type',name.endsWith('.js')?'application/javascript':name.endsWith('.css')?'text/css':name.endsWith('.png')?'image/png':'application/octet-stream');res.end(data)})});await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const browser=await chromium.launch({headless:true});try{const page=await browser.newPage();const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.error('PAGE',e.message)});await page.goto(`http://127.0.0.1:${server.address().port}/fixture`);await page.evaluate(()=>showSampleDigitization());await page.evaluate(()=>sdChoose(batch.id));
- for(const width of [320,375,768,1024,1440]){await page.setViewportSize({width,height:1000});await page.evaluate(()=>sdCaptureView());assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'capture overflow '+width);await page.evaluate(()=>sdReview(job.id));await page.locator('#sd-field-0').focus();await page.waitForFunction(()=>document.querySelector('#sd-overlay polygon'));assert.equal(await page.locator('#sd-overlay polygon').count(),1);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'review overflow '+width);if(width===1440||width===375)await page.screenshot({path:path.join(root,`work/ocr-fixtures/review-${width}.png`),fullPage:true})}
+ for(const width of [320,375,768,1024,1440]){await page.setViewportSize({width,height:1000});await page.evaluate(()=>sdCaptureView());assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'capture overflow '+width);await page.evaluate(()=>sdReview(job.id));await page.locator('#sd-field-0').focus();await page.waitForFunction(()=>document.querySelector('#sd-overlay polygon'));assert.equal(await page.locator('#sd-overlay polygon').count(),1);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'review overflow '+width);if(width===1440||width===375)await page.screenshot({path:path.join(root,`work/ocr-fixtures/review-${width}.png`),fullPage:true,animations:'disabled'})}
+ for(const width of [320,375,768,1024,1440]){
+  await page.setViewportSize({width,height:1000});
+  for(const [view,fn] of [['home','sdHome'],['capture','sdCaptureView'],['queue','sdList'],['settings','sdSettings']]){
+   await page.evaluate(fn=>window[fn](),fn);
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,view+' overflow '+width);
+   assert.equal(await page.locator('[data-sd-nav][aria-current="page"]').getAttribute('data-sd-nav'),view==='queue'?'review':view);
+   if(view==='capture'){await page.locator('#sd-drop').scrollIntoViewIfNeeded();assert.ok(await page.locator('#sd-drop').isVisible());assert.equal(await page.locator('.sd-capture-grid .sd-surface-panel').first().evaluate(el=>getComputedStyle(el).position),'static');await page.evaluate(()=>window.scrollTo(0,0))}
+   if(width===1440||width===375)await page.screenshot({path:path.join(root,`work/ocr-fixtures/${view}-${width}.png`),fullPage:true,animations:'disabled'});
+  }
+ }
+ await page.locator('[data-sd-setting="concurrency"]').fill('2');
+ await page.locator('[data-sd-setting="concurrency"]').dispatchEvent('change');
+ assert.equal(await page.locator('#sd-config').inputValue().then(JSON.parse).then(c=>c.concurrency),2);
+ await page.evaluate(()=>sdHome());await page.getByRole('button',{name:'Nuevo lote',exact:true}).click();
+ assert.equal(await page.locator('#sd-name').evaluate(el=>el===document.activeElement),true);
+ console.log('PASS: all redesigned views at five widths, active navigation, settings binding and new-batch focus');
  // Durable outbox remains scoped to the account and survives reopening the DB.
  assert.equal(await page.evaluate(async()=>{const box=await DigitizationCore.outbox('synthetic-test');await box.run('readwrite',s=>s.put({id:'one',file:new Blob(['x'])}));const reopened=await DigitizationCore.outbox('synthetic-test');return reopened.run('readonly',(s,set)=>{const r=s.count();r.onsuccess=()=>set(r.result)})}),1);
  const recovery=await page.evaluate(async()=>{
