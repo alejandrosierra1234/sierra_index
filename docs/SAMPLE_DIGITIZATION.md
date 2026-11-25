@@ -60,3 +60,16 @@ Alternativa futura de menor costo: archivo en NAS corporativo cifrado con manifi
 ## Fuentes técnicas y licencias
 
 [PaddleOCR 3.3 — pipeline](https://www.paddleocr.ai/v3.3.0/en/version3.x/pipeline_usage/OCR.html), [PaddleOCR 3.3.2 Apache-2.0](https://github.com/PaddlePaddle/PaddleOCR/blob/v3.3.2/LICENSE), [PaddlePaddle 3.2.2 Apache-2.0](https://github.com/PaddlePaddle/Paddle/blob/v3.2.2/LICENSE), [Supabase Storage/RLS](https://supabase.com/docs/guides/storage/security/access-control). Conservar avisos de los paquetes al redistribuir: OpenCV Apache-2.0, Pillow HPND, httpx BSD-3-Clause, pillow-heif BSD-3-Clause y licencias de sus bibliotecas binarias (incluido libheif). El lockfile registra versiones del entorno comprobado; el inventario de licencias transitivas y binarios de cada instalador debe acompañar la distribución corporativa.
+
+
+## Revisión de duplicados — reglas 2.0
+
+El OCR finaliza en Needs Review. Compartir desarrollo, texto o aspecto solo propone candidatos. La revisión calcula evidencia con los campos actuales, dentro de la división y permisos del colaborador, mostrando hasta 30 resultados por prioridad. El rango interno es un orden de señales, **no una probabilidad**. Se conservan originales, no se fusiona ni borra información y no se cambian estados históricos con la migración.
+
+Señales: SHA-256 idéntico, texto OCR idéntico, código de desarrollo, identificador de muestra, tres o más campos técnicos coincidentes y distancia dHash. Los hashes visuales casi uniformes se excluyen. Para campos se exige OCR ≥0.85 e interpretación ≥0.90, o corrección humana; conflictos quedan pendientes. GSM y ancho se comparan solo con unidades canónicas verificables; una corrección que invalida esa normalización queda fuera de esa señal. Código compartido con color/lote/identificador/acabado diferente propone variante. Identificador compartido con datos contradictorios exige atención especial.
+
+En Configuración → Reglas y plantillas avanzadas, administradores pueden añadir `"duplicates":{"visual_distance":4,"gsm_percent":5,"width_cm":2}`. Límites efectivos: distancia 0–8 bits, GSM 0–10%, ancho 0–5 cm. Son valores iniciales conservadores, pendientes de calibración real. Se aplican al consultar candidatos; no requieren reiniciar PaddleOCR.
+
+`digitization_duplicate_decide` exige permiso de escritura, lectura del candidato, motivo y versiones vigentes de ambos registros. Cada decisión conserva evidencia, versión de reglas, actor, estado previo y relación en `digitization_events`. Las decisiones se muestran como vigentes solo si ambas revisiones coinciden; los cambios posteriores exigen revisar la relación otra vez. Fotografías/muestras repetidas marcan Duplicate; variante, distintas o pendiente restablecen Needs Review. Validar campos sigue siendo una acción independiente.
+
+Limitaciones: dHash no reconoce identidad física ni garantiza coincidencias bajo recortes o perspectivas distintos. Los pares sin señales comunes pueden no aparecer. La consulta evalúa registros procesados de la división; para crecimientos muy superiores al piloto se debe medir su latencia e introducir índices de candidatos si procede. El piloto debe evaluar falsos positivos y negativos sobre pares conocidos, incluidos los que no aparezcan en la lista. Las pruebas sintéticas validan lógica y permisos, no precisión comercial.
