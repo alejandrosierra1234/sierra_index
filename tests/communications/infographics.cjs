@@ -52,6 +52,30 @@ w.infoSetBlock(w.document.querySelector('[data-info-block].info-selected').datas
 assert.equal(w.document.querySelector('[data-info-block].info-selected').dataset.infoHeight,'fill')
 console.log('PASS: modules can be resized and choose content or remaining-space height')
 
+const ctaId=w.document.querySelector('[data-info-block].info-selected').dataset.infoBlock
+const qrCalls=[]
+w.QRCode={toDataURL:(url,options,callback)=>qrCalls.push({url,options,callback})}
+assert.match(w.document.getElementById('info-inspector').textContent,/Generar QR/)
+await w.infoGenerateQr(ctaId)
+assert.equal(qrCalls.length,0,'invalid URL must not generate')
+w.infoSetBlock(ctaId,'url','https://example.com/support?team=IT')
+let pending=w.infoGenerateQr(ctaId)
+assert.equal(qrCalls[0].options.margin,4)
+qrCalls[0].callback(null,'data:image/png;base64,AAAA');await pending
+assert.ok(w.document.querySelector('.info-cta-qr'))
+assert.match(w.document.querySelector('.info-cta-url').textContent,/team=IT/)
+assert.match(w.localStorage.getItem('sierra_infographics_v1:info-test'),/qrImage/)
+w.infoSetBlock(ctaId,'url','https://example.com/new')
+assert.equal(w.document.querySelector('.info-cta-qr'),null)
+pending=w.infoGenerateQr(ctaId)
+w.infoSetBlock(ctaId,'url','https://example.com/latest')
+qrCalls[1].callback(null,'data:image/png;base64,BBBB');await pending
+assert.equal(w.document.querySelector('.info-cta-qr'),null,'stale generation discarded')
+pending=w.infoGenerateQr(ctaId)
+qrCalls[2].callback(Error('unavailable'));await pending
+assert.equal(w.document.querySelector('.info-cta-qr'),null)
+console.log('PASS: QR generation validates URLs, saves images and discards stale results')
+
 w.infoAddBlock('callout')
 const iconBlock=w.document.querySelector('[data-info-block].info-selected').dataset.infoBlock
 assert.ok(w.document.querySelector('.info-icon-trigger'))
