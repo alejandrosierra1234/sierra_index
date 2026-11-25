@@ -32,6 +32,15 @@ const root=path.resolve(__dirname,'../..');
  await page.evaluate(()=>sdHome());await page.getByRole('button',{name:'Nuevo lote',exact:true}).click();
  assert.equal(await page.locator('#sd-name').evaluate(el=>el===document.activeElement),true);
  console.log('PASS: all redesigned views at five widths, active navigation, settings binding and new-batch focus');
+ // A dashboard count finishing after navigation must not leak its error into capture.
+ const staleDashboard=await page.evaluate(async()=>{
+  const originalFrom=sb.from;const failures=[];
+  sb.from=table=>{if(table!=='digitization_jobs')return originalFrom(table);const q={select(){return q},eq(){return q},then(resolve){return new Promise(r=>{failures.push(()=>r({error:new SyntaxError('Synthetic delayed count failure')}))}).then(resolve)}};return q};
+  const pending=sdDashboard();await new Promise(r=>setTimeout(r,0));
+  await sdCaptureView();failures.forEach(f=>f());await pending;sb.from=originalFrom;
+  return document.getElementById('sd-error').textContent;
+ });
+ assert.equal(staleDashboard,'');
  // Durable outbox remains scoped to the account and survives reopening the DB.
  assert.equal(await page.evaluate(async()=>{const box=await DigitizationCore.outbox('synthetic-test');await box.run('readwrite',s=>s.put({id:'one',file:new Blob(['x'])}));const reopened=await DigitizationCore.outbox('synthetic-test');return reopened.run('readonly',(s,set)=>{const r=s.count();r.onsuccess=()=>set(r.result)})}),1);
  const recovery=await page.evaluate(async()=>{

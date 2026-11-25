@@ -22,5 +22,20 @@ const origin='https://vhyddogeemohtqijohry.supabase.co',publicUrl=origin+'/stora
  assert.equal(calls.at(-1).init.headers.Authorization,'Bearer bob');
  const denied=await assets.fetch(origin+'/rest/v1/employees',{headers:{Authorization:'Bearer bob'}});
  assert.equal((await denied.json()).photo,publicUrl);
+ // PostgREST count-only HEAD requests advertise JSON but deliberately have no body.
+ for(const inputKind of ['init','request','override']){
+  const original=new Response(null,{status:200,headers:{'content-type':'application/json','content-range':'*/7'}});
+  const client=create({origin,key:'public-key',fetch:async()=>original});
+  const url=origin+'/rest/v1/digitization_jobs?select=id';
+  const input=inputKind==='init'?url:new Request(url,{method:inputKind==='override'?'GET':'HEAD'});
+  const result=await client.fetch(input,inputKind==='request'?undefined:{method:'HEAD'});
+  assert.equal(result,original);assert.equal(result.bodyUsed,false);assert.equal(result.headers.get('content-range'),'*/7');
+ }
+ for(const status of [204,205,304]){
+  const original=new Response(null,{status,headers:{'content-type':'application/json'}});
+  const client=create({origin,key:'public-key',fetch:async()=>original});
+  assert.equal(await client.fetch(origin+'/rest/v1/rpc/digitization_action',{method:'POST'}),original);
+ }
+ console.log('PASS: HEAD counts and bodyless HTTP statuses preserve the original response and headers');
  console.log('PASS: private assets honor session, reject foreign origins, deduplicate signing, and never persist temporary tokens');
 })().catch(e=>{console.error(e);process.exitCode=1});

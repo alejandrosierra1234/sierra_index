@@ -47,6 +47,9 @@
         try{options={...init,body:JSON.stringify(await map(JSON.parse(init.body),canonical))};}catch{}
       }
       const response=await request(input,options);
+      // HEAD/count responses can advertise JSON, but HTTP forbids a response body.
+      const method=String(init?.method||input?.method||'GET').toUpperCase();
+      if(method==='HEAD'||[204,205,304].includes(response.status))return response;
       if(!response.ok||!response.headers.get('content-type')?.includes('application/json'))return response;
       const data=await response.json();
       const hydrated=await map(data,async value=>{
