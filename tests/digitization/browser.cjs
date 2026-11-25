@@ -10,7 +10,7 @@ const root=path.resolve(__dirname,'../..');
  function showSampleTool(){return document.getElementById('pg')}
  const batch={id:'00000000-0000-0000-0000-000000000010',name:'SYNTHETIC PILOT',division:'fabric'};
  const job={id:'00000000-0000-0000-0000-000000000020',batch_id:batch.id,filename:'Synthetic label',status:'Needs Review',revision:1,original_path:'synthetic',processed_path:'synthetic',fields:{'Development Code':{value:'TEST-001',original:'TEST-001',source_lines:[0],ocr_confidence:.96,interpretation_confidence:.98}},warnings:[],result:{width:1400,height:900,text:'Development Code: TEST-001',lines:[{polygon:[[40,160],[800,160],[800,220],[40,220]]}]}};
- const sb={from(table){const q={select(){return q},order(){return q},eq(){return q},limit(){return q},range(){return q},single(){return Promise.resolve({data:table==='digitization_jobs'?job:{id:true,revision:1,config:{concurrency:1}}})},then(resolve){return Promise.resolve({data:table==='digitization_batches'?[batch]:table==='digitization_jobs'?[job]:[],count:1}).then(resolve)}};return q},rpc:async(name)=>({data:name==='digitization_metrics'?{timing:{},accuracy:[],productivity:[],pending:0}:null}),storage:{from(){return {download:async()=>({data:await (await fetch('/work/ocr-fixtures/synthetic.png')).blob()})}}}};
+ const sb={from(table){const q={select(){return q},order(){return q},eq(){return q},limit(){return q},range(){return q},single(){return Promise.resolve({data:table==='digitization_jobs'?job:{id:true,revision:1,config:{concurrency:1}}})},then(resolve){return Promise.resolve({data:table==='digitization_batches'?[batch]:table==='digitization_jobs'?[job]:[],count:1}).then(resolve)}};return q},rpc:async(name)=>({data:name==='digitization_duplicate_candidates'?[]:name==='digitization_metrics'?{timing:{},accuracy:[],productivity:[],pending:0}:null}),storage:{from(){return {download:async()=>({data:await (await fetch('/work/ocr-fixtures/synthetic.png')).blob()})}}}};
  </script><script src="/js/digitization-core.js"></script><script src="/js/sample-digitization.js"></script></body></html>`;
  fs.writeFileSync(path.join(root,'work/ocr-fixtures/browser-fixture.html'),fixture);
  const server=http.createServer((req,res)=>{if(req.url==='/fixture'){res.setHeader('Content-Type','text/html');res.end(fixture);return}const name=path.join(root,decodeURIComponent(req.url.split('?')[0]));if(!name.startsWith(root+path.sep)){res.writeHead(403).end();return}fs.readFile(name,(err,data)=>{if(err){res.writeHead(404).end();return}res.setHeader('Content-Type',name.endsWith('.js')?'application/javascript':name.endsWith('.css')?'text/css':name.endsWith('.png')?'image/png':'application/octet-stream');res.end(data)})});await new Promise(r=>server.listen(0,'127.0.0.1',r));
@@ -32,6 +32,28 @@ const root=path.resolve(__dirname,'../..');
  await page.evaluate(()=>sdHome());await page.getByRole('button',{name:'Nuevo lote',exact:true}).click();
  assert.equal(await page.locator('#sd-name').evaluate(el=>el===document.activeElement),true);
  console.log('PASS: all redesigned views at five widths, active navigation, settings binding and new-batch focus');
+ // Synthetic pair: the UI compares originals and submits both revision fences.
+ await page.evaluate(()=>{
+  window.originalPairRPC=sb.rpc;window.originalPairFrom=sb.from;window.decisions=[];
+  window.pair={id:'00000000-0000-0000-0000-000000000021',filename:'SYNTHETIC VARIANT',revision:7,evidence:{category:'possible_variant',matching_fields:['Development Code'],different_fields:['Color'],uncertain_fields:[],signals:['same_development'],visual_distance:9}};
+  sb.rpc=async(name,args)=>{if(name==='digitization_duplicate_candidates')return {data:[pair]};if(name==='digitization_duplicate_decide'){decisions.push(args);return {data:null}}return originalPairRPC(name,args)};
+  sb.from=table=>{const q=originalPairFrom(table);if(table==='digitization_jobs'){let selected;const eq=q.eq;q.eq=(key,value)=>{if(key==='id')selected=value;return eq(key,value)};const single=q.single;q.single=()=>selected===pair.id?Promise.resolve({data:{...job,id:pair.id,revision:7,filename:pair.filename,fields:{...job.fields,Color:{value:'Navy'}}}}):single()}return q};
+ });
+ for(const width of [320,768,1440]){
+  await page.setViewportSize({width,height:1000});await page.evaluate(()=>sdReview(job.id));
+  await page.getByRole('button',{name:'Comparar',exact:true}).click();await page.locator('#sd-duplicate-note').waitFor();
+  assert.equal(await page.locator('.sd-compare-photos img').count(),2);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'comparison overflow '+width);
+  if(width===1440)await page.screenshot({path:path.join(root,'work/ocr-fixtures/duplicate-comparison.png'),fullPage:true,animations:'disabled'});
+ }
+ await page.locator('#sd-field-0').fill('unsaved');await page.getByRole('button',{name:'Variante legítima',exact:true}).click();
+ assert.equal(await page.evaluate(()=>decisions.length),0,'unsaved edits must not be discarded');
+ await page.locator('#sd-field-0').fill('TEST-001');await page.locator('#sd-duplicate-note').fill('SYNTHETIC: different color');
+ await page.getByRole('button',{name:'Variante legítima',exact:true}).click();
+ await page.waitForFunction(()=>decisions.length===1);
+ assert.deepEqual(await page.evaluate(()=>decisions[0]),{p_id:'00000000-0000-0000-0000-000000000020',p_revision:1,p_target:'00000000-0000-0000-0000-000000000021',p_target_revision:7,p_decision:'variant',p_note:'SYNTHETIC: different color'});
+ await page.evaluate(()=>{sb.rpc=originalPairRPC;sb.from=originalPairFrom});
+ console.log('PASS: responsive pair comparison, original images, unsaved-edit protection, explicit decision and both revisions');
  // A dashboard count finishing after navigation must not leak its error into capture.
  const staleDashboard=await page.evaluate(async()=>{
   const originalFrom=sb.from;const failures=[];
