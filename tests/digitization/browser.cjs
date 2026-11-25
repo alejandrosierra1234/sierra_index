@@ -1,5 +1,5 @@
 // Synthetic UI fixture; never a replacement for staging/pilot verification.
-const {chromium}=require('../policy-pdf/node_modules/playwright');
+const {chromium,webkit}=require('../policy-pdf/node_modules/playwright');
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'../..');
 (async()=>{
@@ -14,7 +14,7 @@ const root=path.resolve(__dirname,'../..');
  </script><script src="/js/digitization-core.js"></script><script src="/js/sample-digitization.js"></script></body></html>`;
  fs.writeFileSync(path.join(root,'work/ocr-fixtures/browser-fixture.html'),fixture);
  const server=http.createServer((req,res)=>{if(req.url==='/fixture'){res.setHeader('Content-Type','text/html');res.end(fixture);return}const name=path.join(root,decodeURIComponent(req.url.split('?')[0]));if(!name.startsWith(root+path.sep)){res.writeHead(403).end();return}fs.readFile(name,(err,data)=>{if(err){res.writeHead(404).end();return}res.setHeader('Content-Type',name.endsWith('.js')?'application/javascript':name.endsWith('.css')?'text/css':name.endsWith('.png')?'image/png':'application/octet-stream');res.end(data)})});await new Promise(r=>server.listen(0,'127.0.0.1',r));
- const browser=await chromium.launch({headless:true});try{const page=await browser.newPage();const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.error('PAGE',e.message)});await page.goto(`http://127.0.0.1:${server.address().port}/fixture`);await page.evaluate(()=>showSampleDigitization());await page.evaluate(()=>sdChoose(batch.id));
+ const browser=await (process.env.SD_BROWSER==='webkit'?webkit:chromium).launch({headless:true});try{const page=await browser.newPage();const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.error('PAGE',e.message)});await page.goto(`http://127.0.0.1:${server.address().port}/fixture`);await page.evaluate(()=>showSampleDigitization());await page.evaluate(()=>sdChoose(batch.id));
  for(const width of [320,375,768,1024,1440]){await page.setViewportSize({width,height:1000});await page.evaluate(()=>sdCaptureView());assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'capture overflow '+width);await page.evaluate(()=>sdReview(job.id));await page.locator('#sd-field-0').focus();await page.waitForFunction(()=>document.querySelector('#sd-overlay polygon'));assert.equal(await page.locator('#sd-overlay polygon').count(),1);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'review overflow '+width);if(width===1440||width===375)await page.screenshot({path:path.join(root,`work/ocr-fixtures/review-${width}.png`),fullPage:true,animations:'disabled'})}
  for(const width of [320,375,768,1024,1440]){
   await page.setViewportSize({width,height:1000});
@@ -64,14 +64,14 @@ const root=path.resolve(__dirname,'../..');
  });
  assert.equal(staleDashboard,'');
  // Durable outbox remains scoped to the account and survives reopening the DB.
- assert.equal(await page.evaluate(async()=>{const box=await DigitizationCore.outbox('synthetic-test');await box.run('readwrite',s=>s.put({id:'one',file:new Blob(['x'])}));const reopened=await DigitizationCore.outbox('synthetic-test');return reopened.run('readonly',(s,set)=>{const r=s.count();r.onsuccess=()=>set(r.result)})}),1);
+ assert.equal(await page.evaluate(async()=>{const box=await DigitizationCore.outbox('synthetic-test');await box.run('readwrite',s=>s.put({id:'one',bytes:new Uint8Array([120]).buffer}));const reopened=await DigitizationCore.outbox('synthetic-test');return reopened.run('readonly',(s,set)=>{const r=s.count();r.onsuccess=()=>set(r.result)})}),1);
  const recovery=await page.evaluate(async()=>{
   await sdCaptureView();
   const originalRPC=sb.rpc,originalStorage=sb.storage,owner=me.id;
   let rejectBad=true,offline=false,uploads=0,downloads=0,switchAccount=false;
   sb.rpc=async(name,args)=>{if(name==='digitization_enqueue'){if(switchAccount)me={id:'another-account'};return {data:{id:args.p_id,original_path:args.p_filename,revision:1,ready:false}}}return {data:null}};
-  sb.storage={from:()=>({upload:async(path)=>{if(offline)return {error:{statusCode:503,message:'Synthetic network failure'}};if(rejectBad&&path==='bad.png')return {error:{statusCode:403,message:'Synthetic rejected image'}};uploads++;return {error:null}},download:async()=>{downloads++;throw Error('Unexpected download')}})};
-  const put=async(id,name)=>sd.outbox.run('readwrite',store=>store.put({id,name,batch:batch.id,hash:'a'.repeat(64),file:new File(['synthetic'],name,{type:'image/png'})}));
+  sb.storage={from:()=>({upload:async(path,body,options)=>{if(!(body instanceof ArrayBuffer)||body.byteLength!==9||options.contentType!=='image/png'||options.upsert!==false)throw Error('Expected complete raw image bytes');if(offline)return {error:{statusCode:503,message:'Synthetic network failure'}};if(rejectBad&&path==='bad.png')return {error:{statusCode:403,message:'Synthetic rejected image'}};uploads++;return {error:null}},download:async()=>{downloads++;throw Error('Unexpected download')}})};
+  const put=async(id,name)=>sd.outbox.run('readwrite',store=>store.put({id,name,batch:batch.id,hash:'a'.repeat(64),bytes:new TextEncoder().encode('synthetic').buffer,size:9,type:'image/png'}));
   await put('a','bad.png');await put('b','good.png');await sdPump();
   const isolated=await sdLocalUploads();const validAdvanced=uploads===1&&isolated.failed===1&&isolated.pending===0&&downloads===0;
   sd.outbox=await DigitizationCore.outbox(owner);await put('c','another-good.png');await sdPump();
@@ -87,11 +87,26 @@ const root=path.resolve(__dirname,'../..');
   return {validAdvanced,survivedReload,retried,recovered,isolatedAccount,hashSwitchBlocked};
  });
  assert.deepEqual(recovery,{validAdvanced:true,survivedReload:true,retried:true,recovered:true,isolatedAccount:true,hashSwitchBlocked:true});
+ // Existing installations keep File records; the new uploader must still recover them.
+ if(process.env.SD_BROWSER!=='webkit'){
+  const legacy=await page.evaluate(async()=>{
+   const originalRPC=sb.rpc,originalStorage=sb.storage;let valid=false;
+   sb.rpc=async(name,args)=>({data:name==='digitization_enqueue'?{id:args.p_id,original_path:'legacy.jpg',revision:1,ready:false}:null});
+   sb.storage={from:()=>({upload:async(path,body,options)=>{valid=body instanceof ArrayBuffer&&new TextDecoder().decode(body)==='legacy'&&options.contentType==='image/jpeg';return {error:null}}})};
+   try{await sd.outbox.run('readwrite',store=>store.put({id:'legacy',name:'legacy.jpg',batch:batch.id,hash:'b'.repeat(64),file:new File(['legacy'],'legacy.jpg',{type:'image/jpeg'}),uploadFailed:true,uploadFailure:'No content provided'}));await sdRetryUploads();return valid&&(await sdLocalUploads()).failed===0}finally{sb.rpc=originalRPC;sb.storage=originalStorage}
+  });assert.equal(legacy,true);console.log('PASS: retry recovers legacy File-based outbox records as raw JPEG bytes');
+ }
+ const invalid=await page.evaluate(async()=>{
+  const originalRPC=sb.rpc,originalStorage=sb.storage;let uploads=0;
+  sb.rpc=async(name,args)=>({data:name==='digitization_enqueue'?{id:args.p_id,original_path:'empty.jpg',revision:1,ready:false}:null});
+  sb.storage={from:()=>({upload:async()=>{uploads++;return {error:null}}})};
+  try{await sd.outbox.run('readwrite',store=>store.put({id:'empty',name:'empty.jpg',batch:batch.id,hash:'c'.repeat(64),bytes:new ArrayBuffer(0),size:0,type:'image/jpeg'}));await sdPump();return uploads===0&&(await sdLocalUploads()).failed===1}finally{await sd.outbox.run('readwrite',store=>store.delete('empty'));sb.rpc=originalRPC;sb.storage=originalStorage}
+ });assert.equal(invalid,true);console.log('PASS: empty local images are retained as failures without an upload');
  const bulk=await page.evaluate(async()=>{
   const originalRPC=sb.rpc,originalStorage=sb.storage;let uploaded=0,maxPending=0,ticks=0;
   const timer=setInterval(()=>ticks++,10);
   sb.rpc=async(name,args)=>{if(name==='digitization_enqueue'){const counts=await sdLocalUploads();maxPending=Math.max(maxPending,counts.pending);return {data:{id:args.p_id,original_path:args.p_filename,revision:1,ready:false}}}return {data:null}};
-  sb.storage={from:()=>({upload:async()=>{uploaded++;return {error:null}}})};
+  sb.storage={from:()=>({upload:async(path,body,options)=>{if(!(body instanceof ArrayBuffer)||!body.byteLength||options.contentType!=='image/png')throw Error('Missing binary upload');uploaded++;return {error:null}}})};
   const canvas=document.createElement('canvas');canvas.width=1;canvas.height=1;const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
   const files=Array.from({length:4001},(_,i)=>new File([blob,String(i)],`synthetic-${i}.png`,{type:'image/png'}));
   try{await sdImport(files);while(sd.pumping)await new Promise(resolve=>setTimeout(resolve,10));return {uploaded,maxPending,ticks,remaining:await sdLocalUploads()}}

@@ -31,6 +31,7 @@ jobs:
       - run: python tests/digitization/extraction_test.py
       - run: node --check js/sample-digitization.js && node --check js/digitization-core.js
       - run: npm ci --prefix tests/policy-pdf
-      - run: cd tests/policy-pdf && npx playwright install --with-deps chromium
+      - run: cd tests/policy-pdf && npx playwright install --with-deps chromium webkit
       - run: pip install Pillow==11.3.0 && python tests/digitization/generate-fixtures.py
       - run: node tests/digitization/browser.cjs
+      - run: SD_BROWSER=webkit node tests/digitization/browser.cjs

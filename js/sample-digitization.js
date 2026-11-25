@@ -86,7 +86,7 @@ async function sdRetryUploads(){
 }
 function sdPermanentUploadError(error){
  const status=Number(error.statusCode||error.status);
- return error.code==='UPLOAD_HASH_MISMATCH'||error.code==='42501'||(status>=400&&status<500&&![401,408,409,425,429].includes(status));
+ return error.code==='LOCAL_IMAGE_INVALID'||error.code==='UPLOAD_HASH_MISMATCH'||error.code==='42501'||(status>=400&&status<500&&![401,408,409,425,429].includes(status));
 }
 async function sdQueue(file,targetBatch=sd.batch?.id,owner=sd.account){
  const box=sd.outbox;sdNeedBatch();if(me?.id!==owner||sd.account!==owner)throw Error('Account changed');
@@ -94,7 +94,7 @@ async function sdQueue(file,targetBatch=sd.batch?.id,owner=sd.account){
  const count=await box.run('readonly',(s,set)=>{const r=s.count();r.onsuccess=()=>set(r.result)});if(count>=100)throw Error(sdText('Cola local llena (100). Espera a que se envíen los archivos.','Local queue full (100). Wait for uploads.'));
  const raw=await file.arrayBuffer(),hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',raw)),b=>b.toString(16).padStart(2,'0')).join('');
  if(me?.id!==owner||sd.account!==owner)throw Error('Account changed');
- await box.run('readwrite',s=>s.put({id:crypto.randomUUID(),batch:targetBatch,hash,file,name:file.name}));sdPump();await sdUploadStatus();
+ await box.run('readwrite',s=>s.put({id:crypto.randomUUID(),batch:targetBatch,hash,bytes:raw,size:raw.byteLength,type:file.type,name:file.name}));sdPump();await sdUploadStatus();
 }
 async function sdImport(files){
  if(sd.importing)return;sd.importing=true;const targetBatch=sd.batch?.id,owner=sd.account;let accepted=0,failed=0;const errors=[];
@@ -119,7 +119,12 @@ async function sdPump(){
    const j=await sdRPC('digitization_enqueue',{p_id:item.id,p_batch:item.batch,p_hash:item.hash,p_filename:item.name});
    if(!sameOwner())break;
    if(!j.ready){
-    const {error}=await sb.storage.from('sample-digitization').upload(j.original_path,item.file,{contentType:item.file.type||'application/octet-stream',upsert:false});
+    // Send raw bytes: avoid multipart File serialization after IndexedDB on mobile Safari.
+    const bytes=item.bytes||await item.file.arrayBuffer();
+    if(!sameOwner())break;
+    if(!bytes.byteLength||bytes.byteLength!==(item.size??item.file?.size)||bytes.byteLength>DigitizationCore.MAX_IMAGE){const invalid=Error(sdText('La imagen local está vacía o dañada. Vuelve a capturarla; el registro se conserva.','Local image is empty or damaged. Capture it again; the record is retained.'));invalid.code='LOCAL_IMAGE_INVALID';throw invalid}
+    const extension=item.name.split('.').pop().toLowerCase(),contentType=item.type||item.file?.type||({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',heic:'image/heic',heif:'image/heif'}[extension])||'application/octet-stream';
+    const {error}=await sb.storage.from('sample-digitization').upload(j.original_path,bytes,{contentType,upsert:false});
     if(!sameOwner())break;
     if(error){
      // Only an existing-object conflict warrants downloading and verifying a prior upload.
@@ -148,7 +153,7 @@ function sdFrameQuality(canvas){const c=document.createElement('canvas');c.width
 async function sdSnap(auto=false){if(sd.snapping)return;sd.snapping=true;try{const c=sdFrame(),q=sdFrameQuality(c);const diff=sd.lastFrame?q.g.reduce((n,v,i)=>n+Math.abs(v-sd.lastFrame[i]),0)/q.g.length:Infinity;
  if(diff<4)throw Error(sdText('La imagen parece repetida. Cambia de muestra.','Image looks repeated. Change the sample.'));
  if(auto&&(q.edge<4||(q.glare>.98&&q.edge<10)))return;
- const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.94));await sdQueue(new File([blob],`capture-${Date.now()}.jpg`,{type:'image/jpeg'}));sd.lastFrame=q.g;sd.captures=(sd.captures||0)+1;document.getElementById('sd-quality').textContent=`${sd.captures} ${sdText('capturas','captures')} · ${q.edge<4?sdText('Posible desenfoque','Possible blur'):sdText('Captura guardada','Capture saved')}`;
+ const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',.94));if(!blob?.size)throw Error(sdText('No se pudo generar la fotografía. Intenta capturar nuevamente.','Could not create the photograph. Try capturing again.'));await sdQueue(new File([blob],`capture-${Date.now()}.jpg`,{type:'image/jpeg'}));sd.lastFrame=q.g;sd.captures=(sd.captures||0)+1;document.getElementById('sd-quality').textContent=`${sd.captures} ${sdText('capturas','captures')} · ${q.edge<4?sdText('Posible desenfoque','Possible blur'):sdText('Captura guardada','Capture saved')}`;
  try{const audio=new (window.AudioContext||window.webkitAudioContext)(),osc=audio.createOscillator(),gain=audio.createGain();gain.gain.value=.06;osc.connect(gain);gain.connect(audio.destination);osc.start();osc.stop(audio.currentTime+.08);osc.onended=()=>audio.close()}catch{}
  }catch(e){if(!auto)sdError(e)}finally{sd.snapping=false}}
 function sdAuto(enabled){clearInterval(sd.autoTimer);sd.stable=0;sd.previous=null;if(enabled)sd.autoTimer=setInterval(()=>{try{const q=sdFrameQuality(sdFrame());const change=sd.previous?q.g.reduce((n,v,i)=>n+Math.abs(v-sd.previous[i]),0)/q.g.length:100;sd.previous=q.g;sd.stable=change<2?sd.stable+1:0;if(sd.stable>=3){sdSnap(true);sd.stable=0}}catch{sdStopCamera()}},600)}
