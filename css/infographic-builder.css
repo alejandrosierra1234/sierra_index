@@ -84,3 +84,5 @@ dialog.modal-content.comms-confirm.info-icon-dialog{width:min(780px,calc(100vw -
 @container (max-width:420px){.info-page-inner{padding:7% 6% 5%}.info-feature-grid{grid-template-columns:1fr}.info-block{padding:16px}.info-title{font-size:clamp(27px,9cqw,40px)}.info-footer{align-items:flex-start;flex-direction:column}.info-footer .memo-logo{width:120px}}
 @media print{.info-page{box-shadow:none}}
 @media(prefers-reduced-motion:reduce){.info-panel-attention{animation:none}}
+
+.info-cta-actions{display:flex;flex-direction:column;align-items:center;gap:12px;max-width:100%}.info-cta-qr{display:block;width:112px;height:112px;box-sizing:content-box;padding:6px;background:#fff;border-radius:8px;max-width:100%;object-fit:contain}
