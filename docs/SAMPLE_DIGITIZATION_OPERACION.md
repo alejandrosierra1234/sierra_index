@@ -18,3 +18,6 @@ El servicio debe estar instalado por IT y el entorno de ensayo habilitado. Duran
 **Si se corta la conexión:** conservar el navegador y abrir nuevamente el mismo módulo/cuenta. Usar «Reintentar envíos». Si ya se había confirmado la subida, el trabajo está en Supabase y puede continuar sin el navegador. No abrir una segunda cuenta para recuperar la cola de otra persona. Si se borra IndexedDB antes del envío, es necesario reimportar la fotografía.
 
 **Precisión:** el porcentaje OCR describe caracteres; el de interpretación describe la regla aplicada. Ninguno certifica la veracidad textil. En el piloto no se salta la revisión por confianza alta. El dashboard compara valores iniciales contra los validados, no sustituye una evaluación independiente.
+
+
+**Safari / «No content provided»:** actualizar la página de INDEX en el mismo navegador y cuenta, sin borrar sus datos. Pulsar **Reintentar envíos** para recuperar las capturas conservadas. La cola nueva almacena bytes y envía la imagen directamente; también puede leer los archivos guardados por versiones anteriores. Si aparece «imagen local vacía o dañada», es necesario volver a capturar esa etiqueta; el sistema conserva el error y no confirma una subida vacía.
